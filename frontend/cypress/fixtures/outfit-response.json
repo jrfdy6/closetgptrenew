@@ -1,0 +1,46 @@
+{
+  "outfits": [
+    {
+      "id": "outfit-1",
+      "items": [
+        {
+          "id": "item-1",
+          "name": "Casual T-Shirt",
+          "type": "shirt",
+          "color": "white",
+          "imageUrl": "http://example.com/shirt.jpg"
+        },
+        {
+          "id": "item-2", 
+          "name": "Blue Jeans",
+          "type": "jeans",
+          "color": "blue",
+          "imageUrl": "http://example.com/jeans.jpg"
+        },
+        {
+          "id": "item-3",
+          "name": "White Sneakers", 
+          "type": "sneakers",
+          "color": "white",
+          "imageUrl": "http://example.com/shoes.jpg"
+        }
+      ],
+      "occasion": "casual",
+      "weather": {
+        "temperature": 75,
+        "condition": "clear"
+      },
+      "validation": {
+        "isValid": true,
+        "errors": [],
+        "warnings": [
+          "Casual T-Shirt (white) may not complement your warm skin tone",
+          "Consider adding a light jacket for evening"
+        ]
+      },
+      "explanation": "This casual outfit is perfect for a relaxed day out. The white t-shirt and blue jeans create a classic combination, while the white sneakers add comfort and style."
+    }
+  ],
+  "totalGenerated": 1,
+  "generationTime": 2.5
+} 

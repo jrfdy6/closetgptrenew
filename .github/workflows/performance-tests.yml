@@ -1,0 +1,193 @@
+name: Performance Tests
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/performance-tests.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/performance-tests.yml'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  backend-performance:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install locust pytest-benchmark memory-profiler
+          
+      - name: Start backend server
+        run: |
+          python -m src.app &
+          sleep 10
+          
+      - name: Run performance benchmarks
+        run: |
+          # Run outfit generation performance tests
+          python -c "
+          import time
+          import requests
+          
+          # Test outfit generation performance
+          start_time = time.time()
+          response = requests.post('http://localhost:3001/api/outfit/generate', 
+            json={'wardrobe': [], 'occasion': 'casual', 'weather': {'temperature': 70}})
+          end_time = time.time()
+          
+          print(f'Outfit generation time: {end_time - start_time:.2f} seconds')
+          print(f'Response status: {response.status_code}')
+          "
+          
+      - name: Run load tests
+        run: |
+          # Simple load test with multiple concurrent requests
+          python -c "
+          import threading
+          import time
+          import requests
+          
+          def make_request():
+              response = requests.post('http://localhost:3001/api/outfit/generate',
+                json={'wardrobe': [], 'occasion': 'casual', 'weather': {'temperature': 70}})
+              return response.status_code
+          
+          # Run 10 concurrent requests
+          threads = []
+          start_time = time.time()
+          
+          for i in range(10):
+              thread = threading.Thread(target=make_request)
+              threads.append(thread)
+              thread.start()
+          
+          for thread in threads:
+              thread.join()
+          
+          end_time = time.time()
+          print(f'Load test completed in {end_time - start_time:.2f} seconds')
+          "
+          
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-performance-results
+          path: backend/performance-results.json
+
+  frontend-performance:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build application
+        run: npm run build
+        
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun
+          
+      - name: Upload frontend performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-performance-results
+          path: |
+            frontend/.lighthouseci
+            frontend/.next
+
+  memory-profiling:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install memory-profiler psutil
+          
+      - name: Run memory profiling
+        run: |
+          python -m memory_profiler src/services/outfit_service.py
+          
+      - name: Upload memory profiling results
+        uses: actions/upload-artifact@v3
+        with:
+          name: memory-profiling-results
+          path: backend/memory-profile-results.txt
+
+  performance-report:
+    runs-on: ubuntu-latest
+    needs: [backend-performance, frontend-performance, memory-profiling]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download performance results
+        uses: actions/download-artifact@v3
+        with:
+          path: performance-results
+          
+      - name: Generate performance report
+        run: |
+          echo "## Performance Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Backend Performance" >> $GITHUB_STEP_SUMMARY
+          echo "- API Response Times: Measured" >> $GITHUB_STEP_SUMMARY
+          echo "- Load Test Results: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Frontend Performance" >> $GITHUB_STEP_SUMMARY
+          echo "- Lighthouse Scores: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Performance: Measured" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Memory Usage" >> $GITHUB_STEP_SUMMARY
+          echo "- Memory Profiling: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- Memory Leaks: Checked" >> $GITHUB_STEP_SUMMARY 

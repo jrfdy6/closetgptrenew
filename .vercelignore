@@ -1,0 +1,11 @@
+backend/
+shared/
+*.md
+.git/
+node_modules/
+.env
+.env.local
+.env.production.local
+.env.local
+.env.development.local
+.env.test.local 

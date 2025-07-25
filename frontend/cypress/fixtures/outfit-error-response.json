@@ -1,0 +1,14 @@
+{
+  "error": "Unable to generate outfit",
+  "message": "Insufficient items in wardrobe to create a complete outfit",
+  "details": {
+    "missingCategories": ["shoes"],
+    "totalItems": 2,
+    "minimumRequired": 3
+  },
+  "suggestions": [
+    "Add more items to your wardrobe",
+    "Try a different occasion",
+    "Upload photos of your clothes"
+  ]
+} 

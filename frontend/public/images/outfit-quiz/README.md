@@ -1,0 +1,179 @@
+# Outfit Quiz Images
+
+This directory contains SVG placeholder images for the style quiz outfits.
+
+## Generated Images:
+
+- **F-CB1.svg** - Cottagecore Floral Dress (female)
+  - Palette: soft florals
+  - Colors: Pink, Lavender, Mint, Peach, Sky Blue
+  - Description: Floral maxi dress, cropped knit cardigan, leather boots
+- **F-CB2.svg** - Boho Layered Outfit (female)
+  - Palette: warm neutrals
+  - Colors: Brown, Beige, Cream, Terracotta, Olive
+  - Description: Peasant blouse, patchwork skirt, vest, floppy hat
+- **F-CB3.svg** - Cottagecore Ruffle Blouse (female)
+  - Palette: dusty pastels
+  - Colors: Pink, Lavender, Mint, Peach, Sky Blue
+  - Description: Ruffle blouse, wide-leg linen pants, fringe shawl
+- **F-CB4.svg** - Natural Wrap Dress (female)
+  - Palette: natural earth
+  - Colors: Brown, Beige, Cream, Terracotta, Olive
+  - Description: Muslin wrap dress, open-toe sandals
+- **F-CB5.svg** - Romantic Cottagecore (female)
+  - Palette: dried floral mix
+  - Colors: Brown, Pink, Lavender, Terracotta, Olive
+  - Description: Button-front midi dress, wool capelet, ankle boots
+- **M-CB1.svg** - Natural Linen Outfit (male)
+  - Palette: cream & olive
+  - Colors: Cream, Olive, Brown, Beige, Terracotta
+  - Description: Linen shirt, cargo trousers, fisherman cardigan
+- **M-CB2.svg** - Boho Henley (male)
+  - Palette: warm taupe
+  - Colors: Brown, Beige, Cream, Terracotta, Olive
+  - Description: Henley, cotton pants, leather sandals
+- **M-CB3.svg** - Vintage Cottagecore (male)
+  - Palette: vintage neutrals
+  - Colors: Brown, Gray, Beige, Cream, Olive
+  - Description: Chambray shirt, suspenders, wool vest, canvas boots
+- **M-CB4.svg** - Natural Tunic (male)
+  - Palette: soft moss green
+  - Colors: Olive, Green, Brown, Beige, Cream
+  - Description: Pullover tunic, drawstring trousers, woven belt
+- **M-CB5.svg** - Boho Patchwork (male)
+  - Palette: terracotta mix
+  - Colors: Terracotta, Brown, Beige, Cream, Olive
+  - Description: Knit tank, patchwork overshirt, rolled linen pants
+- **F-OM1.svg** - Tweed Blazer Set (female)
+  - Palette: navy + cream
+  - Colors: Navy, Cream, White, Gray, Black
+  - Description: Tweed blazer, pleated skirt, loafers
+- **F-OM2.svg** - Cable Knit Classic (female)
+  - Palette: rich neutrals
+  - Colors: Gray, Black, White, Navy, Camel
+  - Description: Cable knit over collared blouse, pressed trousers
+- **F-OM3.svg** - Wool Coat Ensemble (female)
+  - Palette: soft jewel tones
+  - Colors: Navy, Burgundy, Emerald, Gray, Black
+  - Description: Wool coat, dress shirt, midi skirt, heels
+- **F-OM4.svg** - Silk Blouse Elegant (female)
+  - Palette: champagne & blush
+  - Colors: Cream, Pink, Beige, White, Camel
+  - Description: Silk blouse, beige high-waist trousers
+- **F-OM5.svg** - Academic Blazer (female)
+  - Palette: green & brown
+  - Colors: Green, Brown, Beige, Olive, Cream
+  - Description: Blazer, check trousers, button-down
+- **M-OM1.svg** - Double-Breasted Coat (male)
+  - Palette: charcoal & cream
+  - Colors: Charcoal, Cream, White, Gray, Black
+  - Description: Double-breasted coat, Oxford, tapered trousers
+- **M-OM2.svg** - Preppy Polo (male)
+  - Palette: navy + tan
+  - Colors: Navy, Tan, White, Gray, Black
+  - Description: Polo under cardigan, chinos
+- **M-OM3.svg** - Burgundy Vest (male)
+  - Palette: deep burgundy
+  - Colors: Burgundy, Black, Gray, White, Navy
+  - Description: Knit vest, button-down, wool slacks
+- **M-OM4.svg** - Houndstooth Academic (male)
+  - Palette: olive + cream
+  - Colors: Olive, Cream, Brown, Beige, Gray
+  - Description: Houndstooth coat, cashmere sweater, khakis
+- **M-OM5.svg** - Trench Elegant (male)
+  - Palette: white + camel
+  - Colors: White, Camel, Cream, Beige, Gray
+  - Description: Trench, turtleneck, tailored pants
+- **F-ST1.svg** - Bomber Streetwear (female)
+  - Palette: black + red
+  - Colors: Black, Red, White, Gray, Navy
+  - Description: Bomber, graphic tee, wide-leg cargos, bucket hat
+- **F-ST2.svg** - Cropped Hoodie (female)
+  - Palette: muted neutrals
+  - Colors: Gray, Black, White, Brown, Olive
+  - Description: Cropped hoodie, parachute pants, combat boots
+- **F-ST3.svg** - Windbreaker Tech (female)
+  - Palette: greyscale pop
+  - Colors: Gray, Black, White, Blue, Orange
+  - Description: Windbreaker, baggy denim, thermal top
+- **F-ST4.svg** - Y2K Mesh (female)
+  - Palette: y2k high contrast
+  - Colors: Black, White, Red, Blue, Yellow
+  - Description: Mesh top, mini skirt, fur jacket
+- **F-ST5.svg** - Grunge Plaid (female)
+  - Palette: grunge mix
+  - Colors: Brown, Gray, Black, Olive, Rust
+  - Description: Plaid overshirt, destroyed jeans, band tee
+- **M-ST1.svg** - Flannel Grunge (male)
+  - Palette: washed black
+  - Colors: Black, Gray, Brown, White, Olive
+  - Description: Flannel shirt, band tee, black jeans
+- **M-ST2.svg** - Urban Hoodie (male)
+  - Palette: urban muted
+  - Colors: Gray, Black, White, Blue, Olive
+  - Description: Hoodie, puffer, cargos, Nike Dunks
+- **M-ST3.svg** - Army Techwear (male)
+  - Palette: army green & grey
+  - Colors: Olive, Gray, Black, White, Brown
+  - Description: Longline tee, joggers, beanie
+- **M-ST4.svg** - Denim Layered (male)
+  - Palette: denim + contrast
+  - Colors: Blue, Black, White, Gray, Red
+  - Description: Denim jacket, flannel, hoodie, tee, chains
+- **M-ST5.svg** - Techwear Harness (male)
+  - Palette: grunge techwear
+  - Colors: Black, Gray, White, Blue, Orange
+  - Description: Harness jacket, tech pants, tactical boots
+- **F-MIN1.svg** - Monochrome White (female)
+  - Palette: monochrome white
+  - Colors: White, Cream, Gray, Black
+  - Description: Turtleneck, wide-leg trousers
+- **F-MIN2.svg** - Greyscale Blazer (female)
+  - Palette: greyscale
+  - Colors: Gray, Black, White, Charcoal
+  - Description: Cropped blazer, tube top, trousers
+- **F-MIN3.svg** - Soft Neutrals (female)
+  - Palette: soft neutrals
+  - Colors: Beige, Cream, Gray, White, Brown
+  - Description: Longline tank, A-line skirt
+- **F-MIN4.svg** - All Black (female)
+  - Palette: all black
+  - Colors: Black, Charcoal, Gray
+  - Description: Mock neck top, minimal culottes
+- **F-MIN5.svg** - Beige Trench (female)
+  - Palette: beige + grey
+  - Colors: Beige, Gray, Cream, White, Brown
+  - Description: Short trench, top, tapered pants
+- **M-MIN1.svg** - Charcoal Minimal (male)
+  - Palette: charcoal + white
+  - Colors: Charcoal, White, Gray, Black
+  - Description: T-shirt, cropped pants, white sneakers
+- **M-MIN2.svg** - Tonal Beige (male)
+  - Palette: tonal beige
+  - Colors: Beige, Cream, Brown, White, Tan
+  - Description: Overcoat, minimal knit, light trousers
+- **M-MIN3.svg** - Greyscale Button-Up (male)
+  - Palette: greyscale
+  - Colors: Gray, Black, White, Charcoal
+  - Description: Button-up, pleated pants
+- **M-MIN4.svg** - Cool Monochrome (male)
+  - Palette: cool monochrome
+  - Colors: Gray, Black, White, Charcoal
+  - Description: Jacket, tee, trousers — all in same tone
+- **M-MIN5.svg** - Warm Neutrals (male)
+  - Palette: warm neutrals
+  - Colors: Brown, Beige, Cream, Tan, Gray
+  - Description: Knit top, straight chinos, loafers
+
+## Usage:
+
+These images are used in the onboarding style quiz to help users identify their style preferences. Each image represents a different style archetype with appropriate colors and silhouettes.
+
+## Image Features:
+
+- **Gender-specific silhouettes**: Male, female, and unisex representations
+- **Color palettes**: Visual representation of the outfit's color scheme
+- **Style indicators**: Text descriptions and visual cues
+- **Responsive design**: SVG format for scalability
+
+Generated on: 2025-06-29T10:08:53.866Z

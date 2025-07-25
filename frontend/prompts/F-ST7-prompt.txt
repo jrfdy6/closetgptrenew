@@ -1,0 +1,41 @@
+Create an e-commerce product photography image for a clothing app's style quiz. The image should be:
+
+**Technical Requirements:**
+- Square aspect ratio (1:1) for mobile app display
+- Pure white background (#FFFFFF)
+- High quality, professional e-commerce photography style
+- Standard mobile-optimized resolution (800x800px or similar)
+- Clean, minimal composition
+
+**Layout Style:**
+- Individual clothing items displayed in separate rectangular boxes/containers
+- 2x2 grid on pure white background
+- Flat lay photography style - items photographed from above on white surface
+- Each item box should have subtle borders or shadows to separate items
+- No additional styling, props, or decorative elements
+- Professional product photography lighting and angles
+
+**Outfit Details:**
+# F-ST7: Utility vest, Cargo pants, Tech sneakers
+
+**Layout:** 2x2 grid on pure white background
+
+Top Left: Utility vest, flat lay photography
+Top Right: Cargo pants, flat lay photography
+Bottom Left: Tech sneakers, flat lay photography
+
+**Color Palette:** urban tech
+**Colors:** Black (#000000), Gray (#808080), Green (#6B8E23), White (#FFFFFF)
+**Style:** Techwear aesthetic with functional elements
+
+**Style Guidelines:**
+- E-commerce product photography aesthetic
+- Clean, professional presentation
+- Items clearly visible and well-lit
+- No text, logos, or watermarks
+- Focus on the clothing items themselves
+- Consistent lighting and photography style across all items
+- Layout should be similar but doesn't need to be 100% identical across different outfits
+
+**App Context:**
+This image will be displayed in a mobile app quiz where users swipe like/dislike on outfits to determine their style preferences. The layout should mimic how items will be displayed in the actual app interface.

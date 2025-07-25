@@ -1,0 +1,19 @@
+{
+  "name": "@closetgpt/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "unidecode": "^1.1.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/unidecode": "^1.1.0",
+    "typescript": "^5.0.0"
+  }
+}

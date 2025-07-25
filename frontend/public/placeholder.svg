@@ -1,0 +1,7 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" fill="currentColor" class="text-muted-foreground" opacity="0.1"/>
+  <rect x="40" y="40" width="120" height="120" rx="8" fill="currentColor" class="text-muted-foreground" opacity="0.2"/>
+  <path d="M100 80C111.046 80 120 88.9543 120 100C120 111.046 111.046 120 100 120C88.9543 120 80 111.046 80 100C80 88.9543 88.9543 80 100 80Z" fill="currentColor" class="text-muted-foreground" opacity="0.4"/>
+  <path d="M100 130C111.046 130 120 138.954 120 150C120 161.046 111.046 170 100 170C88.9543 170 80 161.046 80 150C80 138.954 88.9543 130 100 130Z" fill="currentColor" class="text-muted-foreground" opacity="0.4"/>
+  <text x="100" y="190" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" fill="currentColor" class="text-muted-foreground" opacity="0.6">No Image</text>
+</svg>

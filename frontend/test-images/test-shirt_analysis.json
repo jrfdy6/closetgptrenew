@@ -1,0 +1,56 @@
+{
+  "type": "shirt",
+  "subType": "t-shirt",
+  "dominantColors": [
+    {
+      "name": "white",
+      "hex": "#FFFFFF",
+      "rgb": [
+        255,
+        255,
+        255
+      ]
+    }
+  ],
+  "matchingColors": [
+    {
+      "name": "black",
+      "hex": "#000000",
+      "rgb": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "navy",
+      "hex": "#000080",
+      "rgb": [
+        0,
+        0,
+        128
+      ]
+    },
+    {
+      "name": "gray",
+      "hex": "#808080",
+      "rgb": [
+        128,
+        128,
+        128
+      ]
+    }
+  ],
+  "style": [
+    "Casual"
+  ],
+  "brand": "",
+  "season": [
+    "spring",
+    "summer",
+    "fall"
+  ],
+  "occasion": [
+    "Casual"
+  ]
+}
