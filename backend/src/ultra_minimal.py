@@ -7,10 +7,12 @@ app = FastAPI(title="ClosetGPT API", version="1.0.0")
 @app.get("/health")
 async def health():
     """Health check endpoint"""
+    print("=== HEALTH CHECK HIT ===")
     return {"status": "ok"}
 
 @app.get("/")
 async def root():
+    print("=== ROOT ENDPOINT HIT ===")
     return {"message": "ClosetGPT API is running"}
 
 if __name__ == "__main__":
