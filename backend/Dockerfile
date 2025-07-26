@@ -21,4 +21,4 @@ COPY src/ ./src/
 EXPOSE 8000
 
 # Use environment variable for port
-CMD ["sh", "-c", "echo 'Starting uvicorn...' && uvicorn src.ultra_minimal:app --host 0.0.0.0 --port 8000"] 
+CMD ["sh", "-c", "echo '=== DOCKER CMD STARTING ===' && echo 'Current directory:' && pwd && echo 'Files in current directory:' && ls -la && echo 'Files in src directory:' && ls -la src/ && echo 'Starting uvicorn...' && uvicorn src.ultra_minimal:app --host 0.0.0.0 --port 8000"] 
