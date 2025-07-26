@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import os
+from datetime import datetime
 
 app = FastAPI(
     title="ClosetGPT API - Ultra Minimal",
@@ -7,19 +8,30 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Log startup event"""
+    print(f"🚀 ClosetGPT API starting on port {os.getenv('PORT', '8000')}")
+    print("✅ Health check endpoints available at /health and /health/simple")
+
 @app.get("/health/simple")
 async def simple_health_check():
     """Simple health check endpoint that responds immediately"""
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "message": "Health check successful"
+    }
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway deployment"""
     return {
         "status": "healthy",
-        "timestamp": "2024-01-01T00:00:00Z",
+        "timestamp": datetime.now().isoformat(),
         "environment": os.getenv("ENVIRONMENT", "development"),
-        "version": "1.0.0"
+        "version": "1.0.0",
+        "port": os.getenv("PORT", "8000")
     }
 
 @app.get("/")
