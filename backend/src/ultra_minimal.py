@@ -17,11 +17,13 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """Log startup event"""
+    port = os.getenv("PORT", "8000")
     logger.warning("✅ FastAPI app has started.")
-    logger.info(f"🚀 ClosetGPT API starting on port 8000")
+    logger.info(f"🚀 ClosetGPT API starting on port {port}")
     logger.info("✅ Health check endpoint available at /health")
     logger.info(f"🌍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
     logger.info("🔧 Railway health check path: /health")
+    logger.info(f"🔧 Railway expects port: {port}")
 
 @app.get("/health/simple")
 async def simple_health_check():
