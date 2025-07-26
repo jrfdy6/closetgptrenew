@@ -16,7 +16,8 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """Log startup event"""
-    logger.info(f"🚀 ClosetGPT API starting on port 8080")
+    logger.warning("✅ FastAPI app has started.")
+    logger.info(f"🚀 ClosetGPT API starting on port 8000")
     logger.info("✅ Health check endpoint available at /health")
     logger.info(f"🌍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
     logger.info("🔧 Railway health check path: /health")
@@ -56,5 +57,5 @@ async def test_endpoint():
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port) 
+    logger.warning("🚀 Starting FastAPI server directly...")
+    uvicorn.run(app, host="0.0.0.0", port=8000) 
