@@ -3,12 +3,12 @@ import {
   ClothingItemSchema,
   UserProfileSchema,
   OpenAIClothingAnalysisSchema
-} from '../shared/types/index';
+} from '../shared/types';
 import type {
   ClothingItem,
   UserProfile,
   OpenAIClothingAnalysis
-} from '../shared/types/index';
+} from '../shared/types';
 import { ApiResponse } from './api';
 
 // Stub schemas and types

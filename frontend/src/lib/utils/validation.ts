@@ -5,7 +5,7 @@ import {
   OpenAIClothingAnalysis,
   OpenAIClothingAnalysisSchema,
   ApiResponse
-} from '../../shared/types/index';
+} from '../../shared/types';
 
 // Validation functions
 export const validateClothingItem = (item: unknown): ClothingItem => {

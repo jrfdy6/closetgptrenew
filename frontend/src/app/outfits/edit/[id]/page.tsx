@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useWardrobe } from "@/hooks/useWardrobe";
 import { useAuth } from "@/hooks/useAuth";
 import { authenticatedFetch } from "@/lib/utils/auth";
-import { ClothingItem } from "../../../shared/types/index";
+import { ClothingItem } from "../../../shared/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";

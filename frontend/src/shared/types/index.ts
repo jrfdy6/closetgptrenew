@@ -28,7 +28,7 @@ export interface UserProfile {
 }
 
 export const UserProfileSchema = {
-  // Stub schema
+  parse: (data: any) => data as UserProfile
 };
 
 // Additional stub types
