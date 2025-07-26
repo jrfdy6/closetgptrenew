@@ -12,7 +12,9 @@ app = FastAPI(
 async def startup_event():
     """Log startup event"""
     print(f"🚀 ClosetGPT API starting on port {os.getenv('PORT', '8000')}")
-    print("✅ Health check endpoints available at /health and /health/simple")
+    print("✅ Health check endpoints available at /health, /health/simple, and /healthcheck")
+    print(f"🌍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
+    print(f"🔧 Railway health check path: /healthcheck")
 
 @app.get("/health/simple")
 async def simple_health_check():
@@ -22,6 +24,11 @@ async def simple_health_check():
         "timestamp": datetime.now().isoformat(),
         "message": "Health check successful"
     }
+
+@app.get("/healthcheck")
+async def healthcheck():
+    """Alternative health check endpoint"""
+    return {"status": "ok"}
 
 @app.get("/health")
 async def health_check():
@@ -36,7 +43,12 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    return {"message": "ClosetGPT API is running", "status": "healthy"}
+    return {
+        "message": "ClosetGPT API is running", 
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "health_endpoints": ["/health", "/health/simple"]
+    }
 
 @app.get("/api/test")
 async def test_endpoint():
