@@ -1,3 +1,4 @@
+print("=== ultra_minimal.py is being executed ===")
 from fastapi import FastAPI
 import os
 import logging
