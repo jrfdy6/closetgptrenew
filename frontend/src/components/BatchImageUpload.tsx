@@ -7,7 +7,7 @@ import { useWardrobe } from "@/lib/hooks/useWardrobe";
 import { checkForDuplicateImages } from "@/lib/firebase/wardrobeService";
 import { createClothingItemFromAnalysis } from "@/lib/utils/itemProcessing";
 import type { ClothingItem } from "@/types/wardrobe";
-import type { OpenAIClothingAnalysis } from "../shared/types/index";
+import type { OpenAIClothingAnalysis } from "../shared/types";
 import { Button } from "@/components/ui/button";
 import { Progress } from '@/components/ui/progress';
 

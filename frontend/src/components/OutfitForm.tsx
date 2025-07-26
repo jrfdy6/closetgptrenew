@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Save, Trash } from "lucide-react";
 import Image from "next/image";
-import { ClothingItem, Outfit } from "../shared/types/index";
+import { ClothingItem, Outfit } from "../shared/types";
 
 interface OutfitFormProps {
   outfitId: string;
