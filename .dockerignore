@@ -1,16 +1,3 @@
-# Git
-.git
-.gitignore
-
-# Node.js (frontend)
-node_modules/
-.npm
-.next/
-.vercel/
-cypress/
-test-images/
-*.log
-
 # Python
 __pycache__/
 *.py[cod]
@@ -35,21 +22,20 @@ wheels/
 MANIFEST
 
 # Virtual environments
-.env
-.venv
-env/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
-backend/venv311/
-backend/.venv311/
+.venv/
+.venv311/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
@@ -60,20 +46,37 @@ backend/.venv311/
 ehthumbs.db
 Thumbs.db
 
-# Testing
-tests/
-test_*.py
-*_test.py
-.pytest_cache/
-.coverage
-htmlcov/
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Git
+.git/
+.gitignore
 
 # Documentation
 *.md
 docs/
 README*
 
-# Large files
+# Tests
+tests/
+test_*
+*_test.py
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Large files and directories
+node_modules/
+frontend/
 *.jpg
 *.jpeg
 *.png
@@ -82,11 +85,21 @@ README*
 *.mov
 *.avi
 *.zip
-*.tar.gz
+*.tar
+*.gz
+*.rar
+*.7z
 
-# Development files
-scripts/
-prompts/
-backup/
-test-*.js
-debug_*.py 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/ 
