@@ -1,4 +1,5 @@
 print("=== ultra_minimal.py is being executed ===")
+print("=== DEPLOYMENT TRIGGERED AT:", __import__('datetime').datetime.now().isoformat(), "===")
 from fastapi import FastAPI
 import os
 
