@@ -1,2 +1,38 @@
+# Core FastAPI dependencies
 fastapi==0.104.1
-uvicorn[standard]==0.24.0 
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+
+# Firebase and authentication
+firebase-admin==6.2.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# HTTP and API
+requests==2.31.0
+httpx==0.25.1
+python-multipart==0.0.6
+
+# Image processing (lighter alternatives)
+Pillow==10.1.0
+# rembg==2.0.50  # Heavy ML library - commented out for faster builds
+
+# Utilities
+python-dotenv==1.0.0
+aiofiles==23.2.1
+psutil==5.9.6
+unidecode==1.3.7
+pydantic-settings==2.1.0
+ftfy==6.1.3
+
+# OpenAI
+openai==1.3.0
+
+# Testing (development only)
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# pytest-cov==4.1.0
+
+# Heavy ML libraries (commented out for faster builds)
+# git+https://github.com/openai/CLIP.git
+# pillow-heif==0.15.0 
