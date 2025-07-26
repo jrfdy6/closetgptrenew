@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ClothingItem } from "../shared/types";
+import { ClothingItem } from "@/shared/types";
 import { WardrobeItem } from "@/types/wardrobe";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

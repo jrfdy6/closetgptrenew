@@ -7,8 +7,8 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./index";
-import type { UserProfile } from "../../shared/types";
-import { UserProfileSchema } from "../../shared/types";
+import type { UserProfile } from "@/shared/types";
+import { UserProfileSchema } from "@/shared/types";
 
 // Collection reference
 const USERS_COLLECTION = "users";

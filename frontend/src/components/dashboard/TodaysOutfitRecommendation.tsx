@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { OutfitGeneratedOutfit, ClothingItem, UserProfile } from '../shared/types';
+import { OutfitGeneratedOutfit, ClothingItem, UserProfile } from '@/shared/types';
 import { WeatherData } from '@/types/weather';
 import { useWeather } from '@/hooks/useWeather';
 import { useOutfitGenerator } from '@/hooks/useOutfitGenerator';

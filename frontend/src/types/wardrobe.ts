@@ -3,12 +3,12 @@ import {
   ClothingItemSchema,
   UserProfileSchema,
   OpenAIClothingAnalysisSchema
-} from '../shared/types';
+} from '@/shared/types';
 import type {
   ClothingItem,
   UserProfile,
   OpenAIClothingAnalysis
-} from '../shared/types';
+} from '@/shared/types';
 import { ApiResponse } from './api';
 
 // Stub schemas and types
@@ -36,7 +36,7 @@ export type {
   ClothingItem,
   UserProfile,
   OpenAIClothingAnalysis
-} from '../shared/types';
+} from '@/shared/types';
 
 // Additional types for the frontend
 export type ProcessImagesResult = {

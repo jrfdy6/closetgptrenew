@@ -6,7 +6,7 @@ import { useWardrobe } from "@/hooks/useWardrobe";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useWeather } from "@/hooks/useWeather";
 import { authenticatedFetch } from "@/lib/utils/auth";
-import { ClothingItem } from "../../shared/types";
+import { ClothingItem } from "@/shared/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";

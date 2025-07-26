@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
-import type { OutfitGeneratedOutfit, ClothingItem } from "../shared/types";
+import type { OutfitGeneratedOutfit, ClothingItem } from "@/shared/types";
 
 interface OutfitVisualizationProps {
   outfit: OutfitGeneratedOutfit;

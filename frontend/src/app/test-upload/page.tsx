@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ClothingItem } from '../../shared/types';
+import { ClothingItem } from '@/shared/types';
 import { useFirebase } from '@/lib/firebase-context';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { auth } from '@/lib/firebase/config';

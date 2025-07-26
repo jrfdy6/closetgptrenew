@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import BatchImageUpload from "@/components/BatchImageUpload";
-import type { ClothingItem } from "../../shared/types";
+import type { ClothingItem } from "@/shared/types";
 import { useFirebase } from "@/lib/firebase-context";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
