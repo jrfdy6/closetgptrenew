@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 import os
+import logging
 from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="ClosetGPT API - Ultra Minimal",
@@ -11,10 +16,10 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_event():
     """Log startup event"""
-    print(f"🚀 ClosetGPT API starting on port {os.getenv('PORT', '8000')}")
-    print("✅ Health check endpoints available at /health, /health/simple, and /healthcheck")
-    print(f"🌍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    print(f"🔧 Railway health check path: /healthcheck")
+    logger.info(f"🚀 ClosetGPT API starting on port 8080")
+    logger.info("✅ Health check endpoint available at /health")
+    logger.info(f"🌍 Environment: {os.getenv('ENVIRONMENT', 'development')}")
+    logger.info("🔧 Railway health check path: /health")
 
 @app.get("/health/simple")
 async def simple_health_check():
@@ -31,15 +36,10 @@ async def healthcheck():
     return {"status": "ok"}
 
 @app.get("/health")
-async def health_check():
+async def health():
     """Health check endpoint for Railway deployment"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "environment": os.getenv("ENVIRONMENT", "development"),
-        "version": "1.0.0",
-        "port": os.getenv("PORT", "8000")
-    }
+    logger.info("Healthcheck hit!")
+    return {"status": "ok"}
 
 @app.get("/")
 async def root():
