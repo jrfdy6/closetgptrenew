@@ -18,6 +18,8 @@ const nextConfig = {
       ...config.resolve.alias,
       '@': require('path').resolve(__dirname, 'src'),
       '@shared': require('path').resolve(__dirname, 'src/shared'),
+      '@shared/types': require('path').resolve(__dirname, 'src/shared/types'),
+      '@shared/types/responses': require('path').resolve(__dirname, 'src/shared/types/responses'),
     };
 
     return config;
