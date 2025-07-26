@@ -1,5 +1,4 @@
 backend/
-shared/
 *.md
 .git/
 node_modules/
