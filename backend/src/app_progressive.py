@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from datetime import datetime
+from .services.real_image_analysis_service import real_analyzer
 
 # Create FastAPI app
 app = FastAPI(
@@ -38,7 +39,7 @@ async def health_check():
             "timestamp": datetime.now().isoformat(),
             "environment": os.getenv("ENVIRONMENT", "development"),
             "version": "1.0.0",
-            "message": "Progressive app is working"
+            "message": "Progressive app with GPT-4 Vision is working"
         }
     except Exception as e:
         return {
@@ -49,33 +50,25 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    return {"message": "Progressive app API working"}
+    return {"message": "Progressive app with GPT-4 Vision API working"}
 
 @app.get("/api/health")
 async def api_health():
-    return {"status": "ok", "api": "working"}
+    return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
 
-# Step 1: Basic image analysis (working)
+# Real GPT-4 Vision image analysis endpoint
 @app.post("/api/analyze-image")
 async def analyze_image(image: dict):
-    """Image analysis endpoint"""
+    """Real GPT-4 Vision image analysis endpoint"""
     try:
         image_url = image.get("image")
         if not image_url:
             return {"error": "No image provided"}
         
-        # For now, return a simple response
-        # TODO: Add real GPT-4 analysis
-        return {
-            "analysis": {
-                "type": "clothing",
-                "dominantColors": ["blue", "white"],
-                "style": ["casual", "minimalist"],
-                "occasion": ["everyday", "casual"],
-                "season": ["spring", "summer"]
-            },
-            "message": "Analysis completed (progressive version)"
-        }
+        # Use real GPT-4 Vision analysis
+        analysis_result = await real_analyzer.analyze_clothing_item(image_url)
+        
+        return analysis_result
     except Exception as e:
         return {"error": f"Failed to analyze image: {str(e)}"}
 
@@ -83,35 +76,35 @@ async def analyze_image(image: dict):
 @app.get("/api/wardrobe")
 async def get_wardrobe():
     """Get wardrobe items"""
-    return {"items": [], "message": "Wardrobe endpoint (progressive)"}
+    return {"items": [], "message": "Wardrobe endpoint (progressive with GPT-4)"}
 
 @app.post("/api/wardrobe")
 async def add_wardrobe_item(item: dict):
     """Add wardrobe item"""
-    return {"message": "Item added (progressive)", "item": item}
+    return {"message": "Item added (progressive with GPT-4)", "item": item}
 
 # Step 3: Add basic outfits endpoints
 @app.get("/api/outfits")
 async def get_outfits():
     """Get outfits"""
-    return {"outfits": [], "message": "Outfits endpoint (progressive)"}
+    return {"outfits": [], "message": "Outfits endpoint (progressive with GPT-4)"}
 
 @app.post("/api/outfits")
 async def create_outfit(outfit: dict):
     """Create outfit"""
-    return {"message": "Outfit created (progressive)", "outfit": outfit}
+    return {"message": "Outfit created (progressive with GPT-4)", "outfit": outfit}
 
 # Step 4: Add weather endpoint
 @app.get("/api/weather")
 async def get_weather():
     """Get weather data"""
-    return {"weather": "sunny", "temperature": 72, "message": "Weather endpoint (progressive)"}
+    return {"weather": "sunny", "temperature": 72, "message": "Weather endpoint (progressive with GPT-4)"}
 
 # Step 5: Add analytics endpoint
 @app.get("/api/analytics")
 async def get_analytics():
     """Get analytics data"""
-    return {"analytics": {}, "message": "Analytics endpoint (progressive)"}
+    return {"analytics": {}, "message": "Analytics endpoint (progressive with GPT-4)"}
 
 if __name__ == "__main__":
     import uvicorn
