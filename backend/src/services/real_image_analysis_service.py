@@ -55,9 +55,9 @@ class RealImageAnalysisService:
             - Fit and material details
             """
             
-            # Call GPT-4 Vision
+            # Call GPT-4 Vision with current model
             response = self.openai_client.chat.completions.create(
-                model="gpt-4-vision-preview",
+                model="gpt-4o",
                 messages=[
                     {
                         "role": "user",
