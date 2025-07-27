@@ -15,7 +15,13 @@ logger = logging.getLogger(__name__)
 
 class RealImageAnalysisService:
     def __init__(self):
-        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("OPENAI_API_KEY not found in environment variables")
+            self.openai_client = None
+        else:
+            self.openai_client = OpenAI(api_key=api_key)
+            logger.info("OpenAI client initialized successfully")
     
     async def analyze_clothing_item(self, image_url: str) -> Dict:
         """
@@ -29,6 +35,11 @@ class RealImageAnalysisService:
         """
         try:
             logger.info(f"Starting real clothing item analysis for: {image_url}")
+            
+            # Check if OpenAI client is available
+            if not self.openai_client:
+                logger.error("OpenAI client not available - API key missing")
+                return self._get_fallback_response("OpenAI API key not configured")
             
             # Create the GPT-4 Vision prompt
             prompt = """
@@ -54,6 +65,8 @@ class RealImageAnalysisService:
             - Seasonal appropriateness
             - Fit and material details
             """
+            
+            logger.info("Calling GPT-4 Vision API...")
             
             # Call GPT-4 Vision with current model
             response = self.openai_client.chat.completions.create(
@@ -91,8 +104,10 @@ class RealImageAnalysisService:
                 if start_idx != -1 and end_idx != 0:
                     json_str = content[start_idx:end_idx]
                     analysis = json.loads(json_str)
+                    logger.info(f"Successfully parsed JSON: {analysis}")
                 else:
                     # Fallback: create structured response from text
+                    logger.info("No JSON found, parsing text response")
                     analysis = self._parse_text_response(content)
                 
                 # Enhance the analysis
@@ -110,18 +125,33 @@ class RealImageAnalysisService:
                 
         except Exception as e:
             logger.error(f"Error in real analysis: {str(e)}")
-            # Return fallback analysis
-            return {
-                "analysis": {
-                    "type": "clothing",
-                    "dominantColors": ["unknown"],
-                    "style": ["unknown"],
-                    "occasion": ["unknown"],
-                    "season": ["unknown"]
-                },
-                "error": f"Analysis failed: {str(e)}",
-                "message": "Real analysis failed, using fallback"
-            }
+            return self._get_fallback_response(str(e))
+    
+    def _get_fallback_response(self, error_message: str) -> Dict:
+        """Get a fallback response when analysis fails"""
+        return {
+            "analysis": {
+                "type": "clothing",
+                "dominantColors": ["unknown"],
+                "style": ["unknown"],
+                "occasion": ["unknown"],
+                "season": ["unknown"]
+            },
+            "error": f"Analysis failed: {error_message}",
+            "message": "Real analysis failed, using fallback",
+            "metadata": {
+                "confidence": 0.0,
+                "analysis_method": "fallback",
+                "processing_time": "error"
+            },
+            "recommendations": {
+                "matching_colors": [],
+                "compatible_styles": [],
+                "suggested_occasions": ["unknown"],
+                "best_seasons": ["unknown"]
+            },
+            "style_notes": "Analysis unavailable due to configuration issues."
+        }
     
     def _parse_text_response(self, content: str) -> Dict:
         """Parse text response when JSON parsing fails"""
