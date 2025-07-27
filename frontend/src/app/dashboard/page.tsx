@@ -58,9 +58,15 @@ export default function DashboardPage() {
       if (!db) return;
       
       try {
-        const profileDoc = await getDoc(doc(db, 'profiles', user.uid));
+        console.log('🎯 DASHBOARD: Fetching profile for user:', user.uid);
+        const profileDoc = await getDoc(doc(db, 'users', user.uid));
+        console.log('🎯 DASHBOARD: Profile doc exists:', profileDoc.exists());
         if (profileDoc.exists()) {
-          setProfile(profileDoc.data());
+          const profileData = profileDoc.data();
+          console.log('🎯 DASHBOARD: Profile data from Firestore:', profileData);
+          setProfile(profileData);
+        } else {
+          console.log('🎯 DASHBOARD: No profile document found');
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -84,7 +90,13 @@ export default function DashboardPage() {
     );
   }
 
-  if (!profile) {
+  // Debug: Log profile data
+  console.log('🎯 DASHBOARD: Profile check - profile exists:', !!profile);
+  console.log('🎯 DASHBOARD: Profile data:', profile);
+  console.log('🎯 DASHBOARD: onboardingCompleted:', profile?.onboardingCompleted);
+
+  if (!profile || !profile.onboardingCompleted) {
+    console.log('🎯 DASHBOARD: Showing onboarding prompt - profile missing or onboarding not completed');
     return (
       <div className="container-readable py-8">
         <Card className="max-w-2xl mx-auto card-enhanced">

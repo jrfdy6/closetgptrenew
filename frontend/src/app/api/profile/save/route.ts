@@ -56,8 +56,8 @@ export async function POST(request: Request) {
       updatedAt: new Date().toISOString(),
     };
 
-    // Save to Firestore in the profiles collection
-    await db.collection('profiles').doc(userId).set(profileData, { merge: true });
+    // Save to Firestore in the users collection
+    await db.collection('users').doc(userId).set(profileData, { merge: true });
 
     return NextResponse.json({ success: true });
   } catch (error) {
