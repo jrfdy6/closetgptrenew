@@ -12,15 +12,45 @@ from typing import Optional, List
 import uuid
 import json
 
+# Global variables for Firebase
+db = None
+bucket = None
+firebase_configured = False
+
 # Initialize Firebase if credentials are available
-try:
-    if not firebase_admin._apps:
+def initialize_firebase():
+    global db, bucket, firebase_configured
+    try:
+        print("DEBUG: Attempting to initialize Firebase...")
+        
+        # Check if Firebase is already initialized
+        if firebase_admin._apps:
+            print("DEBUG: Firebase already initialized")
+            db = firestore.client()
+            bucket = storage.bucket()
+            firebase_configured = True
+            return
+        
+        # Get environment variables
+        project_id = os.environ.get("FIREBASE_PROJECT_ID")
+        private_key = os.environ.get("FIREBASE_PRIVATE_KEY")
+        client_email = os.environ.get("FIREBASE_CLIENT_EMAIL")
+        
+        print(f"DEBUG: Project ID: {project_id}")
+        print(f"DEBUG: Client Email: {client_email}")
+        print(f"DEBUG: Private Key exists: {bool(private_key)}")
+        
+        if not project_id or not private_key or not client_email:
+            print("DEBUG: Missing required Firebase credentials")
+            firebase_configured = False
+            return
+        
         firebase_creds = {
             "type": "service_account",
-            "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+            "project_id": project_id,
             "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
-            "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+            "private_key": private_key.replace("\\n", "\n"),
+            "client_email": client_email,
             "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
@@ -28,28 +58,25 @@ try:
             "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
         }
         
-        # Only initialize if we have the required credentials
-        if firebase_creds["project_id"] and firebase_creds["private_key"]:
-            from firebase_admin import credentials
-            cred = credentials.Certificate(firebase_creds)
-            firebase_admin.initialize_app(cred, {
-                'storageBucket': f"{firebase_creds['project_id']}.appspot.com"
-            })
-            db = firestore.client()
-            bucket = storage.bucket()
-            print("DEBUG: Firebase initialized successfully with storage")
-        else:
-            print("DEBUG: Firebase credentials not available, skipping initialization")
-            db = None
-            bucket = None
-    else:
+        from firebase_admin import credentials
+        cred = credentials.Certificate(firebase_creds)
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': f"{project_id}.appspot.com"
+        })
+        
         db = firestore.client()
         bucket = storage.bucket()
-        print("DEBUG: Firebase already initialized")
-except Exception as e:
-    print(f"DEBUG: Firebase initialization failed: {e}")
-    db = None
-    bucket = None
+        firebase_configured = True
+        print("DEBUG: Firebase initialized successfully")
+        
+    except Exception as e:
+        print(f"DEBUG: Firebase initialization failed: {e}")
+        firebase_configured = False
+        db = None
+        bucket = None
+
+# Initialize Firebase
+initialize_firebase()
 
 app = FastAPI(
     title="ClosetGPT API - Full",
@@ -90,7 +117,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             print("DEBUG: Using development test token")
             return "test_user_id"
         
-        if not db:
+        if not firebase_configured:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Firebase not configured"
@@ -98,18 +125,13 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         
         # Verify Firebase token
         decoded_token = firebase_auth.verify_id_token(token)
-        user_id: str = decoded_token.get("uid")
-        if user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: no user ID found"
-            )
-        return user_id
+        return decoded_token["uid"]
+        
     except Exception as e:
-        print(f"DEBUG: Token verification failed: {e}")
+        print(f"DEBUG: Authentication error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token"
+            detail="Invalid authentication token"
         )
 
 # Pydantic models
@@ -150,7 +172,7 @@ async def health_check():
             "timestamp": datetime.now().isoformat(),
             "environment": os.getenv("ENVIRONMENT", "development"),
             "version": "1.0.0",
-            "firebase_configured": db is not None,
+            "firebase_configured": firebase_configured,
             "storage_configured": bucket is not None,
             "features": ["authentication", "wardrobe", "outfits", "image_processing"]
         }
