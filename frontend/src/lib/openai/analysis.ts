@@ -2,7 +2,7 @@ import { OpenAIClothingAnalysis } from '@shared/types/wardrobe';
 
 export const analyzeClothingImage = async (imageUrl: string): Promise<OpenAIClothingAnalysis> => {
   try {
-    const response = await fetch('/api/analyze', {
+    const response = await fetch('/api/analyze-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
