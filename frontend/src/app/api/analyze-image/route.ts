@@ -27,6 +27,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // For now, return mock data since the backend endpoint is not available
+    console.log("🔍 Returning mock image analysis data");
+    return NextResponse.json({
+      analysis: {
+        type: "shirt",
+        subType: "T-Shirt",
+        dominantColors: ["blue", "white"],
+        matchingColors: ["navy", "gray", "black"],
+        style: ["casual", "minimalist"],
+        brand: "",
+        season: ["spring", "summer"],
+        occasion: ["casual", "everyday"]
+      },
+      message: "Mock analysis (backend endpoint not yet available)"
+    });
+
+    // TODO: Uncomment when backend is available
+    /*
     // Forward the request to the backend server
     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/analyze-image`, {
       method: 'POST',
@@ -50,6 +68,7 @@ export async function POST(request: Request) {
 
     const analysis = await response.json();
     return NextResponse.json(analysis);
+    */
   } catch (error) {
     console.error("Error analyzing image:", error);
     return NextResponse.json(

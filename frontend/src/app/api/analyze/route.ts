@@ -15,6 +15,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // For now, return mock data since the backend endpoint is not available
+    console.log("🔍 Returning mock image analysis data");
+    return NextResponse.json({
+      analysis: {
+        type: "shirt",
+        subType: "T-Shirt",
+        dominantColors: ["blue", "white"],
+        matchingColors: ["navy", "gray", "black"],
+        style: ["casual", "minimalist"],
+        brand: "",
+        season: ["spring", "summer"],
+        occasion: ["casual", "everyday"]
+      },
+      message: "Mock analysis (backend endpoint not yet available)"
+    });
+
+    // TODO: Uncomment when backend is available
+    /*
     // If we have a file path, we need to upload it first
     let imageUrlToAnalyze = imageUrl;
     if (typeof imageUrl === 'object' && imageUrl.path) {
@@ -55,6 +73,7 @@ export async function POST(request: Request) {
 
     const data = await response.json();
     return NextResponse.json(data);
+    */
   } catch (error) {
     console.error('Error in analyze route:', error);
     return NextResponse.json(
