@@ -1,1 +1,1 @@
-web: python main.py 
+web: uvicorn src.ultra_simple:app --host 0.0.0.0 --port $PORT 
