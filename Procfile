@@ -1,1 +1,1 @@
-web: cd backend && uvicorn src.ultra_simple:app --host 0.0.0.0 --port $PORT 
+web: python main.py 
