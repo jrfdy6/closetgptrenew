@@ -25,5 +25,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONPATH=/app
 
-# Start the application using the simple app
-CMD ["python", "-m", "uvicorn", "src.app_simple:app", "--host", "0.0.0.0", "--port", "8080"] 
+# Start the application using the progressive app
+CMD ["python", "-m", "uvicorn", "src.app_progressive:app", "--host", "0.0.0.0", "--port", "8080"] 
