@@ -2,24 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
-    
-    const response = await fetch(
-      `${backendUrl}/api/diagnostics/public/health`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    // For now, return mock health data since the backend endpoint doesn't exist yet
+    console.log("🏥 Returning mock health data");
+    return NextResponse.json({
+      success: true,
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      services: {
+        database: "operational",
+        authentication: "operational",
+        outfit_generation: "operational",
+        analytics: "operational"
+      },
+      version: "1.0.0",
+      uptime: "99.9%",
+      message: "Mock health data (backend endpoint not yet implemented)"
+    });
   } catch (error) {
     console.error('Error fetching health data:', error);
     return NextResponse.json(
