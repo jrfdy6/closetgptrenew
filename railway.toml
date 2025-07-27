@@ -4,7 +4,7 @@ builder = "NIXPACKS"
 [deploy]
 healthcheckPath = "/health"
 port = 8000
-startCommand = "cd backend && python src/debug_startup.py && uvicorn src.app_simple_firebase:app --host 0.0.0.0 --port $PORT"
+startCommand = "cd backend && uvicorn src.ultra_simple:app --host 0.0.0.0 --port $PORT"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10 
