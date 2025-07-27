@@ -1,1 +1,1 @@
-web: echo "=== PROCFILE STARTING ===" && cd backend && echo "=== IN BACKEND DIRECTORY ===" && echo "=== STARTING ULTRA MINIMAL APP ===" && uvicorn src.ultra_minimal:app --host 0.0.0.0 --port $PORT 
+web: cd backend && uvicorn src.ultra_simple:app --host 0.0.0.0 --port $PORT 
