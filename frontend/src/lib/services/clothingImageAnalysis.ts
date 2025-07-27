@@ -11,7 +11,7 @@ export async function analyzeClothingImage(imageUrl: string): Promise<OpenAIClot
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
       },
-      body: JSON.stringify({ image: { url: imageUrl } }),
+      body: JSON.stringify({ image: imageUrl }),
     });
 
     console.log("Response status:", response.status);

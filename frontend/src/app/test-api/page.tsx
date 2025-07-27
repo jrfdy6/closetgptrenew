@@ -18,9 +18,7 @@ export default function TestApiPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          image: { 
-            url: "https://example.com/test-image.jpg" 
-          } 
+          image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center" 
         }),
       });
 
@@ -44,7 +42,7 @@ export default function TestApiPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          imageUrl: "https://example.com/test-image.jpg" 
+          imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center" 
         }),
       });
 
