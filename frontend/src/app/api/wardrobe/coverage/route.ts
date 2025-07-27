@@ -18,23 +18,35 @@ export async function GET(request: NextRequest) {
     // Get the authorization header from the request
     const authHeader = request.headers.get('authorization');
     
-    // Forward the request to the backend server
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/wardrobe/coverage`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader || '',
-        'Content-Type': 'application/json',
+    // For now, return mock data since the backend endpoint doesn't exist yet
+    console.log("📊 Returning mock wardrobe coverage data");
+    return NextResponse.json({
+      success: true,
+      coverage: {
+        occasion: {
+          casual: 75,
+          formal: 60,
+          business: 45,
+          athletic: 80,
+          evening: 30
+        },
+        seasonal: {
+          spring: 70,
+          summer: 85,
+          fall: 65,
+          winter: 55
+        },
+        category: {
+          tops: 90,
+          bottoms: 75,
+          dresses: 40,
+          outerwear: 60,
+          shoes: 70,
+          accessories: 50
+        }
       },
+      message: "Mock wardrobe coverage data (backend endpoint not yet implemented)"
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Backend error:", errorData);
-      throw new Error(errorData.detail || errorData.message || 'Failed to fetch wardrobe coverage');
-    }
-
-    const coverageData = await response.json();
-    return NextResponse.json(coverageData);
   } catch (error) {
     console.error("Error fetching wardrobe coverage:", error);
     return NextResponse.json(
