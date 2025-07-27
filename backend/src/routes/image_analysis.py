@@ -16,8 +16,7 @@ from typing import List
 from datetime import datetime
 
 from ..services.openai_service import analyze_image_with_gpt4
-from ..services.enhanced_image_analysis_service import enhanced_analyzer
-from ..services.style_analysis_service import style_analyzer
+from ..services.simple_image_analysis_service import simple_analyzer
 from ..utils.image_processing import process_image_for_analysis
 from ..core.logging import get_logger
 from ..models.analytics_event import AnalyticsEvent
@@ -116,7 +115,7 @@ async def analyze_image(
         
         # Use enhanced analysis (GPT-4 + CLIP)
         logger.info("Starting enhanced analysis with GPT-4 Vision and CLIP")
-        analysis = await enhanced_analyzer.analyze_clothing_item(processed_image)
+        analysis = await simple_analyzer.analyze_clothing_item(processed_image)
         
         # Log analytics event
         analytics_event = AnalyticsEvent(
@@ -193,7 +192,7 @@ async def analyze_single_image(
         
         try:
             # Use enhanced analysis (GPT-4 + CLIP)
-            analysis = await enhanced_analyzer.analyze_clothing_item(temp_path)
+            analysis = await simple_analyzer.analyze_clothing_item(temp_path)
             
             # Log analytics event
             analytics_event = AnalyticsEvent(
@@ -296,7 +295,7 @@ async def analyze_single_image_clip_only(
     current_user_id: str = Depends(get_current_user_id)
 ):
     """
-    CLIP-only image analysis for style insights
+    Simple image analysis using GPT-4 Vision only
     """
     try:
         image_url = image.get("url")
@@ -312,19 +311,18 @@ async def analyze_single_image_clip_only(
             temp_path = temp_file.name
         
         try:
-            # Use CLIP-only analysis
-            analysis = await style_analyzer.analyze_style(temp_path)
+            # Use simple analysis (GPT-4 Vision only)
+            analysis = await simple_analyzer.analyze_clothing_item(temp_path)
             
             # Log analytics event
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
-                    "analysis_type": "clip_only",
+                    "analysis_type": "gpt4_vision_only",
                     "image_url": image_url,
                     "file_size": len(response.content),
-                    "style_tags_count": len(analysis.get("style_tags", [])),
-                    "confidence_score": analysis.get("confidence_score", 0)
+                    "confidence_score": analysis.get("metadata", {}).get("confidence", 0)
                 }
             )
             log_analytics_event(analytics_event)
@@ -340,7 +338,7 @@ async def analyze_single_image_clip_only(
             user_id=current_user_id,
             event_type="single_image_analysis_error",
             metadata={
-                "analysis_type": "clip_only",
+                "analysis_type": "gpt4_vision_only",
                 "error": str(e),
                 "error_type": type(e).__name__,
                 "image_url": image.get("url", "") if 'image' in locals() else ""
@@ -382,7 +380,7 @@ async def analyze_batch_images(
                 
                 try:
                     # Use enhanced analysis (GPT-4 + CLIP)
-                    analysis = await enhanced_analyzer.analyze_clothing_item(temp_path)
+                    analysis = await simple_analyzer.analyze_clothing_item(temp_path)
                     results.append({
                         "index": i,
                         "url": image_url,

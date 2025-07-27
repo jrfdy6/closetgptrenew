@@ -1,2 +1,26 @@
+# FastAPI and web framework
 fastapi==0.104.1
-uvicorn[standard]==0.24.0 
+uvicorn[standard]==0.24.0
+python-multipart>=0.0.6
+
+# Image processing
+Pillow>=10.0.0
+python-magic>=0.4.27
+
+# AI and ML - Minimal versions
+openai>=1.0.0
+numpy>=1.24.0
+
+# Firebase
+firebase-admin>=6.2.0
+
+# Environment and config
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# HTTP requests
+requests>=2.31.0
+httpx>=0.25.1
+
+# Security
+cryptography>=41.0.0 
