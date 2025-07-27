@@ -4,14 +4,27 @@ import { getApps, initializeApp, cert } from 'firebase-admin/app';
 // Initialize Firebase Admin if not already initialized
 if (!getApps().length) {
   try {
-    const firebaseAdminConfig = {
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    };
+    let firebaseAdminConfig;
+    
+    // Try to use environment variables first
+    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      firebaseAdminConfig = {
+        credential: cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
+      };
+    } else {
+      // Fall back to service account key file
+      const serviceAccount = require('../../serviceAccountKey.json');
+      firebaseAdminConfig = {
+        credential: cert(serviceAccount),
+      };
+    }
+    
     initializeApp(firebaseAdminConfig);
+    console.log('✅ Firebase Admin initialized successfully');
   } catch (error) {
     console.error('Failed to initialize Firebase Admin:', error);
   }

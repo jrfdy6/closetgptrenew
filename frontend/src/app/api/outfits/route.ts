@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
