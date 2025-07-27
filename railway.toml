@@ -1,0 +1,10 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+healthcheckPath = "/health"
+port = 8080
+startCommand = "cd backend && uvicorn src.app_full:app --host 0.0.0.0 --port $PORT"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10 
