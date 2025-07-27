@@ -17,7 +17,7 @@ if (!getApps().length) {
       };
     } else {
       // Fall back to service account key file
-      const serviceAccount = require('../../serviceAccountKey.json');
+      const serviceAccount = require('../../../serviceAccountKey.json');
       firebaseAdminConfig = {
         credential: cert(serviceAccount),
       };
