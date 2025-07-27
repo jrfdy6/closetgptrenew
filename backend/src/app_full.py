@@ -5,8 +5,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 import os
 from datetime import datetime
-import firebase_admin
-from firebase_admin import auth as firebase_auth, firestore, storage
 from pydantic import BaseModel
 from typing import Optional, List
 import uuid
@@ -22,6 +20,9 @@ def initialize_firebase():
     global db, bucket, firebase_configured
     try:
         print("DEBUG: Attempting to initialize Firebase...")
+        
+        import firebase_admin
+        from firebase_admin import firestore, storage
         
         # Check if Firebase is already initialized
         if firebase_admin._apps:
@@ -75,9 +76,6 @@ def initialize_firebase():
         db = None
         bucket = None
 
-# Initialize Firebase
-initialize_firebase()
-
 app = FastAPI(
     title="ClosetGPT API - Full",
     description="AI-powered wardrobe management and outfit generation API",
@@ -117,6 +115,10 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             print("DEBUG: Using development test token")
             return "test_user_id"
         
+        # Initialize Firebase if not already done
+        if not firebase_configured:
+            initialize_firebase()
+        
         if not firebase_configured:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -124,6 +126,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             )
         
         # Verify Firebase token
+        from firebase_admin import auth as firebase_auth
         decoded_token = firebase_auth.verify_id_token(token)
         return decoded_token["uid"]
         
@@ -167,6 +170,10 @@ class OutfitResponse(BaseModel):
 async def health_check():
     """Health check endpoint for Railway deployment"""
     try:
+        # Try to initialize Firebase if not already done
+        if not firebase_configured:
+            initialize_firebase()
+        
         return {
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
@@ -174,7 +181,12 @@ async def health_check():
             "version": "1.0.0",
             "firebase_configured": firebase_configured,
             "storage_configured": bucket is not None,
-            "features": ["authentication", "wardrobe", "outfits", "image_processing"]
+            "features": ["authentication", "wardrobe", "outfits", "image_processing"],
+            "debug_info": {
+                "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+                "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+                "private_key_exists": bool(os.environ.get("FIREBASE_PRIVATE_KEY"))
+            }
         }
     except Exception as e:
         return {
