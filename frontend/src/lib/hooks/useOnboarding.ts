@@ -165,13 +165,16 @@ export function useOnboarding() {
       console.log('=====================================');
       
       await updateProfile(profileData);
-      console.log('Profile updated successfully in Firestore');
+      console.log('🎯 SAVE ONBOARDING: Profile updated successfully in Firestore');
 
       // Reset onboarding state
       resetOnboarding();
+      console.log('🎯 SAVE ONBOARDING: Onboarding state reset');
       
       // Redirect to dashboard after successful save
+      console.log('🎯 SAVE ONBOARDING: About to redirect to /dashboard');
       router.push('/dashboard');
+      console.log('🎯 SAVE ONBOARDING: router.push(/dashboard) called');
     } catch (error) {
       console.error('Failed to save onboarding data:', error);
       throw error;

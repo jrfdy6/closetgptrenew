@@ -50,18 +50,22 @@ export default function OnboardingPage() {
   }, [user, loading, router, setBasicInfo]);
 
   const handleComplete = async () => {
+    console.log('🎯 ONBOARDING: handleComplete called');
     try {
       // Save all onboarding data to Firebase using the useOnboarding hook
+      console.log('🎯 ONBOARDING: About to call saveOnboardingData()');
       await saveOnboardingData();
+      console.log('🎯 ONBOARDING: saveOnboardingData() completed successfully');
       
       toast({
         title: "Onboarding completed!",
         description: "Your profile has been saved successfully.",
       });
       
+      console.log('🎯 ONBOARDING: Toast shown, redirect should happen automatically');
       // Redirect to dashboard (this is handled by saveOnboardingData)
     } catch (error) {
-      console.error('Error saving onboarding data:', error);
+      console.error('🎯 ONBOARDING: Error saving onboarding data:', error);
       toast({
         title: "Error saving profile",
         description: "Please try again.",

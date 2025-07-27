@@ -2052,6 +2052,8 @@ export function StepOutfitStyleQuiz({ onNext }: StepProps) {
 
   // Handle quiz completion
   const handleComplete = () => {
+    console.log('🎯 QUIZ COMPLETION: handleComplete called');
+    
     // Clear any cached data and start fresh
     const timestamp = Date.now();
     
@@ -2099,8 +2101,12 @@ export function StepOutfitStyleQuiz({ onNext }: StepProps) {
       alignmentScore: alignmentScore // Save the alignment score
     });
 
+    console.log('🎯 QUIZ COMPLETION: About to call onNext()');
+    
     // Since this is now the final step, call onNext to complete onboarding
     onNext();
+    
+    console.log('🎯 QUIZ COMPLETION: onNext() called successfully');
   };
 
   // Show confidence indicators
