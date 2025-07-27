@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseIdToken } from '@/lib/utils/auth';
+import { getUserIdFromRequest } from '@/lib/utils/server-auth';
+
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,13 +15,15 @@ export async function GET(request: NextRequest) {
     let authHeaders = {};
     
     try {
-      console.log('🧪 Test Gender API: Getting Firebase token...');
-      const token = await getFirebaseIdToken();
-      console.log('🧪 Test Gender API: Token received:', token ? 'YES' : 'NO');
+      console.log('🧪 Test Gender API: Verifying user authentication...');
+      const userId = await getUserIdFromRequest(request);
+      console.log('🧪 Test Gender API: User ID:', userId);
       
-      if (token) {
+      if (userId) {
+        // Get the authorization header from the request
+        const authHeader = request.headers.get('authorization');
         authHeaders = {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': authHeader || '',
           'Content-Type': 'application/json',
         };
         
@@ -42,7 +47,7 @@ export async function GET(request: NextRequest) {
           console.log('❌ Test Gender API: Error response:', errorText);
         }
       } else {
-        console.log('❌ Test Gender API: No Firebase token available');
+        console.log('❌ Test Gender API: No authenticated user found');
       }
     } catch (error) {
       console.log('❌ Test Gender API: Error getting user gender:', error);

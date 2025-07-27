@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseIdToken } from '@/lib/utils/auth';
+import { getUserIdFromRequest } from '@/lib/utils/server-auth';
+
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,13 +11,16 @@ export async function GET(request: NextRequest) {
     // Get user's gender from their profile
     let userGender = null;
     try {
-      const token = await getFirebaseIdToken();
-      if (token) {
+      const userId = await getUserIdFromRequest(request);
+      if (userId) {
+        // Get the authorization header from the request
+        const authHeader = request.headers.get('authorization');
+        
         // Get user profile to determine gender
         const profileResponse = await fetch(`${backendUrl}/api/user/profile`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': authHeader || '',
             'Content-Type': 'application/json',
           },
         });

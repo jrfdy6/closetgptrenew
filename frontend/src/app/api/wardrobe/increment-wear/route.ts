@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirebaseIdToken } from '@/lib/utils/auth';
+import { getUserIdFromRequest } from '@/lib/utils/server-auth';
+
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    // Get the authorization header
+    // Verify user authentication
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Unauthorized',
+          details: 'No valid authorization token provided'
+        },
+        { status: 401 }
+      );
+    }
+
+    // Get the authorization header to forward to backend
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -15,9 +31,6 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
-
-    // Extract token from header
-    const token = authHeader.replace('Bearer ', '');
 
     // Get request body
     const body = await req.json();
@@ -39,7 +52,7 @@ export async function POST(req: NextRequest) {
     const response = await fetch(`${backendUrl}/api/wardrobe/${itemId}/increment-wear`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
     });

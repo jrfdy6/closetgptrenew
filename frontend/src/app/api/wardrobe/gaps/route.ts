@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFirebaseIdToken } from '@/lib/utils/auth';
+import { getUserIdFromRequest } from '@/lib/utils/server-auth';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
     let authHeaders = {};
     
     try {
-      console.log('🔍 Frontend API: Getting Firebase token...');
-      const token = await getFirebaseIdToken();
-      console.log('🔍 Frontend API: Token received:', token ? 'YES' : 'NO');
+      console.log('🔍 Frontend API: Verifying user authentication...');
+      const userId = await getUserIdFromRequest(request);
+      console.log('🔍 Frontend API: User ID:', userId);
       
-      if (token) {
+      if (userId) {
+        // Get the authorization header from the request
+        const authHeader = request.headers.get('authorization');
         authHeaders = {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': authHeader || '',
           'Content-Type': 'application/json',
         };
         
@@ -73,7 +75,7 @@ export async function GET(request: NextRequest) {
           );
         }
       } else {
-        console.log('❌ Frontend API: No Firebase token available');
+        console.log('❌ Frontend API: No authenticated user found');
         return NextResponse.json(
           { error: 'Authentication required' },
           { status: 401 }
