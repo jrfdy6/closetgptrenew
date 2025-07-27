@@ -17,10 +17,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose the port
-EXPOSE 8000
+EXPOSE 8080
 
 # Set environment variables
-ENV PORT=8000
+ENV PORT=8080
 ENV PYTHONPATH=/app
 
 # Start the application
