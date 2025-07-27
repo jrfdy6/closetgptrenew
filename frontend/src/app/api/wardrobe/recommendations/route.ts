@@ -1,11 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getUserIdFromRequest } from '@/lib/utils/server-auth';
 
-export async function GET(request: Request) {
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
   try {
+    // Verify user authentication
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Get the authorization header from the request
+    const authHeader = request.headers.get('authorization');
+    
     // Forward the request to the backend server
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/wardrobe/recommendations`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/wardrobe/recommendations`, {
       method: 'GET',
       headers: {
+        'Authorization': authHeader || '',
         'Content-Type': 'application/json',
       },
     });

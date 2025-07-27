@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     // Forward the request to the backend server
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/user/profile`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/user/profile`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

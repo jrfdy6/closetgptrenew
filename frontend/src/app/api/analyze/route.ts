@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { uploadImage } from '@/lib/firebase/storageService';
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const { imageUrl } = await request.json();
@@ -34,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // Forward the request to the backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/analyze-image`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/analyze-image`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

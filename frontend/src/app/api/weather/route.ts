@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const requestBody = await request.json();
     console.log("🌤️ Frontend weather API called with:", requestBody);
 
     // Forward the request to the backend server
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/weather`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/weather`;
     console.log("🌤️ Forwarding to backend:", backendUrl);
     
     const response = await fetch(backendUrl, {

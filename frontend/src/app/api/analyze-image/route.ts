@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     // Accept both { image } and { imageUrl }
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
     }
 
     // Forward the request to the backend server
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/analyze-image`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/analyze-image`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
