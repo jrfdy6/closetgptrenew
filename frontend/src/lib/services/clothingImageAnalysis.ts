@@ -9,9 +9,13 @@ export async function analyzeClothingImage(imageUrl: string): Promise<OpenAIClot
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
       },
       body: JSON.stringify({ image: { url: imageUrl } }),
     });
+
+    console.log("Response status:", response.status);
+    console.log("Response headers:", Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorData = await response.json();
