@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFirebaseIdToken } from '@/lib/utils/auth';
 
+// Force dynamic rendering since we use request.url
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Frontend API: Wardrobe gaps endpoint called');
