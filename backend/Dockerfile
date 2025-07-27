@@ -5,10 +5,12 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
+    libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY requirements-full.txt requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -23,5 +25,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONPATH=/app
 
-# Start the application
-CMD ["python", "app.py"] 
+# Start the application using the correct app path
+CMD ["python", "-m", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8080"] 
