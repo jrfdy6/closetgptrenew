@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     console.log('🔍 Calling backend outfits endpoint:', `${fullApiUrl}/api/outfits`);
     console.log('🔍 Headers:', headers);
     
-    const response = await fetch(`${fullApiUrl}/api/outfits`, {
+    const response = await fetch(`${fullApiUrl}/api/outfits/`, {
       method: 'GET',
       headers,
     });
