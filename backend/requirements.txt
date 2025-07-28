@@ -14,7 +14,6 @@ openai>=1.0.0
 numpy>=1.24.0
 torch>=2.0.0
 onnxruntime>=1.15.0
-clip-by-openai>=1.0
 
 # Firebase
 firebase-admin>=6.2.0
