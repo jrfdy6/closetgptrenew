@@ -1,0 +1,197 @@
+[
+  {
+    "name": "Casual Weekend Look",
+    "description": "A comfortable and stylish outfit perfect for weekend activities",
+    "occasion": "Casual",
+    "style": "Relaxed",
+    "mood": "Comfortable",
+    "items": [
+      {
+        "id": "item1",
+        "name": "Blue Denim Jacket",
+        "type": "outerwear"
+      },
+      {
+        "id": "item2",
+        "name": "White T-Shirt",
+        "type": "top"
+      },
+      {
+        "id": "item3",
+        "name": "Black Jeans",
+        "type": "bottom"
+      }
+    ],
+    "confidence_score": 0.9,
+    "reasoning": "Perfect combination of comfort and style for casual occasions",
+    "id": "9eb006b7-2f91-4456-b0aa-56c713713d34",
+    "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "createdAt": 1753697892,
+    "updatedAt": 1753697892,
+    "wasSuccessful": true,
+    "validationErrors": [],
+    "feedback_summary": {
+      "total_feedback": 0,
+      "likes": 0,
+      "dislikes": 0,
+      "issues": 0,
+      "average_rating": 0
+    }
+  },
+  {
+    "name": "Business Professional",
+    "description": "A sharp and professional outfit for important meetings",
+    "occasion": "Business",
+    "style": "Professional",
+    "mood": "Confident",
+    "items": [
+      {
+        "id": "item4",
+        "name": "Navy Blazer",
+        "type": "outerwear"
+      },
+      {
+        "id": "item5",
+        "name": "White Dress Shirt",
+        "type": "top"
+      },
+      {
+        "id": "item6",
+        "name": "Gray Dress Pants",
+        "type": "bottom"
+      }
+    ],
+    "confidence_score": 0.95,
+    "reasoning": "Classic business attire that conveys professionalism and competence",
+    "id": "deb3d85a-2b31-401d-ace9-72d1f2e733ce",
+    "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "createdAt": 1753697892,
+    "updatedAt": 1753697892,
+    "wasSuccessful": true,
+    "validationErrors": [],
+    "feedback_summary": {
+      "total_feedback": 0,
+      "likes": 0,
+      "dislikes": 0,
+      "issues": 0,
+      "average_rating": 0
+    }
+  },
+  {
+    "name": "Evening Out",
+    "description": "An elegant outfit for dinner dates and evening events",
+    "occasion": "Evening",
+    "style": "Elegant",
+    "mood": "Sophisticated",
+    "items": [
+      {
+        "id": "item7",
+        "name": "Black Dress",
+        "type": "dress"
+      },
+      {
+        "id": "item8",
+        "name": "Silver Necklace",
+        "type": "accessory"
+      },
+      {
+        "id": "item9",
+        "name": "Black Heels",
+        "type": "shoes"
+      }
+    ],
+    "confidence_score": 0.88,
+    "reasoning": "Timeless elegance that's perfect for evening occasions",
+    "id": "8fee80f8-fc90-4b05-acfb-c4040d460df3",
+    "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "createdAt": 1753697892,
+    "updatedAt": 1753697892,
+    "wasSuccessful": true,
+    "validationErrors": [],
+    "feedback_summary": {
+      "total_feedback": 0,
+      "likes": 0,
+      "dislikes": 0,
+      "issues": 0,
+      "average_rating": 0
+    }
+  },
+  {
+    "name": "Athletic Performance",
+    "description": "High-performance athletic wear for workouts and sports",
+    "occasion": "Athletic",
+    "style": "Sporty",
+    "mood": "Energetic",
+    "items": [
+      {
+        "id": "item10",
+        "name": "Moisture-Wicking Shirt",
+        "type": "top"
+      },
+      {
+        "id": "item11",
+        "name": "Athletic Shorts",
+        "type": "bottom"
+      },
+      {
+        "id": "item12",
+        "name": "Running Shoes",
+        "type": "shoes"
+      }
+    ],
+    "confidence_score": 0.92,
+    "reasoning": "Performance-focused outfit designed for comfort and mobility during physical activity",
+    "id": "5d7f393d-7ad4-4546-a18e-186fda19ab95",
+    "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "createdAt": 1753697892,
+    "updatedAt": 1753697892,
+    "wasSuccessful": true,
+    "validationErrors": [],
+    "feedback_summary": {
+      "total_feedback": 0,
+      "likes": 0,
+      "dislikes": 0,
+      "issues": 0,
+      "average_rating": 0
+    }
+  },
+  {
+    "name": "Creative Artist",
+    "description": "A unique and expressive outfit that showcases personal style",
+    "occasion": "Creative",
+    "style": "Artistic",
+    "mood": "Expressive",
+    "items": [
+      {
+        "id": "item13",
+        "name": "Colorful Sweater",
+        "type": "top"
+      },
+      {
+        "id": "item14",
+        "name": "Distressed Jeans",
+        "type": "bottom"
+      },
+      {
+        "id": "item15",
+        "name": "Statement Earrings",
+        "type": "accessory"
+      }
+    ],
+    "confidence_score": 0.85,
+    "reasoning": "Bold and creative combination that expresses artistic personality",
+    "id": "c43c05f1-a50c-4413-9190-7cd2c1cf43c2",
+    "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "createdAt": 1753697892,
+    "updatedAt": 1753697892,
+    "wasSuccessful": true,
+    "validationErrors": [],
+    "feedback_summary": {
+      "total_feedback": 0,
+      "likes": 0,
+      "dislikes": 0,
+      "issues": 0,
+      "average_rating": 0
+    }
+  }
+]
