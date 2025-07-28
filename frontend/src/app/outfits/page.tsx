@@ -85,8 +85,19 @@ export default function OutfitsPage() {
         const outfitsData = await response.json();
         console.log('🔍 Fetched outfits:', outfitsData);
         
+        // Handle the backend response format - it returns {outfits: [], message: "..."}
+        const outfitsArray = outfitsData.outfits || outfitsData;
+        
+        // Ensure we have an array to map over
+        if (!Array.isArray(outfitsArray)) {
+          console.error('🔍 Expected outfits array but got:', outfitsArray);
+          setOutfits([]);
+          setLoading(false);
+          return;
+        }
+        
         // Transform the API response to match our interface
-        const transformedOutfits: Outfit[] = outfitsData.map((outfit: any) => ({
+        const transformedOutfits: Outfit[] = outfitsArray.map((outfit: any) => ({
           id: outfit.id,
           name: outfit.name || 'Untitled Outfit',
           description: outfit.reasoning || '',
