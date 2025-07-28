@@ -66,7 +66,10 @@ export default function AddItemPage() {
       setCurrentStep('analyzing');
       setProgress(60);
       const analysisResult = await analyzeClothingImage(uploadedImage.url);
-      setAnalysis(analysisResult);
+      
+      // Handle the nested analysis structure from the backend
+      const analysis = analysisResult.analysis || analysisResult;
+      setAnalysis(analysis);
       setProgress(80);
 
       // Create clothing item from analysis
@@ -369,6 +372,55 @@ export default function AddItemPage() {
                   </div>
 
                   <div>
+                    <Label htmlFor="pattern">Pattern</Label>
+                    <Input
+                      id="pattern"
+                      value={analysis.pattern || ""}
+                      onChange={(e) => setAnalysis({ 
+                        ...analysis, 
+                        pattern: e.target.value
+                      })}
+                      className="mt-1"
+                      placeholder="e.g., solid, striped, floral"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="material">Material</Label>
+                    <Input
+                      id="material"
+                      value={analysis.material || ""}
+                      onChange={(e) => setAnalysis({ 
+                        ...analysis, 
+                        material: e.target.value
+                      })}
+                      className="mt-1"
+                      placeholder="e.g., cotton, wool, silk"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="fit">Fit</Label>
+                    <Select
+                      value={analysis.fit || ""}
+                      onValueChange={(value) => setAnalysis({ 
+                        ...analysis, 
+                        fit: value 
+                      })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select fit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fitted">Fitted</SelectItem>
+                        <SelectItem value="loose">Loose</SelectItem>
+                        <SelectItem value="oversized">Oversized</SelectItem>
+                        <SelectItem value="regular">Regular</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
                     <Label htmlFor="style">Style</Label>
                     <Input
                       id="style"
@@ -385,10 +437,10 @@ export default function AddItemPage() {
                   <div>
                     <Label htmlFor="season">Season</Label>
                     <Select
-                      value={analysis.season || ""}
+                      value={analysis.season?.[0] || ""}
                       onValueChange={(value) => setAnalysis({ 
                         ...analysis, 
-                        season: value 
+                        season: [value]
                       })}
                     >
                       <SelectTrigger className="mt-1">
@@ -401,6 +453,34 @@ export default function AddItemPage() {
                         <SelectItem value="winter">Winter</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="occasion">Occasion</Label>
+                    <Input
+                      id="occasion"
+                      value={analysis.occasion?.join(", ") || ""}
+                      onChange={(e) => setAnalysis({ 
+                        ...analysis, 
+                        occasion: e.target.value.split(", ").filter(Boolean)
+                      })}
+                      className="mt-1"
+                      placeholder="e.g., casual, formal, work"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="brand">Brand</Label>
+                    <Input
+                      id="brand"
+                      value={analysis.brand || ""}
+                      onChange={(e) => setAnalysis({ 
+                        ...analysis, 
+                        brand: e.target.value
+                      })}
+                      className="mt-1"
+                      placeholder="Brand name (if visible)"
+                    />
                   </div>
 
                   <div>

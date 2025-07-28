@@ -60,12 +60,16 @@ export const ClothingItemSchema = {
 export interface OpenAIClothingAnalysis {
   type: string;
   subType?: string;
-  season: string;
+  season: string[] | string;
   style: string[];
   dominantColors: any[];
   matchingColors: any[];
   occasion: string[];
   brand?: string;
+  pattern?: string;
+  material?: string;
+  fit?: string;
+  confidence?: number;
 }
 
 export const OpenAIClothingAnalysisSchema = {
