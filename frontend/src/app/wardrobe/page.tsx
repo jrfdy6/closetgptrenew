@@ -60,6 +60,125 @@ import {
   Container
 } from '@/components/ui/typography';
 
+// Mock data for when wardrobe is empty
+const MOCK_WARDROBE_ITEMS: WardrobeItem[] = [
+  {
+    id: "mock-item-1",
+    name: "White T-Shirt",
+    type: "shirt",
+    color: "white",
+    season: ["spring", "summer"],
+    imageUrl: "",
+    tags: ["casual", "basic"],
+    style: ["casual"],
+    userId: "mock-user",
+    dominantColors: ["#FFFFFF"],
+    matchingColors: ["#000000", "#808080"],
+    occasion: ["casual"],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    favorite: false,
+    wearCount: 0,
+    lastWorn: null,
+    metadata: {
+      brand: "Generic",
+      material: "cotton"
+    }
+  },
+  {
+    id: "mock-item-2",
+    name: "Blue Jeans",
+    type: "pants",
+    color: "blue",
+    season: ["spring", "summer", "fall"],
+    imageUrl: "",
+    tags: ["casual", "denim"],
+    style: ["casual"],
+    userId: "mock-user",
+    dominantColors: ["#1E3A8A"],
+    matchingColors: ["#FFFFFF", "#000000"],
+    occasion: ["casual"],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    favorite: true,
+    wearCount: 5,
+    lastWorn: Date.now() - 86400000, // 1 day ago
+    metadata: {
+      brand: "Generic",
+      material: "denim"
+    }
+  },
+  {
+    id: "mock-item-3",
+    name: "Navy Blazer",
+    type: "outerwear",
+    color: "navy",
+    season: ["spring", "fall"],
+    imageUrl: "",
+    tags: ["formal", "business"],
+    style: ["business-casual"],
+    userId: "mock-user",
+    dominantColors: ["#1E3A8A"],
+    matchingColors: ["#FFFFFF", "#808080"],
+    occasion: ["business", "formal"],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    favorite: false,
+    wearCount: 2,
+    lastWorn: Date.now() - 172800000, // 2 days ago
+    metadata: {
+      brand: "Generic",
+      material: "wool"
+    }
+  },
+  {
+    id: "mock-item-4",
+    name: "Khaki Chinos",
+    type: "pants",
+    color: "khaki",
+    season: ["spring", "summer", "fall"],
+    imageUrl: "",
+    tags: ["casual", "business-casual"],
+    style: ["business-casual"],
+    userId: "mock-user",
+    dominantColors: ["#F4A460"],
+    matchingColors: ["#FFFFFF", "#000000"],
+    occasion: ["casual", "business"],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    favorite: false,
+    wearCount: 3,
+    lastWorn: Date.now() - 259200000, // 3 days ago
+    metadata: {
+      brand: "Generic",
+      material: "cotton"
+    }
+  },
+  {
+    id: "mock-item-5",
+    name: "White Oxford Shirt",
+    type: "shirt",
+    color: "white",
+    season: ["spring", "summer", "fall"],
+    imageUrl: "",
+    tags: ["business", "formal"],
+    style: ["business-casual"],
+    userId: "mock-user",
+    dominantColors: ["#FFFFFF"],
+    matchingColors: ["#000000", "#1E3A8A"],
+    occasion: ["business", "formal"],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    favorite: true,
+    wearCount: 8,
+    lastWorn: Date.now() - 43200000, // 12 hours ago
+    metadata: {
+      brand: "Generic",
+      material: "cotton"
+    }
+  }
+];
+
 const OCCASIONS = [
   "Casual",
   "Business Casual",
@@ -498,17 +617,143 @@ export default function WardrobePage() {
 
   // Empty state
   if (!wardrobe || wardrobe.length === 0) {
+    // Use mock data if no real wardrobe items
+    const displayItems = MOCK_WARDROBE_ITEMS;
+    const filteredItems = displayItems.filter(item => {
+      const matchesSearch = searchQuery === '' || 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        item.style?.some(style => style.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesType = !filters.type || item.type === filters.type;
+      const matchesColor = !filters.color || item.color.toLowerCase().includes(filters.color.toLowerCase());
+      const matchesSeason = !filters.season || item.season?.some(s => s.toLowerCase().includes(filters.season.toLowerCase()));
+      const matchesStyle = !filters.style || item.style?.some(s => s.toLowerCase().includes(filters.style.toLowerCase()));
+      const matchesOccasion = !filters.occasion || item.occasion?.some(o => o.toLowerCase().includes(filters.occasion.toLowerCase()));
+      
+      return matchesSearch && matchesType && matchesColor && matchesSeason && matchesStyle && matchesOccasion;
+    });
+
     return (
       <Container maxWidth="full" padding="lg">
-        <EmptyState
-          icon={ImageIcon}
-          title="Your wardrobe is empty"
-          description="Start building your digital wardrobe by adding your favorite clothing items. We'll help you organize and create amazing outfits."
-          actionText="Add your first item"
-          onAction={() => router.push('/wardrobe/add')}
-          secondaryActionText="Learn how it works"
-          onSecondaryAction={() => window.open('/help', '_blank')}
-        />
+        <div className="container-readable space-section py-8">
+          {/* Hero Header */}
+          <div className="gradient-hero rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                    <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                  <h1 className="text-2xl sm:text-hero text-foreground">My Wardrobe</h1>
+                </div>
+                <p className="text-secondary text-base sm:text-lg">
+                  {displayItems.length} sample item{displayItems.length !== 1 ? 's' : ''} in your collection
+                  <span className="text-muted-foreground"> (Demo Mode)</span>
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                <Button
+                  onClick={() => router.push('/wardrobe/add')}
+                  className="shadow-md hover:shadow-lg w-full sm:w-auto"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
+                <Button
+                  onClick={() => router.push('/wardrobe/batch-upload')}
+                  variant="outline"
+                  className="shadow-md hover:shadow-lg w-full sm:w-auto"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Batch Upload
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Search and Filters */}
+          <Card className="card-enhanced animate-fade-in stagger-2">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search your wardrobe..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 shadow-sm"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="shadow-md hover:shadow-lg"
+                    onClick={() => setShowFilterModal(true)}
+                  >
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filter
+                    {Object.values(filters).some(filter => filter !== '') && (
+                      <span className="ml-2 w-2 h-2 bg-yellow-500 rounded-full"></span>
+                    )}
+                  </Button>
+                  {Object.values(filters).some(filter => filter !== '') && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleClearFilters}
+                      className="shadow-md hover:shadow-lg"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Demo Notice */}
+          <Card className="card-enhanced animate-fade-in stagger-3 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Demo Mode</span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Showing sample wardrobe items. Add your own items to see your real wardrobe.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Wardrobe Grid */}
+          {searchQuery && filteredItems.length === 0 ? (
+            <NoResults
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
+            />
+          ) : (
+            <WardrobeGrid
+              items={filteredItems}
+              onDeleteItem={handleDeleteItem}
+              onImageError={handleImageError}
+              onAddTag={handleAddTag}
+              onRemoveTag={handleRemoveTag}
+              onGenerateOutfit={handleGenerateOutfit}
+              imageErrors={imageErrors}
+              itemTags={itemTags}
+              newTag={newTag}
+              setNewTag={setNewTag}
+              isDeleting={isDeleting}
+              retryCount={retryCount}
+            />
+          )}
+        </div>
       </Container>
     );
   }
