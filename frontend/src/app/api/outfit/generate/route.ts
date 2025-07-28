@@ -266,10 +266,13 @@ export async function POST(request: Request) {
         console.log(`📚 Retrieved ${outfitHistory.length} recent outfits for diversity`);
       } else {
         console.warn('🔍 DEBUG: Failed to get outfit history, status:', historyResponse.status);
+        // Don't fail the entire request - just continue without history
+        outfitHistory = [];
       }
     } catch (error) {
       console.warn('Failed to retrieve outfit history for diversity:', error);
       // Continue without history if retrieval fails
+      outfitHistory = [];
     }
 
     // Log the payload for debugging
