@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,79 +47,89 @@ export default function OutfitsPage() {
   const [error, setError] = useState<string | null>(null);
   const [markingWorn, setMarkingWorn] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log('🔍 Outfits page useEffect - authLoading:', authLoading, 'user:', user);
+  const fetchOutfits = useCallback(async () => {
+    if (!user) return;
     
-    // Don't make API calls if user is not authenticated or still loading
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔍 Fetching outfits for user:', user.uid);
+      
+      // Get the user's ID token for authentication
+      const idToken = await user.getIdToken();
+      
+      // Fetch real outfits from the API
+      const response = await fetch('/api/outfits', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 504) {
+          throw new Error('Backend is currently unavailable. Please try again in a few minutes.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const outfitsData = await response.json();
+      console.log('🔍 Fetched outfits:', outfitsData);
+      
+      // Handle the backend response format - it returns {outfits: [], message: "..."}
+      const outfitsArray = outfitsData.outfits || outfitsData;
+      
+      // Ensure we have an array to map over
+      if (!Array.isArray(outfitsArray)) {
+        console.error('🔍 Expected outfits array but got:', outfitsArray);
+        setOutfits([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Transform the API response to match our interface
+      const transformedOutfits: Outfit[] = outfitsArray.map((outfit: any) => ({
+        id: outfit.id,
+        name: outfit.name || 'Untitled Outfit',
+        description: outfit.reasoning || '',
+        occasion: outfit.occasion || 'Casual',
+        style: outfit.style || '',
+        createdAt: new Date(outfit.createdAt).getTime() / 1000,
+        items: outfit.items || [],
+        feedback_summary: outfit.feedback_summary,
+        userFeedback: outfit.userFeedback
+      }));
+      
+      setOutfits(transformedOutfits);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching outfits:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load outfits';
+      setError(errorMessage);
+      setLoading(false);
+      
+      // If it's a timeout or backend issue, show a retry button
+      if (errorMessage.includes('Backend is currently unavailable') || errorMessage.includes('timeout')) {
+        setError(`${errorMessage} Click to retry.`);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (authLoading) {
       console.log('🔍 Still loading auth...');
       return;
     }
 
     if (!user) {
-      console.log('🔍 No user, setting loading to false');
-      setLoading(false);
+      console.log('🔍 No user, skipping outfit fetch');
       return;
     }
 
-    const fetchOutfits = async () => {
-      try {
-        setLoading(true);
-        console.log('🔍 Fetching outfits for user:', user.uid);
-        
-        // Get the user's ID token for authentication
-        const idToken = await user.getIdToken();
-        
-        // Fetch real outfits from the API
-        const response = await fetch('/api/outfits', {
-          headers: {
-            'Authorization': `Bearer ${idToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const outfitsData = await response.json();
-        console.log('🔍 Fetched outfits:', outfitsData);
-        
-        // Handle the backend response format - it returns {outfits: [], message: "..."}
-        const outfitsArray = outfitsData.outfits || outfitsData;
-        
-        // Ensure we have an array to map over
-        if (!Array.isArray(outfitsArray)) {
-          console.error('🔍 Expected outfits array but got:', outfitsArray);
-          setOutfits([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Transform the API response to match our interface
-        const transformedOutfits: Outfit[] = outfitsArray.map((outfit: any) => ({
-          id: outfit.id,
-          name: outfit.name || 'Untitled Outfit',
-          description: outfit.reasoning || '',
-          occasion: outfit.occasion || 'Casual',
-          style: outfit.style || '',
-          createdAt: new Date(outfit.createdAt).getTime() / 1000,
-          items: outfit.items || [],
-          feedback_summary: outfit.feedback_summary,
-          userFeedback: outfit.userFeedback
-        }));
-        
-        setOutfits(transformedOutfits);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching outfits:', err);
-        setError('Failed to load outfits');
-        setLoading(false);
-      }
-    };
-
+    console.log('🔍 Outfits page useEffect - authLoading:', authLoading, 'user:', user);
     fetchOutfits();
-  }, [user, authLoading]);
+  }, [user, authLoading, fetchOutfits]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-US', {
@@ -216,7 +226,19 @@ export default function OutfitsPage() {
       <div className="container mx-auto py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Error</h1>
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600 mb-4">{error}</p>
+          {error.includes('Backend is currently unavailable') && (
+            <Button 
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                fetchOutfits();
+              }}
+              className="mt-4"
+            >
+              Retry
+            </Button>
+          )}
         </div>
       </div>
     );
