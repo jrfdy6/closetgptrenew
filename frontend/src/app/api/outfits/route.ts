@@ -52,6 +52,7 @@ export async function GET(request: Request) {
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     try {
+      console.log('🔍 DEBUG: Starting fetch request to backend...');
       const response = await fetch(`${fullApiUrl}/api/outfits/`, {
         method: 'GET',
         headers,
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
       });
       
       clearTimeout(timeoutId);
-      
+      console.log('🔍 DEBUG: Backend response received!');
       console.log('🔍 DEBUG: Backend response status:', response.status);
       console.log('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
 

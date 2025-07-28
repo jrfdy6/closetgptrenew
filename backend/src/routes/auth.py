@@ -50,6 +50,7 @@ async def timeout_context(timeout_seconds: float):
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Get current user ID from Firebase ID token."""
     try:
+        logger.info("🔍 DEBUG: Starting authentication process...")
         token = credentials.credentials
         logger.info(f"🔍 DEBUG: Received token: {token[:20]}...")
         
@@ -63,15 +64,20 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             logger.warning("Using test token for development")
             return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
         
+        logger.info("🔍 DEBUG: About to start Firebase token verification...")
+        
         # Try with default settings first with timeout
         try:
-            logger.info("🔍 DEBUG: Attempting Firebase token verification...")
+            logger.info("🔍 DEBUG: Creating ThreadPoolExecutor...")
             
             # Use a timeout for the Firebase verification
             with concurrent.futures.ThreadPoolExecutor() as executor:
+                logger.info("🔍 DEBUG: Submitting Firebase verification task...")
                 future = executor.submit(firebase_auth.verify_id_token, token)
+                logger.info("🔍 DEBUG: Waiting for Firebase verification result...")
                 try:
                     decoded_token = future.result(timeout=5.0)  # 5 second timeout
+                    logger.info("🔍 DEBUG: Firebase verification completed successfully!")
                 except concurrent.futures.TimeoutError:
                     logger.error("🔍 DEBUG: Firebase token verification timed out")
                     raise HTTPException(
@@ -79,6 +85,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                         detail="Token verification timed out"
                     )
             
+            logger.info("🔍 DEBUG: Extracting user_id from decoded token...")
             user_id: str = decoded_token.get("uid")
             logger.info(f"🔍 DEBUG: Token verification successful, user_id: {user_id}")
             if user_id is None:
@@ -86,6 +93,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token: no user ID found"
                 )
+            logger.info("🔍 DEBUG: Authentication completed successfully!")
             return user_id
         except Exception as e:
             logger.error(f"🔍 DEBUG: Firebase token verification failed: {e}")
@@ -93,11 +101,15 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             if "Token used too early" in str(e) or "clock" in str(e).lower():
                 logger.warning(f"Clock skew detected, trying with lenient settings: {e}")
                 try:
+                    logger.info("🔍 DEBUG: Trying lenient Firebase verification...")
                     # Try with a more lenient clock skew tolerance and timeout
                     with concurrent.futures.ThreadPoolExecutor() as executor:
+                        logger.info("🔍 DEBUG: Submitting lenient Firebase verification task...")
                         future = executor.submit(firebase_auth.verify_id_token, token, check_revoked=False)
+                        logger.info("🔍 DEBUG: Waiting for lenient Firebase verification result...")
                         try:
                             decoded_token = future.result(timeout=5.0)  # 5 second timeout
+                            logger.info("🔍 DEBUG: Lenient Firebase verification completed successfully!")
                         except concurrent.futures.TimeoutError:
                             logger.error("🔍 DEBUG: Lenient Firebase verification timed out")
                             raise HTTPException(
