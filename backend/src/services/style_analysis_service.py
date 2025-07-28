@@ -4,14 +4,15 @@ from typing import List, Dict, Tuple, Optional
 from PIL import Image
 import logging
 from ..utils.clip_embedding import embedder
-import clip
+import open_clip as clip
 
 logger = logging.getLogger(__name__)
 
 class StyleAnalysisService:
     def __init__(self):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model, self.preprocess = clip.load("ViT-B/32", device=self.device)
+        self.model, _, self.preprocess = clip.create_model_and_transforms('ViT-B-32', pretrained='openai')
+        self.model = self.model.to(self.device)
         
         # Define comprehensive style prompts for CLIP
         self.style_prompts = {
