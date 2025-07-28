@@ -29,14 +29,8 @@ export async function POST(request: Request) {
 
     // Debug: Log the environment variable and constructed URL
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
-    
-    // Ensure the URL has a protocol and proper formatting
-    const fullBackendUrl = backendUrl.startsWith('http') ? backendUrl : `https://${backendUrl}`;
-    const cleanBackendUrl = fullBackendUrl.endsWith('/') ? fullBackendUrl.slice(0, -1) : fullBackendUrl;
-    const fullUrl = `${cleanBackendUrl}/api/analyze-image`;
-    
+    const fullUrl = `${backendUrl}/api/analyze-image`;
     console.log('🔍 Debug - Backend URL:', backendUrl);
-    console.log('🔍 Debug - Clean Backend URL:', cleanBackendUrl);
     console.log('🔍 Debug - Full URL:', fullUrl);
 
     // Forward the request to the real backend server
