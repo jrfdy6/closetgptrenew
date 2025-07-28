@@ -1,7 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Removed experimental.esmExternals as it's not recommended
-  serverExternalPackages: ['canvas'],
   webpack: (config, { isServer }) => {
     // Handle module resolution
     config.resolve.fallback = {

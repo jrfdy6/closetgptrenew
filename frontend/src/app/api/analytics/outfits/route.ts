@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticatedFetch } from '@/lib/auth';
+import { authenticatedFetch } from '@/lib/utils/authenticatedFetch';
 
-// Force dynamic rendering since we use request.url
+// Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -66,10 +66,10 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching outfit analytics:', error);
+    console.error('Error fetching analytics:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to fetch outfit analytics',
+        error: 'Failed to fetch analytics data',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
