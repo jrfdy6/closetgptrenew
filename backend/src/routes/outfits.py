@@ -8,6 +8,8 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import uuid
+import concurrent.futures
+import asyncio
 
 from ..core.logging import get_logger
 from ..config.firebase import db, firebase_initialized
@@ -111,9 +113,50 @@ async def get_test_outfits():
     """Get test outfits without authentication (for testing)."""
     logger.info("Returning test outfits")
     
-    # If Firebase is not available, return mock data
-    if not firebase_initialized:
-        logger.warning("Firebase not available, returning mock outfits")
+    try:
+        logger.info("🔍 DEBUG: Starting Firestore query for outfits...")
+        
+        # Use a timeout for the Firestore query
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            logger.info("🔍 DEBUG: Submitting Firestore query task...")
+            future = executor.submit(lambda: db.collection('outfits').limit(10).stream())
+            
+            try:
+                logger.info("🔍 DEBUG: Waiting for Firestore query result...")
+                outfit_docs = future.result(timeout=10.0)  # 10 second timeout
+                logger.info("🔍 DEBUG: Firestore query completed successfully!")
+            except concurrent.futures.TimeoutError:
+                logger.error("🔍 DEBUG: Firestore query timed out")
+                raise Exception("Firestore query timed out")
+        
+        logger.info("🔍 DEBUG: Processing Firestore results...")
+        outfits = []
+        for doc in outfit_docs:
+            logger.info(f"🔍 DEBUG: Processing outfit document: {doc.id}")
+            outfit_data = doc.to_dict()
+            
+            # Resolve item IDs to actual item objects
+            resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), "test_user")
+            
+            outfits.append(OutfitResponse(
+                id=doc.id,
+                name=outfit_data.get('name', ''),
+                style=outfit_data.get('style', ''),
+                mood=outfit_data.get('mood', ''),
+                items=resolved_items,
+                occasion=outfit_data.get('occasion', 'Casual'),
+                confidence_score=outfit_data.get('confidence_score', 0.0),
+                reasoning=outfit_data.get('reasoning', ''),
+                createdAt=outfit_data['createdAt']
+            ))
+        
+        logger.info(f"🔍 DEBUG: Successfully processed {len(outfits)} outfits")
+        return outfits
+        
+    except Exception as e:
+        logger.error(f"🔍 DEBUG: Failed to get test outfits: {e}")
+        # Return mock data if Firestore fails
+        logger.warning("🔍 DEBUG: Returning mock outfits due to Firestore error")
         mock_outfits = [
             {
                 "id": "mock-outfit-1",
@@ -159,40 +202,6 @@ async def get_test_outfits():
             )
             for outfit in mock_outfits
         ]
-    
-    try:
-        outfits_ref = db.collection('outfits')
-        outfits_query = outfits_ref.limit(10)  # Get first 10 outfits for testing
-        
-        outfit_docs = outfits_query.stream()
-        
-        outfits = []
-        for doc in outfit_docs:
-            outfit_data = doc.to_dict()
-            
-            # Resolve item IDs to actual item objects
-            resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), "test_user")
-            
-            outfits.append(OutfitResponse(
-                id=doc.id,
-                name=outfit_data.get('name', ''),
-                style=outfit_data.get('style', ''),
-                mood=outfit_data.get('mood', ''),
-                items=resolved_items,
-                occasion=outfit_data.get('occasion', 'Casual'),
-                confidence_score=outfit_data.get('confidence_score', 0.0),
-                reasoning=outfit_data.get('reasoning', ''),
-                createdAt=outfit_data['createdAt']
-            ))
-        
-        return outfits
-        
-    except Exception as e:
-        logger.error(f"Failed to get test outfits: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get outfits"
-        )
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(
