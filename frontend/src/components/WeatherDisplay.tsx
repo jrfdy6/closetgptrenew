@@ -2,28 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getWeather, getWeatherIcon } from "@/lib/weather";
+import { getWeatherIcon } from "@/lib/weather";
+import { useWeather } from "@/hooks/useWeather";
 import type { WeatherData } from "@/types/weather";
 
 export function WeatherDisplay() {
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchWeather = async () => {
-      try {
-        const data = await getWeather();
-        setWeather(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch weather");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWeather();
-  }, []);
+  const { weather, loading, error } = useWeather();
 
   if (loading) {
     return (
