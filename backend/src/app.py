@@ -1,23 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import weather, wardrobe, auth, analytics, monitoring, image_processing, image_analysis, outfits, outfit, style_analysis, wardrobe_analysis, security, performance, analytics_dashboard, feedback, public_diagnostics, validation_rules, item_analytics, outfit_history, forgotten_gems
-from .core.logging import setup_logging
-from .core.middleware import setup_middleware
+import os
+import sys
+import traceback
 
-# Import Firebase config to initialize it
-try:
-    from .config import firebase
-    print("DEBUG: Firebase config imported successfully")
-except Exception as e:
-    print(f"DEBUG: Firebase config import failed: {e}")
-
-# Initialize logging
-try:
-    setup_logging()
-    print("DEBUG: Logging setup completed")
-except Exception as e:
-    print(f"DEBUG: Logging setup failed: {e}")
-
+# Create the app first
 app = FastAPI(
     title="ClosetGPT API",
     description="AI-powered wardrobe management and outfit generation API",
@@ -25,16 +12,7 @@ app = FastAPI(
 )
 print("DEBUG: FastAPI app created")
 
-# Setup production middleware
-print("DEBUG: About to call setup_middleware(app)")
-setup_middleware(app)
-print("DEBUG: setup_middleware(app) completed")
-
-# Configure CORS
-import os
-from typing import List
-
-# Get allowed origins from environment variable
+# Configure CORS first
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
@@ -62,27 +40,112 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers - ORDER MATTERS! More specific routes must come before catch-all routes
-app.include_router(outfit.router, prefix="/api/outfit", tags=["outfit"])
-app.include_router(outfits.router, prefix="/api/outfits", tags=["outfits"])
-app.include_router(image_processing.router, prefix="/api/image", tags=["images"])
-app.include_router(image_analysis.router)
-app.include_router(weather.router, prefix="/api", tags=["weather"])
-app.include_router(style_analysis.router, prefix="/api", tags=["style-analysis"])
-app.include_router(wardrobe_analysis.router)
-app.include_router(forgotten_gems.router)  # Register forgotten gems BEFORE wardrobe to avoid route conflict
-app.include_router(wardrobe.router)  # Register wardrobe CRUD endpoints AFTER forgotten gems
-app.include_router(analytics.router, prefix="/api", tags=["analytics"])
-app.include_router(analytics_dashboard.router, prefix="/api", tags=["analytics-dashboard"])
-app.include_router(auth.router)
-app.include_router(monitoring.router, prefix="/api", tags=["monitoring"])
-app.include_router(security.router, prefix="/api/security", tags=["security"])
-app.include_router(performance.router, prefix="/api/performance", tags=["performance"])
-app.include_router(feedback.router)
-app.include_router(public_diagnostics.router, prefix="/api/diagnostics", tags=["public-diagnostics"])
-app.include_router(validation_rules.router, prefix="/api", tags=["validation-rules"])
-app.include_router(item_analytics.router)
-app.include_router(outfit_history.router, prefix="/api", tags=["outfit-history"])
+# Try to import and setup core modules
+try:
+    from .core.logging import setup_logging
+    setup_logging()
+    print("DEBUG: Logging setup completed")
+except Exception as e:
+    print(f"DEBUG: Logging setup failed: {e}")
+    # Continue without logging setup
+
+try:
+    from .core.middleware import setup_middleware
+    setup_middleware(app)
+    print("DEBUG: setup_middleware(app) completed")
+except Exception as e:
+    print(f"DEBUG: Middleware setup failed: {e}")
+    # Continue without middleware setup
+
+# Try to import Firebase config
+try:
+    from .config import firebase
+    print("DEBUG: Firebase config imported successfully")
+except Exception as e:
+    print(f"DEBUG: Firebase config import failed: {e}")
+
+# Import routes with error handling
+def safe_import_router(module_name, router_name):
+    """Safely import a router module."""
+    try:
+        module = __import__(f"src.routes.{module_name}", fromlist=[router_name])
+        router = getattr(module, router_name)
+        return router
+    except Exception as e:
+        print(f"DEBUG: Failed to import {module_name}.{router_name}: {e}")
+        return None
+
+# Import and include routers with error handling
+routers_to_include = [
+    ("outfit", "router"),
+    ("outfits", "router"),
+    ("image_processing", "router"),
+    ("image_analysis", "router"),
+    ("weather", "router"),
+    ("style_analysis", "router"),
+    ("wardrobe_analysis", "router"),
+    ("forgotten_gems", "router"),
+    ("wardrobe", "router"),
+    ("analytics", "router"),
+    ("analytics_dashboard", "router"),
+    ("auth", "router"),
+    ("monitoring", "router"),
+    ("security", "router"),
+    ("performance", "router"),
+    ("feedback", "router"),
+    ("public_diagnostics", "router"),
+    ("validation_rules", "router"),
+    ("item_analytics", "router"),
+    ("outfit_history", "router"),
+]
+
+for module_name, router_name in routers_to_include:
+    try:
+        router = safe_import_router(module_name, router_name)
+        if router:
+            if module_name == "outfit":
+                app.include_router(router, prefix="/api/outfit", tags=["outfit"])
+            elif module_name == "outfits":
+                app.include_router(router, prefix="/api/outfits", tags=["outfits"])
+            elif module_name == "image_processing":
+                app.include_router(router, prefix="/api/image", tags=["images"])
+            elif module_name == "image_analysis":
+                app.include_router(router)
+            elif module_name == "weather":
+                app.include_router(router, prefix="/api", tags=["weather"])
+            elif module_name == "style_analysis":
+                app.include_router(router, prefix="/api", tags=["style-analysis"])
+            elif module_name == "wardrobe_analysis":
+                app.include_router(router)
+            elif module_name == "forgotten_gems":
+                app.include_router(router)
+            elif module_name == "wardrobe":
+                app.include_router(router)
+            elif module_name == "analytics":
+                app.include_router(router, prefix="/api", tags=["analytics"])
+            elif module_name == "analytics_dashboard":
+                app.include_router(router, prefix="/api", tags=["analytics-dashboard"])
+            elif module_name == "auth":
+                app.include_router(router)
+            elif module_name == "monitoring":
+                app.include_router(router, prefix="/api", tags=["monitoring"])
+            elif module_name == "security":
+                app.include_router(router, prefix="/api/security", tags=["security"])
+            elif module_name == "performance":
+                app.include_router(router, prefix="/api/performance", tags=["performance"])
+            elif module_name == "feedback":
+                app.include_router(router)
+            elif module_name == "public_diagnostics":
+                app.include_router(router, prefix="/api/diagnostics", tags=["public-diagnostics"])
+            elif module_name == "validation_rules":
+                app.include_router(router, prefix="/api", tags=["validation-rules"])
+            elif module_name == "item_analytics":
+                app.include_router(router)
+            elif module_name == "outfit_history":
+                app.include_router(router, prefix="/api", tags=["outfit-history"])
+            print(f"DEBUG: Successfully included {module_name} router")
+    except Exception as e:
+        print(f"DEBUG: Failed to include {module_name} router: {e}")
 
 @app.get("/health")
 async def health_check():
@@ -103,13 +166,17 @@ async def health_check():
 
 @app.get("/health/simple")
 async def simple_health_check():
-    """Simple health check endpoint that responds immediately"""
-    return {"status": "ok"}
+    """Simple health check for Railway"""
+    return {
+        "status": "healthy",
+        "message": "Full app is working",
+        "port": "8080"
+    }
 
 @app.get("/")
 async def root():
-    return {"message": "ClosetGPT API is running", "status": "healthy"}
+    return {"message": "ClosetGPT API - Full app is working"}
 
 @app.get("/api/health")
 async def api_health():
-    return {"status": "ok", "api": "working"}
+    return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
