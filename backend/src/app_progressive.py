@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from datetime import datetime
 from .services.real_image_analysis_service import real_analyzer
+from .routes.weather import router as weather_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -28,6 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include weather router
+app.include_router(weather_router, prefix="/api")
 
 # Health check endpoints
 @app.get("/health")
@@ -93,12 +97,6 @@ async def get_outfits():
 async def create_outfit(outfit: dict):
     """Create outfit"""
     return {"message": "Outfit created (progressive with GPT-4)", "outfit": outfit}
-
-# Step 4: Add weather endpoint
-@app.get("/api/weather")
-async def get_weather():
-    """Get weather data"""
-    return {"weather": "sunny", "temperature": 72, "message": "Weather endpoint (progressive with GPT-4)"}
 
 # Step 5: Add analytics endpoint
 @app.get("/api/analytics")
