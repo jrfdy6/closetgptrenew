@@ -148,9 +148,12 @@ function convertUserProfileForBackend(userProfile: any): any {
 
 export async function POST(request: Request) {
   try {
+    console.log('🔍 DEBUG: Outfit generation API called');
+    
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ DEBUG: No valid authorization header');
       return NextResponse.json(
         { 
           error: "Authentication required",
@@ -160,7 +163,19 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log('✅ DEBUG: Authorization header present');
+
     const body = await request.json();
+    console.log('🔍 DEBUG: Request body received:', {
+      hasOccasion: !!body.occasion,
+      hasMood: !!body.mood,
+      hasStyle: !!body.style,
+      hasWardrobe: !!body.wardrobe,
+      wardrobeLength: body.wardrobe?.length || 0,
+      hasUserProfile: !!body.userProfile,
+      hasWeather: !!body.weather
+    });
+
     let { 
       occasion, 
       mood, 
@@ -178,6 +193,13 @@ export async function POST(request: Request) {
     occasion = occasion || OCCASIONS[Math.floor(Math.random() * OCCASIONS.length)];
     mood = mood || MOODS[Math.floor(Math.random() * MOODS.length)];
     style = style || STYLES[Math.floor(Math.random() * STYLES.length)];
+
+    console.log('🔍 DEBUG: Processed parameters:', {
+      occasion,
+      mood,
+      style,
+      wardrobeLength: wardrobe?.length || 0
+    });
 
     // Convert wardrobe items for backend compatibility
     const convertedWardrobe = convertWardrobeForBackend(wardrobe || []);
@@ -220,6 +242,7 @@ export async function POST(request: Request) {
     // NEW: Retrieve recent outfit history for diversity
     let outfitHistory = [];
     try {
+      console.log('🔍 DEBUG: Fetching outfit history from backend...');
       const historyResponse = await fetch(`${API_URL}/api/outfits`, {
         method: "GET",
         headers: {
@@ -227,6 +250,8 @@ export async function POST(request: Request) {
           "Authorization": authHeader,
         },
       });
+      
+      console.log('🔍 DEBUG: History response status:', historyResponse.status);
       
       if (historyResponse.ok) {
         const historyData = await historyResponse.json();
@@ -239,6 +264,8 @@ export async function POST(request: Request) {
           style: outfit.style
         }));
         console.log(`📚 Retrieved ${outfitHistory.length} recent outfits for diversity`);
+      } else {
+        console.warn('🔍 DEBUG: Failed to get outfit history, status:', historyResponse.status);
       }
     } catch (error) {
       console.warn('Failed to retrieve outfit history for diversity:', error);
@@ -285,6 +312,8 @@ export async function POST(request: Request) {
       matchingColors: backendPayload.wardrobe[0].matchingColors?.length || 0
     } : 'No items');
 
+    console.log('🔍 DEBUG: Making backend API call to:', `${API_URL}/api/outfit/generate`);
+
     // Forward the request to the backend with authentication header
     const response = await fetch(`${API_URL}/api/outfit/generate`, {
       method: "POST",
@@ -305,6 +334,9 @@ export async function POST(request: Request) {
         baseItem: convertedBaseItem  // Add base item
       }),
     });
+
+    console.log('🔍 DEBUG: Backend response status:', response.status);
+    console.log('🔍 DEBUG: Backend response ok:', response.ok);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Failed to parse error response' }));
