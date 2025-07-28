@@ -27,8 +27,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Debug: Log the environment variable and constructed URL
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
+    const fullUrl = `${backendUrl}/api/analyze-image`;
+    console.log('🔍 Debug - Backend URL:', backendUrl);
+    console.log('🔍 Debug - Full URL:', fullUrl);
+
     // Forward the request to the real backend server
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/analyze-image`, {
+    const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -61,4 +67,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}// Force redeploy - Sun Jul 27 19:42:29 EDT 2025
+}
