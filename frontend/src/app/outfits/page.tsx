@@ -106,13 +106,19 @@ export default function OutfitsPage() {
     } catch (err) {
       console.error('Error fetching outfits:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to load outfits';
-      setError(errorMessage);
-      setLoading(false);
       
-      // If it's a timeout or backend issue, show a retry button
-      if (errorMessage.includes('Backend is currently unavailable') || errorMessage.includes('timeout')) {
-        setError(`${errorMessage} Click to retry.`);
+      // Provide more user-friendly error messages
+      let userFriendlyError = errorMessage;
+      if (errorMessage.includes('504') || errorMessage.includes('timeout')) {
+        userFriendlyError = 'Backend is currently unavailable. Please try again in a few minutes.';
+      } else if (errorMessage.includes('403') || errorMessage.includes('Not authenticated')) {
+        userFriendlyError = 'Authentication issue. Please refresh the page and try again.';
+      } else if (errorMessage.includes('500')) {
+        userFriendlyError = 'Server error. Please try again in a moment.';
       }
+      
+      setError(userFriendlyError);
+      setLoading(false);
     }
   }, [user]);
 
@@ -225,20 +231,19 @@ export default function OutfitsPage() {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <h1 className="text-2xl font-bold mb-4">Error Loading Outfits</h1>
           <p className="text-red-600 mb-4">{error}</p>
-          {error.includes('Backend is currently unavailable') && (
-            <Button 
-              onClick={() => {
-                setError(null);
-                setLoading(true);
-                fetchOutfits();
-              }}
-              className="mt-4"
-            >
-              Retry
-            </Button>
-          )}
+          <Button 
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              fetchOutfits();
+            }}
+            className="mt-4"
+            disabled={loading}
+          >
+            {loading ? 'Retrying...' : 'Retry'}
+          </Button>
         </div>
       </div>
     );
