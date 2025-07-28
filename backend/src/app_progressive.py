@@ -104,6 +104,57 @@ async def get_analytics():
     """Get analytics data"""
     return {"analytics": {}, "message": "Analytics endpoint (progressive with GPT-4)"}
 
+# Step 4: Add weather endpoint with fallback
+@app.post("/api/weather")
+async def get_weather_post(request: dict):
+    """Get weather data via POST request"""
+    try:
+        location = request.get("location", "Default Location")
+        
+        # Try to use the weather service if available
+        try:
+            from .routes.weather import get_weather
+            from pydantic import BaseModel
+            
+            class WeatherRequest(BaseModel):
+                location: str
+            
+            weather_request = WeatherRequest(location=location)
+            weather_data = await get_weather(weather_request)
+            return weather_data
+        except Exception as e:
+            # Fallback to mock weather data
+            return {
+                "temperature": 72.0,
+                "condition": "Clear",
+                "humidity": 65,
+                "wind_speed": 5.0,
+                "location": location,
+                "precipitation": 0.0,
+                "fallback": True,
+                "message": "Using fallback weather data"
+            }
+    except Exception as e:
+        return {
+            "error": "Failed to fetch weather data",
+            "details": str(e),
+            "fallback": True
+        }
+
+@app.get("/api/weather")
+async def get_weather_get():
+    """Get weather data via GET request (fallback)"""
+    return {
+        "temperature": 72.0,
+        "condition": "Clear",
+        "humidity": 65,
+        "wind_speed": 5.0,
+        "location": "Default Location",
+        "precipitation": 0.0,
+        "fallback": True,
+        "message": "Using fallback weather data"
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080) 
