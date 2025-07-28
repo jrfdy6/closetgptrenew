@@ -36,6 +36,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
     """Get current user ID from Firebase ID token."""
     try:
         token = credentials.credentials
+        logger.info(f"🔍 DEBUG: Received token: {token[:20]}...")
         
         # Handle development/test tokens
         if token == "test" or token.startswith("test_"):
@@ -44,8 +45,10 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         
         # Try with default settings first
         try:
+            logger.info("🔍 DEBUG: Attempting Firebase token verification...")
             decoded_token = firebase_auth.verify_id_token(token)
             user_id: str = decoded_token.get("uid")
+            logger.info(f"🔍 DEBUG: Token verification successful, user_id: {user_id}")
             if user_id is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -53,6 +56,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                 )
             return user_id
         except Exception as e:
+            logger.error(f"🔍 DEBUG: Firebase token verification failed: {e}")
             # If it's a clock issue, try with more lenient settings
             if "Token used too early" in str(e) or "clock" in str(e).lower():
                 logger.warning(f"Clock skew detected, trying with lenient settings: {e}")
@@ -60,6 +64,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                     # Try with a more lenient clock skew tolerance
                     decoded_token = firebase_auth.verify_id_token(token, check_revoked=False)
                     user_id: str = decoded_token.get("uid")
+                    logger.info(f"🔍 DEBUG: Lenient verification successful, user_id: {user_id}")
                     if user_id is None:
                         raise HTTPException(
                             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -67,7 +72,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                         )
                     return user_id
                 except Exception as e2:
-                    logger.error(f"Still failed with lenient settings: {e2}")
+                    logger.error(f"🔍 DEBUG: Lenient verification also failed: {e2}")
                     # For development, allow fallback to test user if clock skew persists
                     logger.warning("Clock skew persists, using fallback user for development")
                     return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
@@ -75,22 +80,25 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                 # Re-raise the original exception for other types of errors
                 raise e
     except firebase_auth.ExpiredIdTokenError:
+        logger.error("🔍 DEBUG: Token expired")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token expired"
         )
     except firebase_auth.RevokedIdTokenError:
+        logger.error("🔍 DEBUG: Token has been revoked")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked"
         )
     except firebase_auth.InvalidIdTokenError:
+        logger.error("🔍 DEBUG: Invalid token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token"
         )
     except Exception as e:
-        logger.error(f"Token verification failed: {e}")
+        logger.error(f"🔍 DEBUG: Token verification failed: {e}")
         # For development, allow fallback to test user
         logger.warning("Authentication failed, using fallback user for development")
         return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
