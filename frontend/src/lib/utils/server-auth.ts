@@ -16,11 +16,24 @@ if (!getApps().length) {
         }),
       };
     } else {
-      // Fall back to service account key file
-      const serviceAccount = require('../../../serviceAccountKey.json');
-      firebaseAdminConfig = {
-        credential: cert(serviceAccount),
-      };
+      // Try to load service account key file
+      try {
+        const serviceAccount = require('../../../serviceAccountKey.json');
+        firebaseAdminConfig = {
+          credential: cert(serviceAccount),
+        };
+      } catch (fileError) {
+        console.warn('Firebase Admin: No service account file found, using default config');
+        // Use default config for development
+        firebaseAdminConfig = {
+          projectId: 'closetgptrenew',
+          credential: cert({
+            projectId: 'closetgptrenew',
+            clientEmail: 'firebase-adminsdk-fbsvc@closetgptrenew.iam.gserviceaccount.com',
+            privateKey: process.env.FIREBASE_PRIVATE_KEY || '-----BEGIN PRIVATE KEY-----\n-----END PRIVATE KEY-----\n'
+          }),
+        };
+      }
     }
     
     initializeApp(firebaseAdminConfig);

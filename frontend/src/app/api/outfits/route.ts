@@ -10,8 +10,9 @@ export async function GET(request: Request) {
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
     
-    // Ensure the URL has a protocol
+    // Ensure the URL has a protocol and proper formatting
     const fullApiUrl = apiUrl.startsWith('http') ? apiUrl : `https://${apiUrl}`;
+    const cleanApiUrl = fullApiUrl.endsWith('/') ? fullApiUrl.slice(0, -1) : fullApiUrl;
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
       headers['Authorization'] = authHeader;
     }
     
-    const response = await fetch(`${fullApiUrl}/api/outfits`, {
+    const response = await fetch(`${cleanApiUrl}/api/outfits`, {
       method: 'GET',
       headers,
     });
