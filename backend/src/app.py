@@ -20,7 +20,10 @@ allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 allowed_origins.extend([
     "https://closetgpt-clean.vercel.app",
     "https://closetgpt-clean-git-main-jrfdy6.vercel.app",
-    "https://closetgpt-clean-jrfdy6.vercel.app"
+    "https://closetgpt-clean-jrfdy6.vercel.app",
+    "https://closetgpt-frontend.vercel.app",  # Add the current Vercel domain
+    "https://closetgpt-frontend-git-main-jrfdy6.vercel.app",
+    "https://closetgpt-frontend-jrfdy6.vercel.app"
 ])
 
 # Add Railway preview URLs if in development
