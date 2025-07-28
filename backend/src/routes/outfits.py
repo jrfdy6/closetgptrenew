@@ -101,6 +101,11 @@ class OutfitResponse(BaseModel):
     reasoning: str
     createdAt: datetime
 
+@router.get("/health", response_model=dict)
+async def outfits_health_check():
+    """Health check for outfits router."""
+    return {"status": "healthy", "router": "outfits"}
+
 @router.get("/test", response_model=List[OutfitResponse])
 async def get_test_outfits():
     """Get test outfits without authentication (for testing)."""
