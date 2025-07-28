@@ -22,10 +22,13 @@ export function useOutfitGenerator() {
     setError(null);
 
     try {
-      // NEW: Retrieve recent outfit history for diversity
+      // NEW: Retrieve recent outfit history for diversity with proper authentication
       let outfitHistory = [];
       try {
+        console.log('🔍 DEBUG: Fetching outfit history with authentication...');
         const historyResponse = await authenticatedFetch('/api/outfits');
+        console.log('🔍 DEBUG: Outfit history response status:', historyResponse.status);
+        
         if (historyResponse.ok) {
           const historyData = await historyResponse.json();
           // Get the last 10 outfits for diversity filtering
@@ -37,6 +40,10 @@ export function useOutfitGenerator() {
             style: outfit.style
           }));
           console.log(`📚 Retrieved ${outfitHistory.length} recent outfits for diversity`);
+        } else {
+          console.warn('🔍 DEBUG: Failed to get outfit history, status:', historyResponse.status);
+          const errorText = await historyResponse.text();
+          console.warn('🔍 DEBUG: Outfit history error:', errorText);
         }
       } catch (error) {
         console.warn('Failed to retrieve outfit history for diversity:', error);

@@ -239,41 +239,9 @@ export async function POST(request: Request) {
     // Convert base item for backend compatibility if provided
     const convertedBaseItem = baseItem ? convertWardrobeForBackend([baseItem])[0] : null;
 
-    // NEW: Retrieve recent outfit history for diversity
-    let outfitHistory = [];
-    try {
-      console.log('🔍 DEBUG: Fetching outfit history from backend...');
-      const historyResponse = await fetch(`${API_URL}/api/outfits`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": authHeader,
-        },
-      });
-      
-      console.log('🔍 DEBUG: History response status:', historyResponse.status);
-      
-      if (historyResponse.ok) {
-        const historyData = await historyResponse.json();
-        // Get the last 10 outfits for diversity filtering
-        outfitHistory = historyData.slice(0, 10).map((outfit: any) => ({
-          id: outfit.id,
-          items: outfit.items || [],
-          createdAt: outfit.createdAt || Date.now(),
-          occasion: outfit.occasion,
-          style: outfit.style
-        }));
-        console.log(`📚 Retrieved ${outfitHistory.length} recent outfits for diversity`);
-      } else {
-        console.warn('🔍 DEBUG: Failed to get outfit history, status:', historyResponse.status);
-        // Don't fail the entire request - just continue without history
-        outfitHistory = [];
-      }
-    } catch (error) {
-      console.warn('Failed to retrieve outfit history for diversity:', error);
-      // Continue without history if retrieval fails
-      outfitHistory = [];
-    }
+    // Note: Outfit history should be passed from the frontend where we have proper authentication
+    // The frontend will fetch outfit history using authenticatedFetch and pass it here
+    const outfitHistory = body.outfitHistory || [];
 
     // Log the payload for debugging
     console.log('🔍 DEBUG: Outfit Generation Payload:', {
