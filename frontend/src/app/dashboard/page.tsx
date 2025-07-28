@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/lib/firebase-context';
 import { Button } from '@/components/ui/button';

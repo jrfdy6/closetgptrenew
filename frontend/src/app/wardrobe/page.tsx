@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWardrobe } from '@/hooks/useWardrobe';
 import { PageLoadingSkeleton } from '@/components/ui/loading-states';
