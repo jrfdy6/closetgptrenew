@@ -12,9 +12,12 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
+    console.log('🔍 DEBUG: NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+    console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol
     const fullApiUrl = apiUrl.startsWith('http') ? apiUrl : `https://${apiUrl}`;
+    console.log('🔍 DEBUG: Full API URL:', fullApiUrl);
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
