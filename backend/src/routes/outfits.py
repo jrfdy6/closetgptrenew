@@ -160,6 +160,94 @@ async def get_outfit(
             detail="Failed to get outfit"
         )
 
+@router.get("/test", response_model=List[OutfitResponse])
+async def get_test_outfits():
+    """Get test outfits without authentication (for testing)."""
+    logger.info("Returning test outfits")
+    
+    # If Firebase is not available, return mock data
+    if not firebase_initialized:
+        logger.warning("Firebase not available, returning mock outfits")
+        mock_outfits = [
+            {
+                "id": "mock-outfit-1",
+                "name": "Casual Summer Look",
+                "style": "Casual",
+                "mood": "Relaxed",
+                "items": [
+                    {"id": "mock-item-1", "name": "Blue T-Shirt", "type": "shirt", "imageUrl": None},
+                    {"id": "mock-item-2", "name": "Jeans", "type": "pants", "imageUrl": None}
+                ],
+                "occasion": "Casual",
+                "confidence_score": 0.85,
+                "reasoning": "Perfect for a casual day out",
+                "createdAt": datetime.utcnow()
+            },
+            {
+                "id": "mock-outfit-2", 
+                "name": "Business Casual",
+                "style": "Business Casual",
+                "mood": "Professional",
+                "items": [
+                    {"id": "mock-item-3", "name": "White Shirt", "type": "shirt", "imageUrl": None},
+                    {"id": "mock-item-4", "name": "Khaki Pants", "type": "pants", "imageUrl": None}
+                ],
+                "occasion": "Business",
+                "confidence_score": 0.92,
+                "reasoning": "Professional yet comfortable",
+                "createdAt": datetime.utcnow()
+            }
+        ]
+        
+        return [
+            OutfitResponse(
+                id=outfit["id"],
+                name=outfit["name"],
+                style=outfit["style"],
+                mood=outfit["mood"],
+                items=outfit["items"],
+                occasion=outfit["occasion"],
+                confidence_score=outfit["confidence_score"],
+                reasoning=outfit["reasoning"],
+                createdAt=outfit["createdAt"]
+            )
+            for outfit in mock_outfits
+        ]
+    
+    try:
+        outfits_ref = db.collection('outfits')
+        outfits_query = outfits_ref.limit(10)  # Get first 10 outfits for testing
+        
+        outfit_docs = outfits_query.stream()
+        
+        outfits = []
+        for doc in outfit_docs:
+            outfit_data = doc.to_dict()
+            
+            # Resolve item IDs to actual item objects
+            resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), "test_user")
+            
+            outfits.append(OutfitResponse(
+                id=doc.id,
+                name=outfit_data.get('name', ''),
+                style=outfit_data.get('style', ''),
+                mood=outfit_data.get('mood', ''),
+                items=resolved_items,
+                occasion=outfit_data.get('occasion', 'Casual'),
+                confidence_score=outfit_data.get('confidence_score', 0.0),
+                reasoning=outfit_data.get('reasoning', ''),
+                createdAt=outfit_data['createdAt']
+            ))
+        
+        return outfits
+        
+    except Exception as e:
+        logger.error(f"Failed to get test outfits: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get outfits"
+        )
+
 @router.get("/", response_model=List[OutfitResponse])
 async def get_user_outfits(
     current_user_id: str = Depends(get_current_user_id),
