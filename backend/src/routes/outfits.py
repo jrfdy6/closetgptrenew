@@ -10,7 +10,7 @@ from datetime import datetime
 import uuid
 
 from ..core.logging import get_logger
-from ..config.firebase import db
+from ..config.firebase import db, firebase_initialized
 from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
 from ..routes.auth import get_current_user_id
@@ -25,6 +25,21 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Di
     If an item is a string ID, fetch the item from the wardrobe collection.
     """
     resolved_items = []
+    
+    # If Firebase is not available, return mock items
+    if not firebase_initialized:
+        logger.warning("Firebase not available, returning mock items")
+        for item in items:
+            if isinstance(item, dict):
+                resolved_items.append(item)
+            else:
+                resolved_items.append({
+                    'id': str(item),
+                    'name': 'Mock Item',
+                    'type': 'shirt',
+                    'imageUrl': None
+                })
+        return resolved_items
     
     for item in items:
         if isinstance(item, dict):
@@ -152,6 +167,56 @@ async def get_user_outfits(
     offset: int = 0
 ):
     """Get user's outfit history."""
+    
+    # If Firebase is not available, return mock data
+    if not firebase_initialized:
+        logger.warning("Firebase not available, returning mock outfits")
+        mock_outfits = [
+            {
+                "id": "mock-outfit-1",
+                "name": "Casual Summer Look",
+                "style": "Casual",
+                "mood": "Relaxed",
+                "items": [
+                    {"id": "mock-item-1", "name": "Blue T-Shirt", "type": "shirt", "imageUrl": None},
+                    {"id": "mock-item-2", "name": "Jeans", "type": "pants", "imageUrl": None}
+                ],
+                "occasion": "Casual",
+                "confidence_score": 0.85,
+                "reasoning": "Perfect for a casual day out",
+                "createdAt": datetime.utcnow()
+            },
+            {
+                "id": "mock-outfit-2", 
+                "name": "Business Casual",
+                "style": "Business Casual",
+                "mood": "Professional",
+                "items": [
+                    {"id": "mock-item-3", "name": "White Shirt", "type": "shirt", "imageUrl": None},
+                    {"id": "mock-item-4", "name": "Khaki Pants", "type": "pants", "imageUrl": None}
+                ],
+                "occasion": "Business",
+                "confidence_score": 0.92,
+                "reasoning": "Professional yet comfortable",
+                "createdAt": datetime.utcnow()
+            }
+        ]
+        
+        return [
+            OutfitResponse(
+                id=outfit["id"],
+                name=outfit["name"],
+                style=outfit["style"],
+                mood=outfit["mood"],
+                items=outfit["items"],
+                occasion=outfit["occasion"],
+                confidence_score=outfit["confidence_score"],
+                reasoning=outfit["reasoning"],
+                createdAt=outfit["createdAt"]
+            )
+            for outfit in mock_outfits
+        ]
+    
     try:
         outfits_ref = db.collection('outfits')
         outfits_query = outfits_ref.where('user_id', '==', current_user_id)\
