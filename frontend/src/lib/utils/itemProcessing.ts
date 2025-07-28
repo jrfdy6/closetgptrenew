@@ -121,17 +121,17 @@ function getMaterialAdjective(material: string): string {
 // Keep track of item names to ensure uniqueness
 const itemNameCounts = new Map<string, number>();
 
-function generateDescriptiveName(analysis: OpenAIClothingAnalysis): string {
+function generateDescriptiveName(analysis: any): string {
   const parts: string[] = [];
   
   // Add color with fancy adjective
-  if (analysis.dominantColors?.[0]?.name) {
-    parts.push(getColorAdjective(analysis.dominantColors[0].name));
+  if (analysis.dominantColors?.[0]) {
+    parts.push(getColorAdjective(analysis.dominantColors[0]));
   }
   
   // Add material with fancy adjective
-  if (analysis.metadata?.visualAttributes?.material) {
-    parts.push(getMaterialAdjective(analysis.metadata.visualAttributes.material));
+  if (analysis.material) {
+    parts.push(getMaterialAdjective(analysis.material));
   }
   
   // Add subType if available, otherwise use type
@@ -142,7 +142,7 @@ function generateDescriptiveName(analysis: OpenAIClothingAnalysis): string {
   }
   
   // Add brand if available
-  if (analysis.brand) {
+  if (analysis.brand && analysis.brand !== "not visible") {
     parts.push(`by ${analysis.brand}`);
   }
   
@@ -213,12 +213,15 @@ function normalizeSeason(season: string): 'spring' | 'summer' | 'fall' | 'winter
 }
 
 export function createClothingItemFromAnalysis(
-  analysis: OpenAIClothingAnalysis,
+  analysisResponse: any,
   userId: string,
   imageUrl: string
 ): ClothingItem {
+  // Handle the nested structure from the backend
+  const analysis = analysisResponse.analysis || analysisResponse;
+  
   // --- Determine robust metadata values ---
-  const material = (analysis.metadata?.visualAttributes?.material?.toLowerCase() as Material) || 'cotton';
+  const material = (analysis.material?.toLowerCase() as Material) || 'cotton';
   const type = (analysis.type || '').toLowerCase();
   let minTemp = 32;
   let maxTemp = 75;
@@ -245,21 +248,21 @@ export function createClothingItemFromAnalysis(
     name: analysis.name || generateDescriptiveName(analysis),
     type: analysis.type as ClothingType || 'other',
     subType: analysis.subType,
-    color: analysis.dominantColors?.[0]?.name || 'Unknown',
+    color: analysis.dominantColors?.[0] || 'Unknown',
     season: (analysis.season || []).map(normalizeSeason),
     imageUrl,
     style: analysis.style || [],
     occasion: analysis.occasion || [],
     brand: analysis.brand || undefined,
     dominantColors: analysis.dominantColors || [],
-    matchingColors: analysis.matchingColors || [],
+    matchingColors: analysisResponse.recommendations?.matching_colors || [],
     tags: analysis.style || [],
     metadata: {
       analysisTimestamp: Date.now(),
       originalType: analysis.type,
       colorAnalysis: {
         dominant: analysis.dominantColors || [],
-        matching: analysis.matchingColors || []
+        matching: analysisResponse.recommendations?.matching_colors || []
       },
       basicMetadata: {
         width: null,
@@ -271,19 +274,19 @@ export function createClothingItemFromAnalysis(
         flashUsed: null
       },
       visualAttributes: {
-        material: analysis.metadata?.visualAttributes?.material || null,
-        pattern: analysis.metadata?.visualAttributes?.pattern || null,
-        textureStyle: analysis.metadata?.visualAttributes?.textureStyle || null,
-        fabricWeight: normalizeFabricWeight(analysis.metadata?.visualAttributes?.fabricWeight || null),
-        fit: normalizeFit(analysis.metadata?.visualAttributes?.fit || null),
-        silhouette: analysis.metadata?.visualAttributes?.silhouette || null,
-        length: analysis.metadata?.visualAttributes?.length || null,
-        genderTarget: analysis.metadata?.visualAttributes?.genderTarget || 'unisex',
-        sleeveLength: analysis.metadata?.visualAttributes?.sleeveLength || null,
-        hangerPresent: analysis.metadata?.visualAttributes?.hangerPresent || null,
-        backgroundRemoved: analysis.metadata?.visualAttributes?.backgroundRemoved || false,
-        wearLayer: normalizeWearLayer(analysis.metadata?.visualAttributes?.wearLayer || null) || 'outer',
-        formalLevel: normalizeFormalLevel(analysis.metadata?.visualAttributes?.formalLevel || null) || 'casual',
+        material: analysis.material || null,
+        pattern: analysis.pattern || null,
+        textureStyle: null,
+        fabricWeight: normalizeFabricWeight(null),
+        fit: normalizeFit(analysis.fit || null),
+        silhouette: null,
+        length: null,
+        genderTarget: 'unisex',
+        sleeveLength: null,
+        hangerPresent: null,
+        backgroundRemoved: false,
+        wearLayer: normalizeWearLayer(null) || 'outer',
+        formalLevel: normalizeFormalLevel(null) || 'casual',
         // --- Robust metadata fields ---
         temperatureCompatibility: {
           minTemp,
@@ -317,7 +320,7 @@ export function createClothingItemFromAnalysis(
         careInstructions: null,
         tags: []
       },
-      naturalDescription: null
+      naturalDescription: analysisResponse.style_notes || null
     }
   };
   console.log('Item before validation:', item);
