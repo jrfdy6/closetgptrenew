@@ -340,6 +340,7 @@ export async function POST(request: Request) {
 
     console.log('🔍 DEBUG: Backend response status:', response.status);
     console.log('🔍 DEBUG: Backend response ok:', response.ok);
+    console.log('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Failed to parse error response' }));
