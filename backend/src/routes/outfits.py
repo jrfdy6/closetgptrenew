@@ -101,65 +101,6 @@ class OutfitResponse(BaseModel):
     reasoning: str
     createdAt: datetime
 
-@router.get("/{outfit_id}", response_model=OutfitResponse)
-async def get_outfit(
-    outfit_id: str,
-    current_user_id: str = Depends(get_current_user_id)
-):
-    """Get a specific outfit by ID."""
-    try:
-        outfit_doc = db.collection('outfits').document(outfit_id).get()
-        
-        if not outfit_doc.exists:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Outfit not found"
-            )
-        
-        outfit_data = outfit_doc.to_dict()
-        
-        # Verify ownership
-        if outfit_data['user_id'] != current_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
-            event_type="outfit_viewed",
-            metadata={
-                "outfit_id": outfit_id,
-                "occasion": outfit_data['occasion']
-            }
-        )
-        log_analytics_event(analytics_event)
-        
-        # Resolve item IDs to actual item objects
-        resolved_items = await resolve_item_ids_to_objects(outfit_data['items'], current_user_id)
-        
-        return OutfitResponse(
-            id=outfit_id,
-            name=outfit_data.get('name', ''),
-            style=outfit_data.get('style', ''),
-            mood=outfit_data.get('mood', ''),
-            items=resolved_items,
-            occasion=outfit_data['occasion'],
-            confidence_score=outfit_data.get('confidence_score', 0.0),
-            reasoning=outfit_data.get('reasoning', ''),
-            createdAt=outfit_data['createdAt']
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to get outfit {outfit_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get outfit"
-        )
-
 @router.get("/test", response_model=List[OutfitResponse])
 async def get_test_outfits():
     """Get test outfits without authentication (for testing)."""
@@ -246,6 +187,65 @@ async def get_test_outfits():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get outfits"
+        )
+
+@router.get("/{outfit_id}", response_model=OutfitResponse)
+async def get_outfit(
+    outfit_id: str,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Get a specific outfit by ID."""
+    try:
+        outfit_doc = db.collection('outfits').document(outfit_id).get()
+        
+        if not outfit_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Outfit not found"
+            )
+        
+        outfit_data = outfit_doc.to_dict()
+        
+        # Verify ownership
+        if outfit_data['user_id'] != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied"
+            )
+        
+        # Log analytics event
+        analytics_event = AnalyticsEvent(
+            user_id=current_user_id,
+            event_type="outfit_viewed",
+            metadata={
+                "outfit_id": outfit_id,
+                "occasion": outfit_data['occasion']
+            }
+        )
+        log_analytics_event(analytics_event)
+        
+        # Resolve item IDs to actual item objects
+        resolved_items = await resolve_item_ids_to_objects(outfit_data['items'], current_user_id)
+        
+        return OutfitResponse(
+            id=outfit_id,
+            name=outfit_data.get('name', ''),
+            style=outfit_data.get('style', ''),
+            mood=outfit_data.get('mood', ''),
+            items=resolved_items,
+            occasion=outfit_data['occasion'],
+            confidence_score=outfit_data.get('confidence_score', 0.0),
+            reasoning=outfit_data.get('reasoning', ''),
+            createdAt=outfit_data['createdAt']
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get outfit {outfit_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get outfit"
         )
 
 @router.get("/", response_model=List[OutfitResponse])
