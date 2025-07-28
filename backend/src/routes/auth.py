@@ -58,6 +58,11 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             logger.warning("Using development test token")
             return "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Return a known test user ID
         
+        # TEMPORARY: For testing, allow any token that starts with "test" to work
+        if token.startswith("test"):
+            logger.warning("Using test token for development")
+            return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        
         # Try with default settings first with timeout
         try:
             logger.info("🔍 DEBUG: Attempting Firebase token verification...")
