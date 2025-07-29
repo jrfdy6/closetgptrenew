@@ -18,7 +18,6 @@ from ..core.logging import get_logger
 from ..config.firebase import db, firebase_initialized
 from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
-from ..services.wardrobe_service import resolve_item_ids_to_objects
 from ..routes.auth import get_current_user_id
 
 logger = logging.getLogger(__name__)
@@ -28,6 +27,72 @@ security = HTTPBearer()
 # Track authentication failures to implement smart bypass
 _auth_failure_count = 0
 _last_auth_failure_time = None
+
+async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Dict[str, Any]]:
+    """
+    Resolve item IDs to actual item objects from the wardrobe collection.
+    If an item is already a dictionary, return it as is.
+    If an item is a string ID, fetch the item from the wardrobe collection.
+    """
+    resolved_items = []
+    
+    # If Firebase is not available, return mock items
+    if not firebase_initialized:
+        logger.warning("Firebase not available, returning mock items")
+        for item in items:
+            if isinstance(item, dict):
+                resolved_items.append(item)
+            else:
+                resolved_items.append({
+                    'id': str(item),
+                    'name': 'Mock Item',
+                    'type': 'shirt',
+                    'imageUrl': None
+                })
+        return resolved_items
+    
+    for item in items:
+        if isinstance(item, dict):
+            # Item is already a complete object
+            resolved_items.append(item)
+        elif isinstance(item, str):
+            # Item is an ID, need to fetch from wardrobe
+            try:
+                item_doc = db.collection('wardrobe').document(item).get()
+                if item_doc.exists:
+                    item_data = item_doc.to_dict()
+                    # Add the ID to the item data
+                    item_data['id'] = item
+                    resolved_items.append(item_data)
+                else:
+                    logger.warning(f"Item {item} not found in wardrobe for user {user_id}")
+                    # Add a placeholder item
+                    resolved_items.append({
+                        'id': item,
+                        'name': 'Item not found',
+                        'type': 'unknown',
+                        'imageUrl': None
+                    })
+            except Exception as e:
+                logger.error(f"Error fetching item {item}: {e}")
+                # Add a placeholder item
+                resolved_items.append({
+                    'id': item,
+                    'name': 'Error loading item',
+                    'type': 'unknown',
+                    'imageUrl': None
+                })
+        else:
+            logger.warning(f"Unexpected item type: {type(item)} for item: {item}")
+            # Add a placeholder item
+            resolved_items.append({
+                'id': str(item),
+                'name': 'Invalid item',
+                'type': 'unknown',
+                'imageUrl': None
+            })
+    
+    return resolved_items
 
 class OutfitResponse(BaseModel):
     id: str
