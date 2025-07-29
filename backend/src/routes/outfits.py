@@ -122,8 +122,8 @@ def _should_bypass_firestore():
             logger.warning(f"Bypassing Firestore due to recent auth failures ({_auth_failure_count} failures)")
             return True
     
-    # Temporarily disable bypass to test improved Firebase initialization
-    return False
+    # Temporarily re-enable bypass to ensure page loads while debugging
+    return True
 
 def _mark_auth_failure():
     """Mark an authentication failure for smart bypass logic."""
@@ -150,7 +150,19 @@ def _safe_firestore_query(query_func, timeout=3.0):
 @router.get("/health", response_model=dict)
 async def outfits_health_check():
     """Health check for outfits router."""
+    logger.info("🔍 DEBUG: Outfits health check called")
     return {"status": "healthy", "router": "outfits"}
+
+@router.get("/debug", response_model=dict)
+async def outfits_debug():
+    """Debug endpoint for outfits router."""
+    logger.info("🔍 DEBUG: Outfits debug endpoint called")
+    return {
+        "status": "debug",
+        "router": "outfits",
+        "firebase_initialized": firebase_initialized,
+        "bypass_enabled": _should_bypass_firestore()
+    }
 
 @router.get("/test", response_model=List[OutfitResponse])
 async def get_test_outfits():
