@@ -21,7 +21,7 @@ from ..services.analytics_service import log_analytics_event
 from ..routes.auth import get_current_user_id
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/outfits", tags=["outfits"])
+router = APIRouter(tags=["outfits"])
 security = HTTPBearer()
 
 # Track authentication failures to implement smart bypass
