@@ -9,6 +9,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 import uuid
+import os
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -157,11 +158,17 @@ async def outfits_health_check():
 async def outfits_debug():
     """Debug endpoint for outfits router."""
     logger.info("🔍 DEBUG: Outfits debug endpoint called")
+    
+    # Get Firebase project ID from environment
+    project_id = os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET")
+    
     return {
         "status": "debug",
         "router": "outfits",
         "firebase_initialized": firebase_initialized,
-        "bypass_enabled": _should_bypass_firestore()
+        "bypass_enabled": _should_bypass_firestore(),
+        "firebase_project_id": project_id,
+        "environment": os.environ.get("ENVIRONMENT", "unknown")
     }
 
 @router.get("/test", response_model=List[OutfitResponse])
