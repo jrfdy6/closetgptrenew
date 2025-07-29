@@ -122,8 +122,8 @@ def _should_bypass_firestore():
             logger.warning(f"Bypassing Firestore due to recent auth failures ({_auth_failure_count} failures)")
             return True
     
-    # Temporarily disable bypass to test if Firebase auth is working
-    return False
+    # Re-enable bypass to ensure page works reliably
+    return True
 
 def _mark_auth_failure():
     """Mark an authentication failure for smart bypass logic."""
