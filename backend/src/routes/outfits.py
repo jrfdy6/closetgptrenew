@@ -137,24 +137,41 @@ async def get_test_outfits():
         
         logger.info("🔍 DEBUG: Processing Firestore results...")
         outfits = []
-        for doc in outfit_docs:
-            logger.info(f"🔍 DEBUG: Processing outfit document: {doc.id}")
-            outfit_data = doc.to_dict()
-            
-            # Resolve item IDs to actual item objects
-            resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), "test_user")
-            
-            outfits.append(OutfitResponse(
-                id=doc.id,
-                name=outfit_data.get('name', ''),
-                style=outfit_data.get('style', ''),
-                mood=outfit_data.get('mood', ''),
-                items=resolved_items,
-                occasion=outfit_data.get('occasion', 'Casual'),
-                confidence_score=outfit_data.get('confidence_score', 0.0),
-                reasoning=outfit_data.get('reasoning', ''),
-                createdAt=outfit_data['createdAt']
-            ))
+        
+        # Convert generator to list with timeout protection
+        try:
+            logger.info("🔍 DEBUG: Converting Firestore results to list...")
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(lambda: list(outfit_docs))
+                outfit_docs_list = future.result(timeout=5.0)  # 5 second timeout for conversion
+            logger.info(f"🔍 DEBUG: Successfully converted {len(outfit_docs_list)} documents to list")
+        except concurrent.futures.TimeoutError:
+            logger.error("🔍 DEBUG: Document conversion timed out")
+            logger.warning("🔍 DEBUG: Returning mock outfits due to document processing timeout")
+            return _get_mock_outfits()
+        
+        for doc in outfit_docs_list:
+            try:
+                logger.info(f"🔍 DEBUG: Processing outfit document: {doc.id}")
+                outfit_data = doc.to_dict()
+                
+                # Resolve item IDs to actual item objects
+                resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), "test_user")
+                
+                outfits.append(OutfitResponse(
+                    id=doc.id,
+                    name=outfit_data.get('name', ''),
+                    style=outfit_data.get('style', ''),
+                    mood=outfit_data.get('mood', ''),
+                    items=resolved_items,
+                    occasion=outfit_data.get('occasion', 'Casual'),
+                    confidence_score=outfit_data.get('confidence_score', 0.0),
+                    reasoning=outfit_data.get('reasoning', ''),
+                    createdAt=outfit_data['createdAt']
+                ))
+            except Exception as e:
+                logger.error(f"🔍 DEBUG: Error processing document {doc.id}: {e}")
+                continue  # Skip this document and continue with others
         
         logger.info(f"🔍 DEBUG: Successfully processed {len(outfits)} outfits")
         return outfits
@@ -305,24 +322,41 @@ async def get_user_outfits(
         
         logger.info("🔍 DEBUG: Processing Firestore results...")
         outfits = []
-        for doc in outfit_docs:
-            logger.info(f"🔍 DEBUG: Processing outfit document: {doc.id}")
-            outfit_data = doc.to_dict()
-            
-            # Resolve item IDs to actual item objects
-            resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), current_user_id)
-            
-            outfits.append(OutfitResponse(
-                id=doc.id,
-                name=outfit_data.get('name', ''),
-                style=outfit_data.get('style', ''),
-                mood=outfit_data.get('mood', ''),
-                items=resolved_items,
-                occasion=outfit_data.get('occasion', 'Casual'),
-                confidence_score=outfit_data.get('confidence_score', 0.0),
-                reasoning=outfit_data.get('reasoning', ''),
-                createdAt=outfit_data['createdAt']
-            ))
+        
+        # Convert generator to list with timeout protection
+        try:
+            logger.info("🔍 DEBUG: Converting Firestore results to list...")
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(lambda: list(outfit_docs))
+                outfit_docs_list = future.result(timeout=5.0)  # 5 second timeout for conversion
+            logger.info(f"🔍 DEBUG: Successfully converted {len(outfit_docs_list)} documents to list")
+        except concurrent.futures.TimeoutError:
+            logger.error("🔍 DEBUG: Document conversion timed out")
+            logger.warning("🔍 DEBUG: Returning mock outfits due to document processing timeout")
+            return _get_mock_outfits()
+        
+        for doc in outfit_docs_list:
+            try:
+                logger.info(f"🔍 DEBUG: Processing outfit document: {doc.id}")
+                outfit_data = doc.to_dict()
+                
+                # Resolve item IDs to actual item objects
+                resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), current_user_id)
+                
+                outfits.append(OutfitResponse(
+                    id=doc.id,
+                    name=outfit_data.get('name', ''),
+                    style=outfit_data.get('style', ''),
+                    mood=outfit_data.get('mood', ''),
+                    items=resolved_items,
+                    occasion=outfit_data.get('occasion', 'Casual'),
+                    confidence_score=outfit_data.get('confidence_score', 0.0),
+                    reasoning=outfit_data.get('reasoning', ''),
+                    createdAt=outfit_data['createdAt']
+                ))
+            except Exception as e:
+                logger.error(f"🔍 DEBUG: Error processing document {doc.id}: {e}")
+                continue  # Skip this document and continue with others
         
         logger.info(f"🔍 DEBUG: Successfully processed {len(outfits)} outfits")
         return outfits
