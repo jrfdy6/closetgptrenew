@@ -3,88 +3,42 @@ Outfit management endpoints (GET operations only).
 Outfit generation is handled by /api/outfit/generate.
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-from datetime import datetime
-import uuid
 import concurrent.futures
 import asyncio
+import logging
+from datetime import datetime
+from typing import List, Optional, Dict, Any
+import uuid
+
+from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import BaseModel
 
 from ..core.logging import get_logger
 from ..config.firebase import db, firebase_initialized
 from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
+from ..services.wardrobe_service import resolve_item_ids_to_objects
 from ..routes.auth import get_current_user_id
 
-router = APIRouter()
-logger = get_logger("outfits")
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/outfits", tags=["outfits"])
+security = HTTPBearer()
 
-async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Dict[str, Any]]:
-    """
-    Resolve item IDs to actual item objects from the wardrobe collection.
-    If an item is already a dictionary, return it as is.
-    If an item is a string ID, fetch the item from the wardrobe collection.
-    """
-    resolved_items = []
-    
-    # If Firebase is not available, return mock items
-    if not firebase_initialized:
-        logger.warning("Firebase not available, returning mock items")
-        for item in items:
-            if isinstance(item, dict):
-                resolved_items.append(item)
-            else:
-                resolved_items.append({
-                    'id': str(item),
-                    'name': 'Mock Item',
-                    'type': 'shirt',
-                    'imageUrl': None
-                })
-        return resolved_items
-    
-    for item in items:
-        if isinstance(item, dict):
-            # Item is already a complete object
-            resolved_items.append(item)
-        elif isinstance(item, str):
-            # Item is an ID, need to fetch from wardrobe
-            try:
-                item_doc = db.collection('wardrobe').document(item).get()
-                if item_doc.exists:
-                    item_data = item_doc.to_dict()
-                    # Add the ID to the item data
-                    item_data['id'] = item
-                    resolved_items.append(item_data)
-                else:
-                    logger.warning(f"Item {item} not found in wardrobe for user {user_id}")
-                    # Add a placeholder item
-                    resolved_items.append({
-                        'id': item,
-                        'name': 'Item not found',
-                        'type': 'unknown',
-                        'imageUrl': None
-                    })
-            except Exception as e:
-                logger.error(f"Error fetching item {item}: {e}")
-                # Add a placeholder item
-                resolved_items.append({
-                    'id': item,
-                    'name': 'Error loading item',
-                    'type': 'unknown',
-                    'imageUrl': None
-                })
-        else:
-            logger.warning(f"Unexpected item type: {type(item)} for item: {item}")
-            # Add a placeholder item
-            resolved_items.append({
-                'id': str(item),
-                'name': 'Invalid item',
-                'type': 'unknown',
-                'imageUrl': None
-            })
-    
-    return resolved_items
+# Track authentication failures to implement smart bypass
+_auth_failure_count = 0
+_last_auth_failure_time = None
+
+class OutfitResponse(BaseModel):
+    id: str
+    name: str
+    style: str
+    mood: str
+    items: List[dict]
+    occasion: str
+    confidence_score: float
+    reasoning: str
+    createdAt: datetime
 
 class OutfitFeedback(BaseModel):
     outfit_id: str
@@ -92,16 +46,41 @@ class OutfitFeedback(BaseModel):
     feedback_type: str  # "like", "dislike", "comment"
     comment: Optional[str] = None
 
-class OutfitResponse(BaseModel):
-    id: str
-    name: str
-    style: str
-    mood: str
-    items: List[Dict[str, Any]]
-    occasion: str
-    confidence_score: Optional[float] = 0.0
-    reasoning: str
-    createdAt: datetime
+def _should_bypass_firestore():
+    """Check if we should bypass Firestore due to known authentication issues."""
+    global _auth_failure_count, _last_auth_failure_time
+    
+    # If we've had recent auth failures, bypass for a while
+    if _last_auth_failure_time:
+        time_since_failure = (datetime.utcnow() - _last_auth_failure_time).total_seconds()
+        if time_since_failure < 300:  # 5 minutes
+            logger.warning(f"Bypassing Firestore due to recent auth failures ({_auth_failure_count} failures)")
+            return True
+    
+    # Temporarily disable bypass to test improved Firebase initialization
+    return False
+
+def _mark_auth_failure():
+    """Mark an authentication failure for smart bypass logic."""
+    global _auth_failure_count, _last_auth_failure_time
+    _auth_failure_count += 1
+    _last_auth_failure_time = datetime.utcnow()
+    logger.warning(f"Auth failure detected. Total failures: {_auth_failure_count}")
+
+def _safe_firestore_query(query_func, timeout=3.0):
+    """Execute a Firestore query with timeout and error handling."""
+    try:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(query_func)
+            return future.result(timeout=timeout)
+    except concurrent.futures.TimeoutError:
+        logger.error("Firestore query timed out")
+        _mark_auth_failure()
+        raise
+    except Exception as e:
+        logger.error(f"Firestore query failed: {e}")
+        _mark_auth_failure()
+        raise
 
 @router.get("/health", response_model=dict)
 async def outfits_health_check():
@@ -127,19 +106,9 @@ async def get_test_outfits():
         logger.info("🔍 DEBUG: Starting Firestore query for outfits...")
         
         # Use a timeout for the Firestore query
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            logger.info("🔍 DEBUG: Submitting Firestore query task...")
-            future = executor.submit(lambda: db.collection('outfits').limit(10).stream())
-            
-            try:
-                logger.info("🔍 DEBUG: Waiting for Firestore query result...")
-                outfit_docs = future.result(timeout=3.0)  # Reduced to 3 second timeout
-                logger.info("🔍 DEBUG: Firestore query completed successfully!")
-            except concurrent.futures.TimeoutError:
-                logger.error("🔍 DEBUG: Firestore query timed out")
-                logger.warning("🔍 DEBUG: Returning mock outfits due to Firestore timeout")
-                return _get_mock_outfits()
+        outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(10).stream())
         
+        logger.info("🔍 DEBUG: Firestore query completed successfully!")
         logger.info("🔍 DEBUG: Processing Firestore results...")
         outfits = []
         
@@ -317,19 +286,9 @@ async def get_user_outfits(
         logger.info("🔍 DEBUG: Starting Firestore query for user outfits...")
         
         # Use a timeout for the Firestore query
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            logger.info("🔍 DEBUG: Submitting Firestore query task...")
-            future = executor.submit(lambda: db.collection('outfits').where('user_id', '==', current_user_id).limit(limit).offset(offset).stream())
-            
-            try:
-                logger.info("🔍 DEBUG: Waiting for Firestore query result...")
-                outfit_docs = future.result(timeout=3.0)  # Reduced to 3 second timeout
-                logger.info("🔍 DEBUG: Firestore query completed successfully!")
-            except concurrent.futures.TimeoutError:
-                logger.error("🔍 DEBUG: Firestore query timed out")
-                logger.warning("🔍 DEBUG: Returning mock outfits due to Firestore timeout")
-                return _get_mock_outfits()
+        outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').where('user_id', '==', current_user_id).limit(limit).offset(offset).stream())
         
+        logger.info("🔍 DEBUG: Firestore query completed successfully!")
         logger.info("🔍 DEBUG: Processing Firestore results...")
         outfits = []
         
@@ -375,12 +334,6 @@ async def get_user_outfits(
         logger.error(f"🔍 DEBUG: Failed to get user outfits: {e}")
         logger.warning("🔍 DEBUG: Returning mock outfits due to Firestore error")
         return _get_mock_outfits()
-
-def _should_bypass_firestore():
-    """Check if we should bypass Firestore due to known authentication issues."""
-    # For now, always bypass Firestore to ensure the page loads
-    # This can be made more sophisticated later
-    return True
 
 @router.post("/feedback")
 async def submit_outfit_feedback(
