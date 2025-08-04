@@ -5,8 +5,11 @@ WORKDIR /app
 # Install Python dependencies only
 RUN pip install --no-cache-dir fastapi uvicorn python-multipart
 
+# Copy the simple app.py
+COPY app.py ./app.py
+
 # Copy the production app
-COPY app_full.py ./app.py
+COPY app_full.py ./app_full.py
 
 # Copy source files
 COPY src/ ./src/
