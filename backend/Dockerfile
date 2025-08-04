@@ -6,16 +6,13 @@ WORKDIR /app
 RUN apk add --no-cache \
     gcc \
     musl-dev \
-    libffi-dev \
-    jpeg-dev \
-    zlib-dev \
-    libjpeg-turbo-dev
+    libffi-dev
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copy minimal requirements first for better caching
+COPY requirements-minimal.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-minimal.txt
 
 # Copy all files from the build context
 COPY . .
