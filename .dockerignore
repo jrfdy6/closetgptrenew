@@ -66,10 +66,10 @@ logs/
 docs/
 README*
 
-# Tests
-tests/
-test_*
-*_test.py
+# Tests (commented out to allow test files)
+# tests/
+# test_*
+# *_test.py
 .pytest_cache/
 .coverage
 htmlcov/
