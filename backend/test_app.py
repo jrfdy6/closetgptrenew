@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+app = FastAPI(title="Test App")
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
+async def root():
+    return {"message": "Hello World"}
 
 @app.get("/health")
-def health():
-    return {"status": "ok"} 
+async def health():
+    return {"status": "healthy"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8080) 
