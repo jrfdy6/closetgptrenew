@@ -1,14 +1,10 @@
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "backend/Dockerfile"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 healthcheckPath = "/health"
 port = 8080
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
-
-# Specify the backend directory as the root for deployment
-[build.context]
-path = "backend" 
+restartPolicyMaxRetries = 10 
