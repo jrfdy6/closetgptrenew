@@ -2,16 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies first
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    libmagic1 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements and install Python dependencies
+# Copy requirements and install Python dependencies only
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir fastapi uvicorn python-multipart
 
 # Copy the production app
 COPY src/app_full.py ./app.py
