@@ -2,28 +2,16 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libffi-dev \
-    libjpeg-dev \
-    zlib1g-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Install only essential dependencies first
+RUN pip install fastapi uvicorn
 
-# Copy requirements directly
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the simple app file
+COPY simple_app.py .
 
-# Copy all files
-COPY . .
-
-# Use the main app as entrypoint
-COPY app_full.py ./app.py
-
-RUN ls -la
+# Debug: Show what files we have
+RUN echo "=== Files in /app ===" && ls -la
 
 EXPOSE 8080
 ENV PORT=8080
-ENV PYTHONPATH=/app
 
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"] 
+CMD ["uvicorn", "simple_app:app", "--host", "0.0.0.0", "--port", "8080"] 
