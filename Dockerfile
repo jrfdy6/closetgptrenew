@@ -30,7 +30,8 @@ COPY backend/jobs/ ./jobs/
 COPY backend/scripts/ ./scripts/
 COPY backend/tests/ ./tests/
 
-RUN ls -la
+# Debug: List files to verify everything was copied
+RUN ls -la && echo "=== Contents of /app ===" && find . -type f -name "*.py" | head -10
 
 EXPOSE 8080
 ENV PORT=8080
