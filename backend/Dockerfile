@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the production app to the root
 COPY src/app_full.py ./app.py
 
-# Copy the rest of the backend code
-COPY . .
+# Copy the rest of the source code
+COPY src/ ./src/
 
 # Debug: List files to see what was copied
 RUN ls -la
