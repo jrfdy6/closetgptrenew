@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Use the main app as entrypoint - copy from backend directory
-COPY app_full.py ./app.py
+COPY backend/app_full.py ./app.py
 
 # Debug: List files in current directory
 RUN ls -la
