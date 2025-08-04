@@ -6,6 +6,10 @@ dockerfilePath = "backend/Dockerfile"
 [build.nixpacks]
 enabled = false
 
+# Force Dockerfile usage
+[build.dockerfile]
+enabled = true
+
 [deploy]
 healthcheckPath = "/health"
 port = 8080
