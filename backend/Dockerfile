@@ -15,12 +15,8 @@ COPY requirements.txt requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the src directory explicitly
-COPY src/ ./src/
-
-# Copy other necessary files
-COPY railway.toml ./
-COPY railway.json ./
+# Copy the backend code
+COPY . .
 
 # Expose the port
 EXPOSE 8080
@@ -29,5 +25,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONPATH=/app
 
-# Start the application using the ultra simple app for testing
-CMD ["python", "-m", "uvicorn", "src.ultra_simple:app", "--host", "0.0.0.0", "--port", "8080"] 
+# Start the application using the simple app
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"] 
