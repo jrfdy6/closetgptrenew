@@ -8,6 +8,9 @@ RUN pip install --no-cache-dir fastapi uvicorn python-multipart
 # Copy all files from the build context
 COPY . .
 
+# Copy the production app to the root
+RUN cp src/app.py ./app.py
+
 # Debug: List files in current directory
 RUN ls -la
 
