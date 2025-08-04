@@ -2,14 +2,6 @@
 root = "backend"
 dockerfile = "Dockerfile"
 
-# Explicitly disable Nixpacks
-[build.nixpacks]
-enabled = false
-
-# Force Dockerfile usage
-[build.dockerfile]
-enabled = true
-
 [deploy]
 healthcheckPath = "/health"
 port = 8080
