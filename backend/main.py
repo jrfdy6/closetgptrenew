@@ -1,15 +1,12 @@
-from fastapi import FastAPI
+#!/usr/bin/env python3
+print("=== main.py is being executed ===")
 
-app = FastAPI(title="ClosetGPT API")
-
-@app.get("/")
-def read_root():
-    return {"message": "Hello World", "status": "success"}
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
+# Import the app from app_full.py
+from app_full import app
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080) 
+    import os
+    port = int(os.getenv("PORT", 8000))
+    print(f"Starting main app on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port) 
