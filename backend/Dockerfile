@@ -25,5 +25,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONPATH=/app
 
-# Start the application using the simple app
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"] 
+# Start the application using configurable port
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port $PORT"] 
