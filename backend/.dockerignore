@@ -12,7 +12,6 @@ node_modules/
 .gitignore
 .DS_Store
 *.log
-test_*.py
 debug_*.py
 *.md
 .env
