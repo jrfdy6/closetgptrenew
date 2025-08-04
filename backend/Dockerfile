@@ -18,6 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the backend code
 COPY . .
 
+# Debug: List files to see what was copied
+RUN ls -la
+
 # Expose the port
 EXPOSE 8080
 
