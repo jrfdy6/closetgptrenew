@@ -9,7 +9,7 @@ RUN pip install fastapi uvicorn
 COPY simple_app.py .
 
 # Debug: Show what files we have
-RUN echo "=== Files in /app ===" && ls -la
+RUN echo "=== Files in /app ===" && ls -la && echo "=== Dockerfile found ==="
 
 EXPOSE 8080
 ENV PORT=8080
