@@ -2,6 +2,10 @@
 builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"
 
+# Explicitly disable Nixpacks
+[build.nixpacks]
+enabled = false
+
 [deploy]
 healthcheckPath = "/health"
 port = 8080
