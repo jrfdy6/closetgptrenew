@@ -14,11 +14,21 @@ RUN apt-get update && apt-get install -y \
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend files
-COPY backend/ .
-
-# Use the main app as entrypoint - copy from backend directory
+# Copy specific backend files to avoid nested directory confusion
 COPY backend/app_full.py ./app.py
+COPY backend/src/ ./src/
+COPY backend/app/ ./app/
+COPY backend/services/ ./services/
+COPY backend/routes/ ./routes/
+COPY backend/models/ ./models/
+COPY backend/utils/ ./utils/
+COPY backend/core/ ./core/
+COPY backend/data/ ./data/
+COPY backend/middleware/ ./middleware/
+COPY backend/custom_types/ ./custom_types/
+COPY backend/jobs/ ./jobs/
+COPY backend/scripts/ ./scripts/
+COPY backend/tests/ ./tests/
 
 RUN ls -la
 
