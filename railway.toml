@@ -1,6 +1,6 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "backend/Dockerfile"
+root = "backend"
+dockerfile = "Dockerfile"
 
 # Explicitly disable Nixpacks
 [build.nixpacks]
