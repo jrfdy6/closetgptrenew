@@ -1,14 +1,28 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install minimal dependencies
-RUN pip install --no-cache-dir fastapi uvicorn
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libffi-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the test app file directly
-COPY test_app.py ./app.py
+# Copy requirements first for better caching
+COPY requirements.txt .
 
-# Debug: List files
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy all files from the build context
+COPY . .
+
+# Copy the full production app to the root
+RUN cp src/app_full.py ./app.py
+
+# Debug: List files in current directory
 RUN ls -la
 
 # Expose port
@@ -16,6 +30,7 @@ EXPOSE 8080
 
 # Set environment
 ENV PORT=8080
+ENV PYTHONPATH=/app
 
 # Start app
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"] 
