@@ -6,11 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir fastapi uvicorn python-multipart
 
-# Copy the production app
-COPY app_full.py ./app.py
-
-# Copy source files
-COPY src/ ./src/
+# Copy the simple app.py (test if this works first)
+COPY app.py ./app.py
 
 # Debug: List files
 RUN ls -la
