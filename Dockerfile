@@ -10,15 +10,15 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements from backend directory
-COPY backend/requirements.txt .
+# Copy requirements directly
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend files
-COPY backend/ .
+# Copy all files
+COPY . .
 
 # Use the main app as entrypoint
-COPY backend/app_full.py ./app.py
+COPY app_full.py ./app.py
 
 RUN ls -la
 
