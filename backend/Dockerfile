@@ -15,8 +15,12 @@ COPY requirements.txt requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the backend code
-COPY . .
+# Copy the src directory explicitly
+COPY src/ ./src/
+
+# Copy other necessary files
+COPY railway.toml ./
+COPY railway.json ./
 
 # Expose the port
 EXPOSE 8080
