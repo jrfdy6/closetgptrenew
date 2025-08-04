@@ -2,8 +2,20 @@ FROM python:3.11-alpine
 
 WORKDIR /app
 
-# Install Python dependencies only
-RUN pip install --no-cache-dir fastapi uvicorn python-multipart
+# Install system dependencies for some Python packages
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    jpeg-dev \
+    zlib-dev \
+    libjpeg-turbo-dev
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy all files from the build context
 COPY . .
