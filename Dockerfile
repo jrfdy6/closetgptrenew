@@ -15,10 +15,7 @@ COPY backend/requirements.txt requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the app.py file
-COPY app.py ./app.py
-
-# Copy backend source files
+# Copy backend source files (contains the actual production app)
 COPY backend/src/ ./src/
 
 # Debug: List files to see what was copied
@@ -31,5 +28,5 @@ EXPOSE 8080
 ENV PORT=8080
 ENV PYTHONPATH=/app
 
-# Start the application using configurable port
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port $PORT"] 
+# Start the application using the actual production app
+CMD ["sh", "-c", "uvicorn src.app_full:app --host 0.0.0.0 --port $PORT"] 
