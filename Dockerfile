@@ -22,7 +22,8 @@ COPY backend/ .
 
 # Debug: Show what files we have
 RUN echo "=== Files in /app ===" && ls -la && \
-    echo "=== Python files ===" && find . -name "*.py" | head -10
+    echo "=== Python files ===" && find . -name "*.py" | head -10 && \
+    echo "=== Checking app_full.py ===" && ls -la app_full.py
 
 # Expose port
 EXPOSE 8080
