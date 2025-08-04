@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir fastapi uvicorn python-multipart
 
 # Copy the production app
-COPY src/app_full.py ./app.py
+COPY app_full.py ./app.py
 
 # Copy source files
 COPY src/ ./src/
