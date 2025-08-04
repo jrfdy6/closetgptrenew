@@ -6,7 +6,7 @@ WORKDIR /app
 RUN pip install fastapi uvicorn
 
 # Copy the simple app file
-COPY backend/simple_app.py .
+COPY simple_app.py .
 
 # Debug: Show what files we have
 RUN echo "=== Files in /app ===" && ls -la
