@@ -10,6 +10,10 @@ enabled = false
 [build.dockerfile]
 enabled = true
 
+# Specify backend as the build context
+[build.context]
+path = "backend"
+
 [deploy]
 healthcheckPath = "/health"
 port = 8080
