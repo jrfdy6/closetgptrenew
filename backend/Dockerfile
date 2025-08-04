@@ -3,10 +3,10 @@ FROM python:3.11-alpine
 WORKDIR /app
 
 # Install minimal dependencies
-RUN pip install --no-cache-dir fastapi uvicorn python-multipart
+RUN pip install --no-cache-dir fastapi uvicorn
 
-# Copy the app file directly
-COPY app_simple.py ./app.py
+# Copy the test app file directly
+COPY test_app.py ./app.py
 
 # Debug: List files
 RUN ls -la
