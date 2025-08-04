@@ -5,8 +5,8 @@ WORKDIR /app
 # Install Python dependencies only
 RUN pip install --no-cache-dir fastapi uvicorn python-multipart
 
-# Copy the simple app.py
-COPY app.py ./app.py
+# Copy all files from the build context
+COPY . .
 
 # Debug: List files in current directory
 RUN ls -la
