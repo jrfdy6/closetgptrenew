@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements-minimal.txt
 # Copy all files from the build context
 COPY . .
 
-# Copy the production app to the root
-RUN cp src/app.py ./app.py
+# Copy the simplified production app to the root
+RUN cp app_simple.py ./app.py
 
 # Debug: List files in current directory
 RUN ls -la
