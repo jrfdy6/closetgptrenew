@@ -1,5 +1,6 @@
 [build]
 builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 healthcheckPath = "/health"
@@ -7,6 +8,10 @@ port = 8080
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+
+# Explicitly disable Nixpacks
+[build.nixpacks]
+enabled = false
 
 # Specify that this is the root directory for deployment
 [build.context]
