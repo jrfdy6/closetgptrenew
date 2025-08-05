@@ -138,7 +138,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             detail="Invalid authentication token"
         )
 
-Pydantic models
+# Pydantic models
 class WardrobeItem(BaseModel):
     name: str
     category: str
@@ -166,7 +166,7 @@ class OutfitResponse(BaseModel):
     generated_at: str
     confidence_score: float
 
-Health check endpoints
+# Health check endpoints
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway deployment"""
@@ -229,7 +229,7 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
             "timestamp": datetime.now().isoformat()
         }
 
-Image processing endpoints
+# Image processing endpoints
 @app.post("/api/image/upload")
 async def upload_image(
     file: UploadFile = File(...),
@@ -293,7 +293,7 @@ async def upload_image(
             detail="Failed to upload image"
         )
 
-Wardrobe endpoints
+# Wardrobe endpoints
 @app.get("/api/wardrobe")
 async def get_wardrobe(current_user_id: str = Depends(get_current_user_id)):
     """Get user's wardrobe items"""
@@ -398,7 +398,7 @@ async def delete_wardrobe_item(
             detail="Failed to delete item"
         )
 
-Enhanced outfit generation
+# Enhanced outfit generation
 @app.post("/api/outfits/generate")
 async def generate_outfit(
     request: OutfitRequest,
@@ -471,7 +471,7 @@ async def generate_outfit(
             detail="Failed to generate outfit"
         )
 
-Analytics endpoints
+# Analytics endpoints
 @app.post("/api/analytics/outfit-feedback")
 async def log_outfit_feedback(
     outfit_id: str,
@@ -555,7 +555,7 @@ async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)
             detail="Failed to get wardrobe statistics"
         )
 
-Test endpoints
+# Test endpoints
 @app.get("/api/test")
 async def test_endpoint():
     return {"message": "API is working", "status": "success"}
