@@ -2,12 +2,12 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "uvicorn app:app --host 0.0.0.0 --port $PORT"
+startCommand = "cd backend && uvicorn app:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 port = 8080
 
 [deploy.environment]
-PYTHONPATH = "/app"
+PYTHONPATH = "/app/backend"
 
 [build.environment]
 NIXPACKS_NIXPKGS = "22.11" 
