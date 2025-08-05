@@ -1,0 +1,19 @@
+# Only exclude Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.zip
+*.tar.gz
+*.egg-info
+.vscode/
+.venv/
+node_modules/
+.git/
+.gitignore
+.DS_Store
+*.log
+.env
+.env.local
+.env.production
+.env.development 
