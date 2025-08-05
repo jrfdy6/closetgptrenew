@@ -14,5 +14,6 @@
     "environment": {
       "PYTHONPATH": "/app"
     }
-  }
+  },
+  "root": "backend"
 } 
