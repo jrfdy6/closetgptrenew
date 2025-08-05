@@ -2,4 +2,4 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "ls -la startCommand = "uvicorn app:app --host 0.0.0.0 --port=$PORT"startCommand = "uvicorn app:app --host 0.0.0.0 --port=$PORT" echo \"=== END LISTING ===\" startCommand = "uvicorn app:app --host 0.0.0.0 --port=$PORT"startCommand = "uvicorn app:app --host 0.0.0.0 --port=$PORT" python -c \"import os; print(os.listdir(\".\")); print(\"app.py exists:\", os.path.exists(\"app.py\"))\"" 
+startCommand = "uvicorn app:app --host 0.0.0.0 --port=$PORT"
