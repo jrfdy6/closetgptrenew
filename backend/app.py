@@ -11,12 +11,12 @@ from typing import Optional, List
 import uuid
 import json
 
-# Global variables for Firebase
+Global variables for Firebase
 db = None
 bucket = None
 firebase_configured = False
 
-# Initialize Firebase if credentials are available
+Initialize Firebase if credentials are available
 def initialize_firebase():
     global db, bucket, firebase_configured
     try:
@@ -84,11 +84,11 @@ app = FastAPI(
 )
 print("DEBUG: FastAPI app created")
 
-# Configure CORS
+Configure CORS
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
-# Add production URLs
+Add production URLs
 allowed_origins.extend([
     "https://closetgpt-clean.vercel.app",
     "https://closetgpt-clean-git-main-jrfdy6.vercel.app",
@@ -103,7 +103,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Authentication
+Authentication
 security = HTTPBearer()
 
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
@@ -138,7 +138,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             detail="Invalid authentication token"
         )
 
-# Pydantic models
+Pydantic models
 class WardrobeItem(BaseModel):
     name: str
     category: str
@@ -166,7 +166,7 @@ class OutfitResponse(BaseModel):
     generated_at: str
     confidence_score: float
 
-# Health check endpoints
+Health check endpoints
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway deployment"""
@@ -211,7 +211,7 @@ async def root():
         "features": ["authentication", "wardrobe", "outfits", "image_processing", "analytics"]
     }
 
-# Authentication endpoints
+Authentication endpoints
 @app.post("/auth/verify-token")
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify Firebase ID token"""
@@ -229,71 +229,71 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
             "timestamp": datetime.now().isoformat()
         }
 
-# Image processing endpoints
-# @app.post("/api/image/upload")
-# async def upload_image(
-#     file: UploadFile = File(...),
-#     category: str = Form(...),
-#     name: str = Form(...),
-#     current_user_id: str = Depends(get_current_user_id)
-# ):
-#     """Upload and process clothing image"""
-#     if not bucket:
-#         raise HTTPException(
-#             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-#             detail="Storage not available"
-#         )
-#     
-#     try:
-#         # Validate file type
-#         if not file.content_type.startswith('image/'):
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST,
-#                 detail="File must be an image"
-#             )
-#         
-#         # Generate unique filename
-#         file_extension = file.filename.split('.')[-1]
-#         filename = f"wardrobe/{current_user_id}/{uuid.uuid4()}.{file_extension}"
-#         
-#         # Upload to Firebase Storage
-#         blob = bucket.blob(filename)
-#         blob.upload_from_string(
-#             await file.read(),
-#             content_type=file.content_type
-#         )
-#         
-#         # Make the blob publicly readable
-#         blob.make_public()
-#         
-#         # Create wardrobe item
-#         item_data = {
-#             "name": name,
-#             "category": category,
-#             "image_url": blob.public_url,
-#             "uploaded_at": datetime.now().isoformat(),
-#             "file_size": blob.size,
-#             "content_type": file.content_type
-#         }
-#         
-#         # Save to Firestore
-#         wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
-#         doc_ref = wardrobe_ref.add(item_data)
-#         
-#         return {
-#             "message": "Image uploaded successfully",
-#             "item_id": doc_ref[1].id,
-#             "image_url": blob.public_url,
-#             "item": item_data
-#         }
-#     except Exception as e:
-#         print(f"DEBUG: Error uploading image: {e}")
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="Failed to upload image"
-#         )
-# 
-# Wardrobe endpoints
+Image processing endpoints
+@app.post("/api/image/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    category: str = Form(...),
+    name: str = Form(...),
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Upload and process clothing image"""
+    if not bucket:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Storage not available"
+        )
+    
+    try:
+        # Validate file type
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image"
+            )
+        
+        # Generate unique filename
+        file_extension = file.filename.split('.')[-1]
+        filename = f"wardrobe/{current_user_id}/{uuid.uuid4()}.{file_extension}"
+        
+        # Upload to Firebase Storage
+        blob = bucket.blob(filename)
+        blob.upload_from_string(
+            await file.read(),
+            content_type=file.content_type
+        )
+        
+        # Make the blob publicly readable
+        blob.make_public()
+        
+        # Create wardrobe item
+        item_data = {
+            "name": name,
+            "category": category,
+            "image_url": blob.public_url,
+            "uploaded_at": datetime.now().isoformat(),
+            "file_size": blob.size,
+            "content_type": file.content_type
+        }
+        
+        # Save to Firestore
+        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
+        doc_ref = wardrobe_ref.add(item_data)
+        
+        return {
+            "message": "Image uploaded successfully",
+            "item_id": doc_ref[1].id,
+            "image_url": blob.public_url,
+            "item": item_data
+        }
+    except Exception as e:
+        print(f"DEBUG: Error uploading image: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image"
+        )
+
+Wardrobe endpoints
 @app.get("/api/wardrobe")
 async def get_wardrobe(current_user_id: str = Depends(get_current_user_id)):
     """Get user's wardrobe items"""
@@ -398,7 +398,7 @@ async def delete_wardrobe_item(
             detail="Failed to delete item"
         )
 
-# Enhanced outfit generation
+Enhanced outfit generation
 @app.post("/api/outfits/generate")
 async def generate_outfit(
     request: OutfitRequest,
@@ -471,7 +471,7 @@ async def generate_outfit(
             detail="Failed to generate outfit"
         )
 
-# Analytics endpoints
+Analytics endpoints
 @app.post("/api/analytics/outfit-feedback")
 async def log_outfit_feedback(
     outfit_id: str,
@@ -555,7 +555,7 @@ async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)
             detail="Failed to get wardrobe statistics"
         )
 
-# Test endpoints
+Test endpoints
 @app.get("/api/test")
 async def test_endpoint():
     return {"message": "API is working", "status": "success"}
