@@ -1,8 +1,0 @@
-# Ignore everything except backend for Railway deployment
-*
-!backend/
-!backend/Dockerfile
-!backend/requirements.txt
-!backend/src/
-!backend/railway.toml
-!backend/railway.json 
