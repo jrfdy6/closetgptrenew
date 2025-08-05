@@ -46,4 +46,4 @@ This is the backend API for ClosetGPT, providing AI-powered clothing analysis an
 
 ## Deployment
 
-The backend is configured to deploy to Railway with the correct app entry point. 
+The backend is configured to deploy to Railway with the correct app entry point. # Clean deployment
