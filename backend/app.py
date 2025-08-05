@@ -92,7 +92,11 @@ allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 allowed_origins.extend([
     "https://closetgpt-clean.vercel.app",
     "https://closetgpt-clean-git-main-jrfdy6.vercel.app",
-    "https://closetgpt-clean-jrfdy6.vercel.app"
+    "https://closetgpt-clean-jrfdy6.vercel.app",
+    "https://closetgpt-frontend.vercel.app",
+    "https://closetgpt-frontend-git-main-jrfdy6.vercel.app",
+    "https://closetgpt-frontend-jrfdy6.vercel.app",
+    "https://closetgpt-frontend-m67a88zs6-johnnie-fields-projects.vercel.app"
 ])
 
 app.add_middleware(
