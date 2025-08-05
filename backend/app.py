@@ -572,4 +572,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
     print(f"Starting server on port {port}")
-    uvicorn.run(app, host="0.0.0.0", port=port) # Force redeploy - Mon Aug  4 22:16:17 EDT 2025
