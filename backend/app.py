@@ -11,12 +11,12 @@ from typing import Optional, List
 import uuid
 import json
 
-Global variables for Firebase
+# Global variables for Firebase
 db = None
 bucket = None
 firebase_configured = False
 
-Initialize Firebase if credentials are available
+# Initialize Firebase if credentials are available
 def initialize_firebase():
     global db, bucket, firebase_configured
     try:
@@ -84,11 +84,11 @@ app = FastAPI(
 )
 print("DEBUG: FastAPI app created")
 
-Configure CORS
+# Configure CORS
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
-Add production URLs
+# Add production URLs
 allowed_origins.extend([
     "https://closetgpt-clean.vercel.app",
     "https://closetgpt-clean-git-main-jrfdy6.vercel.app",
@@ -103,7 +103,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Authentication
+# Authentication
 security = HTTPBearer()
 
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
@@ -211,7 +211,7 @@ async def root():
         "features": ["authentication", "wardrobe", "outfits", "image_processing", "analytics"]
     }
 
-Authentication endpoints
+# Authentication endpoints
 @app.post("/auth/verify-token")
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify Firebase ID token"""
