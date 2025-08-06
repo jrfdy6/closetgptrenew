@@ -9,7 +9,6 @@ import {
   query,
   where,
   orderBy,
-  Timestamp,
   writeBatch,
   setDoc
 } from "firebase/firestore";
@@ -21,10 +20,7 @@ import {
   ClothingItem,
   ClothingItemSchema,
   OpenAIClothingAnalysis,
-  OpenAIClothingAnalysisSchema,
-  ClothingTypeEnum,
-  Metadata,
-  ColorAnalysis
+  OpenAIClothingAnalysisSchema
 } from '@shared/types';
 import { ApiResponse } from '@shared/types/responses';
 import {
@@ -154,178 +150,202 @@ export const getWardrobeItems = async (userId: string): Promise<WardrobeItemsRes
       };
     }
 
-    console.log('getWardrobeItems: Querying Firestore...');
-    const itemsRef = collection(db, WARDROBE_COLLECTION);
-    const q = query(itemsRef, where('userId', '==', userId));
-    console.log('getWardrobeItems: Query constructed:', {
-      collection: WARDROBE_COLLECTION,
-      filter: { field: 'userId', operator: '==', value: userId }
-    });
+    // Check authentication
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
     
-    const snapshot = await getDocs(q);
-    console.log('getWardrobeItems: Firestore query complete. Found', snapshot.docs.length, 'documents');
-    
-    // Log timestamps for all items
-    const timestamps = snapshot.docs.map(doc => {
-      const data = doc.data();
-      let createdAt: number;
-      let updatedAt: number;
-      
-      try {
-        createdAt = data.createdAt || Date.now();
-        if (typeof createdAt === 'string') {
-          createdAt = new Date(createdAt).getTime();
-        }
-      } catch (error) {
-        console.warn('Invalid createdAt timestamp for item', doc.id, 'using current time');
-        createdAt = Date.now();
-      }
-      
-      try {
-        updatedAt = data.updatedAt || Date.now();
-        if (typeof updatedAt === 'string') {
-          updatedAt = new Date(updatedAt).getTime();
-        }
-      } catch (error) {
-        console.warn('Invalid updatedAt timestamp for item', doc.id, 'using current time');
-        updatedAt = Date.now();
-      }
-      
+    if (!currentUser) {
+      console.error('getWardrobeItems: No authenticated user');
       return {
-        id: doc.id,
-        createdAt,
-        updatedAt
+        success: false,
+        error: 'User not authenticated',
+        data: null
       };
-    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
-    console.log('getWardrobeItems: Items sorted by creation date:', timestamps);
-    if (timestamps.length > 0) {
-      console.log('getWardrobeItems: Most recent item created at:', timestamps[0].createdAt);
     }
 
-    const items = snapshot.docs.map((doc, docIndex) => {
-      console.log('getWardrobeItems: Processing document', doc.id);
-      const data = doc.data();
-      // Only log the first few processed items for debugging
-      if (docIndex < 3) {
-        console.log('getWardrobeItems: Processed item:', {
-          id: doc.id,
-          name: data.name,
-          type: data.type,
-          style: data.style,
-          styleType: typeof data.style,
-          styleIsArray: Array.isArray(data.style),
-          styleLength: Array.isArray(data.style) ? data.style.length : 'N/A'
-        });
-      }
-
-      // Safely handle timestamp conversion
-      let createdAt: number;
-      let updatedAt: number;
-      
-      try {
-        createdAt = data.createdAt || Date.now();
-        if (typeof createdAt === 'string') {
-          createdAt = new Date(createdAt).getTime();
-        }
-      } catch (error) {
-        console.warn('Invalid createdAt timestamp for item', doc.id, 'using current time');
-        createdAt = Date.now();
-      }
-      
-      try {
-        updatedAt = data.updatedAt || Date.now();
-        if (typeof updatedAt === 'string') {
-          updatedAt = new Date(updatedAt).getTime();
-        }
-      } catch (error) {
-        console.warn('Invalid updatedAt timestamp for item', doc.id, 'using current time');
-        updatedAt = Date.now();
-      }
-
-      const metadata: Metadata | undefined = data.metadata ? {
-        originalType: data.metadata.originalType ?? data.type,
-        analysisTimestamp: data.metadata.analysisTimestamp ?? Date.now(),
-        colorAnalysis: {
-          dominant: data.metadata.colorAnalysis?.dominant ?? [],
-          matching: data.metadata.colorAnalysis?.matching ?? []
-        },
-        basicMetadata: data.metadata.basicMetadata ? {
-          width: data.metadata.basicMetadata.width ?? null,
-          height: data.metadata.basicMetadata.height ?? null,
-          orientation: data.metadata.basicMetadata.orientation ?? null,
-          dateTaken: data.metadata.basicMetadata.dateTaken ?? null,
-          deviceModel: data.metadata.basicMetadata.deviceModel ?? null,
-          gps: data.metadata.basicMetadata.gps ? {
-            latitude: data.metadata.basicMetadata.gps.latitude,
-            longitude: data.metadata.basicMetadata.gps.longitude
-          } : null,
-          flashUsed: data.metadata.basicMetadata.flashUsed ?? null,
-          imageHash: data.metadata.basicMetadata.imageHash ?? null
-        } : undefined,
-        visualAttributes: data.metadata.visualAttributes ? {
-          material: data.metadata.visualAttributes.material ?? null,
-          pattern: data.metadata.visualAttributes.pattern ?? null,
-          textureStyle: data.metadata.visualAttributes.textureStyle ?? null,
-          fabricWeight: data.metadata.visualAttributes.fabricWeight ?? null,
-          fit: data.metadata.visualAttributes.fit ?? null,
-          silhouette: data.metadata.visualAttributes.silhouette ?? null,
-          length: data.metadata.visualAttributes.length ?? null,
-          genderTarget: data.metadata.visualAttributes.genderTarget ?? null,
-          sleeveLength: data.metadata.visualAttributes.sleeveLength ?? null,
-          hangerPresent: data.metadata.visualAttributes.hangerPresent ?? null,
-          backgroundRemoved: data.metadata.visualAttributes.backgroundRemoved ?? null,
-          wearLayer: data.metadata.visualAttributes.wearLayer ?? null,
-          formalLevel: data.metadata.visualAttributes.formalLevel ?? null
-        } : undefined,
-        itemMetadata: data.metadata.itemMetadata ? {
-          priceEstimate: data.metadata.itemMetadata.priceEstimate ?? null,
-          careInstructions: data.metadata.itemMetadata.careInstructions ?? null,
-          tags: data.metadata.itemMetadata.tags ?? [],
-          brand: data.metadata.itemMetadata.brand ?? null
-        } : undefined,
-        naturalDescription: data.metadata.naturalDescription ?? null
-      } : undefined;
-
-      const item: ClothingItem = {
-        id: doc.id,
-        name: data.name,
-        type: data.type as ClothingItem['type'],
-        color: data.color,
-        season: data.season,
-        imageUrl: data.imageUrl,
-        tags: data.tags ?? [],
-        style: data.style ?? [],
-        userId: data.userId,
-        dominantColors: data.dominantColors ?? [],
-        matchingColors: data.matchingColors ?? [],
-        occasion: data.occasion ?? [],
-        brand: data.brand ?? undefined,
-        createdAt,
-        updatedAt,
-        subType: data.subType ?? undefined,
-        colorName: data.colorName ?? undefined,
-        backgroundRemoved: data.backgroundRemoved ?? false,
-        embedding: data.embedding,
-        favorite: data.favorite ?? false, // Add the favorite property
-        wearCount: data.wearCount ?? 0, // Add wear count tracking
-        lastWorn: data.lastWorn ?? null, // Add last worn timestamp
-        metadata
+    if (currentUser.uid !== userId) {
+      console.error('getWardrobeItems: User ID mismatch', {
+        currentUser: currentUser.uid,
+        requestedUser: userId
+      });
+      return {
+        success: false,
+        error: 'User ID mismatch',
+        data: null
       };
+    }
 
-      return item;
-    });
+    console.log('getWardrobeItems: Querying Firestore...');
+    
+    // Try different query approaches
+    let snapshot;
+    let queryMethod = 'default';
+    
+    try {
+      // Method 1: Standard query
+      const itemsRef = collection(db, WARDROBE_COLLECTION);
+      const q = query(itemsRef, where('userId', '==', userId));
+      console.log('getWardrobeItems: Query constructed:', {
+        collection: WARDROBE_COLLECTION,
+        filter: { field: 'userId', operator: '==', value: userId }
+      });
+      
+      snapshot = await getDocs(q);
+      queryMethod = 'standard';
+      console.log('getWardrobeItems: Standard query successful');
+      
+    } catch (error) {
+      console.warn('getWardrobeItems: Standard query failed, trying fallback:', error);
+      
+      try {
+        // Method 2: Simple collection query without where clause
+        const itemsRef = collection(db, WARDROBE_COLLECTION);
+        snapshot = await getDocs(itemsRef);
+        queryMethod = 'simple';
+        console.log('getWardrobeItems: Simple query successful');
+        
+        // Filter results in memory
+        const filteredDocs = snapshot.docs.filter(doc => {
+          const data = doc.data();
+          return data.userId === userId;
+        });
+        
+        // Create a new snapshot-like object
+        snapshot = {
+          docs: filteredDocs,
+          empty: filteredDocs.length === 0,
+          size: filteredDocs.length,
+          forEach: (callback: any) => filteredDocs.forEach(callback)
+        };
+        
+      } catch (fallbackError) {
+        console.error('getWardrobeItems: All query methods failed:', fallbackError);
+        return {
+          success: false,
+          error: `Failed to query wardrobe: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}`,
+          data: null
+        };
+      }
+    }
+    
+    console.log('getWardrobeItems: Firestore query complete. Found', snapshot.docs.length, 'documents using method:', queryMethod);
+    
+    // Process items with better error handling
+    const items: ClothingItem[] = [];
+    const errors: string[] = [];
+    
+    for (const doc of snapshot.docs) {
+      try {
+        console.log('getWardrobeItems: Processing document', doc.id);
+        const data = doc.data();
+        
+        // Validate that this document belongs to the user
+        if (data.userId !== userId) {
+          console.warn('getWardrobeItems: Skipping document with mismatched userId:', {
+            docId: doc.id,
+            docUserId: data.userId,
+            requestedUserId: userId
+          });
+          continue;
+        }
+        
+        // Safely handle timestamp conversion
+        let createdAt: number;
+        let updatedAt: number;
+        
+        try {
+          createdAt = data.createdAt || Date.now();
+          if (typeof createdAt === 'string') {
+            createdAt = new Date(createdAt).getTime();
+          } else if (typeof createdAt === 'object' && createdAt && 'seconds' in createdAt) {
+            // Handle Firestore Timestamp objects
+            createdAt = (createdAt as any).seconds * 1000;
+          } else if (typeof createdAt === 'number') {
+            // Already a number
+          } else {
+            createdAt = Date.now();
+          }
+        } catch (error) {
+          console.warn('Invalid createdAt timestamp for item', doc.id, 'using current time');
+          createdAt = Date.now();
+        }
+        
+        try {
+          updatedAt = data.updatedAt || Date.now();
+          if (typeof updatedAt === 'string') {
+            updatedAt = new Date(updatedAt).getTime();
+          } else if (typeof updatedAt === 'object' && updatedAt && 'seconds' in updatedAt) {
+            // Handle Firestore Timestamp objects
+            updatedAt = (updatedAt as any).seconds * 1000;
+          } else if (typeof updatedAt === 'number') {
+            // Already a number
+          } else {
+            updatedAt = Date.now();
+          }
+        } catch (error) {
+          console.warn('Invalid updatedAt timestamp for item', doc.id, 'using current time');
+          updatedAt = Date.now();
+        }
 
-    console.log('getWardrobeItems: Returning', items.length, 'items');
+        // Safely handle arrays and objects with better validation
+        const style = Array.isArray(data.style) ? data.style : (data.style ? [data.style] : []);
+        const occasion = Array.isArray(data.occasion) ? data.occasion : (data.occasion ? [data.occasion] : []);
+        const season = Array.isArray(data.season) ? data.season : (data.season ? [data.season] : ['all']);
+        const tags = Array.isArray(data.tags) ? data.tags : [];
+        const dominantColors = Array.isArray(data.dominantColors) ? data.dominantColors : [];
+        const matchingColors = Array.isArray(data.matchingColors) ? data.matchingColors : [];
+
+        // Create a safe clothing item object
+        const item: ClothingItem = {
+          id: doc.id,
+          userId: data.userId || userId,
+          name: data.name || 'Unknown Item',
+          type: data.type || 'other',
+          color: data.color || 'unknown',
+          style,
+          occasion,
+          season,
+          tags,
+          imageUrl: data.imageUrl || '',
+          dominantColors,
+          matchingColors,
+          createdAt,
+          updatedAt,
+          metadata: data.metadata || {},
+          favorite: data.favorite || false,
+          wearCount: data.wearCount || 0,
+          lastWorn: data.lastWorn || null,
+          backgroundRemoved: data.backgroundRemoved || false
+        };
+
+        items.push(item);
+        console.log('getWardrobeItems: Successfully processed item', doc.id);
+        
+      } catch (error) {
+        console.error('getWardrobeItems: Error processing document', doc.id, error);
+        errors.push(`Failed to process item ${doc.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    // Sort items by creation date (newest first)
+    items.sort((a, b) => b.createdAt - a.createdAt);
+    
+    console.log('getWardrobeItems: Successfully processed', items.length, 'items');
+    if (errors.length > 0) {
+      console.warn('getWardrobeItems: Errors encountered:', errors);
+    }
+
     return {
       success: true,
-      data: items
+      data: items,
+      error: errors.length > 0 ? `Processed ${items.length} items with ${errors.length} errors` : undefined
     };
+
   } catch (error) {
-    console.error('Error getting wardrobe items:', error);
+    console.error('getWardrobeItems: Unexpected error:', error);
     return {
       success: false,
-      error: 'Failed to get wardrobe items',
+      error: error instanceof Error ? error.message : 'Failed to load wardrobe items',
       data: null
     };
   }
@@ -517,7 +537,7 @@ export const addWardrobeItem = async (item: Omit<ClothingItem, 'id' | 'userId' |
       };
     }
 
-    const metadata: Metadata = {
+    const metadata: any = {
       originalType: item.type,
       analysisTimestamp: Date.now(),
       colorAnalysis: {
@@ -585,7 +605,7 @@ export const addWardrobeItem = async (item: Omit<ClothingItem, 'id' | 'userId' |
     // Validate the item before saving
     const validatedItem = validateClothingItem(newItem);
 
-    const docRef = doc(db, 'wardrobe', validatedItem.id);
+    const docRef = doc(db, WARDROBE_COLLECTION, validatedItem.id);
     await setDoc(docRef, validatedItem);
 
     return {
@@ -613,7 +633,7 @@ export const addMultipleWardrobeItems = async (
     
     for (const item of items) {
       const docRef = doc(collection(db, WARDROBE_COLLECTION));
-      const metadata: Metadata = {
+      const metadata: any = {
         originalType: item.type,
         analysisTimestamp: Date.now(),
         colorAnalysis: {
@@ -702,7 +722,7 @@ export const updateWardrobeItem = async (itemId: string, updates: Partial<Clothi
       };
     }
 
-    const docRef = doc(db, 'wardrobe', itemId);
+    const docRef = doc(db, WARDROBE_COLLECTION, itemId);
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {
@@ -722,7 +742,7 @@ export const updateWardrobeItem = async (itemId: string, updates: Partial<Clothi
       };
     }
 
-    const metadata: Metadata = {
+    const metadata: any = {
       originalType: item.type,
       analysisTimestamp: Date.now(),
       colorAnalysis: {
@@ -804,7 +824,7 @@ export const deleteWardrobeItem = async (itemId: string): Promise<ApiResponse<un
       };
     }
 
-    const docRef = doc(db, 'wardrobe', itemId);
+    const docRef = doc(db, WARDROBE_COLLECTION, itemId);
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {
