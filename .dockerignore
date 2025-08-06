@@ -1,22 +1,18 @@
-# Python cache and virtual environments
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.zip
-*.tar.gz
-*.egg-info
-.venv/
-venv/
-env/
-ENV/
+# Exclude large directories and files
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
 
-# Node.js
-node_modules/
-.next/
-.nuxt/
-dist/
-build/
+# Python cache and virtual environments
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/venv/
+**/.venv/
+**/env/
+**/ENV/
 
 # Git and system files
 .git/
