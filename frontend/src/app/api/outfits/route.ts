@@ -19,22 +19,6 @@ export async function GET(request: Request) {
     const fullApiUrl = apiUrl.startsWith('http') ? apiUrl : `https://${apiUrl}`;
     console.log('🔍 DEBUG: Full API URL:', fullApiUrl);
     
-    // First, let's test if the backend is reachable
-    try {
-      console.log('🔍 DEBUG: Testing backend connectivity...');
-      const healthResponse = await fetch(`${fullApiUrl}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000), // 5 second timeout
-      });
-      console.log('🔍 DEBUG: Backend health check status:', healthResponse.status);
-    } catch (healthError) {
-      console.error('🔍 DEBUG: Backend health check failed:', healthError);
-      return NextResponse.json(
-        { error: 'Backend not reachable', details: 'Health check failed' },
-        { status: 503 }
-      );
-    }
-    
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -42,6 +26,9 @@ export async function GET(request: Request) {
     // Forward the authorization header if present
     if (authHeader) {
       headers['Authorization'] = authHeader;
+      console.log('🔍 DEBUG: Forwarding authorization header');
+    } else {
+      console.log('🔍 DEBUG: No authorization header present');
     }
     
     // Call the backend outfits endpoint
@@ -56,6 +43,19 @@ export async function GET(request: Request) {
     
     if (!outfitsResponse.ok) {
       console.error('🔍 DEBUG: Backend outfits endpoint failed:', outfitsResponse.status, outfitsResponse.statusText);
+      
+      // If it's a 403, return a more specific error
+      if (outfitsResponse.status === 403) {
+        return NextResponse.json(
+          { 
+            error: 'Authentication required', 
+            status: 403,
+            message: 'Please log in to view your outfits'
+          },
+          { status: 403 }
+        );
+      }
+      
       return NextResponse.json(
         { 
           error: 'Backend outfits endpoint failed', 
@@ -72,6 +72,24 @@ export async function GET(request: Request) {
     return NextResponse.json(outfitsData);
   } catch (error) {
     console.error('🔍 DEBUG: Error in outfits route:', error);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return NextResponse.json(
+          { error: 'Request timeout', details: 'Backend did not respond within 10 seconds' },
+          { status: 504 }
+        );
+      }
+      
+      if (error.message.includes('fetch')) {
+        return NextResponse.json(
+          { error: 'Backend not reachable', details: 'Unable to connect to backend service' },
+          { status: 503 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Failed to process request', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
