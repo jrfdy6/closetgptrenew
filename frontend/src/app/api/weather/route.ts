@@ -5,13 +5,15 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
+    console.log("🌤️ Frontend weather API route called");
     const requestBody = await request.json();
     console.log("🌤️ Frontend weather API called with:", requestBody);
 
     // Forward the request to the backend server
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/weather`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/weather`;
     console.log("🌤️ Forwarding to backend:", backendUrl);
     
+    console.log("🌤️ About to make fetch request to backend");
     const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
@@ -27,6 +29,31 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const errorData = await response.json();
       console.error("🌤️ Backend error:", errorData);
+      
+      // If backend returns 404 (Not Found), provide fallback data
+      if (response.status === 404) {
+        console.log("🌤️ Weather endpoint not available, providing fallback data");
+        return NextResponse.json(
+          { 
+            temperature: 72.0,
+            condition: "Clear",
+            humidity: 65,
+            wind_speed: 5.0,
+            location: requestBody.location || "Default Location",
+            precipitation: 0.0,
+            fallback: true
+          },
+          { 
+            status: 200,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            },
+          }
+        );
+      }
+      
       throw new Error(errorData.detail || errorData.message || 'Failed to fetch weather data');
     }
 

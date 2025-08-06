@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Frontend API: Forgotten gems endpoint called');
     
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -54,6 +54,22 @@ export async function GET(request: NextRequest) {
         );
       }
       
+      // If backend returns 405 (Method Not Allowed) or 404 (Not Found), provide fallback data
+      if (response.status === 405 || response.status === 404) {
+        console.log('🔍 Forgotten gems endpoint not available, providing fallback data');
+        return NextResponse.json({
+          success: true,
+          data: {
+            forgottenItems: [],
+            totalUnwornItems: 0,
+            potentialSavings: 0,
+            rediscoveryOpportunities: 0,
+            analysis_timestamp: new Date().toISOString()
+          },
+          message: "Forgotten gems feature not available yet"
+        });
+      }
+      
       // Handle other errors
       return NextResponse.json(
         { error: 'Backend service unavailable' },
@@ -81,7 +97,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Frontend API: Forgotten gems POST endpoint called');
     
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     
     // Get the request body
     const body = await request.json();
