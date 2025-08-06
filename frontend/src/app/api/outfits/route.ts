@@ -11,9 +11,20 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-    console.log('🔍 DEBUG: NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
-    console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
+    // Check if the API URL is set
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    console.log('🔍 DEBUG: NEXT_PUBLIC_API_URL:', apiUrl);
+    
+    if (!apiUrl) {
+      console.error('🔍 DEBUG: NEXT_PUBLIC_API_URL environment variable is not set');
+      return NextResponse.json(
+        { 
+          error: 'Configuration error', 
+          details: 'Backend URL not configured. Please check environment variables.'
+        },
+        { status: 500 }
+      );
+    }
     
     // Ensure the URL has a protocol
     const fullApiUrl = apiUrl.startsWith('http') ? apiUrl : `https://${apiUrl}`;
