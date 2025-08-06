@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { Upload, X, ArrowLeft, Save, Image as ImageIcon } from "lucide-react";
 import { useWardrobe } from "@/hooks/useWardrobe";
 import type { ClothingItem } from "@/types/wardrobe";
@@ -42,10 +42,11 @@ const COLORS = [
   "Orange",
 ];
 
-export default function EditItemPage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditItemPage() {
   const router = useRouter();
+  const params = useParams();
   const { wardrobe, loading, error: wardrobeError, updateItem } = useWardrobe();
-  const resolvedParams = use(params);
+  const itemId = params?.id as string;
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [name, setName] = useState("");
@@ -59,8 +60,8 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && wardrobe.length > 0) {
-      const item = wardrobe.find(item => item.id === resolvedParams.id);
+    if (!loading && wardrobe.length > 0 && itemId) {
+      const item = wardrobe.find(item => item.id === itemId);
       if (!item) {
         router.push("/wardrobe");
         return;
@@ -74,7 +75,7 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
       setPreview(item.imageUrl || "");
       setIsLoading(false);
     }
-  }, [loading, wardrobe, resolvedParams.id, router]);
+  }, [loading, wardrobe, itemId, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -126,7 +127,7 @@ export default function EditItemPage({ params }: { params: Promise<{ id: string 
         tags,
       };
 
-      await updateItem(resolvedParams.id, updates);
+      await updateItem(itemId, updates);
       router.push("/wardrobe");
     } catch (err) {
       setError("Failed to update item");
