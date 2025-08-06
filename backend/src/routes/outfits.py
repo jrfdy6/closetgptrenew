@@ -175,6 +175,41 @@ async def outfits_debug():
         "environment": os.environ.get("ENVIRONMENT", "unknown")
     }
 
+@router.get("/debug-fields", response_model=dict)
+async def debug_outfit_fields():
+    """Debug endpoint to check field names in outfits collection."""
+    logger.info("🔍 DEBUG: Debug fields endpoint called")
+    
+    try:
+        # Get a few outfits to check their field names
+        outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(3).stream())
+        outfit_docs_list = list(outfit_docs)
+        
+        field_info = []
+        for doc in outfit_docs_list:
+            outfit_data = doc.to_dict()
+            field_info.append({
+                "doc_id": doc.id,
+                "fields": list(outfit_data.keys()),
+                "user_id_field": outfit_data.get('user_id', 'NOT_FOUND'),
+                "userId_field": outfit_data.get('userId', 'NOT_FOUND'),
+                "user_field": outfit_data.get('user', 'NOT_FOUND'),
+                "name": outfit_data.get('name', 'NO_NAME')
+            })
+        
+        return {
+            "status": "debug_fields",
+            "outfits_checked": len(field_info),
+            "field_info": field_info
+        }
+        
+    except Exception as e:
+        logger.error(f"🔍 DEBUG: Failed to debug fields: {e}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }
+
 @router.get("/test", response_model=List[OutfitResponse])
 async def get_test_outfits():
     """Get test outfits without authentication (for testing)."""
@@ -276,20 +311,7 @@ def _get_mock_outfits():
         }
     ]
     
-    return [
-        OutfitResponse(
-            id=outfit["id"],
-            name=outfit["name"],
-            style=outfit["style"],
-            mood=outfit["mood"],
-            items=outfit["items"],
-            occasion=outfit["occasion"],
-            confidence_score=outfit["confidence_score"],
-            reasoning=outfit["reasoning"],
-            createdAt=outfit["createdAt"]
-        )
-        for outfit in mock_outfits
-    ]
+    return [OutfitResponse(**outfit) for outfit in mock_outfits]
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(
@@ -308,34 +330,16 @@ async def get_outfit(
         
         outfit_data = outfit_doc.to_dict()
         
-        # Verify ownership
-        if outfit_data['user_id'] != current_user_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
-            )
-        
-        # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
-            event_type="outfit_viewed",
-            metadata={
-                "outfit_id": outfit_id,
-                "occasion": outfit_data['occasion']
-            }
-        )
-        log_analytics_event(analytics_event)
-        
         # Resolve item IDs to actual item objects
-        resolved_items = await resolve_item_ids_to_objects(outfit_data['items'], current_user_id)
+        resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), current_user_id)
         
         return OutfitResponse(
-            id=outfit_id,
+            id=outfit_doc.id,
             name=outfit_data.get('name', ''),
             style=outfit_data.get('style', ''),
             mood=outfit_data.get('mood', ''),
             items=resolved_items,
-            occasion=outfit_data['occasion'],
+            occasion=outfit_data.get('occasion', 'Casual'),
             confidence_score=outfit_data.get('confidence_score', 0.0),
             reasoning=outfit_data.get('reasoning', ''),
             createdAt=outfit_data['createdAt']
@@ -373,24 +377,42 @@ async def get_user_outfits(
     try:
         logger.info("🔍 DEBUG: Starting Firestore query for user outfits...")
         
-        # Use a timeout for the Firestore query
+        # First try to get outfits with user_id field
         outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').where('user_id', '==', current_user_id).limit(limit).offset(offset).stream())
+        
+        # If no outfits found, try getting all outfits and filter by items' userId
+        outfit_docs_list = list(outfit_docs)
+        if not outfit_docs_list:
+            logger.info("🔍 DEBUG: No outfits found with user_id field, trying to filter by items' userId")
+            all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
+            outfit_docs_list = []
+            for doc in all_outfit_docs:
+                outfit_data = doc.to_dict()
+                items = outfit_data.get('items', [])
+                # Check if any item in this outfit belongs to the current user
+                for item in items:
+                    if isinstance(item, dict) and item.get('userId') == current_user_id:
+                        outfit_docs_list.append(doc)
+                        break
+                    elif isinstance(item, str):
+                        # Item is an ID, we'll need to check the wardrobe collection
+                        try:
+                            item_doc = db.collection('wardrobe').document(item).get()
+                            if item_doc.exists:
+                                item_data = item_doc.to_dict()
+                                if item_data.get('userId') == current_user_id:
+                                    outfit_docs_list.append(doc)
+                                    break
+                        except Exception as e:
+                            logger.warning(f"Error checking item {item}: {e}")
+                            continue
         
         logger.info("🔍 DEBUG: Firestore query completed successfully!")
         logger.info("🔍 DEBUG: Processing Firestore results...")
         outfits = []
         
-        # Convert generator to list with timeout protection
-        try:
-            logger.info("🔍 DEBUG: Converting Firestore results to list...")
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(lambda: list(outfit_docs))
-                outfit_docs_list = future.result(timeout=3.0)  # 3 second timeout for conversion
-            logger.info(f"🔍 DEBUG: Successfully converted {len(outfit_docs_list)} documents to list")
-        except concurrent.futures.TimeoutError:
-            logger.error("🔍 DEBUG: Document conversion timed out")
-            logger.warning("🔍 DEBUG: Returning mock outfits due to document processing timeout")
-            return _get_mock_outfits()
+        # outfit_docs_list is already populated above
+        logger.info(f"🔍 DEBUG: Successfully found {len(outfit_docs_list)} outfits for user")
         
         for doc in outfit_docs_list:
             try:
@@ -477,11 +499,10 @@ async def submit_outfit_feedback(
                 "has_comment": bool(feedback.comment)
             }
         )
-        log_analytics_event(analytics_event)
         
-        logger.info(f"Outfit feedback submitted: {feedback.outfit_id}")
+        await log_analytics_event(analytics_event)
         
-        return {"message": "Feedback submitted successfully", "feedback_id": feedback_id}
+        return {"status": "success", "message": "Feedback submitted successfully"}
         
     except HTTPException:
         raise
@@ -515,23 +536,10 @@ async def delete_outfit(
                 detail="Access denied"
             )
         
-        # Delete outfit
+        # Delete the outfit
         db.collection('outfits').document(outfit_id).delete()
         
-        # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
-            event_type="outfit_deleted",
-            metadata={
-                "outfit_id": outfit_id,
-                "occasion": outfit_data['occasion']
-            }
-        )
-        log_analytics_event(analytics_event)
-        
-        logger.info(f"Outfit deleted: {outfit_id}")
-        
-        return {"message": "Outfit deleted successfully"}
+        return {"status": "success", "message": "Outfit deleted successfully"}
         
     except HTTPException:
         raise
