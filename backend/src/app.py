@@ -89,7 +89,7 @@ routers_to_include = [
     ("style_analysis", "router"),
     ("wardrobe_analysis", "router"),
     ("forgotten_gems", "router"),
-    ("wardrobe", "router"),
+    ("wardrobe_minimal", "router"),  # Use minimal wardrobe router
     ("analytics", "router"),
     ("analytics_dashboard", "router"),
     ("auth", "router"),
@@ -123,7 +123,7 @@ for module_name, router_name in routers_to_include:
                 app.include_router(router)
             elif module_name == "forgotten_gems":
                 app.include_router(router)
-            elif module_name == "wardrobe":
+            elif module_name == "wardrobe_minimal":
                 app.include_router(router)
             elif module_name == "analytics":
                 app.include_router(router, prefix="/api", tags=["analytics"])

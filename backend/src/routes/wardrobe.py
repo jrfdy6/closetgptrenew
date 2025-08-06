@@ -5,20 +5,37 @@ import uuid
 import time
 from datetime import datetime
 
-from ..custom_types.wardrobe import ClothingItem, ClothingType, Color
-from ..custom_types.profile import UserProfile
-from ..services.metadata_enhancement_service import MetadataEnhancementService
-from ..core.logging import get_logger
-from ..models.analytics_event import AnalyticsEvent
-from ..services.analytics_service import log_analytics_event
-from ..auth.auth_service import get_current_user
+# Use absolute imports instead of relative imports
+try:
+    from src.custom_types.wardrobe import ClothingItem, ClothingType, Color
+    from src.custom_types.profile import UserProfile
+    from src.services.metadata_enhancement_service import MetadataEnhancementService
+    from src.core.logging import get_logger
+    from src.models.analytics_event import AnalyticsEvent
+    from src.services.analytics_service import log_analytics_event
+    from src.auth.auth_service import get_current_user
+except ImportError:
+    # Fallback for when running as module
+    from custom_types.wardrobe import ClothingItem, ClothingType, Color
+    from custom_types.profile import UserProfile
+    from services.metadata_enhancement_service import MetadataEnhancementService
+    from core.logging import get_logger
+    from models.analytics_event import AnalyticsEvent
+    from services.analytics_service import log_analytics_event
+    from auth.auth_service import get_current_user
 
 router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
 
-# Initialize Firestore
-db = firestore.client()
-metadata_service = MetadataEnhancementService()
-logger = get_logger("wardrobe")
+# Initialize Firestore conditionally
+try:
+    db = firestore.client()
+    metadata_service = MetadataEnhancementService()
+    logger = get_logger("wardrobe")
+except Exception as e:
+    print(f"Warning: Could not initialize Firebase services: {e}")
+    db = None
+    metadata_service = None
+    logger = None
 
 @router.post("/add")
 async def add_wardrobe_item(
@@ -124,14 +141,87 @@ async def get_wardrobe_items(
 ) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
     try:
+        logger.info(f"Getting wardrobe items for user: {current_user.id}")
+        
         # Query Firestore for user's wardrobe items
         docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
         
         items = []
+        errors = []
+        
         for doc in docs:
-            item_data = doc.to_dict()
-            item_data['id'] = doc.id
-            items.append(item_data)
+            try:
+                item_data = doc.to_dict()
+                item_data['id'] = doc.id
+                
+                # Ensure required fields exist
+                if 'name' not in item_data:
+                    item_data['name'] = 'Unknown Item'
+                if 'type' not in item_data:
+                    item_data['type'] = 'unknown'
+                if 'color' not in item_data:
+                    item_data['color'] = 'unknown'
+                if 'style' not in item_data:
+                    item_data['style'] = []
+                if 'occasion' not in item_data:
+                    item_data['occasion'] = []
+                if 'season' not in item_data:
+                    item_data['season'] = ['all']
+                if 'tags' not in item_data:
+                    item_data['tags'] = []
+                if 'dominantColors' not in item_data:
+                    item_data['dominantColors'] = []
+                if 'matchingColors' not in item_data:
+                    item_data['matchingColors'] = []
+                if 'imageUrl' not in item_data:
+                    item_data['imageUrl'] = ''
+                if 'metadata' not in item_data:
+                    item_data['metadata'] = {}
+                if 'favorite' not in item_data:
+                    item_data['favorite'] = False
+                if 'wearCount' not in item_data:
+                    item_data['wearCount'] = 0
+                if 'lastWorn' not in item_data:
+                    item_data['lastWorn'] = None
+                
+                # Handle timestamp conversion
+                try:
+                    if 'createdAt' in item_data:
+                        if isinstance(item_data['createdAt'], str):
+                            item_data['createdAt'] = int(datetime.fromisoformat(item_data['createdAt'].replace('Z', '+00:00')).timestamp())
+                        elif hasattr(item_data['createdAt'], 'timestamp'):
+                            item_data['createdAt'] = int(item_data['createdAt'].timestamp())
+                    else:
+                        item_data['createdAt'] = int(time.time())
+                except Exception as e:
+                    logger.warning(f"Error converting createdAt for item {doc.id}: {e}")
+                    item_data['createdAt'] = int(time.time())
+                
+                try:
+                    if 'updatedAt' in item_data:
+                        if isinstance(item_data['updatedAt'], str):
+                            item_data['updatedAt'] = int(datetime.fromisoformat(item_data['updatedAt'].replace('Z', '+00:00')).timestamp())
+                        elif hasattr(item_data['updatedAt'], 'timestamp'):
+                            item_data['updatedAt'] = int(item_data['updatedAt'].timestamp())
+                    else:
+                        item_data['updatedAt'] = int(time.time())
+                except Exception as e:
+                    logger.warning(f"Error converting updatedAt for item {doc.id}: {e}")
+                    item_data['updatedAt'] = int(time.time())
+                
+                items.append(item_data)
+                logger.debug(f"Successfully processed item {doc.id}")
+                
+            except Exception as e:
+                logger.error(f"Error processing wardrobe item {doc.id}: {e}")
+                errors.append(f"Failed to process item {doc.id}: {str(e)}")
+        
+        # Sort items by creation date (newest first)
+        items.sort(key=lambda x: x.get('createdAt', 0), reverse=True)
+        
+        logger.info(f"Retrieved {len(items)} wardrobe items for user {current_user.id}")
+        if errors:
+            logger.warning(f"Encountered {len(errors)} errors while processing items")
         
         # Log analytics event
         analytics_event = AnalyticsEvent(
@@ -139,7 +229,8 @@ async def get_wardrobe_items(
             event_type="wardrobe_items_listed",
             metadata={
                 "item_count": len(items),
-                "has_items": len(items) > 0
+                "has_items": len(items) > 0,
+                "error_count": len(errors)
             }
         )
         log_analytics_event(analytics_event)
@@ -147,7 +238,8 @@ async def get_wardrobe_items(
         return {
             "success": True,
             "items": items,
-            "count": len(items)
+            "count": len(items),
+            "errors": errors if errors else None
         }
         
     except Exception as e:

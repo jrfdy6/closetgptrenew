@@ -303,20 +303,94 @@ async def get_wardrobe(current_user_id: str = Depends(get_current_user_id)):
         )
     
     try:
-        # Get wardrobe items from Firestore
-        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
-        docs = wardrobe_ref.stream()
+        print(f"DEBUG: Getting wardrobe for user: {current_user_id}")
+        
+        # Get wardrobe items from Firestore using flat collection structure
+        wardrobe_ref = db.collection('wardrobe')
+        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
         
         items = []
+        errors = []
+        
         for doc in docs:
-            item_data = doc.to_dict()
-            item_data['id'] = doc.id
-            items.append(item_data)
+            try:
+                item_data = doc.to_dict()
+                item_data['id'] = doc.id
+                
+                # Ensure required fields exist
+                if 'name' not in item_data:
+                    item_data['name'] = 'Unknown Item'
+                if 'type' not in item_data:
+                    item_data['type'] = 'unknown'
+                if 'color' not in item_data:
+                    item_data['color'] = 'unknown'
+                if 'style' not in item_data:
+                    item_data['style'] = []
+                if 'occasion' not in item_data:
+                    item_data['occasion'] = []
+                if 'season' not in item_data:
+                    item_data['season'] = ['all']
+                if 'tags' not in item_data:
+                    item_data['tags'] = []
+                if 'dominantColors' not in item_data:
+                    item_data['dominantColors'] = []
+                if 'matchingColors' not in item_data:
+                    item_data['matchingColors'] = []
+                if 'imageUrl' not in item_data:
+                    item_data['imageUrl'] = ''
+                if 'metadata' not in item_data:
+                    item_data['metadata'] = {}
+                if 'favorite' not in item_data:
+                    item_data['favorite'] = False
+                if 'wearCount' not in item_data:
+                    item_data['wearCount'] = 0
+                if 'lastWorn' not in item_data:
+                    item_data['lastWorn'] = None
+                
+                # Handle timestamp conversion
+                try:
+                    if 'createdAt' in item_data:
+                        if isinstance(item_data['createdAt'], str):
+                            item_data['createdAt'] = int(datetime.fromisoformat(item_data['createdAt'].replace('Z', '+00:00')).timestamp())
+                        elif hasattr(item_data['createdAt'], 'timestamp'):
+                            item_data['createdAt'] = int(item_data['createdAt'].timestamp())
+                    else:
+                        item_data['createdAt'] = int(datetime.now().timestamp())
+                except Exception as e:
+                    print(f"DEBUG: Error converting createdAt for item {doc.id}: {e}")
+                    item_data['createdAt'] = int(datetime.now().timestamp())
+                
+                try:
+                    if 'updatedAt' in item_data:
+                        if isinstance(item_data['updatedAt'], str):
+                            item_data['updatedAt'] = int(datetime.fromisoformat(item_data['updatedAt'].replace('Z', '+00:00')).timestamp())
+                        elif hasattr(item_data['updatedAt'], 'timestamp'):
+                            item_data['updatedAt'] = int(item_data['updatedAt'].timestamp())
+                    else:
+                        item_data['updatedAt'] = int(datetime.now().timestamp())
+                except Exception as e:
+                    print(f"DEBUG: Error converting updatedAt for item {doc.id}: {e}")
+                    item_data['updatedAt'] = int(datetime.now().timestamp())
+                
+                items.append(item_data)
+                print(f"DEBUG: Successfully processed item {doc.id}")
+                
+            except Exception as e:
+                print(f"DEBUG: Error processing wardrobe item {doc.id}: {e}")
+                errors.append(f"Failed to process item {doc.id}: {str(e)}")
+        
+        # Sort items by creation date (newest first)
+        items.sort(key=lambda x: x.get('createdAt', 0), reverse=True)
+        
+        print(f"DEBUG: Retrieved {len(items)} wardrobe items for user {current_user_id}")
+        if errors:
+            print(f"DEBUG: Encountered {len(errors)} errors while processing items")
         
         return {
+            "success": True,
             "items": items,
             "count": len(items),
-            "user_id": current_user_id
+            "errors": errors if errors else None
         }
     except Exception as e:
         print(f"DEBUG: Error getting wardrobe: {e}")
@@ -338,15 +412,41 @@ async def add_wardrobe_item(
         )
     
     try:
-        # Add timestamp
-        item_data = item.dict()
-        item_data['created_at'] = datetime.now().isoformat()
+        print(f"DEBUG: Adding wardrobe item for user: {current_user_id}")
         
-        # Add item to Firestore
-        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
+        # Convert to the expected structure
+        item_data = {
+            "userId": current_user_id,
+            "name": item.name,
+            "type": item.category,
+            "color": item.color or "unknown",
+            "style": [],
+            "occasion": item.occasion or [],
+            "season": ["all"],
+            "tags": [],
+            "imageUrl": item.image_url or "",
+            "dominantColors": [],
+            "matchingColors": [],
+            "createdAt": int(datetime.now().timestamp()),
+            "updatedAt": int(datetime.now().timestamp()),
+            "metadata": {
+                "brand": item.brand,
+                "material": item.material,
+                "description": item.description
+            },
+            "favorite": False,
+            "wearCount": 0,
+            "lastWorn": None
+        }
+        
+        # Add item to Firestore using flat collection structure
+        wardrobe_ref = db.collection('wardrobe')
         doc_ref = wardrobe_ref.add(item_data)
         
+        print(f"DEBUG: Successfully added item with ID: {doc_ref[1].id}")
+        
         return {
+            "success": True,
             "message": "Item added successfully",
             "item_id": doc_ref[1].id,
             "item": item_data
@@ -371,11 +471,13 @@ async def delete_wardrobe_item(
         )
     
     try:
-        # Delete from Firestore
-        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
+        print(f"DEBUG: Deleting wardrobe item {item_id} for user: {current_user_id}")
+        
+        # Delete from Firestore using flat collection structure
+        wardrobe_ref = db.collection('wardrobe')
         doc_ref = wardrobe_ref.document(item_id)
         
-        # Check if item exists
+        # Check if item exists and belongs to user
         doc = doc_ref.get()
         if not doc.exists:
             raise HTTPException(
@@ -383,13 +485,25 @@ async def delete_wardrobe_item(
                 detail="Item not found"
             )
         
+        item_data = doc.to_dict()
+        if item_data.get('userId') != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this item"
+            )
+        
         # Delete the document
         doc_ref.delete()
         
+        print(f"DEBUG: Successfully deleted item {item_id}")
+        
         return {
+            "success": True,
             "message": "Item deleted successfully",
             "item_id": item_id
         }
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"DEBUG: Error deleting wardrobe item: {e}")
         raise HTTPException(
@@ -566,6 +680,56 @@ async def test_auth(current_user_id: str = Depends(get_current_user_id)):
         "user_id": current_user_id,
         "status": "success"
     }
+
+# Weather endpoint
+class WeatherRequest(BaseModel):
+    location: str
+
+class WeatherData(BaseModel):
+    temperature: float
+    condition: str
+    humidity: int
+    wind_speed: float
+    location: str
+    precipitation: float = 0.0
+
+@app.post("/api/weather")
+async def get_weather(request: WeatherRequest):
+    """
+    Get current weather data for a location.
+    Location can be a city name or coordinates (latitude,longitude).
+    """
+    try:
+        # Get OpenWeather API key from environment
+        api_key = os.getenv("OPENWEATHER_API_KEY")
+        if not api_key:
+            # Return fallback weather data if API key is not configured
+            return WeatherData(
+                temperature=72.0,
+                condition="Clear",
+                humidity=65,
+                wind_speed=5.0,
+                location=request.location,
+                precipitation=0.0
+            )
+
+        # For now, return fallback data to avoid external API dependencies
+        # In production, you would make a request to OpenWeather API here
+        return WeatherData(
+            temperature=72.0,
+            condition="Clear",
+            humidity=65,
+            wind_speed=5.0,
+            location=request.location,
+            precipitation=0.0
+        )
+
+    except Exception as e:
+        print(f"DEBUG: Error getting weather: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get weather data"
+        )
 
 if __name__ == "__main__":
     import uvicorn
