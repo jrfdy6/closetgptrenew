@@ -42,12 +42,12 @@ export async function GET(request: Request) {
       console.log('🔍 DEBUG: No authorization header present');
     }
     
-    // Call the backend outfits endpoint
+    // Call the backend outfits endpoint with increased timeout
     console.log('🔍 DEBUG: Calling backend outfits endpoint...');
     const outfitsResponse = await fetch(`${fullApiUrl}/api/outfits/`, {
       method: 'GET',
       headers,
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: AbortSignal.timeout(30000), // 30 second timeout (increased from 10)
     });
     
     console.log('🔍 DEBUG: Backend outfits response status:', outfitsResponse.status);
@@ -87,8 +87,12 @@ export async function GET(request: Request) {
     // Provide more specific error messages
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
+        console.error('🔍 DEBUG: Request timed out after 30 seconds');
         return NextResponse.json(
-          { error: 'Request timeout', details: 'Backend did not respond within 10 seconds' },
+          { 
+            error: 'Request timeout', 
+            details: 'Backend did not respond within 30 seconds. The server may be experiencing high load.'
+          },
           { status: 504 }
         );
       }
