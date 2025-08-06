@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 DEBUG: NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
@@ -44,51 +44,36 @@ export async function GET(request: Request) {
       headers['Authorization'] = authHeader;
     }
     
-    console.log('🔍 DEBUG: Calling backend outfits endpoint:', `${fullApiUrl}/api/outfits/`);
-    console.log('🔍 DEBUG: Headers:', headers);
+    // Call the backend outfits endpoint
+    console.log('🔍 DEBUG: Calling backend outfits endpoint...');
+    const outfitsResponse = await fetch(`${fullApiUrl}/api/outfits/`, {
+      method: 'GET',
+      headers,
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    });
     
-    // Create an AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    console.log('🔍 DEBUG: Backend outfits response status:', outfitsResponse.status);
     
-    try {
-      console.log('🔍 DEBUG: Starting fetch request to backend...');
-      const response = await fetch(`${fullApiUrl}/api/outfits/`, {
-        method: 'GET',
-        headers,
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      console.log('🔍 DEBUG: Backend response received!');
-      console.log('🔍 DEBUG: Backend response status:', response.status);
-      console.log('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        console.error('🔍 DEBUG: Backend response not OK:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('🔍 DEBUG: Backend error response:', errorText);
-        throw new Error(`Backend responded with ${response.status}: ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('🔍 DEBUG: Backend response data:', data);
-      return NextResponse.json(data);
-    } catch (error) {
-      clearTimeout(timeoutId);
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error('🔍 DEBUG: Request timed out after 10 seconds');
-        return NextResponse.json(
-          { error: 'Request timed out', details: 'Backend did not respond within 10 seconds' },
-          { status: 504 }
-        );
-      }
-      throw error;
+    if (!outfitsResponse.ok) {
+      console.error('🔍 DEBUG: Backend outfits endpoint failed:', outfitsResponse.status, outfitsResponse.statusText);
+      return NextResponse.json(
+        { 
+          error: 'Backend outfits endpoint failed', 
+          status: outfitsResponse.status,
+          message: `Backend returned ${outfitsResponse.status}: ${outfitsResponse.statusText}`
+        },
+        { status: outfitsResponse.status }
+      );
     }
+    
+    const outfitsData = await outfitsResponse.json();
+    console.log('🔍 DEBUG: Backend outfits data received:', outfitsData);
+    
+    return NextResponse.json(outfitsData);
   } catch (error) {
-    console.error('🔍 DEBUG: Error fetching outfits:', error);
+    console.error('🔍 DEBUG: Error in outfits route:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch outfits', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to process request', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
