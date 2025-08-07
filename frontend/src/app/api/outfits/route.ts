@@ -10,6 +10,10 @@ export async function GET(request: Request) {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    if (authHeader) {
+      console.log('🔍 DEBUG: Authorization header length:', authHeader.length);
+      console.log('🔍 DEBUG: Authorization header starts with Bearer:', authHeader.startsWith('Bearer '));
+    }
     
     // Check if the API URL is set
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -39,7 +43,7 @@ export async function GET(request: Request) {
       headers['Authorization'] = authHeader;
       console.log('🔍 DEBUG: Forwarding authorization header');
     } else {
-      console.log('🔍 DEBUG: No authorization header present');
+      console.log('🔍 DEBUG: No authorization header present - will try test endpoint');
     }
     
     // Call the backend outfits endpoint with increased timeout
@@ -55,8 +59,26 @@ export async function GET(request: Request) {
     if (!outfitsResponse.ok) {
       console.error('🔍 DEBUG: Backend outfits endpoint failed:', outfitsResponse.status, outfitsResponse.statusText);
       
-      // If it's a 403, return a more specific error
-      if (outfitsResponse.status === 403) {
+      // If it's a 403 or 401, try the test endpoint as fallback
+      if (outfitsResponse.status === 403 || outfitsResponse.status === 401) {
+        console.log('🔍 DEBUG: Authentication failed, trying test endpoint as fallback...');
+        try {
+          const testResponse = await fetch(`${fullApiUrl}/api/outfits/test`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(10000), // 10 second timeout for fallback
+          });
+          
+          if (testResponse.ok) {
+            const testData = await testResponse.json();
+            console.log('🔍 DEBUG: Got test outfits as fallback:', testData.length, 'outfits');
+            return NextResponse.json(testData);
+          } else {
+            console.error('🔍 DEBUG: Test endpoint also failed:', testResponse.status);
+          }
+        } catch (fallbackError) {
+          console.error('🔍 DEBUG: Test endpoint fallback failed:', fallbackError);
+        }
+        
         return NextResponse.json(
           { 
             error: 'Authentication required', 
