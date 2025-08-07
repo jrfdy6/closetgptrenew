@@ -81,11 +81,14 @@ export default function OutfitsPage() {
       
       const outfitsData = await response.json();
       console.log('🔍 Fetched outfits:', outfitsData);
+      console.log('🔍 Response type:', typeof outfitsData);
+      console.log('🔍 Is array:', Array.isArray(outfitsData));
       
       // Handle the backend response format - it returns {outfits: [], message: "..."}
       const outfitsArray = outfitsData.outfits || outfitsData;
       console.log('🔍 Outfits array:', outfitsArray);
       console.log('🔍 Number of outfits:', outfitsArray.length);
+      console.log('🔍 First outfit sample:', outfitsArray[0]);
       
       // Ensure we have an array to map over
       if (!Array.isArray(outfitsArray)) {
