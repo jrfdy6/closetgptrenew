@@ -377,38 +377,11 @@ async def get_user_outfits(
     try:
         logger.info("🔍 DEBUG: Starting Firestore query for user outfits...")
         
-        # Get all outfits and filter by items' userId since most outfits don't have user_id field
-        logger.info("🔍 DEBUG: Getting all outfits and filtering by items' userId")
+        # Temporarily return all outfits for cleanup purposes
+        logger.info("🔍 DEBUG: Getting all outfits (temporarily for cleanup)")
         all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
-        outfit_docs_list = []
-        
-        for doc in all_outfit_docs:
-            outfit_data = doc.to_dict()
-            items = outfit_data.get('items', [])
-            
-            # Only include outfits where ALL items belong to the current user
-            user_item_count = 0
-            total_items = len(items)
-            
-            for item in items:
-                if isinstance(item, dict) and item.get('userId') == current_user_id:
-                    user_item_count += 1
-                elif isinstance(item, str):
-                    # Item is an ID, we'll need to check the wardrobe collection
-                    try:
-                        item_doc = db.collection('wardrobe').document(item).get()
-                        if item_doc.exists:
-                            item_data = item_doc.to_dict()
-                            if item_data.get('userId') == current_user_id:
-                                user_item_count += 1
-                    except Exception as e:
-                        logger.warning(f"Error checking item {item}: {e}")
-                        continue
-            
-            # Only include outfits where all items belong to the user
-            if user_item_count > 0 and user_item_count == total_items:
-                outfit_docs_list.append(doc)
-                logger.info(f"🔍 DEBUG: Found outfit {doc.id} with {user_item_count}/{total_items} user items")
+        outfit_docs_list = list(all_outfit_docs)
+        logger.info(f"🔍 DEBUG: Found {len(outfit_docs_list)} total outfits")
         
         logger.info("🔍 DEBUG: Firestore query completed successfully!")
         logger.info("🔍 DEBUG: Processing Firestore results...")
