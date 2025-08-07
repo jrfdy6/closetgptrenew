@@ -74,8 +74,17 @@ export default function OutfitsPage() {
       
       const outfitsData = await response.json();
       
+      // DEBUG: Log the raw data
+      console.log('🔍 DEBUG: Raw outfits data received:', outfitsData);
+      console.log('🔍 DEBUG: Data type:', typeof outfitsData);
+      console.log('🔍 DEBUG: Is array?', Array.isArray(outfitsData));
+      
       // Handle the backend response format
       const outfitsArray = outfitsData.outfits || outfitsData;
+      
+      // DEBUG: Log the processed array
+      console.log('🔍 DEBUG: Processed outfits array:', outfitsArray);
+      console.log('🔍 DEBUG: Array length:', outfitsArray.length);
       
       // Ensure we have an array to map over
       if (!Array.isArray(outfitsArray)) {
@@ -97,6 +106,10 @@ export default function OutfitsPage() {
         feedback_summary: outfit.feedback_summary,
         userFeedback: outfit.userFeedback
       }));
+      
+      // DEBUG: Log the final transformed outfits
+      console.log('🔍 DEBUG: Final transformed outfits:', transformedOutfits);
+      console.log('🔍 DEBUG: Final count:', transformedOutfits.length);
       
       setOutfits(transformedOutfits);
       setLoading(false);
@@ -270,6 +283,8 @@ export default function OutfitsPage() {
           <h1 className="text-3xl font-bold">My Outfits</h1>
           <p className="text-muted-foreground">
             {outfits.length} outfit{outfits.length !== 1 ? 's' : ''} in your collection
+            {/* DEBUG: Show the actual count */}
+            <span className="text-xs text-red-500 ml-2">(DEBUG: {outfits.length})</span>
           </p>
         </div>
         <div className="flex gap-2">
