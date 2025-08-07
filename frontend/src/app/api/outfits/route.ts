@@ -88,6 +88,24 @@ export async function GET(request: Request) {
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         console.error('🔍 DEBUG: Request timed out after 30 seconds');
+        
+        // Try to get test outfits as a fallback
+        try {
+          console.log('🔍 DEBUG: Trying to get test outfits as fallback...');
+          const testResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/outfits/test`, {
+            method: 'GET',
+            signal: AbortSignal.timeout(10000), // 10 second timeout for fallback
+          });
+          
+          if (testResponse.ok) {
+            const testData = await testResponse.json();
+            console.log('🔍 DEBUG: Got test outfits as fallback:', testData.length, 'outfits');
+            return NextResponse.json(testData);
+          }
+        } catch (fallbackError) {
+          console.error('🔍 DEBUG: Fallback also failed:', fallbackError);
+        }
+        
         return NextResponse.json(
           { 
             error: 'Request timeout', 
