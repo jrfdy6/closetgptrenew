@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // Forward the request to the real backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/analyze-image`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/analyze-image`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

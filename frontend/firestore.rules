@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read and write their own data
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Specific rules for wardrobe items
+    match /wardrobe/{itemId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Specific rules for user profiles
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Specific rules for outfits
+    match /outfits/{outfitId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+} 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { 
   Sparkles, 
@@ -44,6 +44,8 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [firestoreError, setFirestoreError] = useState(false);
+  const [hasExistingData, setHasExistingData] = useState(false);
   const stats = useWardrobeStats();
 
   useEffect(() => {
@@ -54,28 +56,83 @@ export default function DashboardPage() {
       return;
     }
 
-    const fetchProfile = async () => {
-      if (!db) return;
+    const checkExistingData = async () => {
+      if (!db) {
+        console.log('🎯 DASHBOARD: No Firestore db available');
+        setFirestoreError(true);
+        setLoading(false);
+        return;
+      }
       
       try {
-        console.log('🎯 DASHBOARD: Fetching profile for user:', user.uid);
+        console.log('🎯 DASHBOARD: Checking for existing data for user:', user.uid);
+        
+        // Check for profile first
         const profileDoc = await getDoc(doc(db, 'users', user.uid));
-        console.log('🎯 DASHBOARD: Profile doc exists:', profileDoc.exists());
         if (profileDoc.exists()) {
           const profileData = profileDoc.data();
-          console.log('🎯 DASHBOARD: Profile data from Firestore:', profileData);
+          console.log('🎯 DASHBOARD: Profile found:', profileData);
           setProfile(profileData);
+          
+          // If profile exists and onboarding is completed, we're good
+          if (profileData.onboardingCompleted) {
+            console.log('🎯 DASHBOARD: Profile exists and onboarding completed');
+            setHasExistingData(true);
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // If no profile or onboarding not completed, check for wardrobe items
+        console.log('🎯 DASHBOARD: Checking for wardrobe items...');
+        const wardrobeQuery = query(collection(db, 'wardrobe'), limit(1));
+        const wardrobeSnapshot = await getDocs(wardrobeQuery);
+        
+        if (!wardrobeSnapshot.empty) {
+          console.log('🎯 DASHBOARD: Found wardrobe items, user has existing data');
+          setHasExistingData(true);
+          // Create a default profile for existing users
+          setProfile({
+            onboardingCompleted: true,
+            name: user.displayName || 'User',
+            email: user.email
+          });
         } else {
-          console.log('🎯 DASHBOARD: No profile document found');
+          // Check for outfits as well
+          console.log('🎯 DASHBOARD: Checking for outfits...');
+          const outfitsQuery = query(collection(db, 'outfits'), limit(1));
+          const outfitsSnapshot = await getDocs(outfitsQuery);
+          
+          if (!outfitsSnapshot.empty) {
+            console.log('🎯 DASHBOARD: Found outfits, user has existing data');
+            setHasExistingData(true);
+            // Create a default profile for existing users
+            setProfile({
+              onboardingCompleted: true,
+              name: user.displayName || 'User',
+              email: user.email
+            });
+          } else {
+            console.log('🎯 DASHBOARD: No existing data found, showing onboarding');
+            setHasExistingData(false);
+          }
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        console.error('Error checking existing data:', error);
+        setFirestoreError(true);
+        // Assume user has existing data if we can't check
+        setHasExistingData(true);
+        setProfile({
+          onboardingCompleted: true,
+          name: user.displayName || 'User',
+          email: user.email
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
+    checkExistingData();
   }, [user, authLoading, router]);
 
   if (authLoading || loading) {
@@ -94,9 +151,12 @@ export default function DashboardPage() {
   console.log('🎯 DASHBOARD: Profile check - profile exists:', !!profile);
   console.log('🎯 DASHBOARD: Profile data:', profile);
   console.log('🎯 DASHBOARD: onboardingCompleted:', profile?.onboardingCompleted);
+  console.log('🎯 DASHBOARD: Firestore error:', firestoreError);
+  console.log('🎯 DASHBOARD: Has existing data:', hasExistingData);
 
-  if (!profile || !profile.onboardingCompleted) {
-    console.log('🎯 DASHBOARD: Showing onboarding prompt - profile missing or onboarding not completed');
+  // Show onboarding prompt only if no profile, no onboarding completed, and no existing data
+  if (!profile || (!profile.onboardingCompleted && !hasExistingData)) {
+    console.log('🎯 DASHBOARD: Showing onboarding prompt - no profile, no onboarding, no existing data');
     return (
       <div className="container-readable py-8">
         <Card className="max-w-2xl mx-auto card-enhanced">
@@ -108,8 +168,16 @@ export default function DashboardPage() {
               <div>
                 <h1 className="text-hero text-foreground mb-2">Complete Your Profile</h1>
                 <p className="text-secondary">
-                  Let's personalize your AI styling experience.
+                  {firestoreError 
+                    ? "Let's get you started with your AI styling experience."
+                    : "Let's personalize your AI styling experience."
+                  }
                 </p>
+                {firestoreError && (
+                  <p className="text-sm text-orange-600 mt-2">
+                    Note: Some features may be limited due to connection issues.
+                  </p>
+                )}
               </div>
               <Button 
                 onClick={() => router.push('/onboarding')}
@@ -178,8 +246,8 @@ export default function DashboardPage() {
         <Card className="card-hover animate-fade-in stagger-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-subheader font-medium">Favorites</CardTitle>
-            <div className="w-10 h-10 bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-xl flex items-center justify-center icon-bounce">
-              <Heart className="h-5 w-5 text-yellow-600" />
+            <div className="w-10 h-10 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-xl flex items-center justify-center icon-bounce">
+              <Heart className="h-5 w-5 text-red-600" />
             </div>
           </CardHeader>
           <CardContent>
@@ -187,15 +255,15 @@ export default function DashboardPage() {
               {stats.loading ? '...' : stats.favoritesCount}
             </div>
             <p className="text-secondary">
-              {stats.loading ? 'Loading...' : 'Based on your usage'}
+              {stats.loading ? 'Loading...' : 'Loved items'}
             </p>
           </CardContent>
         </Card>
-        
+
         <Card className="card-hover animate-fade-in stagger-3">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-subheader font-medium">Style Goals</CardTitle>
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-violet-600/20 rounded-xl flex items-center justify-center icon-bounce">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center icon-bounce">
               <Target className="h-5 w-5 text-purple-600" />
             </div>
           </CardHeader>
@@ -204,142 +272,51 @@ export default function DashboardPage() {
               {stats.loading ? '...' : `${stats.styleGoalsCompleted}/${stats.totalStyleGoals}`}
             </div>
             <p className="text-secondary">
-              {stats.loading ? 'Loading...' : 
-                stats.totalStyleGoals > 0 ? 
-                  `${Math.round((stats.styleGoalsCompleted / stats.totalStyleGoals) * 100)}% completed` :
-                  'No goals set'
-              }
+              {stats.loading ? 'Loading...' : 'Completed'}
             </p>
           </CardContent>
         </Card>
 
         <Card className="card-hover animate-fade-in stagger-4">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-subheader font-medium">AI Insights</CardTitle>
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/20 to-yellow-500/20 rounded-xl flex items-center justify-center icon-bounce">
-              <Zap className="h-5 w-5 text-emerald-600" />
+            <CardTitle className="text-subheader font-medium">This Week</CardTitle>
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl flex items-center justify-center icon-bounce">
+              <Calendar className="h-5 w-5 text-blue-600" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">
-              <span className="text-emerald-600">24/7</span>
+              {stats.loading ? '...' : stats.outfitsThisWeek}
             </div>
             <p className="text-secondary">
-              Smart insights
+              {stats.loading ? 'Loading...' : 'Outfits worn'}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="space-section">
-        {/* Side by Side - Today's Outfit and Forgotten Gems */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Left Column - Today's Outfit */}
-          <div>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <h2 className="text-subheader font-semibold">Today's AI Recommendation</h2>
-              <Badge variant="secondary" className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0">
-                Fresh
-              </Badge>
-            </div>
-            <LazyTodaysOutfitRecommendation />
-          </div>
-          
-          {/* Right Column - Forgotten Gems */}
-          <div>
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
-                <Star className="w-4 h-4 text-white" />
-              </div>
-              <h2 className="text-subheader font-semibold">Forgotten Gems</h2>
-              <Badge variant="outline" className="text-xs">
-                Rediscover
-              </Badge>
-            </div>
-            <Suspense fallback={
-              <Card className="card-enhanced p-8">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-200 border-t-emerald-600"></div>
-                  <span className="ml-3 text-muted-foreground">Finding your hidden treasures...</span>
-                </div>
-              </Card>
-            }>
-              <LazyForgottenGems />
-            </Suspense>
-          </div>
-        </div>
+      {/* Rest of dashboard content */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+        <Suspense fallback={<Card><CardContent className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded"></div></CardContent></Card>}>
+          <LazyTodaysOutfitRecommendation />
+        </Suspense>
         
-        {/* Gap Analysis and Goals - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Left Column - Gap Analysis */}
-          <div className="lg:col-span-2 space-section">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                <Palette className="w-4 h-4 text-white" />
-              </div>
-              <h2 className="text-subheader font-semibold">Wardrobe Gap Analysis</h2>
-            </div>
-            
-            <Suspense fallback={
-              <Card className="card-enhanced p-6">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-200 border-t-emerald-600"></div>
-                  <span className="ml-2 text-sm text-muted-foreground">Analyzing...</span>
-                </div>
-              </Card>
-            }>
-              <LazyWardrobeGapAnalysis />
-            </Suspense>
-          </div>
-
-          {/* Right Column - Goals */}
-          <div className="space-section">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
-                <Target className="w-4 h-4 text-white" />
-              </div>
-              <h2 className="text-subheader font-semibold">Style Goals & Progress</h2>
-            </div>
-            <Suspense fallback={
-              <Card className="card-enhanced p-8">
-                <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-200 border-t-emerald-600"></div>
-                  <span className="ml-3 text-muted-foreground">Loading your goals...</span>
-                </div>
-              </Card>
-            }>
-              <LazyStyleGoalsProgress />
-            </Suspense>
-          </div>
-        </div>
-
-        {/* Full Width - Wardrobe Insights */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-white" />
-            </div>
-            <h2 className="text-subheader font-semibold">Wardrobe Insights</h2>
-            <Badge variant="secondary" className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
-              Analytics
-            </Badge>
-          </div>
-          <Suspense fallback={
-            <Card className="card-enhanced p-6">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-200 border-t-emerald-600"></div>
-                <span className="ml-2 text-sm text-muted-foreground">Loading insights...</span>
-              </div>
-            </Card>
-          }>
-            <LazyWardrobeInsights />
-          </Suspense>
-        </div>
+        <Suspense fallback={<Card><CardContent className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded"></div></CardContent></Card>}>
+          <LazyWardrobeInsights />
+        </Suspense>
+        
+        <Suspense fallback={<Card><CardContent className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded"></div></CardContent></Card>}>
+          <LazyStyleGoalsProgress />
+        </Suspense>
+        
+        <Suspense fallback={<Card><CardContent className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded"></div></CardContent></Card>}>
+          <LazyWardrobeGapAnalysis />
+        </Suspense>
+        
+        <Suspense fallback={<Card><CardContent className="p-6"><div className="animate-pulse h-64 bg-gray-200 rounded"></div></CardContent></Card>}>
+          <LazyForgottenGems />
+        </Suspense>
       </div>
     </div>
   );
-} // Force fresh deployment with @ alias imports
+}

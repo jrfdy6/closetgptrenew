@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     backendFormData.append('image', image);
     backendFormData.append('item_id', itemId);
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app'}/api/embed`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/embed`, {
       method: 'POST',
       body: backendFormData,
     });

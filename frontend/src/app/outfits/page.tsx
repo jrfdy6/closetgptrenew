@@ -84,6 +84,8 @@ export default function OutfitsPage() {
       
       // Handle the backend response format - it returns {outfits: [], message: "..."}
       const outfitsArray = outfitsData.outfits || outfitsData;
+      console.log('🔍 Outfits array:', outfitsArray);
+      console.log('🔍 Number of outfits:', outfitsArray.length);
       
       // Ensure we have an array to map over
       if (!Array.isArray(outfitsArray)) {
@@ -100,11 +102,14 @@ export default function OutfitsPage() {
         description: outfit.reasoning || '',
         occasion: outfit.occasion || 'Casual',
         style: outfit.style || '',
-        createdAt: new Date(outfit.createdAt).getTime() / 1000,
+        createdAt: typeof outfit.createdAt === 'string' ? new Date(outfit.createdAt).getTime() / 1000 : outfit.createdAt / 1000,
         items: outfit.items || [],
         feedback_summary: outfit.feedback_summary,
         userFeedback: outfit.userFeedback
       }));
+      
+      console.log('🔍 Transformed outfits:', transformedOutfits);
+      console.log('🔍 Number of transformed outfits:', transformedOutfits.length);
       
       setOutfits(transformedOutfits);
       setLoading(false);
