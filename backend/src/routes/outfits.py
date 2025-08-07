@@ -377,38 +377,35 @@ async def get_user_outfits(
     try:
         logger.info("🔍 DEBUG: Starting Firestore query for user outfits...")
         
-        # Get all outfits and filter by items' userId since most outfits don't have user_id field
-        logger.info("🔍 DEBUG: Getting all outfits and filtering by items' userId")
-        all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
-        outfit_docs_list = []
+        # First try to get outfits with user_id field
+        outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').where('user_id', '==', current_user_id).limit(limit).offset(offset).stream())
         
-        for doc in all_outfit_docs:
-            outfit_data = doc.to_dict()
-            items = outfit_data.get('items', [])
-            
-            # Only include outfits where ALL items belong to the current user
-            user_item_count = 0
-            total_items = len(items)
-            
-            for item in items:
-                if isinstance(item, dict) and item.get('userId') == current_user_id:
-                    user_item_count += 1
-                elif isinstance(item, str):
-                    # Item is an ID, we'll need to check the wardrobe collection
-                    try:
-                        item_doc = db.collection('wardrobe').document(item).get()
-                        if item_doc.exists:
-                            item_data = item_doc.to_dict()
-                            if item_data.get('userId') == current_user_id:
-                                user_item_count += 1
-                    except Exception as e:
-                        logger.warning(f"Error checking item {item}: {e}")
-                        continue
-            
-            # Only include outfits where all items belong to the user
-            if user_item_count > 0 and user_item_count == total_items:
-                outfit_docs_list.append(doc)
-                logger.info(f"🔍 DEBUG: Found outfit {doc.id} with {user_item_count}/{total_items} user items")
+        # If no outfits found, try getting all outfits and filter by items' userId
+        outfit_docs_list = list(outfit_docs)
+        if not outfit_docs_list:
+            logger.info("🔍 DEBUG: No outfits found with user_id field, trying to filter by items' userId")
+            all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
+            outfit_docs_list = []
+            for doc in all_outfit_docs:
+                outfit_data = doc.to_dict()
+                items = outfit_data.get('items', [])
+                # Check if any item in this outfit belongs to the current user
+                for item in items:
+                    if isinstance(item, dict) and item.get('userId') == current_user_id:
+                        outfit_docs_list.append(doc)
+                        break
+                    elif isinstance(item, str):
+                        # Item is an ID, we'll need to check the wardrobe collection
+                        try:
+                            item_doc = db.collection('wardrobe').document(item).get()
+                            if item_doc.exists:
+                                item_data = item_doc.to_dict()
+                                if item_data.get('userId') == current_user_id:
+                                    outfit_docs_list.append(doc)
+                                    break
+                        except Exception as e:
+                            logger.warning(f"Error checking item {item}: {e}")
+                            continue
         
         logger.info("🔍 DEBUG: Firestore query completed successfully!")
         logger.info("🔍 DEBUG: Processing Firestore results...")
