@@ -58,6 +58,8 @@ export default function OutfitsPage() {
       
       // Get the user's ID token for authentication
       const idToken = await user.getIdToken();
+      console.log('🔍 Got ID token, length:', idToken ? idToken.length : 'null');
+      console.log('🔍 ID token starts with:', idToken ? idToken.substring(0, 20) + '...' : 'null');
       
       // Fetch real outfits from the API
       const response = await fetch('/api/outfits', {
@@ -66,6 +68,9 @@ export default function OutfitsPage() {
           'Content-Type': 'application/json',
         },
       });
+      
+      console.log('🔍 API response status:', response.status);
+      console.log('🔍 API response ok:', response.ok);
       
       if (!response.ok) {
         if (response.status === 504) {
