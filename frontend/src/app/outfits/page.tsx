@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, ThumbsUp, ThumbsDown, AlertTriangle, Calendar, Eye, CheckCircle, Sparkles, ArrowRight } from 'lucide-react';
+import { Star, ThumbsUp, ThumbsDown, AlertTriangle, Calendar, Eye, CheckCircle, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import { PageLoadingSkeleton } from '@/components/ui/loading-states';
 import { SwipeableCard, InteractiveButton, HoverCard, hapticFeedback } from '@/components/ui/micro-interactions';
@@ -54,23 +54,16 @@ export default function OutfitsPage() {
       setLoading(true);
       setError(null);
       
-      console.log('🔍 Fetching outfits for user:', user.uid);
-      
       // Get the user's ID token for authentication
       const idToken = await user.getIdToken();
-      console.log('🔍 Got ID token, length:', idToken ? idToken.length : 'null');
-      console.log('🔍 ID token starts with:', idToken ? idToken.substring(0, 20) + '...' : 'null');
       
-      // Fetch real outfits from the API
+      // Fetch outfits from the API
       const response = await fetch('/api/outfits', {
         headers: {
           'Authorization': `Bearer ${idToken}`,
           'Content-Type': 'application/json',
         },
       });
-      
-      console.log('🔍 API response status:', response.status);
-      console.log('🔍 API response ok:', response.ok);
       
       if (!response.ok) {
         if (response.status === 504) {
@@ -80,19 +73,13 @@ export default function OutfitsPage() {
       }
       
       const outfitsData = await response.json();
-      console.log('🔍 Fetched outfits:', outfitsData);
-      console.log('🔍 Response type:', typeof outfitsData);
-      console.log('🔍 Is array:', Array.isArray(outfitsData));
       
-      // Handle the backend response format - it returns {outfits: [], message: "..."}
+      // Handle the backend response format
       const outfitsArray = outfitsData.outfits || outfitsData;
-      console.log('🔍 Outfits array:', outfitsArray);
-      console.log('🔍 Number of outfits:', outfitsArray.length);
-      console.log('🔍 First outfit sample:', outfitsArray[0]);
       
       // Ensure we have an array to map over
       if (!Array.isArray(outfitsArray)) {
-        console.error('🔍 Expected outfits array but got:', outfitsArray);
+        console.error('Expected outfits array but got:', outfitsArray);
         setOutfits([]);
         setLoading(false);
         return;
@@ -110,9 +97,6 @@ export default function OutfitsPage() {
         feedback_summary: outfit.feedback_summary,
         userFeedback: outfit.userFeedback
       }));
-      
-      console.log('🔍 Transformed outfits:', transformedOutfits);
-      console.log('🔍 Number of transformed outfits:', transformedOutfits.length);
       
       setOutfits(transformedOutfits);
       setLoading(false);
@@ -137,16 +121,13 @@ export default function OutfitsPage() {
 
   useEffect(() => {
     if (authLoading) {
-      console.log('🔍 Still loading auth...');
       return;
     }
 
     if (!user) {
-      console.log('🔍 No user, skipping outfit fetch');
       return;
     }
 
-    console.log('🔍 Outfits page useEffect - authLoading:', authLoading, 'user:', user);
     fetchOutfits();
   }, [user, authLoading, fetchOutfits]);
 
@@ -161,7 +142,6 @@ export default function OutfitsPage() {
   const handleMarkAsWorn = async (outfitId: string) => {
     try {
       setMarkingWorn(outfitId);
-      console.log('🔍 Marking outfit as worn:', outfitId);
       
       // Get the user's ID token for authentication
       const idToken = await user!.getIdToken();
@@ -189,223 +169,288 @@ export default function OutfitsPage() {
     }
   };
 
-  console.log('🔍 Rendering outfits page - authLoading:', authLoading, 'loading:', loading, 'user:', user);
-
   // Show loading state while authentication is being determined
   if (authLoading) {
-    console.log('🔍 Showing auth loading state');
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Loading Authentication...</h1>
           <p className="text-muted-foreground">Checking authentication status...</p>
-          <p className="text-sm text-muted-foreground mt-2">authLoading: {authLoading.toString()}</p>
-          <p className="text-sm text-muted-foreground mt-2">User: {user ? 'Logged in' : 'Not logged in'}</p>
-          <div className="mt-4">
-            <Link href="/signin">
-              <Button>Go to Login</Button>
-            </Link>
-          </div>
         </div>
       </div>
     );
   }
 
-  // Show login prompt if user is not authenticated
+  // Show sign-in prompt if user is not authenticated
   if (!user) {
-    console.log('🔍 No user found, showing login prompt');
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Please Log In</h1>
-          <p className="text-muted-foreground mb-4">You need to be logged in to view your outfits.</p>
-          <p className="text-sm text-muted-foreground mb-4">User: {user ? 'Logged in' : 'Not logged in'}</p>
-                        <Link href="/signin">
-            <Button>Log In</Button>
+          <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
+          <p className="text-muted-foreground mb-6">Please sign in to view your outfits.</p>
+          <Link href="/signin">
+            <Button>Sign In</Button>
           </Link>
         </div>
       </div>
     );
   }
 
+  // Show loading state while fetching outfits
   if (loading) {
     return (
-      <div className="container-readable space-section py-8">
-        <PageLoadingSkeleton 
-          showHero={true}
-          showStats={false}
-          showContent={true}
-        />
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">My Outfits</h1>
+            <p className="text-muted-foreground">Your curated outfit collection</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/outfits/create">
+              <Button>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Create Outfit
+              </Button>
+            </Link>
+            <Link href="/outfits/generate">
+              <Button variant="outline">
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Generate Outfit
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <PageLoadingSkeleton />
       </div>
     );
   }
 
+  // Show error state
   if (error) {
     return (
       <div className="container mx-auto py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Error Loading Outfits</h1>
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button 
-            onClick={() => {
-              setError(null);
-              setLoading(true);
-              fetchOutfits();
-            }}
-            className="mt-4"
-            disabled={loading}
-          >
-            {loading ? 'Retrying...' : 'Retry'}
-          </Button>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">My Outfits</h1>
+            <p className="text-muted-foreground">Your curated outfit collection</p>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/outfits/create">
+              <Button>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Create Outfit
+              </Button>
+            </Link>
+            <Link href="/outfits/generate">
+              <Button variant="outline">
+                <ArrowRight className="w-4 h-4 mr-2" />
+                Generate Outfit
+              </Button>
+            </Link>
+          </div>
         </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Error Loading Outfits</h3>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <Button onClick={fetchOutfits}>Try Again</Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="container-readable space-section py-8">
-      {/* Hero Header */}
-      <div className="gradient-hero rounded-2xl p-6 sm:p-8 mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <h1 className="text-2xl sm:text-hero text-foreground">Your Outfits</h1>
-            </div>
-            <p className="text-secondary text-base sm:text-lg">
-              {outfits.length} outfit{outfits.length !== 1 ? 's' : ''} • 
-              {outfits.filter(o => o.feedback_summary?.total_feedback).length} with feedback
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <Button variant="outline" asChild className="shadow-md hover:shadow-lg w-full sm:w-auto">
-              <Link href="/outfits/create">
-                Create Custom Outfit
-              </Link>
+    <div className="container mx-auto py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">My Outfits</h1>
+          <p className="text-muted-foreground">
+            {outfits.length} outfit{outfits.length !== 1 ? 's' : ''} in your collection
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/outfits/create">
+            <Button>
+              <Sparkles className="w-4 h-4 mr-2" />
+              Create Outfit
             </Button>
-            <Button asChild className="shadow-md hover:shadow-lg w-full sm:w-auto">
-              <Link href="/outfits/generate">
-                Generate New Outfit
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Link>
+          </Link>
+          <Link href="/outfits/generate">
+            <Button variant="outline">
+              <ArrowRight className="w-4 h-4 mr-2" />
+              Generate Outfit
             </Button>
-          </div>
+          </Link>
         </div>
       </div>
 
-      <div className="grid-outfits">
-        {outfits.map((outfit, index) => (
-          <SwipeableCard
-            key={outfit.id}
-            onSwipeLeft={() => {
-              hapticFeedback.success();
-              console.log('Swiped left on outfit:', outfit.name);
-              // TODO: Implement dislike or archive
-            }}
-            onSwipeRight={() => {
-              hapticFeedback.success();
-              console.log('Swiped right on outfit:', outfit.name);
-              // TODO: Implement like or favorite
-            }}
-            threshold={50}
-          >
-            <HoverCard intensity={5}>
-              <Card className={`card-hover animate-fade-in stagger-${Math.min(index + 1, 6)}`}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-subheader">{outfit.name}</CardTitle>
-                  {outfit.description && (
-                    <CardDescription className="mt-2 text-secondary">{outfit.description}</CardDescription>
-                  )}
-                </div>
+      {outfits.length === 0 ? (
+        <Card>
+          <CardContent className="p-8">
+            <div className="text-center">
+              <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Outfits Yet</h3>
+              <p className="text-muted-foreground mb-6">
+                Start building your outfit collection by creating or generating your first outfit.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Link href="/outfits/create">
+                  <Button>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Create Outfit
+                  </Button>
+                </Link>
+                <Link href="/outfits/generate">
+                  <Button variant="outline">
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Generate Outfit
+                  </Button>
+                </Link>
               </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-secondary">
-                  <Calendar className="w-4 h-4" />
-                  {formatDate(outfit.createdAt)}
-                </div>
-                
-                <div className="space-y-3">
-                  {outfit.occasion && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
-                        {outfit.occasion}
-                      </Badge>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center gap-2 text-secondary">
-                    <Eye className="w-4 h-4" />
-                    {outfit.items.length} item{outfit.items.length !== 1 ? 's' : ''}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {outfits.map((outfit) => (
+            <SwipeableCard key={outfit.id} className="group">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
+                      {outfit.name}
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      Created {formatDate(outfit.createdAt)}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {outfit.userFeedback?.liked && (
+                      <ThumbsUp className="w-4 h-4 text-green-500" />
+                    )}
+                    {outfit.feedback_summary && outfit.feedback_summary.average_rating > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                        <span className="text-sm font-medium">
+                          {outfit.feedback_summary.average_rating.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                <div className="pt-3 space-y-3">
-                  <div className="flex gap-2">
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                <div className="space-y-4">
+                  {/* Occasion and Style Badges */}
+                  <div className="flex flex-wrap gap-2">
+                    {outfit.occasion && (
+                      <Badge variant="secondary" className="text-xs">
+                        {outfit.occasion}
+                      </Badge>
+                    )}
+                    {outfit.style && (
+                      <Badge variant="outline" className="text-xs">
+                        {Array.isArray(outfit.style) ? outfit.style[0] : outfit.style}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Items Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {outfit.items.slice(0, 4).map((item) => (
+                      <div
+                        key={item.id}
+                        className="aspect-square bg-muted rounded-lg border border-border overflow-hidden relative"
+                      >
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="text-center p-2">
+                              <div className="w-6 h-6 bg-muted-foreground/20 rounded mx-auto mb-1" />
+                              <p className="text-xs text-muted-foreground font-medium truncate">
+                                {item.name}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-1">
+                          <p className="text-white text-xs truncate">{item.name}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {outfit.items.length > 4 && (
+                      <div className="aspect-square bg-muted rounded-lg border border-border flex items-center justify-center">
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            +{outfit.items.length - 4} more
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-2">
                     <InteractiveButton
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 shadow-sm hover:shadow-md"
                       onClick={() => handleMarkAsWorn(outfit.id)}
                       disabled={markingWorn === outfit.id}
-                      hapticType="success"
+                      className="flex-1"
+                      variant="outline"
+                      size="sm"
                     >
                       {markingWorn === outfit.id ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
                           Marking...
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
+                          <Calendar className="w-3 h-3 mr-1" />
                           Mark as Worn
                         </>
                       )}
                     </InteractiveButton>
-                    <InteractiveButton
-                      variant="outline"
-                      size="sm"
-                      className="shadow-sm hover:shadow-md"
-                      hapticType="light"
-                      onClick={() => {
-                        // Navigate to outfit details
-                        window.location.href = `/outfits/${outfit.id}`;
-                      }}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </InteractiveButton>
+                    
+                                         <InteractiveButton
+                       variant="outline"
+                       size="sm"
+                       className="px-2"
+                       onClick={() => {
+                         // TODO: Navigate to outfit details
+                         console.log('View outfit details:', outfit.id);
+                       }}
+                     >
+                       <Eye className="w-3 h-3" />
+                     </InteractiveButton>
                   </div>
+
+                  {/* Feedback Summary */}
+                  {outfit.feedback_summary && outfit.feedback_summary.total_feedback > 0 && (
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
+                      <div className="flex items-center gap-2">
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>{outfit.feedback_summary.likes}</span>
+                        <ThumbsDown className="w-3 h-3" />
+                        <span>{outfit.feedback_summary.dislikes}</span>
+                      </div>
+                      <span>{outfit.feedback_summary.total_feedback} reviews</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-            </HoverCard>
-          </SwipeableCard>
-        ))}
-      </div>
-      
-      {outfits.length === 0 && (
-        <Card className="card-enhanced p-12 text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-emerald-500/20 to-yellow-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-10 h-10 text-emerald-600" />
-          </div>
-          <h3 className="text-subheader mb-3">No Outfits Yet</h3>
-          <p className="text-secondary mb-6 max-w-md mx-auto">
-            Start generating outfits to see them here with feedback and ratings.
-          </p>
-          <Button asChild className="shadow-md hover:shadow-lg">
-            <Link href="/outfits/generate">
-              Generate Your First Outfit
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Link>
-          </Button>
-        </Card>
+              </CardContent>
+            </SwipeableCard>
+          ))}
+        </div>
       )}
     </div>
   );
