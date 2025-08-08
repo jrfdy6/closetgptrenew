@@ -50,19 +50,25 @@ async def timeout_context(timeout_seconds: float):
 def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """Get current user ID from Firebase ID token."""
     try:
-        logger.info("🔍 DEBUG: Starting authentication process...")
+        logger.info("🔍 DEBUG: ===== STARTING AUTHENTICATION PROCESS =====")
         token = credentials.credentials
-        logger.info(f"🔍 DEBUG: Received token: {token[:20]}...")
+        logger.info(f"🔍 DEBUG: Received token length: {len(token)}")
+        logger.info(f"🔍 DEBUG: Received token starts with: {token[:20]}...")
+        logger.info(f"🔍 DEBUG: Token type: {type(token)}")
         
         # Handle development/test tokens
         if token == "test" or token.startswith("test_"):
-            logger.warning("Using development test token")
-            return "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Return a known test user ID
+            logger.warning("🔍 DEBUG: Using development test token")
+            test_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+            logger.info(f"🔍 DEBUG: Returning test user ID: {test_user_id}")
+            return test_user_id
         
         # TEMPORARY: For testing, allow any token that starts with "test" to work
         if token.startswith("test"):
-            logger.warning("Using test token for development")
-            return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+            logger.warning("🔍 DEBUG: Using test token for development")
+            test_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+            logger.info(f"🔍 DEBUG: Returning test user ID: {test_user_id}")
+            return test_user_id
         
         logger.info("🔍 DEBUG: About to start Firebase token verification...")
         
@@ -78,6 +84,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                 try:
                     decoded_token = future.result(timeout=5.0)  # 5 second timeout
                     logger.info("🔍 DEBUG: Firebase verification completed successfully!")
+                    logger.info(f"🔍 DEBUG: Decoded token keys: {list(decoded_token.keys())}")
                 except concurrent.futures.TimeoutError:
                     logger.error("🔍 DEBUG: Firebase token verification timed out")
                     raise HTTPException(
@@ -88,12 +95,18 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             logger.info("🔍 DEBUG: Extracting user_id from decoded token...")
             user_id: str = decoded_token.get("uid")
             logger.info(f"🔍 DEBUG: Token verification successful, user_id: {user_id}")
+            logger.info(f"🔍 DEBUG: User ID type: {type(user_id)}")
+            logger.info(f"🔍 DEBUG: User ID length: {len(user_id) if user_id else 0}")
+            
             if user_id is None:
+                logger.error("🔍 DEBUG: No user_id found in decoded token")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token: no user ID found"
                 )
+            
             logger.info("🔍 DEBUG: Authentication completed successfully!")
+            logger.info("🔍 DEBUG: ===== AUTHENTICATION PROCESS COMPLETED =====")
             return user_id
         except Exception as e:
             logger.error(f"🔍 DEBUG: Firebase token verification failed: {e}")

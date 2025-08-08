@@ -210,10 +210,231 @@ async def debug_outfit_fields():
             "error": str(e)
         }
 
+@router.get("/debug-user-filtering", response_model=dict)
+async def debug_user_filtering(
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Debug endpoint to show detailed user filtering information."""
+    try:
+        logger.info(f"🔍 DEBUG: Starting user filtering debug for user: {current_user_id}")
+        logger.info(f"🔍 DEBUG: current_user_id type: {type(current_user_id)}")
+        logger.info(f"🔍 DEBUG: current_user_id value: '{current_user_id}'")
+        
+        # Check if Firebase is initialized
+        if not firebase_initialized:
+            logger.warning("🔍 DEBUG: Firebase not available")
+            return {"error": "Firebase not initialized"}
+        
+        # Check if we should bypass Firestore
+        if _should_bypass_firestore():
+            logger.warning("🔍 DEBUG: Bypassing Firestore due to authentication issues")
+            return {"error": "Firestore bypassed due to authentication issues"}
+        
+        try:
+            # Get all outfits for analysis using safe query
+            all_outfits = _safe_firestore_query(lambda: db.collection('outfits').limit(50).stream())
+            all_outfits_list = list(all_outfits)
+            logger.info(f"🔍 DEBUG: Total outfits found: {len(all_outfits_list)}")
+        except Exception as e:
+            logger.error(f"🔍 DEBUG: Error getting outfits: {e}")
+            return {"error": f"Failed to get outfits: {str(e)}"}
+        
+        debug_results = {
+            "current_user_id": current_user_id,
+            "current_user_id_type": str(type(current_user_id)),
+            "total_outfits_analyzed": len(all_outfits_list),
+            "outfits_with_direct_user_id_match": 0,
+            "outfits_with_item_userId_match": 0,
+            "outfits_with_no_match": 0,
+            "detailed_analysis": []
+        }
+        
+        for doc in all_outfits_list:
+            try:
+                outfit_data = doc.to_dict()
+                outfit_id = doc.id
+                
+                logger.info(f"🔍 DEBUG: Analyzing outfit {outfit_id}")
+                
+                # Check direct user_id field
+                outfit_user_id = outfit_data.get('user_id')
+                outfit_userId = outfit_data.get('userId')
+                
+                logger.info(f"🔍 DEBUG: Outfit {outfit_id} - user_id: '{outfit_user_id}' (type: {type(outfit_user_id)})")
+                logger.info(f"🔍 DEBUG: Outfit {outfit_id} - userId: '{outfit_userId}' (type: {type(outfit_userId)})")
+                
+                direct_match = False
+                item_match = False
+                
+                # Check direct match
+                if outfit_user_id == current_user_id:
+                    logger.info(f"🔍 DEBUG: ✅ Direct match on user_id for outfit {outfit_id}")
+                    direct_match = True
+                    debug_results["outfits_with_direct_user_id_match"] += 1
+                elif outfit_userId == current_user_id:
+                    logger.info(f"🔍 DEBUG: ✅ Direct match on userId for outfit {outfit_id}")
+                    direct_match = True
+                    debug_results["outfits_with_direct_user_id_match"] += 1
+                else:
+                    logger.info(f"🔍 DEBUG: ❌ No direct match for outfit {outfit_id}")
+                
+                # Check items for userId
+                items = outfit_data.get('items', [])
+                logger.info(f"🔍 DEBUG: Outfit {outfit_id} has {len(items)} items")
+                
+                for i, item in enumerate(items):
+                    if isinstance(item, dict):
+                        item_userId = item.get('userId')
+                        logger.info(f"🔍 DEBUG: Item {i} userId: '{item_userId}' (type: {type(item_userId)})")
+                        
+                        if item_userId == current_user_id:
+                            logger.info(f"🔍 DEBUG: ✅ Item {i} userId matches current user")
+                            item_match = True
+                            break
+                        else:
+                            logger.info(f"🔍 DEBUG: ❌ Item {i} userId does not match")
+                    elif isinstance(item, str):
+                        logger.info(f"🔍 DEBUG: Item {i} is string ID: '{item}', checking wardrobe collection")
+                        try:
+                            item_doc = _safe_firestore_query(lambda: db.collection('wardrobe').document(item).get())
+                            if item_doc.exists:
+                                item_data = item_doc.to_dict()
+                                item_userId = item_data.get('userId')
+                                logger.info(f"🔍 DEBUG: Wardrobe item {item} userId: '{item_userId}' (type: {type(item_userId)})")
+                                
+                                if item_userId == current_user_id:
+                                    logger.info(f"🔍 DEBUG: ✅ Wardrobe item {item} userId matches current user")
+                                    item_match = True
+                                    break
+                                else:
+                                    logger.info(f"🔍 DEBUG: ❌ Wardrobe item {item} userId does not match")
+                            else:
+                                logger.info(f"🔍 DEBUG: ⚠️ Wardrobe item {item} not found")
+                        except Exception as e:
+                            logger.warning(f"🔍 DEBUG: Error checking wardrobe item {item}: {e}")
+                
+                if not direct_match and not item_match:
+                    debug_results["outfits_with_no_match"] += 1
+                elif item_match:
+                    debug_results["outfits_with_item_userId_match"] += 1
+                
+                # Add detailed analysis
+                debug_results["detailed_analysis"].append({
+                    "outfit_id": outfit_id,
+                    "outfit_user_id": outfit_user_id,
+                    "outfit_userId": outfit_userId,
+                    "items_count": len(items),
+                    "direct_match": direct_match,
+                    "item_match": item_match,
+                    "sample_items": items[:2] if items else []
+                })
+                
+            except Exception as e:
+                logger.error(f"🔍 DEBUG: Error processing outfit {doc.id if hasattr(doc, 'id') else 'unknown'}: {e}")
+                continue
+        
+        logger.info(f"🔍 DEBUG: Final results - Direct matches: {debug_results['outfits_with_direct_user_id_match']}, Item matches: {debug_results['outfits_with_item_userId_match']}, No matches: {debug_results['outfits_with_no_match']}")
+        
+        return debug_results
+        
+    except Exception as e:
+        logger.error(f"🔍 DEBUG: Error in debug_user_filtering: {e}")
+        return {"error": str(e)}
+
+@router.get("/debug-simple", response_model=dict)
+async def debug_simple():
+    """Simple debug endpoint without authentication."""
+    try:
+        logger.info("🔍 DEBUG: Simple debug endpoint called")
+        
+        # Check if Firebase is initialized
+        if not firebase_initialized:
+            logger.warning("🔍 DEBUG: Firebase not available")
+            return {"error": "Firebase not initialized"}
+        
+        # Check if we should bypass Firestore
+        if _should_bypass_firestore():
+            logger.warning("🔍 DEBUG: Bypassing Firestore due to authentication issues")
+            return {"error": "Firestore bypassed due to authentication issues"}
+        
+        try:
+            # Test basic Firestore access without complex logic
+            logger.info("🔍 DEBUG: Testing basic Firestore access...")
+            
+            # Try direct access first
+            outfits_ref = db.collection('outfits')
+            logger.info("🔍 DEBUG: Created outfits collection reference")
+            
+            # Get a few documents
+            docs = outfits_ref.limit(5).stream()
+            outfits_list = list(docs)
+            logger.info(f"🔍 DEBUG: Retrieved {len(outfits_list)} outfits")
+            
+            simple_results = {
+                "total_outfits": len(outfits_list),
+                "outfits_with_user_id": 0,
+                "outfits_with_userId": 0,
+                "sample_outfits": []
+            }
+            
+            for doc in outfits_list:
+                try:
+                    outfit_data = doc.to_dict()
+                    outfit_id = doc.id
+                    
+                    has_user_id = 'user_id' in outfit_data
+                    has_userId = 'userId' in outfit_data
+                    
+                    if has_user_id:
+                        simple_results["outfits_with_user_id"] += 1
+                    if has_userId:
+                        simple_results["outfits_with_userId"] += 1
+                    
+                    simple_results["sample_outfits"].append({
+                        "id": outfit_id,
+                        "has_user_id": has_user_id,
+                        "has_userId": has_userId,
+                        "user_id_value": outfit_data.get('user_id'),
+                        "userId_value": outfit_data.get('userId'),
+                        "items_count": len(outfit_data.get('items', []))
+                    })
+                except Exception as e:
+                    logger.error(f"🔍 DEBUG: Error processing outfit {doc.id}: {e}")
+                    continue
+            
+            logger.info("🔍 DEBUG: Simple debug completed successfully")
+            return simple_results
+            
+        except Exception as e:
+            logger.error(f"🔍 DEBUG: Error in simple debug: {e}")
+            return {"error": f"Failed to get outfits: {str(e)}"}
+        
+    except Exception as e:
+        logger.error(f"🔍 DEBUG: Error in debug_simple: {e}")
+        return {"error": str(e)}
+
+@router.get("/debug-minimal", response_model=dict)
+async def debug_minimal():
+    """Minimal debug endpoint that just returns basic info."""
+    try:
+        logger.info("🔍 DEBUG: Minimal debug endpoint called")
+        
+        return {
+            "status": "success",
+            "message": "Minimal debug endpoint working",
+            "firebase_initialized": firebase_initialized,
+            "should_bypass_firestore": _should_bypass_firestore(),
+            "db_object": str(db) if 'db' in globals() else "Not available"
+        }
+        
+    except Exception as e:
+        logger.error(f"🔍 DEBUG: Error in minimal debug: {e}")
+        return {"error": str(e)}
+
 @router.get("/test", response_model=List[OutfitResponse])
 async def get_test_outfits():
     """Get test outfits without authentication (for testing)."""
-    logger.info("Returning test outfits")
+    logger.info("🔍 DEBUG: Test endpoint called - returning limited test outfits")
     
     # Check if Firebase is initialized first
     if not firebase_initialized:
@@ -226,9 +447,9 @@ async def get_test_outfits():
         return _get_mock_outfits()
     
     try:
-        logger.info("🔍 DEBUG: Starting Firestore query for outfits...")
+        logger.info("🔍 DEBUG: Starting Firestore query for test outfits...")
         
-        # Use a timeout for the Firestore query
+        # Use a timeout for the Firestore query - LIMIT TO 10 OUTFITS ONLY
         outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(10).stream())
         
         logger.info("🔍 DEBUG: Firestore query completed successfully!")
@@ -249,7 +470,7 @@ async def get_test_outfits():
         
         for doc in outfit_docs_list:
             try:
-                logger.info(f"🔍 DEBUG: Processing outfit document: {doc.id}")
+                logger.info(f"🔍 DEBUG: Processing test outfit document: {doc.id}")
                 outfit_data = doc.to_dict()
                 
                 # Resolve item IDs to actual item objects
@@ -267,10 +488,11 @@ async def get_test_outfits():
                     createdAt=outfit_data['createdAt']
                 ))
             except Exception as e:
-                logger.error(f"🔍 DEBUG: Error processing document {doc.id}: {e}")
+                logger.error(f"🔍 DEBUG: Error processing test document {doc.id}: {e}")
                 continue  # Skip this document and continue with others
         
-        logger.info(f"🔍 DEBUG: Successfully processed {len(outfits)} outfits")
+        logger.info(f"🔍 DEBUG: Successfully processed {len(outfits)} test outfits")
+        logger.info("🔍 DEBUG: Returning test outfits (limited to 10)")
         return outfits
         
     except Exception as e:
@@ -362,7 +584,13 @@ async def get_user_outfits(
 ):
     """Get user's outfit history."""
     
-    logger.info(f"🔍 DEBUG: Getting outfits for user: {current_user_id}")
+    logger.info("🔍 DEBUG: ===== STARTING GET_USER_OUTFITS ENDPOINT =====")
+    logger.info(f"🔍 DEBUG: Request received for user: {current_user_id}")
+    logger.info(f"🔍 DEBUG: current_user_id type: {type(current_user_id)}")
+    logger.info(f"🔍 DEBUG: current_user_id value: '{current_user_id}'")
+    logger.info(f"🔍 DEBUG: current_user_id length: {len(current_user_id)}")
+    logger.info(f"🔍 DEBUG: Limit parameter: {limit}")
+    logger.info(f"🔍 DEBUG: Offset parameter: {offset}")
     
     # Check if Firebase is initialized first
     if not firebase_initialized:
@@ -378,36 +606,72 @@ async def get_user_outfits(
         logger.info("🔍 DEBUG: Starting Firestore query for user outfits...")
         
         # First try to get outfits with user_id field
+        logger.info(f"🔍 DEBUG: Querying outfits with user_id == '{current_user_id}'")
         outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').where('user_id', '==', current_user_id).limit(limit).offset(offset).stream())
         
         # If no outfits found, try getting all outfits and filter by items' userId
         outfit_docs_list = list(outfit_docs)
+        logger.info(f"🔍 DEBUG: Found {len(outfit_docs_list)} outfits with user_id field")
+        
         if not outfit_docs_list:
             logger.info("🔍 DEBUG: No outfits found with user_id field, trying to filter by items' userId")
             all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
             outfit_docs_list = []
+            
+            # Debug: Log total outfits found
+            all_outfits_count = 0
+            for doc in all_outfit_docs:
+                all_outfits_count += 1
+            logger.info(f"🔍 DEBUG: Total outfits in database: {all_outfits_count}")
+            
+            # Reset iterator for processing
+            all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
+            
             for doc in all_outfit_docs:
                 outfit_data = doc.to_dict()
                 items = outfit_data.get('items', [])
-                # Check if any item in this outfit belongs to the current user
+                match_found = False
+                
+                logger.info(f"🔍 DEBUG: Checking outfit {doc.id} with {len(items)} items")
+                
                 for item in items:
-                    if isinstance(item, dict) and item.get('userId') == current_user_id:
-                        outfit_docs_list.append(doc)
-                        break
+                    user_id_to_check = None
+                    
+                    if isinstance(item, dict):
+                        user_id_to_check = item.get('userId')
+                        logger.info(f"🔍 DEBUG: Item is dict, userId: '{user_id_to_check}' (type: {type(user_id_to_check)})")
                     elif isinstance(item, str):
-                        # Item is an ID, we'll need to check the wardrobe collection
+                        logger.info(f"🔍 DEBUG: Item is string ID: '{item}', checking wardrobe collection")
                         try:
                             item_doc = db.collection('wardrobe').document(item).get()
                             if item_doc.exists:
                                 item_data = item_doc.to_dict()
-                                if item_data.get('userId') == current_user_id:
-                                    outfit_docs_list.append(doc)
-                                    break
+                                user_id_to_check = item_data.get('userId')
+                                logger.info(f"🔍 DEBUG: Found wardrobe item, userId: '{user_id_to_check}' (type: {type(user_id_to_check)})")
+                            else:
+                                logger.info(f"🔍 DEBUG: Wardrobe item {item} not found")
                         except Exception as e:
                             logger.warning(f"Error checking item {item}: {e}")
                             continue
+                    
+                    # Debug: Log comparison details
+                    if user_id_to_check is not None:
+                        logger.info(f"🔍 DEBUG: Comparing '{user_id_to_check}' == '{current_user_id}' (result: {user_id_to_check == current_user_id})")
+                        if user_id_to_check == current_user_id:
+                            match_found = True
+                            logger.info(f"🔍 DEBUG: ✅ Including outfit {doc.id} for user {current_user_id}")
+                            outfit_docs_list.append(doc)
+                            break
+                        else:
+                            logger.info(f"🔍 DEBUG: ❌ User ID mismatch for outfit {doc.id}")
+                    else:
+                        logger.info(f"🔍 DEBUG: ⚠️ No userId found for item in outfit {doc.id}")
+                
+                if not match_found:
+                    logger.info(f"🔍 DEBUG: ❌ Excluding outfit {doc.id} for user {current_user_id} (no matching items)")
         
         logger.info("🔍 DEBUG: Firestore query completed successfully!")
+        logger.info(f"🔍 DEBUG: Final outfit count after filtering: {len(outfit_docs_list)}")
         logger.info("🔍 DEBUG: Processing Firestore results...")
         outfits = []
         
@@ -418,6 +682,12 @@ async def get_user_outfits(
             try:
                 logger.info(f"🔍 DEBUG: Processing outfit document: {doc.id}")
                 outfit_data = doc.to_dict()
+                
+                # Log outfit data for debugging
+                logger.info(f"🔍 DEBUG: Outfit {doc.id} data keys: {list(outfit_data.keys())}")
+                logger.info(f"🔍 DEBUG: Outfit {doc.id} user_id: {outfit_data.get('user_id')}")
+                logger.info(f"🔍 DEBUG: Outfit {doc.id} userId: {outfit_data.get('userId')}")
+                logger.info(f"🔍 DEBUG: Outfit {doc.id} items count: {len(outfit_data.get('items', []))}")
                 
                 # Resolve item IDs to actual item objects
                 resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), current_user_id)
@@ -433,14 +703,18 @@ async def get_user_outfits(
                     reasoning=outfit_data.get('reasoning', ''),
                     createdAt=outfit_data['createdAt']
                 ))
+                
+                logger.info(f"🔍 DEBUG: Successfully processed outfit {doc.id}")
             except Exception as e:
                 logger.error(f"🔍 DEBUG: Error processing document {doc.id}: {e}")
                 continue  # Skip this document and continue with others
         
         logger.info(f"🔍 DEBUG: Successfully processed {len(outfits)} outfits")
+        logger.info("🔍 DEBUG: ===== GET_USER_OUTFITS ENDPOINT COMPLETED SUCCESSFULLY =====")
         return outfits
         
     except Exception as e:
+        logger.error("🔍 DEBUG: ===== GET_USER_OUTFITS ENDPOINT FAILED =====")
         logger.error(f"🔍 DEBUG: Failed to get user outfits: {e}")
         logger.warning("🔍 DEBUG: Returning mock outfits due to Firestore error")
         return _get_mock_outfits()

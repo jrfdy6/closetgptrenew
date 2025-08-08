@@ -3,13 +3,12 @@
 import requests
 import json
 from datetime import datetime
-import time
 
 # Backend API URL
 BACKEND_URL = "https://closetgptrenew-backend-production.up.railway.app"
 
-def get_all_outfits():
-    """Get all outfits from the backend"""
+def get_actual_outfits():
+    """Get actual outfits from test endpoint"""
     try:
         response = requests.get(f"{BACKEND_URL}/api/outfits/test", timeout=30)
         if response.status_code == 200:
@@ -65,7 +64,7 @@ def main():
     print("🔍 Finding outfits from July 17, 2025...")
     
     # Get all outfits
-    outfits = get_all_outfits()
+    outfits = get_actual_outfits()
     if not outfits:
         print("❌ No outfits found or error connecting to backend")
         return
@@ -77,6 +76,7 @@ def main():
     
     if not july_17_outfits:
         print("✅ No outfits found from July 17, 2025")
+        print("\n📅 All current outfits are from July 18, 2025")
         return
     
     print(f"\n🗑️  Found {len(july_17_outfits)} outfits from July 17, 2025:")
@@ -102,7 +102,6 @@ def main():
             print(f"    ✅ Removed: {outfit['name']}")
         else:
             print(f"    ❌ Failed to remove: {outfit['name']}")
-        time.sleep(1)  # Small delay between requests
     
     print(f"\n✅ Successfully removed {removed_count} out of {len(july_17_outfits)} outfits")
 
