@@ -163,7 +163,7 @@ export default function CreateOutfitPage() {
           type: item.type || "unknown",
           imageUrl: item.imageUrl || ""
         })),
-        createdAt: Date.now()
+        createdAt: Math.floor(Date.now() / 1000)
       };
 
       const response = await authenticatedFetch("/api/outfit/create", {
