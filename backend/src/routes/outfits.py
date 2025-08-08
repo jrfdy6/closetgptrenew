@@ -3,7 +3,6 @@ Outfit management endpoints (GET operations only).
 Outfit generation is handled by /api/outfit/generate.
 """
 
-import concurrent.futures
 import asyncio
 import logging
 from datetime import datetime
@@ -24,10 +23,6 @@ from ..routes.auth import get_current_user_id
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["outfits"])
 security = HTTPBearer()
-
-# Track authentication failures to implement smart bypass
-_auth_failure_count = 0
-_last_auth_failure_time = None
 
 async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Dict[str, Any]]:
     """
@@ -112,49 +107,6 @@ class OutfitFeedback(BaseModel):
     feedback_type: str  # "like", "dislike", "comment"
     comment: Optional[str] = None
 
-def _should_bypass_firestore():
-    """Check if we should bypass Firestore due to known authentication issues."""
-    global _auth_failure_count, _last_auth_failure_time
-    
-    # Temporarily disable bypass to ensure outfits are retrieved
-    return False
-    
-    # If we've had recent auth failures, bypass for a while
-    if _last_auth_failure_time:
-        time_since_failure = (datetime.utcnow() - _last_auth_failure_time).total_seconds()
-        if time_since_failure < 300:  # 5 minutes
-            logger.warning(f"Bypassing Firestore due to recent auth failures ({_auth_failure_count} failures)")
-            return True
-    
-    # Only bypass if we've had multiple recent failures
-    if _auth_failure_count > 3:
-        logger.warning(f"Bypassing Firestore due to multiple auth failures ({_auth_failure_count} failures)")
-        return True
-    
-    return False
-
-def _mark_auth_failure():
-    """Mark an authentication failure for smart bypass logic."""
-    global _auth_failure_count, _last_auth_failure_time
-    _auth_failure_count += 1
-    _last_auth_failure_time = datetime.utcnow()
-    logger.warning(f"Auth failure detected. Total failures: {_auth_failure_count}")
-
-def _safe_firestore_query(query_func, timeout=3.0):
-    """Execute a Firestore query with timeout and error handling."""
-    try:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future = executor.submit(query_func)
-            return future.result(timeout=timeout)
-    except concurrent.futures.TimeoutError:
-        logger.error("Firestore query timed out")
-        _mark_auth_failure()
-        raise
-    except Exception as e:
-        logger.error(f"Firestore query failed: {e}")
-        _mark_auth_failure()
-        raise
-
 @router.get("/health", response_model=dict)
 async def outfits_health_check():
     """Health check for outfits router."""
@@ -173,7 +125,6 @@ async def outfits_debug():
         "status": "debug",
         "router": "outfits",
         "firebase_initialized": firebase_initialized,
-        "bypass_enabled": _should_bypass_firestore(),
         "firebase_project_id": project_id,
         "environment": os.environ.get("ENVIRONMENT", "unknown")
     }
@@ -185,7 +136,7 @@ async def debug_outfit_fields():
     
     try:
         # Get a few outfits to check their field names
-        outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(3).stream())
+        outfit_docs = db.collection('outfits').limit(3).stream()
         outfit_docs_list = list(outfit_docs)
         
         field_info = []
@@ -228,14 +179,9 @@ async def debug_user_filtering(
             logger.warning("🔍 DEBUG: Firebase not available")
             return {"error": "Firebase not initialized"}
         
-        # Check if we should bypass Firestore
-        if _should_bypass_firestore():
-            logger.warning("🔍 DEBUG: Bypassing Firestore due to authentication issues")
-            return {"error": "Firestore bypassed due to authentication issues"}
-        
         try:
             # Get all outfits for analysis using safe query
-            all_outfits = _safe_firestore_query(lambda: db.collection('outfits').limit(50).stream())
+            all_outfits = db.collection('outfits').limit(50).stream()
             all_outfits_list = list(all_outfits)
             logger.info(f"🔍 DEBUG: Total outfits found: {len(all_outfits_list)}")
         except Exception as e:
@@ -299,7 +245,7 @@ async def debug_user_filtering(
                     elif isinstance(item, str):
                         logger.info(f"🔍 DEBUG: Item {i} is string ID: '{item}', checking wardrobe collection")
                         try:
-                            item_doc = _safe_firestore_query(lambda: db.collection('wardrobe').document(item).get())
+                            item_doc = db.collection('wardrobe').document(item).get()
                             if item_doc.exists:
                                 item_data = item_doc.to_dict()
                                 item_userId = item_data.get('userId')
@@ -354,11 +300,6 @@ async def debug_simple():
         if not firebase_initialized:
             logger.warning("🔍 DEBUG: Firebase not available")
             return {"error": "Firebase not initialized"}
-        
-        # Check if we should bypass Firestore
-        if _should_bypass_firestore():
-            logger.warning("🔍 DEBUG: Bypassing Firestore due to authentication issues")
-            return {"error": "Firestore bypassed due to authentication issues"}
         
         try:
             # Test basic Firestore access without complex logic
@@ -426,7 +367,6 @@ async def debug_minimal():
             "status": "success",
             "message": "Minimal debug endpoint working",
             "firebase_initialized": firebase_initialized,
-            "should_bypass_firestore": _should_bypass_firestore(),
             "db_object": str(db) if 'db' in globals() else "Not available"
         }
         
@@ -444,16 +384,11 @@ async def get_test_outfits():
         logger.warning("🔍 DEBUG: Firebase not available, returning mock outfits")
         return _get_mock_outfits()
     
-    # Check if we should bypass Firestore due to known authentication issues
-    if _should_bypass_firestore():
-        logger.warning("🔍 DEBUG: Bypassing Firestore due to authentication issues, returning mock outfits")
-        return _get_mock_outfits()
-    
     try:
         logger.info("🔍 DEBUG: Starting Firestore query for test outfits...")
         
         # Use a timeout for the Firestore query - LIMIT TO 10 OUTFITS ONLY
-        outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(10).stream())
+        outfit_docs = db.collection('outfits').limit(10).stream()
         
         logger.info("🔍 DEBUG: Firestore query completed successfully!")
         logger.info("🔍 DEBUG: Processing Firestore results...")
@@ -462,11 +397,10 @@ async def get_test_outfits():
         # Convert generator to list with timeout protection
         try:
             logger.info("🔍 DEBUG: Converting Firestore results to list...")
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(lambda: list(outfit_docs))
-                outfit_docs_list = future.result(timeout=3.0)  # 3 second timeout for conversion
+            with asyncio.get_event_loop().run_in_executor(None, lambda: list(outfit_docs)) as future:
+                outfit_docs_list = await future
             logger.info(f"🔍 DEBUG: Successfully converted {len(outfit_docs_list)} documents to list")
-        except concurrent.futures.TimeoutError:
+        except asyncio.TimeoutError:
             logger.error("🔍 DEBUG: Document conversion timed out")
             logger.warning("🔍 DEBUG: Returning mock outfits due to document processing timeout")
             return _get_mock_outfits()
@@ -600,17 +534,12 @@ async def get_user_outfits(
         logger.warning("🔍 DEBUG: Firebase not available, returning mock outfits")
         return _get_mock_outfits()
     
-    # Check if we should bypass Firestore due to known authentication issues
-    if _should_bypass_firestore():
-        logger.warning("🔍 DEBUG: Bypassing Firestore due to authentication issues, returning mock outfits")
-        return _get_mock_outfits()
-    
     try:
         logger.info("🔍 DEBUG: Starting Firestore query for user outfits...")
         
         # First try to get outfits with user_id field
         logger.info(f"🔍 DEBUG: Querying outfits with user_id == '{current_user_id}'")
-        outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').where('user_id', '==', current_user_id).limit(limit).offset(offset).stream())
+        outfit_docs = db.collection('outfits').where('user_id', '==', current_user_id).limit(limit).offset(offset).stream()
         
         # If no outfits found, try getting all outfits and filter by items' userId
         outfit_docs_list = list(outfit_docs)
@@ -618,7 +547,7 @@ async def get_user_outfits(
         
         if not outfit_docs_list:
             logger.info("🔍 DEBUG: No outfits found with user_id field, trying to filter by items' userId")
-            all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
+            all_outfit_docs = db.collection('outfits').limit(1000).stream()
             outfit_docs_list = []
             
             # Debug: Log total outfits found
@@ -628,7 +557,7 @@ async def get_user_outfits(
             logger.info(f"🔍 DEBUG: Total outfits in database: {all_outfits_count}")
             
             # Reset iterator for processing
-            all_outfit_docs = _safe_firestore_query(lambda: db.collection('outfits').limit(1000).stream())
+            all_outfit_docs = db.collection('outfits').limit(1000).stream()
             
             for doc in all_outfit_docs:
                 outfit_data = doc.to_dict()
