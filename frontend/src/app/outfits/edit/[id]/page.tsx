@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useWardrobe } from "@/hooks/useWardrobe";
 import { useAuth } from "@/hooks/useAuth";
 import { authenticatedFetch } from "@/lib/utils/auth";
-import { ClothingItem } from "@/shared/types";
+import { WardrobeItem } from "@/types/wardrobe";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -66,8 +66,8 @@ export default function EditOutfitPage() {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.color.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = !selectedType || item.type === selectedType;
-    const matchesColor = !selectedColor || item.color === selectedColor;
+    const matchesType = !selectedType || selectedType === "all" || item.type === selectedType;
+    const matchesColor = !selectedColor || selectedColor === "all" || item.color === selectedColor;
     
     return matchesSearch && matchesType && matchesColor;
   }) || [];
@@ -112,14 +112,14 @@ export default function EditOutfitPage() {
     });
   };
 
-  const handleItemAdd = (item: ClothingItem) => {
+  const handleItemAdd = (item: WardrobeItem) => {
     if (!editedOutfit) return;
     
     const newItem = {
-      id: item.id,
-      name: item.name,
-      type: item.type,
-      imageUrl: item.imageUrl
+      id: item.id || "",
+      name: item.name || "",
+      type: item.type || "unknown",
+      imageUrl: item.imageUrl || ""
     };
     
     setEditedOutfit({
@@ -129,18 +129,18 @@ export default function EditOutfitPage() {
     
     setShowWardrobe(false);
     setSearchQuery("");
-    setSelectedType("");
-    setSelectedColor("");
+    setSelectedType("all");
+    setSelectedColor("all");
   };
 
-  const handleItemReplace = (item: ClothingItem) => {
+  const handleItemReplace = (item: WardrobeItem) => {
     if (!editedOutfit || !itemToReplace) return;
     
     const newItem = {
-      id: item.id,
-      name: item.name,
-      type: item.type,
-      imageUrl: item.imageUrl
+      id: item.id || "",
+      name: item.name || "",
+      type: item.type || "unknown",
+      imageUrl: item.imageUrl || ""
     };
     
     setEditedOutfit({
@@ -153,8 +153,8 @@ export default function EditOutfitPage() {
     setItemToReplace(null);
     setShowWardrobe(false);
     setSearchQuery("");
-    setSelectedType("");
-    setSelectedColor("");
+    setSelectedType("all");
+    setSelectedColor("all");
   };
 
   const handleSave = async () => {
@@ -207,8 +207,8 @@ export default function EditOutfitPage() {
 
   const clearFilters = () => {
     setSearchQuery("");
-    setSelectedType("");
-    setSelectedColor("");
+    setSelectedType("all");
+    setSelectedColor("all");
   };
 
   if (loading) {
@@ -459,7 +459,7 @@ export default function EditOutfitPage() {
                         <SelectValue placeholder="Type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Types</SelectItem>
+                        <SelectItem value="all">All Types</SelectItem>
                         {itemTypes.map(type => (
                           <SelectItem key={type} value={type}>{type}</SelectItem>
                         ))}
@@ -471,7 +471,7 @@ export default function EditOutfitPage() {
                         <SelectValue placeholder="Color" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Colors</SelectItem>
+                        <SelectItem value="all">All Colors</SelectItem>
                         {itemColors.map(color => (
                           <SelectItem key={color} value={color}>{color}</SelectItem>
                         ))}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useWardrobe } from "@/hooks/useWardrobe";
 import { useAuth } from "@/hooks/useAuth";
 import { authenticatedFetch } from "@/lib/utils/auth";
-import { ClothingItem } from "../../../types/wardrobe";
+import { WardrobeItem } from "../../../types/wardrobe";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -90,7 +90,7 @@ export default function CreateOutfitPage() {
   const { wardrobe, loading: wardrobeLoading } = useWardrobe();
   const { toast } = useToast();
   
-  const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<WardrobeItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
@@ -111,13 +111,13 @@ export default function CreateOutfitPage() {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          item.color.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = !selectedType || item.type === selectedType;
-    const matchesColor = !selectedColor || item.color === selectedColor;
+    const matchesType = !selectedType || selectedType === "all" || item.type === selectedType;
+    const matchesColor = !selectedColor || selectedColor === "all" || item.color === selectedColor;
     
     return matchesSearch && matchesType && matchesColor;
   }) || [];
 
-  const handleItemSelect = (item: ClothingItem) => {
+  const handleItemSelect = (item: WardrobeItem) => {
     if (selectedItems.find(selected => selected.id === item.id)) {
       setSelectedItems(selectedItems.filter(selected => selected.id !== item.id));
     } else {
@@ -160,8 +160,8 @@ export default function CreateOutfitPage() {
         items: selectedItems.map(item => ({
           id: item.id,
           name: item.name,
-          type: item.type,
-          imageUrl: item.imageUrl
+          type: item.type || "unknown",
+          imageUrl: item.imageUrl || ""
         })),
         createdAt: Date.now()
       };
@@ -198,8 +198,8 @@ export default function CreateOutfitPage() {
 
   const clearFilters = () => {
     setSearchQuery("");
-    setSelectedType("");
-    setSelectedColor("");
+    setSelectedType("all");
+    setSelectedColor("all");
   };
 
   if (wardrobeLoading) {
@@ -285,7 +285,7 @@ export default function CreateOutfitPage() {
                       <SelectValue placeholder="Type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
                       {itemTypes.map(type => (
                         <SelectItem key={type} value={type}>{type}</SelectItem>
                       ))}
@@ -297,7 +297,7 @@ export default function CreateOutfitPage() {
                       <SelectValue placeholder="Color" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Colors</SelectItem>
+                      <SelectItem value="all">All Colors</SelectItem>
                       {itemColors.map(color => (
                         <SelectItem key={color} value={color}>{color}</SelectItem>
                       ))}

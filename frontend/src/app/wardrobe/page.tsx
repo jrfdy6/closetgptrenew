@@ -417,7 +417,7 @@ export default function WardrobePage() {
 
   const handleClearFilters = () => {
     setSearchQuery('');
-    setFilters({ type: '', color: '', season: '', style: '', occasion: '', wearCount: '' });
+    setFilters({ type: 'all', color: 'all', season: 'all', style: 'all', occasion: 'all', wearCount: 'all' });
   };
 
   // Filter items based on search query and filters
@@ -430,26 +430,26 @@ export default function WardrobePage() {
       item.metadata?.brand?.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Type filter
-    const matchesType = !filters.type || item.type === filters.type;
+    const matchesType = !filters.type || filters.type === "all" || item.type === filters.type;
 
     // Color filter
-    const matchesColor = !filters.color || 
+    const matchesColor = !filters.color || filters.color === "all" || 
       item.color?.toLowerCase().includes(filters.color.toLowerCase());
 
     // Season filter
-    const matchesSeason = !filters.season || 
+    const matchesSeason = !filters.season || filters.season === "all" || 
       item.season?.includes(filters.season as any);
 
     // Style filter
-    const matchesStyle = !filters.style || 
+    const matchesStyle = !filters.style || filters.style === "all" || 
       item.style?.some((s: string) => s.toLowerCase().includes(filters.style.toLowerCase()));
 
     // Occasion filter
-    const matchesOccasion = !filters.occasion || 
+    const matchesOccasion = !filters.occasion || filters.occasion === "all" || 
       item.occasion?.some((o: string) => o.toLowerCase().includes(filters.occasion.toLowerCase()));
 
     // Wear count filter
-    const matchesWearCount = !filters.wearCount || (() => {
+    const matchesWearCount = !filters.wearCount || filters.wearCount === "all" || (() => {
       const wearCount = item.wearCount || 0;
       const filterValue = parseInt(filters.wearCount);
       
@@ -615,8 +615,8 @@ export default function WardrobePage() {
             loading={loading}
             error={error}
             onItemClick={(item) => router.push(`/wardrobe/edit/${item.id}`)}
-            onGenerateOutfit={(item) => handleGenerateOutfit(item)}
-            onDeleteItem={(item) => setItemToDelete(item)}
+            onGenerateOutfit={(item) => handleGenerateOutfit(item as WardrobeItem)}
+            onDeleteItem={(item) => setItemToDelete(item as WardrobeItem)}
             onEditItem={(item) => router.push(`/wardrobe/edit/${item.id}`)}
             showActions={true}
           />
@@ -757,7 +757,7 @@ export default function WardrobePage() {
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="shirt">Shirt</SelectItem>
                     <SelectItem value="pants">Pants</SelectItem>
                     <SelectItem value="dress">Dress</SelectItem>
@@ -788,7 +788,7 @@ export default function WardrobePage() {
                     <SelectValue placeholder="Select a season" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Seasons</SelectItem>
+                    <SelectItem value="all">All Seasons</SelectItem>
                     <SelectItem value="spring">Spring</SelectItem>
                     <SelectItem value="summer">Summer</SelectItem>
                     <SelectItem value="fall">Fall</SelectItem>
@@ -807,7 +807,7 @@ export default function WardrobePage() {
                     <SelectValue placeholder="Select a style" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Styles</SelectItem>
+                    <SelectItem value="all">All Styles</SelectItem>
                     {STYLES.map((style) => (
                       <SelectItem key={style} value={style}>
                         {style}
@@ -827,7 +827,7 @@ export default function WardrobePage() {
                     <SelectValue placeholder="Select an occasion" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Occasions</SelectItem>
+                    <SelectItem value="all">All Occasions</SelectItem>
                     {OCCASIONS.map((occasion) => (
                       <SelectItem key={occasion} value={occasion}>
                         {occasion}
@@ -847,7 +847,7 @@ export default function WardrobePage() {
                     <SelectValue placeholder="Filter by wear count" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Items</SelectItem>
+                    <SelectItem value="all">All Items</SelectItem>
                     <SelectItem value="0">Never Worn</SelectItem>
                     <SelectItem value="1">Worn Once</SelectItem>
                     <SelectItem value="2">Worn 2+ Times</SelectItem>
