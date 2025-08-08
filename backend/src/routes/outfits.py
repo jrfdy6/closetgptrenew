@@ -116,6 +116,9 @@ def _should_bypass_firestore():
     """Check if we should bypass Firestore due to known authentication issues."""
     global _auth_failure_count, _last_auth_failure_time
     
+    # Temporarily disable bypass to ensure outfits are retrieved
+    return False
+    
     # If we've had recent auth failures, bypass for a while
     if _last_auth_failure_time:
         time_since_failure = (datetime.utcnow() - _last_auth_failure_time).total_seconds()
