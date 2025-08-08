@@ -1,14 +1,34 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, ThumbsUp, ThumbsDown, AlertTriangle, Calendar, Eye, CheckCircle, Sparkles, ArrowRight, RefreshCw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Star, 
+  ThumbsUp, 
+  ThumbsDown, 
+  AlertTriangle, 
+  Calendar, 
+  Eye, 
+  CheckCircle, 
+  Sparkles, 
+  ArrowRight, 
+  RefreshCw,
+  Search,
+  Filter,
+  SortAsc,
+  SortDesc,
+  Grid3X3,
+  List
+} from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import { PageLoadingSkeleton } from '@/components/ui/loading-states';
 import { SwipeableCard, InteractiveButton, HoverCard, hapticFeedback } from '@/components/ui/micro-interactions';
+import { useInView } from 'react-intersection-observer';
 
 interface Outfit {
   id: string;
@@ -40,24 +60,47 @@ interface Outfit {
   };
 }
 
+type SortOption = 'newest' | 'oldest' | 'name' | 'rating';
+type ViewMode = 'grid' | 'list';
+
+const ITEMS_PER_PAGE = 12;
+
 export default function OutfitsPage() {
   const { user, loading: authLoading } = useFirebase();
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markingWorn, setMarkingWorn] = useState<string | null>(null);
+  
+  // Filtering and sorting state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOccasion, setSelectedOccasion] = useState<string>('all');
+  const [selectedStyle, setSelectedStyle] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  
+  // Lazy loading state
+  const [visibleItems, setVisibleItems] = useState(ITEMS_PER_PAGE);
+  const [hasMore, setHasMore] = useState(true);
+
+  // Intersection observer for lazy loading
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0.1,
+    triggerOnce: false,
+  });
 
   const fetchOutfits = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('🔍 DEBUG: No user available, skipping fetch');
+      return;
+    }
     
     try {
       setLoading(true);
       setError(null);
       
-      // Get the user's ID token for authentication
       const idToken = await user.getIdToken();
       
-      // Fetch outfits from the API
       const response = await fetch('/api/outfits', {
         headers: {
           'Authorization': `Bearer ${idToken}`,
@@ -66,83 +109,96 @@ export default function OutfitsPage() {
       });
       
       if (!response.ok) {
-        if (response.status === 504) {
-          throw new Error('Backend is currently unavailable. Please try again in a few minutes.');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to fetch outfits: ${response.status}`);
       }
       
-      const outfitsData = await response.json();
+      const data = await response.json();
+      console.log('🔍 DEBUG: Fetched outfits:', data.length);
       
-      // DEBUG: Log the raw data
-      console.log('🔍 DEBUG: Raw outfits data received:', outfitsData);
-      console.log('🔍 DEBUG: Data type:', typeof outfitsData);
-      console.log('🔍 DEBUG: Is array?', Array.isArray(outfitsData));
-      
-      // Handle the backend response format
-      const outfitsArray = outfitsData.outfits || outfitsData;
-      
-      // DEBUG: Log the processed array
-      console.log('🔍 DEBUG: Processed outfits array:', outfitsArray);
-      console.log('🔍 DEBUG: Array length:', outfitsArray.length);
-      
-      // Ensure we have an array to map over
-      if (!Array.isArray(outfitsArray)) {
-        console.error('Expected outfits array but got:', outfitsArray);
-        setOutfits([]);
-        setLoading(false);
-        return;
-      }
-      
-      // Transform the API response to match our interface
-      const transformedOutfits: Outfit[] = outfitsArray.map((outfit: any) => ({
-        id: outfit.id,
-        name: outfit.name || 'Untitled Outfit',
-        description: outfit.reasoning || '',
-        occasion: outfit.occasion || 'Casual',
-        style: outfit.style || '',
-        createdAt: typeof outfit.createdAt === 'string' ? new Date(outfit.createdAt).getTime() / 1000 : outfit.createdAt / 1000,
-        items: outfit.items || [],
-        feedback_summary: outfit.feedback_summary,
-        userFeedback: outfit.userFeedback
-      }));
-      
-      // DEBUG: Log the final transformed outfits
-      console.log('🔍 DEBUG: Final transformed outfits:', transformedOutfits);
-      console.log('🔍 DEBUG: Final count:', transformedOutfits.length);
-      
-      setOutfits(transformedOutfits);
-      setLoading(false);
+      // Sort by newest first by default
+      const sortedOutfits = data.sort((a: Outfit, b: Outfit) => b.createdAt - a.createdAt);
+      setOutfits(sortedOutfits);
+      setHasMore(sortedOutfits.length > ITEMS_PER_PAGE);
     } catch (err) {
       console.error('Error fetching outfits:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load outfits';
-      
-      // Provide more user-friendly error messages
-      let userFriendlyError = errorMessage;
-      if (errorMessage.includes('504') || errorMessage.includes('timeout')) {
-        userFriendlyError = 'Backend is currently unavailable. Please try again in a few minutes.';
-      } else if (errorMessage.includes('403') || errorMessage.includes('Not authenticated')) {
-        userFriendlyError = 'Authentication issue. Please refresh the page and try again.';
-      } else if (errorMessage.includes('500')) {
-        userFriendlyError = 'Server error. Please try again in a moment.';
-      }
-      
-      setError(userFriendlyError);
+      setError(err instanceof Error ? err.message : 'Failed to fetch outfits');
+    } finally {
       setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    if (authLoading) {
+    if (!user || authLoading) {
       return;
     }
-
-    if (!user) {
-      return;
-    }
-
     fetchOutfits();
   }, [user, authLoading, fetchOutfits]);
+
+  // Lazy loading effect
+  useEffect(() => {
+    if (inView && hasMore) {
+      setVisibleItems(prev => {
+        const newCount = prev + ITEMS_PER_PAGE;
+        setHasMore(newCount < filteredAndSortedOutfits.length);
+        return newCount;
+      });
+    }
+  }, [inView, hasMore]);
+
+  // Filter and sort outfits
+  const filteredAndSortedOutfits = useMemo(() => {
+    let filtered = outfits.filter(outfit => {
+      const matchesSearch = searchQuery === '' || 
+        outfit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        outfit.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        outfit.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesOccasion = selectedOccasion === 'all' || outfit.occasion === selectedOccasion;
+      const matchesStyle = selectedStyle === 'all' || 
+        (Array.isArray(outfit.style) ? outfit.style.includes(selectedStyle) : outfit.style === selectedStyle);
+      
+      return matchesSearch && matchesOccasion && matchesStyle;
+    });
+
+    // Sort outfits
+    switch (sortBy) {
+      case 'newest':
+        filtered.sort((a, b) => b.createdAt - a.createdAt);
+        break;
+      case 'oldest':
+        filtered.sort((a, b) => a.createdAt - b.createdAt);
+        break;
+      case 'name':
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'rating':
+        filtered.sort((a, b) => {
+          const ratingA = a.feedback_summary?.average_rating || 0;
+          const ratingB = b.feedback_summary?.average_rating || 0;
+          return ratingB - ratingA;
+        });
+        break;
+    }
+
+    return filtered;
+  }, [outfits, searchQuery, selectedOccasion, selectedStyle, sortBy]);
+
+  // Get unique occasions and styles for filters
+  const occasions = useMemo(() => {
+    const uniqueOccasions = [...new Set(outfits.map(outfit => outfit.occasion).filter(Boolean) as string[])];
+    return uniqueOccasions.sort();
+  }, [outfits]);
+
+  const styles = useMemo(() => {
+    const allStyles = outfits.flatMap(outfit => {
+      if (Array.isArray(outfit.style)) {
+        return outfit.style;
+      }
+      return outfit.style ? [outfit.style] : [];
+    });
+    const uniqueStyles = [...new Set(allStyles)];
+    return uniqueStyles.sort();
+  }, [outfits]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleDateString('en-US', {
@@ -156,10 +212,8 @@ export default function OutfitsPage() {
     try {
       setMarkingWorn(outfitId);
       
-      // Get the user's ID token for authentication
       const idToken = await user!.getIdToken();
       
-      // Call the real API to mark outfit as worn
       const response = await fetch(`/api/outfit-history/mark-worn`, {
         method: 'POST',
         headers: {
@@ -173,13 +227,28 @@ export default function OutfitsPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      alert('Outfit marked as worn successfully!');
+      // Update the outfit in the local state
+      setOutfits(prev => prev.map(outfit => 
+        outfit.id === outfitId 
+          ? { ...outfit, lastWorn: Date.now() }
+          : outfit
+      ));
+      
+      hapticFeedback.success();
     } catch (error) {
       console.error('Error marking outfit as worn:', error);
       alert('Failed to mark outfit as worn. Please try again.');
     } finally {
       setMarkingWorn(null);
     }
+  };
+
+  const resetFilters = () => {
+    setSearchQuery('');
+    setSelectedOccasion('all');
+    setSelectedStyle('all');
+    setSortBy('newest');
+    setVisibleItems(ITEMS_PER_PAGE);
   };
 
   // Show loading state while authentication is being determined
@@ -276,15 +345,16 @@ export default function OutfitsPage() {
     );
   }
 
+  const displayedOutfits = filteredAndSortedOutfits.slice(0, visibleItems);
+
   return (
     <div className="container mx-auto py-8">
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">My Outfits</h1>
           <p className="text-muted-foreground">
-            {outfits.length} outfit{outfits.length !== 1 ? 's' : ''} in your collection
-            {/* DEBUG: Show the actual count */}
-            <span className="text-xs text-red-500 ml-2">(DEBUG: {outfits.length})</span>
+            {filteredAndSortedOutfits.length} of {outfits.length} outfit{outfits.length !== 1 ? 's' : ''} in your collection
           </p>
         </div>
         <div className="flex gap-2">
@@ -303,35 +373,143 @@ export default function OutfitsPage() {
         </div>
       </div>
 
-      {outfits.length === 0 ? (
+      {/* Filters and Search */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <Input
+                placeholder="Search outfits..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Occasion Filter */}
+            <Select value={selectedOccasion} onValueChange={setSelectedOccasion}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by occasion" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Occasions</SelectItem>
+                {occasions.map((occasion) => (
+                  <SelectItem key={occasion} value={occasion}>
+                    {occasion}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Style Filter */}
+            <Select value={selectedStyle} onValueChange={setSelectedStyle}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filter by style" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Styles</SelectItem>
+                {styles.map((style) => (
+                  <SelectItem key={style} value={style}>
+                    {style}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Sort */}
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="name">Name A-Z</SelectItem>
+                <SelectItem value="rating">Highest Rated</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* View Mode and Reset */}
+          <div className="flex items-center justify-between mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid3X3 className="w-4 h-4 mr-2" />
+                Grid
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-4 h-4 mr-2" />
+                List
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={resetFilters}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Outfits Grid/List */}
+      {displayedOutfits.length === 0 ? (
         <Card>
           <CardContent className="p-8">
             <div className="text-center">
               <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Outfits Yet</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {filteredAndSortedOutfits.length === 0 && outfits.length > 0 
+                  ? 'No Outfits Match Your Filters' 
+                  : 'No Outfits Yet'
+                }
+              </h3>
               <p className="text-muted-foreground mb-6">
-                Start building your outfit collection by creating or generating your first outfit.
+                {filteredAndSortedOutfits.length === 0 && outfits.length > 0
+                  ? 'Try adjusting your search or filters to see more outfits.'
+                  : 'Start building your outfit collection by creating or generating your first outfit.'
+                }
               </p>
               <div className="flex gap-3 justify-center">
-                <Link href="/outfits/create">
-                  <Button>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Create Outfit
+                {filteredAndSortedOutfits.length === 0 && outfits.length > 0 ? (
+                  <Button onClick={resetFilters}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Clear Filters
                   </Button>
-                </Link>
-                <Link href="/outfits/generate">
-                  <Button variant="outline">
-                    <ArrowRight className="w-4 h-4 mr-2" />
-                    Generate Outfit
-                  </Button>
-                </Link>
+                ) : (
+                  <>
+                    <Link href="/outfits/create">
+                      <Button>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Create Outfit
+                      </Button>
+                    </Link>
+                    <Link href="/outfits/generate">
+                      <Button variant="outline">
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        Generate Outfit
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {outfits.map((outfit) => (
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+          : "space-y-4"
+        }>
+          {displayedOutfits.map((outfit) => (
             <SwipeableCard key={outfit.id} className="group">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
@@ -376,8 +554,11 @@ export default function OutfitsPage() {
                   </div>
 
                   {/* Items Grid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {outfit.items.slice(0, 4).map((item) => (
+                  <div className={viewMode === 'grid' 
+                    ? "grid grid-cols-2 gap-2" 
+                    : "grid grid-cols-4 gap-2"
+                  }>
+                    {outfit.items.slice(0, viewMode === 'grid' ? 4 : 8).map((item) => (
                       <div
                         key={item.id}
                         className="aspect-square bg-muted rounded-lg border border-border overflow-hidden relative"
@@ -387,6 +568,7 @@ export default function OutfitsPage() {
                             src={item.imageUrl}
                             alt={item.name}
                             className="w-full h-full object-cover"
+                            loading="lazy"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
@@ -403,11 +585,11 @@ export default function OutfitsPage() {
                         </div>
                       </div>
                     ))}
-                    {outfit.items.length > 4 && (
+                    {outfit.items.length > (viewMode === 'grid' ? 4 : 8) && (
                       <div className="aspect-square bg-muted rounded-lg border border-border flex items-center justify-center">
                         <div className="text-center">
                           <p className="text-sm font-medium text-muted-foreground">
-                            +{outfit.items.length - 4} more
+                            +{outfit.items.length - (viewMode === 'grid' ? 4 : 8)} more
                           </p>
                         </div>
                       </div>
@@ -436,17 +618,15 @@ export default function OutfitsPage() {
                       )}
                     </InteractiveButton>
                     
-                                         <InteractiveButton
-                       variant="outline"
-                       size="sm"
-                       className="px-2"
-                       onClick={() => {
-                         // TODO: Navigate to outfit details
-                         console.log('View outfit details:', outfit.id);
-                       }}
-                     >
-                       <Eye className="w-3 h-3" />
-                     </InteractiveButton>
+                    <Link href={`/outfits/${outfit.id}`}>
+                      <InteractiveButton
+                        variant="outline"
+                        size="sm"
+                        className="px-2"
+                      >
+                        <Eye className="w-3 h-3" />
+                      </InteractiveButton>
+                    </Link>
                   </div>
 
                   {/* Feedback Summary */}
@@ -465,6 +645,25 @@ export default function OutfitsPage() {
               </CardContent>
             </SwipeableCard>
           ))}
+        </div>
+      )}
+
+      {/* Load More Trigger */}
+      {hasMore && (
+        <div ref={loadMoreRef} className="flex justify-center mt-8">
+          <div className="text-center">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading more outfits...</p>
+          </div>
+        </div>
+      )}
+
+      {/* End of Results */}
+      {!hasMore && displayedOutfits.length > 0 && (
+        <div className="text-center mt-8">
+          <p className="text-sm text-muted-foreground">
+            You've reached the end of your outfits
+          </p>
         </div>
       )}
     </div>
