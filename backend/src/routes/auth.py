@@ -56,20 +56,6 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         logger.info(f"🔍 DEBUG: Received token starts with: {token[:20]}...")
         logger.info(f"🔍 DEBUG: Token type: {type(token)}")
         
-        # Handle development/test tokens
-        if token == "test" or token.startswith("test_"):
-            logger.warning("🔍 DEBUG: Using development test token")
-            test_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
-            logger.info(f"🔍 DEBUG: Returning test user ID: {test_user_id}")
-            return test_user_id
-        
-        # TEMPORARY: For testing, allow any token that starts with "test" to work
-        if token.startswith("test"):
-            logger.warning("🔍 DEBUG: Using test token for development")
-            test_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
-            logger.info(f"🔍 DEBUG: Returning test user ID: {test_user_id}")
-            return test_user_id
-        
         logger.info("🔍 DEBUG: About to start Firebase token verification...")
         
         # Try with default settings first with timeout
@@ -140,9 +126,10 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                     return user_id
                 except Exception as e2:
                     logger.error(f"🔍 DEBUG: Lenient verification also failed: {e2}")
-                    # For development, allow fallback to test user if clock skew persists
-                    logger.warning("Clock skew persists, using fallback user for development")
-                    return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token verification failed"
+                    )
             else:
                 # Re-raise the original exception for other types of errors
                 raise e
@@ -166,9 +153,10 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         )
     except Exception as e:
         logger.error(f"🔍 DEBUG: Token verification failed: {e}")
-        # For development, allow fallback to test user
-        logger.warning("Authentication failed, using fallback user for development")
-        return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
 
 # Keep the old JWT function for backward compatibility
 def get_current_user_id_jwt(token: str = Depends(security)) -> str:
