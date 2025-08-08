@@ -270,7 +270,10 @@ export default function OutfitsPage() {
           'Authorization': `Bearer ${idToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ outfit_id: outfitId }),
+        body: JSON.stringify({ 
+          outfitId: outfitId,
+          dateWorn: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
+        }),
       });
       
       if (!response.ok) {

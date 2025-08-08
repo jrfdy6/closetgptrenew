@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Forward request to backend
-    const response = await fetch(`${process.env.BACKEND_API_URL || 'http://localhost:3001'}/api/outfit-history/mark-worn`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/outfit-history/mark-worn`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,

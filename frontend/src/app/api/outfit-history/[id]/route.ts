@@ -25,7 +25,7 @@ export async function PATCH(
     const body = await req.json();
 
     // Forward request to backend
-    const response = await fetch(`${process.env.BACKEND_API_URL || 'http://localhost:3001'}/api/outfit-history/${params.id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/outfit-history/${params.id}`, {
       method: 'PATCH',
       headers: {
         'Authorization': authHeader,
@@ -81,7 +81,7 @@ export async function DELETE(
     }
 
     // Forward request to backend
-    const response = await fetch(`${process.env.BACKEND_API_URL || 'http://localhost:3001'}/api/outfit-history/${params.id}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/outfit-history/${params.id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': authHeader,

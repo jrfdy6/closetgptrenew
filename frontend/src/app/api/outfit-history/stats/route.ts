@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Forward request to backend
-    const response = await fetch(`${process.env.BACKEND_API_URL || 'http://localhost:3001'}/api/outfit-history/stats`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/outfit-history/stats`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
