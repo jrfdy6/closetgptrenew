@@ -38,7 +38,7 @@ interface Outfit {
   season?: string;
   style?: string | string[];
   style_tags?: string[];
-  createdAt: number;
+  createdAt: number | string;
   items: Array<{
     id: string;
     name: string;
@@ -115,8 +115,22 @@ export default function OutfitsPage() {
       const data = await response.json();
       console.log('🔍 DEBUG: Fetched outfits:', data.length);
       
+      // Helper function to convert timestamp to number for sorting
+      const getTimestampForSorting = (timestamp: number | string): number => {
+        if (typeof timestamp === 'string') {
+          return new Date(timestamp).getTime();
+        } else {
+          // Check if it's already in milliseconds (13 digits) or seconds (10 digits)
+          if (timestamp > 1000000000000) {
+            return timestamp;
+          } else {
+            return timestamp * 1000;
+          }
+        }
+      };
+      
       // Sort by newest first by default
-      const sortedOutfits = data.sort((a: Outfit, b: Outfit) => b.createdAt - a.createdAt);
+      const sortedOutfits = data.sort((a: Outfit, b: Outfit) => getTimestampForSorting(b.createdAt) - getTimestampForSorting(a.createdAt));
       setOutfits(sortedOutfits);
       setHasMore(sortedOutfits.length > ITEMS_PER_PAGE);
     } catch (err) {
@@ -160,13 +174,27 @@ export default function OutfitsPage() {
       return matchesSearch && matchesOccasion && matchesStyle;
     });
 
+    // Helper function to convert timestamp to number for sorting
+    const getTimestampForSorting = (timestamp: number | string): number => {
+      if (typeof timestamp === 'string') {
+        return new Date(timestamp).getTime();
+      } else {
+        // Check if it's already in milliseconds (13 digits) or seconds (10 digits)
+        if (timestamp > 1000000000000) {
+          return timestamp;
+        } else {
+          return timestamp * 1000;
+        }
+      }
+    };
+
     // Sort outfits
     switch (sortBy) {
       case 'newest':
-        filtered.sort((a, b) => b.createdAt - a.createdAt);
+        filtered.sort((a, b) => getTimestampForSorting(b.createdAt) - getTimestampForSorting(a.createdAt));
         break;
       case 'oldest':
-        filtered.sort((a, b) => a.createdAt - b.createdAt);
+        filtered.sort((a, b) => getTimestampForSorting(a.createdAt) - getTimestampForSorting(b.createdAt));
         break;
       case 'name':
         filtered.sort((a, b) => a.name.localeCompare(b.name));
@@ -200,8 +228,30 @@ export default function OutfitsPage() {
     return uniqueStyles.sort();
   }, [outfits]);
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString('en-US', {
+  const formatDate = (timestamp: number | string) => {
+    let date: Date;
+    
+    if (typeof timestamp === 'string') {
+      // Handle ISO string format
+      date = new Date(timestamp);
+    } else {
+      // Handle Unix timestamp (seconds since epoch)
+      // Check if it's already in milliseconds (13 digits) or seconds (10 digits)
+      if (timestamp > 1000000000000) {
+        // Already in milliseconds
+        date = new Date(timestamp);
+      } else {
+        // In seconds, convert to milliseconds
+        date = new Date(timestamp * 1000);
+      }
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
