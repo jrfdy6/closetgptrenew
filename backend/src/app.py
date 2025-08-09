@@ -55,7 +55,9 @@ app.add_middleware(
 async def upload_preflight(request: Request) -> Response:
     origin = request.headers.get("origin", "")
     acrh = request.headers.get("access-control-request-headers", "*")
-    if origin and re.match(r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$", origin):
+    # Allow the specific preview URL and any matching the pattern
+    if origin and (origin == "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app" or 
+                   re.match(r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$", origin)):
         headers = {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",
@@ -64,7 +66,9 @@ async def upload_preflight(request: Request) -> Response:
             "Access-Control-Max-Age": "600",
         }
         return Response(status_code=200, headers=headers)
-    return Response(status_code=400)
+    # For debugging, let's see what origin we're getting
+    print(f"DEBUG: OPTIONS request from origin: {origin}")
+    return Response(status_code=400, content=f"Disallowed CORS origin: {origin}")
 
 # Try to import and setup core modules
 try:
