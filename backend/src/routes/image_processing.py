@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from rembg import remove
 from PIL import Image
 import io
@@ -6,13 +6,64 @@ import firebase_admin
 from firebase_admin import storage
 import os
 from typing import Optional
+import uuid
 import logging
 from ..config.firebase import firebase_admin  # Import Firebase configuration
+from ..auth.auth_service import get_current_user
+from ..custom_types.profile import UserProfile
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/image", tags=["image"])
+
+@router.post("/upload")
+async def upload_image(
+    file: UploadFile = File(...),
+    category: Optional[str] = "clothing",
+    name: Optional[str] = None,
+    current_user: UserProfile = Depends(get_current_user)
+):
+    try:
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be an image")
+
+        # Read contents
+        contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+
+        # Build filename
+        file_extension = (file.filename or "").split('.')[-1] or 'jpg'
+        filename = f"wardrobe/{current_user.id}/{uuid.uuid4()}.{file_extension}"
+
+        # Upload to Firebase Storage with download token
+        bucket = storage.bucket()
+        blob = bucket.blob(filename)
+        token = str(uuid.uuid4())
+        blob.metadata = {"firebaseStorageDownloadTokens": token}
+        blob.upload_from_string(contents, content_type=file.content_type)
+
+        download_url = (
+            f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/"
+            f"{filename.replace('/', '%2F')}?alt=media&token={token}"
+        )
+
+        return {
+            "message": "Image uploaded successfully",
+            "item_id": str(uuid.uuid4()),
+            "image_url": download_url,
+            "item": {
+                "name": name or file.filename,
+                "category": category,
+                "image_url": download_url,
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading image: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload image")
 
 @router.post("/remove-background")
 async def remove_background(
