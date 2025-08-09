@@ -1,7 +1,6 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { storage } from "./config";
-import { apiClient } from "@closetgpt/shared/api/client";
 import { getAuthToken } from "@/lib/auth";
 import { auth } from "./config";
 import { useFirebase } from "@/lib/firebase-context";

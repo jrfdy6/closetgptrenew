@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload, Loader2, CheckCircle, AlertCircle, TestTube } from "lucide-react";
-import { apiClient } from "@closetgpt/shared/api/client";
-import { API_ENDPOINTS } from "@closetgpt/shared/api/endpoints";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
 import AuthDebug from "@/components/AuthDebug";
 
 interface TestResult {
@@ -79,7 +78,7 @@ export default function TestFirestoreCommunication() {
       formData.append('category', category);
       formData.append('name', itemName);
 
-      const uploadResponse = await fetch(`${API_ENDPOINTS.IMAGE.UPLOAD}`, {
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/image/upload`, {
         method: 'POST',
         body: formData,
         headers: {
@@ -111,7 +110,18 @@ export default function TestFirestoreCommunication() {
         material: "cotton"
       };
 
-      const wardrobeResponse = await apiClient.post("api/wardrobe", wardrobeItem);
+      const wardrobeResponseRaw = await fetch(`${API_BASE_URL}/api/wardrobe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(wardrobeItem)
+      });
+      const wardrobeResponse = {
+        success: wardrobeResponseRaw.ok,
+        data: wardrobeResponseRaw.ok ? await wardrobeResponseRaw.json() : undefined,
+        error: !wardrobeResponseRaw.ok ? await wardrobeResponseRaw.text() : undefined
+      };
       
       if (wardrobeResponse.success) {
         addResult("Wardrobe Item Creation", true, "Item added to wardrobe successfully", wardrobeResponse.data);
@@ -123,7 +133,12 @@ export default function TestFirestoreCommunication() {
       // Step 5: Verify item was saved by retrieving wardrobe
       addResult("Wardrobe Retrieval", true, "Retrieving wardrobe to verify...");
       
-      const wardrobeListResponse = await apiClient.get("api/wardrobe");
+      const wardrobeListRaw = await fetch(`${API_BASE_URL}/api/wardrobe`);
+      const wardrobeListResponse = {
+        success: wardrobeListRaw.ok,
+        data: wardrobeListRaw.ok ? await wardrobeListRaw.json() : undefined,
+        error: !wardrobeListRaw.ok ? await wardrobeListRaw.text() : undefined
+      };
       
       if (wardrobeListResponse.success) {
         addResult("Wardrobe Retrieval", true, "Wardrobe retrieved successfully", {
