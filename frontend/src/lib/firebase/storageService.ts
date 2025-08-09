@@ -56,11 +56,8 @@ export async function uploadImage(file: File, userId: string, category: string =
     console.log('  - Auth token present:', !!authToken);
     console.log('  - Auth token preview:', authToken ? authToken.substring(0, 20) + '...' : 'none');
     
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
-    const response = await fetch(`${baseUrl}/api/image/upload`, {
+    // Use Next.js API route to avoid CORS and keep credentials secure
+    const response = await fetch(`/api/image/upload`, {
       method: 'POST',
       body: formData,
       headers: {
