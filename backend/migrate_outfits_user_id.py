@@ -2,7 +2,7 @@
 """
 Migration script to update outfit user_id fields to use actual Firebase user IDs.
 This script will:
-1. Get the current user's Firebase UID from authentication
+1. Try to detect the current user's Firebase UID from common patterns
 2. Update all outfits that have the old test user ID to use the real user ID
 3. Also update any outfits that have no user_id field
 """
@@ -48,13 +48,37 @@ def initialize_firebase():
 def get_user_firebase_uid():
     """Get the current user's Firebase UID by checking recent authentication."""
     try:
-        # This is a simplified approach - in a real scenario, you'd get this from the frontend
-        # For now, we'll use a common pattern or ask the user
-        print("Please enter your Firebase user ID (you can find this in your browser's developer tools):")
-        print("1. Open your browser's developer tools (F12)")
-        print("2. Go to the Console tab")
-        print("3. Type: firebase.auth().currentUser.uid")
-        print("4. Copy the result and paste it here:")
+        # Try to get from environment variable first
+        env_user_id = os.environ.get("CURRENT_USER_ID")
+        if env_user_id:
+            print(f"Using user ID from environment variable: {env_user_id}")
+            return env_user_id
+        
+        # Common user ID patterns - these are typical Firebase UID formats
+        # You can add your actual user ID here if you know it
+        common_user_ids = [
+            # Add your actual user ID here if you know it
+            # "your-actual-firebase-uid-here",
+        ]
+        
+        if common_user_ids:
+            print("Found common user IDs. Please select one:")
+            for i, uid in enumerate(common_user_ids, 1):
+                print(f"{i}. {uid}")
+            
+            try:
+                choice = int(input("Enter the number of your user ID (or 0 to enter manually): "))
+                if 1 <= choice <= len(common_user_ids):
+                    return common_user_ids[choice - 1]
+            except ValueError:
+                pass
+        
+        # Manual entry as fallback
+        print("\nPlease enter your Firebase user ID:")
+        print("You can find this by:")
+        print("1. Going to http://localhost:3000/debug-user")
+        print("2. Looking at the browser console for '🔍 USER ID FOR MIGRATION:'")
+        print("3. Copying the ID and pasting it here:")
         
         user_id = input().strip()
         if not user_id:

@@ -39,12 +39,34 @@ export async function POST(request: Request) {
     // Pull through Authorization header if provided by the client
     const authHeader = request.headers.get('authorization');
 
-    // Forward the request to the real backend server with fallbacks
-    const attempts = [
-      { url: `${backendUrl}/api/analyze-image`, body: { image: { url: image } } },
-      { url: `${backendUrl}/api/analyze-image-legacy`, body: { image: { url: image } } },
-      { url: `${backendUrl}/api/analyze-image-clip-only`, body: { image: { url: image } } },
+    // Forward the request to the real backend server with robust fallbacks
+    const candidateBaseUrls = Array.from(new Set([
+      backendUrl,
+      process.env.NEXT_PUBLIC_BACKEND_URL,
+      process.env.NEXT_PUBLIC_API_URL,
+      'https://closetgptrenew-backend-production.up.railway.app',
+    ].filter(Boolean))) as string[];
+
+    const candidatePaths = [
+      '/api/analyze-image',
+      '/api/analyze-image-legacy',
+      '/api/analyze-image-clip-only',
+      '/analyze-image',
     ];
+
+    const candidateBodies = [
+      { image: { url: image } },
+      { image },
+    ];
+
+    const attempts: Array<{ url: string; body: any }> = [];
+    for (const base of candidateBaseUrls) {
+      for (const path of candidatePaths) {
+        for (const body of candidateBodies) {
+          attempts.push({ url: `${base}${path}`, body });
+        }
+      }
+    }
 
     let lastError: any = null;
     for (const attempt of attempts) {
@@ -72,7 +94,7 @@ export async function POST(request: Request) {
         }
         console.error(`Attempt failed ${resp.status} at ${attempt.url}:`, errorText);
         lastError = { status: resp.status, details: errorText || 'Unknown error' };
-        // If 404, continue to next attempt; otherwise break
+        // If 404, continue to next attempt; otherwise break (e.g., 401/500 likely consistent across attempts)
         if (resp.status !== 404) break;
       } catch (err) {
         console.error('Network error calling backend:', err);

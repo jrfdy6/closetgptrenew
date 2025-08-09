@@ -221,7 +221,7 @@ async def add_wardrobe_item(
         
         return {
             "message": "Item added successfully",
-            "item_id": doc_ref[1].id,
+            "item_id": doc_ref[0].id,
             "item": item.dict()
         }
     except Exception as e:

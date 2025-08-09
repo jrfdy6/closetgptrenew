@@ -55,7 +55,7 @@ npm install
 2. **Configure URLs:**
    ```bash
    export FRONTEND_URL="http://localhost:3000"  # or your deployed frontend URL
-   export NEXT_PUBLIC_BACKEND_URL="https://closetgpt-clean-production.up.railway.app"
+   export NEXT_PUBLIC_BACKEND_URL="https://closetgptrenew-backend-production.up.railway.app"
    ```
 
 ### Authentication Setup
@@ -186,7 +186,7 @@ Edit `test_live_routes.js` to customize:
 ```javascript
 // URLs
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-clean-production.up.railway.app';
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
 
 // Test data
 const TEST_IMAGE_PATH = path.join(__dirname, 'frontend/test-images/test-shirt.jpg');

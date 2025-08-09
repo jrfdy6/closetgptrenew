@@ -281,7 +281,7 @@ async def upload_image(
         
         return {
             "message": "Image uploaded successfully",
-            "item_id": doc_ref[1].id,
+            "item_id": doc_ref[0].id,
             "image_url": blob.public_url,
             "item": item_data
         }
@@ -443,12 +443,12 @@ async def add_wardrobe_item(
         wardrobe_ref = db.collection('wardrobe')
         doc_ref = wardrobe_ref.add(item_data)
         
-        print(f"DEBUG: Successfully added item with ID: {doc_ref[1].id}")
+        print(f"DEBUG: Successfully added item with ID: {doc_ref[0].id}")
         
         return {
             "success": True,
             "message": "Item added successfully",
-            "item_id": doc_ref[1].id,
+            "item_id": doc_ref[0].id,
             "item": item_data
         }
     except Exception as e:

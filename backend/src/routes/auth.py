@@ -54,7 +54,6 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         token = credentials.credentials
         logger.info(f"🔍 DEBUG: Received token length: {len(token)}")
         logger.info(f"🔍 DEBUG: Received token starts with: {token[:20]}...")
-        logger.info(f"🔍 DEBUG: Token type: {type(token)}")
         
         logger.info("🔍 DEBUG: About to start Firebase token verification...")
         
@@ -68,11 +67,11 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                 future = executor.submit(firebase_auth.verify_id_token, token)
                 logger.info("🔍 DEBUG: Waiting for Firebase verification result...")
                 try:
-                    decoded_token = future.result(timeout=5.0)  # 5 second timeout
+                    decoded_token = future.result(timeout=30.0)  # Increased timeout to 30 seconds
                     logger.info("🔍 DEBUG: Firebase verification completed successfully!")
                     logger.info(f"🔍 DEBUG: Decoded token keys: {list(decoded_token.keys())}")
                 except concurrent.futures.TimeoutError:
-                    logger.error("🔍 DEBUG: Firebase token verification timed out")
+                    logger.error("🔍 DEBUG: Firebase token verification timed out after 30 seconds")
                     raise HTTPException(
                         status_code=status.HTTP_401_UNAUTHORIZED,
                         detail="Token verification timed out"
@@ -81,8 +80,6 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             logger.info("🔍 DEBUG: Extracting user_id from decoded token...")
             user_id: str = decoded_token.get("uid")
             logger.info(f"🔍 DEBUG: Token verification successful, user_id: {user_id}")
-            logger.info(f"🔍 DEBUG: User ID type: {type(user_id)}")
-            logger.info(f"🔍 DEBUG: User ID length: {len(user_id) if user_id else 0}")
             
             if user_id is None:
                 logger.error("🔍 DEBUG: No user_id found in decoded token")
@@ -96,43 +93,10 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             return user_id
         except Exception as e:
             logger.error(f"🔍 DEBUG: Firebase token verification failed: {e}")
-            # If it's a clock issue, try with more lenient settings
-            if "Token used too early" in str(e) or "clock" in str(e).lower():
-                logger.warning(f"Clock skew detected, trying with lenient settings: {e}")
-                try:
-                    logger.info("🔍 DEBUG: Trying lenient Firebase verification...")
-                    # Try with a more lenient clock skew tolerance and timeout
-                    with concurrent.futures.ThreadPoolExecutor() as executor:
-                        logger.info("🔍 DEBUG: Submitting lenient Firebase verification task...")
-                        future = executor.submit(firebase_auth.verify_id_token, token, check_revoked=False)
-                        logger.info("🔍 DEBUG: Waiting for lenient Firebase verification result...")
-                        try:
-                            decoded_token = future.result(timeout=5.0)  # 5 second timeout
-                            logger.info("🔍 DEBUG: Lenient Firebase verification completed successfully!")
-                        except concurrent.futures.TimeoutError:
-                            logger.error("🔍 DEBUG: Lenient Firebase verification timed out")
-                            raise HTTPException(
-                                status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Token verification timed out"
-                            )
-                    
-                    user_id: str = decoded_token.get("uid")
-                    logger.info(f"🔍 DEBUG: Lenient verification successful, user_id: {user_id}")
-                    if user_id is None:
-                        raise HTTPException(
-                            status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail="Invalid token: no user ID found"
-                        )
-                    return user_id
-                except Exception as e2:
-                    logger.error(f"🔍 DEBUG: Lenient verification also failed: {e2}")
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Token verification failed"
-                    )
-            else:
-                # Re-raise the original exception for other types of errors
-                raise e
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token verification failed"
+            )
     except firebase_auth.ExpiredIdTokenError:
         logger.error("🔍 DEBUG: Token expired")
         raise HTTPException(

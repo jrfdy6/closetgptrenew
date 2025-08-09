@@ -46,7 +46,7 @@ const StyleAnalysis: React.FC = () => {
     setError(null);
 
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/style-analysis/${endpoint}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/style-analysis/${endpoint}`;
       
       const response = await fetch(url, {
         method: 'POST',

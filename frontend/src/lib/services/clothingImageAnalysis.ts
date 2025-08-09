@@ -69,7 +69,7 @@ export async function analyzeClothingImageLegacy(imageUrl: string): Promise<Open
   try {
     console.log("Sending image for legacy analysis:", imageUrl);
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/analyze-image-legacy`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/analyze-image-legacy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export async function analyzeClothingImageClipOnly(imageUrl: string): Promise<an
   try {
     console.log("Sending image for CLIP-only analysis:", imageUrl);
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/analyze-image-clip-only`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/analyze-image-clip-only`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

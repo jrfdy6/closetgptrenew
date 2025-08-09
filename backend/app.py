@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 import uuid
 import json
+from urllib.parse import quote
 
 # Global variables for Firebase
 db = None
@@ -33,38 +34,51 @@ def initialize_firebase():
             firebase_configured = True
             return
         
-        # Get environment variables
-        project_id = os.environ.get("FIREBASE_PROJECT_ID")
-        private_key = os.environ.get("FIREBASE_PRIVATE_KEY")
-        client_email = os.environ.get("FIREBASE_CLIENT_EMAIL")
-        
-        print(f"DEBUG: Project ID: {project_id}")
-        print(f"DEBUG: Client Email: {client_email}")
-        print(f"DEBUG: Private Key exists: {bool(private_key)}")
-        
-        if not project_id or not private_key or not client_email:
-            print("DEBUG: Missing required Firebase credentials")
-            firebase_configured = False
-            return
-        
-        firebase_creds = {
-            "type": "service_account",
-            "project_id": project_id,
-            "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": private_key.replace("\\n", "\n"),
-            "client_email": client_email,
-            "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
-        }
-        
+        # Prefer loading credentials from local service-account-key.json to avoid env formatting issues
         from firebase_admin import credentials
-        cred = credentials.Certificate(firebase_creds)
-        firebase_admin.initialize_app(cred, {
-            'storageBucket': f"{project_id}.appspot.com"
-        })
+        service_account_path = os.path.join(os.path.dirname(__file__), "service-account-key.json") if not os.path.isabs("service-account-key.json") else "service-account-key.json"
+
+        if os.path.exists("service-account-key.json"):
+            print("DEBUG: Using service-account-key.json for Firebase credentials")
+            with open("service-account-key.json", "r") as f:
+                key_data = json.load(f)
+            project_id = key_data.get("project_id")
+            cred = credentials.Certificate("service-account-key.json")
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': f"{project_id}.appspot.com"
+            })
+        else:
+            # Fallback to environment variables
+            project_id = os.environ.get("FIREBASE_PROJECT_ID")
+            private_key = os.environ.get("FIREBASE_PRIVATE_KEY")
+            client_email = os.environ.get("FIREBASE_CLIENT_EMAIL")
+
+            print(f"DEBUG: Project ID: {project_id}")
+            print(f"DEBUG: Client Email: {client_email}")
+            print(f"DEBUG: Private Key exists: {bool(private_key)}")
+
+            if not project_id or not private_key or not client_email:
+                print("DEBUG: Missing required Firebase credentials")
+                firebase_configured = False
+                return
+
+            firebase_creds = {
+                "type": "service_account",
+                "project_id": project_id,
+                "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+                "private_key": private_key.replace("\\n", "\n"),
+                "client_email": client_email,
+                "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
+            }
+
+            cred = credentials.Certificate(firebase_creds)
+            firebase_admin.initialize_app(cred, {
+                'storageBucket': f"{project_id}.appspot.com"
+            })
         
         db = firestore.client()
         bucket = storage.bucket()
@@ -116,7 +130,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         token = credentials.credentials
         
         # Handle development/test tokens
-        if token == "test" or token.startswith("test_"):
+        if token == "test" or token.startswith("test_") or token == "":
             print("DEBUG: Using development test token")
             return "test_user_id"
         
@@ -260,6 +274,128 @@ async def upload_image(
         file_extension = file.filename.split('.')[-1]
         filename = f"wardrobe/{current_user_id}/{uuid.uuid4()}.{file_extension}"
         
+        # Upload to Firebase Storage with token-based access
+        blob = bucket.blob(filename)
+        token = str(uuid.uuid4())
+        blob.metadata = {"firebaseStorageDownloadTokens": token}
+        blob.upload_from_string(
+            await file.read(),
+            content_type=file.content_type
+        )
+        download_url = (
+            f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/"
+            f"{quote(filename, safe='')}?alt=media&token={token}"
+        )
+        
+        # Create wardrobe item
+        item_data = {
+            "name": name,
+            "category": category,
+            "image_url": download_url,
+            "uploaded_at": datetime.now().isoformat(),
+            "file_size": blob.size,
+            "content_type": file.content_type
+        }
+        
+        # Save to Firestore
+        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
+        doc_ref = wardrobe_ref.add(item_data)
+        
+        return {
+            "message": "Image uploaded successfully",
+            "item_id": doc_ref[0].id,
+            "image_url": download_url,
+            "item": item_data
+        }
+    except Exception as e:
+        print(f"DEBUG: Error uploading image: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image"
+        )
+
+@app.post("/api/image/upload-dev")
+async def upload_image_dev(
+    file: UploadFile = File(...),
+    category: str = Form(...),
+    name: str = Form(...)
+):
+    """Development-only image upload endpoint without authentication"""
+    if not bucket:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Storage not available"
+        )
+    
+    try:
+        # Validate file type
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image"
+            )
+        
+        # Generate unique filename
+        file_extension = file.filename.split('.')[-1]
+        filename = f"wardrobe/test_user/{uuid.uuid4()}.{file_extension}"
+        
+        # Upload to Firebase Storage with token-based access
+        blob = bucket.blob(filename)
+        token = str(uuid.uuid4())
+        blob.metadata = {"firebaseStorageDownloadTokens": token}
+        blob.upload_from_string(
+            await file.read(),
+            content_type=file.content_type
+        )
+        download_url = (
+            f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/"
+            f"{quote(filename, safe='')}?alt=media&token={token}"
+        )
+        
+        # Create wardrobe item
+        item_data = {
+            "name": name,
+            "category": category,
+            "image_url": download_url,
+            "uploaded_at": datetime.now().isoformat(),
+            "file_size": blob.size,
+            "content_type": file.content_type
+        }
+        
+        # Save to Firestore
+        wardrobe_ref = db.collection('users').document('test_user').collection('wardrobe')
+        doc_ref = wardrobe_ref.add(item_data)
+        
+        return {
+            "message": "Image uploaded successfully (dev mode)",
+            "item_id": doc_ref[0].id,
+            "image_url": download_url,
+            "item": item_data
+        }
+    except Exception as e:
+        print(f"DEBUG: Error uploading image: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload image"
+        )
+    if not bucket:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Storage not available"
+        )
+    
+    try:
+        # Validate file type
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image"
+            )
+        
+        # Generate unique filename
+        file_extension = file.filename.split('.')[-1]
+        filename = f"wardrobe/{current_user_id}/{uuid.uuid4()}.{file_extension}"
+        
         # Upload to Firebase Storage
         blob = bucket.blob(filename)
         blob.upload_from_string(
@@ -286,7 +422,7 @@ async def upload_image(
         
         return {
             "message": "Image uploaded successfully",
-            "item_id": doc_ref[1].id,
+            "item_id": doc_ref[0].id,
             "image_url": blob.public_url,
             "item": item_data
         }
@@ -353,7 +489,7 @@ async def add_wardrobe_item(
         
         return {
             "message": "Item added successfully",
-            "item_id": doc_ref[1].id,
+            "item_id": doc_ref[0].id,
             "item": item_data
         }
     except Exception as e:
@@ -564,6 +700,35 @@ async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)
 async def test_endpoint():
     return {"message": "API is working", "status": "success"}
 
+@app.post("/api/image/upload-test")
+async def upload_image_test(
+    file: UploadFile = File(...),
+    category: str = Form(...),
+    name: str = Form(...)
+):
+    """Test image upload endpoint without authentication"""
+    try:
+        # Validate file type
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File must be an image"
+            )
+        
+        return {
+            "message": "Image upload test successful",
+            "filename": file.filename,
+            "category": category,
+            "name": name,
+            "content_type": file.content_type
+        }
+    except Exception as e:
+        print(f"DEBUG: Error in test upload: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process test upload"
+        )
+
 @app.get("/api/test/auth")
 async def test_auth(current_user_id: str = Depends(get_current_user_id)):
     return {
@@ -574,5 +739,6 @@ async def test_auth(current_user_id: str = Depends(get_current_user_id)):
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 3001))
     print(f"Starting server on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)

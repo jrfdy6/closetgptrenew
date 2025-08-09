@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any
 
 # Configuration
-BACKEND_URL = "https://closetgpt-clean-production.up.railway.app"
+BACKEND_URL = "https://closetgptrenew-backend-production.up.railway.app"
 FRONTEND_URL = "https://closetgpt-frontend.vercel.app"
 
 def test_backend_health():

@@ -2,7 +2,7 @@ import { OpenAIClothingAnalysis } from '@shared/types/wardrobe';
 
 export const analyzeImage = async (imageUrl: string): Promise<OpenAIClothingAnalysis> => {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://closetgpt-clean-production.up.railway.app'}/api/analyze-image`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/analyze-image`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

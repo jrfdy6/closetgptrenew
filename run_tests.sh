@@ -118,7 +118,7 @@ else
 fi
 
 if [ -z "$NEXT_PUBLIC_BACKEND_URL" ]; then
-    export NEXT_PUBLIC_BACKEND_URL="https://closetgpt-clean-production.up.railway.app"
+    export NEXT_PUBLIC_BACKEND_URL="https://closetgptrenew-backend-production.up.railway.app"
     print_warning "NEXT_PUBLIC_BACKEND_URL not set, using default: $NEXT_PUBLIC_BACKEND_URL"
 else
     print_success "NEXT_PUBLIC_BACKEND_URL set to: $NEXT_PUBLIC_BACKEND_URL"

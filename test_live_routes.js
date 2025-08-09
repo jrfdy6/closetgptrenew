@@ -10,7 +10,7 @@ const path = require('path');
 const FormData = require('form-data');
 
 // Configuration
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-clean-production.up.railway.app';
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Test data

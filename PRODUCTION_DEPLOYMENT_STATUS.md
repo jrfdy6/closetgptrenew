@@ -39,7 +39,7 @@
 - **Static Assets**: 300 files deployed
 
 ### **Backend (Railway)**
-- **Primary URL**: https://closetgpt-clean-production.up.railway.app
+- **Primary URL**: https://closetgptrenew-backend-production.up.railway.app
 - **Status**: ✅ **LIVE & WORKING**
 - **Features**: FastAPI with health endpoints
 - **Port**: 8080 (Railway dynamic)
