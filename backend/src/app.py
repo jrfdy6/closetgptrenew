@@ -46,29 +46,30 @@ if os.getenv("ENVIRONMENT") == "development":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
 )
 
-# Explicit preflight handler for upload to ensure ACAO is always present when origin matches
-@app.options("/api/image/upload")
-async def upload_preflight(request: Request) -> Response:
-    origin = request.headers.get("origin", "")
-    acrh = request.headers.get("access-control-request-headers", "*")
-    # Allow the specific preview URL and any matching the pattern
-    if origin and (origin == "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app" or 
-                   re.match(r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$", origin)):
-        headers = {
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Credentials": "true",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": acrh,
-            "Access-Control-Max-Age": "600",
-        }
-        return Response(status_code=200, headers=headers)
-    # For debugging, let's see what origin we're getting
-    print(f"DEBUG: OPTIONS request from origin: {origin}")
-    return Response(status_code=400, content=f"Disallowed CORS origin: {origin}")
+# Comment out custom OPTIONS handler to let CORS middleware handle it
+# @app.options("/api/image/upload")
+# async def upload_preflight(request: Request) -> Response:
+#     origin = request.headers.get("origin", "")
+#     acrh = request.headers.get("access-control-request-headers", "*")
+#     # Allow the specific preview URL and any matching the pattern
+#     if origin and (origin == "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app" or 
+#                    re.match(r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$", origin)):
+#         headers = {
+#             "Access-Control-Allow-Origin": origin,
+#             "Access-Control-Allow-Credentials": "true",
+#             "Access-Control-Allow-Methods": "POST, OPTIONS",
+#             "Access-Control-Request-Headers": acrh,
+#             "Access-Control-Max-Age": "600",
+#         }
+#         return Response(status_code=200, headers=headers)
+#     # For debugging, let's see what origin we're getting
+#     print(f"DEBUG: OPTIONS request from origin: {origin}")
+#     return Response(status_code=400, content=f"Disallowed CORS origin: {origin}")
 
 # Try to import and setup core modules
 try:
