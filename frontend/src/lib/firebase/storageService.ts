@@ -57,14 +57,36 @@ export async function uploadImage(file: File, userId: string, category: string =
     console.log('  - Auth token preview:', authToken ? authToken.substring(0, 20) + '...' : 'none');
     
     // Use Next.js API route to avoid CORS and keep credentials secure
-    const response = await fetch(`/api/image/upload`, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        // Don't set Content-Type, let browser set it with boundary
-        'Authorization': `Bearer ${authToken}`,
-      },
-    });
+    let response: Response;
+    try {
+      response = await fetch(`/api/image/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // Don't set Content-Type, let browser set it with boundary
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+    } catch (proxyErr) {
+      // If the proxy route is not available on this preview, fallback to backend directly
+      console.warn('⚠️ Proxy upload failed, falling back to backend:', proxyErr);
+      response = new Response(null, { status: 404 });
+    }
+
+    if (!response.ok && (response.status === 404 || response.status === 405)) {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        'https://closetgptrenew-backend-production.up.railway.app';
+      console.log('↪️ Falling back to backend upload:', `${baseUrl}/api/image/upload`);
+      response = await fetch(`${baseUrl}/api/image/upload`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+    }
 
     if (!response.ok) {
       const errorData = await response.text();
