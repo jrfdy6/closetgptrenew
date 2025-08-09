@@ -44,11 +44,9 @@ if os.getenv("ENVIRONMENT") == "development":
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$",
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 # Explicit preflight handler for upload to ensure ACAO is always present when origin matches
