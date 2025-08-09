@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { getFirebaseIdToken } from "@/lib/utils/auth";
 
 export default function TestApiPage() {
   const [result, setResult] = useState<string>("");
@@ -12,10 +13,12 @@ export default function TestApiPage() {
     setResult("Testing...");
     
     try {
+      const token = await getFirebaseIdToken();
       const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ 
           image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center" 
@@ -36,10 +39,12 @@ export default function TestApiPage() {
     setResult("Testing...");
     
     try {
+      const token = await getFirebaseIdToken();
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ 
           imageUrl: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center" 

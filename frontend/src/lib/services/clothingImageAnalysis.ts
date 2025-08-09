@@ -4,12 +4,16 @@ export async function analyzeClothingImage(imageUrl: string): Promise<OpenAIClot
   try {
     console.log("Sending image for enhanced analysis:", imageUrl);
     
+    // Include Firebase ID token so backend auth dependency passes
+    const token = (await import('../utils/auth')).getFirebaseIdToken ? await (await import('../utils/auth')).getFirebaseIdToken() : null;
+
     // Call the frontend API route instead of backend directly
     const response = await fetch('/api/analyze-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ image: imageUrl }),
     });

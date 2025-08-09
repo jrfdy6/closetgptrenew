@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getFirebaseIdToken } from "@/lib/utils/auth";
 
 export default function TestRealAnalysis() {
   const [result, setResult] = useState<any>(null);
@@ -15,10 +16,12 @@ export default function TestRealAnalysis() {
     setResult(null);
 
     try {
+      const token = await getFirebaseIdToken();
       const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop&crop=center"

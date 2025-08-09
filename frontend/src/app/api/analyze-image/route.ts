@@ -36,13 +36,18 @@ export async function POST(request: Request) {
     console.log('🔍 Debug - Backend URL:', backendUrl);
     console.log('🔍 Debug - Full URL:', fullUrl);
 
+    // Pull through Authorization header if provided by the client
+    const authHeader = request.headers.get('authorization');
+
     // Forward the request to the real backend server
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(authHeader ? { 'Authorization': authHeader } : {}),
       },
-      body: JSON.stringify({ image }),
+      // Backend expects: { image: { url: string } }
+      body: JSON.stringify({ image: { url: image } }),
     });
 
     if (!response.ok) {
