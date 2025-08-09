@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Upload, Loader2, CheckCircle, AlertCircle, TestTube } from "lucide-react";
-import { apiClient } from "@/../../shared/api/client";
-import { API_ENDPOINTS } from "@/../../shared/api/endpoints";
+import { apiClient } from "@closetgpt/shared/api/client";
+import { API_ENDPOINTS } from "@closetgpt/shared/api/endpoints";
 import AuthDebug from "@/components/AuthDebug";
 
 interface TestResult {

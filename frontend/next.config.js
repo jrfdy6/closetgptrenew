@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["@closetgpt/shared"],
   webpack: (config, { isServer }) => {
     // Handle module resolution
     config.resolve.fallback = {
