@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
+import re
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import sys
@@ -49,6 +50,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Explicit preflight handler for upload to ensure ACAO is always present when origin matches
+@app.options("/api/image/upload")
+async def upload_preflight(request: Request) -> Response:
+    origin = request.headers.get("origin", "")
+    acrh = request.headers.get("access-control-request-headers", "*")
+    if origin and re.match(r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$", origin):
+        headers = {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": acrh,
+            "Access-Control-Max-Age": "600",
+        }
+        return Response(status_code=200, headers=headers)
+    return Response(status_code=400)
 
 # Try to import and setup core modules
 try:
