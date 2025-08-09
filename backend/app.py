@@ -115,7 +115,8 @@ allowed_origins.extend([
     "https://closetgpt-frontend-6gz1mk8p6-johnnie-fields-projects.vercel.app",
     "https://closetgpt-frontend-9daphhhcr-johnnie-fields-projects.vercel.app",
     "https://closetgpt-frontend-1xfxn4mpe-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-exzf3ek7s-johnnie-fields-projects.vercel.app"
+    "https://closetgpt-frontend-exzf3ek7s-johnnie-fields-projects.vercel.app",
+    "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app"
 ])
 
 app.add_middleware(
@@ -256,6 +257,12 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
         }
 
 # Image processing endpoints
+@app.options("/api/image/upload")
+async def options_image_upload():
+    """Explicit OPTIONS handler for image upload to ensure CORS headers are sent."""
+    from fastapi.responses import Response
+    return Response(status_code=200)
+
 @app.post("/api/image/upload")
 async def upload_image(
     file: UploadFile = File(...),
