@@ -99,19 +99,15 @@ const WardrobeGapAnalysis: React.FC = () => {
         return;
       }
       
-      // Call backend directly with gender parameter
-      const backendUrl =
-        process.env.NEXT_PUBLIC_API_URL ||
-        process.env.NEXT_PUBLIC_BACKEND_URL ||
-        'https://closetgptrenew-backend-production.up.railway.app';
-      const url = new URL('/api/wardrobe/gaps', backendUrl);
+      // Call Next.js API route to avoid CORS issues; the route will proxy to backend
+      const url = new URL('/api/wardrobe/gaps', window.location.origin);
       if (userGender) {
         url.searchParams.set('gender', userGender);
-        console.log('🎯 Adding gender parameter to backend URL:', userGender);
+        console.log('🎯 Adding gender parameter to API route URL:', userGender);
       }
-      
-      console.log('🔗 Calling backend directly:', url.toString());
-      
+
+      console.log('🔗 Calling frontend API route:', url.toString());
+
       const response = await fetch(url.toString(), {
         headers: {
           'Authorization': `Bearer ${token}`,
