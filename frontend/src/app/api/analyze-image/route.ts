@@ -39,31 +39,51 @@ export async function POST(request: Request) {
     // Pull through Authorization header if provided by the client
     const authHeader = request.headers.get('authorization');
 
-    // Forward the request to the real backend server
-    const response = await fetch(fullUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(authHeader ? { 'Authorization': authHeader } : {}),
-      },
-      // Backend expects: { image: { url: string } }
-      body: JSON.stringify({ image: { url: image } }),
-    });
+    // Forward the request to the real backend server with fallbacks
+    const attempts = [
+      { url: `${backendUrl}/api/analyze-image`, body: { image: { url: image } } },
+      { url: `${backendUrl}/api/analyze-image-legacy`, body: { image: { url: image } } },
+      { url: `${backendUrl}/api/analyze-image-clip-only`, body: { image: { url: image } } },
+    ];
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Backend error:", errorData);
-      return NextResponse.json(
-        { 
-          error: "Failed to analyze image",
-          details: errorData.detail || errorData.message || 'Unknown error'
-        },
-        { status: response.status }
-      );
+    let lastError: any = null;
+    for (const attempt of attempts) {
+      try {
+        console.log('🔁 Trying backend endpoint:', attempt.url);
+        const resp = await fetch(attempt.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authHeader ? { 'Authorization': authHeader } : {}),
+          },
+          body: JSON.stringify(attempt.body),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          return NextResponse.json(data);
+        }
+        // Capture error body text/json for diagnostics
+        let errorText = '';
+        try {
+          const errJson = await resp.json();
+          errorText = JSON.stringify(errJson);
+        } catch (_) {
+          errorText = await resp.text();
+        }
+        console.error(`Attempt failed ${resp.status} at ${attempt.url}:`, errorText);
+        lastError = { status: resp.status, details: errorText || 'Unknown error' };
+        // If 404, continue to next attempt; otherwise break
+        if (resp.status !== 404) break;
+      } catch (err) {
+        console.error('Network error calling backend:', err);
+        lastError = { status: 500, details: err instanceof Error ? err.message : 'Network error' };
+      }
     }
 
-    const analysis = await response.json();
-    return NextResponse.json(analysis);
+    return NextResponse.json(
+      { error: 'Failed to analyze image', details: lastError?.details || 'Unknown error' },
+      { status: lastError?.status || 500 }
+    );
   } catch (error) {
     console.error("Error analyzing image:", error);
     return NextResponse.json(

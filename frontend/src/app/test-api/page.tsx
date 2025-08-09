@@ -25,8 +25,13 @@ export default function TestApiPage() {
         }),
       });
 
-      const data = await response.json();
-      setResult(`Status: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`);
+      let bodyText = '';
+      try {
+        bodyText = JSON.stringify(await response.json(), null, 2);
+      } catch (_) {
+        bodyText = await response.text();
+      }
+      setResult(`Status: ${response.status}\nResponse: ${bodyText}`);
     } catch (error) {
       setResult(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {

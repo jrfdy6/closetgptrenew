@@ -29,8 +29,14 @@ export default function TestRealAnalysis() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze image');
+        let errorText = '';
+        try {
+          const errorData = await response.json();
+          errorText = JSON.stringify(errorData, null, 2);
+        } catch (_) {
+          errorText = await response.text();
+        }
+        throw new Error(`Status ${response.status}: ${errorText || 'Failed to analyze image'}`);
       }
 
       const data = await response.json();
