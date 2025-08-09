@@ -86,6 +86,18 @@ export async function uploadImage(file: File, userId: string, category: string =
           'Authorization': `Bearer ${authToken}`,
         },
       });
+
+      // If backend CORS blocks or still missing, final fallback to server-side direct upload
+      if (!response.ok) {
+        console.log('↪️ Final fallback to server-side direct upload');
+        response = await fetch('/api/image/upload-direct', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+          },
+        });
+      }
     }
 
     if (!response.ok) {
