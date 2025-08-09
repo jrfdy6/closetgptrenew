@@ -1,6 +1,9 @@
 import { authenticatedFetch } from '@/lib/utils/auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  'https://closetgptrenew-backend-production.up.railway.app';
 
 export type IssueCategory = 
   | 'outfit_doesnt_make_sense'

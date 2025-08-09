@@ -5,8 +5,8 @@ echo "🚀 Setting up Frontend Environment Variables..."
 # Create .env.local file
 cat > .env.local << EOF
 # API Configuration
-NEXT_PUBLIC_API_URL=https://acceptable-wisdom-production-ac06.up.railway.app
-NEXT_PUBLIC_BACKEND_URL=https://acceptable-wisdom-production-ac06.up.railway.app
+NEXT_PUBLIC_API_URL=https://closetgptrenew-backend-production.up.railway.app
+NEXT_PUBLIC_BACKEND_URL=https://closetgptrenew-backend-production.up.railway.app
 
 # Firebase Configuration (Public)
 NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyDijqJ9NbtS959F3kn5IZt8Uk7J9iuSfPU

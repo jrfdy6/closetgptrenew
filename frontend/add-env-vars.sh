@@ -12,8 +12,8 @@ add_env_var() {
 }
 
 # Add all environment variables with correct values
-add_env_var "NEXT_PUBLIC_API_URL" "https://acceptable-wisdom-production-ac06.up.railway.app"
-add_env_var "NEXT_PUBLIC_BACKEND_URL" "https://acceptable-wisdom-production-ac06.up.railway.app"
+add_env_var "NEXT_PUBLIC_API_URL" "https://closetgptrenew-backend-production.up.railway.app"
+add_env_var "NEXT_PUBLIC_BACKEND_URL" "https://closetgptrenew-backend-production.up.railway.app"
 add_env_var "NEXT_PUBLIC_FIREBASE_API_KEY" "AIzaSyDijqJ9NbtS959F3kn5IZt8Uk7J9iuSfPU"
 add_env_var "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN" "closetgptrenew.firebaseapp.com"
 add_env_var "NEXT_PUBLIC_FIREBASE_PROJECT_ID" "closetgptrenew"

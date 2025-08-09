@@ -28,7 +28,10 @@ export async function POST(request: Request) {
     }
 
     // Debug: Log the environment variable and constructed URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
     const fullUrl = `${backendUrl}/api/analyze-image`;
     console.log('🔍 Debug - Backend URL:', backendUrl);
     console.log('🔍 Debug - Full URL:', fullUrl);

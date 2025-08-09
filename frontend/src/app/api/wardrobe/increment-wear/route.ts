@@ -48,7 +48,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Forward request to backend
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
     const response = await fetch(`${backendUrl}/api/wardrobe/${itemId}/increment-wear`, {
       method: 'POST',
       headers: {

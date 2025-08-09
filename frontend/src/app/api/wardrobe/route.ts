@@ -11,8 +11,11 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    // Use the correct production backend URL
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    // Use the correct backend URL
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol
@@ -103,8 +106,11 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    // Use the correct production backend URL
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    // Use the correct backend URL
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol

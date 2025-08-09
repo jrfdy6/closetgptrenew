@@ -101,12 +101,18 @@ export default function OutfitsPage() {
       
       const idToken = await user.getIdToken();
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 65000); // 65 second timeout
+      
       const response = await fetch('/api/outfits', {
         headers: {
           'Authorization': `Bearer ${idToken}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch outfits: ${response.status}`);

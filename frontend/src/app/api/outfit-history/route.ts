@@ -25,7 +25,11 @@ export async function GET(req: NextRequest) {
     const limit = searchParams.get('limit');
 
     // Build backend URL with query parameters
-    const backendUrl = new URL(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/outfit-history/`);
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = new URL(`${baseUrl}/api/outfit-history/`);
     if (startDate) backendUrl.searchParams.set('start_date', startDate);
     if (endDate) backendUrl.searchParams.set('end_date', endDate);
     if (limit) backendUrl.searchParams.set('limit', limit);

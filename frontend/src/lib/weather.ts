@@ -1,6 +1,9 @@
 import type { WeatherData } from "../types/weather";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  'https://closetgptrenew-backend-production.up.railway.app';
 const WEATHER_CACHE_KEY = 'weather_cache';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 

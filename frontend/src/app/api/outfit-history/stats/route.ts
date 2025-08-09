@@ -19,7 +19,11 @@ export async function GET(req: NextRequest) {
     }
 
     // Forward request to backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/outfit-history/stats`, {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
+    const response = await fetch(`${baseUrl}/api/outfit-history/stats`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,

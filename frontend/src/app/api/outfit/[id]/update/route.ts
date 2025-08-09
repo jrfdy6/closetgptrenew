@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://acceptable-wisdom-production-ac06.up.railway.app";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  "https://closetgptrenew-backend-production.up.railway.app";
 
 export async function PUT(
   request: Request,

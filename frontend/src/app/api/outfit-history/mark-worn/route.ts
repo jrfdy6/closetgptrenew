@@ -22,7 +22,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Forward request to backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/outfit-history/mark-worn`, {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
+    const response = await fetch(`${baseUrl}/api/outfit-history/mark-worn`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,

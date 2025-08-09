@@ -100,7 +100,10 @@ const WardrobeGapAnalysis: React.FC = () => {
       }
       
       // Call backend directly with gender parameter
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl =
+        process.env.NEXT_PUBLIC_API_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        'https://closetgptrenew-backend-production.up.railway.app';
       const url = new URL('/api/wardrobe/gaps', backendUrl);
       if (userGender) {
         url.searchParams.set('gender', userGender);

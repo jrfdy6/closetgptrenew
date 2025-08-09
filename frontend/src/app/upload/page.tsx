@@ -3,6 +3,7 @@
 import ProtectedRoute from "@/components/ProtectedRoute";
 import UploadForm from "@/components/UploadForm";
 import { Upload, Sparkles } from 'lucide-react';
+import AuthDebug from "@/components/AuthDebug";
 
 export default function UploadPage() {
   return (
@@ -26,6 +27,9 @@ export default function UploadPage() {
           <UploadForm />
         </div>
       </div>
+      
+      {/* Debug component */}
+      <AuthDebug />
     </ProtectedRoute>
   );
 } 

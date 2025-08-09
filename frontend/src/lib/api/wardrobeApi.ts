@@ -1,6 +1,9 @@
 import { ClothingItem } from '../../../../shared/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  'https://closetgptrenew-backend-production.up.railway.app';
 
 export const wardrobeApi = {
   async addItem(item: Omit<ClothingItem, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<ClothingItem> {

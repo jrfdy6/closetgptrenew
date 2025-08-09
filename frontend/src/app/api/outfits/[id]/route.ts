@@ -11,7 +11,10 @@ export async function GET(
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

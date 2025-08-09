@@ -19,8 +19,8 @@ echo "✅ Environment variables removed"
 echo "📝 Adding new environment variables..."
 
 # Add the correct environment variables
-echo "https://acceptable-wisdom-production-ac06.up.railway.app" | vercel env add NEXT_PUBLIC_API_URL production
-echo "https://acceptable-wisdom-production-ac06.up.railway.app" | vercel env add NEXT_PUBLIC_BACKEND_URL production
+echo "https://closetgptrenew-backend-production.up.railway.app" | vercel env add NEXT_PUBLIC_API_URL production
+echo "https://closetgptrenew-backend-production.up.railway.app" | vercel env add NEXT_PUBLIC_BACKEND_URL production
 echo "AIzaSyDijqJ9NbtS959F3kn5IZt8Uk7J9iuSfPU" | vercel env add NEXT_PUBLIC_FIREBASE_API_KEY production
 echo "closetgptrenew.firebaseapp.com" | vercel env add NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN production
 echo "closetgptrenew" | vercel env add NEXT_PUBLIC_FIREBASE_PROJECT_ID production
