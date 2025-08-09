@@ -110,7 +110,9 @@ allowed_origins.extend([
     "https://closetgpt-frontend.vercel.app",
     "https://closetgpt-frontend-git-main-jrfdy6.vercel.app",
     "https://closetgpt-frontend-jrfdy6.vercel.app",
-    "https://closetgpt-frontend-m67a88zs6-johnnie-fields-projects.vercel.app"
+    "https://closetgpt-frontend-m67a88zs6-johnnie-fields-projects.vercel.app",
+    # Current preview URL observed in logs
+    "https://closetgpt-frontend-6gz1mk8p6-johnnie-fields-projects.vercel.app"
 ])
 
 app.add_middleware(
