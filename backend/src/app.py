@@ -27,7 +27,8 @@ allowed_origins.extend([
     "https://closetgpt-frontend-m67a88zs6-johnnie-fields-projects.vercel.app",
     # Current preview URL observed in logs
     "https://closetgpt-frontend-6gz1mk8p6-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-9daphhhcr-johnnie-fields-projects.vercel.app"
+    "https://closetgpt-frontend-9daphhhcr-johnnie-fields-projects.vercel.app",
+    "https://closetgpt-frontend-1xfxn4mpe-johnnie-fields-projects.vercel.app"
 ])
 
 # Add Railway preview URLs if in development
