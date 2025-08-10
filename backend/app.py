@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-print("=== app.py is being executed ===")
 from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -21,14 +20,11 @@ firebase_configured = False
 def initialize_firebase():
     global db, bucket, firebase_configured
     try:
-        print("DEBUG: Attempting to initialize Firebase...")
-        
         import firebase_admin
         from firebase_admin import firestore, storage
         
         # Check if Firebase is already initialized
         if firebase_admin._apps:
-            print("DEBUG: Firebase already initialized")
             db = firestore.client()
             bucket = storage.bucket()
             firebase_configured = True
@@ -39,7 +35,6 @@ def initialize_firebase():
         service_account_path = os.path.join(os.path.dirname(__file__), "service-account-key.json") if not os.path.isabs("service-account-key.json") else "service-account-key.json"
 
         if os.path.exists("service-account-key.json"):
-            print("DEBUG: Using service-account-key.json for Firebase credentials")
             with open("service-account-key.json", "r") as f:
                 key_data = json.load(f)
             project_id = key_data.get("project_id")
@@ -53,12 +48,7 @@ def initialize_firebase():
             private_key = os.environ.get("FIREBASE_PRIVATE_KEY")
             client_email = os.environ.get("FIREBASE_CLIENT_EMAIL")
 
-            print(f"DEBUG: Project ID: {project_id}")
-            print(f"DEBUG: Client Email: {client_email}")
-            print(f"DEBUG: Private Key exists: {bool(private_key)}")
-
             if not project_id or not private_key or not client_email:
-                print("DEBUG: Missing required Firebase credentials")
                 firebase_configured = False
                 return
 
@@ -83,10 +73,8 @@ def initialize_firebase():
         db = firestore.client()
         bucket = storage.bucket()
         firebase_configured = True
-        print("DEBUG: Firebase initialized successfully")
         
     except Exception as e:
-        print(f"DEBUG: Firebase initialization failed: {e}")
         firebase_configured = False
         db = None
         bucket = None
@@ -96,7 +84,6 @@ app = FastAPI(
     description="AI-powered wardrobe management and outfit generation API",
     version="1.0.0"
 )
-print("DEBUG: FastAPI app created")
 
 # Configure CORS
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
@@ -116,7 +103,9 @@ allowed_origins.extend([
     "https://closetgpt-frontend-9daphhhcr-johnnie-fields-projects.vercel.app",
     "https://closetgpt-frontend-1xfxn4mpe-johnnie-fields-projects.vercel.app",
     "https://closetgpt-frontend-exzf3ek7s-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app"
+    "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app",
+    # Current production domain
+    "https://closetgptrenew.vercel.app"
 ])
 
 app.add_middleware(
@@ -140,7 +129,6 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         
         # Handle development/test tokens
         if token == "test" or token.startswith("test_") or token == "":
-            print("DEBUG: Using development test token")
             return "test_user_id"
         
         # Initialize Firebase if not already done
@@ -159,7 +147,6 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         return decoded_token["uid"]
         
     except Exception as e:
-        print(f"DEBUG: Authentication error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token"
@@ -261,7 +248,11 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
 async def options_image_upload():
     """Explicit OPTIONS handler for image upload to ensure CORS headers are sent."""
     from fastapi.responses import Response
-    return Response(status_code=200)
+    response = Response(status_code=200)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
 
 @app.post("/api/image/upload")
 async def upload_image(
@@ -323,126 +314,6 @@ async def upload_image(
             "item": item_data
         }
     except Exception as e:
-        print(f"DEBUG: Error uploading image: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload image"
-        )
-
-@app.post("/api/image/upload-dev")
-async def upload_image_dev(
-    file: UploadFile = File(...),
-    category: str = Form(...),
-    name: str = Form(...)
-):
-    """Development-only image upload endpoint without authentication"""
-    if not bucket:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Storage not available"
-        )
-    
-    try:
-        # Validate file type
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="File must be an image"
-            )
-        
-        # Generate unique filename
-        file_extension = file.filename.split('.')[-1]
-        filename = f"wardrobe/test_user/{uuid.uuid4()}.{file_extension}"
-        
-        # Upload to Firebase Storage with token-based access
-        blob = bucket.blob(filename)
-        token = str(uuid.uuid4())
-        blob.metadata = {"firebaseStorageDownloadTokens": token}
-        blob.upload_from_string(
-            await file.read(),
-            content_type=file.content_type
-        )
-        download_url = (
-            f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/"
-            f"{quote(filename, safe='')}?alt=media&token={token}"
-        )
-        
-        # Create wardrobe item
-        item_data = {
-            "name": name,
-            "category": category,
-            "image_url": download_url,
-            "uploaded_at": datetime.now().isoformat(),
-            "file_size": blob.size,
-            "content_type": file.content_type
-        }
-        
-        # Save to Firestore
-        wardrobe_ref = db.collection('users').document('test_user').collection('wardrobe')
-        doc_ref = wardrobe_ref.add(item_data)
-        
-        return {
-            "message": "Image uploaded successfully (dev mode)",
-            "item_id": doc_ref[0].id,
-            "image_url": download_url,
-            "item": item_data
-        }
-    except Exception as e:
-        print(f"DEBUG: Error uploading image: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload image"
-        )
-    if not bucket:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Storage not available"
-        )
-    
-    try:
-        # Validate file type
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="File must be an image"
-            )
-        
-        # Generate unique filename
-        file_extension = file.filename.split('.')[-1]
-        filename = f"wardrobe/{current_user_id}/{uuid.uuid4()}.{file_extension}"
-        
-        # Upload to Firebase Storage
-        blob = bucket.blob(filename)
-        blob.upload_from_string(
-            await file.read(),
-            content_type=file.content_type
-        )
-        
-        # Make the blob publicly readable
-        blob.make_public()
-        
-        # Create wardrobe item
-        item_data = {
-            "name": name,
-            "category": category,
-            "image_url": blob.public_url,
-            "uploaded_at": datetime.now().isoformat(),
-            "file_size": blob.size,
-            "content_type": file.content_type
-        }
-        
-        # Save to Firestore
-        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
-        doc_ref = wardrobe_ref.add(item_data)
-        
-        return {
-            "message": "Image uploaded successfully",
-            "item_id": doc_ref[0].id,
-            "image_url": blob.public_url,
-            "item": item_data
-        }
-    except Exception as e:
-        print(f"DEBUG: Error uploading image: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to upload image"
@@ -475,7 +346,6 @@ async def get_wardrobe(current_user_id: str = Depends(get_current_user_id)):
             "user_id": current_user_id
         }
     except Exception as e:
-        print(f"DEBUG: Error getting wardrobe: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get wardrobe"
@@ -508,7 +378,6 @@ async def add_wardrobe_item(
             "item": item_data
         }
     except Exception as e:
-        print(f"DEBUG: Error adding wardrobe item: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to add item"
@@ -547,7 +416,6 @@ async def delete_wardrobe_item(
             "item_id": item_id
         }
     except Exception as e:
-        print(f"DEBUG: Error deleting wardrobe item: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete item"
@@ -620,7 +488,6 @@ async def generate_outfit(
             confidence_score=max(0.1, confidence_score)
         )
     except Exception as e:
-        print(f"DEBUG: Error generating outfit: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to generate outfit"
@@ -660,7 +527,6 @@ async def log_outfit_feedback(
             "outfit_id": outfit_id
         }
     except Exception as e:
-        print(f"DEBUG: Error logging feedback: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to log feedback"
@@ -704,56 +570,14 @@ async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)
             "user_id": current_user_id
         }
     except Exception as e:
-        print(f"DEBUG: Error getting wardrobe stats: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get wardrobe statistics"
         )
 
-# Test endpoints
-@app.get("/api/test")
-async def test_endpoint():
-    return {"message": "API is working", "status": "success"}
 
-@app.post("/api/image/upload-test")
-async def upload_image_test(
-    file: UploadFile = File(...),
-    category: str = Form(...),
-    name: str = Form(...)
-):
-    """Test image upload endpoint without authentication"""
-    try:
-        # Validate file type
-        if not file.content_type.startswith('image/'):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="File must be an image"
-            )
-        
-        return {
-            "message": "Image upload test successful",
-            "filename": file.filename,
-            "category": category,
-            "name": name,
-            "content_type": file.content_type
-        }
-    except Exception as e:
-        print(f"DEBUG: Error in test upload: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process test upload"
-        )
-
-@app.get("/api/test/auth")
-async def test_auth(current_user_id: str = Depends(get_current_user_id)):
-    return {
-        "message": "Authentication working",
-        "user_id": current_user_id,
-        "status": "success"
-    }
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 3001))
-    print(f"Starting server on port {port}")
     uvicorn.run(app, host="0.0.0.0", port=port)
