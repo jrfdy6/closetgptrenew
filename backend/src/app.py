@@ -114,20 +114,73 @@ def safe_import_router(module_name, router_name):
         # Add routes directory to Python path for Railway deployment
         import sys
         import os
-        routes_path = os.path.join(os.path.dirname(__file__), "routes")
+        
+        # Get the directory where this app.py file is located
+        current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        logger.info(f"Current file directory: {current_file_dir}")
+        
+        # Routes directory is relative to the current file
+        routes_path = os.path.join(current_file_dir, "routes")
         logger.info(f"Routes path: {routes_path}")
         logger.info(f"Routes path exists: {os.path.exists(routes_path)}")
         
-        if routes_path not in sys.path:
-            sys.path.insert(0, routes_path)
-            logger.info(f"Added {routes_path} to Python path")
+        # Also try the parent directory (in case we're running from /app)
+        parent_routes_path = os.path.join(os.path.dirname(current_file_dir), "src", "routes")
+        logger.info(f"Parent routes path: {parent_routes_path}")
+        logger.info(f"Parent routes path exists: {os.path.exists(parent_routes_path)}")
+        
+        # Add both paths to Python path
+        paths_to_add = []
+        if routes_path not in sys.path and os.path.exists(routes_path):
+            paths_to_add.append(routes_path)
+        if parent_routes_path not in sys.path and os.path.exists(parent_routes_path):
+            paths_to_add.append(parent_routes_path)
+        
+        for path in paths_to_add:
+            sys.path.insert(0, path)
+            logger.info(f"Added {path} to Python path")
         
         logger.info(f"Current Python path: {sys.path}")
         
-        # Now try to import the module
-        logger.info(f"Importing module: {module_name}")
-        module = __import__(module_name, fromlist=[router_name])
-        logger.info(f"Successfully imported module: {module}")
+        # Try importing with different approaches
+        module = None
+        
+        # Approach 1: Direct import
+        try:
+            logger.info(f"Trying direct import: {module_name}")
+            module = __import__(module_name, fromlist=[router_name])
+            logger.info(f"Direct import successful: {module}")
+        except ImportError as e1:
+            logger.info(f"Direct import failed: {e1}")
+            
+            # Approach 2: Try with src.routes prefix
+            try:
+                logger.info(f"Trying src.routes import: src.routes.{module_name}")
+                module = __import__(f"src.routes.{module_name}", fromlist=[router_name])
+                logger.info(f"src.routes import successful: {module}")
+            except ImportError as e2:
+                logger.info(f"src.routes import failed: {e2}")
+                
+                # Approach 3: Try with absolute path
+                try:
+                    logger.info(f"Trying absolute path import")
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location(
+                        module_name, 
+                        os.path.join(routes_path, f"{module_name}.py")
+                    )
+                    if spec and spec.loader:
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        logger.info(f"Absolute path import successful: {module}")
+                    else:
+                        raise ImportError("Could not create module spec")
+                except Exception as e3:
+                    logger.error(f"All import approaches failed: {e3}")
+                    raise ImportError(f"Failed to import {module_name} with all approaches: {e1}, {e2}, {e3}")
+        
+        if module is None:
+            raise ImportError(f"Module {module_name} is None after import attempts")
         
         router = getattr(module, router_name)
         logger.info(f"Successfully got router: {router}")
