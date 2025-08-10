@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, User, CheckCircle, AlertCircle } from "lucide-react";
+import { signUp } from "@/lib/auth";
 
 export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -19,6 +22,7 @@ export default function SignUp() {
     password: "",
     confirmPassword: ""
   });
+  const router = useRouter();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -30,15 +34,25 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
     
-    // TODO: Implement actual signup logic
-    console.log("Signup form submitted", formData);
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const result = await signUp(formData.email, formData.password);
+      
+      if (result.success) {
+        console.log("Signup successful:", result.user?.email);
+        // Redirect to onboarding
+        router.push("/onboarding");
+      } else {
+        setError(result.error || "Sign up failed");
+        console.error("Signup error:", result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+      console.error("Signup exception:", err);
+    } finally {
       setIsLoading(false);
-      // Redirect to onboarding or show success message
-    }, 1000);
+    }
   };
 
   const isFormValid = formData.firstName && formData.lastName && formData.email && 
@@ -60,6 +74,13 @@ export default function SignUp() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center space-x-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span className="text-sm text-red-700">{error}</span>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

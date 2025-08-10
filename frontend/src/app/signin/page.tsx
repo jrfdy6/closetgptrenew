@@ -1,29 +1,45 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { signIn } from "@/lib/auth";
 
 export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
     
-    // TODO: Implement actual signin logic
-    console.log("Signin form submitted");
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const result = await signIn(email, password);
+      
+      if (result.success) {
+        console.log("Signin successful:", result.user?.email);
+        // Redirect to dashboard
+        router.push("/dashboard");
+      } else {
+        setError(result.error || "Sign in failed");
+        console.error("Signin error:", result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+      console.error("Signin exception:", err);
+    } finally {
       setIsLoading(false);
-      // Redirect to dashboard or show success message
-    }, 1000);
+    }
   };
 
   return (
@@ -42,6 +58,13 @@ export default function SignIn() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center space-x-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span className="text-sm text-red-700">{error}</span>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -54,6 +77,8 @@ export default function SignIn() {
                   type="email"
                   placeholder="Enter your email"
                   className="pl-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
@@ -70,6 +95,8 @@ export default function SignIn() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   className="pl-10 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
                 <Button

@@ -1,28 +1,41 @@
 "use client";
 
-// Trigger redeploy to fix 404 routing issue
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Mail, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, CheckCircle, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { resetPassword } from "@/lib/auth";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const result = await resetPassword(email);
+      
+      if (result.success) {
+        setIsSubmitted(true);
+        console.log("Password reset email sent to:", email);
+      } else {
+        setError(result.error || "Failed to send reset email");
+        console.error("Password reset error:", result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+      console.error("Password reset exception:", err);
+    } finally {
       setIsLoading(false);
-      setIsSubmitted(true);
-    }, 1000);
+    }
   };
 
   if (isSubmitted) {
@@ -46,7 +59,10 @@ export default function ForgotPassword() {
             </p>
             <div className="space-y-3">
               <Button 
-                onClick={() => setIsSubmitted(false)}
+                onClick={() => {
+                  setIsSubmitted(false);
+                  setError("");
+                }}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 Try Again
@@ -79,6 +95,13 @@ export default function ForgotPassword() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center space-x-2">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <span className="text-sm text-red-700">{error}</span>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
