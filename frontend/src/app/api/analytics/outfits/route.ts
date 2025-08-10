@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticatedFetch } from '../../lib/utils/auth';
+import { authenticatedFetch } from '@/lib/utils/auth';
 
 // Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
