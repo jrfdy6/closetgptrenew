@@ -134,8 +134,15 @@ async def initialize_firebase():
             
         # Test database connection
         db = firestore.client()
-        bucket = storage.bucket()
-        print("🔥 Firebase database and storage connected")
+        print("🔥 Firebase database connected")
+        
+        # Test storage connection (optional)
+        try:
+            bucket = storage.bucket()
+            print("🔥 Firebase storage connected")
+        except ValueError as e:
+            print(f"⚠️ Firebase storage not configured: {e}")
+            print("⚠️ Image upload functionality may not work without storage bucket")
         
     except Exception as e:
         print(f"❌ Firebase initialization failed: {e}")
@@ -143,13 +150,13 @@ async def initialize_firebase():
 
 # ---------------- ROUTER LOADER ----------------
 ROUTERS = [
-    ("routes.image_processing", "/api/image"),
-    ("routes.image_analysis", "/api/image"),
-    ("routes.weather", "/api/weather"),
-    ("routes.outfit", "/api/outfit"),
-    ("routes.outfits", "/api/outfits"),
-    ("routes.outfit_history", "/api"),
-    ("routes.test_debug", "/api/test"),
+    ("src.routes.image_processing", "/api/image"),
+    ("src.routes.image_analysis", "/api/image"),
+    ("src.routes.weather", "/api/weather"),
+    ("src.routes.outfit", "/api/outfit"),
+    ("src.routes.outfits", "/api/outfits"),
+    ("src.routes.outfit_history", "/api"),
+    ("src.routes.test_debug", "/api/test"),
 ]
 
 def include_router_safe(module_name: str, prefix: str):
