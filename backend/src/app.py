@@ -196,3 +196,8 @@ async def root():
 @app.get("/api/health")
 async def api_health():
     return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
+
+@app.post("/api/test-upload")
+async def test_upload():
+    """Test endpoint to verify routing is working"""
+    return {"message": "Test upload endpoint is working", "status": "success"}
