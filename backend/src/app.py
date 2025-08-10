@@ -20,20 +20,11 @@ allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 # Add production URLs
 allowed_origins.extend([
     "https://closetgpt-clean.vercel.app",
-    "https://closetgpt-clean-git-main-jrfdy6.vercel.app",
-    "https://closetgpt-clean-jrfdy6.vercel.app",
-    "https://closetgpt-frontend.vercel.app",  # Add the current Vercel domain
-    "https://closetgpt-frontend-git-main-jrfdy6.vercel.app",
-    "https://closetgpt-frontend-jrfdy6.vercel.app",
-    "https://closetgpt-frontend-m67a88zs6-johnnie-fields-projects.vercel.app",
-    # Current preview URL observed in logs
-    "https://closetgpt-frontend-6gz1mk8p6-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-9daphhhcr-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-1xfxn4mpe-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-exzf3ek7s-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app",
-    # Add current Vercel deployment domain
-    "https://frontend-chrcomo1e-johnnie-fields-projects.vercel.app"
+    "https://closetgpt-frontend.vercel.app",
+    "https://closetgptrenew.vercel.app",  # Add the current Vercel domain
+    # Allow any Vercel preview deployment for this project
+    "https://closetgptrenew-*.vercel.app",
+    "https://closetgpt-frontend-*.vercel.app"
 ])
 
 # Add Railway preview URLs if in development
@@ -48,30 +39,22 @@ if os.getenv("ENVIRONMENT") == "development":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
 )
 
-# Comment out custom OPTIONS handler to let CORS middleware handle it
-# @app.options("/api/image/upload")
-# async def upload_preflight(request: Request) -> Response:
-#     origin = request.headers.get("origin", "")
-#     acrh = request.headers.get("access-control-request-headers", "*")
-#     # Allow the specific preview URL and any matching the pattern
-#     if origin and (origin == "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app" or 
-#                    re.match(r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$", origin)):
-#         headers = {
-#             "Access-Control-Allow-Origin": origin,
-#             "Access-Control-Allow-Credentials": "true",
-#             "Access-Control-Allow-Methods": "POST, OPTIONS",
-#             "Access-Control-Request-Headers": acrh,
-#             "Access-Control-Max-Age": "600",
-#         }
-#         return Response(status_code=200, headers=headers)
-#     # For debugging, let's see what origin we're getting
-#     print(f"DEBUG: OPTIONS request from origin: {origin}")
-#     return Response(status_code=400, content=f"Disallowed CORS origin: {origin}")
+# Add explicit OPTIONS handler for image upload to ensure CORS headers are sent
+@app.options("/api/image/upload")
+async def options_image_upload():
+    """Explicit OPTIONS handler for image upload to ensure CORS headers are sent."""
+    from fastapi.responses import Response
+    response = Response(status_code=200)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
 
 # Try to import and setup core modules
 try:
