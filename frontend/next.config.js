@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@closetgpt/shared"],
   webpack: (config, { isServer }) => {
     // Handle module resolution
     config.resolve.fallback = {
@@ -14,9 +13,6 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@': require('path').resolve(__dirname, 'src'),
-      '@shared': require('path').resolve(__dirname, 'src/shared'),
-      '@shared/types': require('path').resolve(__dirname, 'src/shared/types'),
-      '@shared/types/responses': require('path').resolve(__dirname, 'src/shared/types/responses'),
     };
 
     return config;

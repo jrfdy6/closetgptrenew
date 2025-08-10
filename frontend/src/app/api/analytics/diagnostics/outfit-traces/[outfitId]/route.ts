@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authenticatedFetch } from '@/lib/auth';
+import { authenticatedFetch } from '../../../../../../lib/utils/auth';
 
 export async function GET(
   request: NextRequest,

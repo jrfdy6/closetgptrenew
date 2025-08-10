@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.21.0",
-    "@closetgpt/shared": "file:../shared",
+
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.9.0",
     "@radix-ui/react-accordion": "^1.2.11",
