@@ -16,6 +16,8 @@ from fastapi import FastAPI, Request, Depends, HTTPException, status
 import re
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
+import importlib
+import traceback
 
 # Create the app first
 app = FastAPI(
@@ -68,19 +70,6 @@ async def options_image_upload():
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
 
-# Add inline test route to isolate the issue
-@app.post("/api/image/upload-inline")
-async def upload_image_inline():
-    """Inline test route to verify FastAPI routing is working"""
-    logger.info("Inline upload route called successfully")
-    return {"message": "Inline upload route is working", "status": "success"}
-
-@app.get("/api/test-inline")
-async def test_inline():
-    """Inline test route to verify FastAPI routing is working"""
-    logger.info("Inline test route called successfully")
-    return {"message": "Inline test route is working", "status": "success"}
-
 # Try to import and setup core modules
 try:
     from .core.logging import setup_logging
@@ -105,139 +94,111 @@ try:
 except Exception as e:
     print(f"DEBUG: Firebase config import failed: {e}")
 
-# Import routes with error handling
-def safe_import_router(module_name, router_name):
-    """Safely import a router module."""
-    try:
-        logger.info(f"Attempting to import {module_name}.{router_name}")
-        
-        # Add routes directory to Python path for Railway deployment
-        import sys
-        import os
-        
-        # Get the directory where this app.py file is located
-        current_file_dir = os.path.dirname(os.path.abspath(__file__))
-        logger.info(f"Current file directory: {current_file_dir}")
-        
-        # Routes directory is relative to the current file
-        routes_path = os.path.join(current_file_dir, "routes")
-        logger.info(f"Routes path: {routes_path}")
-        logger.info(f"Routes path exists: {os.path.exists(routes_path)}")
-        
-        # Also try the parent directory (in case we're running from /app)
-        parent_routes_path = os.path.join(os.path.dirname(current_file_dir), "src", "routes")
-        logger.info(f"Parent routes path: {parent_routes_path}")
-        logger.info(f"Parent routes path exists: {os.path.exists(parent_routes_path)}")
-        
-        # Add both paths to Python path
-        paths_to_add = []
-        if routes_path not in sys.path and os.path.exists(routes_path):
-            paths_to_add.append(routes_path)
-        if parent_routes_path not in sys.path and os.path.exists(parent_routes_path):
-            paths_to_add.append(parent_routes_path)
-        
-        for path in paths_to_add:
-            sys.path.insert(0, path)
-            logger.info(f"Added {path} to Python path")
-        
-        logger.info(f"Current Python path: {sys.path}")
-        
-        # Try importing with different approaches
-        module = None
-        
-        # Approach 1: Direct import
-        try:
-            logger.info(f"Trying direct import: {module_name}")
-            module = __import__(module_name, fromlist=[router_name])
-            logger.info(f"Direct import successful: {module}")
-        except ImportError as e1:
-            logger.info(f"Direct import failed: {e1}")
-            
-            # Approach 2: Try with src.routes prefix
-            try:
-                logger.info(f"Trying src.routes import: src.routes.{module_name}")
-                module = __import__(f"src.routes.{module_name}", fromlist=[router_name])
-                logger.info(f"src.routes import successful: {module}")
-            except ImportError as e2:
-                logger.info(f"src.routes import failed: {e2}")
-                
-                # Approach 3: Try with absolute path
-                try:
-                    logger.info(f"Trying absolute path import")
-                    import importlib.util
-                    spec = importlib.util.spec_from_file_location(
-                        module_name, 
-                        os.path.join(routes_path, f"{module_name}.py")
-                    )
-                    if spec and spec.loader:
-                        module = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(module)
-                        logger.info(f"Absolute path import successful: {module}")
-                    else:
-                        raise ImportError("Could not create module spec")
-                except Exception as e3:
-                    logger.error(f"All import approaches failed: {e3}")
-                    raise ImportError(f"Failed to import {module_name} with all approaches: {e1}, {e2}, {e3}")
-        
-        if module is None:
-            raise ImportError(f"Module {module_name} is None after import attempts")
-        
-        router = getattr(module, router_name)
-        logger.info(f"Successfully got router: {router}")
-        return router
-    except Exception as e:
-        logger.exception(f"Failed to import {module_name}.{router_name}: {e}")
-        raise  # Re-raise to see the actual error
+# src/app.py
 
-# Import and include routers with error handling
-routers_to_include = [
-    ("wardrobe", "router"),
-    ("outfit", "router"),
-    ("outfits", "router"),
-    ("image_processing", "router"),
-    ("image_analysis", "router"),
-    ("weather", "router"),
-    ("outfit_history", "router"),
-    ("test_debug", "router"),
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import importlib
+import traceback
+
+app = FastAPI()
+
+# ---------------- CORS ----------------
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
+    allow_origins=[
+        "https://closetgpt-clean.vercel.app",
+        "https://closetgpt-frontend.vercel.app",
+        "https://closetgptrenew.vercel.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ---------------- FIREBASE INITIALIZATION ----------------
+@app.on_event("startup")
+async def initialize_firebase():
+    """Initialize Firebase on startup"""
+    try:
+        from firebase_admin import initialize_app, credentials
+        from firebase_admin import firestore, storage
+        
+        # Initialize Firebase if not already initialized
+        try:
+            initialize_app()
+            print("🔥 Firebase initialized successfully")
+        except ValueError:
+            print("🔥 Firebase already initialized")
+            
+        # Test database connection
+        db = firestore.client()
+        bucket = storage.bucket()
+        print("🔥 Firebase database and storage connected")
+        
+    except Exception as e:
+        print(f"❌ Firebase initialization failed: {e}")
+        traceback.print_exc()
+
+# ---------------- ROUTER LOADER ----------------
+ROUTERS = [
+    ("routes.image_processing", "/api/image"),
+    ("routes.image_analysis", "/api/image"),
+    ("routes.weather", "/api/weather"),
+    ("routes.outfit", "/api/outfit"),
+    ("routes.outfits", "/api/outfits"),
+    ("routes.outfit_history", "/api"),
+    ("routes.test_debug", "/api/test"),
 ]
 
-logger.info("=== Starting router inclusion process ===")
-
-for module_name, router_name in routers_to_include:
+def include_router_safe(module_name: str, prefix: str):
     try:
-        logger.info(f"Processing router: {module_name}.{router_name}")
-        router = safe_import_router(module_name, router_name)
+        print(f"🔄 Attempting to import {module_name}...")
+        module = importlib.import_module(module_name)
+        print(f"📦 Successfully imported {module_name}")
         
-        if module_name == "wardrobe":
-            logger.info(f"Including wardrobe router with prefix /api/wardrobe")
-            app.include_router(router, prefix="/api/wardrobe", tags=["wardrobe"])
-        elif module_name == "outfit":
-            logger.info(f"Including outfit router with prefix /api/outfit")
-            app.include_router(router, prefix="/api/outfit", tags=["outfit"])
-        elif module_name == "outfits":
-            logger.info(f"Including outfits router with prefix /api/outfits")
-            app.include_router(router, prefix="/api/outfits", tags=["outfits"])
-        elif module_name == "image_processing":
-            logger.info(f"Including image_processing router with NO prefix (router already has /api/image)")
-            app.include_router(router, tags=["images"])
-        elif module_name == "image_analysis":
-            logger.info(f"Including image_analysis router with no prefix")
-            app.include_router(router)
-        elif module_name == "weather":
-            logger.info(f"Including weather router with no prefix")
-            app.include_router(router)
-        elif module_name == "outfit_history":
-            logger.info(f"Including outfit_history router with prefix /api")
-            app.include_router(router, prefix="/api", tags=["outfit-history"])
-        elif module_name == "test_debug":
-            logger.info(f"Including test_debug router with tags")
-            app.include_router(router, tags=["test"])
+        router = getattr(module, "router", None)
+        if router is None:
+            print(f"❌ {module_name}: No `router` object found")
+            return
+            
+        print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
+        app.include_router(router, prefix=prefix)
+        print(f"✅ Mounted {module_name} at prefix {prefix}")
         
-        logger.info(f"✅ Successfully included {module_name} router")
     except Exception as e:
-        logger.exception(f"❌ Failed to include {module_name} router: {e}")
+        print(f"🔥 Failed to mount {module_name}")
+        traceback.print_exc()
 
-logger.info("=== Router inclusion process completed ===")
+print("🚀 Starting router loading process...")
+for mod, prefix in ROUTERS:
+    include_router_safe(mod, prefix)
+print("🏁 Router loading process complete!")
+
+# ---------------- STARTUP LOG ----------------
+@app.on_event("startup")
+async def show_all_routes():
+    print("\n📜 ROUTES TABLE:")
+    for route in app.routes:
+        print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
+    print()
+
+# ---------------- ROOT ----------------
+@app.get("/")
+def root():
+    return {"status": "API running", "message": "ClosetGPT API is running with bulletproof router loader"}
+
+# ---------------- INLINE TEST ROUTES ----------------
+@app.post("/api/image/upload-inline")
+async def upload_image_inline():
+    """Inline test route to verify FastAPI routing is working"""
+    return {"message": "Inline upload route is working", "status": "success"}
+
+@app.get("/api/test-inline")
+async def test_inline():
+    """Inline test route to verify FastAPI routing is working"""
+    return {"message": "Inline test route is working", "status": "success"}
 
 @app.get("/health")
 async def health_check():
