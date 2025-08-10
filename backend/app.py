@@ -89,31 +89,27 @@ app = FastAPI(
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
-# Add production URLs
-allowed_origins.extend([
+# Add common Vercel patterns for flexibility
+vercel_patterns = [
     "https://closetgpt-clean.vercel.app",
-    "https://closetgpt-clean-git-main-jrfdy6.vercel.app",
-    "https://closetgpt-clean-jrfdy6.vercel.app",
     "https://closetgpt-frontend.vercel.app",
-    "https://closetgpt-frontend-git-main-jrfdy6.vercel.app",
-    "https://closetgpt-frontend-jrfdy6.vercel.app",
-    "https://closetgpt-frontend-m67a88zs6-johnnie-fields-projects.vercel.app",
-    # Current preview URL observed in logs
-    "https://closetgpt-frontend-6gz1mk8p6-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-9daphhhcr-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-1xfxn4mpe-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-exzf3ek7s-johnnie-fields-projects.vercel.app",
-    "https://closetgpt-frontend-q128aval8-johnnie-fields-projects.vercel.app",
-    # Current production domain
-    "https://closetgptrenew.vercel.app"
-])
+    "https://closetgptrenew.vercel.app",
+    # Allow any Vercel preview deployment for this project
+    "https://closetgptrenew-*.vercel.app",
+    "https://closetgpt-frontend-*.vercel.app"
+]
+
+# Add all patterns to allowed origins
+allowed_origins.extend(vercel_patterns)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https://closetgpt-frontend-[a-z0-9]+-johnnie-fields-projects\.vercel\.app$",
-    # Allow all Vercel preview deployments for this project scope
-    # Example: https://closetgpt-frontend-<hash>-johnnie-fields-projects.vercel.app
+    allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
+    # Allow any Vercel deployment for this project
+    # Examples: 
+    # - https://closetgptrenew-*.vercel.app
+    # - https://closetgpt-frontend-*.vercel.app
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
