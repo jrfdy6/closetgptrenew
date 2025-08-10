@@ -124,7 +124,7 @@ for module_name, router_name in routers_to_include:
             elif module_name == "outfits":
                 app.include_router(router, prefix="/api/outfits", tags=["outfits"])
             elif module_name == "image_processing":
-                app.include_router(router, prefix="/api/image", tags=["images"])
+                app.include_router(router, tags=["images"])
             elif module_name == "image_analysis":
                 app.include_router(router)
             elif module_name == "weather":
