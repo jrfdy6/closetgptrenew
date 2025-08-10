@@ -150,13 +150,13 @@ async def initialize_firebase():
 
 # ---------------- ROUTER LOADER ----------------
 ROUTERS = [
-    ("src.routes.image_processing", "/api/image"),
-    ("src.routes.image_analysis", "/api/image"),
-    ("src.routes.weather", "/api/weather"),
-    ("src.routes.outfit", "/api/outfit"),
-    ("src.routes.outfits", "/api/outfits"),
-    ("src.routes.outfit_history", "/api"),
-    ("src.routes.test_debug", "/api/test"),
+    ("src.routes.image_processing", ""),  # Router already has /api/image prefix
+    ("src.routes.image_analysis", ""),   # Router already has /api/image prefix
+    ("src.routes.weather", ""),          # Router already has /api/weather prefix
+    ("src.routes.outfit", ""),           # Router already has /api/outfit prefix
+    ("src.routes.outfits", ""),          # Router already has /api/outfits prefix
+    ("src.routes.outfit_history", "/api"), # Router has no prefix, so add /api
+    ("src.routes.test_debug", ""),       # Router already has /api/test prefix
 ]
 
 def include_router_safe(module_name: str, prefix: str):
