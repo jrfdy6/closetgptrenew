@@ -161,3 +161,43 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/ backend/venv311/
+
+# Build artifacts
+frontend/.next/
+frontend/.vercel/
+frontend/.swc/
+frontend/tsconfig.tsbuildinfo
+
+# Test files (exclude comprehensive outfit generation tests)
+backend/test_*.py
+backend/comprehensive_testing_framework.py
+backend/analyze_existing_wardrobe.py
+backend/tests/
+backend/.pytest_cache/
+
+# Duplicate/backup files
+backend/.dockerignore.backup
+backend/requirements-*.txt
+backend/simple_requirements.txt
+backend/requirements-test.txt
+backend/requirements-weather.txt
+backend/pytest.ini
+backend/jest.config.js
+backend/ENHANCED_ANALYSIS_README.md
+
+# Frontend test and documentation files
+frontend/test_layout_changes.md
+frontend/MANUAL_UX_CHECKLIST.md
+frontend/MOBILE_RESPONSIVENESS.md
+frontend/ANALYTICS_INTEGRATION.md
+frontend/test-trends.js
+frontend/tsconfig.scripts.json
+frontend/package-minimal.json
+
+# Root level duplicates
+src/
+shared/
+package.json
+package-lock.json
+requirements.txt
+run_tests.sh

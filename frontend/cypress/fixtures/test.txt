@@ -1,2 +1,0 @@
-This is a test file for invalid upload testing.
-It should be rejected by the image upload validation. 

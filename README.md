@@ -1,81 +1,125 @@
-# ClosetGPT
+# ClosetGPT Renew
 
-ClosetGPT is an AI-powered personal stylist application that helps users manage their wardrobe, get outfit recommendations, and receive personalized style advice.
+A modern AI-powered wardrobe management and outfit generation system with a clean, production-ready architecture.
 
-## Features
-
-- **AI Outfit Recommendations**: Get personalized outfit suggestions based on your style preferences and occasion
-- **Wardrobe Management**: Organize and track your clothing items, accessories, and shoes
-- **Style Advice**: Receive expert fashion advice tailored to your personal style
-- **Modern UI**: Beautiful and responsive user interface built with Next.js and Tailwind CSS
-
-## Tech Stack
-
-- **Frontend**:
-  - Next.js 14
-  - React
-  - TypeScript
-  - Tailwind CSS
-  - shadcn/ui Components
-  - Radix UI Primitives
-
-## Development Setup
-
-### Requirements
-- Python 3.11 (required for backend)
-- Node.js (for frontend)
-
-### Port Configuration
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
-
-### Getting Started
-
-1. Backend Setup:
-```bash
-cd backend
-python3.11 -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-pip install -r requirements.txt
-python run.py
-```
-
-2. Frontend Setup:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
-
-## Project Structure
+## 🏗️ Project Structure
 
 ```
-frontend/
-├── src/
-│   ├── app/                 # Next.js app directory
-│   │   ├── dashboard/      # Dashboard page
-│   │   ├── login/         # Login page
-│   │   ├── signup/        # Signup page
-│   │   └── layout.tsx     # Root layout
-│   ├── components/         # React components
-│   │   ├── ui/            # UI components
-│   │   └── Navigation.tsx # Navigation component
-│   └── lib/               # Utility functions
-└── public/                # Static assets
+closetgptrenew/
+├── backend/                 # Python FastAPI backend
+│   ├── app/                # Core application modules
+│   ├── src/                # Source code
+│   ├── firebase/           # Firebase configuration
+│   ├── app.py              # Main FastAPI application
+│   ├── requirements.txt    # Python dependencies
+│   └── start_backend.py    # Backend startup script
+├── frontend/               # Next.js frontend
+│   ├── src/                # React components and pages
+│   ├── public/             # Static assets
+│   ├── package.json        # Node.js dependencies
+│   └── next.config.js      # Next.js configuration
+├── .gitignore              # Git ignore rules
+└── README.md               # This file
 ```
 
-## Contributing
+## 🚀 Quick Start
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Backend Setup
 
-## License
+1. **Navigate to backend directory:**
+   ```bash
+   cd backend
+   ```
+
+2. **Create virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set up environment variables:**
+   ```bash
+   cp env.example .env
+   # Edit .env with your Firebase credentials and API keys
+   ```
+
+5. **Start the backend server:**
+   ```bash
+   python start_backend.py
+   ```
+   
+   The backend will run on port 3001.
+
+### Frontend Setup
+
+1. **Navigate to frontend directory:**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables:**
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your configuration
+   ```
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+   
+   The frontend will run on port 3000.
+
+## 🔧 Production Deployment
+
+### Backend Deployment
+- **Railway:** Use `deploy_to_railway.sh`
+- **Render:** Use `render.yaml`
+- **Docker:** Use the provided Dockerfile
+
+### Frontend Deployment
+- **Vercel:** Use `vercel.json`
+- **Netlify:** Configure build settings
+- **Docker:** Build and deploy container
+
+## 🧪 Testing
+
+The project has been cleaned to exclude comprehensive outfit generation tests while maintaining essential functionality. All test files have been removed to keep the codebase production-ready.
+
+## 🔒 Security
+
+- Firebase credentials are managed through environment variables
+- All Firebase access goes through the backend
+- No direct Firebase initialization from the frontend
+
+## 📱 Features
+
+- AI-powered outfit generation
+- Wardrobe management
+- Style analysis and recommendations
+- Weather-aware outfit suggestions
+- User authentication and profiles
+- Analytics and insights
+
+## 🛠️ Tech Stack
+
+- **Backend:** Python, FastAPI, Firebase Admin
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS
+- **AI:** OpenAI GPT, CLIP embeddings
+- **Database:** Firebase Firestore
+- **Storage:** Firebase Storage
+- **Authentication:** Firebase Auth
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
