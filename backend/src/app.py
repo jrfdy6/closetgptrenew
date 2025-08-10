@@ -84,8 +84,15 @@ except Exception as e:
 def safe_import_router(module_name, router_name):
     """Safely import a router module."""
     try:
-        # When running from src/app.py, the import path should be routes.{module_name}
-        module = __import__(f"routes.{module_name}", fromlist=[router_name])
+        # Add routes directory to Python path for Railway deployment
+        import sys
+        import os
+        routes_path = os.path.join(os.path.dirname(__file__), "routes")
+        if routes_path not in sys.path:
+            sys.path.insert(0, routes_path)
+        
+        # Now try to import the module
+        module = __import__(module_name, fromlist=[router_name])
         router = getattr(module, router_name)
         return router
     except Exception as e:
