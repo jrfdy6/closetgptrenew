@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';

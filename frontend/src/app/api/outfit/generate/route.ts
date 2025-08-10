@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://closetgptrenew-backend-production.up.railway.app';
+  'https://acceptable-wisdom-production-ac06.up.railway.app';
 
 const OCCASIONS = ["casual", "formal", "business", "athletic", "party"];
 const MOODS = ["energetic", "relaxed", "confident", "playful", "elegant"];

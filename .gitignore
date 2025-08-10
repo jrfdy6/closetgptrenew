@@ -195,7 +195,6 @@ frontend/tsconfig.scripts.json
 frontend/package-minimal.json
 
 # Root level duplicates
-src/
 shared/
 package.json
 package-lock.json

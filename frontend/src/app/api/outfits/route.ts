@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
+      'https://acceptable-wisdom-production-ac06.up.railway.app';
     console.log('🔍 DEBUG: NEXT_PUBLIC_API_URL:', apiUrl);
     
     // Ensure the URL has a protocol
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
           const fallbackBase =
             process.env.NEXT_PUBLIC_API_URL ||
             process.env.NEXT_PUBLIC_BACKEND_URL ||
-            'https://closetgptrenew-backend-production.up.railway.app';
+            'https://acceptable-wisdom-production-ac06.up.railway.app';
           const testResponse = await fetch(`${fallbackBase}/api/outfits/test?limit=10000`, {
             method: 'GET',
             signal: AbortSignal.timeout(3000), // 3 second timeout for fallback

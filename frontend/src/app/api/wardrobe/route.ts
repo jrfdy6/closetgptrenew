@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
+      'https://acceptable-wisdom-production-ac06.up.railway.app';
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
+      'https://acceptable-wisdom-production-ac06.up.railway.app';
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol
