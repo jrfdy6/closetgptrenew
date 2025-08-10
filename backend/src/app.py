@@ -84,7 +84,8 @@ except Exception as e:
 def safe_import_router(module_name, router_name):
     """Safely import a router module."""
     try:
-        module = __import__(f"src.routes.{module_name}", fromlist=[router_name])
+        # When running from src/app.py, the import path should be routes.{module_name}
+        module = __import__(f"routes.{module_name}", fromlist=[router_name])
         router = getattr(module, router_name)
         return router
     except Exception as e:
