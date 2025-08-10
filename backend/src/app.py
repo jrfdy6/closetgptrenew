@@ -1,9 +1,21 @@
-from fastapi import FastAPI, Request, Response
+import logging
+import sys
+import os
+from pathlib import Path
+
+# Configure logging to see what's happening during startup
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info("=== Starting FastAPI application ===")
+logger.info(f"Current working directory: {os.getcwd()}")
+logger.info(f"Python path: {sys.path}")
+logger.info(f"__file__ location: {__file__}")
+
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 import re
 from fastapi.middleware.cors import CORSMiddleware
-import os
-import sys
-import traceback
+from fastapi.responses import Response
 
 # Create the app first
 app = FastAPI(
@@ -56,6 +68,19 @@ async def options_image_upload():
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     return response
 
+# Add inline test route to isolate the issue
+@app.post("/api/image/upload-inline")
+async def upload_image_inline():
+    """Inline test route to verify FastAPI routing is working"""
+    logger.info("Inline upload route called successfully")
+    return {"message": "Inline upload route is working", "status": "success"}
+
+@app.get("/api/test-inline")
+async def test_inline():
+    """Inline test route to verify FastAPI routing is working"""
+    logger.info("Inline test route called successfully")
+    return {"message": "Inline test route is working", "status": "success"}
+
 # Try to import and setup core modules
 try:
     from .core.logging import setup_logging
@@ -84,95 +109,82 @@ except Exception as e:
 def safe_import_router(module_name, router_name):
     """Safely import a router module."""
     try:
+        logger.info(f"Attempting to import {module_name}.{router_name}")
+        
         # Add routes directory to Python path for Railway deployment
         import sys
         import os
         routes_path = os.path.join(os.path.dirname(__file__), "routes")
+        logger.info(f"Routes path: {routes_path}")
+        logger.info(f"Routes path exists: {os.path.exists(routes_path)}")
+        
         if routes_path not in sys.path:
             sys.path.insert(0, routes_path)
+            logger.info(f"Added {routes_path} to Python path")
+        
+        logger.info(f"Current Python path: {sys.path}")
         
         # Now try to import the module
+        logger.info(f"Importing module: {module_name}")
         module = __import__(module_name, fromlist=[router_name])
+        logger.info(f"Successfully imported module: {module}")
+        
         router = getattr(module, router_name)
+        logger.info(f"Successfully got router: {router}")
         return router
     except Exception as e:
-        print(f"DEBUG: Failed to import {module_name}.{router_name}: {e}")
-        return None
+        logger.exception(f"Failed to import {module_name}.{router_name}: {e}")
+        raise  # Re-raise to see the actual error
 
 # Import and include routers with error handling
 routers_to_include = [
+    ("wardrobe", "router"),
     ("outfit", "router"),
     ("outfits", "router"),
     ("image_processing", "router"),
     ("image_analysis", "router"),
     ("weather", "router"),
-    ("style_analysis", "router"),
-    ("wardrobe_analysis", "router"),
-    ("forgotten_gems", "router"),
-    ("wardrobe_minimal", "router"),  # Use minimal wardrobe router
-    ("analytics", "router"),
-    ("analytics_dashboard", "router"),
-    ("auth", "router"),
-    ("monitoring", "router"),
-    ("security", "router"),
-    ("performance", "router"),
-    ("feedback", "router"),
-    ("public_diagnostics", "router"),
-    ("validation_rules", "router"),
-    ("item_analytics", "router"),
     ("outfit_history", "router"),
-    ("test_debug", "router"),  # Add test debug router
+    ("test_debug", "router"),
 ]
+
+logger.info("=== Starting router inclusion process ===")
 
 for module_name, router_name in routers_to_include:
     try:
+        logger.info(f"Processing router: {module_name}.{router_name}")
         router = safe_import_router(module_name, router_name)
-        if router:
-            if module_name == "outfit":
-                app.include_router(router, prefix="/api/outfit", tags=["outfit"])
-            elif module_name == "outfits":
-                app.include_router(router, prefix="/api/outfits", tags=["outfits"])
-            elif module_name == "image_processing":
-                app.include_router(router, tags=["images"])
-            elif module_name == "image_analysis":
-                app.include_router(router)
-            elif module_name == "weather":
-                app.include_router(router, prefix="/api", tags=["weather"])
-            elif module_name == "style_analysis":
-                app.include_router(router, prefix="/api", tags=["style-analysis"])
-            elif module_name == "wardrobe_analysis":
-                app.include_router(router)
-            elif module_name == "forgotten_gems":
-                app.include_router(router)
-            elif module_name == "wardrobe_minimal":
-                app.include_router(router)
-            elif module_name == "analytics":
-                app.include_router(router, prefix="/api", tags=["analytics"])
-            elif module_name == "analytics_dashboard":
-                app.include_router(router, prefix="/api", tags=["analytics-dashboard"])
-            elif module_name == "auth":
-                app.include_router(router)
-            elif module_name == "monitoring":
-                app.include_router(router, prefix="/api", tags=["monitoring"])
-            elif module_name == "security":
-                app.include_router(router, prefix="/api/security", tags=["security"])
-            elif module_name == "performance":
-                app.include_router(router, prefix="/api/performance", tags=["performance"])
-            elif module_name == "feedback":
-                app.include_router(router)
-            elif module_name == "public_diagnostics":
-                app.include_router(router, prefix="/api/diagnostics", tags=["public-diagnostics"])
-            elif module_name == "validation_rules":
-                app.include_router(router, prefix="/api", tags=["validation-rules"])
-            elif module_name == "item_analytics":
-                app.include_router(router)
-            elif module_name == "outfit_history":
-                app.include_router(router, prefix="/api", tags=["outfit-history"])
-            elif module_name == "test_debug":
-                app.include_router(router, tags=["test"])
-            print(f"DEBUG: Successfully included {module_name} router")
+        
+        if module_name == "wardrobe":
+            logger.info(f"Including wardrobe router with prefix /api/wardrobe")
+            app.include_router(router, prefix="/api/wardrobe", tags=["wardrobe"])
+        elif module_name == "outfit":
+            logger.info(f"Including outfit router with prefix /api/outfit")
+            app.include_router(router, prefix="/api/outfit", tags=["outfit"])
+        elif module_name == "outfits":
+            logger.info(f"Including outfits router with prefix /api/outfits")
+            app.include_router(router, prefix="/api/outfits", tags=["outfits"])
+        elif module_name == "image_processing":
+            logger.info(f"Including image_processing router with NO prefix (router already has /api/image)")
+            app.include_router(router, tags=["images"])
+        elif module_name == "image_analysis":
+            logger.info(f"Including image_analysis router with no prefix")
+            app.include_router(router)
+        elif module_name == "weather":
+            logger.info(f"Including weather router with no prefix")
+            app.include_router(router)
+        elif module_name == "outfit_history":
+            logger.info(f"Including outfit_history router with prefix /api")
+            app.include_router(router, prefix="/api", tags=["outfit-history"])
+        elif module_name == "test_debug":
+            logger.info(f"Including test_debug router with tags")
+            app.include_router(router, tags=["test"])
+        
+        logger.info(f"✅ Successfully included {module_name} router")
     except Exception as e:
-        print(f"DEBUG: Failed to include {module_name} router: {e}")
+        logger.exception(f"❌ Failed to include {module_name} router: {e}")
+
+logger.info("=== Router inclusion process completed ===")
 
 @app.get("/health")
 async def health_check():
