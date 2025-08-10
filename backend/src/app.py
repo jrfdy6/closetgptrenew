@@ -113,6 +113,7 @@ routers_to_include = [
     ("validation_rules", "router"),
     ("item_analytics", "router"),
     ("outfit_history", "router"),
+    ("test_debug", "router"),  # Add test debug router
 ]
 
 for module_name, router_name in routers_to_include:
@@ -159,6 +160,8 @@ for module_name, router_name in routers_to_include:
                 app.include_router(router)
             elif module_name == "outfit_history":
                 app.include_router(router, prefix="/api", tags=["outfit-history"])
+            elif module_name == "test_debug":
+                app.include_router(router, tags=["test"])
             print(f"DEBUG: Successfully included {module_name} router")
     except Exception as e:
         print(f"DEBUG: Failed to include {module_name} router: {e}")
