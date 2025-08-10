@@ -90,3 +90,4 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 # Updated Sun Jul 27 14:51:57 EDT 2025
 # Updated Firebase Storage configuration
 # Force Vercel redeploy - Sun Aug 10 14:42:05 EDT 2025
+# Force Vercel redeploy - Sun Aug 10 15:18:00 EDT 2025 - Fixed tsconfig.json path mapping
