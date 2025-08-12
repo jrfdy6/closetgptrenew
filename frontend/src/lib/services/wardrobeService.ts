@@ -55,12 +55,12 @@ export class WardrobeService {
 
       const headers = await this.getAuthHeaders();
       const authHeader = (headers as Record<string, string>).Authorization;
-      console.log('🔍 DEBUG: Auth headers:', {
-        hasAuth: !!authHeader,
-        authType: authHeader?.split(' ')[0],
-        tokenLength: authHeader?.split(' ')[1]?.length || 0
-      });
+      console.log('🔍 DEBUG: Auth headers - hasAuth:', !!authHeader);
+      console.log('🔍 DEBUG: Auth headers - authType:', authHeader?.split(' ')[0]);
+      console.log('🔍 DEBUG: Auth headers - tokenLength:', authHeader?.split(' ')[1]?.length || 0);
+      console.log('🔍 DEBUG: Full headers object:', headers);
       
+      console.log('🔍 DEBUG: About to fetch from:', `${API_BASE_URL}/api/wardrobe/`);
       const response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
         method: 'GET',
         headers,
