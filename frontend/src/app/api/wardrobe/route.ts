@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       console.warn('🔍 DEBUG: No authorization header provided');
     }
     
-    console.log('🔍 DEBUG: Calling backend wardrobe endpoint:', `${fullApiUrl}/api/wardrobe/`);
+    console.log('🔍 DEBUG: Calling backend wardrobe endpoint:', `${fullApiUrl}/api/wardrobe`);
     console.log('🔍 DEBUG: Headers:', headers);
     
     // Create an AbortController for timeout
