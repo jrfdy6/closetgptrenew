@@ -37,6 +37,7 @@ allowed_origins.extend([
     "https://closetgpt-frontend.vercel.app",
     "https://closetgptrenew.vercel.app",  # Add the current Vercel domain
     "https://closetgpt-frontend-ggn2bebjo-johnnie-fields-projects.vercel.app",  # Your specific Vercel domain
+    "https://closetgpt-frontend-lqe5zyn9u-johnnie-fields-projects.vercel.app",  # Your current Vercel preview domain
     # Allow any Vercel preview deployment for this project
     "https://closetgptrenew-*.vercel.app",
     "https://closetgpt-frontend-*.vercel.app"
@@ -62,15 +63,28 @@ app.add_middleware(
 
 # Add explicit OPTIONS handler for all routes to ensure CORS headers are sent
 @app.options("/{full_path:path}")
-async def options_handler(full_path: str):
+async def options_handler(full_path: str, request: Request):
     """Explicit OPTIONS handler for all routes to ensure CORS headers are sent."""
     from fastapi.responses import Response
-    response = Response(status_code=200)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Access-Control-Max-Age"] = "86400"  # 24 hours
-    return response
+    
+    # Get the origin from the request
+    origin = request.headers.get("origin")
+    
+    # Check if origin is in allowed origins
+    if origin in allowed_origins or any(re.match(pattern, origin) for pattern in [
+        r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
+        r"^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$"
+    ]):
+        response = Response(status_code=200)
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Max-Age"] = "86400"  # 24 hours
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    else:
+        # Return a simple response for non-allowed origins
+        return Response(status_code=200)
 
 # Try to import and setup core modules
 try:
