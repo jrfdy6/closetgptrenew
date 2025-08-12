@@ -61,10 +61,17 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Full headers object:', headers);
       
       console.log('🔍 DEBUG: About to fetch from:', `${API_BASE_URL}/api/wardrobe/`);
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
-        method: 'GET',
-        headers,
-      });
+      let response;
+      try {
+        response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
+          method: 'GET',
+          headers,
+        });
+        console.log('🔍 DEBUG: Fetch completed successfully, status:', response.status);
+      } catch (fetchError) {
+        console.error('🔍 DEBUG: Fetch failed with error:', fetchError);
+        throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'}`);
+      }
 
       if (!response.ok) {
         console.error('🔍 DEBUG: Wardrobe API response not ok:', {
