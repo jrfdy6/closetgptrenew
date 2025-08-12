@@ -25,7 +25,7 @@ app = FastAPI(
     description="AI-powered wardrobe management and outfit generation API",
     version="1.0.0"
 )
-print("DEBUG: FastAPI app created - deployment test - CORS fix attempt")
+print("DEBUG: FastAPI app created - deployment test - CORS fix attempt - FORCING REDEPLOY")
 
 # Configure CORS first
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
