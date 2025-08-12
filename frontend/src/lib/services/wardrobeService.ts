@@ -100,11 +100,14 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Response data keys:', Object.keys(data));
       console.log('🔍 DEBUG: Response data type:', typeof data);
       
-      if (!data.success) {
-        console.error('🔍 DEBUG: Response data does not have success: true');
+      // Check if we have the expected data structure
+      if (!data.items || !Array.isArray(data.items)) {
+        console.error('🔍 DEBUG: Response data does not have items array');
         console.error('🔍 DEBUG: Available keys:', Object.keys(data));
-        throw new Error('Failed to fetch wardrobe items');
+        throw new Error('Invalid response format from backend');
       }
+      
+      console.log('🔍 DEBUG: Successfully parsed wardrobe response with', data.items.length, 'items');
 
       // Transform the backend data to match frontend ClothingItem interface
       return data.items.map(item => ({
