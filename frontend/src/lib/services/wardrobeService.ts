@@ -54,7 +54,7 @@ export class WardrobeService {
       }
 
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe`, {
+      const response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
         method: 'GET',
         headers,
       });
@@ -125,7 +125,7 @@ export class WardrobeService {
         last_worn: itemData.lastWorn?.toISOString(),
       };
       
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe`, {
+      const response = await fetch(`${API_BASE_URL}/api/wardrobe/add`, {
         method: 'POST',
         headers,
         body: JSON.stringify(backendItem),
