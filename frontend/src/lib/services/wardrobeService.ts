@@ -68,6 +68,7 @@ export class WardrobeService {
           headers,
         });
         console.log('🔍 DEBUG: Fetch completed successfully, status:', response.status);
+        console.log('🔍 DEBUG: Response headers:', Object.fromEntries(response.headers.entries()));
       } catch (fetchError) {
         console.error('🔍 DEBUG: Fetch failed with error:', fetchError);
         throw new Error(`Network error: ${fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'}`);
@@ -93,9 +94,12 @@ export class WardrobeService {
         throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
 
+      console.log('🔍 DEBUG: About to parse response as JSON...');
       const data: WardrobeResponse = await response.json();
+      console.log('🔍 DEBUG: Parsed response data:', data);
       
       if (!data.success) {
+        console.error('🔍 DEBUG: Response data does not have success: true');
         throw new Error('Failed to fetch wardrobe items');
       }
 
