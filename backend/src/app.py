@@ -36,6 +36,7 @@ allowed_origins.extend([
     "https://closetgpt-clean.vercel.app",
     "https://closetgpt-frontend.vercel.app",
     "https://closetgptrenew.vercel.app",  # Add the current Vercel domain
+    "https://closetgpt-frontend-ggn2bebjo-johnnie-fields-projects.vercel.app",  # Your specific Vercel domain
     # Allow any Vercel preview deployment for this project
     "https://closetgptrenew-*.vercel.app",
     "https://closetgpt-frontend-*.vercel.app"
@@ -53,21 +54,22 @@ if os.getenv("ENVIRONMENT") == "development":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
+    allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$|^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
 )
 
-# Add explicit OPTIONS handler for image upload to ensure CORS headers are sent
-@app.options("/api/image/upload")
-async def options_image_upload():
-    """Explicit OPTIONS handler for image upload to ensure CORS headers are sent."""
+# Add explicit OPTIONS handler for all routes to ensure CORS headers are sent
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    """Explicit OPTIONS handler for all routes to ensure CORS headers are sent."""
     from fastapi.responses import Response
     response = Response(status_code=200)
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Access-Control-Max-Age"] = "86400"  # 24 hours
     return response
 
 # Try to import and setup core modules
@@ -108,12 +110,17 @@ app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
     allow_origins=[
+        "http://localhost:3000",
+        "https://localhost:3000",
         "https://closetgpt-clean.vercel.app",
         "https://closetgpt-frontend.vercel.app",
-        "https://closetgptrenew.vercel.app"
+        "https://closetgptrenew.vercel.app",
+        # Allow any Vercel preview deployment for this project
+        "https://closetgptrenew-*.vercel.app",
+        "https://closetgpt-frontend-*.vercel.app"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -153,6 +160,8 @@ ROUTERS = [
     ("src.routes.image_processing", ""),  # Router already has /api/image prefix
     ("src.routes.image_analysis", ""),   # Router already has /api/image prefix
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
+    ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
+    ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe-analysis prefix
     ("src.routes.outfit", ""),           # Router already has /api/outfit prefix
     ("src.routes.outfits", ""),          # Router already has /api/outfits prefix
     ("src.routes.outfit_history", "/api"), # Router has no prefix, so add /api
@@ -233,9 +242,7 @@ async def simple_health_check():
         "port": "8080"
     }
 
-@app.get("/")
-async def root():
-    return {"message": "ClosetGPT API - Full app is working"}
+# Removed duplicate root route
 
 @app.get("/api/health")
 async def api_health():

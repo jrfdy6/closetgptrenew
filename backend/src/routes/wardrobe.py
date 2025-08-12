@@ -235,11 +235,32 @@ async def get_wardrobe_items(
         )
         log_analytics_event(analytics_event)
         
+        # Transform backend data to match frontend expectations
+        transformed_items = []
+        for item in items:
+            transformed_item = {
+                "id": item['id'],
+                "name": item.get('name', 'Unknown Item'),
+                "type": item.get('type', 'unknown'),  # Keep as type for frontend
+                "color": item.get('color', 'unknown'),
+                "imageUrl": item.get('imageUrl', '/placeholder.png'),  # Keep as imageUrl for frontend
+                "wearCount": item.get('wearCount', 0),  # Keep as wearCount for frontend
+                "favorite": item.get('favorite', False),
+                "style": item.get('style', []),
+                "season": item.get('season', ['all']),
+                "occasion": item.get('occasion', []),
+                "lastWorn": item.get('lastWorn'),  # Keep as lastWorn for frontend
+                "userId": current_user.id,
+                "createdAt": item.get('createdAt'),  # Keep as createdAt for frontend
+                "updatedAt": item.get('updatedAt'),  # Keep as updatedAt for frontend
+            }
+            transformed_items.append(transformed_item)
+        
         return {
             "success": True,
-            "items": items,
-            "count": len(items),
-            "errors": errors if errors else None
+            "items": transformed_items,
+            "count": len(transformed_items),
+            "user_id": current_user.id
         }
         
     except Exception as e:

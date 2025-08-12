@@ -161,9 +161,13 @@ class WardrobeItem(BaseModel):
     brand: Optional[str] = None
     image_url: Optional[str] = None
     description: Optional[str] = None
-    season: Optional[str] = None
+    season: Optional[List[str]] = None
     occasion: Optional[List[str]] = None
     material: Optional[str] = None
+    style: Optional[List[str]] = None
+    wear_count: Optional[int] = 0
+    favorite: Optional[bool] = False
+    last_worn: Optional[str] = None
 
 class OutfitRequest(BaseModel):
     occasion: str
@@ -338,10 +342,27 @@ async def get_wardrobe(current_user_id: str = Depends(get_current_user_id)):
         items = []
         for doc in docs:
             item_data = doc.to_dict()
-            item_data['id'] = doc.id
-            items.append(item_data)
+            # Transform backend data to match frontend expectations
+            transformed_item = {
+                "id": doc.id,
+                "name": item_data.get('name', 'Unknown Item'),
+                "type": item_data.get('category', 'unknown'),  # Map category to type
+                "color": item_data.get('color', 'unknown'),
+                "imageUrl": item_data.get('image_url', '/placeholder.png'),  # Map image_url to imageUrl
+                "wearCount": item_data.get('wear_count', 0),  # Map wear_count to wearCount
+                "favorite": item_data.get('favorite', False),
+                "style": item_data.get('style', []),
+                "season": item_data.get('season', []),
+                "occasion": item_data.get('occasion', []),
+                "lastWorn": item_data.get('last_worn'),  # Map last_worn to lastWorn
+                "userId": current_user_id,
+                "createdAt": item_data.get('created_at'),  # Map created_at to createdAt
+                "updatedAt": item_data.get('updated_at'),  # Map updated_at to updatedAt
+            }
+            items.append(transformed_item)
         
         return {
+            "success": True,
             "items": items,
             "count": len(items),
             "user_id": current_user_id
@@ -368,20 +389,130 @@ async def add_wardrobe_item(
         # Add timestamp
         item_data = item.dict()
         item_data['created_at'] = datetime.now().isoformat()
+        item_data['updated_at'] = datetime.now().isoformat()
+        item_data['wear_count'] = 0
+        item_data['favorite'] = False
         
         # Add item to Firestore
         wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
         doc_ref = wardrobe_ref.add(item_data)
         
+        # Transform the response to match frontend expectations
+        transformed_item = {
+            "id": doc_ref[0].id,
+            "name": item_data.get('name', 'Unknown Item'),
+            "type": item_data.get('category', 'unknown'),
+            "color": item_data.get('color', 'unknown'),
+            "imageUrl": item_data.get('image_url', '/placeholder.png'),
+            "wearCount": item_data.get('wear_count', 0),
+            "favorite": item_data.get('favorite', False),
+            "style": item_data.get('style', []),
+            "season": item_data.get('season', []),
+            "occasion": item_data.get('occasion', []),
+            "lastWorn": None,
+            "userId": current_user_id,
+            "createdAt": item_data.get('created_at', 0),
+            "updatedAt": item_data.get('updated_at', 0),
+        }
+        
         return {
+            "success": True,
             "message": "Item added successfully",
-            "item_id": doc_ref[0].id,
-            "item": item_data
+            "item": transformed_item
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to add item"
+        )
+
+@app.put("/api/wardrobe/{item_id}")
+async def update_wardrobe_item(
+    item_id: str,
+    updates: dict,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Update wardrobe item"""
+    if not db:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database not available"
+        )
+    
+    try:
+        # Update timestamp
+        updates['updated_at'] = datetime.now().isoformat()
+        
+        # Update in Firestore
+        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
+        doc_ref = wardrobe_ref.document(item_id)
+        
+        # Check if item exists
+        doc = doc_ref.get()
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found"
+            )
+        
+        # Update the document
+        doc_ref.update(updates)
+        
+        return {
+            "success": True,
+            "message": "Item updated successfully"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update item"
+        )
+
+@app.post("/api/wardrobe/{item_id}/increment-wear")
+async def increment_wear_count(
+    item_id: str,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Increment wear count for an item"""
+    if not db:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Database not available"
+        )
+    
+    try:
+        # Get current item
+        wardrobe_ref = db.collection('users').document(current_user_id).collection('wardrobe')
+        doc_ref = wardrobe_ref.document(item_id)
+        
+        # Check if item exists
+        doc = doc_ref.get()
+        if not doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Item not found"
+            )
+        
+        item_data = doc.to_dict()
+        current_wear_count = item_data.get('wear_count', 0)
+        
+        # Update wear count and last worn
+        updates = {
+            'wear_count': current_wear_count + 1,
+            'last_worn': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        doc_ref.update(updates)
+        
+        return {
+            "success": True,
+            "message": "Wear count incremented successfully"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to increment wear count"
         )
 
 @app.delete("/api/wardrobe/{item_id}")
@@ -413,8 +544,8 @@ async def delete_wardrobe_item(
         doc_ref.delete()
         
         return {
-            "message": "Item deleted successfully",
-            "item_id": item_id
+            "success": True,
+            "message": "Item deleted successfully"
         }
     except Exception as e:
         raise HTTPException(
