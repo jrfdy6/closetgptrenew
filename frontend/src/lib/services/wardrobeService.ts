@@ -60,10 +60,10 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Auth headers - tokenLength:', authHeader?.split(' ')[1]?.length || 0);
       console.log('🔍 DEBUG: Full headers object:', headers);
       
-      console.log('🔍 DEBUG: About to fetch from:', `${API_BASE_URL}/api/wardrobe`);
+      console.log('🔍 DEBUG: About to fetch from:', `${API_BASE_URL}/api/wardrobe/`);
       let response;
       try {
-        response = await fetch(`${API_BASE_URL}/api/wardrobe`, {
+        response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
           method: 'GET',
           headers,
         });

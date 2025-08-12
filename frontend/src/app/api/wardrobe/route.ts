@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       console.warn('🔍 DEBUG: No authorization header provided');
     }
     
-    console.log('🔍 DEBUG: Calling backend wardrobe endpoint:', `${fullApiUrl}/api/wardrobe`);
+    console.log('🔍 DEBUG: Calling backend wardrobe endpoint:', `${fullApiUrl}/api/wardrobe/`);
     console.log('🔍 DEBUG: Headers:', headers);
     
     // Create an AbortController for timeout
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
     
     try {
       console.log('🔍 DEBUG: Starting fetch request to backend...');
-      const response = await fetch(`${fullApiUrl}/api/wardrobe`, {
+      const response = await fetch(`${fullApiUrl}/api/wardrobe/`, {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody),
