@@ -96,33 +96,7 @@ try:
 except Exception as e:
     print(f"DEBUG: Firebase config import failed: {e}")
 
-# src/app.py
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import importlib
-import traceback
-
-app = FastAPI()
-
-# ---------------- CORS ----------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
-    allow_origins=[
-        "http://localhost:3000",
-        "https://localhost:3000",
-        "https://closetgpt-clean.vercel.app",
-        "https://closetgpt-frontend.vercel.app",
-        "https://closetgptrenew.vercel.app",
-        # Allow any Vercel preview deployment for this project
-        "https://closetgptrenew-*.vercel.app",
-        "https://closetgpt-frontend-*.vercel.app"
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-)
+# Remove duplicate FastAPI app and CORS configuration
 
 # ---------------- FIREBASE INITIALIZATION ----------------
 @app.on_event("startup")
