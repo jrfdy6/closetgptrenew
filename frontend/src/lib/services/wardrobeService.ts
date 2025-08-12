@@ -97,9 +97,12 @@ export class WardrobeService {
       console.log('🔍 DEBUG: About to parse response as JSON...');
       const data: WardrobeResponse = await response.json();
       console.log('🔍 DEBUG: Parsed response data:', data);
+      console.log('🔍 DEBUG: Response data keys:', Object.keys(data));
+      console.log('🔍 DEBUG: Response data type:', typeof data);
       
       if (!data.success) {
         console.error('🔍 DEBUG: Response data does not have success: true');
+        console.error('🔍 DEBUG: Available keys:', Object.keys(data));
         throw new Error('Failed to fetch wardrobe items');
       }
 
