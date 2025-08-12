@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       console.warn('🔍 DEBUG: No authorization header provided');
     }
     
-    console.log('🔍 DEBUG: Calling backend wardrobe endpoint:', `${fullApiUrl}/api/wardrobe/`);
+    console.log('🔍 DEBUG: Calling backend wardrobe endpoint:', `${fullApiUrl}/api/wardrobe`);
     console.log('🔍 DEBUG: Headers:', headers);
     
     // Create an AbortController for timeout
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     
     try {
       console.log('🔍 DEBUG: Starting fetch request to backend...');
-      const response = await fetch(`${fullApiUrl}/api/wardrobe/`, {
+      const response = await fetch(`${fullApiUrl}/api/wardrobe`, {
         method: 'GET',
         headers,
         signal: controller.signal,
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
     
     // Create an AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased to 20 seconds for POST
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased to 15 seconds
     
     try {
       console.log('🔍 DEBUG: Starting fetch request to backend...');
@@ -200,9 +200,9 @@ export async function POST(request: Request) {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        console.error('🔍 DEBUG: Request timed out after 20 seconds');
+        console.error('🔍 DEBUG: Request timed out after 15 seconds');
         return NextResponse.json(
-          { error: 'Request timed out', details: 'Backend did not respond within 20 seconds' },
+          { error: 'Request timed out', details: 'Backend did not respond within 15 seconds' },
           { status: 504 }
         );
       }
