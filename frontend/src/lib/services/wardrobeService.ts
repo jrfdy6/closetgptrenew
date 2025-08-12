@@ -54,16 +54,36 @@ export class WardrobeService {
       }
 
       const headers = await this.getAuthHeaders();
+      const authHeader = (headers as Record<string, string>).Authorization;
+      console.log('🔍 DEBUG: Auth headers:', {
+        hasAuth: !!authHeader,
+        authType: authHeader?.split(' ')[0],
+        tokenLength: authHeader?.split(' ')[1]?.length || 0
+      });
+      
       const response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
         method: 'GET',
         headers,
       });
 
       if (!response.ok) {
+        console.error('🔍 DEBUG: Wardrobe API response not ok:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url
+        });
+        
         if (response.status === 404) {
           throw new Error('Wardrobe service not found. The backend may need to be updated.');
+        } else if (response.status === 401) {
+          throw new Error('Authentication failed. Please sign in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You may not have permission to view this wardrobe.');
+        } else if (response.status === 500) {
+          throw new Error('Backend server error. Please try again later.');
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        
+        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
 
       const data: WardrobeResponse = await response.json();
