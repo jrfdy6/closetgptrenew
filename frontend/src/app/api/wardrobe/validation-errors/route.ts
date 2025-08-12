@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     
     // Add timeout to prevent hanging during build
     const controller = new AbortController();

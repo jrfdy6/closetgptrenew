@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     
     // Use the public endpoint for testing
     const response = await fetch(

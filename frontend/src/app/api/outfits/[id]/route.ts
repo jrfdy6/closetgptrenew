@@ -14,7 +14,7 @@ export async function GET(
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

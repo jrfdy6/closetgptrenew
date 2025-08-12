@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Frontend API: Forgotten gems endpoint called');
     
-    const backendUrl = process.env.BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     
     // Get query parameters
     const { searchParams } = new URL(request.url);
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Frontend API: Forgotten gems POST endpoint called');
     
-    const backendUrl = process.env.BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     
     // Get the request body
     const body = await request.json();

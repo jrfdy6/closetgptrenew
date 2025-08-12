@@ -28,7 +28,7 @@ export async function PATCH(
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'PATCH',
       headers: {
@@ -88,7 +88,7 @@ export async function DELETE(
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'DELETE',
       headers: {

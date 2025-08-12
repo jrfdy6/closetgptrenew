@@ -11,8 +11,8 @@ export async function GET(request: NextRequest) {
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     
     // Get gender from URL query parameters
     const { searchParams } = new URL(request.url);

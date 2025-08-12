@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     const backendUrl = new URL(`${baseUrl}/api/outfit-history/`);
     if (startDate) backendUrl.searchParams.set('start_date', startDate);
     if (endDate) backendUrl.searchParams.set('end_date', endDate);

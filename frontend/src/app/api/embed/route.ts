@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     const response = await fetch(`${baseUrl}/api/embed`, {
       method: 'POST',
       body: backendFormData,

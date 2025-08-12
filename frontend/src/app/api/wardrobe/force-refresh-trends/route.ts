@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     const response = await fetch(`${backendUrl}/api/wardrobe/force-refresh-trends`, {
       method: 'POST',
       headers: {

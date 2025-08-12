@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol

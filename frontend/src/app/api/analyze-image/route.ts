@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://acceptable-wisdom-production-ac06.up.railway.app';
+      'http://localhost:3001';
     const fullUrl = `${backendUrl}/api/analyze-image`;
     console.log('🔍 Debug - Backend URL:', backendUrl);
     console.log('🔍 Debug - Full URL:', fullUrl);
@@ -42,9 +42,9 @@ export async function POST(request: Request) {
     // Forward the request to the real backend server with robust fallbacks
     const candidateBaseUrls = Array.from(new Set([
       backendUrl,
-              process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app',
-        process.env.NEXT_PUBLIC_API_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app',
-              'https://acceptable-wisdom-production-ac06.up.railway.app',
+              process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001',
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+              'http://localhost:3001',
     ].filter(Boolean))) as string[];
 
     const candidatePaths = [

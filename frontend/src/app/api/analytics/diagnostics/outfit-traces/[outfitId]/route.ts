@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { outfitId } = await params;
     
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://acceptable-wisdom-production-ac06.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const response = await authenticatedFetch(
       `${backendUrl}/analytics/diagnostics/outfit-traces/${outfitId}`,
       {
