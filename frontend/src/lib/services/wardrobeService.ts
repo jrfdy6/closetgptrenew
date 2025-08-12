@@ -100,6 +100,15 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Response data keys:', Object.keys(data));
       console.log('🔍 DEBUG: Response data type:', typeof data);
       console.log('🔍 DEBUG: Actual key names:', JSON.stringify(Object.keys(data)));
+      console.log('🔍 DEBUG: Success value:', (data as any).success);
+      console.log('🔍 DEBUG: Error value:', (data as any).error);
+      
+      // Check if backend returned an error response
+      if (data.success === false) {
+        const errorMessage = (data as any).error || 'Backend returned an error';
+        console.error('🔍 DEBUG: Backend error response:', errorMessage);
+        throw new Error(`Backend error: ${errorMessage}`);
+      }
       
       // Check if we have the expected data structure
       if (!data.items || !Array.isArray(data.items)) {
