@@ -9,3 +9,7 @@ restartPolicyMaxRetries = 3
 
 [build.env]
 NODE_ENV = "production"
+
+# Explicitly specify the working directory
+[deploy.env]
+WORKING_DIR = "backend"
