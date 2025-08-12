@@ -75,8 +75,19 @@ export async function GET(request: Request) {
         throw new Error(`Backend responded with ${response.status}: ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('🔍 DEBUG: Backend response data:', data);
+      console.log('🔍 DEBUG: About to parse response as JSON...');
+      let data;
+      try {
+        data = await response.json();
+        console.log('🔍 DEBUG: Successfully parsed JSON response');
+        console.log('🔍 DEBUG: Response data keys:', Object.keys(data));
+        console.log('🔍 DEBUG: Response data type:', typeof data);
+      } catch (parseError) {
+        console.error('🔍 DEBUG: Failed to parse JSON response:', parseError);
+        throw new Error(`Failed to parse backend response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
+      }
+
+      console.log('🔍 DEBUG: About to return response...');
       return NextResponse.json(data);
     } catch (error) {
       clearTimeout(timeoutId);
@@ -91,6 +102,7 @@ export async function GET(request: Request) {
     }
   } catch (error) {
     console.error('🔍 DEBUG: Error fetching wardrobe:', error);
+    console.error('🔍 DEBUG: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
       { error: 'Failed to fetch wardrobe', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
