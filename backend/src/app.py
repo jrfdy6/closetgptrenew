@@ -149,7 +149,7 @@ ROUTERS = [
     ("src.routes.image_analysis", ""),   # Router already has /api/image prefix
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.wardrobe", ""),         # Main wardrobe router with /api/wardrobe prefix
-    ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
+    # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe-analysis prefix
     ("src.routes.outfit", ""),           # Router already has /api/outfit prefix
     ("src.routes.outfits", "/api/outfits"),          # Router needs /api/outfits prefix
