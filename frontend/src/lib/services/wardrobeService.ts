@@ -99,11 +99,13 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Parsed response data:', data);
       console.log('🔍 DEBUG: Response data keys:', Object.keys(data));
       console.log('🔍 DEBUG: Response data type:', typeof data);
+      console.log('🔍 DEBUG: Actual key names:', JSON.stringify(Object.keys(data)));
       
       // Check if we have the expected data structure
       if (!data.items || !Array.isArray(data.items)) {
         console.error('🔍 DEBUG: Response data does not have items array');
         console.error('🔍 DEBUG: Available keys:', Object.keys(data));
+        console.error('🔍 DEBUG: Actual key names:', JSON.stringify(Object.keys(data)));
         throw new Error('Invalid response format from backend');
       }
       
