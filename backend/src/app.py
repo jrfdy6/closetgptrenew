@@ -213,7 +213,7 @@ async def simple_health_check():
     return {
         "status": "healthy",
         "message": "Full app is working",
-        "port": "8080"
+        "port": os.getenv("PORT", "8000")
     }
 
 # Removed duplicate root route
