@@ -6,9 +6,9 @@ Follows the exact pattern used by working wardrobe.py and outfits.py
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
+import time
 from firebase_admin import auth
 from firebase_admin import firestore
-import time
 
 # Use the same import pattern as working routers
 from ..config.firebase import db, firebase_initialized
