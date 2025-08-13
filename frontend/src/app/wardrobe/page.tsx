@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useFirebase } from "@/lib/firebase-context";
 import { useWardrobe, type ClothingItem } from "@/lib/hooks/useWardrobe";
+import { formatLastWorn } from "@/lib/utils/dateUtils";
 import dynamic from 'next/dynamic';
 
 // Dynamically import components to avoid SSR issues
@@ -719,7 +720,7 @@ export default function WardrobePage() {
                                 {item.lastWorn && (
                                   <>
                                     <span>•</span>
-                                    <span>Last: {item.lastWorn.toLocaleDateString()}</span>
+                                    <span>Last: {formatLastWorn(item.lastWorn)}</span>
                                   </>
                                 )}
                               </div>

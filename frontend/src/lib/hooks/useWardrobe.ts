@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFirebase } from '@/lib/firebase-context';
 import { WardrobeService } from '@/lib/services/wardrobeService';
+import { safeToDate } from '@/lib/utils/dateUtils';
 
 export interface ClothingItem {
   id: string;
@@ -216,7 +217,12 @@ export function useWardrobe() {
   const getRecentlyWorn = useCallback(() => {
     return items
       .filter(item => item.lastWorn)
-      .sort((a, b) => new Date(b.lastWorn!).getTime() - new Date(a.lastWorn!).getTime());
+      .sort((a, b) => {
+        const dateA = safeToDate(a.lastWorn);
+        const dateB = safeToDate(b.lastWorn);
+        if (!dateA || !dateB) return 0;
+        return dateB.getTime() - dateA.getTime();
+      });
   }, [items]);
 
   // Get unworn items
