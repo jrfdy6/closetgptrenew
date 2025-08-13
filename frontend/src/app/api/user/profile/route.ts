@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     }
     
     // Call the real backend API
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
     const response = await fetch(`${backendUrl}/api/auth/profile`, {
       headers: {
         'Authorization': authHeader,
@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     console.log('🔍 DEBUG: Profile data:', body);
     
     // Call the real backend API to update profile
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
     const response = await fetch(`${backendUrl}/api/auth/profile`, {
       method: 'PUT',
       headers: {
