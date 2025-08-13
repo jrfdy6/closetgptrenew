@@ -12,19 +12,110 @@ import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 
 interface UserProfile {
-  id: string;
-  userId: string;
+  id?: string;
+  userId?: string;
   name: string;
   email: string;
-  onboardingCompleted: boolean;
-  stylePreferences: {
-    gender: string;
-    style: string;
+  gender?: string;
+  
+  // Style preferences
+  stylePreferences?: string[];
+  preferences?: {
+    style: string[];
     colors: string[];
-    brands: string[];
+    occasions: string[];
   };
-  createdAt: string;
-  updatedAt: string;
+  
+  // Measurements
+  measurements?: {
+    height?: number;
+    weight?: number;
+    bodyType?: string;
+    skinTone?: string;
+    heightFeetInches?: string;
+    topSize?: string;
+    bottomSize?: string;
+    shoeSize?: string;
+    dressSize?: string;
+    jeanWaist?: string;
+    braSize?: string;
+    inseam?: string;
+    waist?: string;
+    chest?: string;
+    shoulderWidth?: number;
+    waistWidth?: number;
+    hipWidth?: number;
+    armLength?: number;
+    neckCircumference?: number;
+    thighCircumference?: number;
+    calfCircumference?: number;
+  };
+  
+  // Body type and fit
+  bodyType?: string;
+  skinTone?: string;
+  fitPreference?: string;
+  sizePreference?: string;
+  
+  // Color preferences
+  colorPalette?: {
+    primary: string[];
+    secondary: string[];
+    accent: string[];
+    neutral: string[];
+    avoid: string[];
+  };
+  
+  // Style personality scores
+  stylePersonality?: {
+    classic: number;
+    modern: number;
+    creative: number;
+    minimal: number;
+    bold: number;
+  };
+  
+  // Material preferences
+  materialPreferences?: {
+    preferred: string[];
+    avoid: string[];
+    seasonal: {
+      spring: string[];
+      summer: string[];
+      fall: string[];
+      winter: string[];
+    };
+  };
+  
+  // Fit preferences
+  fitPreferences?: {
+    tops: string;
+    bottoms: string;
+    dresses: string;
+  };
+  
+  // Comfort levels
+  comfortLevel?: {
+    tight: number;
+    loose: number;
+    structured: number;
+    relaxed: number;
+  };
+  
+  // Brand preferences
+  preferredBrands?: string[];
+  
+  // Budget preference
+  budget?: string;
+  
+  // Timestamps
+  createdAt?: number;
+  updatedAt?: number;
+  created_at?: string;
+  updated_at?: string;
+  
+  // Legacy fields for backward compatibility
+  onboardingCompleted?: boolean;
 }
 
 export default function ProfilePage() {
@@ -245,11 +336,8 @@ export default function ProfilePage() {
               <Label htmlFor="gender">Gender</Label>
               {isEditing ? (
                 <Select
-                  value={formData.stylePreferences?.gender || ''}
-                  onValueChange={(value) => setFormData({
-                    ...formData,
-                    stylePreferences: { ...formData.stylePreferences, gender: value }
-                  })}
+                  value={formData.gender || ''}
+                  onValueChange={(value) => setFormData({ ...formData, gender: value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select gender" />
@@ -261,17 +349,17 @@ export default function ProfilePage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-sm text-muted-foreground capitalize">{profile.stylePreferences.gender}</p>
+                <p className="text-sm text-muted-foreground capitalize">{profile.gender}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="style">Preferred Style</Label>
               {isEditing ? (
                 <Select
-                  value={formData.stylePreferences?.style || ''}
+                  value={formData.stylePreferences?.[0] || ''}
                   onValueChange={(value) => setFormData({
                     ...formData,
-                    stylePreferences: { ...formData.stylePreferences, style: value }
+                    stylePreferences: [value]
                   })}
                 >
                   <SelectTrigger>
@@ -297,11 +385,121 @@ export default function ProfilePage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-sm text-muted-foreground capitalize">{profile.stylePreferences.style}</p>
+                <p className="text-sm text-muted-foreground capitalize">{profile.stylePreferences?.[0]}</p>
               )}
+            </div>
+            {profile.stylePreferences && profile.stylePreferences.length > 1 && (
+              <div className="space-y-2">
+                <Label>Additional Styles</Label>
+                <div className="flex flex-wrap gap-2">
+                  {profile.stylePreferences.slice(1).map((style, index) => (
+                    <span key={index} className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                      {style}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Measurements & Sizes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Settings className="h-5 w-5 mr-2" />
+              Measurements & Sizes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Height</Label>
+                <p className="text-sm text-muted-foreground">
+                  {profile.measurements?.heightFeetInches || profile.measurements?.height || 'Not specified'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Weight</Label>
+                <p className="text-sm text-muted-foreground">
+                  {profile.measurements?.weight ? `${profile.measurements.weight} lbs` : 'Not specified'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Body Type</Label>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {profile.bodyType || profile.measurements?.bodyType || 'Not specified'}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Skin Tone</Label>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {profile.skinTone || profile.measurements?.skinTone || 'Not specified'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Clothing Sizes</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">Top Size</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {profile.measurements?.topSize || 'Not specified'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Bottom Size</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {profile.measurements?.bottomSize || 'Not specified'}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Shoe Size</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {profile.measurements?.shoeSize || 'Not specified'}
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Style Quiz Responses */}
+        {profile.preferences?.style && profile.preferences.style.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Heart className="h-5 w-5 mr-2" />
+                Style Quiz Responses
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Style Preferences</Label>
+                <div className="flex flex-wrap gap-2">
+                  {profile.preferences.style.map((style, index) => (
+                    <span key={index} className="px-2 py-1 bg-primary/10 text-primary rounded-md text-xs">
+                      {style}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {profile.preferences.colors && profile.preferences.colors.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Color Preferences</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.preferences.colors.map((color, index) => (
+                      <span key={index} className="px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs">
+                        {color}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Account Status */}
         <Card>
@@ -313,15 +511,19 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Onboarding Completed</span>
-              <span className={`text-sm ${profile.onboardingCompleted ? 'text-green-600' : 'text-yellow-600'}`}>
-                {profile.onboardingCompleted ? 'Yes' : 'No'}
-              </span>
+              <span className="text-sm font-medium">Profile Status</span>
+              <span className="text-sm text-green-600 font-medium">Complete</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Member Since</span>
               <span className="text-sm text-muted-foreground">
-                {new Date(profile.createdAt).toLocaleDateString()}
+                {new Date(profile.createdAt || profile.created_at || '').toLocaleDateString()}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Last Updated</span>
+              <span className="text-sm text-muted-foreground">
+                {new Date(profile.updatedAt || profile.updated_at || '').toLocaleDateString()}
               </span>
             </div>
           </CardContent>
@@ -367,3 +569,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

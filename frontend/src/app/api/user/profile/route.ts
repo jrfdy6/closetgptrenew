@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 
+// Force Vercel redeploy - Updated profile endpoint to return full data
 export async function GET(request: Request) {
   try {
     console.log('🔍 DEBUG: User profile API route called');
