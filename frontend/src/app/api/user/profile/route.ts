@@ -17,9 +17,12 @@ export async function GET(request: Request) {
     
     // Call the real backend API
     const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
-    console.log('🔍 DEBUG: Calling backend URL:', `${backendUrl}/api/auth/profile`);
+    const profileUrl = `${backendUrl}/api/auth/profile`;
+    console.log('🔍 DEBUG: Calling backend URL:', profileUrl);
+    console.log('🔍 DEBUG: Auth header present:', !!authHeader);
+    console.log('🔍 DEBUG: Auth header type:', authHeader?.startsWith('Bearer ') ? 'Bearer' : 'Other');
     
-    const response = await fetch(`${backendUrl}/api/auth/profile`, {
+    const response = await fetch(profileUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
@@ -28,6 +31,7 @@ export async function GET(request: Request) {
     });
     
     console.log('🔍 DEBUG: Backend response status:', response.status);
+    console.log('🔍 DEBUG: Backend response URL:', response.url);
     console.log('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
