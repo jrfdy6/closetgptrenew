@@ -34,7 +34,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 logger = get_logger("auth")
 # db is imported from config.firebase
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
 
 @asynccontextmanager
 async def timeout_context(timeout_seconds: float):
