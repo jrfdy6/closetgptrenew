@@ -48,32 +48,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             email = decoded_token.get('email', '')
             name = decoded_token.get('name', 'User')
             print(f"🔍 DEBUG: Token verified successfully for user: {user_id}")
-        except Exception as e:
-            print(f"🔍 DEBUG: Firebase token verification failed: {e}")
-            # If it's a clock issue, try with more lenient settings
-            if "Token used too early" in str(e) or "clock" in str(e).lower():
-                print(f"🔍 DEBUG: Clock skew detected, trying with lenient settings: {e}")
-                try:
-                    # Try with a more lenient clock skew tolerance
-                    decoded_token = auth.verify_id_token(credentials.credentials, check_revoked=False)
-                    user_id = decoded_token['uid']
-                    email = decoded_token.get('email', '')
-                    name = decoded_token.get('name', 'User')
-                    print(f"🔍 DEBUG: Token verified with lenient settings for user: {user_id}")
-                except Exception as e2:
-                    print(f"🔍 DEBUG: Still failed with lenient settings: {e2}")
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Token validation failed",
-                        headers={"WWW-Authenticate": "Bearer"},
-                    )
-            else:
-                print(f"🔍 DEBUG: Non-clock related token error: {e}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
             
             # Create user profile from token data
             user = UserProfile(
@@ -98,14 +72,56 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             print(f"🔍 DEBUG: User profile created successfully for: {user_id}")
             return user
             
-        except Exception as firebase_error:
-            print(f"🔍 DEBUG: Firebase token verification failed: {firebase_error}")
-            # Don't fallback to mock user for invalid tokens
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        except Exception as e:
+            print(f"🔍 DEBUG: Firebase token verification failed: {e}")
+            # If it's a clock issue, try with more lenient settings
+            if "Token used too early" in str(e) or "clock" in str(e).lower():
+                print(f"🔍 DEBUG: Clock skew detected, trying with lenient settings: {e}")
+                try:
+                    # Try with a more lenient clock skew tolerance
+                    decoded_token = auth.verify_id_token(credentials.credentials, check_revoked=False)
+                    user_id = decoded_token['uid']
+                    email = decoded_token.get('email', '')
+                    name = decoded_token.get('name', 'User')
+                    print(f"🔍 DEBUG: Token verified with lenient settings for user: {user_id}")
+                    
+                    # Create user profile from token data
+                    user = UserProfile(
+                        id=user_id,
+                        name=name,
+                        email=email,
+                        preferences={
+                            "style": ["Casual", "Business Casual"],
+                            "colors": ["Black", "White", "Blue"],
+                            "occasions": ["Casual", "Business"]
+                        },
+                        measurements={
+                            "height": 175,
+                            "weight": 70,
+                            "bodyType": "average"
+                        },
+                        stylePreferences=[],
+                        bodyType="average",
+                        createdAt=1234567890,
+                        updatedAt=1234567890
+                    )
+                    print(f"🔍 DEBUG: User profile created successfully for: {user_id}")
+                    return user
+                    
+                except Exception as e2:
+                    print(f"🔍 DEBUG: Still failed with lenient settings: {e2}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token validation failed",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+            else:
+                print(f"🔍 DEBUG: Non-clock related token error: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
             
     except Exception as e:
         print(f"🔍 DEBUG: Authentication error: {e}")
