@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Palette, Star } from 'lucide-react';
+import { useFirebase } from '@/lib/firebase-context';
 
 interface Outfit {
   id: string;
@@ -22,21 +23,50 @@ interface Outfit {
 }
 
 export default function OutfitsPage() {
+  const { user, loading: authLoading } = useFirebase();
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchOutfits();
-  }, []);
+    if (user && !authLoading) {
+      fetchOutfits();
+    }
+  }, [user, authLoading]);
 
   const fetchOutfits = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('/api/outfits');
-      if (!response.ok) {
-        throw new Error('Failed to fetch outfits');
+      if (!user) {
+        setError('Please sign in to view outfits');
+        setLoading(false);
+        return;
       }
+
+      setLoading(true);
+      setError(null);
+      
+      // Get Firebase ID token for authentication
+      const token = await user.getIdToken();
+      
+      const response = await fetch('/api/outfits', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please sign in again.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. You do not have permission to view outfits.');
+        } else if (response.status >= 500) {
+          throw new Error('Backend server error. Please try again later.');
+        } else {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+      }
+      
       const data = await response.json();
       setOutfits(data);
     } catch (err) {
@@ -46,14 +76,28 @@ export default function OutfitsPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your outfits...</p>
+            <p className="text-muted-foreground">
+              {authLoading ? 'Authenticating...' : 'Loading your outfits...'}
+            </p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+          <p className="text-muted-foreground mb-4">Please sign in to view your outfits</p>
         </div>
       </div>
     );
