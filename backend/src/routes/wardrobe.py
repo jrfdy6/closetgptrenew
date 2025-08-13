@@ -145,6 +145,7 @@ async def get_wardrobe_items(
         from src.config.firebase import firebase_initialized, db
         print(f"🔍 DEBUG: Firebase initialized: {firebase_initialized}")
         print(f"🔍 DEBUG: Database client: {db}")
+        # Railway redeploy trigger - Firebase credentials updated
         
         if not firebase_initialized or db is None:
             print("🔍 DEBUG: Firebase not initialized or database client is None")
