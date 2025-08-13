@@ -18,7 +18,8 @@ from ..core.logging import get_logger
 from ..config.firebase import db, firebase_initialized
 from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
-from ..routes.auth import get_current_user_id
+from ..auth.auth_service import get_current_user
+from ..custom_types.profile import UserProfile
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["outfits"])
@@ -166,9 +167,10 @@ async def debug_outfit_fields():
 
 @router.get("/debug-user-filtering", response_model=dict)
 async def debug_user_filtering(
-    current_user_id: str = Depends(get_current_user_id)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """Debug endpoint to show detailed user filtering information."""
+    current_user_id = current_user.id
     try:
         logger.info(f"🔍 DEBUG: Starting user filtering debug for user: {current_user_id}")
         logger.info(f"🔍 DEBUG: current_user_id type: {type(current_user_id)}")
@@ -475,9 +477,10 @@ def _get_mock_outfits():
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(
     outfit_id: str,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """Get a specific outfit by ID."""
+    current_user_id = current_user.id
     try:
         outfit_doc = db.collection('outfits').document(outfit_id).get()
         
@@ -515,11 +518,12 @@ async def get_outfit(
 
 @router.get("/", response_model=List[OutfitResponse])
 async def get_user_outfits(
-    current_user_id: str = Depends(get_current_user_id),
+    current_user: UserProfile = Depends(get_current_user),
     limit: Optional[int] = 1000,  # High limit to show most outfits, but prevent performance issues
     offset: int = 0
 ):
     """Get user's outfit history."""
+    current_user_id = current_user.id
     
     logger.info("🔍 DEBUG: ===== STARTING GET_USER_OUTFITS ENDPOINT =====")
     logger.info(f"🔍 DEBUG: Request received for user: {current_user_id}")
@@ -651,12 +655,13 @@ async def get_user_outfits(
         logger.warning("🔍 DEBUG: Returning mock outfits due to Firestore error")
         return _get_mock_outfits()
 
-@router.post("/feedback")
+@router.post("/feedback", response_model=dict)
 async def submit_outfit_feedback(
     feedback: OutfitFeedback,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """Submit feedback for an outfit."""
+    current_user_id = current_user.id
     try:
         # Verify outfit exists and belongs to user
         outfit_doc = db.collection('outfits').document(feedback.outfit_id).get()
@@ -719,12 +724,13 @@ async def submit_outfit_feedback(
             detail="Failed to submit feedback"
         )
 
-@router.delete("/{outfit_id}")
+@router.delete("/{outfit_id}", response_model=dict)
 async def delete_outfit(
     outfit_id: str,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """Delete an outfit."""
+    current_user_id = current_user.id
     try:
         # Verify outfit exists and belongs to user
         outfit_doc = db.collection('outfits').document(outfit_id).get()
