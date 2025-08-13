@@ -340,14 +340,8 @@ async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
         
         user_data = user_doc.to_dict()
         
-        return {
-            "user_id": current_user_id,
-            "email": user_data.get('email'),
-            "name": user_data.get('name'),
-            "avatar_url": user_data.get('avatar_url'),
-            "created_at": user_data.get('created_at'),
-            "updated_at": user_data.get('updated_at')
-        }
+        # Return the full user profile data instead of just basic fields
+        return user_data
         
     except HTTPException:
         raise
@@ -367,14 +361,11 @@ async def update_user_profile(
     try:
         user_ref = db.collection('users').document(current_user_id)
         
-        update_data = {
-            'name': profile_data.name,
-            'email': profile_data.email,
-            'avatar_url': profile_data.avatar_url,
-            'updated_at': datetime.utcnow()
-        }
+        # Convert Pydantic model to dict and exclude id field
+        update_data = profile_data.model_dump(exclude={'id'})
+        update_data['updatedAt'] = int(datetime.utcnow().timestamp() * 1000)  # Convert to milliseconds
         
-        user_ref.update(update_data)
+        user_ref.set(update_data, merge=True)  # Use merge=True to preserve existing fields
         
         # Log analytics event
         analytics_event = AnalyticsEvent(
@@ -389,13 +380,8 @@ async def update_user_profile(
         
         logger.info(f"User profile updated successfully: {current_user_id}")
         
-        return {
-            "user_id": current_user_id,
-            "email": profile_data.email,
-            "name": profile_data.name,
-            "avatar_url": profile_data.avatar_url,
-            "updated_at": update_data['updated_at']
-        }
+        # Return the updated profile data
+        return update_data
         
     except HTTPException:
         raise
