@@ -49,15 +49,9 @@ export class WardrobeService {
     try {
       console.log('🔍 DEBUG: Getting wardrobe items...');
       
-      // TEMPORARY: Use test token for debugging
-      const token = 'test'; // This bypasses Firebase token issues
-      
       const response = await fetch('/api/wardrobe/', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: await this.getAuthHeaders(),
       });
 
       console.log('🔍 DEBUG: Wardrobe API response status:', response.status);
