@@ -145,7 +145,7 @@ async def initialize_firebase():
 
 # ---------------- ROUTER LOADER ----------------
 ROUTERS = [
-    ("src.routes.auth_minimal", "/api/auth"),    # Minimal auth router with /api/auth prefix
+    ("src.routes.auth_working", "/api/auth"),    # Working auth router with /api/auth prefix
     ("src.routes.image_processing", ""),  # Router already has /api/image prefix
     ("src.routes.image_analysis", ""),   # Router already has /api/image prefix
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
