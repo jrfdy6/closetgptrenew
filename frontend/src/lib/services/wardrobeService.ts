@@ -48,6 +48,7 @@ export class WardrobeService {
   static async getWardrobeItems(): Promise<ClothingItem[]> {
     try {
       console.log('🔍 DEBUG: Getting wardrobe items...');
+      // Trigger Vercel deployment - Firebase auth fix
       
       const response = await fetch('/api/wardrobe/', {
         method: 'GET',
