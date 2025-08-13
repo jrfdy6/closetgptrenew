@@ -251,7 +251,7 @@ export class WardrobeService {
       // Try to access the wardrobe endpoint
       const response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
         method: 'GET',
-        headers: { 'Authorization': 'Bearer test' }, // Use test token for availability check
+        headers: await this.getAuthHeaders(),
       });
       
       return response.status !== 404; // 404 means endpoint not found
