@@ -143,66 +143,67 @@ export default function OutfitsPage() {
           </Button>
         </div>
 
-      {outfits.length === 0 ? (
-        <div className="text-center py-12">
-          <Palette className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">No Outfits Yet</h2>
-          <p className="text-muted-foreground mb-4">
-            Start by generating your first AI-powered outfit combination
-          </p>
-          <Button onClick={() => router.push('/outfits/generate')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Generate Outfit
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {outfits.map((outfit) => (
-            <Card key={outfit.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{outfit.name}</CardTitle>
-                  <div className="flex items-center space-x-1">
-                    <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                    <span className="text-sm text-muted-foreground">
-                      {Math.round(outfit.confidence_score * 100)}%
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <span className="capitalize">{outfit.style}</span>
-                  <span>•</span>
-                  <span className="capitalize">{outfit.mood}</span>
-                  <span>•</span>
-                  <span className="capitalize">{outfit.occasion}</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {outfit.items.length} items
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {outfit.items.slice(0, 3).map((item) => (
-                      <span
-                        key={item.id}
-                        className="inline-block px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded"
-                      >
-                        {item.type}
+        {outfits.length === 0 ? (
+          <div className="text-center py-12">
+            <Palette className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Outfits Yet</h2>
+            <p className="text-muted-foreground mb-4">
+              Start by generating your first AI-powered outfit combination
+            </p>
+            <Button onClick={() => router.push('/outfits/generate')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Generate Outfit
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {outfits.map((outfit) => (
+              <Card key={outfit.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg">{outfit.name}</CardTitle>
+                    <div className="flex items-center space-x-1">
+                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                      <span className="text-sm text-muted-foreground">
+                        {Math.round(outfit.confidence_score * 100)}%
                       </span>
-                    ))}
-                    {outfit.items.length > 3 && (
-                      <span className="inline-block px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded">
-                        +{outfit.items.length - 3} more
-                      </span>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <span className="capitalize">{outfit.style}</span>
+                    <span>•</span>
+                    <span className="capitalize">{outfit.mood}</span>
+                    <span>•</span>
+                    <span className="capitalize">{outfit.occasion}</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {outfit.items.length} items
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {outfit.items.slice(0, 3).map((item) => (
+                        <span
+                          key={item.id}
+                          className="inline-block px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded"
+                        >
+                          {item.type}
+                        </span>
+                      ))}
+                      {outfit.items.length > 3 && (
+                        <span className="inline-block px-2 py-1 bg-secondary text-secondary-foreground text-xs rounded">
+                          +{outfit.items.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
