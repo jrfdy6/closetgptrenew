@@ -12,6 +12,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     """
     try:
         print(f"🔍 DEBUG: Auth service called with credentials: {credentials.credentials[:20]}...")
+        print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
+        print(f"🔍 DEBUG: Full token: {credentials.credentials}")
         
         # Accept test token for development
         if credentials.credentials == "test":
