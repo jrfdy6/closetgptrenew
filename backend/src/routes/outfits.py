@@ -525,7 +525,7 @@ async def get_user_outfits(
     """Get user's outfit history."""
     current_user_id = current_user.id
     
-    logger.info("🔍 DEBUG: ===== STARTING GET_USER_OUTFITS ENDPOINT =====")
+    logger.info("🔍 DEBUG: ===== STARTING GET_USER_OUTFITS ENDPOINT =====")  # Railway redeploy trigger
     logger.info(f"🔍 DEBUG: Request received for user: {current_user_id}")
     logger.info(f"🔍 DEBUG: current_user_id type: {type(current_user_id)}")
     logger.info(f"🔍 DEBUG: current_user_id value: '{current_user_id}'")
