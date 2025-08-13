@@ -64,15 +64,56 @@ export default function OutfitGenerationPage() {
   const [error, setError] = useState<string | null>(null);
 
   const occasions = [
-    'casual', 'business', 'formal', 'sporty', 'creative', 'romantic', 'adventurous'
+    // Everyday
+    'Casual', 'Weekend', 'Errands', 'Loungewear',
+    // Professional
+    'Business', 'Business Casual', 'Office', 'Interview',
+    // Social
+    'Party', 'Cocktail', 'Date Night', 'Brunch', 'Dinner',
+    // Special Events
+    'Wedding', 'Gala', 'Formal', 'Black Tie',
+    // Active & Outdoor
+    'Sporty', 'Athletic', 'Outdoor', 'Beach', 'Travel',
+    // Creative & Cultural
+    'Creative', 'Art Gallery', 'Museum', 'Concert', 'Festival',
+    // Seasonal
+    'Summer', 'Winter', 'Spring', 'Fall',
+    // Lifestyle
+    'Coastal', 'Urban', 'Country', 'Resort'
   ];
 
   const styles = [
-    'minimalist', 'bohemian', 'classic', 'streetwear', 'vintage', 'modern', 'artistic'
+    // Academic & Intellectual
+    'Dark Academia', 'Light Academia', 'Old Money',
+    // Trendy & Modern
+    'Y2K', 'Coastal Grandmother', 'Clean Girl', 'Cottagecore',
+    // Artistic & Creative
+    'Avant-Garde', 'Artsy', 'Maximalist', 'Colorblock',
+    // Professional & Classic
+    'Business Casual', 'Classic', 'Preppy', 'Urban Professional',
+    // Urban & Street
+    'Streetwear', 'Techwear', 'Grunge', 'Hipster',
+    // Feminine & Romantic
+    'Romantic', 'Boho', 'French Girl', 'Pinup',
+    // Modern & Minimal
+    'Minimalist', 'Modern', 'Scandinavian',
+    // Alternative & Edgy
+    'Gothic', 'Punk', 'Cyberpunk', 'Edgy',
+    // Seasonal & Lifestyle
+    'Coastal Chic', 'Athleisure', 'Casual Cool', 'Loungewear'
   ];
 
   const moods = [
-    'confident', 'relaxed', 'energetic', 'sophisticated', 'playful', 'mysterious', 'bold'
+    // Personality & Attitude
+    'Confident', 'Bold', 'Mysterious', 'Playful', 'Sophisticated',
+    // Energy Levels
+    'Energetic', 'Relaxed', 'Calm', 'Dynamic', 'Serene',
+    // Emotional States
+    'Romantic', 'Dreamy', 'Powerful', 'Edgy', 'Whimsical',
+    // Style Attitudes
+    'Classic', 'Trendy', 'Artistic', 'Minimalist', 'Maximalist',
+    // Social Vibes
+    'Approachable', 'Intimidating', 'Friendly', 'Professional', 'Casual'
   ];
 
   const weatherOptions = [
