@@ -20,7 +20,7 @@ security = HTTPBearer()
 
 logger = logging.getLogger("auth_working")
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(tags=["authentication"])
 
 @router.get("/profile")
 async def get_user_profile(current_user: UserProfile = Depends(get_current_user)):
