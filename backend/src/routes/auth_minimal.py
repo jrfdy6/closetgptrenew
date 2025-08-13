@@ -1,11 +1,16 @@
 """
 Minimal authentication routes for ClosetGPT.
-Just the profile endpoint with minimal dependencies.
+Just the profile endpoint with Firebase authentication.
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
+import firebase_admin
+from firebase_admin import auth as firebase_auth
+import concurrent.futures
+
+from ..config.firebase import db
 
 # HTTP Bearer scheme for token extraction
 security = HTTPBearer()
@@ -21,19 +26,43 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         token = credentials.credentials
         logger.info(f"🔍 DEBUG: Received token length: {len(token)}")
         
-        # For now, just return a test user ID to test the route
-        # We'll add Firebase verification later
+        # Handle test token for development
         if token == "test":
+            logger.info("🔍 DEBUG: Using test token")
             return "test-user-id"
         
-        # Mock user ID for testing
-        return "mock-user-123"
+        # Verify Firebase JWT token
+        logger.info("🔍 DEBUG: Verifying Firebase token...")
+        
+        # Use a timeout for the Firebase verification
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(firebase_auth.verify_id_token, token)
+            try:
+                decoded_token = future.result(timeout=30.0)
+                logger.info("🔍 DEBUG: Firebase verification completed successfully!")
+            except concurrent.futures.TimeoutError:
+                logger.error("🔍 DEBUG: Firebase token verification timed out after 30 seconds")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token verification timed out"
+                )
+        
+        user_id: str = decoded_token.get("uid")
+        if user_id is None:
+            logger.error("🔍 DEBUG: No user_id found in decoded token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: no user ID found"
+            )
+        
+        logger.info(f"🔍 DEBUG: Token verification successful, user_id: {user_id}")
+        return user_id
         
     except Exception as e:
-        logger.error(f"🔍 DEBUG: Token processing failed: {e}")
+        logger.error(f"🔍 DEBUG: Firebase token verification failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token processing failed"
+            detail="Token verification failed"
         )
 
 @router.get("/profile")
@@ -42,19 +71,30 @@ async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
     try:
         logger.info(f"🔍 DEBUG: Getting profile for user: {current_user_id}")
         
-        # Return mock profile data for testing
-        profile_data = {
+        # Query Firestore for real user data
+        user_doc = db.collection('users').document(current_user_id).get()
+        
+        if not user_doc.exists:
+            logger.info(f"🔍 DEBUG: No profile found for user: {current_user_id}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User profile not found"
+            )
+        
+        user_data = user_doc.to_dict()
+        logger.info(f"🔍 DEBUG: Profile data retrieved from Firestore: {user_data}")
+        
+        return {
             "user_id": current_user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-            "avatar_url": None,
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z"
+            "email": user_data.get('email'),
+            "name": user_data.get('name'),
+            "avatar_url": user_data.get('avatar_url'),
+            "created_at": user_data.get('created_at'),
+            "updated_at": user_data.get('updated_at')
         }
         
-        logger.info(f"🔍 DEBUG: Profile data returned: {profile_data}")
-        return profile_data
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to get user profile: {e}")
         raise HTTPException(
@@ -71,12 +111,23 @@ async def update_user_profile(
     try:
         logger.info(f"🔍 DEBUG: Updating profile for user: {current_user_id}")
         
-        # Return success for testing
+        user_ref = db.collection('users').document(current_user_id)
+        
+        update_data = {
+            'name': profile_data.get('name'),
+            'email': profile_data.get('email'),
+            'updated_at': firebase_admin.firestore.SERVER_TIMESTAMP
+        }
+        
+        user_ref.update(update_data)
+        
+        logger.info(f"User profile updated successfully: {current_user_id}")
+        
         return {
             "user_id": current_user_id,
             "email": profile_data.get('email'),
             "name": profile_data.get('name'),
-            "updated_at": "2024-01-01T00:00:00Z"
+            "updated_at": "now"
         }
         
     except Exception as e:
