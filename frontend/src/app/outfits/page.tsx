@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Palette, Star } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
+import Navigation from '@/components/Navigation';
+import { useRouter } from 'next/navigation';
 
 interface Outfit {
   id: string;
@@ -23,6 +25,7 @@ interface Outfit {
 }
 
 export default function OutfitsPage() {
+  const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,13 +81,16 @@ export default function OutfitsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">
-              {authLoading ? 'Authenticating...' : 'Loading your outfits...'}
-            </p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <Navigation />
+        <div className="container mx-auto p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">
+                {authLoading ? 'Authenticating...' : 'Loading your outfits...'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -93,11 +99,14 @@ export default function OutfitsPage() {
 
   if (!user) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">
-          <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
-          <p className="text-muted-foreground mb-4">Please sign in to view your outfits</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <Navigation />
+        <div className="container mx-auto p-6">
+          <div className="text-center">
+            <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+            <p className="text-muted-foreground mb-4">Please sign in to view your outfits</p>
+          </div>
         </div>
       </div>
     );
@@ -105,29 +114,34 @@ export default function OutfitsPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">
-          <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Unable to Load Outfits</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={fetchOutfits}>Try Again</Button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <Navigation />
+        <div className="container mx-auto p-6">
+          <div className="text-center">
+            <Palette className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Unable to Load Outfits</h2>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={fetchOutfits}>Try Again</Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">My Outfits</h1>
-          <p className="text-muted-foreground">Your AI-generated style combinations</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <Navigation />
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">My Outfits</h1>
+            <p className="text-muted-foreground">Your AI-generated style combinations</p>
+          </div>
+          <Button onClick={() => router.push('/outfits/generate')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Generate New Outfit
+          </Button>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Generate New Outfit
-        </Button>
-      </div>
 
       {outfits.length === 0 ? (
         <div className="text-center py-12">
@@ -136,7 +150,7 @@ export default function OutfitsPage() {
           <p className="text-muted-foreground mb-4">
             Start by generating your first AI-powered outfit combination
           </p>
-          <Button>
+          <Button onClick={() => router.push('/outfits/generate')}>
             <Plus className="h-4 w-4 mr-2" />
             Generate Outfit
           </Button>
