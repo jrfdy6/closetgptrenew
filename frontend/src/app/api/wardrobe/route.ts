@@ -54,8 +54,14 @@ export async function GET(request: Request) {
 
       if (!response.ok) {
         console.error('🔍 DEBUG: Backend response not OK:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('🔍 DEBUG: Backend error response:', errorText);
+        let errorText = '';
+        try {
+          errorText = await response.text();
+          console.error('🔍 DEBUG: Backend error response:', errorText);
+        } catch (textError) {
+          console.error('🔍 DEBUG: Failed to read error response text:', textError);
+          errorText = 'Unable to read error details';
+        }
         
         // Handle specific error cases
         if (response.status === 401) {
@@ -72,7 +78,15 @@ export async function GET(request: Request) {
           );
         }
         
-        throw new Error(`Backend responded with ${response.status}: ${errorText}`);
+        // Instead of throwing, return the error response
+        return NextResponse.json(
+          { 
+            error: 'Backend error', 
+            details: `Backend responded with ${response.status}: ${errorText.substring(0, 200)}`,
+            status: response.status
+          },
+          { status: response.status }
+        );
       }
 
       console.log('🔍 DEBUG: About to parse response as JSON...');
@@ -84,7 +98,10 @@ export async function GET(request: Request) {
         console.log('🔍 DEBUG: Response data type:', typeof data);
       } catch (parseError) {
         console.error('🔍 DEBUG: Failed to parse JSON response:', parseError);
-        throw new Error(`Failed to parse backend response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`);
+        return NextResponse.json(
+          { error: 'Invalid response format', details: 'Backend returned invalid JSON' },
+          { status: 500 }
+        );
       }
 
       console.log('🔍 DEBUG: About to return response...');
@@ -98,13 +115,43 @@ export async function GET(request: Request) {
           { status: 504 }
         );
       }
-      throw error;
+      
+      // Log the specific error
+      console.error('🔍 DEBUG: Fetch error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      
+      // Return error response instead of throwing
+      return NextResponse.json(
+        { 
+          error: 'Network error', 
+          details: error instanceof Error ? error.message.substring(0, 200) : 'Unknown network error'
+        },
+        { status: 500 }
+      );
     }
   } catch (error) {
-    console.error('🔍 DEBUG: Error fetching wardrobe:', error);
-    console.error('🔍 DEBUG: Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('🔍 DEBUG: Unexpected error in wardrobe API route:', error);
+    console.error('🔍 DEBUG: Error type:', typeof error);
+    console.error('🔍 DEBUG: Error constructor:', error?.constructor?.name);
+    
+    // Safely extract error message
+    let errorMessage = 'Unknown error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object') {
+      errorMessage = JSON.stringify(error).substring(0, 200);
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch wardrobe', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Internal server error', 
+        details: errorMessage.substring(0, 200)
+      },
       { status: 500 }
     );
   }
@@ -130,8 +177,17 @@ export async function POST(request: Request) {
     console.log('🔍 DEBUG: Full API URL:', fullApiUrl);
     
     // Get the request body
-    const requestBody = await request.json();
-    console.log('🔍 DEBUG: Request body:', requestBody);
+    let requestBody;
+    try {
+      requestBody = await request.json();
+      console.log('🔍 DEBUG: Request body:', requestBody);
+    } catch (bodyError) {
+      console.error('🔍 DEBUG: Failed to parse request body:', bodyError);
+      return NextResponse.json(
+        { error: 'Invalid request body', details: 'Request body must be valid JSON' },
+        { status: 400 }
+      );
+    }
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -166,8 +222,14 @@ export async function POST(request: Request) {
 
       if (!response.ok) {
         console.error('🔍 DEBUG: Backend response not OK:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('🔍 DEBUG: Backend error response:', errorText);
+        let errorText = '';
+        try {
+          errorText = await response.text();
+          console.error('🔍 DEBUG: Backend error response:', errorText);
+        } catch (textError) {
+          console.error('🔍 DEBUG: Failed to read error response text:', textError);
+          errorText = 'Unable to read error details';
+        }
         
         // Handle specific error cases
         if (response.status === 401) {
@@ -186,16 +248,34 @@ export async function POST(request: Request) {
         
         if (response.status === 400) {
           return NextResponse.json(
-            { error: 'Invalid request', details: errorText },
+            { error: 'Invalid request', details: errorText.substring(0, 200) },
             { status: 400 }
           );
         }
         
-        throw new Error(`Backend responded with ${response.status}: ${errorText}`);
+        // Return error response instead of throwing
+        return NextResponse.json(
+          { 
+            error: 'Backend error', 
+            details: `Backend responded with ${response.status}: ${errorText.substring(0, 200)}`,
+            status: response.status
+          },
+          { status: response.status }
+        );
       }
 
-      const data = await response.json();
-      console.log('🔍 DEBUG: Backend response data:', data);
+      let data;
+      try {
+        data = await response.json();
+        console.log('🔍 DEBUG: Backend response data:', data);
+      } catch (parseError) {
+        console.error('🔍 DEBUG: Failed to parse backend response:', parseError);
+        return NextResponse.json(
+          { error: 'Invalid response format', details: 'Backend returned invalid JSON' },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(data);
     } catch (error) {
       clearTimeout(timeoutId);
@@ -206,12 +286,43 @@ export async function POST(request: Request) {
           { status: 504 }
         );
       }
-      throw error;
+      
+      // Log the specific error
+      console.error('🔍 DEBUG: Fetch error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+      
+      // Return error response instead of throwing
+      return NextResponse.json(
+        { 
+          error: 'Network error', 
+          details: error instanceof Error ? error.message.substring(0, 200) : 'Unknown network error'
+        },
+        { status: 500 }
+      );
     }
   } catch (error) {
-    console.error('🔍 DEBUG: Error creating wardrobe item:', error);
+    console.error('🔍 DEBUG: Unexpected error in wardrobe POST API route:', error);
+    console.error('🔍 DEBUG: Error type:', typeof error);
+    console.error('🔍 DEBUG: Error constructor:', error?.constructor?.name);
+    
+    // Safely extract error message
+    let errorMessage = 'Unknown error occurred';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error && typeof error === 'object') {
+      errorMessage = JSON.stringify(error).substring(0, 200);
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create wardrobe item', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Internal server error', 
+        details: errorMessage.substring(0, 200)
+      },
       { status: 500 }
     );
   }
