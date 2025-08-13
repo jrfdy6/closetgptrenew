@@ -141,10 +141,32 @@ async def get_wardrobe_items(
 ) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
     try:
+        # Check Firebase initialization status
+        from src.config.firebase import firebase_initialized, db
+        print(f"🔍 DEBUG: Firebase initialized: {firebase_initialized}")
+        print(f"🔍 DEBUG: Database client: {db}")
+        
+        if not firebase_initialized or db is None:
+            print("🔍 DEBUG: Firebase not initialized or database client is None")
+            raise HTTPException(
+                status_code=500, 
+                detail="Database connection not available. Firebase may not be properly configured."
+            )
+        
         logger.info(f"Getting wardrobe items for user: {current_user.id}")
+        print(f"🔍 DEBUG: User authenticated: {current_user.id}")
         
         # Query Firestore for user's wardrobe items
-        docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
+        try:
+            docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
+            print("🔍 DEBUG: Firestore query executed successfully")
+        except Exception as db_error:
+            print(f"🔍 DEBUG: Firestore query failed: {db_error}")
+            logger.error(f"Firestore query failed: {db_error}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Database query failed: {str(db_error)}"
+            )
         
         items = []
         errors = []
@@ -224,16 +246,20 @@ async def get_wardrobe_items(
             logger.warning(f"Encountered {len(errors)} errors while processing items")
         
         # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="wardrobe_items_listed",
-            metadata={
-                "item_count": len(items),
-                "has_items": len(items) > 0,
-                "error_count": len(errors)
-            }
-        )
-        log_analytics_event(analytics_event)
+        try:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_items_listed",
+                metadata={
+                    "item_count": len(items),
+                    "has_items": len(items) > 0,
+                    "error_count": len(errors)
+                }
+            )
+            log_analytics_event(analytics_event)
+        except Exception as analytics_error:
+            print(f"🔍 DEBUG: Analytics logging failed: {analytics_error}")
+            # Don't fail the request if analytics fails
         
         # Transform backend data to match frontend expectations
         transformed_items = []
@@ -256,6 +282,7 @@ async def get_wardrobe_items(
             }
             transformed_items.append(transformed_item)
         
+        print(f"🔍 DEBUG: Successfully returning {len(transformed_items)} items")
         return {
             "success": True,
             "items": transformed_items,
@@ -263,7 +290,14 @@ async def get_wardrobe_items(
             "user_id": current_user.id
         }
         
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
+        print(f"🔍 DEBUG: Unexpected error in get_wardrobe_items: {e}")
+        print(f"🔍 DEBUG: Error type: {type(e)}")
+        import traceback
+        print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
         logger.error(f"Error retrieving wardrobe items: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving wardrobe items: {str(e)}")
 
