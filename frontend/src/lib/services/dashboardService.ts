@@ -146,7 +146,16 @@ class DashboardService {
       return response.data || {};
     } catch (error) {
       console.error('Error fetching wardrobe stats:', error);
-      return {};
+      // Return fallback data for production when backend is not ready
+      return {
+        total_items: 0,
+        item_types: {},
+        colors: {},
+        styles: {},
+        seasons: {},
+        brands: {},
+        price_range: {"min": 0, "max": 0, "avg": 0}
+      };
     }
   }
 
@@ -158,6 +167,7 @@ class DashboardService {
       return response.outfitHistory || [];
     } catch (error) {
       console.error('Error fetching outfit history:', error);
+      // Return empty array for production when backend is not ready
       return [];
     }
   }
@@ -170,7 +180,12 @@ class DashboardService {
       return response.data || {};
     } catch (error) {
       console.error('Error fetching trending styles:', error);
-      return {};
+      // Return fallback data for production when backend is not ready
+      return {
+        trending_styles: [],
+        total_trends: 0,
+        most_popular: null
+      };
     }
   }
 

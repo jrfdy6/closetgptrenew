@@ -245,6 +245,26 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Backend Status Message */}
+        {dashboardData && dashboardData.totalItems === 0 && (
+          <Card className="mb-8 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <Info className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                <div>
+                  <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-200">
+                    Backend Setup in Progress
+                  </h3>
+                  <p className="text-amber-700 dark:text-amber-300">
+                    Your dashboard is working, but the backend data endpoints are still being configured. 
+                    This is normal for new deployments. Your wardrobe data will appear here once the backend is fully set up.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Today's Outfit Section */}
         <Card className="mb-8">
           <CardHeader>

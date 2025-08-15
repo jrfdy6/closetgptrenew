@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       'https://closetgptrenew-backend-production.up.railway.app';
     
     console.log('🔍 DEBUG: Backend URL:', baseUrl);
+    console.log('🔍 DEBUG: Full endpoint URL:', `${baseUrl}/api/wardrobe/wardrobe-stats`);
     
     const response = await fetch(`${baseUrl}/api/wardrobe/wardrobe-stats`, {
       method: 'GET',
@@ -36,12 +37,21 @@ export async function GET(request: NextRequest) {
     });
 
     console.log('🔍 DEBUG: Backend response status:', response.status);
+    console.log('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
       console.log('❌ Frontend API: Backend error:', errorText);
+      console.log('❌ Frontend API: Response status:', response.status);
+      console.log('❌ Frontend API: Response status text:', response.statusText);
+      
       return NextResponse.json(
-        { error: 'Backend error', status: response.status, details: errorText },
+        { 
+          error: 'Backend error', 
+          status: response.status, 
+          statusText: response.statusText,
+          details: errorText 
+        },
         { status: response.status }
       );
     }
@@ -52,7 +62,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('❌ Frontend API: Error in wardrobe-stats route:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch wardrobe statistics' },
+      { 
+        success: false, 
+        error: 'Failed to fetch wardrobe statistics',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
