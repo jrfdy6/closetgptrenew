@@ -143,7 +143,7 @@ class DashboardService {
       console.log('🔍 DEBUG: Fetching wardrobe stats from /api/analytics/wardrobe-stats');
       const response = await this.makeAuthenticatedRequest('/api/analytics/wardrobe-stats', user);
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
-      return response || {};
+      return response.data || response || {};
     } catch (error) {
       console.error('Error fetching wardrobe stats:', error);
       // Return fallback data for production when backend is not ready
@@ -174,7 +174,7 @@ class DashboardService {
       console.log('🔍 DEBUG: Fetching trending styles from /api/wardrobe/trending-styles');
       const response = await this.makeAuthenticatedRequest('/api/wardrobe/trending-styles', user);
       console.log('🔍 DEBUG: Trending styles response:', response);
-      return response.data || {};
+      return response.data || response || {};
     } catch (error) {
       console.error('Error fetching trending styles:', error);
       // Return fallback data for production when backend is not ready
