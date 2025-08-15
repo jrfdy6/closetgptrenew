@@ -16,7 +16,7 @@ import {
   XCircle
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { getFirebaseIdToken } from "@/lib/utils/auth";
+import { useFirebase } from "@/lib/firebase-context";
 
 interface ForgottenItem {
   id: string;
@@ -48,17 +48,25 @@ export default function ForgottenGems() {
   const [error, setError] = useState<string | null>(null);
   const [processingItem, setProcessingItem] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useFirebase();
 
   useEffect(() => {
-    fetchForgottenGems();
-  }, []);
+    if (user) {
+      fetchForgottenGems();
+    }
+  }, [user]);
 
   const fetchForgottenGems = async () => {
     try {
+      if (!user) {
+        setError("Authentication required");
+        return;
+      }
+
       setLoading(true);
       setError(null);
       
-      const token = await getFirebaseIdToken();
+      const token = await user.getIdToken();
       if (!token) {
         setError("Authentication required");
         return;
@@ -86,9 +94,18 @@ export default function ForgottenGems() {
 
   const handleItemAction = async (itemId: string, action: 'rediscover' | 'declutter') => {
     try {
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in again",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setProcessingItem(itemId);
       
-      const token = await getFirebaseIdToken();
+      const token = await user.getIdToken();
       if (!token) {
         toast({
           title: "Authentication Error",

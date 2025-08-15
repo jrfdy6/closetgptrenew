@@ -29,6 +29,7 @@ import {
 import Link from "next/link";
 import { useFirebase } from "@/lib/firebase-context";
 import dynamic from 'next/dynamic';
+import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
 
 // Dynamically import components to avoid SSR issues
 const WardrobeStats = dynamic(() => import('@/components/WardrobeStats'), {
@@ -41,99 +42,50 @@ const ForgottenGems = dynamic(() => import('@/components/ForgottenGems'), {
   loading: () => <div className="animate-pulse space-y-4">Loading forgotten gems...</div>
 });
 
-interface DashboardData {
-  totalItems: number;
-  favorites: number;
-  styleGoalsCompleted: number;
-  totalStyleGoals: number;
-  outfitsThisWeek: number;
-  overallProgress: number;
-  styleCollections: {
-    name: string;
-    progress: number;
-    target: number;
-    status: string;
-  }[];
-  styleExpansions: {
-    name: string;
-    direction: string;
-  }[];
-  seasonalBalance: {
-    score: number;
-    status: string;
-    recommendations: string[];
-    winterItems: number;
-    winterPercentage: number;
-  };
-  colorVariety: {
-    current: number;
-    target: number;
-    status: string;
-  };
-}
-
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
   const { user, loading } = useFirebase();
 
-  // Mock data for demonstration - replace with real data from your backend
+  // Fetch real dashboard data
   useEffect(() => {
-    // Simulate API call
-    const fetchDashboardData = async () => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setDashboardData({
-        totalItems: 114,
-        favorites: 1,
-        styleGoalsCompleted: 5,
-        totalStyleGoals: 5,
-        outfitsThisWeek: 30,
-        overallProgress: 97,
-        styleCollections: [
-          {
-            name: "Preppy Collection",
-            progress: 56,
-            target: 15,
-            status: "Great job! Consider exploring new styles"
-          },
-          {
-            name: "Minimalist Collection",
-            progress: 32,
-            target: 15,
-            status: "Great job! Consider exploring new styles"
-          }
-        ],
-        styleExpansions: [
-          { name: "smart casual", direction: "New Direction" },
-          { name: "preppy", direction: "New Direction" },
-          { name: "business", direction: "New Direction" },
-          { name: "semi-formal", direction: "New Direction" }
-        ],
-        seasonalBalance: {
-          score: 75,
-          status: "Needs Work",
-          recommendations: ["Winter: coats, scarves"],
-          winterItems: 49,
-          winterPercentage: 15
-        },
-        colorVariety: {
-          current: 29,
-          target: 8,
-          status: "Excellent color variety!"
-        }
-      });
-      setIsLoading(false);
-    };
+    if (user && !loading) {
+      fetchDashboardData();
+    }
+  }, [user, loading]);
 
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log('🔍 DEBUG: Dashboard: Starting to fetch real data...');
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const data = await dashboardService.getDashboardData(user);
+      console.log('🔍 DEBUG: Dashboard: Real data received:', data);
+      
+      setDashboardData(data);
+    } catch (err) {
+      console.error('🔍 DEBUG: Dashboard: Error fetching data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
     if (user) {
       fetchDashboardData();
     }
-  }, [user]);
+  };
 
   // Debug information
-  console.log("Dashboard render:", { user, loading, isLoading, dashboardData });
+  console.log("Dashboard render:", { user, loading, isLoading, dashboardData, error });
 
   // Show loading state while authentication is resolving
   if (loading || isLoading) {
@@ -144,6 +96,9 @@ export default function Dashboard() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-600 mx-auto"></div>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">Loading your dashboard...</p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
+              Fetching real-time data from your wardrobe...
+            </p>
           </div>
         </div>
       </div>
@@ -168,7 +123,30 @@ export default function Dashboard() {
     );
   }
 
-  // Main dashboard - user is authenticated and loaded
+  // Show error state if data fetching failed
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Dashboard Error</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+            <Button onClick={handleRetry} className="mr-4">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+            <Link href="/profile">
+              <Button variant="outline">Go to Profile</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main dashboard - user is authenticated and data is loaded
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
@@ -276,7 +254,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="text-center py-8">
               <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                Thursday, Aug 14
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </p>
               <p className="text-gray-500 dark:text-gray-500 mb-6">
                 No outfit generated yet
@@ -296,21 +274,41 @@ export default function Dashboard() {
             <CardDescription>Your top items will appear here based on:</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <p className="text-gray-500 dark:text-gray-500 mb-4">No top items yet</p>
-              <div className="text-left max-w-md mx-auto space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <p>• How often items appear in outfits</p>
-                <p>• Your feedback ratings</p>
-                <p>• How often you view/edit items</p>
-                <p>• Style preference matches</p>
-                <p>• Base item usage</p>
+            {dashboardData?.topItems && dashboardData.topItems.length > 0 ? (
+              <div className="space-y-4">
+                {dashboardData.topItems.map((item, index) => (
+                  <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg">
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <Shirt className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-white">{item.name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.type}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{item.wearCount} wears</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Rating: {item.rating}/5</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-blue-800 dark:text-blue-200 text-sm">
-                  💡 Tip: Add items to your wardrobe and use them in outfits to start seeing your top items!
-                </p>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 dark:text-gray-500 mb-4">No top items yet</p>
+                <div className="text-left max-w-md mx-auto space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <p>• How often items appear in outfits</p>
+                  <p>• Your feedback ratings</p>
+                  <p>• How often you view/edit items</p>
+                  <p>• Style preference matches</p>
+                  <p>• Base item usage</p>
+                </div>
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-blue-800 dark:text-blue-200 text-sm">
+                    💡 Tip: Add items to your wardrobe and use them in outfits to start seeing your top items!
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -361,16 +359,25 @@ export default function Dashboard() {
             <CardDescription>Your clothing items will allow you to explore the following areas as well</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {dashboardData?.styleExpansions.map((expansion, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="font-medium text-gray-900 dark:text-white capitalize">
-                    {expansion.name}
-                  </span>
-                  <Badge variant="outline">{expansion.direction}</Badge>
-                </div>
-              ))}
-            </div>
+            {dashboardData?.styleExpansions && dashboardData.styleExpansions.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {dashboardData.styleExpansions.map((expansion, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <span className="font-medium text-gray-900 dark:text-white capitalize">
+                      {expansion.name}
+                    </span>
+                    <Badge variant="outline">{expansion.direction}</Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500 dark:text-gray-500">No style expansions available yet</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  Add more diverse items to your wardrobe to unlock new style directions
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -420,6 +427,15 @@ export default function Dashboard() {
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {dashboardData?.colorVariety.status || "Building color variety..."}
               </p>
+              {dashboardData?.colorVariety.colors && dashboardData.colorVariety.colors.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {dashboardData.colorVariety.colors.map((color, index) => (
+                    <Badge key={index} variant="outline" className="capitalize">
+                      {color}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -431,14 +447,36 @@ export default function Dashboard() {
             <CardDescription>Identify areas where your wardrobe could be improved</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-500 mb-4">Error loading wardrobe analysis</p>
-              <Button variant="outline">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Retry
-              </Button>
-            </div>
+            {dashboardData?.wardrobeGaps && dashboardData.wardrobeGaps.length > 0 ? (
+              <div className="space-y-4">
+                {dashboardData.wardrobeGaps.map((gap, index) => (
+                  <div key={index} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-gray-900 dark:text-white">{gap.category}</h4>
+                      <Badge variant={gap.priority === 'high' ? 'destructive' : gap.priority === 'medium' ? 'secondary' : 'outline'}>
+                        {gap.priority} priority
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{gap.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {gap.suggestedItems.map((item, itemIndex) => (
+                        <Badge key={itemIndex} variant="outline">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-500 mb-4">No wardrobe gaps found!</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Your wardrobe is well-balanced. Great job!
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

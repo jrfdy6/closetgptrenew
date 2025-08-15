@@ -1,67 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/utils/server-auth';
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
+  console.log('🔍 DEBUG: Frontend trending-styles route called!');
+  console.log('🔍 DEBUG: Request headers:', Object.fromEntries(request.headers.entries()));
+  
   try {
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      'https://closetgptrenew-backend-production.up.railway.app';
     
-    // Get user's gender from their profile
-    let userGender = null;
-    try {
-      const userId = await getUserIdFromRequest(request);
-      if (userId) {
-        // Get the authorization header from the request
-        const authHeader = request.headers.get('authorization');
-        if (!authHeader) {
-          console.log('❌ Frontend API: No authorization header found');
-          return NextResponse.json(
-            { error: 'Authorization header required' },
-            { status: 401 }
-          );
-        }
-        
-        // Get user profile to determine gender
-        const profileResponse = await fetch(`${backendUrl}/api/user/profile`, {
-          method: 'GET',
-          headers: {
-            'Authorization': authHeader,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (profileResponse.ok) {
-          const profileData = await profileResponse.json();
-          userGender = profileData.data?.gender;
-        }
-      }
-    } catch (error) {
-      console.log('Could not get user gender, will show unisex trends:', error);
+    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    
+    // Check for authorization header first
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      console.log('❌ Frontend API: No authorization header found');
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
     }
     
-    // Build URL with gender parameter if available
-    const url = new URL(`${backendUrl}/api/wardrobe/trending-styles`);
-    if (userGender) {
-      url.searchParams.set('gender', userGender);
-    }
+    console.log('🔍 DEBUG: Authorization header found, forwarding to backend...');
     
-    const response = await fetch(url.toString(), {
+    // Forward request directly to backend
+    const response = await fetch(`${backendUrl}/api/wardrobe/trending-styles`, {
       method: 'GET',
       headers: {
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
     });
 
+    console.log('🔍 DEBUG: Backend response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log('❌ Frontend API: Backend error:', errorText);
+      return NextResponse.json(
+        { error: 'Backend error', status: response.status, details: errorText },
+        { status: response.status }
+      );
+    }
+
     const data = await response.json();
+    console.log('🔍 DEBUG: Backend data received:', data);
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching trending styles:', error);
+    console.error('❌ Frontend API: Error in trending-styles route:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch trending styles' },
       { status: 500 }
