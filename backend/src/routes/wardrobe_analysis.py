@@ -308,9 +308,12 @@ async def get_wardrobe_stats(current_user: UserProfile = Depends(get_current_use
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
             
+        print(f"🔍 DEBUG: Getting wardrobe stats for user: {current_user.id}")
         analysis_service = WardrobeAnalysisService()
         wardrobe = await analysis_service._get_user_wardrobe(current_user.id)
+        print(f"🔍 DEBUG: Retrieved {len(wardrobe)} wardrobe items for user: {current_user.id}")
         stats = analysis_service._get_wardrobe_stats(wardrobe)
+        print(f"🔍 DEBUG: Generated stats: {stats}")
         
         return {
             "success": True,

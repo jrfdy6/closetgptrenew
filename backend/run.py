@@ -18,7 +18,7 @@ if not api_key:
 print(f"API Key loaded (first 10 chars): {api_key[:10]}...")
 
 # Now we can import the app
-from src.app import app
+from app import app
 
 if __name__ == "__main__":
     import uvicorn
