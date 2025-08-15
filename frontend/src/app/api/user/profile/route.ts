@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
 
-// Force Vercel redeploy - Updated profile endpoint to return full data
+// Force Vercel redeploy - Updated profile endpoint to return full data - VERSION 2.0
 export async function GET(request: Request) {
   try {
-    console.log('🔍 DEBUG: User profile API route called');
+    console.log('🔍 DEBUG: User profile API route called - VERSION 2.0');
+    console.log('🔍 DEBUG: Request URL:', request.url);
+    console.log('🔍 DEBUG: Request method:', request.method);
+    console.log('🔍 DEBUG: Request headers:', Object.fromEntries(request.headers.entries()));
+    console.log('🔍 DEBUG: Request referer:', request.headers.get('referer'));
+    console.log('🔍 DEBUG: Request user-agent:', request.headers.get('user-agent'));
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     if (!authHeader) {
+      console.log('🔍 DEBUG: No auth header - likely prefetch or unauthorized access');
+      console.log('🔍 DEBUG: This is expected for prefetching - returning 401 silently');
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
@@ -63,21 +70,57 @@ export async function GET(request: Request) {
     
     // Transform backend data to match frontend expectations
     const profile = {
-      id: backendData.user_id || 'unknown',
-      userId: backendData.user_id || 'unknown',
+      id: backendData.id || backendData.user_id || 'unknown',
+      userId: backendData.id || backendData.user_id || 'unknown',
       name: backendData.name || 'Unknown User',
       email: backendData.email || 'unknown@email.com',
-      onboardingCompleted: true, // Assume completed if profile exists
-      stylePreferences: {
-        gender: 'unisex', // Default, can be enhanced later
-        style: 'casual',  // Default, can be enhanced later
-        colors: ['blue', 'black', 'white'], // Default, can be enhanced later
-        brands: [] // Default, can be enhanced later
+      gender: backendData.gender || 'Not specified',
+      onboardingCompleted: backendData.onboardingCompleted || true,
+      
+      // Style Preferences
+      stylePreferences: backendData.stylePreferences || [],
+      preferences: backendData.preferences || {},
+      
+      // Measurements & Sizes
+      measurements: {
+        height: backendData.measurements?.height || 0,
+        heightFeetInches: backendData.measurements?.heightFeetInches || backendData.heightFeetInches || 'Not specified',
+        weight: backendData.measurements?.weight || backendData.weight || 'Not specified',
+        bodyType: backendData.measurements?.bodyType || backendData.bodyType || 'Not specified',
+        skinTone: backendData.measurements?.skinTone || backendData.skinTone || 'Not specified',
+        topSize: backendData.measurements?.topSize || backendData.topSize || 'Not specified',
+        bottomSize: backendData.measurements?.bottomSize || backendData.bottomSize || 'Not specified',
+        shoeSize: backendData.measurements?.shoeSize || backendData.shoeSize || 'Not specified',
+        dressSize: backendData.measurements?.dressSize || backendData.dressSize || 'Not specified',
+        jeanWaist: backendData.measurements?.jeanWaist || backendData.jeanWaist || 'Not specified',
+        braSize: backendData.measurements?.braSize || backendData.braSize || 'Not specified',
+        inseam: backendData.measurements?.inseam || 'Not specified',
+        waist: backendData.measurements?.waist || 'Not specified',
+        chest: backendData.measurements?.chest || 'Not specified'
       },
-      createdAt: backendData.created_at || new Date().toISOString(),
-      updatedAt: backendData.updated_at || new Date().toISOString(),
-      // Add backend-specific fields
-      avatarUrl: backendData.avatar_url,
+      
+      // Fit Preferences
+      fitPreference: backendData.fitPreference || 'Not specified',
+      fitPreferences: backendData.fitPreferences || {},
+      
+      // Color Palette
+      colorPalette: backendData.colorPalette || {},
+      
+      // Quiz Responses
+      quizResponses: backendData.quizResponses || [],
+      
+      // Additional Info
+      budget: backendData.budget || 'Not specified',
+      hybridStyleName: backendData.hybridStyleName || 'Not specified',
+      alignmentScore: backendData.alignmentScore || 0,
+      wardrobeCount: backendData.wardrobeCount || 0,
+      
+      // Timestamps
+      createdAt: backendData.createdAt || backendData.created_at || new Date().toISOString(),
+      updatedAt: backendData.updatedAt || backendData.updated_at || new Date().toISOString(),
+      
+      // Backend-specific fields
+      avatarUrl: backendData.avatar_url || backendData.selfieUrl || '',
       backendData: backendData // Include full backend response for debugging
     };
     

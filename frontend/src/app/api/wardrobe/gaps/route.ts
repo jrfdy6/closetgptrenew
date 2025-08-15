@@ -31,8 +31,15 @@ export async function GET(request: NextRequest) {
       if (userId) {
         // Get the authorization header from the request
         const authHeader = request.headers.get('authorization');
+        if (!authHeader) {
+          console.log('❌ Frontend API: No authorization header found');
+          return NextResponse.json(
+            { error: 'Authorization header required' },
+            { status: 401 }
+          );
+        }
         authHeaders = {
-          'Authorization': authHeader || '',
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         };
         
