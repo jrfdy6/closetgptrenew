@@ -140,8 +140,8 @@ class DashboardService {
 
   private async getWardrobeStats(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching wardrobe stats from /api/wardrobe/wardrobe-stats');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/wardrobe-stats', user);
+      console.log('🔍 DEBUG: Fetching wardrobe stats from /api/analytics/wardrobe-stats');
+      const response = await this.makeAuthenticatedRequest('/api/analytics/wardrobe-stats', user);
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       return response.data || response || {};
     } catch (error) {
