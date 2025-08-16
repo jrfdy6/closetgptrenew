@@ -403,32 +403,51 @@ class WardrobeAnalysisService:
         prices = []
         
         for i, item in enumerate(wardrobe):
-            print(f"DEBUG: Processing item {i+1}: type={item.type}, color={item.color}, style={item.style}")
-            
-            # Item types
-            item_types[item.type] = item_types.get(item.type, 0) + 1
-            
-            # Colors
-            if item.color:
-                colors[item.color] = colors.get(item.color, 0) + 1
-            
-            # Styles
-            if item.style:
-                for style in item.style:
-                    styles[style] = styles.get(style, 0) + 1
-            
-            # Seasons
-            if item.season:
-                for season in item.season:
-                    seasons[season] = seasons.get(season, 0) + 1
-            
-            # Brands
-            if hasattr(item, 'brand') and item.brand:
-                brands[item.brand] = brands.get(item.brand, 0) + 1
-            
-            # Prices (if available)
-            if hasattr(item, 'price') and item.price:
-                prices.append(float(item.price))
+            try:
+                print(f"DEBUG: Processing item {i+1}: type={getattr(item, 'type', 'unknown')}, color={getattr(item, 'color', 'unknown')}")
+                
+                # Item types - safely get type
+                item_type = getattr(item, 'type', 'unknown')
+                if item_type:
+                    item_types[str(item_type)] = item_types.get(str(item_type), 0) + 1
+                
+                # Colors - safely get color
+                item_color = getattr(item, 'color', None)
+                if item_color:
+                    colors[str(item_color)] = colors.get(str(item_color), 0) + 1
+                
+                # Styles - safely get style list
+                item_styles = getattr(item, 'style', [])
+                if item_styles and isinstance(item_styles, list):
+                    for style in item_styles:
+                        if style:
+                            styles[str(style)] = styles.get(str(style), 0) + 1
+                
+                # Seasons - safely get season list
+                item_seasons = getattr(item, 'season', [])
+                if item_seasons and isinstance(item_seasons, list):
+                    for season in item_seasons:
+                        if season:
+                            seasons[str(season)] = seasons.get(str(season), 0) + 1
+                
+                # Brands - safely get brand
+                item_brand = getattr(item, 'brand', None)
+                if item_brand:
+                    brands[str(item_brand)] = brands.get(str(item_brand), 0) + 1
+                
+                # Prices (if available) - safely get price
+                item_price = getattr(item, 'price', None)
+                if item_price:
+                    try:
+                        prices.append(float(item_price))
+                    except (ValueError, TypeError):
+                        print(f"DEBUG: Skipping invalid price for item {i+1}: {item_price}")
+                        continue
+                        
+            except Exception as e:
+                print(f"DEBUG: Error processing item {i+1}: {e}")
+                print(f"DEBUG: Item data: {item}")
+                continue
         
         print(f"DEBUG: Final item_types: {item_types}")
         print(f"DEBUG: Final colors: {colors}")
@@ -437,11 +456,15 @@ class WardrobeAnalysisService:
         # Calculate price statistics
         price_stats = {"min": 0, "max": 0, "avg": 0}
         if prices:
-            price_stats = {
-                "min": min(prices),
-                "max": max(prices),
-                "avg": sum(prices) / len(prices)
-            }
+            try:
+                price_stats = {
+                    "min": min(prices),
+                    "max": max(prices),
+                    "avg": sum(prices) / len(prices)
+                }
+            except Exception as e:
+                print(f"DEBUG: Error calculating price stats: {e}")
+                price_stats = {"min": 0, "max": 0, "avg": 0}
         
         stats = {
             "total_items": len(wardrobe),

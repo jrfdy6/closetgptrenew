@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from ..routes.auth import get_current_user_id
+from ..auth.auth_service import get_current_user_optional
 from ..custom_types.wardrobe import ClothingItem
 from ..services.item_analytics_service import ItemAnalyticsService
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
@@ -33,7 +33,7 @@ class ForgottenGemsResponse(BaseModel):
 async def get_forgotten_gems(
     days_threshold: int = 30,
     min_rediscovery_potential: float = 20.0,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user_optional)
 ) -> ForgottenGemsResponse:
     """
     Get forgotten gems - items that haven't been worn recently.
@@ -47,14 +47,17 @@ async def get_forgotten_gems(
         List of forgotten items with analysis and recommendations
     """
     try:
-        print(f"🔍 Forgotten Gems: Analyzing for user {current_user_id}")
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        print(f"🔍 Forgotten Gems: Analyzing for user {current_user.id}")
         
         # Initialize services
         analytics_service = ItemAnalyticsService()
         wardrobe_service = WardrobeAnalysisService()
         
         # Get user's wardrobe
-        wardrobe = await wardrobe_service._get_user_wardrobe(current_user_id)
+        wardrobe = await wardrobe_service._get_user_wardrobe(current_user.id)
         print(f"🔍 Forgotten Gems: Found {len(wardrobe)} wardrobe items")
         
         if not wardrobe:
@@ -71,7 +74,7 @@ async def get_forgotten_gems(
             )
         
         # Get usage analytics for all items
-        favorites = await analytics_service.get_user_favorites(current_user_id, limit=100)
+        favorites = await analytics_service.get_user_favorites(current_user.id, limit=100)
         print(f"🔍 Forgotten Gems: Found {len(favorites)} items with usage data")
         
         # Create a map of item_id to usage data
