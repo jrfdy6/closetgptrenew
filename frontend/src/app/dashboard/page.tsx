@@ -86,6 +86,12 @@ export default function Dashboard() {
 
   // Debug information
   console.log("Dashboard render:", { user, loading, isLoading, dashboardData, error });
+  console.log("🔍 DEBUG: Dashboard data details:", {
+    totalItems: dashboardData?.totalItems,
+    hasData: !!dashboardData,
+    dataKeys: dashboardData ? Object.keys(dashboardData) : [],
+    fullData: dashboardData
+  });
 
   // Show loading state while authentication is resolving
   if (loading || isLoading) {
