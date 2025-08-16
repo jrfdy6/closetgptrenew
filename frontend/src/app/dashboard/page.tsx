@@ -68,8 +68,12 @@ export default function Dashboard() {
       
       const data = await dashboardService.getDashboardData(user);
       console.log('🔍 DEBUG: Dashboard: Real data received:', data);
+      console.log('🔍 DEBUG: Dashboard: Data type:', typeof data);
+      console.log('🔍 DEBUG: Dashboard: Data keys:', Object.keys(data || {}));
+      console.log('🔍 DEBUG: Dashboard: Total items value:', data?.totalItems);
       
       setDashboardData(data);
+      console.log('🔍 DEBUG: Dashboard: State update called with:', data);
     } catch (err) {
       console.error('🔍 DEBUG: Dashboard: Error fetching data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
@@ -92,6 +96,14 @@ export default function Dashboard() {
     dataKeys: dashboardData ? Object.keys(dashboardData) : [],
     fullData: dashboardData
   });
+  
+  // Add useEffect to monitor state changes
+  useEffect(() => {
+    if (dashboardData) {
+      console.log("🔍 DEBUG: Dashboard state changed to:", dashboardData);
+      console.log("🔍 DEBUG: Total items in state:", dashboardData.totalItems);
+    }
+  }, [dashboardData]);
 
   // Show loading state while authentication is resolving
   if (loading || isLoading) {
