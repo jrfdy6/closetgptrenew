@@ -153,8 +153,8 @@ ROUTERS = [
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
     ("src.routes.outfit", ""),           # Router already has /api/outfit prefix
-    ("src.routes.outfits", "/api/outfits"),          # Router needs /api/outfits prefix
-    ("src.routes.outfit_history", "/api"), # Router has no prefix, so add /api
+    ("src.routes.outfits", ""),          # Router already has /api/outfits prefix
+    ("src.routes.outfit_history", ""),   # Router already has /api prefix
     ("src.routes.test_debug", ""),       # Router already has /api/test prefix
 ]
 
