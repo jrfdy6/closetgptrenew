@@ -74,6 +74,10 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     console.log('🔍 DEBUG: Backend data received:', data);
+    console.log('🔍 DEBUG: Backend data type:', typeof data);
+    console.log('🔍 DEBUG: Backend data keys:', Object.keys(data || {}));
+    console.log('🔍 DEBUG: Backend data.data:', data.data);
+    console.log('🔍 DEBUG: Backend data.data.total_items:', data.data?.total_items);
     return NextResponse.json(data);
     
   } catch (error) {
