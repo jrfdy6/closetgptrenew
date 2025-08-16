@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import time
 
-from ..routes.auth import get_current_user_id
+from ..auth.auth_service import get_current_user_optional
 from ..custom_types.profile import UserProfile
 from ..config.firebase import db
 from ..core.logging import get_logger
@@ -16,7 +16,7 @@ db = db
 
 @router.get("/")
 async def get_outfit_history(
-    current_user_id: str = Depends(get_current_user_id),
+    current_user = Depends(get_current_user_optional),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     outfit_id: Optional[str] = Query(None, description="Filter by specific outfit ID"),
@@ -26,10 +26,13 @@ async def get_outfit_history(
     Get user's outfit history entries
     """
     try:
-        logger.info(f"Fetching outfit history for user {current_user_id}")
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        logger.info(f"Fetching outfit history for user {current_user.id}")
         
         # Query outfit_history collection
-        query = db.collection('outfit_history').where('user_id', '==', current_user_id)
+        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
         
         # Add outfit_id filter if provided
         if outfit_id:
@@ -79,7 +82,7 @@ async def get_outfit_history(
                 "updatedAt": data.get('updated_at')
             })
         
-        logger.info(f"Retrieved {len(outfit_history)} outfit history entries for user {current_user_id}")
+        logger.info(f"Retrieved {len(outfit_history)} outfit history entries for user {current_user.id}")
         
         return {
             "success": True,
