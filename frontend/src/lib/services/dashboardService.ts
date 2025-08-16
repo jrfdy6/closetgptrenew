@@ -113,6 +113,11 @@ class DashboardService {
       console.log('🔍 DEBUG: All API calls completed, processing data...');
 
       // Process and combine the data
+      console.log('🔍 DEBUG: Processing wardrobeStats:', wardrobeStats);
+      console.log('🔍 DEBUG: wardrobeStats.total_items:', wardrobeStats.total_items);
+      console.log('🔍 DEBUG: wardrobeStats type:', typeof wardrobeStats);
+      console.log('🔍 DEBUG: wardrobeStats keys:', Object.keys(wardrobeStats || {}));
+      
       const dashboardData: DashboardData = {
         totalItems: wardrobeStats.total_items || 0,
         favorites: this.calculateFavorites(wardrobeStats),
