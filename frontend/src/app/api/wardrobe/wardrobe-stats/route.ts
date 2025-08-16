@@ -26,9 +26,9 @@ export async function GET(request: NextRequest) {
       'https://closetgptrenew-backend-production.up.railway.app';
     
     console.log('🔍 DEBUG: Backend URL:', baseUrl);
-    console.log('🔍 DEBUG: Full endpoint URL:', `${baseUrl}/api/analytics/wardrobe-stats`);
+    console.log('🔍 DEBUG: Full endpoint URL:', `${baseUrl}/api/wardrobe/wardrobe-stats`);
     
-    const response = await fetch(`${baseUrl}/api/analytics/wardrobe-stats`, {
+    const response = await fetch(`${baseUrl}/api/wardrobe/wardrobe-stats`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
