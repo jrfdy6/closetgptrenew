@@ -7,7 +7,7 @@ from ..auth.auth_service import get_current_user_optional
 from ..custom_types.profile import UserProfile
 from ..config.firebase import db
 from ..core.logging import get_logger
-from ..routes.analytics import log_analytics_event
+from ..services.analytics_service import log_analytics_event
 
 router = APIRouter(prefix="/outfit-history", tags=["outfit-history"])
 logger = get_logger(__name__)
