@@ -1,16 +1,20 @@
+print("🔍 DEBUG: File loading started - this should appear first!")
 import logging
 import sys
 import os
 from pathlib import Path
 
 # Configure logging to see what's happening during startup
+print("🔍 DEBUG: About to configure logging...")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+print("🔍 DEBUG: Logging configured successfully")
 
 logger.info("=== Starting FastAPI application ===")
 logger.info(f"Current working directory: {os.getcwd()}")
 logger.info(f"Python path: {sys.path}")
 logger.info(f"__file__ location: {__file__}")
+print("🔍 DEBUG: About to import FastAPI...")
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 import re
