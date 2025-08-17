@@ -1,87 +1,76 @@
-from fastapi import APIRouter, HTTPException
-from firebase_admin import firestore
+"""
+Public diagnostics endpoints for ClosetGPT.
+Provides public health and status information.
+"""
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import Dict, Any, List
 import time
-import platform
-import sys
-from typing import Dict, Any
+import os
 
 router = APIRouter()
-db = firestore.client()
 
-@router.get("/public/health")
-async def get_public_health():
-    """
-    Completely public health check endpoint for diagnostic testing.
-    """
-    try:
-        # Get outfit count from Firestore
-        outfits_ref = db.collection('outfits')
-        outfit_count = len(list(outfits_ref.stream()))
-        
-        # Get trace count
-        traces_ref = db.collection('generation_traces')
-        trace_count = len(list(traces_ref.stream()))
-        
-        return {
-            "status": "healthy",
-            "timestamp": int(time.time()),
-            "system_info": {
-                "python_version": sys.version,
-                "platform": platform.platform(),
-                "uptime": "running"
-            },
-            "diagnostic_data": {
-                "outfits_count": outfit_count,
-                "traces_count": trace_count,
-                "last_test_outfit_id": "c833709e-c1b6-4618-8c87-0ceede11acf7"
-            },
-            "message": "Public diagnostic system is operational"
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "timestamp": int(time.time())
-        }
+class ServiceStatus(BaseModel):
+    """Service status information."""
+    service: str
+    status: str
+    timestamp: float
+    details: Dict[str, Any]
 
-@router.get("/public/outfit-traces")
-async def get_public_outfit_traces():
-    """
-    Completely public outfit traces endpoint for diagnostic testing.
-    """
-    try:
-        # Get the most recent outfit trace
-        outfits_ref = db.collection('outfits')
-        outfits = list(outfits_ref.order_by('createdAt', direction='DESCENDING').limit(1).stream())
-        
-        if not outfits:
-            return {
-                "status": "no_data",
-                "message": "No outfit traces found",
-                "timestamp": int(time.time())
-            }
-        
-        outfit_data = outfits[0].to_dict()
-        outfit_data['outfit_id'] = outfits[0].id
-        
-        return {
-            "status": "success",
-            "timestamp": int(time.time()),
-            "latest_outfit": {
-                "id": outfit_data['outfit_id'],
-                "name": outfit_data.get('name', 'Unknown'),
-                "generation_method": outfit_data.get('generation_method', 'unknown'),
-                "was_successful": outfit_data.get('wasSuccessful', False),
-                "items_count": len(outfit_data.get('items', [])),
-                "created_at": outfit_data.get('createdAt', 0),
-                "validation_errors": outfit_data.get('validationErrors', []),
-                "generation_trace": outfit_data.get('generation_trace', [])
-            },
-            "message": "Latest outfit trace retrieved successfully"
+@router.get("/")
+async def get_diagnostics_status():
+    """Get diagnostics service status."""
+    return {
+        "status": "operational",
+        "service": "public_diagnostics",
+        "endpoints": ["/health", "/status", "/info"],
+        "timestamp": time.time()
+    }
+
+@router.get("/health")
+async def public_health_check():
+    """Public health check endpoint."""
+    return ServiceStatus(
+        service="public_diagnostics",
+        status="healthy",
+        timestamp=time.time(),
+        details={
+            "version": "1.0.0",
+            "environment": os.getenv("ENVIRONMENT", "production"),
+            "uptime": time.time()
         }
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e),
-            "timestamp": int(time.time())
-        } 
+    )
+
+@router.get("/status")
+async def get_public_status():
+    """Get public service status."""
+    return {
+        "status": "operational",
+        "services": {
+            "api": "healthy",
+            "weather": "healthy",
+            "wardrobe": "healthy",
+            "authentication": "healthy"
+        },
+        "timestamp": time.time(),
+        "version": "1.0.0"
+    }
+
+@router.get("/info")
+async def get_service_info():
+    """Get service information."""
+    return {
+        "name": "ClosetGPT API",
+        "description": "AI-powered wardrobe management and outfit generation API",
+        "version": "1.0.0",
+        "environment": os.getenv("ENVIRONMENT", "production"),
+        "features": [
+            "weather integration",
+            "wardrobe management",
+            "outfit generation",
+            "style analysis",
+            "performance monitoring"
+        ],
+        "timestamp": time.time()
+    } 
