@@ -13,7 +13,7 @@ try:
     from src.core.logging import get_logger
     from src.models.analytics_event import AnalyticsEvent
     from src.services.analytics_service import log_analytics_event
-    from src.auth.auth_service import get_current_user
+    from src.auth.auth_service import get_current_user_optional
 except ImportError:
     # Fallback for when running as module
     from custom_types.wardrobe import ClothingItem, ClothingType, Color
@@ -22,7 +22,7 @@ except ImportError:
     from core.logging import get_logger
     from models.analytics_event import AnalyticsEvent
     from services.analytics_service import log_analytics_event
-    from auth.auth_service import get_current_user
+    from auth.auth_service import get_current_user_optional
 
 router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
 
@@ -40,7 +40,7 @@ except Exception as e:
 @router.post("/add")
 async def add_wardrobe_item(
     item_data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """
     Add a new wardrobe item for the current user.
