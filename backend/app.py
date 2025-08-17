@@ -146,7 +146,7 @@ async def initialize_firebase():
 # ---------------- ROUTER LOADER ----------------
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
-    ("src.routes.auth", "/api/auth"),    # Use existing working auth router with /api/auth prefix
+    # ("src.routes.auth", "/api/auth"),    # TEMPORARILY DISABLED - causing router loading to fail
     # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
     # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
