@@ -317,4 +317,11 @@ def setup_middleware(app: ASGIApp) -> None:
     # app.add_middleware(PerformanceMiddleware, slow_request_threshold=1.0)
     # app.add_middleware(ErrorLoggingMiddleware)  # Add error logging middleware
     # app.add_middleware(HealthCheckMiddleware)
-    logger.info("LoggingMiddleware enabled only for debugging.") 
+    
+    # Make logging call safer to prevent silent failures
+    try:
+        logger.info("LoggingMiddleware enabled only for debugging.")
+        print("DEBUG: LoggingMiddleware logging call completed successfully")
+    except Exception as e:
+        print(f"DEBUG: LoggingMiddleware logging call failed: {e}")
+        # Continue anyway - don't let logging failure break the app 
