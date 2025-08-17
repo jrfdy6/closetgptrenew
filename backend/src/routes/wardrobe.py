@@ -5,24 +5,14 @@ import uuid
 import time
 from datetime import datetime
 
-# Use absolute imports instead of relative imports
-try:
-    from src.custom_types.wardrobe import ClothingItem, ClothingType, Color
-    from src.custom_types.profile import UserProfile
-    from src.services.metadata_enhancement_service import MetadataEnhancementService
-    from src.core.logging import get_logger
-    from src.models.analytics_event import AnalyticsEvent
-    from src.services.analytics_service import log_analytics_event
-    from src.auth.auth_service import get_current_user_optional
-except ImportError:
-    # Fallback for when running as module
-    from custom_types.wardrobe import ClothingItem, ClothingType, Color
-    from custom_types.profile import UserProfile
-    from services.metadata_enhancement_service import MetadataEnhancementService
-    from core.logging import get_logger
-    from models.analytics_event import AnalyticsEvent
-    from services.analytics_service import log_analytics_event
-    from auth.auth_service import get_current_user_optional
+# Use relative imports for router loading compatibility
+from ..custom_types.wardrobe import ClothingItem, ClothingType, Color
+from ..custom_types.profile import UserProfile
+from ..services.metadata_enhancement_service import MetadataEnhancementService
+from ..core.logging import get_logger
+from ..models.analytics_event import AnalyticsEvent
+from ..services.analytics_service import log_analytics_event
+from ..auth.auth_service import get_current_user_optional
 
 router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
 
