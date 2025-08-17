@@ -309,8 +309,11 @@ class HealthCheckMiddleware(BaseHTTPMiddleware):
 def setup_middleware(app: ASGIApp) -> None:
     """Setup only LoggingMiddleware for debugging."""
     print("DEBUG: setup_middleware called - adding LoggingMiddleware")
+    
+    # TEMPORARILY DISABLED TO ISOLATE MIDDLEWARE ISSUE
     # Only enable LoggingMiddleware for now
-    app.add_middleware(LoggingMiddleware)
+    # app.add_middleware(LoggingMiddleware)
+    
     # app.add_middleware(CacheMiddleware, cache_ttl=300)
     # app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
     # app.add_middleware(SecurityMiddleware)
@@ -320,8 +323,10 @@ def setup_middleware(app: ASGIApp) -> None:
     
     # Make logging call safer to prevent silent failures
     try:
-        logger.info("LoggingMiddleware enabled only for debugging.")
+        logger.info("LoggingMiddleware temporarily disabled to isolate startup issue")
         print("DEBUG: LoggingMiddleware logging call completed successfully")
     except Exception as e:
         print(f"DEBUG: LoggingMiddleware logging call failed: {e}")
-        # Continue anyway - don't let logging failure break the app 
+        # Continue anyway - don't let logging failure break the app
+    
+    print("DEBUG: setup_middleware completed - middleware temporarily disabled") 
