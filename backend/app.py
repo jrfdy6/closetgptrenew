@@ -1,20 +1,16 @@
-print("🔍 DEBUG: File loading started - this should appear first!")
 import logging
 import sys
 import os
 from pathlib import Path
 
 # Configure logging to see what's happening during startup
-print("🔍 DEBUG: About to configure logging...")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-print("🔍 DEBUG: Logging configured successfully")
 
 logger.info("=== Starting FastAPI application ===")
 logger.info(f"Current working directory: {os.getcwd()}")
 logger.info(f"Python path: {sys.path}")
 logger.info(f"__file__ location: {__file__}")
-print("🔍 DEBUG: About to import FastAPI...")
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 import re
@@ -29,15 +25,10 @@ app = FastAPI(
     description="AI-powered wardrobe management and outfit generation API",
     version="1.0.0"
 )
-print("DEBUG: FastAPI app created - deployment test - CORS fix attempt - FORCING REDEPLOY - Router fixes deployed")
-print("🔍 DEBUG: FastAPI app created successfully, about to configure CORS...")
 
 # Configure CORS first
-print("🔍 DEBUG: Starting CORS configuration...")
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
-print(f"🔍 DEBUG: ALLOWED_ORIGINS env var: {allowed_origins_str}")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
-print(f"🔍 DEBUG: Parsed allowed_origins: {allowed_origins}")
 
 # Add production URLs
 allowed_origins.extend([
@@ -60,7 +51,6 @@ if os.getenv("ENVIRONMENT") == "development":
         "https://localhost:3001"
     ])
 
-print("🔍 DEBUG: About to add CORS middleware...")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -69,15 +59,11 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
 )
-print("🔍 DEBUG: CORS middleware added successfully")
-print("🔍 DEBUG: About to add explicit OPTIONS handler...")
 
 # Add explicit OPTIONS handler for all routes to ensure CORS headers are sent
-print("🔍 DEBUG: About to define OPTIONS handler function...")
 @app.options("/{full_path:path}")
 async def options_handler(full_path: str, request: Request):
     """Explicit OPTIONS handler for all routes to ensure CORS headers are sent."""
-    print("🔍 DEBUG: OPTIONS handler function defined successfully")
     from fastapi.responses import Response
     
     # Get the origin from the request
@@ -85,7 +71,6 @@ async def options_handler(full_path: str, request: Request):
     
     # Check if origin is in allowed origins
     if origin in allowed_origins or any(re.match(pattern, origin) for pattern in [
-        r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
         r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
         r"^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$"
     ]):
@@ -99,72 +84,31 @@ async def options_handler(full_path: str, request: Request):
     else:
         # Return a simple response for non-allowed origins
         return Response(status_code=200)
-print("🔍 DEBUG: OPTIONS handler function completed successfully")
-print("🔍 DEBUG: About to start core modules import section...")
 
 # ---------------- CORE MODULES IMPORT ----------------
-print("🔍 DEBUG: About to start core modules import section...")
-print("🔍 DEBUG: Starting core modules import section...")
-
-# Wrap the entire core modules section in error handling
+# Try to import and setup core modules
 try:
-    print("🔍 DEBUG: About to import src.core.logging...")
     from src.core.logging import setup_logging
-    print("🔍 DEBUG: src.core.logging imported successfully")
-    print("🔍 DEBUG: About to call setup_logging()...")
     setup_logging()
-    print("DEBUG: Logging setup completed")
-    print("🔍 DEBUG: Logging setup completed successfully")
 except Exception as e:
-    print(f"DEBUG: Logging setup failed: {e}")
-    print("🔍 DEBUG: Logging setup failed, continuing...")
     # Continue without logging setup
+    pass
 
 try:
-    print("🔍 DEBUG: About to import src.core.middleware...")
     from src.core.middleware import setup_middleware
-    print("🔍 DEBUG: src.core.middleware imported successfully")
-    print("🔍 DEBUG: About to call setup_middleware(app)...")
     setup_middleware(app)
-    print("DEBUG: setup_middleware(app) completed")
-    print("🔍 DEBUG: Middleware setup completed successfully")
-    print("🔍 DEBUG: About to exit middleware setup try block...")
 except Exception as e:
-    print(f"DEBUG: Middleware setup failed: {e}")
-    print("🔍 DEBUG: Middleware setup failed, continuing...")
     # Continue without middleware setup
-
-print("🔍 DEBUG: Core modules import section completed successfully!")
-print("🔍 DEBUG: About to start Firebase config import section...")
-print("🔍 DEBUG: This print should appear after middleware setup...")
-print("🔍 DEBUG: About to reach the Firebase config import section...")
-print("🔍 DEBUG: About to reach the Firebase config import section...")
-print("🔍 DEBUG: About to reach the Firebase config import section...")
-print("🔍 DEBUG: About to reach the Firebase config import section...")
-print("🔍 DEBUG: About to reach the Firebase config import section...")
-print("🔍 DEBUG: About to reach the Firebase config import section...")
-print("🔍 DEBUG: About to reach the Firebase config import section...")
+    pass
 
 # Try to import Firebase config
-print("🔍 DEBUG: Starting Firebase config import...")
-print("🔍 DEBUG: About to enter Firebase config import try block...")
-print("🔍 DEBUG: About to enter Firebase config import try block...")
-print("🔍 DEBUG: About to enter Firebase config import try block...")
-print("🔍 DEBUG: About to enter Firebase config import try block...")
-print("🔍 DEBUG: About to enter Firebase config import try block...")
-print("🔍 DEBUG: About to enter Firebase config import try block...")
-print("🔍 DEBUG: About to enter Firebase config import try block...")
-
 try:
-    print("🔍 DEBUG: About to import src.config.firebase...")
     from src.config import firebase
-    print("DEBUG: Firebase config imported successfully")
-    print("🔍 DEBUG: Firebase config import completed successfully")
 except Exception as e:
-    print(f"DEBUG: Firebase config import failed: {e}")
-    print("🔍 DEBUG: Firebase config import failed, continuing...")
+    # Continue without Firebase config
+    pass
 
-print("🔍 DEBUG: Firebase config import section completed!")
+print("🔍 DEBUG: Core modules import section completed successfully!")
 print("🔍 DEBUG: About to start router loading section...")
 print("🔍 DEBUG: This print should appear before router loading...")
 
