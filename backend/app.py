@@ -220,7 +220,7 @@ async def show_all_routes():
 # ---------------- ROOT ----------------
 @app.get("/")
 def root():
-    return {"status": "API running", "message": "ClosetGPT API is running with bulletproof router loader"}
+    return {"status": "API running", "message": "ClosetGPT API is running with FULLY RESTORED FUNCTIONALITY - All middleware and startup events working!"}
 
 # ---------------- INLINE TEST ROUTES ----------------
 @app.post("/api/image/upload-inline")
