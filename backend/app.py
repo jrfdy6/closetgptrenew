@@ -100,22 +100,34 @@ async def options_handler(full_path: str, request: Request):
         # Return a simple response for non-allowed origins
         return Response(status_code=200)
 print("🔍 DEBUG: OPTIONS handler function completed successfully")
+print("🔍 DEBUG: About to start core modules import section...")
 
 # Try to import and setup core modules
+print("🔍 DEBUG: Starting core modules import section...")
 try:
+    print("🔍 DEBUG: About to import src.core.logging...")
     from src.core.logging import setup_logging
+    print("🔍 DEBUG: src.core.logging imported successfully")
+    print("🔍 DEBUG: About to call setup_logging()...")
     setup_logging()
     print("DEBUG: Logging setup completed")
+    print("🔍 DEBUG: Logging setup completed successfully")
 except Exception as e:
     print(f"DEBUG: Logging setup failed: {e}")
+    print("🔍 DEBUG: Logging setup failed, continuing...")
     # Continue without logging setup
 
 try:
+    print("🔍 DEBUG: About to import src.core.middleware...")
     from src.core.middleware import setup_middleware
+    print("🔍 DEBUG: src.core.middleware imported successfully")
+    print("🔍 DEBUG: About to call setup_middleware(app)...")
     setup_middleware(app)
     print("DEBUG: setup_middleware(app) completed")
+    print("🔍 DEBUG: Middleware setup completed successfully")
 except Exception as e:
     print(f"DEBUG: Middleware setup failed: {e}")
+    print("🔍 DEBUG: Middleware setup failed, continuing...")
     # Continue without middleware setup
 
 # Try to import Firebase config
