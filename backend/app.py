@@ -30,10 +30,14 @@ app = FastAPI(
     version="1.0.0"
 )
 print("DEBUG: FastAPI app created - deployment test - CORS fix attempt - FORCING REDEPLOY - Router fixes deployed")
+print("🔍 DEBUG: FastAPI app created successfully, about to configure CORS...")
 
 # Configure CORS first
+print("🔍 DEBUG: Starting CORS configuration...")
 allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
+print(f"🔍 DEBUG: ALLOWED_ORIGINS env var: {allowed_origins_str}")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+print(f"🔍 DEBUG: Parsed allowed_origins: {allowed_origins}")
 
 # Add production URLs
 allowed_origins.extend([
@@ -56,6 +60,7 @@ if os.getenv("ENVIRONMENT") == "development":
         "https://localhost:3001"
     ])
 
+print("🔍 DEBUG: About to add CORS middleware...")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -64,6 +69,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
 )
+print("🔍 DEBUG: CORS middleware added successfully")
 
 # Add explicit OPTIONS handler for all routes to ensure CORS headers are sent
 @app.options("/{full_path:path}")
