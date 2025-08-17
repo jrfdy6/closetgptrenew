@@ -125,12 +125,14 @@ try:
     setup_middleware(app)
     print("DEBUG: setup_middleware(app) completed")
     print("🔍 DEBUG: Middleware setup completed successfully")
+    print("🔍 DEBUG: About to exit middleware setup try block...")
 except Exception as e:
     print(f"DEBUG: Middleware setup failed: {e}")
     print("🔍 DEBUG: Middleware setup failed, continuing...")
     # Continue without middleware setup
 
 print("🔍 DEBUG: About to start Firebase config import section...")
+print("🔍 DEBUG: This print should appear after middleware setup...")
 
 # Try to import Firebase config
 print("🔍 DEBUG: Starting Firebase config import...")
