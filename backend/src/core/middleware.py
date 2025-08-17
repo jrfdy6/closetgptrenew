@@ -12,7 +12,20 @@ from starlette.types import ASGIApp
 
 from .logging import get_logger, RequestLogger, ErrorTracker, ErrorLoggingMiddleware
 from .cache import cache_manager
-from ..routes.monitoring import increment_request_count, increment_error_count, increment_slow_request_count
+
+# Break circular import by making monitoring imports optional
+try:
+    from ..routes.monitoring import increment_request_count, increment_error_count, increment_slow_request_count
+    MONITORING_AVAILABLE = True
+except ImportError:
+    # If monitoring routes aren't available, use dummy functions
+    def increment_request_count():
+        pass
+    def increment_error_count():
+        pass
+    def increment_slow_request_count():
+        pass
+    MONITORING_AVAILABLE = False
 
 logger = get_logger("middleware")
 request_logger = RequestLogger(logger)
@@ -33,8 +46,12 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Add user ID if available (from auth middleware)
         user_id = getattr(request.state, 'user_id', None)
         
-        # Increment request count for monitoring
-        increment_request_count()  # Re-enabled after fixing the function
+        # Increment request count for monitoring (if available)
+        if MONITORING_AVAILABLE:
+            try:
+                increment_request_count()
+            except Exception as e:
+                logger.warning(f"Failed to increment request count: {e}")
         
         # Log request start
         logger.info(
@@ -59,7 +76,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             duration = time.time() - start_time
             
             # Log successful request
-            await request_logger.log_request(request, response, duration)  # Re-enabled after fixing the method
+            try:
+                await request_logger.log_request(request, response, duration)
+            except Exception as e:
+                logger.warning(f"Failed to log request: {e}")
             
             # Add request ID to response headers
             response.headers["X-Request-ID"] = request_id
@@ -69,19 +89,26 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             duration = time.time() - start_time
             
-            # Increment error count for monitoring
-            increment_error_count()  # Re-enabled after fixing the function
+            # Increment error count for monitoring (if available)
+            if MONITORING_AVAILABLE:
+                try:
+                    increment_error_count()
+                except Exception as monitoring_error:
+                    logger.warning(f"Failed to increment error count: {monitoring_error}")
             
             # Track error
-            error_tracker.track_error(  # Re-enabled after fixing the function
-                "request_error",
-                str(e),
-                request_id=request_id,
-                user_id=user_id,
-                method=request.method,
-                url=str(request.url),
-                duration_seconds=duration
-            )
+            try:
+                error_tracker.track_error(
+                    "request_error",
+                    str(e),
+                    request_id=request_id,
+                    user_id=user_id,
+                    method=request.method,
+                    url=str(request.url),
+                    duration_seconds=duration
+                )
+            except Exception as tracking_error:
+                logger.warning(f"Failed to track error: {tracking_error}")
             
             # Re-raise the exception
             raise
