@@ -138,9 +138,11 @@ print("🔍 DEBUG: About to reach the Firebase config import section...")
 print("🔍 DEBUG: About to reach the Firebase config import section...")
 print("🔍 DEBUG: About to reach the Firebase config import section...")
 print("🔍 DEBUG: About to reach the Firebase config import section...")
+print("🔍 DEBUG: About to reach the Firebase config import section...")
 
 # Try to import Firebase config
 print("🔍 DEBUG: Starting Firebase config import...")
+print("🔍 DEBUG: About to enter Firebase config import try block...")
 print("🔍 DEBUG: About to enter Firebase config import try block...")
 print("🔍 DEBUG: About to enter Firebase config import try block...")
 print("🔍 DEBUG: About to enter Firebase config import try block...")
