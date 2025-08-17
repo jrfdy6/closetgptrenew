@@ -70,11 +70,14 @@ app.add_middleware(
     allow_headers=["*"]
 )
 print("🔍 DEBUG: CORS middleware added successfully")
+print("🔍 DEBUG: About to add explicit OPTIONS handler...")
 
 # Add explicit OPTIONS handler for all routes to ensure CORS headers are sent
+print("🔍 DEBUG: About to define OPTIONS handler function...")
 @app.options("/{full_path:path}")
 async def options_handler(full_path: str, request: Request):
     """Explicit OPTIONS handler for all routes to ensure CORS headers are sent."""
+    print("🔍 DEBUG: OPTIONS handler function defined successfully")
     from fastapi.responses import Response
     
     # Get the origin from the request
@@ -82,6 +85,7 @@ async def options_handler(full_path: str, request: Request):
     
     # Check if origin is in allowed origins
     if origin in allowed_origins or any(re.match(pattern, origin) for pattern in [
+        r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
         r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
         r"^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$"
     ]):
@@ -95,6 +99,7 @@ async def options_handler(full_path: str, request: Request):
     else:
         # Return a simple response for non-allowed origins
         return Response(status_code=200)
+print("🔍 DEBUG: OPTIONS handler function completed successfully")
 
 # Try to import and setup core modules
 try:
