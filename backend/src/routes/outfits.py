@@ -18,7 +18,7 @@ from ..core.logging import get_logger
 from ..config.firebase import db, firebase_initialized
 from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
-from ..auth.auth_service import get_current_user
+from ..auth.auth_service import get_current_user_optional
 from ..custom_types.profile import UserProfile
 
 logger = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ async def debug_outfit_fields():
 
 @router.get("/debug-user-filtering", response_model=dict)
 async def debug_user_filtering(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ):
     """Debug endpoint to show detailed user filtering information."""
     current_user_id = current_user.id

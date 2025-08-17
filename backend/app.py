@@ -167,60 +167,55 @@ except Exception as e:
 print("🔍 DEBUG: Router loading section completed!")
 print("🔍 DEBUG: About to start startup events section...")
 
-# ---------------- FIREBASE INITIALIZATION ----------------
-# TEMPORARILY DISABLED TO ISOLATE UVICORN STARTUP ISSUE
-# @app.on_event("startup")
-# async def startup_events():
-#     """Combined startup events to prevent conflicts"""
-#     print("🚀 Starting application startup events...")
-#     
-#     # Initialize Firebase
-#     try:
-#         from firebase_admin import initialize_app, credentials
-#         from firebase_admin import firestore, storage
-#         
-#         # Initialize Firebase if not already initialized
-#         try:
-#             initialize_app()
-#             print("🔥 Firebase initialized successfully")
-#         except ValueError:
-#             print("🔥 Firebase already initialized")
-#             
-#         # Test database connection
-#         db = firestore.client()
-#         print("🔥 Firebase database connected")
-#         
-#         # Test storage connection (optional)
-#         try:
-#             bucket = storage.bucket()
-#             print("🔥 Firebase storage connected")
-#         except ValueError as e:
-#             print(f"⚠️ Firebase storage not configured: {e}")
-#             print("⚠️ Image upload functionality may not work without storage bucket")
-#         
-#     except Exception as e:
-#         print(f"❌ Firebase initialization failed: {e}")
-#         traceback.print_exc()
-#     
-#     # Show all routes
-#     print("\n📜 ROUTES TABLE:")
-#     for route in app.routes:
-#         print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
-#     print()
-#     
-#     print("✅ Application startup events completed successfully!")
-
-print("🔍 DEBUG: Startup events temporarily disabled to isolate Uvicorn issue")
-print("🔍 DEBUG: About to start router loading section...")
-print("🔍 DEBUG: This print should appear before router loading...")
+# ---------------- STARTUP EVENTS ----------------
+@app.on_event("startup")
+async def startup_event():
+    """Startup event handler - re-enabled now that Uvicorn startup is stable"""
+    print("🚀 Startup event triggered - Uvicorn startup issue resolved!")
+    
+    # Initialize Firebase
+    try:
+        from firebase_admin import initialize_app, credentials
+        from firebase_admin import firestore, storage
+        
+        # Initialize Firebase if not already initialized
+        try:
+            initialize_app()
+            print("🔥 Firebase initialized successfully")
+        except ValueError:
+            print("🔥 Firebase already initialized")
+            
+        # Test database connection
+        db = firestore.client()
+        print("🔥 Firebase database connected")
+        
+        # Test storage connection (optional)
+        try:
+            bucket = storage.bucket()
+            print("🔥 Firebase storage connected")
+        except ValueError as e:
+            print(f"⚠️ Firebase storage not configured: {e}")
+            print("⚠️ Image upload functionality may not work without storage bucket")
+        
+    except Exception as e:
+        print(f"❌ Firebase initialization failed: {e}")
+        traceback.print_exc()
+    
+    # Show all routes
+    print("\n📜 ROUTES TABLE:")
+    for route in app.routes:
+        print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
+    print()
+    
+    print("✅ Application startup events completed successfully!")
 
 # ---------------- ROUTER LOADER ----------------
-# @app.on_event("startup")
-# async def show_all_routes():
-#     print("\n📜 ROUTES TABLE:")
-#     for route in app.routes:
-#         print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
-#     print()
+@app.on_event("startup")
+async def show_all_routes():
+    print("\n📜 ROUTES TABLE:")
+    for route in app.routes:
+        print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
+    print()
 
 # ---------------- ROOT ----------------
 @app.get("/")
