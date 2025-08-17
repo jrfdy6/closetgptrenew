@@ -124,9 +124,14 @@ try:
         # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
         ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
         # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
-        # ("src.routes.outfits", ""),          # Router already has /api/outfits prefix - TEMPORARILY DISABLED
+        # ("src.routes.outfits", ""),          # Router already has /api/outfit prefix - TEMPORARILY DISABLED
         ("src.routes.outfit_history", ""),   # Router already has /api prefix
         ("src.routes.test_debug", ""),       # Router already has /api/test prefix
+        ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
+        ("src.routes.analytics", ""),        # Main analytics router
+        ("src.routes.performance", ""),      # Performance monitoring router
+        ("src.routes.monitoring", ""),       # System monitoring router
+        ("src.routes.public_diagnostics", ""), # Public health diagnostics
     ]
 
     def include_router_safe(module_name: str, prefix: str):
