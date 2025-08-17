@@ -102,8 +102,11 @@ async def options_handler(full_path: str, request: Request):
 print("🔍 DEBUG: OPTIONS handler function completed successfully")
 print("🔍 DEBUG: About to start core modules import section...")
 
-# Try to import and setup core modules
+# ---------------- CORE MODULES IMPORT ----------------
+print("🔍 DEBUG: About to start core modules import section...")
 print("🔍 DEBUG: Starting core modules import section...")
+
+# Wrap the entire core modules section in error handling
 try:
     print("🔍 DEBUG: About to import src.core.logging...")
     from src.core.logging import setup_logging
@@ -131,6 +134,7 @@ except Exception as e:
     print("🔍 DEBUG: Middleware setup failed, continuing...")
     # Continue without middleware setup
 
+print("🔍 DEBUG: Core modules import section completed successfully!")
 print("🔍 DEBUG: About to start Firebase config import section...")
 print("🔍 DEBUG: This print should appear after middleware setup...")
 print("🔍 DEBUG: About to reach the Firebase config import section...")
@@ -150,6 +154,7 @@ print("🔍 DEBUG: About to enter Firebase config import try block...")
 print("🔍 DEBUG: About to enter Firebase config import try block...")
 print("🔍 DEBUG: About to enter Firebase config import try block...")
 print("🔍 DEBUG: About to enter Firebase config import try block...")
+
 try:
     print("🔍 DEBUG: About to import src.config.firebase...")
     from src.config import firebase
@@ -159,7 +164,64 @@ except Exception as e:
     print(f"DEBUG: Firebase config import failed: {e}")
     print("🔍 DEBUG: Firebase config import failed, continuing...")
 
-# Remove duplicate FastAPI app and CORS configuration
+print("🔍 DEBUG: Firebase config import section completed!")
+print("🔍 DEBUG: About to start router loading section...")
+print("🔍 DEBUG: This print should appear before router loading...")
+
+# Wrap the router loading section in error handling
+try:
+    ROUTERS = [
+        ("src.routes.test_simple", ""),      # Simple test router to verify loading works
+        # ("src.routes.auth", "/api/auth"),    # TEMPORARILY DISABLED - causing router loading to fail
+        # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
+        # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
+        ("src.routes.weather", ""),          # Router already has /api/weather prefix
+        ("src.routes.wardrobe", ""),         # Main wardrobe router with /api/wardrobe prefix
+        # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
+        ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
+        # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
+        # ("src.routes.outfits", ""),          # Router already has /api/outfits prefix - TEMPORARILY DISABLED
+        ("src.routes.outfit_history", ""),   # Router already has /api prefix
+        ("src.routes.test_debug", ""),       # Router already has /api/test prefix
+    ]
+
+    def include_router_safe(module_name: str, prefix: str):
+        try:
+            print(f"🔄 Attempting to import {module_name}...")
+            module = importlib.import_module(module_name)
+            print(f"📦 Successfully imported {module_name}")
+            
+            router = getattr(module, "router", None)
+            if router is None:
+                print(f"❌ {module_name}: No `router` object found")
+                return
+                
+            print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
+            app.include_router(router, prefix=prefix)
+            print(f"✅ Mounted {module_name} at prefix {prefix}")
+            
+        except Exception as e:
+            print(f"🔥 Failed to mount {module_name}")
+            traceback.print_exc()
+
+    print("🚀 Starting router loading process...")
+    print(f"🔍 DEBUG: ROUTERS list contains {len(ROUTERS)} items")
+    print(f"🔍 DEBUG: ROUTERS = {ROUTERS}")
+    
+    for mod, prefix in ROUTERS:
+        print(f"🔍 DEBUG: About to process router: {mod} with prefix: {prefix}")
+        include_router_safe(mod, prefix)
+    
+    print("🏁 Router loading process complete!")
+    print("🔍 DEBUG: Router loading process completed successfully!")
+    
+except Exception as e:
+    print(f"🔥 CRITICAL ERROR in router loading section: {e}")
+    traceback.print_exc()
+    print("🔥 Continuing despite router loading error...")
+
+print("🔍 DEBUG: Router loading section completed!")
+print("🔍 DEBUG: About to start startup events section...")
 
 # ---------------- FIREBASE INITIALIZATION ----------------
 @app.on_event("startup")
@@ -204,52 +266,6 @@ async def startup_events():
     print("✅ Application startup events completed successfully!")
 
 # ---------------- ROUTER LOADER ----------------
-print("🔍 DEBUG: About to start router loading section...")
-print("🔍 DEBUG: This print should appear before router loading...")
-ROUTERS = [
-    ("src.routes.test_simple", ""),      # Simple test router to verify loading works
-    # ("src.routes.auth", "/api/auth"),    # TEMPORARILY DISABLED - causing router loading to fail
-    # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
-    # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
-    ("src.routes.weather", ""),          # Router already has /api/weather prefix
-    ("src.routes.wardrobe", ""),         # Main wardrobe router with /api/wardrobe prefix
-    # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
-    ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
-    # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
-    # ("src.routes.outfits", ""),          # Router already has /api/outfits prefix - TEMPORARILY DISABLED
-    ("src.routes.outfit_history", ""),   # Router already has /api prefix
-    ("src.routes.test_debug", ""),       # Router already has /api/test prefix
-]
-
-def include_router_safe(module_name: str, prefix: str):
-    try:
-        print(f"🔄 Attempting to import {module_name}...")
-        module = importlib.import_module(module_name)
-        print(f"📦 Successfully imported {module_name}")
-        
-        router = getattr(module, "router", None)
-        if router is None:
-            print(f"❌ {module_name}: No `router` object found")
-            return
-            
-        print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
-        app.include_router(router, prefix=prefix)
-        print(f"✅ Mounted {module_name} at prefix {prefix}")
-        
-    except Exception as e:
-        print(f"🔥 Failed to mount {module_name}")
-        traceback.print_exc()
-
-print("🚀 Starting router loading process...")
-print(f"🔍 DEBUG: ROUTERS list contains {len(ROUTERS)} items")
-print(f"🔍 DEBUG: ROUTERS = {ROUTERS}")
-for mod, prefix in ROUTERS:
-    print(f"🔍 DEBUG: About to process router: {mod} with prefix: {prefix}")
-    include_router_safe(mod, prefix)
-print("🏁 Router loading process complete!")
-print("🔍 DEBUG: Router loading process completed successfully!")
-
-# ---------------- STARTUP LOG ----------------
 # @app.on_event("startup")
 # async def show_all_routes():
 #     print("\n📜 ROUTES TABLE:")
