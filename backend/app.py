@@ -144,6 +144,8 @@ async def initialize_firebase():
         traceback.print_exc()
 
 # ---------------- ROUTER LOADER ----------------
+print("🔍 DEBUG: About to start router loading section...")
+print("🔍 DEBUG: This print should appear before router loading...")
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
     # ("src.routes.auth", "/api/auth"),    # TEMPORARILY DISABLED - causing router loading to fail
@@ -179,9 +181,13 @@ def include_router_safe(module_name: str, prefix: str):
         traceback.print_exc()
 
 print("🚀 Starting router loading process...")
+print(f"🔍 DEBUG: ROUTERS list contains {len(ROUTERS)} items")
+print(f"🔍 DEBUG: ROUTERS = {ROUTERS}")
 for mod, prefix in ROUTERS:
+    print(f"🔍 DEBUG: About to process router: {mod} with prefix: {prefix}")
     include_router_safe(mod, prefix)
 print("🏁 Router loading process complete!")
+print("🔍 DEBUG: Router loading process completed successfully!")
 
 # ---------------- STARTUP LOG ----------------
 @app.on_event("startup")
