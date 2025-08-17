@@ -96,13 +96,16 @@ async def get_outfit_history(
 @router.post("/mark-worn")
 async def mark_outfit_as_worn(
     data: Dict[str, Any],
-    current_user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user_optional)
 ):
     """
     Mark an outfit as worn on a specific date
     """
     try:
-        logger.info(f"Marking outfit as worn for user {current_user_id}")
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        logger.info(f"Marking outfit as worn for user {current_user.id}")
         
         outfit_id = data.get('outfitId')
         date_worn = data.get('dateWorn')
@@ -162,7 +165,7 @@ async def mark_outfit_as_worn(
         
         # Create outfit history entry
         entry_data = {
-            'user_id': current_user_id,
+            'user_id': current_user.id,
             'outfit_id': outfit_id,
             'outfit_name': outfit_data.get('name', 'Unknown Outfit'),
             'outfit_image': '',  # We'll leave this empty for now since items are stored as strings
@@ -182,7 +185,7 @@ async def mark_outfit_as_worn(
         # Log analytics event
         from ..models.analytics_event import AnalyticsEvent
         analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
+            user_id=current_user.id,
             event_type="outfit_worn",
             metadata={
                 "outfit_id": outfit_id,
@@ -195,7 +198,7 @@ async def mark_outfit_as_worn(
         )
         log_analytics_event(analytics_event)
         
-        logger.info(f"Successfully marked outfit {outfit_id} as worn for user {current_user_id}")
+        logger.info(f"Successfully marked outfit {outfit_id} as worn for user {current_user.id}")
         
         return {
             "success": True,
@@ -211,13 +214,16 @@ async def mark_outfit_as_worn(
 async def update_outfit_history_entry(
     entry_id: str,
     updates: Dict[str, Any],
-    current_user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user_optional)
 ):
     """
     Update an outfit history entry
     """
     try:
-        logger.info(f"Updating outfit history entry {entry_id} for user {current_user_id}")
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        logger.info(f"Updating outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
         doc_ref = db.collection('outfit_history').document(entry_id)
@@ -229,7 +235,7 @@ async def update_outfit_history_entry(
         entry_data = doc.to_dict()
         
         # Verify ownership
-        if entry_data.get('user_id') != current_user_id:
+        if entry_data.get('user_id') != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to update this entry")
         
         # Prepare update data
@@ -256,7 +262,7 @@ async def update_outfit_history_entry(
         # Log analytics event
         from ..models.analytics_event import AnalyticsEvent
         analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
+            user_id=current_user.id,
             event_type="outfit_history_updated",
             metadata={
                 "entry_id": entry_id,
@@ -281,13 +287,16 @@ async def update_outfit_history_entry(
 @router.delete("/{entry_id}")
 async def delete_outfit_history_entry(
     entry_id: str,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user_optional)
 ):
     """
     Delete an outfit history entry
     """
     try:
-        logger.info(f"Deleting outfit history entry {entry_id} for user {current_user_id}")
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        logger.info(f"Deleting outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
         doc_ref = db.collection('outfit_history').document(entry_id)
@@ -299,7 +308,7 @@ async def delete_outfit_history_entry(
         entry_data = doc.to_dict()
         
         # Verify ownership
-        if entry_data.get('user_id') != current_user_id:
+        if entry_data.get('user_id') != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to delete this entry")
         
         # Delete the document
@@ -308,7 +317,7 @@ async def delete_outfit_history_entry(
         # Log analytics event
         from ..models.analytics_event import AnalyticsEvent
         analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
+            user_id=current_user.id,
             event_type="outfit_history_deleted",
             metadata={
                 "entry_id": entry_id,
@@ -335,16 +344,19 @@ async def delete_outfit_history_entry(
 
 @router.get("/stats")
 async def get_outfit_history_stats(
-    current_user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user_optional)
 ):
     """
     Get outfit history statistics
     """
     try:
-        logger.info(f"Getting outfit history stats for user {current_user_id}")
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        logger.info(f"Getting outfit history stats for user {current_user.id}")
         
         # Query outfit history
-        query = db.collection('outfit_history').where('user_id', '==', current_user_id)
+        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
         docs = query.stream()
         
         entries = [doc.to_dict() for doc in docs]
@@ -405,7 +417,7 @@ async def get_outfit_history_stats(
             "weatherPatterns": weather_patterns
         }
         
-        logger.info(f"Retrieved outfit history stats for user {current_user_id}")
+        logger.info(f"Retrieved outfit history stats for user {current_user.id}")
         
         return {
             "success": True,
