@@ -427,3 +427,4 @@ async def get_outfit_history_stats(
     except Exception as e:
         logger.error(f"Error getting outfit history stats: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get outfit history stats")
+# Force redeploy Sun Aug 17 07:23:59 EDT 2025
