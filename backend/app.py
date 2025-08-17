@@ -130,12 +130,18 @@ except Exception as e:
     print("🔍 DEBUG: Middleware setup failed, continuing...")
     # Continue without middleware setup
 
+print("🔍 DEBUG: About to start Firebase config import section...")
+
 # Try to import Firebase config
+print("🔍 DEBUG: Starting Firebase config import...")
 try:
+    print("🔍 DEBUG: About to import src.config.firebase...")
     from src.config import firebase
     print("DEBUG: Firebase config imported successfully")
+    print("🔍 DEBUG: Firebase config import completed successfully")
 except Exception as e:
     print(f"DEBUG: Firebase config import failed: {e}")
+    print("🔍 DEBUG: Firebase config import failed, continuing...")
 
 # Remove duplicate FastAPI app and CORS configuration
 
