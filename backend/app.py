@@ -163,8 +163,11 @@ except Exception as e:
 
 # ---------------- FIREBASE INITIALIZATION ----------------
 @app.on_event("startup")
-async def initialize_firebase():
-    """Initialize Firebase on startup"""
+async def startup_events():
+    """Combined startup events to prevent conflicts"""
+    print("🚀 Starting application startup events...")
+    
+    # Initialize Firebase
     try:
         from firebase_admin import initialize_app, credentials
         from firebase_admin import firestore, storage
@@ -191,6 +194,14 @@ async def initialize_firebase():
     except Exception as e:
         print(f"❌ Firebase initialization failed: {e}")
         traceback.print_exc()
+    
+    # Show all routes
+    print("\n📜 ROUTES TABLE:")
+    for route in app.routes:
+        print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
+    print()
+    
+    print("✅ Application startup events completed successfully!")
 
 # ---------------- ROUTER LOADER ----------------
 print("🔍 DEBUG: About to start router loading section...")
@@ -239,12 +250,12 @@ print("🏁 Router loading process complete!")
 print("🔍 DEBUG: Router loading process completed successfully!")
 
 # ---------------- STARTUP LOG ----------------
-@app.on_event("startup")
-async def show_all_routes():
-    print("\n📜 ROUTES TABLE:")
-    for route in app.routes:
-        print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
-    print()
+# @app.on_event("startup")
+# async def show_all_routes():
+#     print("\n📜 ROUTES TABLE:")
+#     for route in app.routes:
+#         print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
+#     print()
 
 # ---------------- ROOT ----------------
 @app.get("/")
