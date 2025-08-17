@@ -1,5 +1,5 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
 firebase-admin==6.4.0
 python-multipart==0.0.6
 pydantic==2.5.0
@@ -12,4 +12,4 @@ openai==1.3.7
 rembg==2.0.50
 unidecode==1.3.7
 psutil==5.9.6
-# Dependency fix applied
+# Updated to compatible versions that work locally
