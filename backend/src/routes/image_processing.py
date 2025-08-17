@@ -9,7 +9,7 @@ from typing import Optional
 import uuid
 import logging
 from ..config.firebase import firebase_admin  # Import Firebase configuration
-from ..auth.auth_service import get_current_user
+from ..auth.auth_service import get_current_user_optional
 from ..custom_types.profile import UserProfile
 
 # Set up logging
@@ -22,7 +22,7 @@ async def upload_image(
     file: UploadFile = File(...),
     category: Optional[str] = "clothing",
     name: Optional[str] = None,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ):
     try:
         if not file.content_type or not file.content_type.startswith('image/'):

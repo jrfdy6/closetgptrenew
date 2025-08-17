@@ -146,14 +146,14 @@ async def initialize_firebase():
 # ---------------- ROUTER LOADER ----------------
 ROUTERS = [
     ("src.routes.auth", "/api/auth"),    # Use existing working auth router with /api/auth prefix
-    ("src.routes.image_processing", ""),  # Router already has /api/image prefix
-    ("src.routes.image_analysis", ""),   # Router already has /api/image prefix
+    # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
+    # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.wardrobe", ""),         # Main wardrobe router with /api/wardrobe prefix
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
-    ("src.routes.outfit", ""),           # Router already has /api/outfit prefix
-    ("src.routes.outfits", ""),          # Router already has /api/outfits prefix
+    # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
+    # ("src.routes.outfits", ""),          # Router already has /api/outfits prefix - TEMPORARILY DISABLED
     ("src.routes.outfit_history", ""),   # Router already has /api prefix
     ("src.routes.test_debug", ""),       # Router already has /api/test prefix
 ]
