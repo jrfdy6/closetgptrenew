@@ -129,9 +129,9 @@ try:
         ("src.routes.test_debug", ""),       # Router already has /api/test prefix
         ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
         ("src.routes.analytics", ""),        # Main analytics router
-        ("src.routes.performance", ""),      # Performance monitoring router
-        ("src.routes.monitoring", ""),       # System monitoring router
-        ("src.routes.public_diagnostics", ""), # Public health diagnostics
+        ("src.routes.performance", "/performance"),      # Performance monitoring router - FIXED PREFIX
+        ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
+        ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
     ]
 
     def include_router_safe(module_name: str, prefix: str):
