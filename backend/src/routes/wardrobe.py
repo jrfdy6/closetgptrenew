@@ -137,7 +137,7 @@ async def add_wardrobe_item(
 
 @router.get("/")
 async def get_wardrobe_items(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
     try:
@@ -305,7 +305,7 @@ async def get_wardrobe_items(
 @router.get("/{item_id}")
 async def get_wardrobe_item(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """
     Get a specific wardrobe item by ID.
@@ -350,7 +350,7 @@ async def get_wardrobe_item(
 async def update_wardrobe_item(
     item_id: str,
     item_data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Update a wardrobe item."""
     try:
@@ -402,7 +402,7 @@ async def update_wardrobe_item(
 @router.delete("/{item_id}")
 async def delete_wardrobe_item(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Delete a wardrobe item."""
     try:
@@ -447,7 +447,7 @@ async def delete_wardrobe_item(
 
 @router.post("/enhance-metadata")
 async def enhance_wardrobe_metadata(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Enhance metadata for all user's wardrobe items."""
     try:
@@ -514,7 +514,7 @@ async def enhance_wardrobe_metadata(
 @router.post("/{item_id}/increment-wear")
 async def increment_wardrobe_item_wear_count(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Increment the wear count for a specific wardrobe item."""
     try:
