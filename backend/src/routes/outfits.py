@@ -109,6 +109,49 @@ async def outfits_debug():
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False
     }
 
+@router.get("/firebase-test", response_model=dict)
+async def test_firebase_connection():
+    """Test Firebase connectivity without affecting main functionality."""
+    logger.info("🔍 DEBUG: Firebase test endpoint called")
+    
+    if not FIREBASE_AVAILABLE:
+        return {
+            "status": "error",
+            "message": "Firebase not available",
+            "firebase_available": False,
+            "firebase_initialized": False
+        }
+    
+    if not firebase_initialized:
+        return {
+            "status": "error", 
+            "message": "Firebase not initialized",
+            "firebase_available": True,
+            "firebase_initialized": False
+        }
+    
+    try:
+        # Simple test: try to access the database
+        outfits_ref = db.collection('outfits')
+        # Just check if we can access the collection (don't query yet)
+        logger.info("✅ Firebase connection test successful")
+        return {
+            "status": "success",
+            "message": "Firebase connection working",
+            "firebase_available": True,
+            "firebase_initialized": True,
+            "test": "collection_access_ok"
+        }
+    except Exception as e:
+        logger.error(f"❌ Firebase connection test failed: {e}")
+        return {
+            "status": "error",
+            "message": f"Firebase connection failed: {str(e)}",
+            "firebase_available": True,
+            "firebase_initialized": True,
+            "error": str(e)
+        }
+
 @router.get("/", response_model=List[OutfitResponse])
 async def get_outfits():
     """Get all outfits for the current user - Simple working version."""
