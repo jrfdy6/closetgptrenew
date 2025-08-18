@@ -27,7 +27,7 @@ router = APIRouter()
 
 outfit_service = OutfitService()
 
-@router.get("/outfits")
+@router.get("/outfit-analytics")
 async def get_outfit_analytics(
     start_date: Optional[int] = Query(None, description="Start timestamp"),
     end_date: Optional[int] = Query(None, description="End timestamp"),
@@ -73,7 +73,7 @@ async def get_outfit_analytics(
             detail="Failed to retrieve analytics"
         )
 
-@router.get("/outfits/validation-errors")
+@router.get("/outfit-analytics/validation-errors")
 async def get_validation_error_analytics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -127,7 +127,7 @@ async def get_validation_error_analytics(
             detail="Failed to retrieve validation error analytics"
         )
 
-@router.get("/outfits/feedback")
+@router.get("/outfit-analytics/feedback")
 async def get_feedback_analytics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -169,7 +169,7 @@ async def get_feedback_analytics(
             detail="Failed to retrieve feedback analytics"
         )
 
-@router.get("/outfits/performance")
+@router.get("/outfit-analytics/performance")
 async def get_performance_metrics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
