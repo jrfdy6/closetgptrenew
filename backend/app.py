@@ -112,62 +112,56 @@ print("🔍 DEBUG: Core modules import section completed successfully!")
 print("🔍 DEBUG: About to start router loading section...")
 print("🔍 DEBUG: This print should appear before router loading...")
 
-# Wrap the router loading section in error handling
-try:
-    ROUTERS = [
-        ("src.routes.test_simple", ""),      # Simple test router to verify loading works
-        # ("src.routes.auth", "/api/auth"),    # TEMPORARILY DISABLED - causing router loading to fail
-        # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
-        # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
-        ("src.routes.weather", ""),          # Router already has /api/weather prefix
-        ("src.routes.wardrobe", ""),         # Main wardrobe router with /api/wardrobe prefix
-        # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
-        ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
-        # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
-        ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
-        ("src.routes.outfit_history", "/api"),   # Router has /outfit-history prefix, mount at /api for /api/outfit-history
-        ("src.routes.test_debug", ""),       # Router already has /api/test prefix
-        ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
-        ("src.routes.analytics", ""),        # Main analytics router
-        ("src.routes.performance", "/performance"),      # Performance monitoring router - FIXED PREFIX
-        ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
-        ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
-    ]
+# Router loading section - removed outer try-catch to allow individual routers to load
+ROUTERS = [
+    ("src.routes.test_simple", ""),      # Simple test router to verify loading works
+    # ("src.routes.auth", "/api/auth"),    # TEMPORARILY DISABLED - causing router loading to fail
+    # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
+    # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
+    ("src.routes.weather", ""),          # Router already has /api/weather prefix
+    ("src.routes.wardrobe", ""),         # Main wardrobe router with /api/wardrobe prefix
+    # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
+    ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
+    # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
+    ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
+    ("src.routes.outfit_history", "/api"),   # Router has /outfit-history prefix, mount at /api for /api/outfit-history
+    ("src.routes.test_debug", ""),       # Router already has /api/test prefix
+    ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
+    ("src.routes.analytics", ""),        # Main analytics router
+    ("src.routes.performance", "/performance"),      # Performance monitoring router - FIXED PREFIX
+    ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
+    ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
+]
 
-    def include_router_safe(module_name: str, prefix: str):
-        try:
-            print(f"🔄 Attempting to import {module_name}...")
-            module = importlib.import_module(module_name)
-            print(f"📦 Successfully imported {module_name}")
+def include_router_safe(module_name: str, prefix: str):
+    try:
+        print(f"🔄 Attempting to import {module_name}...")
+        module = importlib.import_module(module_name)
+        print(f"📦 Successfully imported {module_name}")
+        
+        router = getattr(module, "router", None)
+        if router is None:
+            print(f"❌ {module_name}: No `router` object found")
+            return
             
-            router = getattr(module, "router", None)
-            if router is None:
-                print(f"❌ {module_name}: No `router` object found")
-                return
-                
-            print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
-            app.include_router(router, prefix=prefix)
-            print(f"✅ Mounted {module_name} at prefix {prefix}")
-            
-        except Exception as e:
-            print(f"🔥 Failed to mount {module_name}")
-            traceback.print_exc()
+        print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
+        app.include_router(router, prefix=prefix)
+        print(f"✅ Mounted {module_name} at prefix {prefix}")
+        
+    except Exception as e:
+        print(f"🔥 Failed to mount {module_name}")
+        traceback.print_exc()
 
-    print("🚀 Starting router loading process...")
-    print(f"🔍 DEBUG: ROUTERS list contains {len(ROUTERS)} items")
-    print(f"🔍 DEBUG: ROUTERS = {ROUTERS}")
-    
-    for mod, prefix in ROUTERS:
-        print(f"🔍 DEBUG: About to process router: {mod} with prefix: {prefix}")
-        include_router_safe(mod, prefix)
-    
-    print("🏁 Router loading process complete!")
-    print("🔍 DEBUG: Router loading process completed successfully!")
-    
-except Exception as e:
-    print(f"🔥 CRITICAL ERROR in router loading section: {e}")
-    traceback.print_exc()
-    print("🔥 Continuing despite router loading error...")
+print("🚀 Starting router loading process...")
+print(f"🔍 DEBUG: ROUTERS list contains {len(ROUTERS)} items")
+print(f"🔍 DEBUG: ROUTERS = {ROUTERS}")
+
+for mod, prefix in ROUTERS:
+    print(f"🔍 DEBUG: About to process router: {mod} with prefix: {prefix}")
+    include_router_safe(mod, prefix)
+
+print("🏁 Router loading process complete!")
+print("🔍 DEBUG: Router loading process completed successfully!")
 
 print("🔍 DEBUG: Router loading section completed!")
 print("🔍 DEBUG: About to start startup events section...")

@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/", tags=["outfits"])
+router = APIRouter(tags=["outfits"])
 security = HTTPBearer()
 
 # Firebase imports with graceful fallback
