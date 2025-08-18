@@ -563,4 +563,135 @@ async def increment_wardrobe_item_wear_count(
         raise
     except Exception as e:
         logger.error(f"Error incrementing wear count for item {item_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error incrementing wear count: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Error incrementing wear count: {str(e)}")
+
+@router.get("/wardrobe-stats")
+async def get_wardrobe_stats(
+    current_user: UserProfile = Depends(get_current_user_optional)
+) -> Dict[str, Any]:
+    """Get comprehensive wardrobe statistics for the current user."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Query all wardrobe items for the user
+        query = db.collection('wardrobe').where('userId', '==', current_user.id)
+        docs = query.stream()
+        
+        items = []
+        categories = {}
+        colors = {}
+        
+        for doc in docs:
+            item = doc.to_dict()
+            items.append(item)
+            
+            # Count by category
+            item_type = item.get('type', 'unknown')
+            categories[item_type] = categories.get(item_type, 0) + 1
+            
+            # Count by color
+            item_color = item.get('color', 'unknown')
+            colors[item_color] = colors.get(item_color, 0) + 1
+        
+        # Calculate additional stats
+        total_items = len(items)
+        favorites = sum(1 for item in items if item.get('favorite', False))
+        total_wear_count = sum(item.get('wearCount', 0) for item in items)
+        avg_wear_count = total_wear_count / total_items if total_items > 0 else 0
+        
+        # Get recent items (last 30 days)
+        thirty_days_ago = int(time.time()) - (30 * 24 * 60 * 60)
+        recent_items = [item for item in items if item.get('createdAt', 0) > thirty_days_ago]
+        
+        stats = {
+            "total_items": total_items,
+            "categories": categories,
+            "colors": colors,
+            "favorites": favorites,
+            "total_wear_count": total_wear_count,
+            "avg_wear_count": round(avg_wear_count, 2),
+            "recent_items_count": len(recent_items),
+            "user_id": current_user.id,
+            "last_updated": int(time.time())
+        }
+        
+        logger.info(f"Retrieved wardrobe stats for user {current_user.id}: {total_items} items")
+        
+        return {
+            "success": True,
+            "data": stats,
+            "message": "Wardrobe statistics retrieved successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting wardrobe stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving wardrobe statistics: {str(e)}")
+
+@router.get("/trending-styles")
+async def get_trending_styles(
+    current_user: UserProfile = Depends(get_current_user_optional)
+) -> Dict[str, Any]:
+    """Get trending styles based on user's wardrobe and preferences."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Query user's wardrobe items
+        query = db.collection('wardrobe').where('userId', '==', current_user.id)
+        docs = query.stream()
+        
+        items = [doc.to_dict() for doc in docs]
+        
+        # Analyze style patterns
+        style_counts = {}
+        color_counts = {}
+        type_counts = {}
+        
+        for item in items:
+            # Count styles
+            styles = item.get('style', [])
+            if isinstance(styles, list):
+                for style in styles:
+                    style_counts[style] = style_counts.get(style, 0) + 1
+            elif isinstance(styles, str):
+                style_counts[styles] = style_counts.get(styles, 0) + 1
+            
+            # Count colors
+            color = item.get('color', 'unknown')
+            color_counts[color] = color_counts.get(color, 0) + 1
+            
+            # Count types
+            item_type = item.get('type', 'unknown')
+            type_counts[item_type] = type_counts.get(item_type, 0) + 1
+        
+        # Get top styles, colors, and types
+        top_styles = sorted(style_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_colors = sorted(color_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        top_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        # Generate trending recommendations
+        trending_data = {
+            "top_styles": [{"style": style, "count": count} for style, count in top_styles],
+            "top_colors": [{"color": color, "count": count} for color, count in top_colors],
+            "top_types": [{"type": item_type, "count": count} for item_type, count in top_types],
+            "total_items": len(items),
+            "user_id": current_user.id,
+            "last_updated": int(time.time())
+        }
+        
+        logger.info(f"Retrieved trending styles for user {current_user.id}")
+        
+        return {
+            "success": True,
+            "data": trending_data,
+            "message": "Trending styles retrieved successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting trending styles: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving trending styles: {str(e)}") 
