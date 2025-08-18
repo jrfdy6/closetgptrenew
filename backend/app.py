@@ -124,7 +124,7 @@ try:
         # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
         ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
         # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
-        # ("src.routes.outfits", ""),          # Router already has /api/outfit prefix - TEMPORARILY DISABLED
+        ("src.routes.outfits", ""),          # Outfits router - no prefix, will be accessible at /api/outfits
         ("src.routes.outfit_history", "/api"),   # Router has /outfit-history prefix, mount at /api for /api/outfit-history
         ("src.routes.test_debug", ""),       # Router already has /api/test prefix
         ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
