@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     
     // Call the backend outfits endpoint with shorter timeout
     console.log('🔍 DEBUG: Calling backend outfits endpoint...');
-    const outfitsResponse = await fetch(`${fullApiUrl}/api/outfits/`, {
+    const outfitsResponse = await fetch(`${fullApiUrl}/api/outfits`, {
       method: 'GET',
       headers,
       signal: AbortSignal.timeout(60000), // 60 second timeout
