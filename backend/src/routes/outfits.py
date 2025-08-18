@@ -111,38 +111,98 @@ async def outfits_debug():
 
 @router.get("/", response_model=List[OutfitResponse])
 async def get_outfits():
-    """Get all outfits for the current user."""
-    logger.info("🔍 DEBUG: Get outfits endpoint called")
+    """Get all outfits for the current user - Hybrid approach with Firebase fallback."""
+    logger.info("🔍 DEBUG: Get outfits endpoint called - Hybrid mode")
     
-    # TEMPORARILY: Always return mock data to ensure endpoint works
-    # This will help us isolate whether the issue is endpoint registration or Firebase logic
-    try:
-        logger.info("Returning mock outfits data for now")
+    # Check Firebase availability first
+    if FIREBASE_AVAILABLE and firebase_initialized:
+        logger.info("🔥 Firebase available - attempting to fetch real data")
+        try:
+            # Try to get current user (optional for now)
+            # current_user = await get_current_user_optional()
+            # if current_user:
+            #     user_id = current_user.uid
+            #     logger.info(f"Fetching outfits for user: {user_id}")
+            # else:
+            #     logger.warning("No authenticated user, using mock data")
+            #     return await get_mock_outfits()
+            
+            # TEMPORARILY: Use mock user ID for testing
+            user_id = "test-user-123"
+            logger.info(f"Using test user ID: {user_id}")
+            
+            # Query Firebase for user's outfits
+            outfits_ref = db.collection('outfits')
+            query = outfits_ref.where('user_id', '==', user_id).limit(50)
+            outfits_docs = query.stream()
+            
+            outfits = []
+            for doc in outfits_docs:
+                outfit_data = doc.to_dict()
+                outfit_data['id'] = doc.id
+                outfits.append(outfit_data)
+            
+            if outfits:
+                logger.info(f"✅ Successfully retrieved {len(outfits)} outfits from Firebase")
+                return outfits
+            else:
+                logger.info("📝 No outfits found in Firebase, falling back to mock data")
+                return await get_mock_outfits()
+                
+        except Exception as firebase_error:
+            logger.error(f"❌ Firebase query failed: {firebase_error}")
+            logger.info("🔄 Falling back to mock data due to Firebase error")
+            return await get_mock_outfits()
+    else:
+        logger.warning("⚠️ Firebase not available, using mock data")
         return await get_mock_outfits()
-    except Exception as e:
-        logger.error(f"Error in get_outfits: {e}")
-        # Even if mock data fails, return a basic response
-        return [
-            {
-                "id": "fallback-outfit",
-                "name": "Fallback Outfit",
-                "style": "basic",
-                "mood": "neutral",
-                "items": [],
-                "occasion": "any",
-                "confidence_score": 0.5,
-                "reasoning": "Fallback outfit due to error",
-                "createdAt": datetime.now()
-            }
-        ]
+    
+    # Final fallback (should never reach here)
+    logger.error("🚨 Unexpected fallback path reached")
+    return await get_mock_outfits()
 
 @router.get("", response_model=List[OutfitResponse])
 async def get_outfits_no_trailing():
-    """Get all outfits for the current user (no trailing slash)."""
-    logger.info("🔍 DEBUG: Get outfits endpoint called (no trailing slash)")
+    """Get all outfits for the current user (no trailing slash) - Hybrid approach."""
+    logger.info("🔍 DEBUG: Get outfits endpoint called (no trailing slash) - Hybrid mode")
     
-    # Call the same logic as the trailing slash version
-    return await get_outfits()
+    # Use the same hybrid logic as the trailing slash version
+    if FIREBASE_AVAILABLE and firebase_initialized:
+        logger.info("🔥 Firebase available - attempting to fetch real data")
+        try:
+            # TEMPORARILY: Use mock user ID for testing
+            user_id = "test-user-123"
+            logger.info(f"Using test user ID: {user_id}")
+            
+            # Query Firebase for user's outfits
+            outfits_ref = db.collection('outfits')
+            query = outfits_ref.where('user_id', '==', user_id).limit(50)
+            outfits_docs = query.stream()
+            
+            outfits = []
+            for doc in outfits_docs:
+                outfit_data = doc.to_dict()
+                outfit_data['id'] = doc.id
+                outfits.append(outfit_data)
+            
+            if outfits:
+                logger.info(f"✅ Successfully retrieved {len(outfits)} outfits from Firebase")
+                return outfits
+            else:
+                logger.info("📝 No outfits found in Firebase, falling back to mock data")
+                return await get_mock_outfits()
+                
+        except Exception as firebase_error:
+            logger.error(f"❌ Firebase query failed: {firebase_error}")
+            logger.info("🔄 Falling back to mock data due to Firebase error")
+            return await get_mock_outfits()
+    else:
+        logger.warning("⚠️ Firebase not available, using mock data")
+        return await get_mock_outfits()
+    
+    # Final fallback (should never reach here)
+    logger.error("🚨 Unexpected fallback path reached")
+    return await get_mock_outfits()
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
