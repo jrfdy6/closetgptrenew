@@ -427,4 +427,75 @@ async def get_outfit_history_stats(
     except Exception as e:
         logger.error(f"Error getting outfit history stats: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get outfit history stats")
+@router.get("/today")
+async def get_todays_outfit(
+    current_user = Depends(get_current_user_optional)
+):
+    """
+    Get today's outfit for the current user
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        logger.info(f"Getting today's outfit for user {current_user.id}")
+        
+        # Get today's date range (start of day to end of day)
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).date()
+        start_of_day = datetime.combine(today, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_of_day = datetime.combine(today, datetime.max.time()).replace(tzinfo=timezone.utc)
+        
+        # Convert to timestamps for Firestore query
+        start_timestamp = int(start_of_day.timestamp() * 1000)
+        end_timestamp = int(end_of_day.timestamp() * 1000)
+        
+        # Query outfit history for today
+        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
+        query = query.where('date_worn', '>=', start_timestamp)
+        query = query.where('date_worn', '<=', end_timestamp)
+        
+        # Order by most recent first
+        try:
+            query = query.order_by('date_worn', direction=db.Query.DESCENDING)
+        except Exception as e:
+            logger.warning(f"Could not order by date_worn: {e}")
+        
+        # Execute query
+        docs = query.stream()
+        
+        todays_outfits = []
+        for doc in docs:
+            data = doc.to_dict()
+            todays_outfits.append({
+                "id": doc.id,
+                "outfitId": data.get('outfit_id'),
+                "outfitName": data.get('outfit_name', 'Today\'s Outfit'),
+                "outfitImage": data.get('outfit_image', ''),
+                "dateWorn": data.get('date_worn'),
+                "weather": data.get('weather', {
+                    "temperature": 0,
+                    "condition": "Unknown",
+                    "humidity": 0
+                }),
+                "occasion": data.get('occasion', 'Casual'),
+                "mood": data.get('mood', 'Comfortable'),
+                "notes": data.get('notes', ''),
+                "tags": data.get('tags', []),
+                "createdAt": data.get('created_at'),
+                "updatedAt": data.get('updated_at')
+            })
+        
+        logger.info(f"Retrieved {len(todays_outfits)} today's outfits for user {current_user.id}")
+        
+        return {
+            "success": True,
+            "todaysOutfit": todays_outfits[0] if todays_outfits else None,
+            "hasOutfitToday": len(todays_outfits) > 0
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting today's outfit: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get today's outfit")
+
 # Force redeploy Sun Aug 17 07:23:59 EDT 2025
