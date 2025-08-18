@@ -18,6 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import importlib
 import traceback
+from datetime import datetime
+from fastapi.routing import APIRouter
 
 # Create the app first
 app = FastAPI(
@@ -207,6 +209,42 @@ async def startup_event():
     print()
     
     print("✅ Application startup events completed successfully!")
+
+# ---------------- SELF-DIAGNOSTICS ----------------
+# Add diagnostics endpoints to see exactly what's working
+from fastapi.routing import APIRoute
+
+diag = APIRouter()
+
+@diag.get("/__health")
+def __health():
+    return {"ok": True, "status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@diag.get("/__routes")
+def __routes():
+    out = []
+    for r in app.routes:
+        if isinstance(r, APIRoute):
+            out.append({
+                "path": r.path,
+                "methods": sorted(list(r.methods)),
+                "name": r.name
+            })
+    return {"routes": out, "total": len(out)}
+
+@diag.get("/__debug")
+def __debug():
+    return {
+        "app_routes": len(app.routes),
+        "router_count": len([r for r in app.routes if hasattr(r, 'routes')]),
+        "startup_complete": True
+    }
+
+# Mount diagnostics router
+app.include_router(diag)
+
+print("🔍 DEBUG: Self-diagnostics endpoints added!")
+print("🔍 DEBUG: You can now check /__routes to see what's actually mounted!")
 
 # ---------------- ROUTER LOADER ----------------
 @app.on_event("startup")
