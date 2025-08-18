@@ -14,6 +14,7 @@ export interface DashboardData {
   wardrobeGaps: WardrobeGap[];
   topItems: TopItem[];
   recentOutfits: RecentOutfit[];
+  todaysOutfit: TodaysOutfit | null;
 }
 
 export interface StyleCollection {
@@ -70,6 +71,25 @@ export interface RecentOutfit {
   items: string[];
 }
 
+export interface TodaysOutfit {
+  id: string;
+  outfitId: string;
+  outfitName: string;
+  outfitImage: string;
+  dateWorn: number;
+  weather: {
+    temperature: number;
+    condition: string;
+    humidity: number;
+  };
+  occasion: string;
+  mood: string;
+  notes: string;
+  tags: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 class DashboardService {
   private async makeAuthenticatedRequest(endpoint: string, user: User): Promise<any> {
     if (!user) {
@@ -103,11 +123,13 @@ class DashboardService {
       const [
         wardrobeStats,
         outfitHistory,
-        trendingStyles
+        trendingStyles,
+        todaysOutfit
       ] = await Promise.all([
         this.getWardrobeStats(user),
         this.getOutfitHistory(user),
-        this.getTrendingStyles(user)
+        this.getTrendingStyles(user),
+        this.getTodaysOutfit(user)
       ]);
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
@@ -131,7 +153,8 @@ class DashboardService {
         colorVariety: this.buildColorVariety(wardrobeStats),
         wardrobeGaps: this.buildWardrobeGaps(wardrobeStats),
         topItems: this.buildTopItems(wardrobeStats),
-        recentOutfits: this.buildRecentOutfits(outfitHistory)
+        recentOutfits: this.buildRecentOutfits(outfitHistory),
+        todaysOutfit: todaysOutfit
       };
 
       console.log('🔍 DEBUG: Dashboard data processed:', dashboardData);
@@ -188,6 +211,19 @@ class DashboardService {
         total_trends: 0,
         most_popular: null
       };
+    }
+  }
+
+  private async getTodaysOutfit(user: User) {
+    try {
+      console.log('🔍 DEBUG: Fetching today\'s outfit from /api/outfit-history/today');
+      const response = await this.makeAuthenticatedRequest('/api/outfit-history/today', user);
+      console.log('🔍 DEBUG: Today\'s outfit response:', response);
+      return response.todaysOutfit || null;
+    } catch (error) {
+      console.error('Error fetching today\'s outfit:', error);
+      // Return null for production when backend is not ready
+      return null;
     }
   }
 

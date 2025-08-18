@@ -27,7 +27,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import Link from "next/link";
-import { useFirebase } from "@/lib/firebase-context";
+import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
 
@@ -47,7 +47,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
-  const { user, loading } = useFirebase();
+  const { user, loading } = useAuthContext();
 
   // Fetch real dashboard data
   useEffect(() => {
@@ -290,18 +290,64 @@ export default function Dashboard() {
             <CardDescription>Perfect for your day ahead</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8">
-              <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-              </p>
-              <p className="text-gray-500 dark:text-gray-500 mb-6">
-                No outfit generated yet
-              </p>
-              <Button className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate Outfit
-              </Button>
-            </div>
+            {dashboardData?.todaysOutfit ? (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                  </p>
+                  <Badge variant="secondary" className="mb-3">
+                    {dashboardData.todaysOutfit.occasion}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-blue-100 dark:from-emerald-900 dark:to-blue-900 rounded-lg flex items-center justify-center">
+                    <Shirt className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900 dark:text-white text-lg">
+                      {dashboardData.todaysOutfit.outfitName}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Mood: {dashboardData.todaysOutfit.mood}
+                    </p>
+                    {dashboardData.todaysOutfit.weather && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <Button variant="outline" size="sm">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      View Details
+                    </Button>
+                  </div>
+                </div>
+                
+                {dashboardData.todaysOutfit.notes && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-blue-800 dark:text-blue-200 text-sm">
+                      💡 {dashboardData.todaysOutfit.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </p>
+                <p className="text-gray-500 dark:text-gray-500 mb-6">
+                  No outfit generated yet
+                </p>
+                <Button className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Generate Outfit
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

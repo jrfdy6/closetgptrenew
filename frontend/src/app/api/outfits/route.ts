@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     
     // Call the backend outfits endpoint with shorter timeout
     console.log('🔍 DEBUG: Calling backend outfits endpoint...');
-    const outfitsResponse = await fetch(`${fullApiUrl}/api/outfits/?limit=10000`, {
+    const outfitsResponse = await fetch(`${fullApiUrl}/api/outfits/`, {
       method: 'GET',
       headers,
       signal: AbortSignal.timeout(60000), // 60 second timeout
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_API_URL ||
             process.env.NEXT_PUBLIC_BACKEND_URL ||
             'http://localhost:3001';
-          const testResponse = await fetch(`${fallbackBase}/api/outfits/test?limit=10000`, {
+          const testResponse = await fetch(`${fallbackBase}/api/outfits/test`, {
             method: 'GET',
             signal: AbortSignal.timeout(3000), // 3 second timeout for fallback
           });
