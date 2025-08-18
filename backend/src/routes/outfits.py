@@ -110,7 +110,7 @@ async def outfits_debug():
     }
 
 @router.get("/", response_model=List[OutfitResponse])
-async def get_outfits(current_user = Depends(get_current_user_optional)):
+async def get_outfits():
     """Get all outfits for the current user."""
     logger.info("🔍 DEBUG: Get outfits endpoint called")
     
@@ -124,22 +124,25 @@ async def get_outfits(current_user = Depends(get_current_user_optional)):
             logger.warning("Firebase not initialized, returning mock data")
             return await get_mock_outfits()
         
-        # Try to get current user if auth service is available
-        if not current_user:
-            logger.warning("No user authenticated, returning mock data")
-            return await get_mock_outfits()
+        # TEMPORARILY DISABLED AUTH - for testing endpoint loading
+        # if not current_user:
+        #     logger.warning("No user authenticated, returning mock data")
+        #     return await get_mock_outfits()
         
-        logger.info(f"Fetching outfits for user: {current_user.id if hasattr(current_user, 'id') else 'unknown'}")
+        logger.info("Firebase available and initialized, attempting to fetch real data")
         
         # Try to fetch real outfits from Firebase
         try:
             outfits_ref = db.collection('outfits')
-            if current_user and hasattr(current_user, 'id') and current_user.id:
-                # Filter by user if authenticated
-                outfits_ref = outfits_ref.where('user_id', '==', current_user.id)
-                logger.info(f"Filtering outfits for user: {current_user.id}")
-            else:
-                logger.info("No user ID, fetching all outfits")
+            # TEMPORARILY DISABLED USER FILTERING - for testing
+            # if current_user and hasattr(current_user, 'id') and current_user.id:
+            #     # Filter by user if authenticated
+            #     outfits_ref = outfits_ref.where('user_id', '==', current_user.id)
+            #     logger.info(f"Filtering outfits for user: {current_user.id}")
+            # else:
+            #     logger.info("No user ID, fetching all outfits")
+            
+            logger.info("Fetching all outfits from database (no user filter)")
             
             outfits_docs = outfits_ref.stream()
             outfits = []
@@ -168,7 +171,7 @@ async def get_outfits(current_user = Depends(get_current_user_optional)):
         return await get_mock_outfits()
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
-async def get_outfit(outfit_id: str, current_user = Depends(get_current_user_optional)):
+async def get_outfit(outfit_id: str):
     """Get a specific outfit by ID."""
     logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
     
