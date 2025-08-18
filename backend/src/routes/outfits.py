@@ -152,6 +152,12 @@ async def test_firebase_connection():
             "error": str(e)
         }
 
+@router.get("/test", response_model=List[OutfitResponse])
+async def test_outfits():
+    """Test endpoint for outfits."""
+    logger.info("🔍 DEBUG: Test outfits endpoint called")
+    return await get_mock_outfits()
+
 @router.get("/", response_model=List[OutfitResponse])
 async def get_outfits():
     """Get all outfits for the current user - Simple working version."""
@@ -230,10 +236,4 @@ async def get_outfit(outfit_id: str):
         for outfit in outfits:
             if outfit["id"] == outfit_id:
                 return outfit
-        raise HTTPException(status_code=404, detail="Outfit not found")
-
-@router.get("/test", response_model=List[OutfitResponse])
-async def test_outfits():
-    """Test endpoint for outfits."""
-    logger.info("🔍 DEBUG: Test outfits endpoint called")
-    return await get_mock_outfits() 
+        raise HTTPException(status_code=404, detail="Outfit not found") 
