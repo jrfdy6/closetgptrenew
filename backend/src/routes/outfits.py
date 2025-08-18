@@ -136,6 +136,14 @@ async def get_outfits():
             }
         ]
 
+@router.get("", response_model=List[OutfitResponse])
+async def get_outfits_no_trailing():
+    """Get all outfits for the current user (no trailing slash)."""
+    logger.info("🔍 DEBUG: Get outfits endpoint called (no trailing slash)")
+    
+    # Call the same logic as the trailing slash version
+    return await get_outfits()
+
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
     """Get a specific outfit by ID."""
