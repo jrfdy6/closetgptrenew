@@ -114,61 +114,27 @@ async def get_outfits():
     """Get all outfits for the current user."""
     logger.info("🔍 DEBUG: Get outfits endpoint called")
     
+    # TEMPORARILY: Always return mock data to ensure endpoint works
+    # This will help us isolate whether the issue is endpoint registration or Firebase logic
     try:
-        # Check Firebase availability
-        if not FIREBASE_AVAILABLE:
-            logger.warning("Firebase modules not available, returning mock data")
-            return await get_mock_outfits()
-        
-        if not firebase_initialized:
-            logger.warning("Firebase not initialized, returning mock data")
-            return await get_mock_outfits()
-        
-        # TEMPORARILY DISABLED AUTH - for testing endpoint loading
-        # if not current_user:
-        #     logger.warning("No user authenticated, returning mock data")
-        #     return await get_mock_outfits()
-        
-        logger.info("Firebase available and initialized, attempting to fetch real data")
-        
-        # Try to fetch real outfits from Firebase
-        try:
-            outfits_ref = db.collection('outfits')
-            # TEMPORARILY DISABLED USER FILTERING - for testing
-            # if current_user and hasattr(current_user, 'id') and current_user.id:
-            #     # Filter by user if authenticated
-            #     outfits_ref = outfits_ref.where('user_id', '==', current_user.id)
-            #     logger.info(f"Filtering outfits for user: {current_user.id}")
-            # else:
-            #     logger.info("No user ID, fetching all outfits")
-            
-            logger.info("Fetching all outfits from database (no user filter)")
-            
-            outfits_docs = outfits_ref.stream()
-            outfits = []
-            
-            for doc in outfits_docs:
-                outfit_data = doc.to_dict()
-                outfit_data['id'] = doc.id
-                outfits.append(outfit_data)
-            
-            if outfits:
-                logger.info(f"Found {len(outfits)} real outfits from database")
-                return outfits
-            else:
-                logger.info("No outfits found in database, returning mock data")
-                return await get_mock_outfits()
-                
-        except Exception as firebase_error:
-            logger.error(f"Firebase query failed: {firebase_error}")
-            logger.warning("Falling back to mock data due to Firebase error")
-            return await get_mock_outfits()
-        
-    except Exception as e:
-        logger.error(f"Error getting outfits: {e}")
-        # Fallback to mock data on error
-        logger.warning("Falling back to mock data due to error")
+        logger.info("Returning mock outfits data for now")
         return await get_mock_outfits()
+    except Exception as e:
+        logger.error(f"Error in get_outfits: {e}")
+        # Even if mock data fails, return a basic response
+        return [
+            {
+                "id": "fallback-outfit",
+                "name": "Fallback Outfit",
+                "style": "basic",
+                "mood": "neutral",
+                "items": [],
+                "occasion": "any",
+                "confidence_score": 0.5,
+                "reasoning": "Fallback outfit due to error",
+                "createdAt": datetime.now()
+            }
+        ]
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
