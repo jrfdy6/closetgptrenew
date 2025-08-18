@@ -594,7 +594,7 @@ async def get_wardrobe_stats(
             item_color = item.get('color', 'unknown')
             colors[item_color] = colors.get(item_color, 0) + 1
         
-        # Calculate additional stats
+        # Calculate additional stats (handle empty wardrobe gracefully)
         total_items = len(items)
         favorites = sum(1 for item in items if item.get('favorite', False))
         total_wear_count = sum(item.get('wearCount', 0) for item in items)
@@ -621,7 +621,7 @@ async def get_wardrobe_stats(
         return {
             "success": True,
             "data": stats,
-            "message": "Wardrobe statistics retrieved successfully"
+            "message": f"Wardrobe statistics retrieved successfully ({total_items} items found)"
         }
         
     except HTTPException:
@@ -687,7 +687,7 @@ async def get_trending_styles(
         return {
             "success": True,
             "data": trending_data,
-            "message": "Trending styles retrieved successfully"
+            "message": f"Trending styles retrieved successfully ({len(items)} items analyzed)"
         }
         
     except HTTPException:
