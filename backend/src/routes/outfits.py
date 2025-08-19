@@ -158,6 +158,21 @@ async def test_outfits():
     logger.info("🔍 DEBUG: Test outfits endpoint called")
     return await get_mock_outfits()
 
+@router.post("/", response_model=dict)
+async def create_outfit():
+    """Create a new outfit - POST endpoint for consistency with /api/outfits."""
+    logger.info("🔍 DEBUG: Create outfit endpoint called via POST /api/outfits")
+    
+    # This endpoint provides consistency - frontend can always call /api/outfits
+    # For now, return a message directing to the proper endpoint
+    # Later, we can implement the actual creation logic here
+    return {
+        "message": "Outfit creation endpoint",
+        "note": "This endpoint provides consistency with GET /api/outfits",
+        "action": "Use POST /api/outfit/create for actual outfit creation",
+        "status": "endpoint_ready"
+    }
+
 @router.get("/", response_model=List[OutfitResponse])
 async def get_outfits():
     """Get all outfits for the current user - Simple working version."""
@@ -192,6 +207,14 @@ async def get_outfits_no_trailing():
     
     # Call the same simple logic as the trailing slash version
     return await get_outfits()
+
+@router.post("", response_model=dict)
+async def create_outfit_no_trailing():
+    """Create a new outfit - POST endpoint for consistency (no trailing slash)."""
+    logger.info("🔍 DEBUG: Create outfit endpoint called via POST /api/outfits (no trailing slash)")
+    
+    # Call the same logic as the trailing slash version
+    return await create_outfit()
 
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
