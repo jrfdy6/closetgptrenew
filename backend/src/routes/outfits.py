@@ -298,7 +298,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         # Fallback to mock data on error
         return await get_mock_outfits()
 
-# Health and debug endpoints
+# Health and debug endpoints (MUST be before parameterized routes)
 @router.get("/health", response_model=dict)
 async def outfits_health_check():
     """Health check for outfits router."""
@@ -459,7 +459,7 @@ async def list_outfits_no_trailing(
     """List outfits (no trailing slash) - calls the same logic."""
     return await list_outfits(limit, offset)
 
-# Individual outfit retrieval
+# Individual outfit retrieval (MUST be after specific routes to avoid conflicts)
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
     """Get a specific outfit by ID."""
