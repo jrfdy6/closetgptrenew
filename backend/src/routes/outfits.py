@@ -160,27 +160,15 @@ async def outfits_debug():
 @router.post("/", response_model=OutfitResponse)
 async def generate_outfit(
     req: OutfitRequest,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ):
     """
     Generate an outfit using decision logic, save it to Firestore,
     and return the standardized response.
     """
     try:
-        # Handle authentication gracefully
-        current_user_id = None
-        if credentials and credentials.credentials:
-            try:
-                user = await get_current_user_optional(credentials)
-                current_user_id = user.id if user else None
-            except Exception as e:
-                logger.warning(f"Authentication failed, using mock user: {e}")
-                current_user_id = None
-        
-        # Use mock user ID if no authenticated user
-        if not current_user_id:
-            current_user_id = "mock-user-123"
-            logger.info("Using mock user ID for testing")
+        # TEMPORARILY: Use mock user ID for testing
+        current_user_id = "mock-user-123"
+        logger.info("Using mock user ID for testing")
         
         logger.info(f"🎨 Generating outfit for user: {current_user_id}")
         
@@ -210,7 +198,6 @@ async def generate_outfit(
 # ✅ Retrieve Outfit History
 @router.get("/", response_model=List[OutfitResponse])
 async def list_outfits(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     limit: int = 50,
     offset: int = 0,
 ):
@@ -218,20 +205,9 @@ async def list_outfits(
     Fetch a user's outfit history from Firestore.
     """
     try:
-        # Handle authentication gracefully
-        current_user_id = None
-        if credentials and credentials.credentials:
-            try:
-                user = await get_current_user_optional(credentials)
-                current_user_id = user.id if user else None
-            except Exception as e:
-                logger.warning(f"Authentication failed, using mock user: {e}")
-                current_user_id = None
-        
-        # Use mock user ID if no authenticated user
-        if not current_user_id:
-            current_user_id = "mock-user-123"
-            logger.info("Using mock user ID for testing")
+        # TEMPORARILY: Use mock user ID for testing
+        current_user_id = "mock-user-123"
+        logger.info("Using mock user ID for testing")
         
         logger.info(f"📚 Fetching outfits for user: {current_user_id}")
         
@@ -250,44 +226,28 @@ async def list_outfits(
 @router.post("", response_model=OutfitResponse)
 async def generate_outfit_no_trailing(
     req: OutfitRequest,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ):
     """Generate outfit (no trailing slash) - calls the same logic."""
-    return await generate_outfit(req, credentials)
+    return await generate_outfit(req)
 
 @router.get("", response_model=List[OutfitResponse])
 async def list_outfits_no_trailing(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     limit: int = 50,
     offset: int = 0,
 ):
     """List outfits (no trailing slash) - calls the same logic."""
-    return await list_outfits(credentials, limit, offset)
+    return await list_outfits(limit, offset)
 
 # Individual outfit retrieval
 @router.get("/{outfit_id}", response_model=OutfitResponse)
-async def get_outfit(
-    outfit_id: str, 
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
-):
+async def get_outfit(outfit_id: str):
     """Get a specific outfit by ID."""
     logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
     
     try:
-        # Handle authentication gracefully
-        current_user_id = None
-        if credentials and credentials.credentials:
-            try:
-                user = await get_current_user_optional(credentials)
-                current_user_id = user.id if user else None
-            except Exception as e:
-                logger.warning(f"Authentication failed, using mock user: {e}")
-                current_user_id = None
-        
-        # Use mock user ID if no authenticated user
-        if not current_user_id:
-            current_user_id = "mock-user-123"
-            logger.info("Using mock user ID for testing")
+        # TEMPORARILY: Use mock user ID for testing
+        current_user_id = "mock-user-123"
+        logger.info("Using mock user ID for testing")
         
         # Check Firebase availability
         if not FIREBASE_AVAILABLE or not firebase_initialized:
