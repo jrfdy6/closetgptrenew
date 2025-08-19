@@ -272,14 +272,19 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         # Query user's outfits collection (simplified - no ordering to avoid index issues)
         outfits_ref = db.collection('users').document(user_id).collection('outfits')
         
+        logger.info(f"🔍 Querying path: users/{user_id}/outfits")
+        
         # Simple query without ordering for now (can be improved later with proper indexes)
         docs = outfits_ref.limit(limit).get()
         outfits = []
+        
+        logger.info(f"🔍 Query returned {len(docs)} documents")
         
         for doc in docs:
             outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append(outfit_data)
+            logger.info(f"🔍 Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
         
         logger.info(f"✅ Retrieved {len(outfits)} outfits for user {user_id}")
         return outfits
