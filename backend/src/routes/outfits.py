@@ -377,6 +377,57 @@ async def firebase_connectivity_test():
         "results": test_results
     }
 
+@router.get("/check-outfits-db", response_model=dict)
+async def check_outfits_database():
+    """Check what outfits are actually in the database."""
+    logger.info("🔍 DEBUG: Checking outfits in database")
+    
+    check_results = {
+        "firebase_available": FIREBASE_AVAILABLE,
+        "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False,
+        "user_outfits": [],
+        "global_outfits": [],
+        "error": None
+    }
+    
+    if FIREBASE_AVAILABLE and firebase_initialized:
+        try:
+            user_id = "mock-user-123"
+            
+            # Check user's outfits collection
+            logger.info(f"🔍 Checking user outfits for {user_id}")
+            user_outfits_ref = db.collection('users').document(user_id).collection('outfits')
+            user_docs = user_outfits_ref.limit(10).get()
+            
+            for doc in user_docs:
+                outfit_data = doc.to_dict()
+                outfit_data['doc_id'] = doc.id
+                check_results["user_outfits"].append(outfit_data)
+            
+            # Check global outfits collection
+            logger.info("🔍 Checking global outfits collection")
+            global_outfits_ref = db.collection('outfits')
+            global_docs = global_outfits_ref.limit(10).get()
+            
+            for doc in global_docs:
+                outfit_data = doc.to_dict()
+                outfit_data['doc_id'] = doc.id
+                check_results["global_outfits"].append(outfit_data)
+            
+            logger.info(f"✅ Found {len(check_results['user_outfits'])} user outfits, {len(check_results['global_outfits'])} global outfits")
+                
+        except Exception as e:
+            error_msg = f"Database check error: {str(e)}"
+            logger.error(f"❌ {error_msg}")
+            check_results["error"] = error_msg
+    else:
+        check_results["error"] = "Firebase not available or not initialized"
+    
+    return {
+        "status": "outfits_database_check",
+        "results": check_results
+    }
+
 # ✅ Generate + Save Outfit (single source of truth)
 @router.post("/", response_model=OutfitResponse)
 async def generate_outfit(
