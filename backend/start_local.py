@@ -41,7 +41,7 @@ def start_backend():
         # Start the server
         subprocess.run([
             "python", "-m", "uvicorn", 
-            "src.app:app", 
+            "app:app", 
             "--host", "0.0.0.0", 
             "--port", "8080",
             "--reload"

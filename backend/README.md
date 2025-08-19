@@ -24,7 +24,7 @@ This is the backend API for ClosetGPT, providing AI-powered clothing analysis an
 
 3. **Run locally**:
    ```bash
-   python -m uvicorn src.app:app --host 0.0.0.0 --port 8080 --reload
+   python -m uvicorn app:app --host 0.0.0.0 --port 8080 --reload
    ```
 
 4. **Deploy to Railway**:
