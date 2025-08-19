@@ -424,6 +424,62 @@ async def check_outfits_database():
         "results": check_results
     }
 
+@router.get("/debug-retrieval", response_model=dict)
+async def debug_outfit_retrieval():
+    """Debug the outfit retrieval process step by step."""
+    logger.info("🔍 DEBUG: Debug retrieval endpoint called")
+    
+    debug_info = {
+        "firebase_available": FIREBASE_AVAILABLE,
+        "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False,
+        "user_id": "mock-user-123",
+        "steps": [],
+        "error": None,
+        "final_result": None
+    }
+    
+    try:
+        user_id = "mock-user-123"
+        debug_info["steps"].append("Starting retrieval process")
+        
+        if not FIREBASE_AVAILABLE or not firebase_initialized:
+            debug_info["steps"].append("Firebase not available - would use mock data")
+            debug_info["final_result"] = "mock_data_fallback"
+            return debug_info
+        
+        debug_info["steps"].append("Firebase is available")
+        
+        # Test the exact same logic as get_user_outfits
+        debug_info["steps"].append(f"Querying users/{user_id}/outfits")
+        outfits_ref = db.collection('users').document(user_id).collection('outfits')
+        docs = outfits_ref.limit(10).get()
+        
+        debug_info["steps"].append(f"Query returned {len(docs)} documents")
+        
+        outfits = []
+        for doc in docs:
+            outfit_data = doc.to_dict()
+            outfit_data['id'] = doc.id
+            outfits.append({
+                "id": doc.id,
+                "name": outfit_data.get('name', 'unknown'),
+                "user_id": outfit_data.get('user_id', 'unknown')
+            })
+        
+        debug_info["steps"].append(f"Processed {len(outfits)} outfits")
+        debug_info["final_result"] = outfits
+        
+    except Exception as e:
+        error_msg = f"Debug retrieval error: {str(e)}"
+        debug_info["steps"].append(error_msg)
+        debug_info["error"] = error_msg
+        debug_info["final_result"] = "error_fallback"
+    
+    return {
+        "status": "debug_outfit_retrieval",
+        "debug_info": debug_info
+    }
+
 # ✅ Generate + Save Outfit (single source of truth)
 @router.post("/", response_model=OutfitResponse)
 async def generate_outfit(
