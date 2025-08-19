@@ -269,20 +269,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             
         logger.info(f"📚 Fetching outfits for user {user_id}, limit: {limit}, offset: {offset}")
         
-        # Query user's outfits collection
+        # Query user's outfits collection (simplified - no ordering to avoid index issues)
         outfits_ref = db.collection('users').document(user_id).collection('outfits')
-        query = outfits_ref.order_by('generated_at', direction='desc').limit(limit)
         
-        # Apply offset if provided
-        if offset > 0:
-            # Get the document at offset position for pagination
-            offset_docs = outfits_ref.order_by('generated_at', direction='desc').limit(offset).get()
-            if offset_docs:
-                last_doc = offset_docs[-1]
-                query = query.start_after(last_doc)
-        
-        # Execute query
-        docs = query.get()
+        # Simple query without ordering for now (can be improved later with proper indexes)
+        docs = outfits_ref.limit(limit).get()
         outfits = []
         
         for doc in docs:
