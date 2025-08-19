@@ -510,10 +510,10 @@ async def list_outfits_no_trailing(
     """List outfits (no trailing slash) - calls the same logic."""
     return await list_outfits(limit, offset)
 
-# Individual outfit retrieval (MUST be after specific routes to avoid conflicts)
+# ⚠️ PARAMETERIZED ROUTE - MUST BE LAST TO AVOID ROUTE CONFLICTS!
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
-    """Get a specific outfit by ID."""
+    """Get a specific outfit by ID. MUST BE LAST ROUTE TO AVOID CONFLICTS."""
     logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
     
     try:
