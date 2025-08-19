@@ -324,6 +324,59 @@ async def outfits_debug():
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False
     }
 
+@router.get("/firebase-test", response_model=dict)
+async def firebase_connectivity_test():
+    """Test Firebase write/read operations."""
+    logger.info("🔍 DEBUG: Firebase connectivity test called")
+    
+    test_results = {
+        "firebase_available": FIREBASE_AVAILABLE,
+        "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False,
+        "write_test": "not_attempted",
+        "read_test": "not_attempted",
+        "error": None
+    }
+    
+    if FIREBASE_AVAILABLE and firebase_initialized:
+        try:
+            # Test write operation
+            test_doc_id = "connectivity-test"
+            test_data = {
+                "test": True,
+                "timestamp": datetime.now().isoformat(),
+                "message": "Firebase connectivity test"
+            }
+            
+            logger.info("🔥 Testing Firebase write operation...")
+            db.collection('test_collection').document(test_doc_id).set(test_data)
+            test_results["write_test"] = "success"
+            logger.info("✅ Firebase write test successful")
+            
+            # Test read operation
+            logger.info("🔥 Testing Firebase read operation...")
+            doc = db.collection('test_collection').document(test_doc_id).get()
+            if doc.exists:
+                test_results["read_test"] = "success"
+                test_results["read_data"] = doc.to_dict()
+                logger.info("✅ Firebase read test successful")
+            else:
+                test_results["read_test"] = "document_not_found"
+                logger.warning("⚠️ Document not found after write")
+                
+        except Exception as e:
+            error_msg = f"Firebase test error: {str(e)}"
+            logger.error(f"❌ {error_msg}")
+            test_results["error"] = error_msg
+            test_results["write_test"] = "failed"
+            test_results["read_test"] = "failed"
+    else:
+        test_results["error"] = "Firebase not available or not initialized"
+    
+    return {
+        "status": "firebase_connectivity_test",
+        "results": test_results
+    }
+
 # ✅ Generate + Save Outfit (single source of truth)
 @router.post("/", response_model=OutfitResponse)
 async def generate_outfit(
