@@ -1,43 +1,55 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/outfits`, {
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits`;
+
+    const response = await fetch(backendUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward auth if needed:
+        ...(request.headers.get('authorization') && {
+          Authorization: request.headers.get('authorization')!,
+        }),
+      },
     });
 
-    if (!res.ok) {
-      throw new Error(`Backend error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err: any) {
-    console.error("❌ Error in /api/outfits:", err);
-    return NextResponse.json({ error: "Failed to fetch outfits" }, { status: 500 });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch (err) {
+    console.error('❌ Proxy GET /outfits failed:', err);
+    return NextResponse.json(
+      { error: 'Proxy failed to reach backend' },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits`;
     const body = await request.json();
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/outfits`, {
+
+    const response = await fetch(backendUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(request.headers.get('authorization') && {
+          Authorization: request.headers.get('authorization')!,
+        }),
+      },
       body: JSON.stringify(body),
-      cache: "no-store"
     });
 
-    if (!res.ok) {
-      throw new Error(`Backend error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err: any) {
-    console.error("❌ Error in /api/outfits POST:", err);
-    return NextResponse.json({ error: "Failed to create outfit" }, { status: 500 });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch (err) {
+    console.error('❌ Proxy POST /outfits failed:', err);
+    return NextResponse.json(
+      { error: 'Proxy failed to reach backend' },
+      { status: 500 }
+    );
   }
 }
 

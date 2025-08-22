@@ -1,20 +1,27 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/outfit-history/today`, {
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfit-history/today`;
+
+    const response = await fetch(backendUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Forward auth if needed:
+        ...(request.headers.get('authorization') && {
+          Authorization: request.headers.get('authorization')!,
+        }),
+      },
     });
 
-    if (!res.ok) {
-      throw new Error(`Backend error: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err: any) {
-    console.error("❌ Error in /api/outfit-history/today:", err);
-    return NextResponse.json({ error: "Failed to fetch today's outfit" }, { status: 500 });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch (err) {
+    console.error('❌ Proxy GET /outfit-history/today failed:', err);
+    return NextResponse.json(
+      { error: 'Proxy failed to reach backend' },
+      { status: 500 }
+    );
   }
 }
