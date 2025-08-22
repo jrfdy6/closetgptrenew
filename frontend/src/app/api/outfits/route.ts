@@ -1,55 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
+  console.log("✅ Direct /api/outfits route HIT:", req.method);
+  
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits`;
-
-    const response = await fetch(backendUrl, {
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits${req.nextUrl.search}`;
+    
+    const res = await fetch(backendUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // Forward auth if needed:
-        ...(request.headers.get('authorization') && {
-          Authorization: request.headers.get('authorization')!,
+        ...(req.headers.get('authorization') && {
+          Authorization: req.headers.get('authorization')!,
         }),
       },
     });
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
   } catch (err) {
-    console.error('❌ Proxy GET /outfits failed:', err);
-    return NextResponse.json(
-      { error: 'Proxy failed to reach backend' },
-      { status: 500 }
-    );
+    console.error('❌ Direct /api/outfits proxy failed:', err);
+    return NextResponse.json({ error: 'Proxy failed' }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
+  console.log("✅ Direct /api/outfits POST route HIT:", req.method);
+  
   try {
     const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits`;
-    const body = await request.json();
-
-    const response = await fetch(backendUrl, {
+    const body = await req.text();
+    
+    const res = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(request.headers.get('authorization') && {
-          Authorization: request.headers.get('authorization')!,
+        ...(req.headers.get('authorization') && {
+          Authorization: req.headers.get('authorization')!,
         }),
       },
-      body: JSON.stringify(body),
+      body: body,
     });
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
   } catch (err) {
-    console.error('❌ Proxy POST /outfits failed:', err);
-    return NextResponse.json(
-      { error: 'Proxy failed to reach backend' },
-      { status: 500 }
-    );
+    console.error('❌ Direct /api/outfits POST proxy failed:', err);
+    return NextResponse.json({ error: 'Proxy failed' }, { status: 500 });
   }
 }
 

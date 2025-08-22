@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 async function handleProxy(req: NextRequest, params: { slug: string[] }) {
+  console.log("✅ Catch-all /api/outfits/[...slug] route HIT:", req.method, params?.slug);
+  
   try {
     const path = params.slug.join('/');
     const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits/${path}${req.nextUrl.search}`;
