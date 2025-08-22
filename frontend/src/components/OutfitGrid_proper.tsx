@@ -195,14 +195,14 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear }:
             Occasion
           </label>
           <Select
-            value={filters.occasion || ''}
-            onValueChange={(value) => onFiltersChange({ ...filters, occasion: value || undefined })}
+            value={filters.occasion || 'all'}
+            onValueChange={(value) => onFiltersChange({ ...filters, occasion: value === 'all' ? undefined : value })}
           >
             <SelectTrigger>
               <SelectValue placeholder="All occasions" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All occasions</SelectItem>
+              <SelectItem value="all">All occasions</SelectItem>
               <SelectItem value="casual">Casual</SelectItem>
               <SelectItem value="business">Business</SelectItem>
               <SelectItem value="formal">Formal</SelectItem>
@@ -218,14 +218,14 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear }:
             Style
           </label>
           <Select
-            value={filters.style || ''}
-            onValueChange={(value) => onFiltersChange({ ...filters, style: value || undefined })}
+            value={filters.style || 'all'}
+            onValueChange={(value) => onFiltersChange({ ...filters, style: value === 'all' ? undefined : value })}
           >
             <SelectTrigger>
               <SelectValue placeholder="All styles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All styles</SelectItem>
+              <SelectItem value="all">All styles</SelectItem>
               <SelectItem value="classic">Classic</SelectItem>
               <SelectItem value="modern">Modern</SelectItem>
               <SelectItem value="vintage">Vintage</SelectItem>
@@ -239,9 +239,9 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear }:
       {/* Action Buttons */}
       <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
         <div className="text-sm text-gray-500">
-          {filters.occasion && `Occasion: ${filters.occasion}`}
-          {filters.style && ` Style: ${filters.style}`}
-          {(filters.occasion || filters.style) && ' • '}
+          {filters.occasion && filters.occasion !== 'all' && `Occasion: ${filters.occasion}`}
+          {filters.style && filters.style !== 'all' && ` Style: ${filters.style}`}
+          {((filters.occasion && filters.occasion !== 'all') || (filters.style && filters.style !== 'all')) && ' • '}
           <span>Showing filtered results</span>
         </div>
         <Button variant="outline" onClick={handleClear} size="sm">
