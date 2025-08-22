@@ -118,18 +118,18 @@ export class OutfitService {
     try {
       console.log('🔍 [OutfitService] Getting user outfits from backend API');
       
-      // Build query parameters
-      const params = new URLSearchParams();
-      if (filters.occasion) params.append('occasion', filters.occasion);
-      if (filters.style) params.append('style', filters.style);
-      if (filters.mood) params.append('mood', filters.mood);
-      if (filters.limit) params.append('limit', filters.limit.toString());
-      if (filters.offset) params.append('offset', filters.offset.toString());
+      // Build query string from filters
+      const queryParams = new URLSearchParams();
+      if (filters.style) queryParams.append('style', filters.style);
+      if (filters.occasion) queryParams.append('occasion', filters.occasion);
+      if (filters.season) queryParams.append('season', filters.season);
       
-      const url = `${this.API_BASE}/?${params.toString()}`;
-      console.log(`🔗 [OutfitService] API URL: ${url}`);
+      const queryString = queryParams.toString();
+      const apiUrl = `/api/outfits-new${queryString ? `?${queryString}` : ''}`;
       
-      const response = await fetch(url, {
+      console.log('🔗 [OutfitService] API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: await this.getAuthHeaders(user),
       });
@@ -168,7 +168,7 @@ export class OutfitService {
     try {
       console.log(`🔍 [OutfitService] Getting outfit ${outfitId} from backend API`);
       
-      const response = await fetch(`${this.API_BASE}/${outfitId}`, {
+      const response = await fetch(`/api/outfits-new/${outfitId}`, {
         method: 'GET',
         headers: await this.getAuthHeaders(user),
       });
@@ -210,9 +210,9 @@ export class OutfitService {
    */
   static async createOutfit(user: User, outfitData: OutfitCreate): Promise<Outfit> {
     try {
-      console.log('🔍 [OutfitService] Creating new outfit through backend API');
+      console.log('🔍 [OutfitService] Creating outfit via backend API');
       
-      const response = await fetch(`${this.API_BASE}/`, {
+      const response = await fetch(`/api/outfits-new`, {
         method: 'POST',
         headers: await this.getAuthHeaders(user),
         body: JSON.stringify(outfitData),
@@ -253,7 +253,7 @@ export class OutfitService {
     try {
       console.log(`🔍 [OutfitService] Updating outfit ${outfitId} through backend API`);
       
-      const response = await fetch(`${this.API_BASE}/${outfitId}`, {
+      const response = await fetch(`/api/outfits-new/${outfitId}`, {
         method: 'PUT',
         headers: await this.getAuthHeaders(user),
         body: JSON.stringify(updates),
@@ -298,7 +298,7 @@ export class OutfitService {
     try {
       console.log(`🔍 [OutfitService] Deleting outfit ${outfitId} through backend API`);
       
-      const response = await fetch(`${this.API_BASE}/${outfitId}`, {
+      const response = await fetch(`/api/outfits-new/${outfitId}`, {
         method: 'DELETE',
         headers: await this.getAuthHeaders(user),
       });
@@ -334,11 +334,11 @@ export class OutfitService {
   /**
    * Mark outfit as worn through backend API
    */
-  static async markOutfitAsWorn(user: User, outfitId: string): Promise<void> {
+  static async markOutfitAsWorn(user: User, outfitId: string): Promise<Outfit> {
     try {
       console.log(`🔍 [OutfitService] Marking outfit ${outfitId} as worn through backend API`);
       
-      const response = await fetch(`${this.API_BASE}/${outfitId}/mark-worn`, {
+      const response = await fetch(`/api/outfits-new/${outfitId}/mark-worn`, {
         method: 'POST',
         headers: await this.getAuthHeaders(user),
       });
@@ -357,13 +357,14 @@ export class OutfitService {
         }
       }
       
-      const data: StandardResponse = await response.json();
+      const data: StandardResponse<Outfit> = await response.json();
       
       if (!data.success) {
         throw new Error(data.error || 'Failed to mark outfit as worn');
       }
       
       console.log(`✅ [OutfitService] Successfully marked outfit ${outfitId} as worn`);
+      return data.data!;
       
     } catch (error) {
       console.error(`❌ [OutfitService] Error marking outfit ${outfitId} as worn:`, error);
@@ -374,11 +375,11 @@ export class OutfitService {
   /**
    * Toggle outfit favorite status through backend API
    */
-  static async toggleOutfitFavorite(user: User, outfitId: string): Promise<void> {
+  static async toggleOutfitFavorite(user: User, outfitId: string): Promise<Outfit> {
     try {
       console.log(`🔍 [OutfitService] Toggling favorite for outfit ${outfitId} through backend API`);
       
-      const response = await fetch(`${this.API_BASE}/${outfitId}/toggle-favorite`, {
+      const response = await fetch(`/api/outfits-new/${outfitId}/toggle-favorite`, {
         method: 'POST',
         headers: await this.getAuthHeaders(user),
       });
@@ -397,13 +398,14 @@ export class OutfitService {
         }
       }
       
-      const data: StandardResponse = await response.json();
+      const data: StandardResponse<Outfit> = await response.json();
       
       if (!data.success) {
         throw new Error(data.error || 'Failed to toggle outfit favorite');
       }
       
       console.log(`✅ [OutfitService] Successfully toggled favorite for outfit ${outfitId}`);
+      return data.data!;
       
     } catch (error) {
       console.error(`❌ [OutfitService] Error toggling favorite for outfit ${outfitId}:`, error);
@@ -418,7 +420,7 @@ export class OutfitService {
     try {
       console.log('🔍 [OutfitService] Getting outfit statistics from backend API');
       
-      const response = await fetch(`${this.API_BASE}/stats/summary`, {
+      const response = await fetch(`/api/outfits-new/stats/summary`, {
         method: 'GET',
         headers: await this.getAuthHeaders(user),
       });
