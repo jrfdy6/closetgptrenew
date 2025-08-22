@@ -69,19 +69,126 @@ class OutfitContext(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True, arbitrary_types_allowed=True)
 
-class Outfit(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+# ===== NEW TYPES FOR OUTFIT SERVICE =====
+
+class OutfitItem(BaseModel):
+    """Simplified outfit item for the outfit service - matches actual Firebase data"""
+    id: str
     name: str
-    description: str
-    items: List[OutfitPiece]
+    userId: str  # This matches the actual data
+    subType: str  # This is what the data actually has (not category)
+    type: str  # This is what the data actually has
+    color: str
+    imageUrl: Optional[str] = None
+    style: List[str]  # This is a list in the actual data
+    occasion: List[str]  # This is a list in the actual data
+    dominantColors: Optional[List[Dict[str, Any]]] = None
+    matchingColors: Optional[List[Dict[str, Any]]] = None
+    wearCount: Optional[int] = 0
+    favorite_score: Optional[float] = 0.0
+    brand: Optional[str] = None
+    season: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    lastWorn: Optional[float] = 0.0
+    createdAt: Optional[int] = None
+    updatedAt: Optional[int] = None
+    metadata: Optional[Dict[str, Any]] = None
+    
+    # Legacy field mappings for backward compatibility
+    category: Optional[str] = None  # Map to subType
+    imageUrl: Optional[str] = None  # Keep for compatibility
+    
+    model_config = ConfigDict(extra='ignore')  # Ignore extra fields
+
+class OutfitCreate(BaseModel):
+    """Data model for creating a new outfit"""
+    name: str
     occasion: str
-    season: str
     style: str
-    styleTags: List[str]
-    colorHarmony: str
-    styleNotes: str
-    createdAt: int = Field(default_factory=lambda: int(time.time()))
-    updatedAt: int = Field(default_factory=lambda: int(time.time()))
+    mood: Optional[str] = None
+    items: List[OutfitItem]
+    confidenceScore: Optional[float] = None
+    reasoning: Optional[str] = None
+
+class OutfitUpdate(BaseModel):
+    """Data model for updating an existing outfit"""
+    name: Optional[str] = None
+    occasion: Optional[str] = None
+    style: Optional[str] = None
+    mood: Optional[str] = None
+    items: Optional[List[OutfitItem]] = None
+    confidenceScore: Optional[float] = None
+    reasoning: Optional[str] = None
+
+class OutfitFilters(BaseModel):
+    """Filters for querying outfits"""
+    occasion: Optional[str] = None
+    style: Optional[str] = None
+    mood: Optional[str] = None
+    limit: Optional[int] = 50
+    offset: Optional[int] = 0
+
+class OutfitResponse(BaseModel):
+    """Response model for outfit data"""
+    id: str
+    name: str
+    occasion: str
+    style: str
+    mood: Optional[str] = None
+    items: List[OutfitItem]
+    confidenceScore: Optional[float] = None
+    reasoning: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+    userId: str
+    isFavorite: Optional[bool] = False
+    wearCount: Optional[int] = 0
+    lastWorn: Optional[datetime] = None
+
+# ===== FLEXIBLE OUTFIT MODEL FOR EXISTING DATA =====
+
+class Outfit(BaseModel):
+    """Flexible outfit model that can handle existing data structure"""
+    id: str
+    name: str
+    occasion: str
+    style: str
+    mood: Optional[str] = None
+    items: List[OutfitItem]
+    user_id: str  # Use underscore to match database field
+    createdAt: Optional[Union[datetime, int]] = None
+    updatedAt: Optional[Union[datetime, int]] = None
+    
+    # Additional fields that exist in the actual data
+    description: Optional[str] = None
+    season: Optional[str] = None
+    styleTags: Optional[List[str]] = None
+    colorHarmony: Optional[str] = None
+    styleNotes: Optional[str] = None
+    explanation: Optional[str] = None
+    pieces: Optional[List[Any]] = None  # Some outfits have 'pieces' instead of 'items'
+    validation_details: Optional[Dict[str, Any]] = None
+    wardrobe_snapshot: Optional[Dict[str, Any]] = None
+    system_context: Optional[Dict[str, Any]] = None
+    user_session_context: Optional[Dict[str, Any]] = None
+    generation_method: Optional[str] = None
+    wasSuccessful: Optional[bool] = None
+    baseItemId: Optional[str] = None
+    validationErrors: Optional[List[str]] = None
+    userFeedback: Optional[Dict[str, Any]] = None
+    generation_trace: Optional[List[Dict[str, Any]]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    
+    # Legacy fields for backward compatibility
+    isFavorite: Optional[bool] = False
+    wearCount: Optional[int] = 0
+    lastWorn: Optional[Union[datetime, int]] = None
+    confidenceScore: Optional[float] = None
+    reasoning: Optional[str] = None
+    
+    model_config = ConfigDict(extra='ignore')  # Ignore extra fields
+
+# ===== EXISTING TYPES CONTINUE =====
 
 class OutfitGeneratedOutfit(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

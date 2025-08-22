@@ -3,561 +3,434 @@ Main Outfit Service
 Orchestrates all modular outfit services with proper temperature handling.
 """
 
-from typing import List, Optional, Dict, Any, Union
-import time
-import uuid
+import logging
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+from firebase_admin import firestore
+
+# Import the established pattern components
+from ..core.exceptions import ValidationError, DatabaseError
+from ..custom_types.outfit import OutfitCreate, OutfitUpdate, OutfitFilters, Outfit
 from ..config.firebase import db
-from ..custom_types.outfit import OutfitGeneratedOutfit
-from ..custom_types.wardrobe import ClothingItem
-from ..custom_types.weather import WeatherData
-from ..custom_types.profile import UserProfile
 
-# Import modular services
-from .outfit_core_service import OutfitCoreService
-from .outfit_filtering_service import OutfitFilteringService
-from .outfit_validation_service import OutfitValidationService
-from .outfit_selection_service import OutfitSelectionService
-from .outfit_scoring_service import OutfitScoringService
-from .outfit_utility_service import OutfitUtilityService
-from .outfit_generation_pipeline_service import OutfitGenerationPipelineService
-from .outfit_fallback_service import OutfitFallbackService
-from .outfit_generation_service import OutfitGenerationService
-from .initial_filter import light_filtering
-from .smart_selector_fixed import select_items
-from .validation_orchestrator import validate_outfit
-from .fallback_handler import run_fallback
-
-async def generate_outfit_pipeline(user_id, wardrobe, context):
-    print(f"🔍 DEBUG: Starting outfit generation pipeline with {len(wardrobe)} items")
-    
-    # Step 1: Light filtering
-    filtered = light_filtering(wardrobe, context)
-    print(f"🔍 DEBUG: After filtering: {len(filtered)} items")
-    
-    # Step 2: Smart selection
-    selection = await select_items(filtered, context)
-    print(f"🔍 DEBUG: After selection: {len(selection)} items")
-    
-    # Step 3: Validate only the selected items, not the entire wardrobe
-    if selection:
-        validation_result = await validate_outfit(selection, context)
-        print(f"🔍 DEBUG: Validation result - valid: {validation_result['is_valid']}, errors: {len(validation_result['errors'])}, warnings: {len(validation_result['warnings'])}")
-    else:
-        print("🔍 DEBUG: No items selected, skipping validation")
-        validation_result = {"is_valid": False, "errors": ["No items selected"], "warnings": []}
-
-    if validation_result["is_valid"]:
-        return {
-            "outfit": selection,
-            "warnings": validation_result["warnings"],
-            "status": "success"
-        }
-
-    # Soft fail fallback attempt
-    print("🔍 DEBUG: Primary selection failed, trying fallback")
-    fallback_items = await run_fallback(filtered, context)
-    print(f"🔍 DEBUG: Fallback selected {len(fallback_items)} items")
-    
-    if fallback_items:
-        retry_validation = await validate_outfit(fallback_items, context)
-        print(f"🔍 DEBUG: Fallback validation - valid: {retry_validation['is_valid']}, errors: {len(retry_validation['errors'])}, warnings: {len(retry_validation['warnings'])}")
-    else:
-        print("🔍 DEBUG: No fallback items selected")
-        retry_validation = {"is_valid": False, "errors": ["No fallback items selected"], "warnings": []}
-
-    if retry_validation["is_valid"]:
-        return {
-            "outfit": fallback_items,
-            "warnings": ["Fallback triggered"] + retry_validation["warnings"],
-            "status": "fallback_success"
-        }
-
-    # Final fail - return at least some items if we have them
-    if selection:
-        print("🔍 DEBUG: Returning original selection despite validation failures")
-        return {
-            "outfit": selection,
-            "warnings": ["Validation failed but returning items anyway"] + validation_result["warnings"],
-            "status": "soft_fail"
-        }
-    elif fallback_items:
-        print("🔍 DEBUG: Returning fallback items despite validation failures")
-        return {
-            "outfit": fallback_items,
-            "warnings": ["Validation failed but returning fallback items anyway"] + retry_validation["warnings"],
-            "status": "soft_fail"
-        }
-
-    # Complete failure
-    print("🔍 DEBUG: Complete generation failure")
-    return {
-        "outfit": [],
-        "errors": retry_validation["errors"],
-        "status": "fail"
-    }
+logger = logging.getLogger(__name__)
 
 class OutfitService:
-    """Main outfit service that orchestrates all modular services."""
+    """
+    Outfit service following the established wardrobe service architecture pattern.
+    
+    This service contains business logic and external API calls,
+    following the same separation of concerns as the wardrobe service.
+    """
     
     def __init__(self):
-        self.db = db
-        self.collection = self.db.collection("outfits")
-        self.wardrobe_collection = self.db.collection("wardrobe")
-        
-        # Initialize modular services
-        self.core_service = OutfitCoreService()
-        self.filtering_service = OutfitFilteringService()
-        self.validation_service = OutfitValidationService()
-        self.selection_service = OutfitSelectionService()
-        self.scoring_service = OutfitScoringService()
-        self.utility_service = OutfitUtilityService()
-        self.pipeline_service = OutfitGenerationPipelineService()
-        self.fallback_service = OutfitFallbackService()
-        self.generation_service = OutfitGenerationService()
-        
-    def _safe_temperature_convert(self, temperature) -> float:
-        """Safely convert temperature to float to prevent string vs float comparison errors."""
-        if isinstance(temperature, str):
-            try:
-                return float(temperature)
-            except (ValueError, TypeError):
-                return 70.0
-        elif temperature is None:
-            return 70.0
-        else:
-            return float(temperature)
-    
-    async def get_outfits(self) -> List[OutfitGeneratedOutfit]:
-        """Get all outfits from Firestore."""
-        return await self.core_service.get_outfits()
-    
-    async def get_outfit(self, outfit_id: str) -> Optional[OutfitGeneratedOutfit]:
-        """Get a single outfit by ID from Firestore."""
-        return await self.core_service.get_outfit(outfit_id)
-    
-    async def get_outfits_by_user(self, user_id: str) -> List[OutfitGeneratedOutfit]:
-        """Get all outfits for a specific user."""
+        """Initialize the outfit service with database connection."""
         try:
-            outfits_ref = self.collection.where('user_id', '==', user_id)
-            outfits_docs = outfits_ref.stream()
+            self.db = db
+            self.collection = self.db.collection('outfits')
+            logger.info("✅ OutfitService initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize OutfitService: {e}")
+            raise DatabaseError("Failed to initialize outfit service")
+    
+    # ===== CORE BUSINESS LOGIC METHODS =====
+    
+    async def get_user_outfits(self, user_id: str, filters: OutfitFilters) -> List[Outfit]:
+        """
+        Get user's outfits with filtering and pagination.
+        Business logic: Apply filters, validate user access, transform data.
+        """
+        try:
+            logger.info(f"🔍 Getting outfits for user {user_id} with filters: {filters}")
             
+            # Validate user ID
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
+            
+            # Build query with business logic
+            query = self.collection.where('user_id', '==', user_id)
+            
+            # Apply business logic filters
+            if filters.occasion:
+                query = query.where('occasion', '==', filters.occasion)
+            
+            if filters.style:
+                query = query.where('style', '==', filters.style)
+            
+            if filters.mood:
+                query = query.where('mood', '==', filters.mood)
+            
+            # Apply pagination
+            if filters.offset and filters.offset > 0:
+                query = query.offset(filters.offset)
+            
+            if filters.limit:
+                query = query.limit(filters.limit)
+            
+            # Execute query
+            docs = query.stream()
+            
+            # Transform to business objects
             outfits = []
-            for doc in outfits_docs:
-                outfit_data = doc.to_dict()
-                # Convert to OutfitGeneratedOutfit format
-                outfit = OutfitGeneratedOutfit(
-                    id=doc.id,
-                    name=outfit_data.get("name", "Untitled Outfit"),
-                    description=outfit_data.get("description", ""),
-                    items=outfit_data.get("items", []),
-                    explanation=outfit_data.get("reasoning", ""),
-                    pieces=outfit_data.get("items", []),
-                    styleTags=[outfit_data.get("style", "casual")],
-                    colorHarmony="neutral",
-                    styleNotes=outfit_data.get("description", ""),
-                    occasion=outfit_data.get("occasion", "Casual"),
-                    season=outfit_data.get("season", "all"),
-                    style=outfit_data.get("style", "casual"),
-                    mood=outfit_data.get("mood", "neutral"),
-                    wasSuccessful=outfit_data.get("wasSuccessful", True),
-                    confidence_score=outfit_data.get("confidence_score", 1.0),
-                    userFeedback=outfit_data.get("userFeedback"),
-                    feedback_summary=outfit_data.get("feedback_summary"),
-                    warnings=outfit_data.get("warnings", []),
-                    validationErrors=outfit_data.get("validationErrors", []),
-                    validation_details=outfit_data.get("validation_details", {
-                        "errors": [],
-                        "warnings": [],
-                        "fixes": []
-                    })
-                )
-                outfits.append(outfit)
+            for doc in docs:
+                try:
+                    outfit_data = doc.to_dict()
+                    outfit_data['id'] = doc.id
+                    outfit = Outfit(**outfit_data)
+                    outfits.append(outfit)
+                except Exception as e:
+                    logger.warning(f"⚠️ Skipping invalid outfit document {doc.id}: {e}")
+                    continue
             
+            logger.info(f"✅ Retrieved {len(outfits)} outfits for user {user_id}")
             return outfits
+            
+        except ValidationError:
+            raise
         except Exception as e:
-            print(f"Error getting outfits for user {user_id}: {e}")
-            return []
+            logger.error(f"❌ Failed to get user outfits: {e}")
+            raise DatabaseError(f"Failed to retrieve outfits: {str(e)}")
     
-    async def create_custom_outfit(self, outfit_data: Dict[str, Any]) -> OutfitGeneratedOutfit:
-        """Create a custom outfit by saving it directly to the database."""
+    async def get_outfit_by_id(self, user_id: str, outfit_id: str) -> Optional[Outfit]:
+        """
+        Get a specific outfit by ID.
+        Business logic: Validate ownership, ensure user isolation.
+        """
         try:
-            # Generate a unique ID if not provided
-            if not outfit_data.get("id"):
-                outfit_data["id"] = str(uuid.uuid4())
+            logger.info(f"🔍 Getting outfit {outfit_id} for user {user_id}")
             
-            # Ensure required fields
-            outfit_data["createdAt"] = outfit_data.get("createdAt", int(time.time()))
-            outfit_data["is_custom"] = True
+            # Validate inputs
+            if not outfit_id or not outfit_id.strip():
+                raise ValidationError("Invalid outfit ID")
             
-            # Save to Firestore
-            doc_ref = self.collection.document(outfit_data["id"])
-            doc_ref.set(outfit_data)
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
             
-            # Convert to OutfitGeneratedOutfit format
-            return OutfitGeneratedOutfit(
-                id=outfit_data["id"],
-                name=outfit_data["name"],
-                description=outfit_data.get("description", ""),
-                items=outfit_data["items"],
-                explanation=outfit_data.get("reasoning", "Custom outfit created by user"),
-                pieces=outfit_data["items"],
-                styleTags=[outfit_data.get("style", "custom")],
-                colorHarmony="custom",
-                styleNotes=outfit_data.get("description", "Custom outfit"),
-                occasion=outfit_data["occasion"],
-                season="all",
-                style=outfit_data["style"],
-                mood="custom",
-                wasSuccessful=True,
-                confidence_score=outfit_data.get("confidence_score", 1.0),
-                userFeedback=None,
-                feedback_summary=None,
-                warnings=[],
-                validationErrors=[],
-                validation_details={
-                    "errors": [],
-                    "warnings": [],
-                    "fixes": []
-                }
-            )
+            # Get outfit document
+            doc_ref = self.collection.document(outfit_id)
+            doc = doc_ref.get()
             
+            if not doc.exists:
+                logger.warning(f"⚠️ Outfit {outfit_id} not found")
+                return None
+            
+            outfit_data = doc.to_dict()
+            
+            # Business logic: Ensure user isolation
+            if outfit_data.get('user_id') != user_id:
+                logger.warning(f"🚫 User {user_id} attempted to access outfit {outfit_id} owned by {outfit_data.get('user_id')}")
+                raise ValidationError("Access denied: Outfit does not belong to user")
+            
+            # Transform to business object
+            outfit_data['id'] = doc.id
+            outfit = Outfit(**outfit_data)
+            
+            logger.info(f"✅ Successfully retrieved outfit {outfit_id}")
+            return outfit
+            
+        except ValidationError:
+            raise
         except Exception as e:
-            print(f"Error creating custom outfit: {e}")
-            raise e
+            logger.error(f"❌ Failed to get outfit {outfit_id}: {e}")
+            raise DatabaseError(f"Failed to retrieve outfit: {str(e)}")
     
-    async def update_outfit(self, outfit_id: str, outfit_data: Dict[str, Any], user_id: str) -> OutfitGeneratedOutfit:
-        """Update an existing outfit with new details and items."""
+    async def create_outfit(self, user_id: str, outfit_data: OutfitCreate) -> Outfit:
+        """
+        Create a new outfit.
+        Business logic: Validate data, ensure user ownership, apply business rules.
+        """
         try:
-            # Check if outfit exists and belongs to user
-            outfit_doc = self.collection.document(outfit_id).get()
-            if not outfit_doc.exists:
-                raise Exception("Outfit not found")
+            logger.info(f"🎨 Creating outfit for user {user_id}")
             
-            outfit_doc_data = outfit_doc.to_dict()
-            stored_user_id = outfit_doc_data.get('user_id')
+            # Validate user ID
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
             
-            # For development: allow updates if using fallback authentication
-            if stored_user_id != user_id:
-                # Check if this is the fallback user ID (development mode)
-                if user_id == "dANqjiI0CKgaitxzYtw1bhtvQrG3":
-                    print(f"⚠️  DEBUG: Using fallback user ID, allowing update for outfit {outfit_id}")
-                    print(f"⚠️  DEBUG: Outfit user_id: {stored_user_id}, Current user_id: {user_id}")
-                else:
-                    raise Exception("Access denied - outfit does not belong to user")
+            # Business logic: Validate outfit data
+            if not outfit_data.name or not outfit_data.name.strip():
+                raise ValidationError("Outfit name is required")
             
-            # Update the outfit document with items
-            self.collection.document(outfit_id).update(outfit_data)
+            if not outfit_data.occasion or not outfit_data.occasion.strip():
+                raise ValidationError("Outfit occasion is required")
             
-            # Get user's wardrobe to fetch full item details
-            wardrobe_collection = self.db.collection('wardrobe')
-            wardrobe_docs = wardrobe_collection.where('userId', '==', user_id).stream()
-            wardrobe_items = {doc.id: doc.to_dict() for doc in wardrobe_docs}
+            if not outfit_data.style or not outfit_data.style.strip():
+                raise ValidationError("Outfit style is required")
             
-            # Create updated pieces array to match the new items
-            updated_pieces = []
-            for item_id in outfit_data["items"]:
-                # Get full item details from wardrobe
-                item_data = wardrobe_items.get(item_id, {})
-                
-                # Convert dominantColors from complex objects to simple strings
-                dominant_colors = []
-                raw_colors = item_data.get("dominantColors", [])
-                for color in raw_colors:
-                    if isinstance(color, dict) and 'name' in color:
-                        dominant_colors.append(color['name'])
-                    elif isinstance(color, str):
-                        dominant_colors.append(color)
-                    else:
-                        dominant_colors.append(str(color))
-                
-                # Create piece with full item info
-                piece = {
-                    "itemId": item_id,
-                    "name": item_data.get("name", "Unknown Item"),
-                    "type": item_data.get("type", "unknown"),
-                    "reason": "Updated outfit item",
-                    "dominantColors": dominant_colors,
-                    "style": item_data.get("style", []),
-                    "occasion": item_data.get("occasion", []),
-                    "imageUrl": item_data.get("imageUrl", "")
-                }
-                updated_pieces.append(piece)
+            # Business logic: Apply default values and business rules
+            outfit_dict = outfit_data.dict()
+            outfit_dict.update({
+                'user_id': user_id,
+                'createdAt': datetime.now(),
+                'updatedAt': datetime.now(),
+                'wearCount': 0,
+                'isFavorite': False,
+                'lastWorn': None
+            })
             
-            # Update the pieces field in the database
-            self.collection.document(outfit_id).update({"pieces": updated_pieces})
+            # Create document in database
+            doc_ref = self.collection.add(outfit_dict)
+            outfit_id = doc_ref[1].id
+            
+            # Get the created outfit
+            created_outfit = await self.get_outfit_by_id(user_id, outfit_id)
+            
+            logger.info(f"✅ Successfully created outfit {outfit_id}")
+            return created_outfit
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to create outfit: {e}")
+            raise DatabaseError(f"Failed to create outfit: {str(e)}")
+    
+    async def update_outfit(self, user_id: str, outfit_id: str, outfit_data: OutfitUpdate) -> Outfit:
+        """
+        Update an existing outfit.
+        Business logic: Validate ownership, apply business rules, maintain data integrity.
+        """
+        try:
+            logger.info(f"🔄 Updating outfit {outfit_id} for user {user_id}")
+            
+            # Validate inputs
+            if not outfit_id or not outfit_id.strip():
+                raise ValidationError("Invalid outfit ID")
+            
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
+            
+            # Get existing outfit to validate ownership
+            existing_outfit = await self.get_outfit_by_id(user_id, outfit_id)
+            if not existing_outfit:
+                raise ValidationError(f"Outfit {outfit_id} not found")
+            
+            # Business logic: Prepare update data
+            update_data = outfit_data.dict(exclude_unset=True)
+            update_data['updatedAt'] = datetime.now()
+            
+            # Update document in database
+            doc_ref = self.collection.document(outfit_id)
+            doc_ref.update(update_data)
             
             # Get the updated outfit
-            updated_doc = self.collection.document(outfit_id).get()
-            updated_data = updated_doc.to_dict()
+            updated_outfit = await self.get_outfit_by_id(user_id, outfit_id)
             
-            # Convert items to proper format for OutfitGeneratedOutfit
-            formatted_items = []
-            formatted_pieces = []
+            logger.info(f"✅ Successfully updated outfit {outfit_id}")
+            return updated_outfit
             
-            # Get user's wardrobe to fetch full item details
-            wardrobe_collection = self.db.collection('wardrobe')
-            wardrobe_docs = wardrobe_collection.where('userId', '==', user_id).stream()
-            wardrobe_items = {doc.id: doc.to_dict() for doc in wardrobe_docs}
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to update outfit {outfit_id}: {e}")
+            raise DatabaseError(f"Failed to update outfit: {str(e)}")
+    
+    async def delete_outfit(self, user_id: str, outfit_id: str) -> None:
+        """
+        Delete an outfit.
+        Business logic: Validate ownership, ensure data consistency.
+        """
+        try:
+            logger.info(f"🗑️ Deleting outfit {outfit_id} for user {user_id}")
             
-            for item_id in updated_data["items"]:
-                # Store the ID in items array (for Pydantic validation)
-                formatted_items.append(item_id)
+            # Validate inputs
+            if not outfit_id or not outfit_id.strip():
+                raise ValidationError("Invalid outfit ID")
+            
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
+            
+            # Get existing outfit to validate ownership
+            existing_outfit = await self.get_outfit_by_id(user_id, outfit_id)
+            if not existing_outfit:
+                raise ValidationError(f"Outfit {outfit_id} not found")
+            
+            # Delete document from database
+            doc_ref = self.collection.document(outfit_id)
+            doc_ref.delete()
+            
+            logger.info(f"✅ Successfully deleted outfit {outfit_id}")
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to delete outfit {outfit_id}: {e}")
+            raise DatabaseError(f"Failed to delete outfit: {str(e)}")
+    
+    async def mark_outfit_as_worn(self, user_id: str, outfit_id: str) -> None:
+        """
+        Mark an outfit as worn.
+        Business logic: Validate ownership, increment wear count, update last worn date.
+        """
+        try:
+            logger.info(f"👕 Marking outfit {outfit_id} as worn for user {user_id}")
+            
+            # Validate inputs
+            if not outfit_id or not outfit_id.strip():
+                raise ValidationError("Invalid outfit ID")
+            
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
+            
+            # Get existing outfit to validate ownership
+            existing_outfit = await self.get_outfit_by_id(user_id, outfit_id)
+            if not existing_outfit:
+                raise ValidationError(f"Outfit {outfit_id} not found")
+            
+            # Business logic: Update wear statistics
+            update_data = {
+                'wearCount': (existing_outfit.wearCount or 0) + 1,
+                'lastWorn': datetime.now(),
+                'updatedAt': datetime.now()
+            }
+            
+            # Update document in database
+            doc_ref = self.collection.document(outfit_id)
+            doc_ref.update(update_data)
+            
+            logger.info(f"✅ Successfully marked outfit {outfit_id} as worn")
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to mark outfit {outfit_id} as worn: {e}")
+            raise DatabaseError(f"Failed to mark outfit as worn: {str(e)}")
+    
+    async def toggle_outfit_favorite(self, user_id: str, outfit_id: str) -> None:
+        """
+        Toggle outfit favorite status.
+        Business logic: Validate ownership, toggle boolean value.
+        """
+        try:
+            logger.info(f"❤️ Toggling favorite for outfit {outfit_id} for user {user_id}")
+            
+            # Validate inputs
+            if not outfit_id or not outfit_id.strip():
+                raise ValidationError("Invalid outfit ID")
+            
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
+            
+            # Get existing outfit to validate ownership
+            existing_outfit = await self.get_outfit_by_id(user_id, outfit_id)
+            if not existing_outfit:
+                raise ValidationError(f"Outfit {outfit_id} not found")
+            
+            # Business logic: Toggle favorite status
+            new_favorite_status = not (existing_outfit.isFavorite or False)
+            
+            # Update document in database
+            doc_ref = self.collection.document(outfit_id)
+            doc_ref.update({
+                'isFavorite': new_favorite_status,
+                'updatedAt': datetime.now()
+            })
+            
+            logger.info(f"✅ Successfully {'favorited' if new_favorite_status else 'unfavorited'} outfit {outfit_id}")
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to toggle favorite for outfit {outfit_id}: {e}")
+            raise DatabaseError(f"Failed to toggle outfit favorite: {str(e)}")
+    
+    async def get_outfit_stats(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get outfit statistics for user.
+        Business logic: Aggregate data, calculate metrics, provide insights.
+        """
+        try:
+            logger.info(f"📊 Getting outfit stats for user {user_id}")
+            
+            # Validate user ID
+            if not user_id or not user_id.strip():
+                raise ValidationError("Invalid user ID")
+            
+            # Get all user outfits for statistics
+            all_outfits = await self.get_user_outfits(user_id, OutfitFilters(limit=1000))
+            
+            # Business logic: Calculate statistics
+            stats = {
+                'totalOutfits': len(all_outfits),
+                'favoriteOutfits': len([o for o in all_outfits if o.isFavorite]),
+                'totalWearCount': sum(o.wearCount or 0 for o in all_outfits),
+                'occasions': {},
+                'styles': {},
+                'recentActivity': None
+            }
+            
+            # Count occasions and styles
+            for outfit in all_outfits:
+                # Count occasions
+                occasion = outfit.occasion or 'Unknown'
+                stats['occasions'][occasion] = stats['occasions'].get(occasion, 0) + 1
                 
-                # Get full item details from wardrobe
-                item_data = wardrobe_items.get(item_id, {})
-                
-                # Convert dominantColors from complex objects to simple strings
-                dominant_colors = []
-                raw_colors = item_data.get("dominantColors", [])
-                for color in raw_colors:
-                    if isinstance(color, dict) and 'name' in color:
-                        dominant_colors.append(color['name'])
-                    elif isinstance(color, str):
-                        dominant_colors.append(color)
-                    else:
-                        dominant_colors.append(str(color))
-                
-                # Store full item info in pieces array (for frontend display)
-                formatted_pieces.append({
-                    "itemId": item_id,
-                    "name": item_data.get("name", "Unknown Item"),
-                    "type": item_data.get("type", "unknown"),
-                    "reason": "Updated outfit item",
-                    "dominantColors": dominant_colors,
-                    "style": item_data.get("style", []),
-                    "occasion": item_data.get("occasion", []),
-                    "imageUrl": item_data.get("imageUrl", "")
-                })
+                # Count styles
+                style = outfit.style or 'Unknown'
+                stats['styles'][style] = stats['styles'].get(style, 0) + 1
             
-            # Convert to OutfitGeneratedOutfit format
-            return OutfitGeneratedOutfit(
-                id=outfit_id,
-                name=updated_data["name"],
-                description=updated_data.get("description", ""),
-                items=formatted_items,
-                explanation=updated_data.get("reasoning", "Outfit updated by user"),
-                pieces=formatted_pieces,
-                styleTags=[updated_data.get("style", "custom")],
-                colorHarmony="custom",
-                styleNotes=updated_data.get("description", "Updated outfit"),
-                occasion=updated_data["occasion"],
-                season="all",
-                style=updated_data["style"],
-                mood="custom",
-                wasSuccessful=True,
-                confidence_score=updated_data.get("confidence_score", 1.0),
-                userFeedback=updated_data.get("userFeedback"),
-                feedback_summary=updated_data.get("feedback_summary"),
-                warnings=[],
-                validationErrors=[],
-                validation_details={
-                    "errors": [],
-                    "warnings": [],
-                    "fixes": []
-                }
-            )
+            # Business logic: Calculate recent activity
+            if all_outfits:
+                recent_outfits = sorted(all_outfits, key=lambda x: x.updatedAt or x.createdAt, reverse=True)[:5]
+                stats['recentActivity'] = [
+                    {
+                        'id': o.id,
+                        'name': o.name,
+                        'lastUpdated': o.updatedAt or o.createdAt
+                    }
+                    for o in recent_outfits
+                ]
+            
+            logger.info(f"✅ Successfully calculated outfit stats for user {user_id}")
+            return stats
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to get outfit stats: {e}")
+            raise DatabaseError(f"Failed to retrieve outfit statistics: {str(e)}")
+    
+    # ===== UTILITY METHODS =====
+    
+    async def search_outfits(self, user_id: str, query: str, filters: OutfitFilters) -> List[Outfit]:
+        """
+        Search outfits with text query and filters.
+        Business logic: Text search, relevance scoring, result ranking.
+        """
+        try:
+            logger.info(f"🔍 Searching outfits for user {user_id} with query: {query}")
+            
+            # Get all user outfits first (for text search)
+            all_outfits = await self.get_user_outfits(user_id, filters)
+            
+            if not query or not query.strip():
+                return all_outfits
+            
+            # Business logic: Simple text search implementation
+            query_lower = query.lower()
+            search_results = []
+            
+            for outfit in all_outfits:
+                # Search in name, occasion, style, and mood
+                searchable_text = f"{outfit.name} {outfit.occasion} {outfit.style} {outfit.mood or ''}".lower()
+                
+                if query_lower in searchable_text:
+                    search_results.append(outfit)
+            
+            # Business logic: Sort by relevance (simple implementation)
+            search_results.sort(key=lambda x: (
+                query_lower in x.name.lower(),  # Name matches first
+                query_lower in x.occasion.lower(),  # Then occasion
+                query_lower in x.style.lower(),  # Then style
+                x.updatedAt or x.createdAt  # Then by recency
+            ), reverse=True)
+            
+            logger.info(f"✅ Search returned {len(search_results)} results")
+            return search_results
             
         except Exception as e:
-            print(f"Error updating outfit: {e}")
-            raise e
-    
-    async def generate_outfit(
-        self,
-        occasion: str,
-        weather: WeatherData,
-        wardrobe: List[ClothingItem],
-        user_profile: UserProfile,
-        likedOutfits: List[str],
-        trendingStyles: List[str],
-        preferences: Optional[Dict[str, Any]] = None,
-        outfitHistory: Optional[List[Dict[str, Any]]] = None,
-        randomSeed: Optional[float] = None,
-        season: Optional[str] = None,
-        style: Optional[str] = None,
-        baseItem: Optional[ClothingItem] = None,
-        mood: Optional[str] = None
-    ) -> OutfitGeneratedOutfit:
-        """Main outfit generation method - orchestrates all modular services."""
-        
-        # Ensure temperature is properly converted
-        weather.temperature = self._safe_temperature_convert(weather.temperature)
-        
-        # Prepare context for the new modular pipeline
-        context = {
-            "occasion": occasion,
-            "weather": weather,
-            "user_profile": user_profile,
-            "style": style,
-            "mood": mood,
-            "base_item": baseItem,
-            "trending_styles": trendingStyles or [],
-            "liked_outfits": likedOutfits or [],
-            "outfit_history": outfitHistory or [],
-            "original_wardrobe": wardrobe,
-            "preferences": preferences or {},
-            "season": season,
-            "random_seed": randomSeed
-        }
-        
-        # Use the new modular pipeline
-        result = await generate_outfit_pipeline(
-            user_id=user_profile.id,
-            wardrobe=wardrobe,
-            context=context
-        )
-        
-        # Check if pipeline was successful
-        if result["status"] == "fail":
-            # Return error outfit
-            return OutfitGeneratedOutfit(
-                id="error",
-                name=f"{occasion} Outfit",
-                description=f"Error: {result.get('errors', ['Generation failed'])}",
-                items=[],
-                explanation="Generation failed",
-                pieces=[],
-                styleTags=[],
-                colorHarmony="neutral",
-                styleNotes="Generation failed",
-                occasion=occasion,
-                season=season or "all",
-                style=style or "casual",
-                mood=mood or "neutral",
-                wasSuccessful=False,
-                validationErrors=result.get('errors', ['Generation failed'])
-            )
-        
-        # Extract items from successful result
-        selected_items = result.get("outfit", [])
-        warnings = result.get("warnings", [])
-        
-        # Convert items to OutfitPiece format
-        pieces = []
-        for item in selected_items:
-            # Convert dominantColors to strings
-            dominant_colors = []
-            for color in getattr(item, 'dominantColors', []):
-                if hasattr(color, 'name'):
-                    dominant_colors.append(color.name)
-                elif isinstance(color, dict) and 'name' in color:
-                    dominant_colors.append(color['name'])
-                elif isinstance(color, str):
-                    dominant_colors.append(color)
-                else:
-                    # Fallback for any other color format
-                    dominant_colors.append(str(color))
-            
-            piece = {
-                "itemId": item.id,
-                "name": item.name,
-                "type": item.type,
-                "reason": f"Selected for {occasion} occasion",
-                "dominantColors": dominant_colors,
-                "style": getattr(item, 'style', []),
-                "occasion": getattr(item, 'occasion', []),
-                "imageUrl": getattr(item, 'imageUrl', "")
-            }
-            pieces.append(piece)
-        
-        # Generate outfit details
-        outfit_name = f"{occasion} Outfit"
-        outfit_description = f"A {style or 'casual'} outfit for {occasion}"
-        outfit_explanation = f"Generated {len(selected_items)} items for {occasion} with {style or 'casual'} style"
-        
-        # Generate style tags
-        style_tags = []
-        if style:
-            style_tags.append(style)
-        style_tags.extend([occasion, "generated"])
-        
-        # Determine color harmony
-        color_harmony = "neutral"
-        if selected_items:
-            # Simple color harmony logic
-            all_colors = []
-            for item in selected_items:
-                colors = getattr(item, 'dominantColors', [])
-                # Convert Color objects to strings for set operations
-                for color in colors:
-                    if hasattr(color, 'name'):
-                        all_colors.append(color.name)
-                    elif isinstance(color, dict) and 'name' in color:
-                        all_colors.append(color['name'])
-                    elif isinstance(color, str):
-                        all_colors.append(color)
-                    else:
-                        # Fallback for any other color format
-                        all_colors.append(str(color))
-            
-            unique_colors = set(all_colors)
-            if len(unique_colors) <= 2:
-                color_harmony = "monochromatic"
-            elif len(unique_colors) <= 4:
-                color_harmony = "complementary"
-            else:
-                color_harmony = "eclectic"
-        
-        # Generate style notes
-        style_notes = f"Generated outfit with {len(selected_items)} items for {occasion}"
-        if style:
-            style_notes += f" in {style} style"
-        
-        # Create the outfit
-        generated_outfit = OutfitGeneratedOutfit(
-            id=str(uuid.uuid4()),
-            name=outfit_name,
-            description=outfit_description,
-            items=selected_items,
-            explanation=outfit_explanation,
-            pieces=pieces,
-            styleTags=style_tags,
-            colorHarmony=color_harmony,
-            styleNotes=style_notes,
-            occasion=occasion,
-            season=season or "all",
-            style=style or "casual",
-            mood=mood or "neutral",
-            wasSuccessful=True,
-            user_id=user_profile.id,
-            warnings=warnings # Add warnings to the generated outfit
-        )
-        
-        # Save the outfit to the database
-        await self.core_service.save_outfit(generated_outfit)
-        
-        return generated_outfit
-    
-    async def update_outfit_feedback(self, outfit_id: str, feedback: Dict[str, Any]) -> bool:
-        """Update outfit feedback."""
-        return await self.core_service.update_outfit_feedback(outfit_id, feedback)
-    
-    async def get_outfit_analytics(self, user_id: str = None, start_date: int = None, end_date: int = None) -> Dict[str, Any]:
-        """Get outfit analytics."""
-        return await self.core_service.get_outfit_analytics(user_id, start_date, end_date)
-    
-    # Delegate to specific services for specialized operations
-    def filter_by_weather(self, items: List[ClothingItem], weather: WeatherData) -> List[ClothingItem]:
-        """Filter items by weather with proper temperature handling."""
-        return self.filtering_service.filter_by_weather_strict(items, weather)
-    
-    def filter_by_occasion(self, items: List[ClothingItem], occasion: str) -> List[ClothingItem]:
-        """Filter items by occasion."""
-        return self.filtering_service.filter_by_occasion_strict(items, occasion)
-    
-    def validate_outfit(self, items: List[ClothingItem], context: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate outfit using validation service."""
-        return self.validation_service.validate_outfit_with_orchestration(items, context)
-    
-    def calculate_weather_score(self, items: List[ClothingItem], weather: WeatherData) -> float:
-        """Calculate weather appropriateness score."""
-        return self.scoring_service.calculate_weather_appropriateness(items, weather)
-    
-    def select_items(self, filtered_wardrobe: List[ClothingItem], context: Dict[str, Any]) -> List[ClothingItem]:
-        """Select items using selection service."""
-        return self.selection_service.smart_selection_phase(filtered_wardrobe, context)
-    
-    def debug_outfit_generation(self, items: List[ClothingItem], phase: str):
-        """Debug outfit generation process."""
-        self.utility_service.debug_outfit_generation(items, phase)
+            logger.error(f"❌ Failed to search outfits: {e}")
+            raise DatabaseError(f"Failed to search outfits: {str(e)}")
+
+# ===== SERVICE INSTANCE =====
+outfit_service = OutfitService()
 
 

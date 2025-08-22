@@ -31,14 +31,21 @@ except ImportError as e:
     # Create a mock get_current_user_optional function
     def get_current_user_optional():
         return None
-            except Exception as e:
-    logger.error(f"❌ Firebase import error: {e}")
-    FIREBASE_AVAILABLE = False
-    db = None
-    firebase_initialized = False
-    # Create a mock get_current_user_optional function
-    def get_current_user_optional():
-        return None
+else:
+    try:
+        from firebase_admin import firestore
+        db = firestore.client()
+        firebase_initialized = True
+        FIREBASE_AVAILABLE = True
+        logger.info("✅ Firebase successfully imported and initialized")
+    except Exception as e:
+        logger.error(f"❌ Firebase import error: {e}")
+        FIREBASE_AVAILABLE = False
+        db = None
+        firebase_initialized = False
+        # Create a mock get_current_user_optional function
+        def get_current_user_optional():
+            return None
 
 # Simplified mock data function for fallback
 async def get_mock_outfits() -> List[Dict[str, Any]]:
@@ -269,19 +276,25 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             
         logger.info(f"📚 Fetching outfits for user {user_id}, limit: {limit}, offset: {offset}")
         
-        # Query user's outfits collection (simplified - no ordering to avoid index issues)
-        outfits_ref = db.collection('users').document(user_id).collection('outfits')
+        # FIXED: Query main outfits collection with user_id filter (not subcollection)
+        # This matches where outfits are actually stored: outfits collection with user_id field
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
         
-        logger.info(f"🔍 Querying path: users/{user_id}/outfits")
+        logger.info(f"🔍 Querying path: outfits collection with user_id == '{user_id}'")
         
-        # Simple query without ordering for now (can be improved later with proper indexes)
-        docs = outfits_ref.limit(limit).get()
+        # Apply pagination
+        if offset > 0:
+            outfits_ref = outfits_ref.offset(offset)
+        outfits_ref = outfits_ref.limit(limit)
+        
+        # Execute query
+        docs = outfits_ref.stream()
         outfits = []
         
         logger.info(f"🔍 Query returned {len(docs)} documents")
         
         for doc in docs:
-                outfit_data = doc.to_dict()
+            outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append(outfit_data)
             logger.info(f"🔍 Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
@@ -450,8 +463,8 @@ async def debug_outfit_retrieval():
         debug_info["steps"].append("Firebase is available")
         
         # Test the exact same logic as get_user_outfits
-        debug_info["steps"].append(f"Querying users/{user_id}/outfits")
-        outfits_ref = db.collection('users').document(user_id).collection('outfits')
+        debug_info["steps"].append(f"Querying outfits collection with user_id == '{user_id}'")
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
         docs = outfits_ref.limit(10).get()
         
         debug_info["steps"].append(f"Query returned {len(docs)} documents")
