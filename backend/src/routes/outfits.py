@@ -520,7 +520,7 @@ async def generate_outfit(
         raise HTTPException(status_code=500, detail="Failed to generate outfit")
 
 # ✅ Retrieve Outfit History
-@router.get("/", response_model=List[OutfitResponse])
+@router.get("", response_model=List[OutfitResponse])
 async def list_outfits(
     limit: int = 50,
     offset: int = 0,
@@ -546,20 +546,13 @@ async def list_outfits(
         mock_outfits = await get_mock_outfits()
         return [OutfitResponse(**o) for o in mock_outfits]
 
-# Support for no-trailing-slash calls
-@router.post("", response_model=OutfitResponse)
-async def generate_outfit_no_trailing(
-    req: OutfitRequest,
-):
-    """Generate outfit (no trailing slash) - calls the same logic."""
-    return await generate_outfit(req)
-
-@router.get("", response_model=List[OutfitResponse])
-async def list_outfits_no_trailing(
+# Support for trailing-slash calls
+@router.get("/", response_model=List[OutfitResponse])
+async def list_outfits_trailing(
     limit: int = 50,
     offset: int = 0,
 ):
-    """List outfits (no trailing slash) - calls the same logic."""
+    """List outfits (with trailing slash) - calls the same logic."""
     return await list_outfits(limit, offset)
 
 # ⚠️ PARAMETERIZED ROUTE - MUST BE LAST TO AVOID ROUTE CONFLICTS!
