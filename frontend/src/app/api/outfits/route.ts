@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// FORCE REDEPLOY: Timestamp 2024-12-19 15:30:00
 export async function GET(req: NextRequest) {
   console.log("✅ Direct /api/outfits route HIT:", req.method);
   

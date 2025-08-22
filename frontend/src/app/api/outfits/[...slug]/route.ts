@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// FORCE REDEPLOY: Timestamp 2024-12-19 15:30:00
 async function handleProxy(req: NextRequest, params: { slug: string[] }) {
   console.log("✅ Catch-all /api/outfits/[...slug] route HIT:", req.method, params?.slug);
   
