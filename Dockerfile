@@ -7,12 +7,12 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements from backend folder and install Python dependencies
-COPY backend/requirements.txt .
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code
-COPY backend/src ./src
+# Copy source code
+COPY src ./src
 
 # Expose port (will be overridden by Railway)
 EXPOSE 8000
