@@ -585,13 +585,38 @@ async def get_outfit(outfit_id: str):
 
 # ✅ Retrieve Outfit History (dual endpoints for trailing slash compatibility)
 @router.get("/", response_model=List[OutfitResponse])
-@router.get("", include_in_schema=False, response_model=List[OutfitResponse])
-async def list_outfits(
+async def list_outfits_with_slash(
     limit: int = 50,
     offset: int = 0,
 ):
     """
     Fetch a user's outfit history from Firestore.
+    """
+    try:
+        # TEMPORARILY: Use mock user ID for testing
+        current_user_id = "mock-user-123"
+        logger.info("Using mock user ID for testing")
+        
+        logger.info(f"📚 Fetching outfits for user: {current_user_id}")
+        
+        outfits = await get_user_outfits(current_user_id, limit, offset)
+        logger.info(f"✅ Successfully retrieved {len(outfits)} outfits for user {current_user_id}")
+        return [OutfitResponse(**o) for o in outfits]
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch outfits for {current_user_id}: {e}", exc_info=True)
+        # Fallback to mock data on error
+        logger.info("🔄 Falling back to mock data due to error")
+        mock_outfits = await get_mock_outfits()
+        return [OutfitResponse(**o) for o in mock_outfits]
+
+@router.get("", include_in_schema=False, response_model=List[OutfitResponse])
+async def list_outfits_no_slash(
+    limit: int = 50,
+    offset: int = 0,
+):
+    """
+    Fetch a user's outfit history from Firestore (no trailing slash).
     """
     try:
         # TEMPORARILY: Use mock user ID for testing
