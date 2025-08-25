@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Catch-all route for /api/outfits-new/[...slug] to handle nested endpoints
 async function handleProxy(req: NextRequest, params: { slug: string[] }) {
-  console.log("🚀 NEW ROUTE: Catch-all /api/outfits-new/[...slug] route HIT:", req.method, params?.slug);
+  console.log("🚀 RECREATED: Catch-all /api/outfits-new/[...slug] route HIT:", req.method, params?.slug);
   
   try {
     const path = params.slug.join('/');
     const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits/${path}${req.nextUrl.search}`;
     
-    console.log("🚀 NEW ROUTE: Backend URL for catch-all:", backendUrl);
-    console.log("🚀 NEW ROUTE: HTTP Method:", req.method);
-    console.log("🚀 NEW ROUTE: Slug path:", path);
+    console.log("🚀 RECREATED: Backend URL for catch-all:", backendUrl);
+    console.log("🚀 RECREATED: HTTP Method:", req.method);
+    console.log("🚀 RECREATED: Slug path:", path);
 
     const res = await fetch(backendUrl, {
       method: req.method,
@@ -24,7 +24,7 @@ async function handleProxy(req: NextRequest, params: { slug: string[] }) {
     });
 
     if (!res.ok) {
-      console.error(`❌ NEW ROUTE: Backend responded with: ${res.status} for ${req.method} /outfits/${path}`);
+      console.error(`❌ RECREATED: Backend responded with: ${res.status} for ${req.method} /outfits/${path}`);
       return NextResponse.json({ error: `Backend error: ${res.status}` }, { status: res.status });
     }
 
@@ -35,10 +35,10 @@ async function handleProxy(req: NextRequest, params: { slug: string[] }) {
         ? await res.json()
         : await res.text();
 
-    console.log("🚀 NEW ROUTE: Successfully fetched data from backend for:", path);
+    console.log("🚀 RECREATED: Successfully fetched data from backend for:", path);
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
-    console.error(`❌ NEW ROUTE: Proxy ${req.method} /outfits-new/${params.slug.join('/')} failed:`, err);
+    console.error(`❌ RECREATED: Proxy ${req.method} /outfits-new/${params.slug.join('/')} failed:`, err);
     return NextResponse.json({ 
       error: 'Proxy failed', 
       details: err instanceof Error ? err.message : 'Unknown error',
