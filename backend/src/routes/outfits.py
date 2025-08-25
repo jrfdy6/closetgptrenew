@@ -493,6 +493,65 @@ async def debug_outfit_retrieval():
         "debug_info": debug_info
     }
 
+@router.get("/debug-user", response_model=dict)
+async def debug_user_outfits(
+    current_user: UserProfile = Depends(get_current_user_optional)
+):
+    """Debug endpoint to show user authentication and database contents."""
+    logger.info("🔍 DEBUG: Debug user outfits endpoint called")
+    
+    debug_info = {
+        "authenticated": False,
+        "user_id": None,
+        "user_email": None,
+        "firebase_available": FIREBASE_AVAILABLE,
+        "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False,
+        "database_contents": {},
+        "error": None
+    }
+    
+    try:
+        if current_user:
+            debug_info["authenticated"] = True
+            debug_info["user_id"] = current_user.id
+            debug_info["user_email"] = current_user.email
+            logger.info(f"🔍 DEBUG: User authenticated: {current_user.id}")
+        else:
+            logger.info("🔍 DEBUG: No user authenticated")
+        
+        # Check what's in the outfits collection
+        if FIREBASE_AVAILABLE and firebase_initialized:
+            try:
+                # Get all outfits (without user filter) to see what's in the database
+                all_outfits = db.collection('outfits').limit(10).stream()
+                outfits_list = []
+                
+                for doc in all_outfits:
+                    outfit_data = doc.to_dict()
+                    outfits_list.append({
+                        "id": doc.id,
+                        "name": outfit_data.get('name', 'unnamed'),
+                        "user_id": outfit_data.get('user_id', 'no_user_id'),
+                        "created_at": outfit_data.get('createdAt', 'no_date')
+                    })
+                
+                debug_info["database_contents"] = {
+                    "total_outfits_found": len(outfits_list),
+                    "outfits": outfits_list
+                }
+                
+                logger.info(f"🔍 DEBUG: Found {len(outfits_list)} outfits in database")
+                
+            except Exception as e:
+                debug_info["error"] = f"Database query failed: {str(e)}"
+                logger.error(f"❌ DEBUG: Database query failed: {e}")
+        
+    except Exception as e:
+        debug_info["error"] = f"General error: {str(e)}"
+        logger.error(f"❌ DEBUG: General error: {e}")
+    
+    return debug_info
+
 # ✅ Generate + Save Outfit (single source of truth)
 @router.post("/generate", response_model=OutfitResponse)
 async def generate_outfit(
