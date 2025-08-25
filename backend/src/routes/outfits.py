@@ -494,7 +494,7 @@ async def debug_outfit_retrieval():
     }
 
 # ✅ Generate + Save Outfit (single source of truth)
-@router.post("/", response_model=OutfitResponse)
+@router.post("/generate", response_model=OutfitResponse)
 async def generate_outfit(
     req: OutfitRequest,
 ):

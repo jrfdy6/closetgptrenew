@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   console.log("🚀 FORCE REBUILD: /api/outfits POST route HIT:", req.method);
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits/generate`;
     const body = await req.text();
     
     console.log("🚀 FORCE REBUILD: POST to backend URL:", backendUrl);
