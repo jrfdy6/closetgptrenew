@@ -588,14 +588,19 @@ async def get_outfit(outfit_id: str):
 async def list_outfits_with_slash(
     limit: int = 50,
     offset: int = 0,
+    current_user: UserProfile = Depends(get_current_user_optional)
 ):
     """
     Fetch a user's outfit history from Firestore.
     """
     try:
-        # TEMPORARILY: Use mock user ID for testing
-        current_user_id = "mock-user-123"
-        logger.info("Using mock user ID for testing")
+        # Use real authenticated user if available, fallback to mock for testing
+        if current_user:
+            current_user_id = current_user.id
+            logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
+        else:
+            current_user_id = "mock-user-123"
+            logger.info("📚 No authenticated user, using mock user ID for testing")
         
         logger.info(f"📚 Fetching outfits for user: {current_user_id}")
         
@@ -614,14 +619,19 @@ async def list_outfits_with_slash(
 async def list_outfits_no_slash(
     limit: int = 50,
     offset: int = 0,
+    current_user: UserProfile = Depends(get_current_user_optional)
 ):
     """
     Fetch a user's outfit history from Firestore (no trailing slash).
     """
     try:
-        # TEMPORARILY: Use mock user ID for testing
-        current_user_id = "mock-user-123"
-        logger.info("Using mock user ID for testing")
+        # Use real authenticated user if available, fallback to mock for testing
+        if current_user:
+            current_user_id = current_user.id
+            logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
+        else:
+            current_user_id = "mock-user-123"
+            logger.info("📚 No authenticated user, using mock user ID for testing")
         
         logger.info(f"📚 Fetching outfits for user: {current_user_id}")
         
@@ -638,23 +648,35 @@ async def list_outfits_no_slash(
 
 # 📊 Get Outfit Statistics
 @router.get("/stats/summary")
-async def get_outfit_stats():
+async def get_outfit_stats(
+    current_user: UserProfile = Depends(get_current_user_optional)
+):
     """
     Get outfit statistics for user.
     """
     try:
-        # TEMPORARILY: Use mock user ID for testing
-        current_user_id = "mock-user-123"
+        # Use real authenticated user if available, fallback to mock for testing
+        if current_user:
+            current_user_id = current_user.id
+            logger.info(f"📊 Getting outfit stats for authenticated user {current_user_id}")
+        else:
+            current_user_id = "mock-user-123"
+            logger.info("📊 No authenticated user, using mock user ID for testing")
+        
         logger.info(f"📊 Getting outfit stats for user {current_user_id}")
         
-        # Get mock outfits for statistics
-        outfits = await get_mock_outfits()
+        # Try to get real outfits first, fallback to mock if needed
+        try:
+            outfits = await get_user_outfits(current_user_id, 1000, 0)  # Get all outfits for stats
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to get real outfits, using mock data: {e}")
+            outfits = await get_mock_outfits()
         
         # Calculate basic statistics
         stats = {
             'totalOutfits': len(outfits),
-            'favoriteOutfits': 0,  # Mock data doesn't have favorites
-            'totalWearCount': 0,   # Mock data doesn't have wear counts
+            'favoriteOutfits': len([o for o in outfits if o.get('isFavorite', False)]),
+            'totalWearCount': sum(o.get('wearCount', 0) for o in outfits),
             'occasions': {},
             'styles': {},
             'recentActivity': []
