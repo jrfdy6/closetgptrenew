@@ -7,15 +7,15 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
+# Copy requirements from backend folder and install Python dependencies
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy backend source code
+COPY backend/src ./src
 
 # Expose port (will be overridden by Railway)
 EXPOSE 8000
 
 # Start the application using Railway's PORT environment variable
-CMD uvicorn app:app --host 0.0.0.0 --port $PORT
+CMD uvicorn src.app:app --host 0.0.0.0 --port $PORT
