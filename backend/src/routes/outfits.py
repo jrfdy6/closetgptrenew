@@ -48,38 +48,42 @@ else:
             return None
 
 # Simplified mock data function for fallback
-async def get_mock_outfits() -> List[Dict[str, Any]]:
-    """Return mock outfit data for testing."""
-    return [
-        {
-            "id": "mock-outfit-1",
-            "name": "Casual Summer Look",
-            "style": "casual",
-            "mood": "relaxed",
-            "items": [
-                {"id": "item-1", "name": "Blue T-Shirt", "type": "shirt", "imageUrl": None},
-                {"id": "item-2", "name": "Jeans", "type": "pants", "imageUrl": None}
-            ],
-            "occasion": "casual",
-            "confidence_score": 0.85,
-            "reasoning": "Perfect for a relaxed summer day",
-            "createdAt": datetime.now()
-        },
-        {
-            "id": "mock-outfit-2",
-            "name": "Business Casual",
-            "style": "business",
-            "mood": "professional",
-            "items": [
-                {"id": "item-3", "name": "White Button-Up", "type": "shirt", "imageUrl": None},
-                {"id": "item-4", "name": "Khaki Pants", "type": "pants", "imageUrl": None}
-            ],
-            "occasion": "business",
-            "confidence_score": 0.90,
-            "reasoning": "Professional yet comfortable",
-            "createdAt": datetime.now()
-        }
-    ]
+# async def get_mock_outfits() -> List[Dict[str, Any]]:
+#     """Return mock outfit data for testing."""
+#     return [
+#         {
+#             "id": "mock-outfit-1",
+#             "name": "Casual Summer Look",
+#             "style": "casual",
+#             "mood": "relaxed",
+#             "items": [
+#                 {"id": "item-1", "name": "Blue T-Shirt", "type": "shirt", "imageUrl": None},
+#                 {"id": "item-2", "name": "Jeans", "type": "pants", "imageUrl": None}
+#             ],
+#             "occasion": "casual",
+#             "confidence_score": 0.85,
+#             "reasoning": "Perfect for a relaxed summer day",
+#             "createdAt": datetime.now().isoformat(),
+#             "user_id": None,
+#             "generated_at": None
+#         },
+#         {
+#             "id": "mock-outfit-2",
+#             "name": "Business Casual",
+#             "style": "business",
+#             "mood": "professional",
+#             "items": [
+#                 {"id": "item-3", "name": "White Button-Up", "type": "shirt", "imageUrl": None},
+#                 {"id": "item-4", "name": "Khaki Pants", "type": "pants", "imageUrl": None}
+#             ],
+#             "occasion": "business",
+#             "confidence_score": 0.9,
+#             "reasoning": "Professional yet comfortable",
+#             "createdAt": datetime.now().isoformat(),
+#             "user_id": None,
+#             "generated_at": None
+#         }
+#     ]
 
 class OutfitRequest(BaseModel):
     """Request model for outfit generation."""
@@ -133,7 +137,7 @@ async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
     try:
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, returning empty wardrobe")
-            return []
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
             
         logger.info(f"📦 Fetching wardrobe for user {user_id}")
         
@@ -152,14 +156,14 @@ async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
         
     except Exception as e:
         logger.error(f"❌ Failed to fetch wardrobe for {user_id}: {e}")
-        return []
+        raise HTTPException(status_code=500, detail=f"Failed to fetch wardrobe: {e}")
 
 async def get_user_profile(user_id: str) -> Dict[str, Any]:
     """Get user's style profile from Firestore."""
     try:
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, using default profile")
-            return {"style_preferences": ["casual"], "body_type": "unknown", "color_preferences": []}
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
             
         logger.info(f"👤 Fetching profile for user {user_id}")
         
@@ -173,11 +177,11 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             return profile_data
         else:
             logger.info(f"⚠️ No profile found for user {user_id}, using defaults")
-            return {"style_preferences": ["casual"], "body_type": "unknown", "color_preferences": []}
+            raise HTTPException(status_code=404, detail=f"User profile not found for ID: {user_id}")
         
     except Exception as e:
         logger.error(f"❌ Failed to fetch profile for {user_id}: {e}")
-        return {"style_preferences": ["casual"], "body_type": "unknown", "color_preferences": []}
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user profile: {e}")
 
 async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
     """Generate outfit using AI logic and user's wardrobe."""
@@ -248,7 +252,7 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
     try:
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, skipping save")
-            return False
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
             
         logger.info(f"💾 Saving outfit {outfit_id} for user {user_id}")
         
@@ -265,7 +269,7 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
         
     except Exception as e:
         logger.error(f"❌ Failed to save outfit {outfit_id}: {e}")
-        return False
+        raise HTTPException(status_code=500, detail=f"Failed to save outfit: {e}")
 
 async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
@@ -275,8 +279,8 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         logger.info(f"🔍 DEBUG: firebase_initialized: {firebase_initialized}")
         
         if not FIREBASE_AVAILABLE or not firebase_initialized:
-            logger.warning("⚠️ Firebase not available, using mock data")
-            return await get_mock_outfits()
+            logger.warning("⚠️ Firebase not available, returning empty outfits")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
             
         logger.info(f"📚 Fetching outfits for user {user_id}, limit: {limit}, offset: {offset}")
         
@@ -315,8 +319,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         logger.error(f"❌ Exception details: {str(e)}")
         import traceback
         logger.error(f"❌ Full traceback: {traceback.format_exc()}")
-        # Fallback to mock data on error
-        return await get_mock_outfits()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
 
 # Health and debug endpoints (MUST be before parameterized routes)
 @router.get("/health", response_model=dict)
@@ -627,18 +630,14 @@ async def get_outfit(outfit_id: str):
     logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
     
     try:
-        # TEMPORARILY: Use mock user ID for testing
-        current_user_id = "mock-user-123"
-        logger.info("Using mock user ID for testing")
+        # Use the actual user ID from your database where the 1000+ outfits are stored
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
+        logger.info(f"Using hardcoded user ID for testing: {current_user_id}")
         
         # Check Firebase availability
         if not FIREBASE_AVAILABLE or not firebase_initialized:
-            logger.warning("Firebase not available, returning mock data")
-            outfits = await get_mock_outfits()
-            for outfit in outfits:
-                if outfit["id"] == outfit_id:
-                    return OutfitResponse(**outfit)
-            raise HTTPException(status_code=404, detail="Outfit not found")
+            logger.warning("Firebase not available, returning empty outfits")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
         
         # Try to fetch real outfit from Firebase
         try:
@@ -655,20 +654,12 @@ async def get_outfit(outfit_id: str):
         except Exception as firebase_error:
             logger.error(f"Firebase query failed: {firebase_error}")
             logger.warning("Falling back to mock data due to Firebase error")
-            outfits = await get_mock_outfits()
-            for outfit in outfits:
-                if outfit["id"] == outfit_id:
-                    return OutfitResponse(**outfit)
-            raise HTTPException(status_code=404, detail="Outfit not found")
+            raise HTTPException(status_code=500, detail=f"Failed to retrieve outfit from database: {firebase_error}")
         
     except Exception as e:
         logger.error(f"Error getting outfit {outfit_id}: {e}")
         # Fallback to mock data on other errors
-        outfits = await get_mock_outfits()
-        for outfit in outfits:
-            if outfit["id"] == outfit_id:
-                return OutfitResponse(**outfit)
-        raise HTTPException(status_code=404, detail="Outfit not found")
+        raise HTTPException(status_code=500, detail=f"Failed to get outfit: {e}")
 
 # ✅ Retrieve Outfit History (dual endpoints for trailing slash compatibility)
 @router.get("/", response_model=List[OutfitResponse])
@@ -700,9 +691,7 @@ async def list_outfits_with_slash(
     except Exception as e:
         logger.error(f"❌ Failed to fetch outfits for {current_user_id}: {e}", exc_info=True)
         # Fallback to mock data on error
-        logger.info("🔄 Falling back to mock data due to error")
-        mock_outfits = await get_mock_outfits()
-        return [OutfitResponse(**o) for o in mock_outfits]
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
 
 @router.get("", include_in_schema=False, response_model=List[OutfitResponse])
 async def list_outfits_no_slash(
@@ -733,9 +722,7 @@ async def list_outfits_no_slash(
     except Exception as e:
         logger.error(f"❌ Failed to fetch outfits for {current_user_id}: {e}", exc_info=True)
         # Fallback to mock data on error
-        logger.info("🔄 Falling back to mock data due to error")
-        mock_outfits = await get_mock_outfits()
-        return [OutfitResponse(**o) for o in mock_outfits]
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
 
 # 📊 Get Outfit Statistics
 @router.get("/stats/summary")
@@ -758,12 +745,8 @@ async def get_outfit_stats(
         
         logger.info(f"📊 Getting outfit stats for user {current_user_id}")
         
-        # Try to get real outfits first, fallback to mock if needed
-        try:
-            outfits = await get_user_outfits(current_user_id, 1000, 0)  # Get all outfits for stats
-        except Exception as e:
-            logger.warning(f"⚠️ Failed to get real outfits, using mock data: {e}")
-            outfits = await get_mock_outfits()
+        # Get real outfits for stats
+        outfits = await get_user_outfits(current_user_id, 1000, 0)  # Get all outfits for stats
         
         # Calculate basic statistics
         stats = {
