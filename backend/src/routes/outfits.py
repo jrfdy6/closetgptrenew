@@ -532,6 +532,57 @@ async def generate_outfit(
         logger.error(f"❌ Outfit generation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate outfit")
 
+# ⚠️ PARAMETERIZED ROUTE - MUST BE FIRST TO AVOID ROUTE CONFLICTS!
+# This route MUST come BEFORE the root route to avoid catching it
+@router.get("/{outfit_id}", response_model=OutfitResponse)
+async def get_outfit(outfit_id: str):
+    """Get a specific outfit by ID. MUST BE FIRST ROUTE TO AVOID CONFLICTS."""
+    logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
+    
+    try:
+        # TEMPORARILY: Use mock user ID for testing
+        current_user_id = "mock-user-123"
+        logger.info("Using mock user ID for testing")
+        
+        # Check Firebase availability
+        if not FIREBASE_AVAILABLE or not firebase_initialized:
+            logger.warning("Firebase not available, returning mock data")
+            outfits = await get_mock_outfits()
+            for outfit in outfits:
+                if outfit["id"] == outfit_id:
+                    return OutfitResponse(**outfit)
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        # Try to fetch real outfit from Firebase
+        try:
+            outfit_doc = db.collection('outfits').document(outfit_id).get()
+            if outfit_doc.exists:
+                outfit_data = outfit_doc.to_dict()
+                outfit_data['id'] = outfit_id
+                logger.info(f"Successfully retrieved outfit {outfit_id} from database")
+                return OutfitResponse(**outfit_data)
+            else:
+                logger.warning(f"Outfit {outfit_id} not found in database")
+                raise HTTPException(status_code=404, detail="Outfit not found")
+                
+        except Exception as firebase_error:
+            logger.error(f"Firebase query failed: {firebase_error}")
+            logger.warning("Falling back to mock data due to Firebase error")
+            outfits = await get_mock_outfits()
+            for outfit in outfits:
+                if outfit["id"] == outfit_id:
+                    return OutfitResponse(**outfit)
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+    except Exception as e:
+        logger.error(f"Error getting outfit {outfit_id}: {e}")
+        # Fallback to mock data on other errors
+        outfits = await get_mock_outfits()
+        for outfit in outfits:
+            if outfit["id"] == outfit_id:
+                return OutfitResponse(**outfit)
+        raise HTTPException(status_code=404, detail="Outfit not found")
+
 # ✅ Retrieve Outfit History (single endpoint)
 @router.get("/", response_model=List[OutfitResponse])
 async def list_outfits(
@@ -576,11 +627,6 @@ async def debug_routes():
         "total_routes": len(routes),
         "routes": routes
     }
-
-# ⚠️ PARAMETERIZED ROUTE - MUST BE LAST TO AVOID ROUTE CONFLICTS!
-# This route MUST come after all specific routes to avoid catching them
-@router.get("/{outfit_id}", response_model=OutfitResponse)
-async def get_outfit(outfit_id: str):
     """Get a specific outfit by ID. MUST BE LAST ROUTE TO AVOID CONFLICTS."""
     logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
     
