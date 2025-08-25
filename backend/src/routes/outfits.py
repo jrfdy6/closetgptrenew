@@ -96,13 +96,13 @@ class OutfitResponse(BaseModel):
     """Response model for outfits."""
     id: str
     name: str
-    style: str
-    mood: str
-    items: List[dict]
-    occasion: str
-    confidence_score: float
-    reasoning: str
-    createdAt: datetime
+    style: Optional[str] = None
+    mood: Optional[str] = None
+    items: Optional[List[dict]] = None
+    occasion: Optional[str] = None
+    confidence_score: Optional[float] = None
+    reasoning: Optional[str] = None
+    createdAt: Optional[datetime] = None
     user_id: Optional[str] = None
     generated_at: Optional[str] = None
 
