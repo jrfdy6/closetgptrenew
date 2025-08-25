@@ -559,6 +559,24 @@ async def list_outfits(
         mock_outfits = await get_mock_outfits()
         return [OutfitResponse(**o) for o in mock_outfits]
 
+# 🔍 DEBUG: List all registered routes for this router
+@router.get("/debug-routes", response_model=dict)
+async def debug_routes():
+    """Debug endpoint to show all registered routes in this router"""
+    routes = []
+    for route in router.routes:
+        routes.append({
+            "path": route.path,
+            "name": route.name,
+            "methods": list(route.methods),
+            "endpoint": str(route.endpoint)
+        })
+    return {
+        "router_name": "outfits",
+        "total_routes": len(routes),
+        "routes": routes
+    }
+
 # ⚠️ PARAMETERIZED ROUTE - MUST BE LAST TO AVOID ROUTE CONFLICTS!
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
