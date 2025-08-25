@@ -578,6 +578,7 @@ async def debug_routes():
     }
 
 # ⚠️ PARAMETERIZED ROUTE - MUST BE LAST TO AVOID ROUTE CONFLICTS!
+# This route MUST come after all specific routes to avoid catching them
 @router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
     """Get a specific outfit by ID. MUST BE LAST ROUTE TO AVOID CONFLICTS."""
