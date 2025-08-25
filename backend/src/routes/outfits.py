@@ -583,8 +583,9 @@ async def get_outfit(outfit_id: str):
                 return OutfitResponse(**outfit)
         raise HTTPException(status_code=404, detail="Outfit not found")
 
-# ✅ Retrieve Outfit History (single endpoint)
+# ✅ Retrieve Outfit History (dual endpoints for trailing slash compatibility)
 @router.get("/", response_model=List[OutfitResponse])
+@router.get("", include_in_schema=False, response_model=List[OutfitResponse])
 async def list_outfits(
     limit: int = 50,
     offset: int = 0,

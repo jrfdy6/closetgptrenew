@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   console.log("🚀 FORCE REBUILD: /api/outfits GET route HIT:", req.method);
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits${req.nextUrl.search}`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits/${req.nextUrl.search}`;
     console.log("🚀 FORCE REBUILD: Backend URL:", backendUrl);
     
     const res = await fetch(backendUrl, {
