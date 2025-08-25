@@ -611,6 +611,64 @@ async def list_outfits(
         mock_outfits = await get_mock_outfits()
         return [OutfitResponse(**o) for o in mock_outfits]
 
+# 📊 Get Outfit Statistics
+@router.get("/stats/summary")
+async def get_outfit_stats():
+    """
+    Get outfit statistics for user.
+    """
+    try:
+        # TEMPORARILY: Use mock user ID for testing
+        current_user_id = "mock-user-123"
+        logger.info(f"📊 Getting outfit stats for user {current_user_id}")
+        
+        # Get mock outfits for statistics
+        outfits = await get_mock_outfits()
+        
+        # Calculate basic statistics
+        stats = {
+            'totalOutfits': len(outfits),
+            'favoriteOutfits': 0,  # Mock data doesn't have favorites
+            'totalWearCount': 0,   # Mock data doesn't have wear counts
+            'occasions': {},
+            'styles': {},
+            'recentActivity': []
+        }
+        
+        # Count occasions and styles
+        for outfit in outfits:
+            occasion = outfit.get('occasion', 'Unknown')
+            stats['occasions'][occasion] = stats['occasions'].get(occasion, 0) + 1
+            
+            style = outfit.get('style', 'Unknown')
+            stats['styles'][style] = stats['styles'].get(style, 0) + 1
+        
+        # Add recent activity
+        if outfits:
+            stats['recentActivity'] = [
+                {
+                    'id': o['id'],
+                    'name': o['name'],
+                    'lastUpdated': o.get('createdAt', datetime.now())
+                }
+                for o in outfits[:5]  # Last 5 outfits
+            ]
+        
+        logger.info(f"✅ Successfully retrieved outfit stats")
+        
+        return {
+            "success": True,
+            "data": stats,
+            "message": "Outfit statistics retrieved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to get outfit stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get outfit statistics"
+        )
+
 # 🔍 DEBUG: List all registered routes for this router
 @router.get("/debug-routes", response_model=dict)
 async def debug_routes():
@@ -627,50 +685,4 @@ async def debug_routes():
         "router_name": "outfits",
         "total_routes": len(routes),
         "routes": routes
-    }
-    """Get a specific outfit by ID. MUST BE LAST ROUTE TO AVOID CONFLICTS."""
-    logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
-    
-    try:
-        # TEMPORARILY: Use mock user ID for testing
-        current_user_id = "mock-user-123"
-        logger.info("Using mock user ID for testing")
-        
-        # Check Firebase availability
-        if not FIREBASE_AVAILABLE or not firebase_initialized:
-            logger.warning("Firebase not available, returning mock data")
-            outfits = await get_mock_outfits()
-            for outfit in outfits:
-                if outfit["id"] == outfit_id:
-                    return OutfitResponse(**outfit)
-            raise HTTPException(status_code=404, detail="Outfit not found")
-        
-        # Try to fetch real outfit from Firebase
-        try:
-            outfit_doc = db.collection('outfits').document(outfit_id).get()
-            if outfit_doc.exists:
-                outfit_data = outfit_doc.to_dict()
-                outfit_data['id'] = outfit_id
-                logger.info(f"Successfully retrieved outfit {outfit_id} from database")
-                return OutfitResponse(**outfit_data)
-            else:
-                logger.warning(f"Outfit {outfit_id} not found in database")
-                raise HTTPException(status_code=404, detail="Outfit not found")
-                
-        except Exception as firebase_error:
-            logger.error(f"Firebase query failed: {firebase_error}")
-            logger.warning("Falling back to mock data due to Firebase error")
-            outfits = await get_mock_outfits()
-            for outfit in outfits:
-                if outfit["id"] == outfit_id:
-                    return OutfitResponse(**outfit)
-            raise HTTPException(status_code=404, detail="Outfit not found")
-        
-    except Exception as e:
-        logger.error(f"Error getting outfit {outfit_id}: {e}")
-        # Fallback to mock data on other errors
-        outfits = await get_mock_outfits()
-        for outfit in outfits:
-            if outfit["id"] == outfit_id:
-                return OutfitResponse(**outfit)
-        raise HTTPException(status_code=404, detail="Outfit not found") 
+    } 
