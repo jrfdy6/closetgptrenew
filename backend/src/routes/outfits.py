@@ -270,6 +270,10 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
 async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
     try:
+        logger.info(f"🔍 DEBUG: get_user_outfits called with user_id: {user_id}")
+        logger.info(f"🔍 DEBUG: FIREBASE_AVAILABLE: {FIREBASE_AVAILABLE}")
+        logger.info(f"🔍 DEBUG: firebase_initialized: {firebase_initialized}")
+        
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, using mock data")
             return await get_mock_outfits()
@@ -278,6 +282,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         
         # FIXED: Query main outfits collection with user_id filter (not subcollection)
         # This matches where outfits are actually stored: outfits collection with user_id field
+        logger.info(f"🔍 DEBUG: About to query db.collection('outfits')")
         outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
         
         logger.info(f"🔍 Querying path: outfits collection with user_id == '{user_id}'")
@@ -288,10 +293,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         outfits_ref = outfits_ref.limit(limit)
         
         # Execute query
+        logger.info(f"🔍 DEBUG: About to execute query with .stream()")
         docs = outfits_ref.stream()
-        outfits = []
+        logger.info(f"🔍 DEBUG: Query executed, processing results")
         
-        logger.info(f"🔍 Query returned {len(docs)} documents")
+        outfits = []
         
         for doc in docs:
             outfit_data = doc.to_dict()
@@ -299,11 +305,16 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             outfits.append(outfit_data)
             logger.info(f"🔍 Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
         
+        logger.info(f"🔍 Query returned {len(outfits)} documents")
         logger.info(f"✅ Retrieved {len(outfits)} outfits for user {user_id}")
         return outfits
         
     except Exception as e:
         logger.error(f"❌ Failed to fetch outfits for {user_id}: {e}")
+        logger.error(f"❌ Exception type: {type(e)}")
+        logger.error(f"❌ Exception details: {str(e)}")
+        import traceback
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
         # Fallback to mock data on error
         return await get_mock_outfits()
 
@@ -507,6 +518,7 @@ async def debug_user_outfits(
         "firebase_available": FIREBASE_AVAILABLE,
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False,
         "database_contents": {},
+        "collections_checked": [],
         "error": None
     }
     
@@ -519,28 +531,44 @@ async def debug_user_outfits(
         else:
             logger.info("🔍 DEBUG: No user authenticated")
         
-        # Check what's in the outfits collection
+        # Check what's in the database
         if FIREBASE_AVAILABLE and firebase_initialized:
             try:
-                # Get all outfits (without user filter) to see what's in the database
-                all_outfits = db.collection('outfits').limit(10).stream()
-                outfits_list = []
+                collections_to_check = ['outfits', 'outfit_history', 'user_outfits', 'wardrobe_outfits']
+                debug_info["collections_checked"] = collections_to_check
                 
-                for doc in all_outfits:
-                    outfit_data = doc.to_dict()
-                    outfits_list.append({
-                        "id": doc.id,
-                        "name": outfit_data.get('name', 'unnamed'),
-                        "user_id": outfit_data.get('user_id', 'no_user_id'),
-                        "created_at": outfit_data.get('createdAt', 'no_date')
-                    })
-                
-                debug_info["database_contents"] = {
-                    "total_outfits_found": len(outfits_list),
-                    "outfits": outfits_list
-                }
-                
-                logger.info(f"🔍 DEBUG: Found {len(outfits_list)} outfits in database")
+                for collection_name in collections_to_check:
+                    try:
+                        logger.info(f"🔍 DEBUG: Checking collection: {collection_name}")
+                        
+                        # Get ALL outfits from this collection (no limit)
+                        all_outfits = db.collection(collection_name).stream()
+                        outfits_list = []
+                        
+                        for doc in all_outfits:
+                            outfit_data = doc.to_dict()
+                            outfits_list.append({
+                                "id": doc.id,
+                                "name": outfit_data.get('name', 'unnamed'),
+                                "user_id": outfit_data.get('user_id', outfit_data.get('userId', 'no_user_id')),
+                                "created_at": outfit_data.get('createdAt', outfit_data.get('created_at', 'no_date')),
+                                "collection": collection_name
+                            })
+                        
+                        debug_info["database_contents"][collection_name] = {
+                            "total_outfits_found": len(outfits_list),
+                            "sample_outfits": outfits_list[:5] if outfits_list else [],  # Show first 5 as sample
+                            "all_outfit_ids": [o["id"] for o in outfits_list]  # Show all IDs
+                        }
+                        
+                        logger.info(f"🔍 DEBUG: Collection {collection_name}: Found {len(outfits_list)} outfits")
+                        
+                    except Exception as e:
+                        logger.warning(f"⚠️ DEBUG: Could not check collection {collection_name}: {e}")
+                        debug_info["database_contents"][collection_name] = {
+                            "error": str(e),
+                            "total_outfits_found": 0
+                        }
                 
             except Exception as e:
                 debug_info["error"] = f"Database query failed: {str(e)}"
@@ -653,13 +681,15 @@ async def list_outfits_with_slash(
     Fetch a user's outfit history from Firestore.
     """
     try:
-        # Use real authenticated user if available, fallback to mock for testing
+        # TEMPORARY FIX: Use the actual user ID from your database
+        # TODO: Fix authentication to get real user ID
         if current_user:
             current_user_id = current_user.id
             logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
         else:
-            current_user_id = "mock-user-123"
-            logger.info("📚 No authenticated user, using mock user ID for testing")
+            # Use the actual user ID from your database where the 1000+ outfits are stored
+            current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
+            logger.info(f"📚 No authenticated user, using hardcoded user ID: {current_user_id}")
         
         logger.info(f"📚 Fetching outfits for user: {current_user_id}")
         
@@ -684,13 +714,15 @@ async def list_outfits_no_slash(
     Fetch a user's outfit history from Firestore (no trailing slash).
     """
     try:
-        # Use real authenticated user if available, fallback to mock for testing
+        # TEMPORARY FIX: Use the actual user ID from your database
+        # TODO: Fix authentication to get real user ID
         if current_user:
             current_user_id = current_user.id
             logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
         else:
-            current_user_id = "mock-user-123"
-            logger.info("📚 No authenticated user, using mock user ID for testing")
+            # Use the actual user ID from your database where the 1000+ outfits are stored
+            current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
+            logger.info(f"📚 No authenticated user, using hardcoded user ID: {current_user_id}")
         
         logger.info(f"📚 Fetching outfits for user: {current_user_id}")
         
@@ -714,13 +746,15 @@ async def get_outfit_stats(
     Get outfit statistics for user.
     """
     try:
-        # Use real authenticated user if available, fallback to mock for testing
+        # TEMPORARY FIX: Use the actual user ID from your database
+        # TODO: Fix authentication to get real user ID
         if current_user:
             current_user_id = current_user.id
             logger.info(f"📊 Getting outfit stats for authenticated user {current_user_id}")
         else:
-            current_user_id = "mock-user-123"
-            logger.info("📊 No authenticated user, using mock user ID for testing")
+            # Use the actual user ID from your database where the 1000+ outfits are stored
+            current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
+            logger.info(f"📊 No authenticated user, using hardcoded user ID: {current_user_id}")
         
         logger.info(f"📊 Getting outfit stats for user {current_user_id}")
         
