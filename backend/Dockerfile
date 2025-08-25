@@ -1,21 +1,24 @@
+# Use official Python slim image
 FROM python:3.11-slim
 
+# Set working directory inside container
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt .
+# Copy requirements first to leverage Docker cache
+COPY requirements.txt ./
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+# Copy the backend source code
+COPY src ./src
 
-# Expose port (will be overridden by Railway)
-EXPOSE 8000
+# Expose port (Railway automatically maps to $PORT)
+ENV PORT=8000
+EXPOSE $PORT
 
-# Start the application using Railway's PORT environment variable
-CMD uvicorn app:app --host 0.0.0.0 --port $PORT
+# Run the FastAPI app
+CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8000"]

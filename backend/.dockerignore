@@ -55,7 +55,7 @@ test_*.py
 
 # Large data files
 *.csv
-*.json
+# *.json  # Commented out to allow serviceAccountKey.json and other essential JSON files
 *.xml
 *.sqlite
 *.db

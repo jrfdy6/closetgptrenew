@@ -372,7 +372,7 @@ async def firebase_connectivity_test():
                 test_results["read_test"] = "document_not_found"
                 logger.warning("⚠️ Document not found after write")
                 
-    except Exception as e:
+        except Exception as e:
             error_msg = f"Firebase test error: {str(e)}"
             logger.error(f"❌ {error_msg}")
             test_results["error"] = error_msg
@@ -471,7 +471,7 @@ async def debug_outfit_retrieval():
         
         outfits = []
         for doc in docs:
-                outfit_data = doc.to_dict()
+            outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append({
                 "id": doc.id,
@@ -592,7 +592,7 @@ async def get_outfit(outfit_id: str):
         try:
             outfit_doc = db.collection('outfits').document(outfit_id).get()
             if outfit_doc.exists:
-        outfit_data = outfit_doc.to_dict()
+                outfit_data = outfit_doc.to_dict()
                 outfit_data['id'] = outfit_id
                 logger.info(f"Successfully retrieved outfit {outfit_id} from database")
                 return OutfitResponse(**outfit_data)

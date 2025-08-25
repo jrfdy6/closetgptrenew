@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // FORCE REBUILD: Timestamp 2025-08-24 21:00:00
-// Catch-all route for /api/outfits-new/[...slug] to handle nested endpoints
+// Catch-all route for /api/outfits/[...slug] to handle nested endpoints
 async function handleProxy(req: NextRequest, params: { slug: string[] }) {
-  console.log("🚀 FORCE REBUILD: Catch-all /api/outfits-new/[...slug] route HIT:", req.method, params?.slug);
+  console.log("🚀 FORCE REBUILD: Catch-all /api/outfits/[...slug] route HIT:", req.method, params?.slug);
   
   try {
     const path = params.slug.join('/');
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfits/${path}${req.nextUrl.search}`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits/${path}${req.nextUrl.search}`;
     
     console.log("🚀 FORCE REBUILD: Backend URL for catch-all:", backendUrl);
     console.log("🚀 FORCE REBUILD: HTTP Method:", req.method);
@@ -39,7 +39,7 @@ async function handleProxy(req: NextRequest, params: { slug: string[] }) {
     console.log("🚀 FORCE REBUILD: Successfully fetched data from backend for:", path);
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
-    console.error(`❌ FORCE REBUILD: Proxy ${req.method} /outfits-new/${params.slug.join('/')} failed:`, err);
+    console.error(`❌ FORCE REBUILD: Proxy ${req.method} /outfits/${params.slug.join('/')} failed:`, err);
     return NextResponse.json({ 
       error: 'Proxy failed', 
       details: err instanceof Error ? err.message : 'Unknown error',

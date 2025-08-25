@@ -1,517 +1,158 @@
-import { User } from 'firebase/auth';
+import { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters } from '@/custom_types/outfit';
 
-// ===== DATA TYPES =====
-export interface OutfitItem {
-  id: string;
-  name: string;
-  category: string;
-  style: string;
-  color: string;
-  imageUrl?: string;
-  userId: string;
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export interface Outfit {
-  id: string;
-  name: string;
-  occasion: string;
-  style: string;
-  mood?: string;
-  items: OutfitItem[];
-  confidenceScore?: number;
-  reasoning?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  userId: string;
-  isFavorite?: boolean;
-  wearCount?: number;
-  lastWorn?: Date;
-}
-
-export interface OutfitCreate {
-  name: string;
-  occasion: string;
-  style: string;
-  mood?: string;
-  items: OutfitItem[];
-  confidenceScore?: number;
-  reasoning?: string;
-}
-
-export interface OutfitUpdate {
-  name?: string;
-  occasion?: string;
-  style?: string;
-  mood?: string;
-  items?: OutfitItem[];
-  confidenceScore?: number;
-  reasoning?: string;
-}
-
-export interface OutfitFilters {
-  occasion?: string;
-  style?: string;
-  mood?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export interface OutfitStats {
-  totalOutfits: number;
-  favoriteOutfits: number;
-  totalWearCount: number;
-  occasions: Record<string, number>;
-  styles: Record<string, number>;
-  recentActivity?: Array<{
-    id: string;
-    name: string;
-    lastUpdated: Date;
-  }>;
-}
-
-// ===== API RESPONSE TYPES =====
-export interface StandardResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-export interface PaginatedResponse<T = any> {
-  success: boolean;
-  data: T[];
-  total: number;
-  limit: number;
-  offset: number;
-  message?: string;
-}
-
-// ===== CORE SERVICE CLASS =====
-export class OutfitService {
-  private static readonly API_BASE = '/api/outfits';
-
-  // ===== AUTHENTICATION HELPERS =====
-  private static async getAuthHeaders(user: User): Promise<HeadersInit> {
-    const token = await user.getIdToken();
-    return {
-      'Authorization': `Bearer ${token}`,
+class OutfitService {
+  private async makeRequest(endpoint: string, options: RequestInit = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    
+    const defaultHeaders = {
       'Content-Type': 'application/json',
+      ...options.headers,
     };
-  }
 
-  private static async checkBackendConnection(): Promise<boolean> {
-    try {
-      const response = await fetch('/api/health/simple', { method: 'GET' });
-      return response.ok;
-    } catch {
-      return false;
+    const response = await fetch(url, {
+      ...options,
+      headers: defaultHeaders,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
     }
+
+    return response.json();
   }
 
-  // ===== CORE API OPERATIONS (Following Wardrobe Pattern) =====
-  
-  /**
-   * Get user's outfits from backend API
-   * This follows the established wardrobe service pattern
-   */
-  static async getUserOutfits(user: User, filters: OutfitFilters = {}): Promise<Outfit[]> {
-    try {
-      console.log('🔍 [OutfitService] Getting user outfits from backend API');
-      
-      // Build query string from filters
-      const queryParams = new URLSearchParams();
-      if (filters.style) queryParams.append('style', filters.style);
-      if (filters.occasion) queryParams.append('occasion', filters.occasion);
-      if (filters.season) queryParams.append('season', filters.season);
-      
-      const queryString = queryParams.toString();
-      const apiUrl = `/api/outfits-new${queryString ? `?${queryString}` : ''}`;
-      
-      console.log('🔗 [OutfitService] API URL:', apiUrl);
-      
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(user),
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status === 403) {
-          throw new Error('Access denied. You do not have permission to view outfits.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: PaginatedResponse<Outfit> = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch outfits');
-      }
-      
-      console.log(`✅ [OutfitService] Retrieved ${data.data.length} outfits from backend`);
-      return data.data;
-      
-    } catch (error) {
-      console.error('❌ [OutfitService] Error getting user outfits:', error);
-      throw error;
-    }
+  async getUserOutfits(filters: OutfitFilters = {}, token: string): Promise<Outfit[]> {
+    const queryParams = new URLSearchParams();
+    if (filters.style) queryParams.append('style', filters.style);
+    if (filters.occasion) queryParams.append('occasion', filters.occasion);
+    if (filters.season) queryParams.append('season', filters.season);
+    
+    const endpoint = `/outfits?${queryParams.toString()}`;
+    return this.makeRequest(endpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Get a specific outfit by ID from backend API
-   */
-  static async getOutfitById(user: User, outfitId: string): Promise<Outfit | null> {
-    try {
-      console.log(`🔍 [OutfitService] Getting outfit ${outfitId} from backend API`);
-      
-      const response = await fetch(`/api/outfits-new/${outfitId}`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(user),
-      });
-      
-      if (response.status === 404) {
-        console.log(`⚠️ [OutfitService] Outfit ${outfitId} not found`);
-        return null;
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status === 403) {
-          throw new Error('Access denied. You do not have permission to view this outfit.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: StandardResponse<Outfit> = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to fetch outfit');
-      }
-      
-      console.log(`✅ [OutfitService] Successfully retrieved outfit ${outfitId}`);
-      return data.data!;
-      
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error getting outfit ${outfitId}:`, error);
-      throw error;
-    }
+  async getOutfitById(id: string, token: string): Promise<Outfit> {
+    return this.makeRequest(`/outfits/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Create a new outfit through backend API
-   */
-  static async createOutfit(user: User, outfitData: OutfitCreate): Promise<Outfit> {
-    try {
-      console.log('🔍 [OutfitService] Creating outfit via backend API');
-      
-      const response = await fetch(`/api/outfits-new`, {
-        method: 'POST',
-        headers: await this.getAuthHeaders(user),
-        body: JSON.stringify(outfitData),
-      });
-      
-      if (!response.ok) {
-        if (response.status === 400) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Invalid outfit data');
-        } else if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: StandardResponse<Outfit> = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to create outfit');
-      }
-      
-      console.log(`✅ [OutfitService] Successfully created outfit ${data.data!.id}`);
-      return data.data!;
-      
-    } catch (error) {
-      console.error('❌ [OutfitService] Error creating outfit:', error);
-      throw error;
-    }
+  async createOutfit(outfit: OutfitCreate, token: string): Promise<Outfit> {
+    return this.makeRequest('/outfits', {
+      method: 'POST',
+      body: JSON.stringify(outfit),
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Update an existing outfit through backend API
-   */
-  static async updateOutfit(user: User, outfitId: string, updates: OutfitUpdate): Promise<Outfit> {
-    try {
-      console.log(`🔍 [OutfitService] Updating outfit ${outfitId} through backend API`);
-      
-      const response = await fetch(`/api/outfits-new/${outfitId}`, {
-        method: 'PUT',
-        headers: await this.getAuthHeaders(user),
-        body: JSON.stringify(updates),
-      });
-      
-      if (response.status === 404) {
-        throw new Error('Outfit not found');
-      }
-      
-      if (!response.ok) {
-        if (response.status === 400) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Invalid update data');
-        } else if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: StandardResponse<Outfit> = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to update outfit');
-      }
-      
-      console.log(`✅ [OutfitService] Successfully updated outfit ${outfitId}`);
-      return data.data!;
-      
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error updating outfit ${outfitId}:`, error);
-      throw error;
-    }
+  async updateOutfit(id: string, outfit: OutfitUpdate, token: string): Promise<Outfit> {
+    return this.makeRequest(`/outfits/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(outfit),
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Delete an outfit through backend API
-   */
-  static async deleteOutfit(user: User, outfitId: string): Promise<void> {
-    try {
-      console.log(`🔍 [OutfitService] Deleting outfit ${outfitId} through backend API`);
-      
-      const response = await fetch(`/api/outfits-new/${outfitId}`, {
-        method: 'DELETE',
-        headers: await this.getAuthHeaders(user),
-      });
-      
-      if (response.status === 404) {
-        throw new Error('Outfit not found');
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: StandardResponse = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to delete outfit');
-      }
-      
-      console.log(`✅ [OutfitService] Successfully deleted outfit ${outfitId}`);
-      
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error deleting outfit ${outfitId}:`, error);
-      throw error;
-    }
+  async deleteOutfit(id: string, token: string): Promise<void> {
+    return this.makeRequest(`/outfits/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Mark outfit as worn through backend API
-   */
-  static async markOutfitAsWorn(user: User, outfitId: string): Promise<Outfit> {
-    try {
-      console.log(`🔍 [OutfitService] Marking outfit ${outfitId} as worn through backend API`);
-      
-      const response = await fetch(`/api/outfits-new/${outfitId}/mark-worn`, {
-        method: 'POST',
-        headers: await this.getAuthHeaders(user),
-      });
-      
-      if (response.status === 404) {
-        throw new Error('Outfit not found');
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: StandardResponse<Outfit> = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to mark outfit as worn');
-      }
-      
-      console.log(`✅ [OutfitService] Successfully marked outfit ${outfitId} as worn`);
-      return data.data!;
-      
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error marking outfit ${outfitId} as worn:`, error);
-      throw error;
-    }
+  async markOutfitAsWorn(id: string, token: string): Promise<Outfit> {
+    return this.makeRequest(`/outfits/${id}/worn`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Toggle outfit favorite status through backend API
-   */
-  static async toggleOutfitFavorite(user: User, outfitId: string): Promise<Outfit> {
-    try {
-      console.log(`🔍 [OutfitService] Toggling favorite for outfit ${outfitId} through backend API`);
-      
-      const response = await fetch(`/api/outfits-new/${outfitId}/toggle-favorite`, {
-        method: 'POST',
-        headers: await this.getAuthHeaders(user),
-      });
-      
-      if (response.status === 404) {
-        throw new Error('Outfit not found');
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: StandardResponse<Outfit> = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to toggle outfit favorite');
-      }
-      
-      console.log(`✅ [OutfitService] Successfully toggled favorite for outfit ${outfitId}`);
-      return data.data!;
-      
-    } catch (error) {
-      console.error(`❌ [OutfitService] Error toggling favorite for outfit ${outfitId}:`, error);
-      throw error;
-    }
+  async toggleOutfitFavorite(id: string, token: string): Promise<Outfit> {
+    return this.makeRequest(`/outfits/${id}/favorite`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Get outfit statistics through backend API
-   */
-  static async getOutfitStats(user: User): Promise<OutfitStats> {
-    try {
-      console.log('🔍 [OutfitService] Getting outfit statistics from backend API');
-      
-      const response = await fetch(`/api/outfits-new/stats/summary`, {
-        method: 'GET',
-        headers: await this.getAuthHeaders(user),
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data: StandardResponse<OutfitStats> = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to get outfit statistics');
-      }
-      
-      console.log('✅ [OutfitService] Successfully retrieved outfit statistics');
-      return data.data!;
-      
-    } catch (error) {
-      console.error('❌ [OutfitService] Error getting outfit statistics:', error);
-      throw error;
-    }
+  async getOutfitStats(token: string): Promise<any> {
+    return this.makeRequest('/outfits/stats/summary', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  /**
-   * Search outfits with text query through backend API
-   */
-  static async searchOutfits(user: User, query: string, filters: OutfitFilters = {}): Promise<Outfit[]> {
-    try {
-      console.log(`🔍 [OutfitService] Searching outfits with query: "${query}"`);
-      
-      // For now, implement client-side search using the existing get_user_outfits
-      // In the future, this could be enhanced with a dedicated search endpoint
-      const allOutfits = await this.getUserOutfits(user, { ...filters, limit: 1000 });
-      
-      if (!query || !query.trim()) {
-        return allOutfits;
-      }
-      
-      const queryLower = query.toLowerCase();
-      const searchResults = allOutfits.filter(outfit => {
-        const searchableText = `${outfit.name} ${outfit.occasion} ${outfit.style} ${outfit.mood || ''}`.toLowerCase();
-        return queryLower in searchableText;
-      });
-      
-      // Sort by relevance
-      searchResults.sort((a, b) => {
-        const aScore = this.calculateRelevanceScore(a, queryLower);
-        const bScore = this.calculateRelevanceScore(b, queryLower);
-        return bScore - aScore;
-      });
-      
-      console.log(`✅ [OutfitService] Search returned ${searchResults.length} results`);
-      return searchResults;
-      
-    } catch (error) {
-      console.error('❌ [OutfitService] Error searching outfits:', error);
-      throw error;
-    }
+  async searchOutfits(query: string, filters: OutfitFilters = {}, token: string): Promise<Outfit[]> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('q', query);
+    if (filters.style) queryParams.append('style', filters.style);
+    if (filters.occasion) queryParams.append('occasion', filters.occasion);
+    if (filters.season) queryParams.append('season', filters.season);
+    
+    const endpoint = `/outfits/search?${queryParams.toString()}`;
+    return this.makeRequest(endpoint, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
   }
 
-  // ===== UTILITY METHODS =====
-  
-  private static calculateRelevanceScore(outfit: Outfit, query: string): number {
+  // Helper method to calculate relevance score for search results
+  calculateRelevanceScore(outfit: Outfit, query: string): number {
     let score = 0;
+    const lowerQuery = query.toLowerCase();
     
-    // Name matches get highest score
-    if (query in outfit.name.toLowerCase()) score += 10;
+    // Check if query matches outfit name
+    if (outfit.name.toLowerCase().includes(lowerQuery)) {
+      score += 10;
+    }
     
-    // Occasion matches
-    if (query in outfit.occasion.toLowerCase()) score += 5;
+    // Check if query matches style
+    if (outfit.style && outfit.style.toLowerCase().includes(lowerQuery)) {
+      score += 8;
+    }
     
-    // Style matches
-    if (query in outfit.style.toLowerCase()) score += 5;
+    // Check if query matches occasion
+    if (outfit.occasion && outfit.occasion.toLowerCase().includes(lowerQuery)) {
+      score += 6;
+    }
     
-    // Mood matches
-    if (outfit.mood && query in outfit.mood.toLowerCase()) score += 3;
+    // Check if query matches description
+    if (outfit.description && outfit.description.toLowerCase().includes(lowerQuery)) {
+      score += 4;
+    }
     
-    // Recency bonus
-    const daysSinceUpdate = (Date.now() - outfit.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceUpdate < 7) score += 2;
-    else if (daysSinceUpdate < 30) score += 1;
+    // Bonus for favorite outfits
+    if (outfit.isFavorite) {
+      score += 2;
+    }
+    
+    // Bonus for recently worn outfits
+    if (outfit.lastWorn) {
+      score += 1;
+    }
     
     return score;
   }
 }
 
-// ===== EXPORT DEFAULT INSTANCE =====
-export default OutfitService;
+export const outfitService = new OutfitService();
+export default outfitService;

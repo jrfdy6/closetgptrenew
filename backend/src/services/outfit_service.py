@@ -26,7 +26,7 @@ class OutfitService:
     def __init__(self):
         """Initialize the outfit service with database connection."""
         try:
-        self.db = db
+            self.db = db
             self.collection = self.db.collection('outfits')
             logger.info("✅ OutfitService initialized successfully")
         except Exception as e:
@@ -74,10 +74,10 @@ class OutfitService:
             outfits = []
             for doc in docs:
                 try:
-                outfit_data = doc.to_dict()
+                    outfit_data = doc.to_dict()
                     outfit_data['id'] = doc.id
                     outfit = Outfit(**outfit_data)
-                outfits.append(outfit)
+                    outfits.append(outfit)
                 except Exception as e:
                     logger.warning(f"⚠️ Skipping invalid outfit document {doc.id}: {e}")
                     continue
