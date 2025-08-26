@@ -1,5 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
+import Link from 'next/link';
 import OutfitGrid from '@/components/OutfitGrid_proper';
 
 // ===== METADATA =====
@@ -20,15 +21,15 @@ export default function OutfitsPage() {
               View and manage your curated outfits. Each outfit is tailored to your style preferences and occasion needs.
             </p>
           </div>
-          <a 
+          <Link 
             href="/outfits/generate"
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md cursor-pointer"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
             Generate Outfit
-          </a>
+          </Link>
         </div>
       </div>
       
