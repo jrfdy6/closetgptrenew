@@ -12,7 +12,9 @@ from src.routes import (
     wardrobe,
     wardrobe_analysis,
     outfit,
-    outfits
+    outfits,
+    outfit_history,
+    forgotten_gems
 )
 
 # Logging setup
@@ -25,9 +27,18 @@ app = FastAPI(title="ClosetGPT Backend")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=[
+        "http://localhost:3000",
+        "https://localhost:3000",
+        "https://closetgpt-clean.vercel.app",
+        "https://closetgpt-frontend.vercel.app",
+        "https://closetgptrenew.vercel.app",
+        "https://closetgpt-frontend-pmw4txto2-johnnie-fields-projects.vercel.app",  # Your current Vercel domain
+        "https://closetgpt-frontend-*.vercel.app",  # Allow any Vercel preview deployment
+        "https://closetgptrenew-*.vercel.app"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -40,6 +51,8 @@ app.include_router(wardrobe.router, prefix="/api/wardrobe")
 app.include_router(wardrobe_analysis.router, prefix="/api/wardrobe")
 app.include_router(outfit.router, prefix="/api/outfit")
 app.include_router(outfits.router, prefix="/api/outfits")  # ✅ Fix for GET /api/outfits
+app.include_router(outfit_history.router, prefix="/api/outfit-history")  # ✅ Add missing outfit history routes
+app.include_router(forgotten_gems.router, prefix="/api/wardrobe")  # ✅ Add forgotten gems under wardrobe
 
 # Startup logging
 logger.info("=== Starting FastAPI application ===")
