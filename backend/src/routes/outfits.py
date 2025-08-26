@@ -4,6 +4,7 @@ All outfits are generated and saved through the same pipeline.
 """
 
 import logging
+import urllib.parse
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
@@ -215,15 +216,32 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         # Ensure items have proper structure with imageUrl
         outfit_items = []
         for item in suitable_items[:4]:
+            # Convert Firebase Storage gs:// URLs to https:// URLs
+            raw_image_url = item.get('imageUrl', '') or item.get('image_url', '') or item.get('image', '')
+            if raw_image_url and raw_image_url.startswith('gs://'):
+                # Convert gs://bucket-name/path to https://firebasestorage.googleapis.com/v0/b/bucket-name/o/path
+                parts = raw_image_url.replace('gs://', '').split('/', 1)
+                if len(parts) == 2:
+                    bucket_name = parts[0]
+                    file_path = parts[1]
+                    # Encode the file path for URL
+                    encoded_path = urllib.parse.quote(file_path, safe='')
+                    image_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
+                else:
+                    image_url = raw_image_url
+            else:
+                image_url = raw_image_url
+            
             outfit_item = {
                 "id": item.get('id', ''),
                 "name": item.get('name', ''),
                 "type": item.get('type', ''),
                 "color": item.get('color', ''),
-                "imageUrl": item.get('imageUrl', '') or item.get('image_url', '') or item.get('image', '')  # Handle different field names
+                "imageUrl": image_url
             }
             outfit_items.append(outfit_item)
-            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - imageUrl: {outfit_item['imageUrl']}")
+            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Original URL: {raw_image_url}")
+            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Converted URL: {image_url}")
         
         return {
             "name": outfit_name,
