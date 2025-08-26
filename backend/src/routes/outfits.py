@@ -276,23 +276,20 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
 
 async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
+    logger.info(f"🔍 DEBUG: Fetching outfits for user {user_id} (limit={limit}, offset={offset})")
+    logger.info(f"🔍 DEBUG: FIREBASE_AVAILABLE: {FIREBASE_AVAILABLE}")
+    logger.info(f"🔍 DEBUG: firebase_initialized: {firebase_initialized}")
+    
     try:
-        logger.info(f"🔍 DEBUG: get_user_outfits called with user_id: {user_id}")
-        logger.info(f"🔍 DEBUG: FIREBASE_AVAILABLE: {FIREBASE_AVAILABLE}")
-        logger.info(f"🔍 DEBUG: firebase_initialized: {firebase_initialized}")
-        
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, returning empty outfits")
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
             
-        logger.info(f"📚 Fetching outfits for user {user_id}, limit: {limit}, offset: {offset}")
+        logger.info(f"📚 DEBUG: About to query Firestore collection('outfits') with user_id == '{user_id}'")
         
         # FIXED: Query main outfits collection with user_id filter (not subcollection)
         # This matches where outfits are actually stored: outfits collection with user_id field
-        logger.info(f"🔍 DEBUG: About to query db.collection('outfits')")
-        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
-        
-        logger.info(f"🔍 Querying path: outfits collection with user_id == '{user_id}'")
+        outfits_ref = db.collection("outfits").where("user_id", "==", user_id)
         
         # Apply pagination
         if offset > 0:
@@ -300,28 +297,26 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         outfits_ref = outfits_ref.limit(limit)
         
         # Execute query
-        logger.info(f"🔍 DEBUG: About to execute query with .stream()")
+        logger.info(f"🔍 DEBUG: Executing Firestore query with .stream()...")
         docs = outfits_ref.stream()
-        logger.info(f"🔍 DEBUG: Query executed, processing results")
+        logger.info(f"🔍 DEBUG: Firestore query executed successfully, processing results...")
         
         outfits = []
-        
         for doc in docs:
             outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append(outfit_data)
-            logger.info(f"🔍 Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
+            logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
         
-        logger.info(f"🔍 Query returned {len(outfits)} documents")
-        logger.info(f"✅ Retrieved {len(outfits)} outfits for user {user_id}")
+        logger.info(f"✅ DEBUG: Successfully retrieved {len(outfits)} outfits from Firestore for user {user_id}")
         return outfits
         
     except Exception as e:
-        logger.error(f"❌ Failed to fetch outfits for {user_id}: {e}")
-        logger.error(f"❌ Exception type: {type(e)}")
-        logger.error(f"❌ Exception details: {str(e)}")
+        logger.error(f"❌ ERROR: Failed to fetch outfits from Firestore: {e}", exc_info=True)
+        logger.error(f"❌ ERROR: Exception type: {type(e)}")
+        logger.error(f"❌ ERROR: Exception details: {str(e)}")
         import traceback
-        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
+        logger.error(f"❌ ERROR: Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
 
 # Health and debug endpoints (MUST be before parameterized routes)
