@@ -328,7 +328,7 @@ def _estimate_item_savings(item: ClothingItem, usage_count: int, days_since_worn
 @router.post("/forgotten-gems/rediscover")
 async def rediscover_item(
     item_id: str,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Mark an item as rediscovered and update its usage data."""
     try:
@@ -337,7 +337,7 @@ async def rediscover_item(
         
         # This would typically update the item's usage data
         # For now, we'll just return success
-        print(f"🔍 Rediscover: Marking item {item_id} as rediscovered for user {current_user_id}")
+        print(f"🔍 Rediscover: Marking item {item_id} as rediscovered for user {current_user.id}")
         
         return {
             "success": True,
@@ -353,11 +353,11 @@ async def rediscover_item(
 @router.post("/forgotten-gems/declutter")
 async def declutter_item(
     item_id: str,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Mark an item for decluttering."""
     try:
-        print(f"🔍 Declutter: Marking item {item_id} for decluttering for user {current_user_id}")
+        print(f"🔍 Declutter: Marking item {item_id} for decluttering for user {current_user.id}")
         
         # This would typically move the item to a declutter list
         # For now, we'll just return success
