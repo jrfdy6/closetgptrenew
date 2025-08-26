@@ -24,21 +24,28 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(title="ClosetGPT Backend")
 
-# CORS middleware
+# CORS middleware - More robust configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        # Local development
         "http://localhost:3000",
         "https://localhost:3000",
+        
+        # Production domains
         "https://closetgpt-clean.vercel.app",
         "https://closetgpt-frontend.vercel.app",
         "https://closetgptrenew.vercel.app",
-        "https://closetgpt-frontend-pmw4txto2-johnnie-fields-projects.vercel.app",  # Your previous Vercel domain
-        "https://closetgpt-frontend-hqqi05dd5-johnnie-fields-projects.vercel.app",  # Your current Vercel domain
-        "https://closetgpt-frontend-jccojct6k-johnnie-fields-projects.vercel.app",  # Your NEW current Vercel domain
-        "https://closetgpt-frontend-q2w0wliue-johnnie-fields-projects.vercel.app",  # Your LATEST Vercel domain
-        "https://closetgpt-frontend-*.vercel.app",  # Allow any Vercel preview deployment
-        "https://closetgptrenew-*.vercel.app"
+        
+        # Vercel preview deployments (wildcard patterns)
+        "https://closetgpt-frontend-*.vercel.app",
+        "https://closetgptrenew-*.vercel.app",
+        
+        # Specific current domains (for immediate compatibility)
+        "https://closetgpt-frontend-pmw4txto2-johnnie-fields-projects.vercel.app",
+        "https://closetgpt-frontend-hqqi05dd5-johnnie-fields-projects.vercel.app",
+        "https://closetgpt-frontend-jccojct6k-johnnie-fields-projects.vercel.app",
+        "https://closetgpt-frontend-q2w0wliue-johnnie-fields-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
