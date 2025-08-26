@@ -124,8 +124,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.info(f"👤 Retrieved user profile for {user_id}")
         
         # 3. Generate outfit using AI logic
+        logger.info(f"🔍 DEBUG: About to call generate_ai_outfit with {len(wardrobe_items)} items")
         outfit = await generate_ai_outfit(wardrobe_items, user_profile, req)
         logger.info(f"✨ Generated outfit: {outfit['name']}")
+        logger.info(f"🔍 DEBUG: Outfit items count: {len(outfit.get('items', []))}")
         
         return outfit
         
@@ -166,7 +168,14 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
     try:
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, using default profile")
-            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+            # Return default profile instead of throwing error
+            return {
+                "id": user_id,
+                "bodyType": "average",
+                "skinTone": "medium",
+                "style": ["casual", "versatile"],
+                "preferences": {}
+            }
             
         logger.info(f"👤 Fetching profile for user {user_id}")
         
@@ -180,11 +189,25 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             return profile_data
         else:
             logger.info(f"⚠️ No profile found for user {user_id}, using defaults")
-            raise HTTPException(status_code=404, detail=f"User profile not found for ID: {user_id}")
+            # Return default profile instead of throwing error
+            return {
+                "id": user_id,
+                "bodyType": "average",
+                "skinTone": "medium",
+                "style": ["casual", "versatile"],
+                "preferences": {}
+            }
         
     except Exception as e:
         logger.error(f"❌ Failed to fetch profile for {user_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch user profile: {e}")
+        # Return default profile instead of throwing error
+        return {
+            "id": user_id,
+            "bodyType": "average",
+            "skinTone": "medium",
+            "style": ["casual", "versatile"],
+            "preferences": {}
+        }
 
 async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
     """Generate outfit using AI logic and user's wardrobe."""
@@ -196,18 +219,37 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         
         # Filter items by occasion and style
         suitable_items = []
+        logger.info(f"🔍 DEBUG: Filtering {len(wardrobe_items)} items for style: {req.style}, occasion: {req.occasion}")
+        
         for item in wardrobe_items:
-            item_style = item.get('style', '').lower()
-            item_occasion = item.get('occasion', '').lower()
+            item_style = item.get('style', '') or ''
+            item_occasion = item.get('occasion', '') or ''
+            
+            # Convert to string if it's a list
+            if isinstance(item_style, list):
+                item_style = ' '.join(item_style).lower()
+            else:
+                item_style = str(item_style).lower()
+                
+            if isinstance(item_occasion, list):
+                item_occasion = ' '.join(item_occasion).lower()
+            else:
+                item_occasion = str(item_occasion).lower()
+            
+            logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} - style: '{item_style}', occasion: '{item_occasion}'")
             
             # Basic matching logic
             if (req.style.lower() in item_style or 
                 req.occasion.lower() in item_occasion or
                 'versatile' in item_style):
                 suitable_items.append(item)
+                logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} is suitable")
+        
+        logger.info(f"🔍 DEBUG: Found {len(suitable_items)} suitable items")
         
         # If no suitable items, use any available items
         if not suitable_items:
+            logger.info(f"🔍 DEBUG: No suitable items found, using first 4 items")
             suitable_items = wardrobe_items[:4]  # Take first 4 items
         
         # Create outfit
