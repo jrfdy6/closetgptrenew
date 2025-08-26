@@ -144,9 +144,9 @@ async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
             
         logger.info(f"📦 Fetching wardrobe for user {user_id}")
         
-        # Query user's wardrobe items
-        wardrobe_ref = db.collection('users').document(user_id).collection('wardrobe')
-        docs = wardrobe_ref.get()
+        # Query user's wardrobe items - use the same path as the wardrobe page
+        wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
+        docs = wardrobe_ref.stream()
         
         items = []
         for doc in docs:
@@ -242,6 +242,7 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             outfit_items.append(outfit_item)
             logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Original URL: {raw_image_url}")
             logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Converted URL: {image_url}")
+            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Full item data: {outfit_item}")
         
         return {
             "name": outfit_name,
