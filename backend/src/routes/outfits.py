@@ -285,6 +285,210 @@ async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str,
         "is_valid": len(warnings) == 0
     }
 
+async def validate_color_material_harmony(items: List[Dict], style: str, mood: str) -> Dict[str, Any]:
+    """Validate color theory and material compatibility."""
+    logger.info(f"🔍 DEBUG: Validating color and material harmony for {style} style, {mood} mood")
+    
+    warnings = []
+    color_analysis = {}
+    material_analysis = {}
+    
+    # Extract colors and materials from items
+    all_colors = []
+    all_materials = []
+    
+    for item in items:
+        # Extract colors (handle different field names)
+        item_colors = item.get('dominantColors', []) or item.get('colors', []) or item.get('color', [])
+        if isinstance(item_colors, str):
+            item_colors = [item_colors]
+        elif not isinstance(item_colors, list):
+            item_colors = []
+        
+        # Extract materials (handle different field names)
+        item_material = item.get('material', '') or item.get('fabric', '') or ''
+        
+        if item_colors:
+            all_colors.extend([color.lower() if isinstance(color, str) else str(color).lower() for color in item_colors])
+        if item_material:
+            all_materials.append(item_material.lower())
+    
+    logger.info(f"🔍 DEBUG: Found colors: {all_colors}")
+    logger.info(f"🔍 DEBUG: Found materials: {all_materials}")
+    
+    # Color Theory Validation
+    if all_colors:
+        color_warnings = validate_color_theory(all_colors, style, mood)
+        warnings.extend(color_warnings)
+        color_analysis = analyze_color_palette(all_colors)
+    
+    # Material Compatibility Validation
+    if all_materials:
+        material_warnings = validate_material_compatibility(all_materials, style, mood)
+        warnings.extend(material_warnings)
+        material_analysis = analyze_material_combinations(all_materials)
+    
+    logger.info(f"🔍 DEBUG: Color/material validation complete: {len(warnings)} warnings")
+    
+    return {
+        "colors": color_analysis,
+        "materials": material_analysis,
+        "warnings": warnings,
+        "is_valid": len(warnings) == 0
+    }
+
+def validate_color_theory(colors: List[str], style: str, mood: str) -> List[str]:
+    """Apply advanced color theory rules."""
+    warnings = []
+    
+    # Color conflicts (complementary colors that may clash)
+    color_conflicts = {
+        "red": ["green"],
+        "blue": ["orange"], 
+        "yellow": ["purple"],
+        "green": ["red"],
+        "purple": ["yellow"],
+        "orange": ["blue"],
+        "pink": ["lime", "bright green"],
+        "teal": ["coral", "bright orange"]
+    }
+    
+    # Check for color conflicts
+    for i, color1 in enumerate(colors):
+        for j, color2 in enumerate(colors[i+1:], i+1):
+            if color1 in color_conflicts and color2 in color_conflicts[color1]:
+                warnings.append(f"Color conflict: {color1} and {color2} may clash")
+    
+    # Style-based color rules
+    style_color_rules = {
+        "minimalist": {"max_colors": 3, "description": "Minimalist style prefers fewer colors"},
+        "maximalist": {"max_colors": 6, "description": "Maximalist style can handle more colors"},
+        "monochrome": {"max_colors": 2, "description": "Monochrome style should stick to one color family"},
+        "colorblock": {"min_colors": 3, "description": "Colorblock style needs multiple distinct colors"}
+    }
+    
+    if style.lower() in style_color_rules:
+        rule = style_color_rules[style.lower()]
+        unique_colors = list(set(colors))
+        
+        if "max_colors" in rule and len(unique_colors) > rule["max_colors"]:
+            warnings.append(f"{rule['description']}: {len(unique_colors)} colors (max {rule['max_colors']})")
+        elif "min_colors" in rule and len(unique_colors) < rule["min_colors"]:
+            warnings.append(f"{rule['description']}: {len(unique_colors)} colors (min {rule['min_colors']})")
+    
+    # Mood-based color psychology
+    mood_color_rules = {
+        "calm": ["blue", "green", "lavender", "sage"],
+        "energetic": ["red", "orange", "yellow", "pink"],
+        "sophisticated": ["black", "navy", "burgundy", "cream"],
+        "playful": ["coral", "mint", "yellow", "pink"],
+        "professional": ["navy", "gray", "white", "burgundy"]
+    }
+    
+    if mood.lower() in mood_color_rules:
+        recommended_colors = mood_color_rules[mood.lower()]
+        current_colors = list(set(colors))
+        matching_colors = [c for c in current_colors if c in recommended_colors]
+        
+        if len(matching_colors) < len(current_colors) * 0.5:  # Less than 50% match
+            warnings.append(f"Mood '{mood}' works better with colors like: {', '.join(recommended_colors[:3])}")
+    
+    return warnings
+
+def validate_material_compatibility(materials: List[str], style: str, mood: str) -> List[str]:
+    """Validate material compatibility and appropriateness."""
+    warnings = []
+    
+    # Material texture conflicts
+    texture_conflicts = {
+        "smooth": ["rough", "textured", "knit"],
+        "rough": ["smooth", "silk", "satin"],
+        "heavy": ["light", "sheer", "linen"],
+        "light": ["heavy", "wool", "leather"]
+    }
+    
+    # Check for texture conflicts
+    for i, material1 in enumerate(materials):
+        for j, material2 in enumerate(materials[i+1:], i+1):
+            for texture, conflicts in texture_conflicts.items():
+                if texture in material1 and any(conflict in material2 for conflict in conflicts):
+                    warnings.append(f"Texture conflict: {material1} and {material2} may not work well together")
+    
+    # Style-based material rules
+    style_material_rules = {
+        "formal": ["silk", "wool", "cashmere", "cotton"],
+        "casual": ["denim", "cotton", "linen", "jersey"],
+        "luxury": ["silk", "cashmere", "leather", "wool"],
+        "athletic": ["polyester", "spandex", "nylon", "cotton"],
+        "bohemian": ["linen", "cotton", "suede", "knit"]
+    }
+    
+    if style.lower() in style_material_rules:
+        recommended_materials = style_material_rules[style.lower()]
+        current_materials = list(set(materials))
+        matching_materials = [m for m in current_materials if any(rec in m for rec in recommended_materials)]
+        
+        if len(matching_materials) < len(current_materials) * 0.6:  # Less than 60% match
+            warnings.append(f"Style '{style}' works better with materials like: {', '.join(recommended_materials[:3])}")
+    
+    # Seasonal material appropriateness
+    seasonal_materials = {
+        "summer": ["linen", "cotton", "seersucker", "chambray"],
+        "winter": ["wool", "cashmere", "tweed", "velvet"],
+        "spring": ["cotton", "linen", "silk", "denim"],
+        "fall": ["wool", "corduroy", "denim", "leather"]
+    }
+    
+    # Check for seasonal mismatches (this could be enhanced with actual season detection)
+    for season, season_materials in seasonal_materials.items():
+        if any(season_mat in mat for mat in materials for season_mat in season_materials):
+            # Found seasonal material, could add season-specific warnings here
+            pass
+    
+    return warnings
+
+def analyze_color_palette(colors: List[str]) -> Dict[str, Any]:
+    """Analyze the color palette for insights."""
+    unique_colors = list(set(colors))
+    
+    # Color temperature analysis
+    warm_colors = ["red", "orange", "yellow", "pink", "coral", "peach"]
+    cool_colors = ["blue", "green", "purple", "teal", "navy", "sage"]
+    neutral_colors = ["black", "white", "gray", "beige", "cream", "brown"]
+    
+    warm_count = sum(1 for c in unique_colors if c in warm_colors)
+    cool_count = sum(1 for c in unique_colors if c in cool_colors)
+    neutral_count = sum(1 for c in unique_colors if c in neutral_colors)
+    
+    return {
+        "total_colors": len(unique_colors),
+        "warm_colors": warm_count,
+        "cool_colors": cool_count,
+        "neutral_colors": neutral_count,
+        "palette_type": "warm" if warm_count > cool_count else "cool" if cool_count > warm_count else "neutral"
+    }
+
+def analyze_material_combinations(materials: List[str]) -> Dict[str, Any]:
+    """Analyze material combinations for insights."""
+    unique_materials = list(set(materials))
+    
+    # Material type analysis
+    natural_materials = ["cotton", "wool", "silk", "linen", "cashmere"]
+    synthetic_materials = ["polyester", "nylon", "spandex", "acrylic"]
+    luxury_materials = ["silk", "cashmere", "leather", "velvet"]
+    
+    natural_count = sum(1 for m in unique_materials if any(nat in m for nat in natural_materials))
+    synthetic_count = sum(1 for m in unique_materials if any(syn in m for syn in synthetic_materials))
+    luxury_count = sum(1 for m in unique_materials if any(lux in m for lux in luxury_materials))
+    
+    return {
+        "total_materials": len(unique_materials),
+        "natural_materials": natural_count,
+        "synthetic_materials": synthetic_count,
+        "luxury_materials": luxury_count,
+        "material_quality": "luxury" if luxury_count > 1 else "natural" if natural_count > synthetic_count else "mixed"
+    }
+
 def is_layer_item(item_type: str) -> bool:
     """Check if item type is a layering item."""
     item_type_lower = item_type.lower()
@@ -443,10 +647,15 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         layering_validation = await validate_layering_rules(validated_items, req.occasion)
         logger.info(f"🔍 DEBUG: Layering validation: {layering_validation}")
         
-        # Adjust outfit based on layering rules
+        # Apply color theory and material matching
+        color_material_validation = await validate_color_material_harmony(validated_items, req.style, req.mood)
+        logger.info(f"🔍 DEBUG: Color/material validation: {color_material_validation}")
+        
+        # Adjust outfit based on validation rules
         if layering_validation.get('warnings'):
             logger.info(f"🔍 DEBUG: Layering warnings: {layering_validation['warnings']}")
-            # Could add logic here to adjust items based on warnings
+        if color_material_validation.get('warnings'):
+            logger.info(f"🔍 DEBUG: Color/material warnings: {color_material_validation['warnings']}")
         
         # Create outfit
         outfit_name = f"{req.style.title()} {req.mood.title()} Look"
