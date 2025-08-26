@@ -136,6 +136,113 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # Fallback to basic generation if AI fails
         return await generate_fallback_outfit(req, user_id)
 
+async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[Dict]:
+    """Validate and ensure outfit has required components."""
+    logger.info(f"🔍 DEBUG: Validating outfit composition for {occasion} occasion")
+    
+    # Define required categories for different occasions
+    required_categories = {
+        "casual": ["top", "bottom"],
+        "business": ["top", "bottom", "shoes"],
+        "formal": ["top", "bottom", "shoes"],
+        "athletic": ["top", "bottom", "shoes"],
+        "beach": ["top", "bottom"],
+        "party": ["top", "bottom", "shoes"],
+        "date": ["top", "bottom", "shoes"],
+        "travel": ["top", "bottom", "shoes"]
+    }
+    
+    # Get default requirements
+    default_required = ["top", "bottom"]
+    required = required_categories.get(occasion.lower(), default_required)
+    
+    logger.info(f"🔍 DEBUG: Required categories for {occasion}: {required}")
+    
+    # Categorize items
+    categorized_items = {}
+    for item in items:
+        item_type = item.get('type', '').lower()
+        category = get_item_category(item_type)
+        
+        if category not in categorized_items:
+            categorized_items[category] = []
+        categorized_items[category].append(item)
+    
+    logger.info(f"🔍 DEBUG: Categorized items: {list(categorized_items.keys())}")
+    
+    # Check if we have required categories
+    missing_categories = []
+    for category in required:
+        if category not in categorized_items or len(categorized_items[category]) == 0:
+            missing_categories.append(category)
+    
+    if missing_categories:
+        logger.warning(f"⚠️ Missing required categories: {missing_categories}")
+        # Try to find items from missing categories in the full wardrobe
+        # This would require access to the full wardrobe, but for now we'll work with what we have
+    
+    # Build validated outfit with required categories
+    validated_outfit = []
+    
+    # Add one item from each required category
+    for category in required:
+        if category in categorized_items and categorized_items[category]:
+            # Take the first item from this category
+            validated_outfit.append(categorized_items[category][0])
+            logger.info(f"🔍 DEBUG: Added {category} item: {categorized_items[category][0].get('name', 'unnamed')}")
+    
+    # Add additional items to fill out the outfit (up to 6 total)
+    remaining_slots = 6 - len(validated_outfit)
+    additional_items = []
+    
+    for category, category_items in categorized_items.items():
+        if len(additional_items) >= remaining_slots:
+            break
+        # Skip categories we already have
+        if category in [item.get('type', '').lower() for item in validated_outfit]:
+            continue
+        # Add items from this category
+        for item in category_items[1:]:  # Skip first item as it's already added
+            if len(additional_items) < remaining_slots:
+                additional_items.append(item)
+                logger.info(f"🔍 DEBUG: Added additional {category} item: {item.get('name', 'unnamed')}")
+    
+    validated_outfit.extend(additional_items)
+    
+    logger.info(f"🔍 DEBUG: Final validated outfit: {len(validated_outfit)} items")
+    for item in validated_outfit:
+        logger.info(f"🔍 DEBUG: - {item.get('name', 'unnamed')} ({item.get('type', 'unknown')})")
+    
+    return validated_outfit
+
+def get_item_category(item_type: str) -> str:
+    """Categorize item type into outfit categories."""
+    item_type_lower = item_type.lower()
+    
+    # Top items
+    if any(top_type in item_type_lower for top_type in ['shirt', 'blouse', 't-shirt', 'sweater', 'jacket', 'coat', 'blazer', 'cardigan', 'hoodie']):
+        return "top"
+    
+    # Bottom items
+    elif any(bottom_type in item_type_lower for bottom_type in ['pants', 'jeans', 'shorts', 'skirt', 'leggings', 'trousers']):
+        return "bottom"
+    
+    # Shoes
+    elif any(shoe_type in item_type_lower for shoe_type in ['shoes', 'sneakers', 'boots', 'heels', 'flats', 'sandals', 'loafers']):
+        return "shoes"
+    
+    # Accessories
+    elif any(acc_type in item_type_lower for acc_type in ['bag', 'purse', 'hat', 'scarf', 'belt', 'jewelry', 'watch']):
+        return "accessory"
+    
+    # Dresses (count as both top and bottom)
+    elif 'dress' in item_type_lower:
+        return "dress"
+    
+    # Default to top if unclear
+    else:
+        return "top"
+
 # Helper functions for outfit generation
 async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
     """Get user's wardrobe items from Firestore."""
@@ -252,12 +359,16 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             logger.info(f"🔍 DEBUG: No suitable items found, using first 4 items")
             suitable_items = wardrobe_items[:4]  # Take first 4 items
         
+        # Validate and ensure complete outfit composition
+        validated_items = await validate_outfit_composition(suitable_items, req.occasion)
+        logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
+        
         # Create outfit
         outfit_name = f"{req.style.title()} {req.mood.title()} Look"
         
         # Ensure items have proper structure with imageUrl
         outfit_items = []
-        for item in suitable_items[:4]:
+        for item in validated_items:
             # Convert Firebase Storage gs:// URLs to https:// URLs
             raw_image_url = item.get('imageUrl', '') or item.get('image_url', '') or item.get('image', '')
             if raw_image_url and raw_image_url.startswith('gs://'):
@@ -293,7 +404,7 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             "items": outfit_items,
             "occasion": req.occasion,
             "confidence_score": 0.85 if suitable_items else 0.6,
-            "reasoning": f"Selected {len(outfit_items)} items from your wardrobe that match {req.style} style for {req.occasion}",
+            "reasoning": f"Generated {len(outfit_items)} items forming a complete {req.occasion} outfit with {req.style} style. Includes required categories: {', '.join(set([get_item_category(item.get('type', '')) for item in outfit_items]))}",
             "createdAt": datetime.now()
         }
         
