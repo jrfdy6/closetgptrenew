@@ -489,6 +489,262 @@ def analyze_material_combinations(materials: List[str]) -> Dict[str, Any]:
         "material_quality": "luxury" if luxury_count > 1 else "natural" if natural_count > synthetic_count else "mixed"
     }
 
+async def calculate_outfit_score(items: List[Dict], req: OutfitRequest, layering_validation: Dict, color_material_validation: Dict) -> Dict[str, Any]:
+    """Calculate comprehensive outfit score across multiple dimensions."""
+    logger.info(f"🔍 DEBUG: Calculating outfit score for {len(items)} items")
+    
+    # Initialize component scores
+    scores = {}
+    
+    # 1. Composition Score (25% weight) - Basic outfit structure
+    composition_score = calculate_composition_score(items, req.occasion)
+    scores["composition_score"] = composition_score
+    logger.info(f"🔍 DEBUG: Composition score: {composition_score}")
+    
+    # 2. Layering Score (20% weight) - Smart layering and conflicts
+    layering_score = calculate_layering_score(layering_validation)
+    scores["layering_score"] = layering_score
+    logger.info(f"🔍 DEBUG: Layering score: {layering_score}")
+    
+    # 3. Color Harmony Score (20% weight) - Color theory and psychology
+    color_score = calculate_color_score(color_material_validation.get("colors", {}))
+    scores["color_score"] = color_score
+    logger.info(f"🔍 DEBUG: Color score: {color_score}")
+    
+    # 4. Material Compatibility Score (15% weight) - Fabric and texture harmony
+    material_score = calculate_material_score(color_material_validation.get("materials", {}))
+    scores["material_score"] = material_score
+    logger.info(f"🔍 DEBUG: Material score: {material_score}")
+    
+    # 5. Style Coherence Score (20% weight) - Style and mood alignment
+    style_score = calculate_style_coherence_score(items, req.style, req.mood)
+    scores["style_score"] = style_score
+    logger.info(f"🔍 DEBUG: Style score: {style_score}")
+    
+    # Calculate weighted total score (0-100 scale)
+    weights = {
+        "composition_score": 0.25,
+        "layering_score": 0.20,
+        "color_score": 0.20,
+        "material_score": 0.15,
+        "style_score": 0.20
+    }
+    
+    total_score = sum(scores[component] * weights[component] for component in scores.keys())
+    scores["total_score"] = round(total_score, 2)
+    
+    # Add score interpretation
+    scores["score_interpretation"] = interpret_score(total_score)
+    scores["grade"] = get_score_grade(total_score)
+    
+    logger.info(f"🔍 DEBUG: Final outfit score: {total_score} ({scores['grade']})")
+    
+    return scores
+
+def calculate_composition_score(items: List[Dict], occasion: str) -> float:
+    """Calculate score for outfit composition and completeness."""
+    score = 0.0
+    
+    # Required categories for different occasions
+    required_categories = {
+        "casual": ["top", "bottom"],
+        "business": ["top", "bottom", "shoes"],
+        "formal": ["top", "bottom", "shoes"],
+        "athletic": ["top", "bottom", "shoes"],
+        "beach": ["top", "bottom"],
+        "party": ["top", "bottom", "shoes"],
+        "date": ["top", "bottom", "shoes"],
+        "travel": ["top", "bottom", "shoes"]
+    }
+    
+    required = required_categories.get(occasion.lower(), ["top", "bottom"])
+    
+    # Categorize items
+    categorized_items = {}
+    for item in items:
+        item_type = item.get('type', '').lower()
+        category = get_item_category(item_type)
+        if category not in categorized_items:
+            categorized_items[category] = []
+        categorized_items[category].append(item)
+    
+    # Score based on required categories present
+    required_present = sum(1 for cat in required if cat in categorized_items and categorized_items[cat])
+    required_score = (required_present / len(required)) * 40  # 40 points for required categories
+    
+    # Score based on item count appropriateness
+    item_count_score = 0
+    if len(items) >= 3 and len(items) <= 6:
+        item_count_score = 30  # Perfect item count
+    elif len(items) >= 2 and len(items) <= 7:
+        item_count_score = 20  # Acceptable item count
+    else:
+        item_count_score = 10  # Too few or too many items
+    
+    # Score based on category variety
+    variety_score = min(len(categorized_items) * 10, 30)  # Up to 30 points for variety
+    
+    score = required_score + item_count_score + variety_score
+    return min(score, 100.0)  # Cap at 100
+
+def calculate_layering_score(layering_validation: Dict) -> float:
+    """Calculate score for layering appropriateness."""
+    score = 100.0  # Start with perfect score
+    
+    warnings = layering_validation.get('warnings', [])
+    layer_count = layering_validation.get('layer_count', 0)
+    
+    # Deduct points for warnings
+    for warning in warnings:
+        if "too heavy" in warning.lower():
+            score -= 15
+        elif "too many layers" in warning.lower():
+            score -= 10
+        elif "too few layers" in warning.lower():
+            score -= 8
+        elif "conflict" in warning.lower():
+            score -= 12
+    
+    # Bonus for optimal layer count
+    if 2 <= layer_count <= 3:
+        score += 5  # Bonus for optimal layering
+    elif layer_count == 1:
+        score += 2  # Bonus for single layer (appropriate for some occasions)
+    
+    return max(score, 0.0)  # Don't go below 0
+
+def calculate_color_score(color_analysis: Dict) -> float:
+    """Calculate score for color harmony and theory."""
+    if not color_analysis:
+        return 70.0  # Neutral score if no color data
+    
+    score = 100.0  # Start with perfect score
+    
+    total_colors = color_analysis.get('total_colors', 0)
+    palette_type = color_analysis.get('palette_type', 'neutral')
+    
+    # Score based on color count
+    if total_colors == 0:
+        score -= 30  # No color data
+    elif total_colors == 1:
+        score += 10  # Monochromatic (good)
+    elif 2 <= total_colors <= 4:
+        score += 15  # Optimal color range
+    elif total_colors > 6:
+        score -= 10  # Too many colors
+    
+    # Score based on palette type
+    if palette_type == 'neutral':
+        score += 5  # Neutral palettes are versatile
+    elif palette_type in ['warm', 'cool']:
+        score += 10  # Cohesive temperature
+    
+    return max(score, 0.0)
+
+def calculate_material_score(material_analysis: Dict) -> float:
+    """Calculate score for material compatibility."""
+    if not material_analysis:
+        return 70.0  # Neutral score if no material data
+    
+    score = 100.0  # Start with perfect score
+    
+    material_quality = material_analysis.get('material_quality', 'mixed')
+    natural_count = material_analysis.get('natural_materials', 0)
+    luxury_count = material_analysis.get('luxury_materials', 0)
+    
+    # Score based on material quality
+    if material_quality == 'luxury':
+        score += 15  # Luxury materials get bonus
+    elif material_quality == 'natural':
+        score += 10  # Natural materials get bonus
+    
+    # Score based on material variety
+    if natural_count > 0 and luxury_count > 0:
+        score += 5  # Good mix of materials
+    
+    return max(score, 0.0)
+
+def calculate_style_coherence_score(items: List[Dict], style: str, mood: str) -> float:
+    """Calculate score for style and mood coherence."""
+    score = 100.0  # Start with perfect score
+    
+    # Style-specific scoring
+    style_rules = {
+        "minimalist": {"max_items": 4, "description": "Fewer items for minimalist style"},
+        "maximalist": {"min_items": 5, "description": "More items for maximalist style"},
+        "monochrome": {"color_variety": 2, "description": "Limited color variety for monochrome"},
+        "colorblock": {"min_colors": 3, "description": "Multiple colors for colorblock style"}
+    }
+    
+    if style.lower() in style_rules:
+        rule = style_rules[style.lower()]
+        
+        if "max_items" in rule and len(items) > rule["max_items"]:
+            score -= 15  # Too many items for minimalist style
+        elif "min_items" in rule and len(items) < rule["min_items"]:
+            score -= 15  # Too few items for maximalist style
+    
+    # Mood-based scoring
+    mood_rules = {
+        "calm": {"max_colors": 4, "description": "Fewer colors for calm mood"},
+        "energetic": {"min_colors": 3, "description": "More colors for energetic mood"},
+        "sophisticated": {"min_items": 3, "description": "More items for sophisticated look"}
+    }
+    
+    if mood.lower() in mood_rules:
+        rule = mood_rules[mood.lower()]
+        
+        if "max_colors" in rule:
+            # Count unique colors (simplified)
+            colors = set()
+            for item in items:
+                item_color = item.get('color', '')
+                if item_color:
+                    colors.add(item_color.lower())
+            
+            if len(colors) > rule["max_colors"]:
+                score -= 10  # Too many colors for calm mood
+    
+    return max(score, 0.0)
+
+def interpret_score(score: float) -> str:
+    """Interpret the numerical score into a meaningful description."""
+    if score >= 90:
+        return "Exceptional outfit with perfect harmony and style"
+    elif score >= 80:
+        return "Excellent outfit with great composition and few issues"
+    elif score >= 70:
+        return "Very good outfit with minor areas for improvement"
+    elif score >= 60:
+        return "Good outfit with some compatibility issues"
+    elif score >= 50:
+        return "Acceptable outfit with several areas for improvement"
+    else:
+        return "Outfit needs significant improvement in multiple areas"
+
+def get_score_grade(score: float) -> str:
+    """Convert numerical score to letter grade."""
+    if score >= 90:
+        return "A+"
+    elif score >= 85:
+        return "A"
+    elif score >= 80:
+        return "A-"
+    elif score >= 75:
+        return "B+"
+    elif score >= 70:
+        return "B"
+    elif score >= 65:
+        return "B-"
+    elif score >= 60:
+        return "C+"
+    elif score >= 55:
+        return "C"
+    elif score >= 50:
+        return "C-"
+    else:
+        return "D"
+
 def is_layer_item(item_type: str) -> bool:
     """Check if item type is a layering item."""
     item_type_lower = item_type.lower()
@@ -691,13 +947,18 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Converted URL: {image_url}")
             logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Full item data: {outfit_item}")
         
+        # Calculate comprehensive outfit score
+        outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation)
+        logger.info(f"🔍 DEBUG: Calculated outfit score: {outfit_score}")
+        
         return {
             "name": outfit_name,
             "style": req.style,
             "mood": req.mood,
             "items": outfit_items,
             "occasion": req.occasion,
-            "confidence_score": 0.85 if suitable_items else 0.6,
+            "confidence_score": outfit_score["total_score"],
+            "score_breakdown": outfit_score,
             "reasoning": f"Generated {len(outfit_items)} items forming a complete {req.occasion} outfit with {req.style} style. Includes required categories: {', '.join(set([get_item_category(item.get('type', '')) for item in outfit_items]))}",
             "createdAt": datetime.now()
         }
