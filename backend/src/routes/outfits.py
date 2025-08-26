@@ -273,7 +273,7 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
         logger.error(f"❌ Failed to save outfit {outfit_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to save outfit: {e}")
 
-async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
     logger.info(f"🔍 DEBUG: Fetching outfits for user {user_id} (limit={limit}, offset={offset})")
     logger.info(f"🔍 DEBUG: FIREBASE_AVAILABLE: {FIREBASE_AVAILABLE}")
