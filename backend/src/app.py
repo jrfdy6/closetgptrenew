@@ -35,6 +35,7 @@ app.add_middleware(
         "https://closetgptrenew.vercel.app",
         "https://closetgpt-frontend-pmw4txto2-johnnie-fields-projects.vercel.app",  # Your previous Vercel domain
         "https://closetgpt-frontend-hqqi05dd5-johnnie-fields-projects.vercel.app",  # Your current Vercel domain
+        "https://closetgpt-frontend-jccojct6k-johnnie-fields-projects.vercel.app",  # Your NEW current Vercel domain
         "https://closetgpt-frontend-*.vercel.app",  # Allow any Vercel preview deployment
         "https://closetgptrenew-*.vercel.app"
     ],
