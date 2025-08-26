@@ -281,8 +281,15 @@ async def add_wardrobe_item(
         logger.error(f"Error adding wardrobe item: {e}")
         raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
 
+@router.get("", include_in_schema=False)
+async def get_wardrobe_items_no_slash(
+    current_user: UserProfile = Depends(get_current_user_optional)
+) -> Dict[str, Any]:
+    """Get all wardrobe items for the current user (no trailing slash)."""
+    return await get_wardrobe_items_with_slash(current_user)
+
 @router.get("/")
-async def get_wardrobe_items(
+async def get_wardrobe_items_with_slash(
     current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
