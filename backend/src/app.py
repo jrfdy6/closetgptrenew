@@ -35,7 +35,6 @@ app.add_middleware(
         # Production domains
         "https://closetgpt-clean.vercel.app",
         "https://closetgpt-frontend.vercel.app",
-        "https://closetgptrenew.vercel.app",
         
         # Vercel preview deployments (wildcard patterns)
         "https://closetgpt-frontend-*.vercel.app",
