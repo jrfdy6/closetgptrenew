@@ -167,6 +167,8 @@ export default function OutfitGenerationPage() {
       }
       
       const data = await response.json();
+      console.log('🔍 DEBUG: Generated outfit data:', data);
+      console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
       setGeneratedOutfit(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate outfit');
@@ -402,7 +404,23 @@ export default function OutfitGenerationPage() {
                     <div className="space-y-2">
                       {generatedOutfit.items.map((item, index) => (
                         <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
-                          <Shirt className="h-4 w-4 text-gray-500" />
+                          {/* Show actual item image if available, otherwise fallback icon */}
+                          {(item.imageUrl || item.image_url || item.image) ? (
+                            <img 
+                              src={item.imageUrl || item.image_url || item.image} 
+                              alt={item.name}
+                              className="w-12 h-12 object-cover rounded-md border border-gray-200"
+                              onError={(e) => {
+                                // Fallback to icon if image fails to load
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <Shirt 
+                            className={`h-12 w-12 text-gray-500 ${(item.imageUrl || item.image_url || item.image) ? 'hidden' : ''}`}
+                            style={{ display: (item.imageUrl || item.image_url || item.image) ? 'none' : 'block' }}
+                          />
                           <div className="flex-1">
                             <p className="font-medium text-sm">{item.name}</p>
                             <p className="text-xs text-muted-foreground capitalize">{item.type} • {item.color}</p>

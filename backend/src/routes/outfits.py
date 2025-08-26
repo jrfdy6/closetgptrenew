@@ -212,14 +212,27 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         # Create outfit
         outfit_name = f"{req.style.title()} {req.mood.title()} Look"
         
+        # Ensure items have proper structure with imageUrl
+        outfit_items = []
+        for item in suitable_items[:4]:
+            outfit_item = {
+                "id": item.get('id', ''),
+                "name": item.get('name', ''),
+                "type": item.get('type', ''),
+                "color": item.get('color', ''),
+                "imageUrl": item.get('imageUrl', '') or item.get('image_url', '') or item.get('image', '')  # Handle different field names
+            }
+            outfit_items.append(outfit_item)
+            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - imageUrl: {outfit_item['imageUrl']}")
+        
         return {
             "name": outfit_name,
             "style": req.style,
             "mood": req.mood,
-            "items": suitable_items[:4],  # Take up to 4 items
+            "items": outfit_items,
             "occasion": req.occasion,
             "confidence_score": 0.85 if suitable_items else 0.6,
-            "reasoning": f"Selected {len(suitable_items[:4])} items from your wardrobe that match {req.style} style for {req.occasion}",
+            "reasoning": f"Selected {len(outfit_items)} items from your wardrobe that match {req.style} style for {req.occasion}",
             "createdAt": datetime.now()
         }
         
