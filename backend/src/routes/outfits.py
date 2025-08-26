@@ -195,6 +195,22 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
     remaining_slots = 6 - len(validated_outfit)
     additional_items = []
     
+    # Prioritize layering items for certain occasions
+    layering_priority = ["formal", "business", "date", "party"]
+    if occasion.lower() in layering_priority:
+        # Add layering items first for formal occasions
+        for category, category_items in categorized_items.items():
+            if len(additional_items) >= remaining_slots:
+                break
+            # Prioritize layering categories
+            if category in ["top"] and len(additional_items) < remaining_slots:
+                for item in category_items[1:]:  # Skip first item as it's already added
+                    if len(additional_items) < remaining_slots and is_layer_item(item.get('type', '')):
+                        additional_items.append(item)
+                        logger.info(f"🔍 DEBUG: Added layering item: {item.get('name', 'unnamed')}")
+                        break
+    
+    # Fill remaining slots with other items
     for category, category_items in categorized_items.items():
         if len(additional_items) >= remaining_slots:
             break
@@ -214,6 +230,66 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
         logger.info(f"🔍 DEBUG: - {item.get('name', 'unnamed')} ({item.get('type', 'unknown')})")
     
     return validated_outfit
+
+async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str, Any]:
+    """Validate layering rules for the outfit."""
+    logger.info(f"🔍 DEBUG: Validating layering rules for {occasion} occasion")
+    
+    # Count layering items
+    layer_items = [item for item in items if is_layer_item(item.get('type', ''))]
+    layer_count = len(layer_items)
+    
+    logger.info(f"🔍 DEBUG: Found {layer_count} layering items: {[item.get('name', 'unnamed') for item in layer_items]}")
+    
+    warnings = []
+    
+    # Occasion-based layering rules
+    if occasion.lower() in ['formal', 'business']:
+        if layer_count < 2:
+            warnings.append(f"Formal occasion typically requires at least 2 layers, got {layer_count}")
+        elif layer_count > 3:
+            warnings.append(f"Formal occasion may have too many layers: {layer_count}")
+    
+    elif occasion.lower() in ['casual', 'weekend']:
+        if layer_count > 3:
+            warnings.append(f"Casual occasion may have too many layers: {layer_count}")
+    
+    elif occasion.lower() in ['athletic', 'gym', 'sporty']:
+        if layer_count > 2:
+            warnings.append(f"Athletic occasion typically needs fewer layers: {layer_count}")
+    
+    # Check for layering conflicts
+    layer_types = [item.get('type', '').lower() for item in layer_items]
+    
+    # Heavy combinations
+    if 'sweater' in layer_types and 'jacket' in layer_types:
+        warnings.append("Sweater and jacket combination may be too heavy")
+    
+    if 'sweater' in layer_types and 'coat' in layer_types:
+        warnings.append("Sweater and coat combination may be too heavy")
+    
+    if 'jacket' in layer_types and 'coat' in layer_types:
+        warnings.append("Jacket and coat combination may be too heavy")
+    
+    # Multiple heavy items
+    heavy_items = [item for item in layer_items if item.get('type', '').lower() in ['sweater', 'jacket', 'coat']]
+    if len(heavy_items) > 2:
+        warnings.append(f"Too many heavy layering items: {len(heavy_items)}")
+    
+    logger.info(f"🔍 DEBUG: Layering validation complete: {len(warnings)} warnings")
+    
+    return {
+        "layer_count": layer_count,
+        "layer_items": [item.get('name', 'unnamed') for item in layer_items],
+        "warnings": warnings,
+        "is_valid": len(warnings) == 0
+    }
+
+def is_layer_item(item_type: str) -> bool:
+    """Check if item type is a layering item."""
+    item_type_lower = item_type.lower()
+    layer_types = ["shirt", "t-shirt", "blouse", "sweater", "jacket", "coat", "blazer", "cardigan", "hoodie"]
+    return item_type_lower in layer_types
 
 def get_item_category(item_type: str) -> str:
     """Categorize item type into outfit categories."""
@@ -362,6 +438,15 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         # Validate and ensure complete outfit composition
         validated_items = await validate_outfit_composition(suitable_items, req.occasion)
         logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
+        
+        # Apply layering validation rules
+        layering_validation = await validate_layering_rules(validated_items, req.occasion)
+        logger.info(f"🔍 DEBUG: Layering validation: {layering_validation}")
+        
+        # Adjust outfit based on layering rules
+        if layering_validation.get('warnings'):
+            logger.info(f"🔍 DEBUG: Layering warnings: {layering_validation['warnings']}")
+            # Could add logic here to adjust items based on warnings
         
         # Create outfit
         outfit_name = f"{req.style.title()} {req.mood.title()} Look"
