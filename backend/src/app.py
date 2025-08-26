@@ -146,16 +146,16 @@ async def initialize_firebase():
 # ---------------- ROUTER LOADER ----------------
 ROUTERS = [
     ("src.routes.auth", "/api/auth"),    # Use existing working auth router with /api/auth prefix
-    ("src.routes.image_processing", ""),  # Router already has /api/image prefix
-    ("src.routes.image_analysis", ""),   # Router already has /api/image prefix
-    ("src.routes.weather", ""),          # Router already has /api/weather prefix
-    ("src.routes.wardrobe", ""),         # Main wardrobe router with /api/wardrobe prefix
+    ("src.routes.image_processing", "/api/image"),  # Router already has /api/image prefix
+    ("src.routes.image_analysis", "/api/image"),   # Router already has /api/image prefix
+    ("src.routes.weather", "/api/weather"),          # Router already has /api/weather prefix
+    ("src.routes.wardrobe", "/api/wardrobe"),         # Main wardrobe router with /api/wardrobe prefix
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
-    ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix
-    ("src.routes.outfit", ""),           # Router already has /api/outfit prefix
-    ("src.routes.outfits", ""),          # Router already has /api/outfits prefix
+    ("src.routes.wardrobe_analysis", "/api/wardrobe"), # Router already has /api/wardrobe prefix
+    ("src.routes.outfit", "/api/outfit"),           # Router already has /api/outfit prefix
+    ("src.routes.outfits", "/api/outfits"),          # Router already has /api/outfits prefix
     ("src.routes.outfit_history", "/api"), # Router has no prefix, so add /api
-    ("src.routes.test_debug", ""),       # Router already has /api/test prefix
+    ("src.routes.test_debug", "/api/test"),       # Router already has /api/test prefix
 ]
 
 def include_router_safe(module_name: str, prefix: str):
