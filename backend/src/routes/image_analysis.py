@@ -29,7 +29,7 @@ logger = get_logger("image_analysis")
 # Load environment variables
 load_dotenv()
 
-router = APIRouter(prefix="/api", tags=["image-analysis"])
+router = APIRouter(tags=["image-analysis"])
 
 class ImageAnalysisRequest(BaseModel):
     image: dict[str, str]

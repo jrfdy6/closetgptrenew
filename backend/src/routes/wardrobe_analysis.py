@@ -5,7 +5,7 @@ from ..auth.auth_service import get_current_user_optional
 from ..custom_types.profile import UserProfile
 from datetime import datetime
 
-router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe-analysis"])
+router = APIRouter(tags=["wardrobe-analysis"])
 
 @router.get("/gaps")
 async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depends(get_current_user_optional)) -> Dict[str, Any]:

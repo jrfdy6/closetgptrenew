@@ -15,7 +15,7 @@ from ..custom_types.profile import UserProfile
 # Set up logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/image", tags=["image"])
+router = APIRouter(tags=["image"])
 
 @router.post("/upload")
 async def upload_image(
