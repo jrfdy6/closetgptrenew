@@ -590,9 +590,9 @@ async def generate_outfit(
     and return the standardized response.
     """
     try:
-        # TEMPORARILY: Use mock user ID for testing
-        current_user_id = "mock-user-123"
-        logger.info("Using mock user ID for testing")
+        # Get real user ID from request context
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
+        logger.info(f"Using real user ID: {current_user_id}")
         
         logger.info(f"🎨 Generating outfit for user: {current_user_id}")
         
