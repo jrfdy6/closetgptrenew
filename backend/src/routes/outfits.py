@@ -100,7 +100,7 @@ class OutfitResponse(BaseModel):
     mood: Optional[str] = None
     items: Optional[List[dict]] = None
     occasion: Optional[str] = None
-    confidence_score: Optional[float] = None
+    confidence_score: Optional[float] = None  # Keep this field but allow None values
     reasoning: Optional[str] = None
     createdAt: Optional[datetime] = None
     user_id: Optional[str] = None
