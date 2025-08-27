@@ -270,7 +270,7 @@ export default function OutfitGenerationPage() {
       if (user) {
         try {
           const token = await user.getIdToken();
-          const saveResponse = await fetch('/api/outfit/create', {
+          const saveResponse = await fetch('/api/outfit-single/create', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -306,7 +306,7 @@ export default function OutfitGenerationPage() {
       const token = await user.getIdToken();
       
       // First save the outfit to backend
-      const saveResponse = await fetch('/api/outfit/create', {
+      const saveResponse = await fetch('/api/outfit-single/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -421,7 +421,7 @@ export default function OutfitGenerationPage() {
       // If outfit doesn't have an ID yet, save it first
       let outfitId = generatedOutfit.id;
       if (!outfitId) {
-        const saveResponse = await fetch('/api/outfit/create', {
+        const saveResponse = await fetch('/api/outfit-single/create', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
