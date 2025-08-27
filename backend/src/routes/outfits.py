@@ -1371,15 +1371,675 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             }
         }
 
+# ===== INTEGRATED THOUGHT CLARIFICATION SYSTEM =====
+
+async def initiate_thought_clarification(req: OutfitRequest, user_profile: Dict, wardrobe_items: List[Dict]) -> Dict[str, Any]:
+    """
+    Phase 1: Strategic outfit planning with reasoning chains.
+    This prevents unacceptable outfits by thinking through requirements first.
+    """
+    logger.info(f"🧠 THOUGHT CLARIFICATION: Analyzing request for {req.style} {req.occasion} outfit")
+    
+    # STEP 1: Analyze Context and Constraints
+    context_analysis = {
+        "occasion_formality": analyze_occasion_formality(req.occasion),
+        "style_requirements": analyze_style_requirements(req.style),
+        "mood_influence": analyze_mood_influence(req.mood),
+        "seasonal_considerations": analyze_seasonal_context(),
+        "user_constraints": analyze_user_constraints(user_profile)
+    }
+    
+    # STEP 2: Define Success Criteria
+    success_criteria = {
+        "minimum_score_threshold": 75.0,  # Reject outfits below this score
+        "required_categories": get_required_categories_for_occasion(req.occasion),
+        "style_coherence_requirement": 0.8,  # 80% style consistency required
+        "color_harmony_requirement": 0.7,   # 70% color harmony required
+        "maximum_attempts": 3  # Try up to 3 outfit combinations
+    }
+    
+    # STEP 3: Strategic Planning
+    strategy = formulate_outfit_strategy(context_analysis, success_criteria, wardrobe_items)
+    
+    logger.info(f"🧠 STRATEGY: {strategy['approach']}")
+    logger.info(f"🧠 TARGET SCORE: {success_criteria['minimum_score_threshold']}+")
+    
+    return {
+        "context": context_analysis,
+        "criteria": success_criteria,
+        "strategy": strategy,
+        "reasoning_chain": []
+    }
+
+def analyze_occasion_formality(occasion: str) -> Dict[str, Any]:
+    """Analyze formality level and specific requirements for occasion."""
+    formality_levels = {
+        "formal": {"level": 5, "requires": ["dress_shirt", "dress_pants", "dress_shoes"], "avoids": ["casual", "athletic"]},
+        "business": {"level": 4, "requires": ["collared_shirt", "dress_pants", "leather_shoes"], "avoids": ["shorts", "sandals"]},
+        "business casual": {"level": 3, "requires": ["collared_shirt", "chinos"], "avoids": ["athletic", "beachwear"]},
+        "party": {"level": 3, "requires": ["stylish_top", "dress_pants"], "avoids": ["athletic", "work_clothes"]},
+        "date": {"level": 3, "requires": ["attractive_top", "well_fitted_bottom"], "avoids": ["athletic", "sloppy"]},
+        "casual": {"level": 2, "requires": ["top", "bottom"], "avoids": ["formal", "athletic"]},
+        "athletic": {"level": 1, "requires": ["athletic_top", "athletic_bottom"], "avoids": ["formal", "business"]}
+    }
+    
+    return formality_levels.get(occasion.lower(), {"level": 2, "requires": ["top", "bottom"], "avoids": []})
+
+def analyze_style_requirements(style: str) -> Dict[str, Any]:
+    """Analyze specific requirements for the requested style."""
+    style_requirements = {
+        "business casual": {
+            "must_have": ["collared_shirt", "dress_pants", "leather_shoes"],
+            "colors": ["navy", "gray", "white", "light_blue"],
+            "materials": ["cotton", "wool", "leather"],
+            "avoid": ["athletic", "denim", "sandals"]
+        },
+        "minimalist": {
+            "must_have": ["clean_lines", "simple_silhouettes"],
+            "colors": ["black", "white", "gray", "navy"],
+            "materials": ["cotton", "wool", "cashmere"],
+            "avoid": ["busy_patterns", "bright_colors", "excessive_accessories"]
+        },
+        "old money": {
+            "must_have": ["tailored_pieces", "quality_materials"],
+            "colors": ["navy", "cream", "burgundy", "forest_green"],
+            "materials": ["wool", "cashmere", "silk", "leather"],
+            "avoid": ["synthetic", "flashy", "trendy"]
+        }
+    }
+    
+    return style_requirements.get(style.lower(), {
+        "must_have": [], "colors": [], "materials": [], "avoid": []
+    })
+
+def analyze_mood_influence(mood: str) -> Dict[str, Any]:
+    """Analyze how mood should influence outfit selection."""
+    mood_influences = {
+        "confident": {"emphasis": "structured_pieces", "colors": ["dark_colors", "bold_colors"], "fit": "tailored"},
+        "playful": {"emphasis": "fun_elements", "colors": ["bright_colors", "patterns"], "fit": "relaxed"},
+        "professional": {"emphasis": "clean_lines", "colors": ["neutral_colors"], "fit": "structured"},
+        "romantic": {"emphasis": "soft_textures", "colors": ["soft_colors", "pastels"], "fit": "flowing"},
+        "edgy": {"emphasis": "statement_pieces", "colors": ["black", "metallics"], "fit": "fitted"}
+    }
+    
+    return mood_influences.get(mood.lower(), {"emphasis": "balanced", "colors": ["versatile"], "fit": "comfortable"})
+
+def analyze_seasonal_context() -> Dict[str, Any]:
+    """Analyze current season and weather considerations."""
+    import datetime
+    month = datetime.datetime.now().month
+    
+    if month in [12, 1, 2]:  # Winter
+        return {"season": "winter", "layering": "required", "materials": ["wool", "cashmere"], "avoid": ["linen", "shorts"]}
+    elif month in [3, 4, 5]:  # Spring  
+        return {"season": "spring", "layering": "optional", "materials": ["cotton", "light_wool"], "avoid": ["heavy_coats"]}
+    elif month in [6, 7, 8]:  # Summer
+        return {"season": "summer", "layering": "minimal", "materials": ["cotton", "linen"], "avoid": ["wool", "heavy_fabrics"]}
+    else:  # Fall
+        return {"season": "fall", "layering": "recommended", "materials": ["wool", "cotton"], "avoid": ["linen", "shorts"]}
+
+def analyze_user_constraints(user_profile: Dict) -> Dict[str, Any]:
+    """Analyze user-specific constraints and preferences."""
+    constraints = {}
+    
+    if user_profile:
+        constraints["gender"] = user_profile.get("gender", "unisex")
+        constraints["style_preferences"] = user_profile.get("stylePreferences", [])
+        constraints["color_preferences"] = user_profile.get("colorPalette", {})
+        constraints["avoided_items"] = user_profile.get("avoidedItems", [])
+        
+    return constraints
+
+def get_required_categories_for_occasion(occasion: str) -> List[str]:
+    """Get absolutely required categories for an occasion."""
+    requirements = {
+        "formal": ["top", "bottom", "shoes", "accessories"],
+        "business": ["top", "bottom", "shoes"],
+        "business casual": ["top", "bottom", "shoes"],
+        "party": ["top", "bottom", "shoes"],
+        "date": ["top", "bottom", "shoes"],
+        "casual": ["top", "bottom"],
+        "athletic": ["top", "bottom", "shoes"]
+    }
+    
+    return requirements.get(occasion.lower(), ["top", "bottom"])
+
+def formulate_outfit_strategy(context: Dict, criteria: Dict, wardrobe_items: List[Dict]) -> Dict[str, Any]:
+    """Formulate strategic approach for outfit creation."""
+    
+    # Analyze wardrobe composition
+    wardrobe_analysis = analyze_wardrobe_composition(wardrobe_items)
+    
+    # Determine approach based on context and available items
+    if context["occasion_formality"]["level"] >= 4:
+        approach = "formal_first"  # Start with most formal pieces
+    elif context["style_requirements"]["must_have"]:
+        approach = "style_driven"  # Start with style-defining pieces  
+    elif wardrobe_analysis["favorite_count"] > 5:
+        approach = "favorite_focused"  # Prioritize user favorites
+    else:
+        approach = "balanced_selection"  # Balanced approach
+    
+    return {
+        "approach": approach,
+        "priority_categories": criteria["required_categories"],
+        "color_strategy": determine_color_strategy(context),
+        "layering_strategy": determine_layering_strategy(context),
+        "wardrobe_analysis": wardrobe_analysis
+    }
+
+def analyze_wardrobe_composition(wardrobe_items: List[Dict]) -> Dict[str, Any]:
+    """Analyze user's wardrobe to inform strategy."""
+    analysis = {
+        "total_items": len(wardrobe_items),
+        "favorite_count": len([item for item in wardrobe_items if item.get("isFavorite", False)]),
+        "category_distribution": {},
+        "style_distribution": {},
+        "color_distribution": {}
+    }
+    
+    for item in wardrobe_items:
+        # Category analysis
+        category = get_item_category(item.get("type", ""))
+        analysis["category_distribution"][category] = analysis["category_distribution"].get(category, 0) + 1
+        
+        # Style analysis
+        item_styles = item.get("style", [])
+        if isinstance(item_styles, list):
+            for style in item_styles:
+                analysis["style_distribution"][style] = analysis["style_distribution"].get(style, 0) + 1
+    
+    return analysis
+
+def determine_color_strategy(context: Dict) -> str:
+    """Determine color selection strategy based on context."""
+    if context["style_requirements"].get("colors"):
+        return "style_defined"
+    elif context["mood_influence"].get("colors"):
+        return "mood_driven"
+    else:
+        return "harmonious_neutral"
+
+def determine_layering_strategy(context: Dict) -> str:
+    """Determine layering approach based on season and occasion."""
+    formality = context["occasion_formality"]["level"]
+    season_layering = context["seasonal_considerations"]["layering"]
+    
+    if formality >= 4 and season_layering == "required":
+        return "formal_layered"
+    elif formality >= 3:
+        return "smart_layered"
+    elif season_layering == "minimal":
+        return "minimal_layers"
+    else:
+        return "comfort_layered"
+
+async def thought_driven_item_selection(wardrobe_items: List[Dict], thought_process: Dict, req: OutfitRequest) -> Dict[str, Any]:
+    """
+    Phase 2: Intelligent item selection with reasoning validation.
+    Each item is selected based on strategic reasoning, not random scoring.
+    """
+    logger.info(f"🧠 THOUGHT-DRIVEN SELECTION: Using {thought_process['strategy']['approach']} approach")
+    
+    selected_items = []
+    reasoning_chain = []
+    strategy = thought_process["strategy"]
+    criteria = thought_process["criteria"]
+    
+    # STEP 1: Select anchor item (most important piece)
+    anchor_item, anchor_reasoning = await select_anchor_item(wardrobe_items, strategy, req)
+    if anchor_item:
+        selected_items.append(anchor_item)
+        reasoning_chain.append(f"ANCHOR: {anchor_reasoning}")
+        logger.info(f"🧠 ANCHOR SELECTED: {anchor_item.get('name', 'unnamed')} - {anchor_reasoning}")
+    
+    # STEP 2: Select complementary items with reasoning
+    for category in criteria["required_categories"]:
+        if any(get_item_category(item.get("type", "")) == category for item in selected_items):
+            continue  # Category already filled
+            
+        complement_item, complement_reasoning = await select_complementary_item(
+            wardrobe_items, selected_items, category, strategy, req
+        )
+        
+        if complement_item:
+            selected_items.append(complement_item)
+            reasoning_chain.append(f"{category.upper()}: {complement_reasoning}")
+            logger.info(f"🧠 {category.upper()} SELECTED: {complement_item.get('name', 'unnamed')} - {complement_reasoning}")
+    
+    # STEP 3: Validate reasoning chain for outfit acceptability
+    outfit_reasoning = await validate_outfit_reasoning(selected_items, reasoning_chain, criteria, req)
+    
+    return {
+        "items": selected_items,
+        "reasoning_chain": reasoning_chain,
+        "outfit_reasoning": outfit_reasoning,
+        "predicted_score": outfit_reasoning.get("predicted_score", 0),
+        "acceptability": outfit_reasoning.get("acceptability", "unknown")
+    }
+
+async def select_anchor_item(wardrobe_items: List[Dict], strategy: Dict, req: OutfitRequest) -> tuple:
+    """Select the most important item that will anchor the outfit."""
+    
+    if strategy["approach"] == "formal_first":
+        # For formal occasions, start with most formal piece
+        formal_items = [item for item in wardrobe_items 
+                       if any(keyword in item.get("style", []) for keyword in ["formal", "business", "dress"])]
+        if formal_items:
+            anchor = max(formal_items, key=lambda x: calculate_formality_score(x))
+            return anchor, f"Most formal piece for {req.occasion} occasion"
+    
+    elif strategy["approach"] == "style_driven":
+        # Start with item that best represents the requested style
+        style_items = [item for item in wardrobe_items 
+                      if req.style.lower() in [s.lower() for s in item.get("style", [])]]
+        if style_items:
+            anchor = max(style_items, key=lambda x: calculate_style_coherence(x, req.style))
+            return anchor, f"Best representation of {req.style} style"
+    
+    elif strategy["approach"] == "favorite_focused":
+        # Start with user's favorite item that fits the occasion
+        favorite_items = [item for item in wardrobe_items if item.get("isFavorite", False)]
+        suitable_favorites = [item for item in favorite_items 
+                            if is_suitable_for_occasion(item, req.occasion)]
+        if suitable_favorites:
+            anchor = suitable_favorites[0]
+            return anchor, "User's favorite item suitable for occasion"
+    
+    # Default: balanced selection
+    suitable_items = [item for item in wardrobe_items 
+                     if is_suitable_for_occasion(item, req.occasion)]
+    if suitable_items:
+        anchor = max(suitable_items, key=lambda x: calculate_overall_suitability(x, req))
+        return anchor, "Most suitable item for overall outfit goals"
+    
+    return None, "No suitable anchor item found"
+
+async def select_complementary_item(wardrobe_items: List[Dict], selected_items: List[Dict], 
+                                  target_category: str, strategy: Dict, req: OutfitRequest) -> tuple:
+    """Select item that best complements already selected items."""
+    
+    # Filter items by target category
+    category_items = [item for item in wardrobe_items 
+                     if get_item_category(item.get("type", "")) == target_category
+                     and item not in selected_items]
+    
+    if not category_items:
+        return None, f"No available {target_category} items"
+    
+    # Score each item based on how well it complements the outfit
+    best_item = None
+    best_score = 0
+    best_reasoning = ""
+    
+    for item in category_items:
+        # Calculate complementary score
+        color_harmony = calculate_color_harmony_with_outfit(item, selected_items)
+        style_coherence = calculate_style_coherence_with_outfit(item, selected_items, req.style)
+        fit_appropriateness = calculate_fit_appropriateness(item, req.occasion)
+        
+        total_score = (color_harmony * 0.4) + (style_coherence * 0.4) + (fit_appropriateness * 0.2)
+        
+        if total_score > best_score:
+            best_item = item
+            best_score = total_score
+            best_reasoning = f"Excellent {target_category} choice (color: {color_harmony:.1f}, style: {style_coherence:.1f}, fit: {fit_appropriateness:.1f})"
+    
+    return best_item, best_reasoning
+
+async def validate_outfit_reasoning(items: List[Dict], reasoning_chain: List[str], 
+                                  criteria: Dict, req: OutfitRequest) -> Dict[str, Any]:
+    """Validate the complete outfit using reasoning chain analysis."""
+    
+    # Calculate predicted scores for each dimension
+    predicted_scores = {
+        "composition": predict_composition_score(items, req.occasion),
+        "color_harmony": predict_color_harmony_score(items),
+        "style_coherence": predict_style_coherence_score(items, req.style),
+        "layering": predict_layering_score(items, req.occasion),
+        "overall_suitability": predict_overall_suitability_score(items, req)
+    }
+    
+    # Calculate weighted prediction
+    predicted_total = (
+        predicted_scores["composition"] * 0.25 +
+        predicted_scores["color_harmony"] * 0.20 +
+        predicted_scores["style_coherence"] * 0.25 +
+        predicted_scores["layering"] * 0.15 +
+        predicted_scores["overall_suitability"] * 0.15
+    )
+    
+    # Determine acceptability
+    acceptability = "ACCEPTABLE" if predicted_total >= criteria["minimum_score_threshold"] else "UNACCEPTABLE"
+    
+    # Generate reasoning summary
+    reasoning_summary = f"Predicted score: {predicted_total:.1f}/100. "
+    if acceptability == "ACCEPTABLE":
+        reasoning_summary += f"Exceeds minimum threshold of {criteria['minimum_score_threshold']}."
+    else:
+        reasoning_summary += f"Below minimum threshold of {criteria['minimum_score_threshold']}. Requires refinement."
+    
+    logger.info(f"🧠 OUTFIT REASONING: {reasoning_summary}")
+    
+    return {
+        "predicted_score": predicted_total,
+        "predicted_scores": predicted_scores,
+        "acceptability": acceptability,
+        "reasoning_summary": reasoning_summary,
+        "improvement_suggestions": generate_improvement_suggestions(predicted_scores, criteria) if acceptability == "UNACCEPTABLE" else []
+    }
+
+# Helper functions for the thought clarification system
+
+def calculate_formality_score(item: Dict) -> float:
+    """Calculate how formal an item is."""
+    formal_keywords = ["dress", "formal", "business", "suit", "blazer", "oxford"]
+    item_name = item.get("name", "").lower()
+    item_styles = [s.lower() for s in item.get("style", [])]
+    
+    score = 0
+    for keyword in formal_keywords:
+        if keyword in item_name or any(keyword in style for style in item_styles):
+            score += 1
+    
+    return score
+
+def calculate_style_coherence(item: Dict, target_style: str) -> float:
+    """Calculate how well an item represents a specific style."""
+    item_styles = [s.lower() for s in item.get("style", [])]
+    target_style_lower = target_style.lower()
+    
+    if target_style_lower in item_styles:
+        return 1.0
+    
+    # Check for related styles
+    style_relationships = {
+        "business casual": ["business", "casual", "professional"],
+        "minimalist": ["clean", "simple", "modern"],
+        "old money": ["classic", "traditional", "preppy"]
+    }
+    
+    related_styles = style_relationships.get(target_style_lower, [])
+    for related in related_styles:
+        if any(related in style for style in item_styles):
+            return 0.7
+    
+    return 0.3
+
+def is_suitable_for_occasion(item: Dict, occasion: str) -> bool:
+    """Check if an item is suitable for the given occasion."""
+    item_occasions = [o.lower() for o in item.get("occasion", [])]
+    occasion_lower = occasion.lower()
+    
+    return occasion_lower in item_occasions or "casual" in item_occasions
+
+def calculate_overall_suitability(item: Dict, req: OutfitRequest) -> float:
+    """Calculate overall suitability score for an item."""
+    style_score = calculate_style_coherence(item, req.style)
+    occasion_score = 1.0 if is_suitable_for_occasion(item, req.occasion) else 0.5
+    formality_score = calculate_formality_score(item) / 6.0  # Normalize to 0-1
+    
+    return (style_score * 0.4) + (occasion_score * 0.4) + (formality_score * 0.2)
+
+def calculate_color_harmony_with_outfit(item: Dict, selected_items: List[Dict]) -> float:
+    """Calculate how well an item's colors harmonize with selected items."""
+    if not selected_items:
+        return 1.0
+    
+    item_color = item.get("color", "").lower()
+    selected_colors = [item.get("color", "").lower() for item in selected_items]
+    
+    # Simple color harmony rules
+    neutral_colors = ["black", "white", "gray", "navy", "beige", "brown"]
+    
+    if item_color in neutral_colors:
+        return 0.9  # Neutrals generally work well
+    
+    # Check for complementary colors (simplified)
+    complementary_pairs = [
+        ("blue", "orange"), ("red", "green"), ("yellow", "purple")
+    ]
+    
+    for color1, color2 in complementary_pairs:
+        if item_color == color1 and any(color2 in selected_color for selected_color in selected_colors):
+            return 0.8
+        if item_color == color2 and any(color1 in selected_color for selected_color in selected_colors):
+            return 0.8
+    
+    return 0.6  # Default harmony score
+
+def calculate_style_coherence_with_outfit(item: Dict, selected_items: List[Dict], target_style: str) -> float:
+    """Calculate style coherence with already selected items."""
+    item_styles = set(s.lower() for s in item.get("style", []))
+    
+    if not selected_items:
+        return calculate_style_coherence(item, target_style)
+    
+    # Check coherence with selected items
+    selected_styles = set()
+    for selected_item in selected_items:
+        selected_styles.update(s.lower() for s in selected_item.get("style", []))
+    
+    # Calculate overlap
+    style_overlap = len(item_styles.intersection(selected_styles)) / max(len(item_styles), 1)
+    target_style_match = calculate_style_coherence(item, target_style)
+    
+    return (style_overlap * 0.6) + (target_style_match * 0.4)
+
+def calculate_fit_appropriateness(item: Dict, occasion: str) -> float:
+    """Calculate how appropriate an item's fit is for the occasion."""
+    item_type = item.get("type", "").lower()
+    
+    formal_occasions = ["formal", "business", "business casual"]
+    casual_occasions = ["casual", "weekend", "beach"]
+    
+    if occasion.lower() in formal_occasions:
+        formal_types = ["dress_shirt", "suit", "blazer", "dress_pants", "oxford_shoes"]
+        return 1.0 if any(formal_type in item_type for formal_type in formal_types) else 0.6
+    
+    if occasion.lower() in casual_occasions:
+        casual_types = ["t_shirt", "jeans", "sneakers", "polo"]
+        return 1.0 if any(casual_type in item_type for casual_type in casual_types) else 0.7
+    
+    return 0.8  # Default appropriateness
+
+def predict_composition_score(items: List[Dict], occasion: str) -> float:
+    """Predict the composition score for the outfit."""
+    required_categories = get_required_categories_for_occasion(occasion)
+    present_categories = set(get_item_category(item.get("type", "")) for item in items)
+    
+    required_present = len(required_categories) == len([cat for cat in required_categories if cat in present_categories])
+    item_count_appropriate = 3 <= len(items) <= 6
+    
+    if required_present and item_count_appropriate:
+        return 85.0
+    elif required_present:
+        return 75.0
+    elif item_count_appropriate:
+        return 65.0
+    else:
+        return 50.0
+
+def predict_color_harmony_score(items: List[Dict]) -> float:
+    """Predict color harmony score for the outfit."""
+    colors = [item.get("color", "").lower() for item in items]
+    neutral_count = sum(1 for color in colors if color in ["black", "white", "gray", "navy", "beige", "brown"])
+    
+    if neutral_count >= len(colors) * 0.7:  # 70% neutrals
+        return 80.0
+    else:
+        return 65.0  # Simplified prediction
+
+def predict_style_coherence_score(items: List[Dict], target_style: str) -> float:
+    """Predict style coherence score for the outfit."""
+    style_matches = sum(1 for item in items if calculate_style_coherence(item, target_style) >= 0.7)
+    coherence_ratio = style_matches / len(items) if items else 0
+    
+    return coherence_ratio * 100
+
+def predict_layering_score(items: List[Dict], occasion: str) -> float:
+    """Predict layering score for the outfit."""
+    layer_items = [item for item in items if is_layer_item(item.get("type", ""))]
+    layer_count = len(layer_items)
+    
+    if occasion.lower() in ["formal", "business"]:
+        return 85.0 if 2 <= layer_count <= 3 else 65.0
+    else:
+        return 85.0 if layer_count <= 3 else 65.0
+
+def predict_overall_suitability_score(items: List[Dict], req: OutfitRequest) -> float:
+    """Predict overall suitability score for the outfit."""
+    suitability_scores = [calculate_overall_suitability(item, req) for item in items]
+    return (sum(suitability_scores) / len(suitability_scores)) * 100 if suitability_scores else 50.0
+
+def generate_improvement_suggestions(predicted_scores: Dict, criteria: Dict) -> List[str]:
+    """Generate specific suggestions for improving unacceptable outfits."""
+    suggestions = []
+    
+    if predicted_scores["composition"] < 70:
+        suggestions.append("Add missing required clothing categories")
+    
+    if predicted_scores["color_harmony"] < 65:
+        suggestions.append("Choose colors that harmonize better (try more neutrals)")
+    
+    if predicted_scores["style_coherence"] < 70:
+        suggestions.append("Select items that better match the requested style")
+    
+    if predicted_scores["layering"] < 70:
+        suggestions.append("Adjust layering for better occasion appropriateness")
+    
+    return suggestions
+
 async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
-    """Generate outfit using AI logic and user's wardrobe."""
+    """
+    Enhanced AI outfit generation with Integrated Thought Clarification.
+    This system uses proactive reasoning to prevent unacceptable outfits.
+    """
     try:
+        logger.info(f"🧠 Starting Integrated Thought Clarification for outfit generation")
         logger.info(f"🤖 Generating AI outfit with {len(wardrobe_items)} items")
         
-        # For now, implement basic outfit selection logic
-        # TODO: Integrate with OpenAI GPT for more sophisticated generation
+        # PHASE 1: THOUGHT CLARIFICATION - Strategic Planning
+        thought_process = await initiate_thought_clarification(req, user_profile, wardrobe_items)
+        logger.info(f"🧠 Thought process initiated: {thought_process['strategy']['approach']}")
         
-                # ENHANCED: Sophisticated style preference filtering with scoring
+        # PHASE 2: THOUGHT-DRIVEN ITEM SELECTION with validation
+        attempt = 1
+        max_attempts = thought_process["criteria"]["maximum_attempts"]
+        
+        while attempt <= max_attempts:
+            logger.info(f"🧠 Attempt {attempt}/{max_attempts} - Thought-driven selection")
+            
+            # Select items using reasoning chains
+            selection_result = await thought_driven_item_selection(wardrobe_items, thought_process, req)
+            
+            # Check if outfit meets acceptability threshold
+            if selection_result["acceptability"] == "ACCEPTABLE":
+                logger.info(f"🧠 ✅ ACCEPTABLE OUTFIT FOUND on attempt {attempt}")
+                logger.info(f"🧠 Predicted score: {selection_result['predicted_score']:.1f}")
+                logger.info(f"🧠 Reasoning chain: {selection_result['reasoning_chain']}")
+                
+                # Use the thought-clarification selected items
+                validated_items = selection_result["items"]
+                break
+            else:
+                logger.warning(f"🧠 ❌ UNACCEPTABLE OUTFIT on attempt {attempt}")
+                logger.warning(f"🧠 Predicted score: {selection_result['predicted_score']:.1f} (threshold: {thought_process['criteria']['minimum_score_threshold']})")
+                logger.warning(f"🧠 Issues: {selection_result['outfit_reasoning']['improvement_suggestions']}")
+                
+                if attempt == max_attempts:
+                    logger.error(f"🧠 FAILED to create acceptable outfit after {max_attempts} attempts")
+                    logger.error(f"🧠 Falling back to legacy system...")
+                    # Fall back to the original system as last resort
+                    return await generate_legacy_outfit_fallback(wardrobe_items, user_profile, req)
+                
+                attempt += 1
+        
+        # PHASE 3: ENHANCED VALIDATION (additional checks on the accepted outfit)
+        logger.info(f"🔍 DEBUG: Running enhanced validation on thought-clarified outfit")
+        
+        # Apply traditional validation as secondary check
+        layering_validation = await validate_layering_rules(validated_items, req.occasion)
+        color_material_validation = await validate_color_material_harmony(validated_items, req.style, req.mood)
+        
+        # Log validation results
+        logger.info(f"🔍 DEBUG: Secondary validation - Layering: {layering_validation.get('is_valid', False)}")
+        logger.info(f"🔍 DEBUG: Secondary validation - Color/Material: {color_material_validation.get('is_valid', False)}")
+        
+        # Create outfit name and structure
+        outfit_name = f"{req.style.title()} {req.mood.title()} Look"
+        
+        # Ensure items have proper structure with imageUrl
+        outfit_items = []
+        for item in validated_items:
+            # Convert Firebase Storage gs:// URLs to https:// URLs
+            raw_image_url = item.get('imageUrl', '') or item.get('image_url', '') or item.get('image', '')
+            if raw_image_url and raw_image_url.startswith('gs://'):
+                # Convert gs://bucket-name/path to https://firebasestorage.googleapis.com/v0/b/bucket-name/o/path
+                parts = raw_image_url.replace('gs://', '').split('/', 1)
+                if len(parts) == 2:
+                    bucket_name = parts[0]
+                    file_path = parts[1]
+                    # Encode the file path for URL
+                    encoded_path = urllib.parse.quote(file_path, safe='')
+                    image_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
+                else:
+                    image_url = raw_image_url
+            else:
+                image_url = raw_image_url
+            
+            outfit_item = {
+                "id": item.get('id', ''),
+                "name": item.get('name', ''),
+                "type": item.get('type', ''),
+                "color": item.get('color', ''),
+                "imageUrl": image_url
+            }
+            outfit_items.append(outfit_item)
+            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Image URL: {image_url}")
+        
+        # Calculate comprehensive outfit score (using the real scoring system)
+        outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation)
+        logger.info(f"🔍 DEBUG: Final calculated outfit score: {outfit_score}")
+        
+        # Add thought clarification reasoning to the final result
+        reasoning_summary = f"Thought-clarified outfit with {len(outfit_items)} items. "
+        reasoning_summary += f"Strategy: {thought_process['strategy']['approach']}. "
+        reasoning_summary += f"Required categories: {', '.join(set([get_item_category(item.get('type', '')) for item in outfit_items]))}."
+        
+        return {
+            "name": outfit_name,
+            "style": req.style,
+            "mood": req.mood,
+            "items": outfit_items,
+            "occasion": req.occasion,
+            "confidence_score": outfit_score["total_score"],
+            "score_breakdown": outfit_score,
+            "reasoning": reasoning_summary,
+            "createdAt": int(datetime.now().timestamp()),
+            # Add thought clarification metadata
+            "thought_clarification": {
+                "strategy_used": thought_process["strategy"]["approach"],
+                "attempts_made": attempt,
+                "predicted_score": selection_result.get("predicted_score", 0),
+                "reasoning_chain": selection_result.get("reasoning_chain", [])
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"🧠 THOUGHT CLARIFICATION FAILED: {e}")
+        logger.error(f"🧠 Falling back to legacy outfit generation...")
+        return await generate_legacy_outfit_fallback(wardrobe_items, user_profile, req)
+
+async def generate_legacy_outfit_fallback(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
+    """
+    Legacy outfit generation system - used as fallback when thought clarification fails.
+    This is the original system without thought clarification.
+    """
+    logger.info(f"🔄 Using legacy outfit generation fallback")
+    
+    try:
+        # LEGACY: Basic style preference filtering with scoring
         suitable_items = []
         item_scores = {}  # Track scores for each item
         
