@@ -203,15 +203,20 @@ class OutfitService:
             outfit_items = []
             for item in items:
                 if isinstance(item, dict):
+                    # Provide all required fields for OutfitItem
                     outfit_item = OutfitItem(
                         id=item.get('id', ''),
                         name=item.get('name', ''),
-                        type=item.get('type', ''),
-                        imageUrl=item.get('imageUrl') or item.get('image_url') or item.get('image', ''),
+                        userId=user_id,  # Required field
+                        subType=item.get('subType') or item.get('category') or item.get('type', 'item'),  # Required field
+                        type=item.get('type', 'item'),
                         color=item.get('color', ''),
-                        size=item.get('size', ''),
+                        imageUrl=item.get('imageUrl') or item.get('image_url') or item.get('image', ''),
+                        style=item.get('style', []) if isinstance(item.get('style'), list) else [item.get('style', 'casual')],  # Required List[str]
+                        occasion=item.get('occasion', []) if isinstance(item.get('occasion'), list) else [item.get('occasion', 'casual')],  # Required List[str]
                         brand=item.get('brand', ''),
-                        price=item.get('price', 0.0)
+                        wearCount=item.get('wearCount', 0),
+                        favorite_score=item.get('favorite_score', 0.0)
                     )
                     outfit_items.append(outfit_item)
             
