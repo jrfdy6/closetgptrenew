@@ -496,38 +496,44 @@ async def calculate_outfit_score(items: List[Dict], req: OutfitRequest, layering
     # Initialize component scores
     scores = {}
     
-    # 1. Composition Score (25% weight) - Basic outfit structure
+    # 1. Composition Score (20% weight) - Basic outfit structure
     composition_score = calculate_composition_score(items, req.occasion)
     scores["composition_score"] = composition_score
     logger.info(f"🔍 DEBUG: Composition score: {composition_score}")
     
-    # 2. Layering Score (20% weight) - Smart layering and conflicts
+    # 2. Layering Score (15% weight) - Smart layering and conflicts
     layering_score = calculate_layering_score(layering_validation)
     scores["layering_score"] = layering_score
     logger.info(f"🔍 DEBUG: Layering score: {layering_score}")
     
-    # 3. Color Harmony Score (20% weight) - Color theory and psychology
+    # 3. Color Harmony Score (15% weight) - Color theory and psychology
     color_score = calculate_color_score(color_material_validation.get("colors", {}))
     scores["color_score"] = color_score
     logger.info(f"🔍 DEBUG: Color score: {color_score}")
     
-    # 4. Material Compatibility Score (15% weight) - Fabric and texture harmony
+    # 4. Material Compatibility Score (10% weight) - Fabric and texture harmony
     material_score = calculate_material_score(color_material_validation.get("materials", {}))
     scores["material_score"] = material_score
     logger.info(f"🔍 DEBUG: Material score: {material_score}")
     
-    # 5. Style Coherence Score (20% weight) - Style and mood alignment
+    # 5. Style Coherence Score (15% weight) - Style and mood alignment
     style_score = calculate_style_coherence_score(items, req.style, req.mood)
     scores["style_score"] = style_score
     logger.info(f"🔍 DEBUG: Style score: {style_score}")
     
+    # 6. Wardrobe Intelligence Score (25% weight) - Favorites, wear history, diversity
+    wardrobe_score = await calculate_wardrobe_intelligence_score(items)
+    scores["wardrobe_intelligence_score"] = wardrobe_score
+    logger.info(f"🔍 DEBUG: Wardrobe intelligence score: {wardrobe_score}")
+    
     # Calculate weighted total score (0-100 scale)
     weights = {
-        "composition_score": 0.25,
-        "layering_score": 0.20,
-        "color_score": 0.20,
-        "material_score": 0.15,
-        "style_score": 0.20
+        "composition_score": 0.20,
+        "layering_score": 0.15,
+        "color_score": 0.15,
+        "material_score": 0.10,
+        "style_score": 0.15,
+        "wardrobe_intelligence_score": 0.25
     }
     
     total_score = sum(scores[component] * weights[component] for component in scores.keys())
@@ -744,6 +750,159 @@ def get_score_grade(score: float) -> str:
         return "C-"
     else:
         return "D"
+
+async def calculate_wardrobe_intelligence_score(items: List[Dict]) -> float:
+    """Calculate score based on wardrobe intelligence: favorites, wear history, diversity."""
+    logger.info(f"🔍 DEBUG: Calculating wardrobe intelligence score for {len(items)} items")
+    
+    # Get current user ID from the hardcoded user (for now)
+    current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+    
+    total_score = 0.0
+    item_scores = []
+    
+    for item in items:
+        item_score = 0.0
+        item_id = item.get('id', '')
+        
+        # Get item analytics data
+        try:
+            # Query item analytics collection for wear history and favorites
+            analytics_ref = db.collection('item_analytics').where('item_id', '==', item_id).where('user_id', '==', current_user_id).limit(1)
+            analytics_docs = analytics_ref.stream()
+            analytics_data = None
+            for doc in analytics_docs:
+                analytics_data = doc.to_dict()
+                break
+            
+            if analytics_data:
+                # 1. Favorite Status Bonus (up to 25 points)
+                # Check both analytics and wardrobe collection for favorite status
+                is_favorite = analytics_data.get('is_favorite', False)
+                
+                # Also check wardrobe collection for favorite status
+                try:
+                    wardrobe_ref = db.collection('wardrobe').document(item_id)
+                    wardrobe_doc = wardrobe_ref.get()
+                    if wardrobe_doc.exists:
+                        wardrobe_data = wardrobe_doc.to_dict()
+                        if wardrobe_data.get('isFavorite', False):
+                            is_favorite = True
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not check wardrobe favorite status for item {item_id}: {e}")
+                
+                if is_favorite:
+                    item_score += 25
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +25 favorite bonus")
+                
+                # 2. Wear Count Scoring (up to 20 points)
+                wear_count = analytics_data.get('wear_count', 0)
+                
+                # Fallback to wardrobe collection if no analytics data
+                if wear_count == 0:
+                    try:
+                        wardrobe_ref = db.collection('wardrobe').document(item_id)
+                        wardrobe_doc = wardrobe_ref.get()
+                        if wardrobe_doc.exists:
+                            wardrobe_data = wardrobe_doc.to_dict()
+                            wear_count = wardrobe_data.get('wearCount', 0)
+                    except Exception as e:
+                        logger.warning(f"⚠️ Could not get wear count from wardrobe for item {item_id}: {e}")
+                
+                if wear_count == 0:
+                    item_score += 20  # Bonus for unworn items
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +20 unworn bonus")
+                elif wear_count <= 3:
+                    item_score += 15  # Good for moderately worn items
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +15 moderately worn bonus")
+                elif wear_count <= 7:
+                    item_score += 10  # Acceptable for frequently worn items
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +10 frequently worn bonus")
+                else:
+                    item_score += 5   # Minimal points for over-worn items
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +5 over-worn bonus")
+                
+                # 3. Recent Wear Penalty (up to -15 points)
+                last_worn = analytics_data.get('last_worn')
+                
+                # Fallback to wardrobe collection if no analytics data
+                if not last_worn:
+                    try:
+                        wardrobe_ref = db.collection('wardrobe').document(item_id)
+                        wardrobe_doc = wardrobe_ref.get()
+                        if wardrobe_doc.exists:
+                            wardrobe_data = wardrobe_doc.to_dict()
+                            last_worn = wardrobe_data.get('lastWorn')
+                    except Exception as e:
+                        logger.warning(f"⚠️ Could not get last worn from wardrobe for item {item_id}: {e}")
+                
+                if last_worn:
+                    try:
+                        # Parse last_worn timestamp
+                        if isinstance(last_worn, str):
+                            last_worn_dt = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                        else:
+                            last_worn_dt = last_worn
+                        
+                        days_since_worn = (datetime.now() - last_worn_dt).days
+                        
+                        if days_since_worn <= 1:
+                            item_score -= 15  # Heavy penalty for worn yesterday
+                            logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets -15 penalty (worn yesterday)")
+                        elif days_since_worn <= 3:
+                            item_score -= 10  # Penalty for worn this week
+                            logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets -10 penalty (worn this week)")
+                        elif days_since_worn <= 7:
+                            item_score -= 5   # Light penalty for worn this month
+                            logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets -5 penalty (worn this month)")
+                        else:
+                            item_score += 5   # Bonus for items not worn recently
+                            logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +5 bonus (not worn recently)")
+                    
+                    except Exception as e:
+                        logger.warning(f"⚠️ Could not parse last_worn date for item {item_id}: {e}")
+                        item_score += 5  # Neutral score if date parsing fails
+                
+                # 4. User Feedback Bonus (up to 15 points)
+                feedback_rating = analytics_data.get('average_feedback_rating', 0)
+                if feedback_rating >= 4.5:
+                    item_score += 15  # Excellent feedback
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +15 feedback bonus (rating: {feedback_rating})")
+                elif feedback_rating >= 4.0:
+                    item_score += 10  # Good feedback
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +10 feedback bonus (rating: {feedback_rating})")
+                elif feedback_rating >= 3.5:
+                    item_score += 5   # Average feedback
+                    logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +5 feedback bonus (rating: {feedback_rating})")
+                
+                # 5. Style Preference Match (up to 10 points)
+                style_match = analytics_data.get('style_preference_score', 0.5)
+                item_score += style_match * 10
+                logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +{style_match * 10:.1f} style preference bonus")
+                
+            else:
+                # No analytics data - neutral score
+                item_score = 50
+                logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets neutral score (no analytics data)")
+            
+        except Exception as e:
+            logger.error(f"❌ Error calculating wardrobe intelligence for item {item_id}: {e}")
+            item_score = 50  # Neutral score on error
+        
+        # Ensure score stays within bounds
+        item_score = max(0, min(100, item_score))
+        item_scores.append(item_score)
+        total_score += item_score
+        
+        logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} final wardrobe score: {item_score}")
+    
+    # Calculate average score across all items
+    if item_scores:
+        average_score = total_score / len(item_scores)
+        logger.info(f"🔍 DEBUG: Average wardrobe intelligence score: {average_score:.2f}")
+        return round(average_score, 2)
+    else:
+        return 50.0  # Neutral score if no items
 
 def is_layer_item(item_type: str) -> bool:
     """Check if item type is a layering item."""
