@@ -77,6 +77,8 @@ export default function OutfitGenerationPage() {
     feedback: ''
   });
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [filteredStyles, setFilteredStyles] = useState<string[]>([]);
 
   const occasions = [
     // Everyday
@@ -134,6 +136,64 @@ export default function OutfitGenerationPage() {
   const weatherOptions = [
     'sunny', 'rainy', 'cloudy', 'cold', 'warm', 'hot', 'mild'
   ];
+
+  // ENHANCED: Gender-aware style filtering
+  const filterStylesByGender = (styles: string[], gender: string) => {
+    if (!gender) return styles;
+    
+    const feminineStyles = [
+      'French Girl', 'Romantic', 'Pinup', 'Boho', 'Cottagecore',
+      'Coastal Grandmother', 'Clean Girl'
+    ];
+    
+    const masculineStyles = [
+      'Techwear', 'Grunge', 'Streetwear'
+    ];
+    
+    if (gender.toLowerCase() === 'male') {
+      return styles.filter(style => !feminineStyles.includes(style));
+    } else if (gender.toLowerCase() === 'female') {
+      return styles.filter(style => !masculineStyles.includes(style));
+    }
+    
+    return styles;
+  };
+
+  // Fetch user profile and filter styles
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const token = await user.getIdToken();
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const profile = await response.json();
+          setUserProfile(profile);
+          
+          // Filter styles based on gender
+          const filtered = filterStylesByGender(styles, profile.gender);
+          setFilteredStyles(filtered);
+          
+          // If current style is not compatible, reset it
+          if (formData.style && !filtered.includes(formData.style)) {
+            setFormData(prev => ({ ...prev, style: '' }));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        // Fallback to all styles if profile fetch fails
+        setFilteredStyles(styles);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   const handleInputChange = (field: keyof OutfitGenerationForm, value: string) => {
     setFormData(prev => ({
@@ -377,13 +437,18 @@ export default function OutfitGenerationPage() {
                       <SelectValue placeholder="Select style" />
                     </SelectTrigger>
                     <SelectContent>
-                      {styles.map((style) => (
+                      {(filteredStyles.length > 0 ? filteredStyles : styles).map((style) => (
                         <SelectItem key={style} value={style}>
                           {style.charAt(0).toUpperCase() + style.slice(1)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {userProfile?.gender && filteredStyles.length < styles.length && (
+                    <p className="text-xs text-muted-foreground">
+                      Styles filtered for {userProfile.gender} users
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

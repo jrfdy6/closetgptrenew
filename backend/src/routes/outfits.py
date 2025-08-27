@@ -123,6 +123,14 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         user_profile = await get_user_profile(user_id)
         logger.info(f"👤 Retrieved user profile for {user_id}")
         
+        # ENHANCED: Validate style-gender compatibility
+        if user_profile and user_profile.get('gender'):
+            style_validation = await validate_style_gender_compatibility(req.style, user_profile.get('gender'))
+            if not style_validation.get('is_compatible'):
+                logger.warning(f"⚠️ Style-gender compatibility issue: {style_validation.get('warning')}")
+                # For now, we'll continue but log the warning
+                # In the future, we could suggest alternatives or reject the request
+        
         # 3. Generate outfit using AI logic
         logger.info(f"🔍 DEBUG: About to call generate_ai_outfit with {len(wardrobe_items)} items")
         outfit = await generate_ai_outfit(wardrobe_items, user_profile, req)
@@ -135,6 +143,52 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.warning(f"⚠️ Outfit generation failed, using fallback: {e}")
         # Fallback to basic generation if AI fails
         return await generate_fallback_outfit(req, user_id)
+
+async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
+    """Validate if the requested style is appropriate for the user's gender."""
+    logger.info(f"🔍 DEBUG: Validating style '{style}' for gender '{user_gender}'")
+    
+    # Gender-specific style definitions
+    feminine_styles = [
+        'french girl', 'romantic', 'pinup', 'boho', 'cottagecore', 
+        'coastal grandmother', 'clean girl', 'feminine', 'delicate'
+    ]
+    
+    masculine_styles = [
+        'techwear', 'grunge', 'streetwear', 'rugged', 'masculine', 
+        'athletic', 'sporty', 'urban'
+    ]
+    
+    unisex_styles = [
+        'minimalist', 'modern', 'classic', 'business casual', 'preppy',
+        'casual', 'formal', 'avant-garde', 'artsy', 'maximalist',
+        'colorblock', 'scandinavian', 'coastal chic', 'athleisure'
+    ]
+    
+    style_lower = style.lower()
+    user_gender_lower = user_gender.lower()
+    
+    # Check style appropriateness
+    if user_gender_lower == 'male' and style_lower in feminine_styles:
+        return {
+            "is_compatible": False,
+            "warning": f"Style '{style}' is typically feminine and may not be appropriate for male users",
+            "suggested_alternatives": [s for s in unisex_styles if s not in ['french girl', 'romantic']]
+        }
+    
+    elif user_gender_lower == 'female' and style_lower in masculine_styles:
+        return {
+            "is_compatible": False,
+            "warning": f"Style '{style}' is typically masculine and may not be appropriate for female users",
+            "suggested_alternatives": [s for s in unisex_styles if s not in ['techwear', 'grunge']]
+        }
+    
+    else:
+        return {
+            "is_compatible": True,
+            "warning": None,
+            "suggested_alternatives": []
+        }
 
 async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[Dict]:
     """Validate and ensure outfit has required components."""
@@ -1318,6 +1372,29 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
                     business_colors = ['white', 'black', 'navy', 'gray', 'charcoal', 'beige', 'brown', 'blue', 'cream']
                     if item_color and item_color not in business_colors:
                         logger.info(f"🔍 DEBUG: Skipping non-business color: {item.get('name', 'unnamed')} ({item_color})")
+                        continue
+                
+                # ENHANCED: Gender-appropriate style validation
+                if user_profile and user_profile.get('gender'):
+                    user_gender = user_profile.get('gender').lower()
+                    item_gender = item.get('gender', '').lower()
+                    
+                    # Gender-specific style filtering
+                    if user_gender == 'male':
+                        feminine_styles = ['french girl', 'romantic', 'pinup', 'boho', 'cottagecore']
+                        if req.style.lower() in feminine_styles:
+                            logger.info(f"🔍 DEBUG: Skipping feminine style '{req.style}' for male user: {item.get('name', 'unnamed')}")
+                            continue
+                    
+                    elif user_gender == 'female':
+                        masculine_styles = ['techwear', 'grunge', 'streetwear']
+                        if req.style.lower() in masculine_styles:
+                            logger.info(f"🔍 DEBUG: Skipping masculine style '{req.style}' for female user: {item.get('name', 'unnamed')}")
+                            continue
+                    
+                    # Item gender compatibility
+                    if item_gender and item_gender not in ['unisex', user_gender]:
+                        logger.info(f"🔍 DEBUG: Skipping gender-incompatible item: {item.get('name', 'unnamed')} (item: {item_gender}, user: {user_gender})")
                         continue
                 
                 suitable_items.append(item)
