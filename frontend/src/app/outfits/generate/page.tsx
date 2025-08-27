@@ -385,7 +385,7 @@ export default function OutfitGenerationPage() {
         const savedOutfit = await saveResponse.json();
         
         // Then mark it as worn
-        const wearResponse = await fetch('/api/outfit/wear', {
+        const wearResponse = await fetch('/api/outfits/mark-worn', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -476,8 +476,9 @@ export default function OutfitGenerationPage() {
   const handleSubmitRating = async () => {
     if (!generatedOutfit || !user) return;
     
-    // Allow submission even without rating (for like/dislike only)
+    // Only submit if there's actual rating data
     if (outfitRating.rating === 0 && !outfitRating.isLiked && !outfitRating.isDisliked && !outfitRating.feedback.trim()) {
+      console.log('🔍 DEBUG: No rating data to submit, skipping');
       return;
     }
     
@@ -541,6 +542,21 @@ export default function OutfitGenerationPage() {
         }
       }
       
+      // Prepare rating payload - only include rating if stars were selected
+      const ratingPayload: any = {
+        outfitId: outfitId,
+        isLiked: outfitRating.isLiked,
+        isDisliked: outfitRating.isDisliked,
+        feedback: outfitRating.feedback
+      };
+      
+      // Only include rating if stars were actually selected (1-5)
+      if (outfitRating.rating > 0) {
+        ratingPayload.rating = outfitRating.rating;
+      }
+      
+      console.log('🔍 DEBUG: Submitting rating payload:', ratingPayload);
+      
       // Submit rating to backend
       const response = await fetch('/api/outfits/rate', {
         method: 'POST',
@@ -548,13 +564,7 @@ export default function OutfitGenerationPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          outfitId: outfitId,
-          rating: outfitRating.rating,
-          isLiked: outfitRating.isLiked,
-          isDisliked: outfitRating.isDisliked,
-          feedback: outfitRating.feedback
-        }),
+        body: JSON.stringify(ratingPayload),
       });
       
       if (response.ok) {
@@ -566,10 +576,14 @@ export default function OutfitGenerationPage() {
           isLiked: outfitRating.isLiked,
           isDisliked: outfitRating.isDisliked
         } : null);
+        console.log('✅ Rating submitted successfully');
       } else {
-        setError('Failed to submit rating');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Rating submission failed:', errorData);
+        setError(`Failed to submit rating: ${errorData.detail || errorData.error || 'Unknown error'}`);
       }
     } catch (err) {
+      console.error('❌ Error submitting rating:', err);
       setError('Failed to submit rating');
     }
   };

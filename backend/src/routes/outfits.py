@@ -2036,8 +2036,17 @@ async def rate_outfit(
         
         logger.info(f"⭐ Rating outfit {outfit_id} for user {current_user_id}: {rating} stars")
         
-        if not outfit_id or not rating:
-            raise HTTPException(status_code=400, detail="Missing required rating data")
+        # Allow rating with just like/dislike feedback, or with star rating
+        if not outfit_id:
+            raise HTTPException(status_code=400, detail="Missing outfit ID")
+        
+        # If rating is provided, validate it's between 1-5
+        if rating is not None and (rating < 1 or rating > 5):
+            raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+        
+        # Require at least some feedback (rating, like, dislike, or text feedback)
+        if not rating and not is_liked and not is_disliked and not feedback.strip():
+            raise HTTPException(status_code=400, detail="At least one form of feedback is required (rating, like, dislike, or comment)")
         
         # Update outfit with rating data
         outfit_ref = db.collection('outfits').document(outfit_id)
