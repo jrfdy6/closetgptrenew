@@ -1340,13 +1340,18 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         # For now, implement basic outfit selection logic
         # TODO: Integrate with OpenAI GPT for more sophisticated generation
         
-        # Filter items by occasion and style
+                # ENHANCED: Sophisticated style preference filtering with scoring
         suitable_items = []
+        item_scores = {}  # Track scores for each item
+        
         logger.info(f"🔍 DEBUG: Filtering {len(wardrobe_items)} items for style: {req.style}, occasion: {req.occasion}")
+        logger.info(f"🔍 DEBUG: User profile style preferences: {user_profile.get('stylePreferences', []) if user_profile else 'None'}")
         
         for item in wardrobe_items:
             item_style = item.get('style', '') or ''
             item_occasion = item.get('occasion', '') or ''
+            item_color = item.get('color', '') or ''
+            item_material = item.get('material', '') or ''
             
             # Convert to string if it's a list
             if isinstance(item_style, list):
@@ -1359,27 +1364,92 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             else:
                 item_occasion = str(item_occasion).lower()
             
-            logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} - style: '{item_style}', occasion: '{item_occasion}'")
+            logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} - style: '{item_style}', occasion: '{item_occasion}', color: '{item_color}'")
             
-                    # Basic matching logic
+            # ENHANCED: Multi-dimensional style preference scoring
+            item_score = 0
+            is_suitable = False
+            
+            # 1. Core Style Matching (Primary filter - must pass)
             if (req.style.lower() in item_style or 
                 req.occasion.lower() in item_occasion or
                 'versatile' in item_style):
                 
-                # ENHANCED: Business color validation
-                if req.occasion.lower() in ['business', 'formal', 'office']:
-                    item_color = item.get('color', '').lower()
-                    business_colors = ['white', 'black', 'navy', 'gray', 'charcoal', 'beige', 'brown', 'blue', 'cream']
-                    if item_color and item_color not in business_colors:
-                        logger.info(f"🔍 DEBUG: Skipping non-business color: {item.get('name', 'unnamed')} ({item_color})")
-                        continue
+                is_suitable = True
+                item_score += 50  # Base score for passing core criteria
                 
-                # ENHANCED: Gender-appropriate style validation
+                # 2. Style Preference Enhancement (User's stored preferences)
+                if user_profile and user_profile.get('stylePreferences'):
+                    user_styles = [s.lower() for s in user_profile.get('stylePreferences', [])]
+                    style_matches = sum(1 for style in user_styles if style in item_style)
+                    if style_matches > 0:
+                        style_boost = (style_matches / len(user_styles)) * 30
+                        item_score += style_boost
+                        logger.info(f"🔍 DEBUG: Style preference match: +{style_boost:.1f} points")
+                
+                # 3. Color Preference Enhancement
+                if user_profile and user_profile.get('colorPalette'):
+                    color_palette = user_profile.get('colorPalette', {})
+                    preferred_colors = color_palette.get('primary', []) + color_palette.get('secondary', [])
+                    avoid_colors = color_palette.get('avoid', [])
+                    
+                    if item_color:
+                        item_color_lower = item_color.lower()
+                        if item_color_lower in preferred_colors:
+                            item_score += 15
+                            logger.info(f"🔍 DEBUG: Preferred color match: +15 points")
+                        elif item_color_lower in avoid_colors:
+                            item_score -= 20
+                            logger.info(f"🔍 DEBUG: Avoided color: -20 points")
+                
+                # 4. Material Preference Enhancement
+                if user_profile and user_profile.get('materialPreferences'):
+                    material_prefs = user_profile.get('materialPreferences', {})
+                    preferred_materials = material_prefs.get('preferred', [])
+                    avoid_materials = material_prefs.get('avoid', [])
+                    
+                    if item_material:
+                        item_material_lower = item_material.lower()
+                        if item_material_lower in preferred_materials:
+                            item_score += 10
+                            logger.info(f"🔍 DEBUG: Preferred material match: +10 points")
+                        elif item_material_lower in avoid_materials:
+                            item_score -= 15
+                            logger.info(f"🔍 DEBUG: Avoided material: -15 points")
+                
+                # 5. Style Personality Enhancement
+                if user_profile and user_profile.get('stylePersonality'):
+                    personality_scores = user_profile.get('stylePersonality', {})
+                    
+                    # Analyze item characteristics and match with personality
+                    if 'classic' in item_style and personality_scores.get('classic', 0) > 0.6:
+                        item_score += personality_scores['classic'] * 12
+                        logger.info(f"🔍 DEBUG: Classic personality match: +{personality_scores['classic'] * 12:.1f} points")
+                    
+                    if 'modern' in item_style and personality_scores.get('modern', 0) > 0.6:
+                        item_score += personality_scores['modern'] * 12
+                        logger.info(f"🔍 DEBUG: Modern personality match: +{personality_scores['modern'] * 12:.1f} points")
+                    
+                    if 'creative' in item_style and personality_scores.get('creative', 0) > 0.6:
+                        item_score += personality_scores['creative'] * 12
+                        logger.info(f"🔍 DEBUG: Creative personality match: +{personality_scores['creative'] * 12:.1f} points")
+                
+                # 6. Business/Formal Enhancement (Existing logic enhanced)
+                if req.occasion.lower() in ['business', 'formal', 'office']:
+                    business_colors = ['white', 'black', 'navy', 'gray', 'charcoal', 'beige', 'brown', 'blue', 'cream']
+                    if item_color and item_color.lower() in business_colors:
+                        item_score += 20  # Bonus for appropriate business colors
+                        logger.info(f"🔍 DEBUG: Business-appropriate color: +20 points")
+                    elif item_color and item_color.lower() not in business_colors:
+                        item_score -= 25  # Penalty for inappropriate colors
+                        logger.info(f"🔍 DEBUG: Non-business color: -25 points")
+                
+                # 7. Gender-appropriate style validation (Enhanced)
                 if user_profile and user_profile.get('gender'):
                     user_gender = user_profile.get('gender').lower()
                     item_gender = item.get('gender', '').lower()
                     
-                    # Gender-specific style filtering
+                    # Gender-specific style filtering with scoring
                     if user_gender == 'male':
                         feminine_styles = ['french girl', 'romantic', 'pinup', 'boho', 'cottagecore']
                         if req.style.lower() in feminine_styles:
@@ -1392,13 +1462,33 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
                             logger.info(f"🔍 DEBUG: Skipping masculine style '{req.style}' for female user: {item.get('name', 'unnamed')}")
                             continue
                     
-                    # Item gender compatibility
+                    # Item gender compatibility with scoring
                     if item_gender and item_gender not in ['unisex', user_gender]:
                         logger.info(f"🔍 DEBUG: Skipping gender-incompatible item: {item.get('name', 'unnamed')} (item: {item_gender}, user: {user_gender})")
                         continue
+                    
+                    # Gender preference bonus
+                    if item_gender == user_gender:
+                        item_score += 8
+                        logger.info(f"🔍 DEBUG: Gender preference match: +8 points")
+                    elif item_gender == 'unisex':
+                        item_score += 5
+                        logger.info(f"🔍 DEBUG: Unisex item: +5 points")
                 
+                # Store item with its score
+                item_scores[item.get('id', item.get('name', 'unknown'))] = item_score
                 suitable_items.append(item)
-                logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} is suitable")
+                logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} is suitable with score: {item_score}")
+            else:
+                logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} failed core style/occasion criteria")
+        
+        # ENHANCED: Sort items by preference score for better selection
+        if suitable_items and item_scores:
+            suitable_items.sort(key=lambda item: item_scores.get(item.get('id', item.get('name', 'unknown')), 0), reverse=True)
+            logger.info(f"🔍 DEBUG: Sorted {len(suitable_items)} suitable items by preference score")
+            for item in suitable_items[:5]:  # Log top 5 scores
+                score = item_scores.get(item.get('id', item.get('name', 'unknown')), 0)
+                logger.info(f"🔍 DEBUG: Top item: {item.get('name', 'unnamed')} - Score: {score}")
         
         logger.info(f"🔍 DEBUG: Found {len(suitable_items)} suitable items")
         
@@ -1750,7 +1840,7 @@ async def debug_outfit_retrieval():
         
         outfits = []
         for doc in docs:
-            outfit_data = doc.to_dict()
+                outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append({
                 "id": doc.id,
@@ -2068,7 +2158,7 @@ async def get_outfit(outfit_id: str):
         try:
             outfit_doc = db.collection('outfits').document(outfit_id).get()
             if outfit_doc.exists:
-                outfit_data = outfit_doc.to_dict()
+        outfit_data = outfit_doc.to_dict()
                 outfit_data['id'] = outfit_id
                 logger.info(f"Successfully retrieved outfit {outfit_id} from database")
                 return OutfitResponse(**outfit_data)
