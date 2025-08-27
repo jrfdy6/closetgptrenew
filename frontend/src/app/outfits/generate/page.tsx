@@ -272,13 +272,14 @@ export default function OutfitGenerationPage() {
     }
   };
 
-  const handleSaveOutfit = async () => {
+  const handleWearOutfit = async () => {
     if (!generatedOutfit || !user) return;
     
     try {
       const token = await user.getIdToken();
       
-      const response = await fetch('/api/outfit/create', {
+      // First save the outfit to backend
+      const saveResponse = await fetch('/api/outfit/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -287,14 +288,43 @@ export default function OutfitGenerationPage() {
         body: JSON.stringify(generatedOutfit),
       });
       
-      if (response.ok) {
-        // Navigate back to outfits page
-        router.push('/outfits');
+      if (saveResponse.ok) {
+        const savedOutfit = await saveResponse.json();
+        
+        // Then mark it as worn
+        const wearResponse = await fetch('/api/outfit/wear', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            outfitId: savedOutfit.id || savedOutfit.outfitId
+          }),
+        });
+        
+        if (wearResponse.ok) {
+          // Show success message and navigate to outfits page
+          setError(null);
+          // Show success message briefly before navigating
+          setGeneratedOutfit(prev => prev ? {
+            ...prev,
+            isWorn: true,
+            lastWorn: new Date().toISOString()
+          } : null);
+          
+          // Navigate after a short delay to show success
+          setTimeout(() => {
+            router.push('/outfits');
+          }, 1500);
+        } else {
+          setError('Outfit saved but failed to mark as worn');
+        }
       } else {
         setError('Failed to save outfit');
       }
     } catch (err) {
-      setError('Failed to save outfit');
+      setError('Failed to wear outfit');
     }
   };
 
@@ -746,12 +776,21 @@ export default function OutfitGenerationPage() {
                         </p>
                       </div>
                     )}
+                    
+                    {/* Outfit Worn Confirmation */}
+                    {generatedOutfit?.isWorn && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-md mb-3">
+                        <p className="text-sm text-blue-600 text-center">
+                          ✓ Outfit marked as worn! Redirecting to outfits page...
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <Button onClick={handleSaveOutfit} className="flex-1">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Save Outfit
+                    <Button onClick={handleWearOutfit} className="flex-1">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Wear Outfit
                     </Button>
                     <Button variant="outline" onClick={handleRegenerate}>
                       <RefreshCw className="h-4 w-4 mr-2" />
