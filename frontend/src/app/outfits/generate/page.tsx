@@ -265,6 +265,33 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Generated outfit data:', data);
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
       setGeneratedOutfit(data);
+      
+      // Auto-save the generated outfit so it has an ID for ratings
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          const saveResponse = await fetch('/api/outfit/create', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+          });
+          
+          if (saveResponse.ok) {
+            const savedOutfit = await saveResponse.json();
+            // Update the outfit with the new ID
+            setGeneratedOutfit(prev => prev ? {
+              ...prev,
+              id: savedOutfit.id || savedOutfit.outfitId
+            } : null);
+            console.log('🔍 DEBUG: Outfit auto-saved with ID:', savedOutfit.id || savedOutfit.outfitId);
+          }
+        } catch (err) {
+          console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate outfit');
     } finally {
@@ -391,6 +418,33 @@ export default function OutfitGenerationPage() {
     try {
       const token = await user.getIdToken();
       
+      // If outfit doesn't have an ID yet, save it first
+      let outfitId = generatedOutfit.id;
+      if (!outfitId) {
+        const saveResponse = await fetch('/api/outfit/create', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(generatedOutfit),
+        });
+        
+        if (saveResponse.ok) {
+          const savedOutfit = await saveResponse.json();
+          outfitId = savedOutfit.id || savedOutfit.outfitId;
+          
+          // Update the generated outfit with the new ID
+          setGeneratedOutfit(prev => prev ? {
+            ...prev,
+            id: outfitId
+          } : null);
+        } else {
+          setError('Failed to save outfit for rating');
+          return;
+        }
+      }
+      
       // Submit rating to backend
       const response = await fetch('/api/outfits/rate', {
         method: 'POST',
@@ -399,7 +453,7 @@ export default function OutfitGenerationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          outfitId: generatedOutfit.id,
+          outfitId: outfitId,
           rating: outfitRating.rating,
           isLiked: outfitRating.isLiked,
           isDisliked: outfitRating.isDisliked,
