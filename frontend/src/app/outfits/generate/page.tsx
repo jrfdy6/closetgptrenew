@@ -60,6 +60,9 @@ interface OutfitRating {
 export default function OutfitGenerationPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
+  
+  // Backend API base URL
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
   const [formData, setFormData] = useState<OutfitGenerationForm>({
     occasion: '',
     style: '',
@@ -243,7 +246,7 @@ export default function OutfitGenerationPage() {
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
       
-      const response = await fetch('/api/outfits/generate', {
+      const response = await fetch(`${API_BASE}/api/outfits/generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -273,7 +276,7 @@ export default function OutfitGenerationPage() {
       if (user) {
         try {
           const token = await user.getIdToken();
-          const saveResponse = await fetch('/api/outfits/create', {
+          const saveResponse = await fetch(`${API_BASE}/api/outfits/create`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -309,7 +312,7 @@ export default function OutfitGenerationPage() {
       const token = await user.getIdToken();
       
       // First save the outfit to backend
-      const saveResponse = await fetch('/api/outfits/create', {
+      const saveResponse = await fetch(`${API_BASE}/api/outfits/create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -424,7 +427,7 @@ export default function OutfitGenerationPage() {
       // If outfit doesn't have an ID yet, save it first
       let outfitId = generatedOutfit.id;
       if (!outfitId) {
-        const saveResponse = await fetch('/api/outfits/create', {
+        const saveResponse = await fetch(`${API_BASE}/api/outfits/create`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -449,7 +452,7 @@ export default function OutfitGenerationPage() {
       }
       
       // Submit rating to backend
-      const response = await fetch('/api/outfits/rate', {
+      const response = await fetch(`${API_BASE}/api/outfits/rate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
