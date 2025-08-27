@@ -293,7 +293,16 @@ export default function OutfitGenerationPage() {
               occasion: data.occasion || formData.occasion, 
               style: data.style,
               description: data.reasoning,
-              items: data.items,
+              items: data.items.map((item: any) => ({
+                ...item,
+                userId: user.uid,  // Required: inject from Firebase auth
+                subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
+                style: [data.style] || ["casual"],  // Required: List[str] from parent outfit
+                occasion: [data.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+                imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
+                color: item.color || "unknown",  // Ensure color is provided
+                type: item.type || "item"  // Ensure type is provided
+              })),
               createdAt: Math.floor(Date.now() / 1000)
             }),
           });
@@ -342,7 +351,16 @@ export default function OutfitGenerationPage() {
           occasion: generatedOutfit.occasion || formData.occasion,
           style: generatedOutfit.style,
           description: generatedOutfit.reasoning,
-          items: generatedOutfit.items,
+          items: generatedOutfit.items.map((item: any) => ({
+            ...item,
+            userId: user.uid,  // Required: inject from Firebase auth
+            subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
+            style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
+            occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+            imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
+            color: item.color || "unknown",  // Ensure color is provided
+            type: item.type || "item"  // Ensure type is provided
+          })),
           createdAt: Math.floor(Date.now() / 1000)
         }),
       });
@@ -470,7 +488,16 @@ export default function OutfitGenerationPage() {
             occasion: generatedOutfit.occasion || formData.occasion,
             style: generatedOutfit.style,
             description: generatedOutfit.reasoning,
-            items: generatedOutfit.items,
+            items: generatedOutfit.items.map((item: any) => ({
+              ...item,
+              userId: user.uid,  // Required: inject from Firebase auth
+              subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
+              style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
+              occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+              imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
+              color: item.color || "unknown",  // Ensure color is provided
+              type: item.type || "item"  // Ensure type is provided
+            })),
             createdAt: Math.floor(Date.now() / 1000)
           }),
         });
