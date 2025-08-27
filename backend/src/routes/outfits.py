@@ -184,16 +184,59 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
     # Build validated outfit with required categories
     validated_outfit = []
     
-    # Add one item from each required category
+    # ENHANCED: Smart initial selection to ensure category diversity
     for category in required:
         if category in categorized_items and categorized_items[category]:
             # Take the first item from this category
             validated_outfit.append(categorized_items[category][0])
             logger.info(f"🔍 DEBUG: Added {category} item: {categorized_items[category][0].get('name', 'unnamed')}")
     
+    # ENHANCED: If we're missing required categories, try to find alternatives
+    if len(validated_outfit) < len(required):
+        logger.warning(f"⚠️ Missing required categories, trying to find alternatives")
+        missing_categories = [cat for cat in required if cat not in [get_item_category(item.get('type', '')) for item in validated_outfit]]
+        
+        for missing_cat in missing_categories:
+            # Try to find items that could serve as alternatives
+            for category, category_items in categorized_items.items():
+                if len(validated_outfit) >= len(required):
+                    break
+                # For missing bottoms, tops can sometimes work (e.g., long tops with leggings)
+                if missing_cat == "bottom" and category == "top":
+                    # Look for long tops that could work as bottoms
+                    for item in category_items:
+                        if any(long_word in item.get('name', '').lower() for long_word in ['long', 'tunic', 'oversized', 'maxi']):
+                            validated_outfit.append(item)
+                            logger.info(f"🔍 DEBUG: Added alternative {missing_cat} item: {item.get('name', 'unnamed')}")
+                            break
+                # For missing shoes, accessories might work
+                elif missing_cat == "shoes" and category == "accessory":
+                    for item in category_items:
+                        if any(shoe_word in item.get('name', '').lower() for shoe_word in ['boots', 'sneakers', 'shoes']):
+                            validated_outfit.append(item)
+                            logger.info(f"🔍 DEBUG: Added alternative {missing_cat} item: {item.get('name', 'unnamed')}")
+                            break
+    
     # Add additional items to fill out the outfit (up to 6 total)
     remaining_slots = 6 - len(validated_outfit)
     additional_items = []
+    
+    # ENHANCED: Smart category balancing to prevent all-same-category outfits
+    category_limits = {
+        "top": 3,      # Maximum 3 tops (including base top)
+        "bottom": 2,   # Maximum 2 bottoms
+        "shoes": 1,    # Maximum 1 pair of shoes
+        "accessory": 2, # Maximum 2 accessories
+        "dress": 1     # Maximum 1 dress
+    }
+    
+    # Count current items per category
+    current_category_counts = {}
+    for item in validated_outfit:
+        category = get_item_category(item.get('type', ''))
+        current_category_counts[category] = current_category_counts.get(category, 0) + 1
+    
+    logger.info(f"🔍 DEBUG: Current category counts: {current_category_counts}")
     
     # Prioritize layering items for certain occasions
     layering_priority = ["formal", "business", "date", "party"]
@@ -202,26 +245,34 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
         for category, category_items in categorized_items.items():
             if len(additional_items) >= remaining_slots:
                 break
+            # Check category limits
+            current_count = current_category_counts.get(category, 0)
+            if current_count >= category_limits.get(category, 2):
+                continue
             # Prioritize layering categories
             if category in ["top"] and len(additional_items) < remaining_slots:
                 for item in category_items[1:]:  # Skip first item as it's already added
                     if len(additional_items) < remaining_slots and is_layer_item(item.get('type', '')):
                         additional_items.append(item)
+                        current_category_counts[category] = current_category_counts.get(category, 0) + 1
                         logger.info(f"🔍 DEBUG: Added layering item: {item.get('name', 'unnamed')}")
                         break
     
-    # Fill remaining slots with other items
+    # Fill remaining slots with balanced category distribution
     for category, category_items in categorized_items.items():
         if len(additional_items) >= remaining_slots:
             break
-        # Skip categories we already have
-        if category in [item.get('type', '').lower() for item in validated_outfit]:
+        # Check category limits
+        current_count = current_category_counts.get(category, 0)
+        if current_count >= category_limits.get(category, 2):
             continue
         # Add items from this category
         for item in category_items[1:]:  # Skip first item as it's already added
             if len(additional_items) < remaining_slots:
                 additional_items.append(item)
+                current_category_counts[category] = current_category_counts.get(category, 0) + 1
                 logger.info(f"🔍 DEBUG: Added additional {category} item: {item.get('name', 'unnamed')}")
+                break
     
     validated_outfit.extend(additional_items)
     
