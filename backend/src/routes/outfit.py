@@ -140,7 +140,7 @@ async def create_outfit(
         print(f"  - items count: {len(request.items)}")
         print(f"  - user_id: {current_user_id}")
         
-        # Create outfit data
+        # Create outfit data with all required OutfitGeneratedOutfit fields
         outfit_data = {
             "id": str(uuid.uuid4()),
             "name": request.name,
@@ -152,7 +152,22 @@ async def create_outfit(
             "createdAt": request.createdAt or int(time.time()),
             "is_custom": True,  # Mark as custom outfit
             "confidence_score": 1.0,  # Custom outfits have full confidence
-            "reasoning": f"Custom outfit created by user: {request.description or 'No description provided'}"
+            "reasoning": f"Custom outfit created by user: {request.description or 'No description provided'}",
+            
+            # Required OutfitGeneratedOutfit fields
+            "explanation": request.description or f"Custom {request.style} outfit for {request.occasion}",
+            "pieces": [],  # Empty for custom outfits, could be populated later
+            "styleTags": [request.style.lower().replace(' ', '_')],  # Convert style to tag format
+            "colorHarmony": "custom",  # Mark as custom color harmony
+            "styleNotes": f"Custom {request.style} style selected by user",
+            "season": "all",  # Default to all seasons for custom outfits
+            "mood": "custom",  # Default mood for custom outfits
+            "updatedAt": request.createdAt or int(time.time()),
+            "metadata": {"created_method": "custom"},
+            "wasSuccessful": True,
+            "baseItemId": None,
+            "validationErrors": [],
+            "userFeedback": None
         }
         
         # Save directly to Firebase (same approach as working generate route)
