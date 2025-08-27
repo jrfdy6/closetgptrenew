@@ -200,3 +200,4 @@ package.json
 package-lock.json
 requirements.txt
 run_tests.sh
+.env*.local
