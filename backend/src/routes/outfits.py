@@ -224,7 +224,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
     # ENHANCED: Smart category balancing to prevent all-same-category outfits
     category_limits = {
         "top": 3,      # Maximum 3 tops (including base top)
-        "bottom": 2,   # Maximum 2 bottoms
+        "bottom": 1,   # Maximum 1 bottom (prevent shorts + pants conflicts)
         "shoes": 1,    # Maximum 1 pair of shoes
         "accessory": 2, # Maximum 2 accessories
         "dress": 1     # Maximum 1 dress
@@ -237,6 +237,18 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
         current_category_counts[category] = current_category_counts.get(category, 0) + 1
     
     logger.info(f"🔍 DEBUG: Current category counts: {current_category_counts}")
+    
+    # ENHANCED: Check for bottom type conflicts (shorts + pants, skirts + pants, etc.)
+    bottom_items = [item for item in validated_outfit if get_item_category(item.get('type', '')) == 'bottom']
+    if len(bottom_items) > 1:
+        logger.warning(f"⚠️ Multiple bottom items detected: {[item.get('name', 'unnamed') for item in bottom_items]}")
+        # Keep only the first bottom item to prevent conflicts
+        conflicting_bottoms = bottom_items[1:]
+        for item in conflicting_bottoms:
+            validated_outfit.remove(item)
+            logger.info(f"🔍 DEBUG: Removed conflicting bottom: {item.get('name', 'unnamed')}")
+        # Update category counts
+        current_category_counts['bottom'] = 1
     
     # Prioritize layering items for certain occasions
     layering_priority = ["formal", "business", "date", "party"]
@@ -266,6 +278,12 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
         current_count = current_category_counts.get(category, 0)
         if current_count >= category_limits.get(category, 2):
             continue
+        
+        # ENHANCED: Special handling for bottoms to prevent conflicts
+        if category == "bottom" and current_count >= 1:
+            logger.info(f"🔍 DEBUG: Skipping additional bottom to prevent conflicts")
+            continue
+            
         # Add items from this category
         for item in category_items[1:]:  # Skip first item as it's already added
             if len(additional_items) < remaining_slots:
