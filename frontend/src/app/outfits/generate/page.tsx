@@ -275,6 +275,12 @@ export default function OutfitGenerationPage() {
       // Auto-save the generated outfit so it has an ID for ratings
       if (user) {
         try {
+          // Validate minimum items before saving
+          if (!data.items || data.items.length < 3) {
+            console.warn('🔍 DEBUG: Skipping auto-save - need at least 3 items to save outfit');
+            return;
+          }
+          
           const token = await user.getIdToken();
           const saveResponse = await fetch('/api/outfit/create', {
             method: 'POST',
@@ -314,6 +320,12 @@ export default function OutfitGenerationPage() {
 
   const handleWearOutfit = async () => {
     if (!generatedOutfit || !user) return;
+    
+    // Validate minimum items before wearing/saving
+    if (!generatedOutfit.items || generatedOutfit.items.length < 3) {
+      setError('Need at least 3 items to save and wear an outfit');
+      return;
+    }
     
     try {
       const token = await user.getIdToken();
@@ -441,7 +453,13 @@ export default function OutfitGenerationPage() {
       // If outfit doesn't have an ID yet, save it first
       let outfitId = generatedOutfit.id;
       if (!outfitId) {
-        const saveResponse = await fetch(`${API_BASE}/api/outfits/create`, {
+        // Validate minimum items before saving for rating
+        if (!generatedOutfit.items || generatedOutfit.items.length < 3) {
+          setError('Need at least 3 items to save and rate an outfit');
+          return;
+        }
+        
+        const saveResponse = await fetch('/api/outfit/create', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

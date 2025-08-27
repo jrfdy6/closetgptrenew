@@ -183,6 +183,68 @@ class OutfitService:
             logger.error(f"❌ Failed to create outfit: {e}")
             raise DatabaseError(f"Failed to create outfit: {str(e)}")
     
+    async def create_custom_outfit(self, outfit_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create a custom outfit (alias for create_outfit with data transformation).
+        This method adapts the route's payload to work with the existing create_outfit method.
+        """
+        try:
+            logger.info(f"🎨 Creating custom outfit")
+            
+            # Extract user_id from the user_profile if present
+            user_profile = outfit_data.get('user_profile', {})
+            user_id = user_profile.get('id') if user_profile else "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+            
+            # Create OutfitCreate object from the payload
+            from ..custom_types.outfit import OutfitCreate, OutfitItem
+            
+            # Transform items if needed
+            items = outfit_data.get('items', [])
+            outfit_items = []
+            for item in items:
+                if isinstance(item, dict):
+                    outfit_item = OutfitItem(
+                        id=item.get('id', ''),
+                        name=item.get('name', ''),
+                        type=item.get('type', ''),
+                        imageUrl=item.get('imageUrl') or item.get('image_url') or item.get('image', ''),
+                        color=item.get('color', ''),
+                        size=item.get('size', ''),
+                        brand=item.get('brand', ''),
+                        price=item.get('price', 0.0)
+                    )
+                    outfit_items.append(outfit_item)
+            
+            # Create the outfit data object
+            outfit_create = OutfitCreate(
+                name=outfit_data.get('name', 'Custom Outfit'),
+                occasion=outfit_data.get('occasion', 'Casual'),
+                style=outfit_data.get('style', 'Casual'),
+                mood=outfit_data.get('mood'),
+                items=outfit_items,
+                confidenceScore=outfit_data.get('confidenceScore'),
+                reasoning=outfit_data.get('description') or outfit_data.get('reasoning')
+            )
+            
+            # Call the existing create_outfit method
+            created_outfit = await self.create_outfit(user_id, outfit_create)
+            
+            # Return the result in the expected format
+            return {
+                'id': created_outfit.id,
+                'name': created_outfit.name,
+                'occasion': created_outfit.occasion,
+                'style': created_outfit.style,
+                'mood': created_outfit.mood,
+                'items': created_outfit.items,
+                'createdAt': created_outfit.createdAt.isoformat() if hasattr(created_outfit.createdAt, 'isoformat') else str(created_outfit.createdAt),
+                'success': True
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to create custom outfit: {e}")
+            raise DatabaseError(f"Failed to create custom outfit: {str(e)}")
+    
     async def update_outfit(self, user_id: str, outfit_id: str, outfit_data: OutfitUpdate) -> Outfit:
         """
         Update an existing outfit.
