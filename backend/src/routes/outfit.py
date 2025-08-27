@@ -155,8 +155,15 @@ async def create_outfit(
             "reasoning": f"Custom outfit created by user: {request.description or 'No description provided'}"
         }
         
-        # Save to database
-        result = await outfit_service.create_custom_outfit(outfit_data)
+        # Save directly to Firebase (same approach as working generate route)
+        outfit_id = outfit_data["id"]
+        
+        # Use the same save_outfit function that works in the generate route
+        from .outfits import save_outfit
+        await save_outfit(current_user_id, outfit_id, outfit_data)
+        
+        # Return the outfit data directly
+        result = outfit_data
         
         print(f"✅ DEBUG: create_outfit completed successfully")
         print(f"🔍 DEBUG: Created outfit id: {result.get('id', 'unknown')}")
