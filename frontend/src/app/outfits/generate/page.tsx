@@ -162,11 +162,15 @@ export default function OutfitGenerationPage() {
   // Fetch user profile and filter styles
   useEffect(() => {
     const fetchUserProfile = async () => {
-      if (!user) return;
+      if (!user) {
+        console.log('🔍 No user authenticated, skipping profile fetch');
+        return;
+      }
       
+      console.log('🔍 Fetching profile for user:', user.uid);
       try {
         const token = await user.getIdToken();
-        const response = await fetch('/api/profile', {
+        const response = await fetch('/api/user/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -174,22 +178,28 @@ export default function OutfitGenerationPage() {
         
         if (response.ok) {
           const profile = await response.json();
+          console.log('🔍 User profile fetched:', profile);
           setUserProfile(profile);
           
           // Filter styles based on gender
           const filtered = filterStylesByGender(styles, profile.gender);
+          console.log('🔍 Filtered styles for gender:', profile.gender, ':', filtered);
           setFilteredStyles(filtered);
           
           // If current style is not compatible, reset it
           if (formData.style && !filtered.includes(formData.style)) {
+            console.log('🔍 Resetting incompatible style:', formData.style);
             setFormData(prev => ({ ...prev, style: '' }));
           }
+        } else {
+          console.error('🔍 Profile fetch failed:', response.status, response.statusText);
         }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        // Fallback to all styles if profile fetch fails
-        setFilteredStyles(styles);
-      }
+              } catch (error) {
+          console.error('🔍 Error fetching user profile:', error);
+          // Fallback to all styles if profile fetch fails
+          setFilteredStyles(styles);
+          console.log('🔍 Falling back to all styles due to profile fetch error');
+        }
     };
 
     fetchUserProfile();
