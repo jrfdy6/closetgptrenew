@@ -1781,7 +1781,7 @@ async def firebase_connectivity_test():
                 test_results["read_test"] = "document_not_found"
                 logger.warning("⚠️ Document not found after write")
                 
-    except Exception as e:
+        except Exception as e:
             error_msg = f"Firebase test error: {str(e)}"
             logger.error(f"❌ {error_msg}")
             test_results["error"] = error_msg
