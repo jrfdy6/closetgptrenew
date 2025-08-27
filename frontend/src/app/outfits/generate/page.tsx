@@ -38,6 +38,7 @@ interface GeneratedOutfit {
   mood: string;
   occasion: string;
   confidence_score: number;
+  score_breakdown?: any;
   items: Array<{
     id: string;
     name: string;
@@ -47,6 +48,13 @@ interface GeneratedOutfit {
   }>;
   reasoning: string;
   createdAt: string;
+}
+
+interface OutfitRating {
+  rating: number;
+  isLiked: boolean;
+  isDisliked: boolean;
+  feedback?: string;
 }
 
 export default function OutfitGenerationPage() {
@@ -62,6 +70,13 @@ export default function OutfitGenerationPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [outfitRating, setOutfitRating] = useState<OutfitRating>({
+    rating: 0,
+    isLiked: false,
+    isDisliked: false,
+    feedback: ''
+  });
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
   const occasions = [
     // Everyday
@@ -206,6 +221,71 @@ export default function OutfitGenerationPage() {
   const handleRegenerate = () => {
     setGeneratedOutfit(null);
     setError(null);
+    setOutfitRating({ rating: 0, isLiked: false, isDisliked: false, feedback: '' });
+    setRatingSubmitted(false);
+  };
+
+  const handleRatingChange = (rating: number) => {
+    setOutfitRating(prev => ({ ...prev, rating }));
+  };
+
+  const handleLikeToggle = () => {
+    setOutfitRating(prev => ({ 
+      ...prev, 
+      isLiked: !prev.isLiked, 
+      isDisliked: false 
+    }));
+  };
+
+  const handleDislikeToggle = () => {
+    setOutfitRating(prev => ({ 
+      ...prev, 
+      isDisliked: !prev.isDisliked, 
+      isLiked: false 
+    }));
+  };
+
+  const handleFeedbackChange = (feedback: string) => {
+    setOutfitRating(prev => ({ ...prev, feedback }));
+  };
+
+  const handleSubmitRating = async () => {
+    if (!generatedOutfit || !user || outfitRating.rating === 0) return;
+    
+    try {
+      const token = await user.getIdToken();
+      
+      // Submit rating to backend
+      const response = await fetch('/api/outfits/rate', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          outfitId: generatedOutfit.id,
+          rating: outfitRating.rating,
+          isLiked: outfitRating.isLiked,
+          isDisliked: outfitRating.isDisliked,
+          feedback: outfitRating.feedback
+        }),
+      });
+      
+      if (response.ok) {
+        setRatingSubmitted(true);
+        // Update the generated outfit with rating data
+        setGeneratedOutfit(prev => prev ? {
+          ...prev,
+          rating: outfitRating.rating,
+          isLiked: outfitRating.isLiked,
+          isDisliked: outfitRating.isDisliked
+        } : null);
+      } else {
+        setError('Failed to submit rating');
+      }
+    } catch (err) {
+      setError('Failed to submit rating');
+    }
   };
 
   if (authLoading) {
@@ -430,6 +510,43 @@ export default function OutfitGenerationPage() {
                     </div>
                   </div>
 
+                  {/* Score Breakdown */}
+                  {generatedOutfit.score_breakdown && (
+                    <div>
+                      <h4 className="font-medium mb-2">Outfit Score Breakdown</h4>
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
+                          <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Score</div>
+                          <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                            {generatedOutfit.score_breakdown.total_score}
+                          </div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400">
+                            Grade: {generatedOutfit.score_breakdown.grade}
+                          </div>
+                        </div>
+                        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
+                          <div className="text-sm font-medium text-green-700 dark:text-green-300">Confidence</div>
+                          <div className="text-2xl font-bold text-green-800 dark:text-green-200">
+                            {Math.round(generatedOutfit.confidence_score * 100)}%
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Component Scores */}
+                      <div className="space-y-2">
+                        {Object.entries(generatedOutfit.score_breakdown).map(([key, value]) => {
+                          if (key === 'total_score' || key === 'grade' || key === 'score_interpretation') return null;
+                          return (
+                            <div key={key} className="flex justify-between items-center text-sm">
+                              <span className="capitalize">{key.replace(/_/g, ' ')}</span>
+                              <span className="font-medium">{value}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {generatedOutfit.reasoning && (
                     <div>
                       <h4 className="font-medium mb-2">AI Reasoning</h4>
@@ -438,6 +555,91 @@ export default function OutfitGenerationPage() {
                       </p>
                     </div>
                   )}
+
+                  {/* Outfit Rating Section */}
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-3">Rate This Outfit</h4>
+                    
+                    {/* Star Rating */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm text-muted-foreground">Rating:</span>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => handleRatingChange(star)}
+                            className={`text-2xl transition-colors ${
+                              star <= outfitRating.rating
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                      {outfitRating.rating > 0 && (
+                        <span className="text-sm text-muted-foreground ml-2">
+                          {outfitRating.rating} star{outfitRating.rating !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Like/Dislike Buttons */}
+                    <div className="flex gap-3 mb-3">
+                      <Button
+                        variant={outfitRating.isLiked ? "default" : "outline"}
+                        size="sm"
+                        onClick={handleLikeToggle}
+                        className="flex items-center gap-2"
+                      >
+                        <Heart className={`h-4 w-4 ${outfitRating.isLiked ? 'fill-current' : ''}`} />
+                        {outfitRating.isLiked ? 'Liked' : 'Like'}
+                      </Button>
+                      <Button
+                        variant={outfitRating.isDisliked ? "destructive" : "outline"}
+                        size="sm"
+                        onClick={handleDislikeToggle}
+                        className="flex items-center gap-2"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.912c.163 0 .326.02.485.06L17 5a2 2 0 011 1.732v5.268A2 2 0 0117 14h-3.764a2 2 0 01-1.789-2.894l3.5-7A2 2 0 0013.264 3H8.348a2 2 0 00-1.789 2.894l3.5 7A2 2 0 005.236 14H10" />
+                        </svg>
+                        {outfitRating.isDisliked ? 'Disliked' : 'Dislike'}
+                      </Button>
+                    </div>
+
+                    {/* Feedback Text */}
+                    <div className="mb-3">
+                      <Textarea
+                        placeholder="Optional: Share what you think about this outfit..."
+                        value={outfitRating.feedback}
+                        onChange={(e) => handleFeedbackChange(e.target.value)}
+                        rows={2}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    {/* Submit Rating Button */}
+                    {!ratingSubmitted && outfitRating.rating > 0 && (
+                      <Button
+                        onClick={handleSubmitRating}
+                        size="sm"
+                        className="w-full mb-3"
+                      >
+                        Submit Rating
+                      </Button>
+                    )}
+
+                    {/* Rating Submitted Confirmation */}
+                    {ratingSubmitted && (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-md mb-3">
+                        <p className="text-sm text-green-600 text-center">
+                          ✓ Rating submitted! This helps improve future outfit suggestions.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex gap-3 pt-4">
                     <Button onClick={handleSaveOutfit} className="flex-1">
