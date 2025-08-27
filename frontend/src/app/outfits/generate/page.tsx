@@ -307,6 +307,12 @@ export default function OutfitGenerationPage() {
 
   const handleRatingChange = (rating: number) => {
     setOutfitRating(prev => ({ ...prev, rating }));
+    // Auto-submit after a short delay to allow user to see their selection
+    setTimeout(() => {
+      if (rating > 0) {
+        handleSubmitRating();
+      }
+    }, 500);
   };
 
   const handleLikeToggle = () => {
@@ -315,6 +321,10 @@ export default function OutfitGenerationPage() {
       isLiked: !prev.isLiked, 
       isDisliked: false 
     }));
+    // Auto-submit like/dislike changes
+    setTimeout(() => {
+      handleSubmitRating();
+    }, 300);
   };
 
   const handleDislikeToggle = () => {
@@ -323,14 +333,30 @@ export default function OutfitGenerationPage() {
       isDisliked: !prev.isDisliked, 
       isLiked: false 
     }));
+    // Auto-submit like/dislike changes
+    setTimeout(() => {
+      handleSubmitRating();
+    }, 300);
   };
 
   const handleFeedbackChange = (feedback: string) => {
     setOutfitRating(prev => ({ ...prev, feedback }));
+    // Auto-submit feedback after user stops typing (debounced)
+    clearTimeout((window as any).feedbackTimeout);
+    (window as any).feedbackTimeout = setTimeout(() => {
+      if (feedback.trim() && outfitRating.rating > 0) {
+        handleSubmitRating();
+      }
+    }, 1000);
   };
 
   const handleSubmitRating = async () => {
-    if (!generatedOutfit || !user || outfitRating.rating === 0) return;
+    if (!generatedOutfit || !user) return;
+    
+    // Allow submission even without rating (for like/dislike only)
+    if (outfitRating.rating === 0 && !outfitRating.isLiked && !outfitRating.isDisliked && !outfitRating.feedback.trim()) {
+      return;
+    }
     
     try {
       const token = await user.getIdToken();
@@ -705,15 +731,11 @@ export default function OutfitGenerationPage() {
                       />
                     </div>
 
-                    {/* Submit Rating Button */}
-                    {!ratingSubmitted && outfitRating.rating > 0 && (
-                      <Button
-                        onClick={handleSubmitRating}
-                        size="sm"
-                        className="w-full mb-3"
-                      >
-                        Submit Rating
-                      </Button>
+                    {/* Auto-submit info */}
+                    {outfitRating.rating > 0 && (
+                      <div className="text-xs text-muted-foreground text-center mb-3">
+                        ✓ Rating automatically submitted
+                      </div>
                     )}
 
                     {/* Rating Submitted Confirmation */}
