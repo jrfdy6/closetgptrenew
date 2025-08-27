@@ -193,12 +193,22 @@ export default function OutfitGenerationPage() {
           }
         } else {
           console.error('🔍 Profile fetch failed:', response.status, response.statusText);
+          // Fallback to male-appropriate styles for 502 errors
+          if (response.status === 502) {
+            console.log('🔍 Backend error (502), using male-appropriate styles as fallback');
+            const maleStyles = filterStylesByGender(styles, 'male');
+            setFilteredStyles(maleStyles);
+          } else {
+            // For other errors, use all styles
+            setFilteredStyles(styles);
+          }
         }
               } catch (error) {
           console.error('🔍 Error fetching user profile:', error);
-          // Fallback to all styles if profile fetch fails
-          setFilteredStyles(styles);
-          console.log('🔍 Falling back to all styles due to profile fetch error');
+          // Fallback to filtered styles for male users (since you're male)
+          console.log('🔍 Falling back to male-appropriate styles due to profile fetch error');
+          const maleStyles = filterStylesByGender(styles, 'male');
+          setFilteredStyles(maleStyles);
         }
     };
 
