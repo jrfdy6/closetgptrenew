@@ -794,6 +794,11 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict]) -> float:
                 if is_favorite:
                     item_score += 25
                     logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +25 favorite bonus")
+                else:
+                    # Bonus for non-favorited items that perform well in outfits
+                    outfit_performance_bonus = min(10, outfit_performance_score)  # Up to 10 bonus points
+                    item_score += outfit_performance_bonus
+                    logger.info(f"🔍 DEBUG: Non-favorited item {item.get('name', 'Unknown')} gets +{outfit_performance_bonus} performance bonus")
                 
                 # 2. Wear Count Scoring (up to 20 points)
                 wear_count = analytics_data.get('wear_count', 0)
@@ -880,6 +885,16 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict]) -> float:
                 item_score += style_match * 10
                 logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +{style_match * 10:.1f} style preference bonus")
                 
+                # 6. Outfit Performance Bonus (up to 20 points) - NEW!
+                outfit_performance_score = await calculate_outfit_performance_score(item_id, current_user_id)
+                item_score += outfit_performance_score
+                logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +{outfit_performance_score} outfit performance bonus")
+                
+                # 7. Wardrobe Diversity Bonus (up to 5 points) - NEW!
+                diversity_bonus = await calculate_wardrobe_diversity_bonus(item_id, current_user_id)
+                item_score += diversity_bonus
+                logger.info(f"🔍 DEBUG: Item {item.get('name', 'Unknown')} gets +{diversity_bonus} diversity bonus")
+                
             else:
                 # No analytics data - neutral score
                 item_score = 50
@@ -903,6 +918,179 @@ async def calculate_wardrobe_intelligence_score(items: List[Dict]) -> float:
         return round(average_score, 2)
     else:
         return 50.0  # Neutral score if no items
+
+async def calculate_outfit_performance_score(item_id: str, user_id: str) -> float:
+    """Calculate score based on how well this item performs in outfits."""
+    logger.info(f"🔍 DEBUG: Calculating outfit performance score for item {item_id}")
+    
+    try:
+        # Query outfits that contain this item
+        outfits_ref = db.collection('outfits').where('userId', '==', user_id)
+        outfits_docs = outfits_ref.stream()
+        
+        total_score = 0.0
+        outfit_count = 0
+        high_rated_outfits = 0
+        worn_outfits = 0
+        
+        for outfit_doc in outfits_docs:
+            outfit_data = outfit_doc.to_dict()
+            outfit_items = outfit_data.get('items', [])
+            
+            # Check if this item is in this outfit
+            item_in_outfit = any(item.get('id') == item_id for item in outfit_items)
+            if not item_in_outfit:
+                continue
+            
+            outfit_count += 1
+            
+            # 1. Outfit Rating Bonus (up to 10 points)
+            outfit_rating = outfit_data.get('rating', 0)
+            if outfit_rating >= 4.5:
+                total_score += 10  # Excellent outfit rating
+                high_rated_outfits += 1
+                logger.info(f"🔍 DEBUG: Item in 5-star outfit: +10 points")
+            elif outfit_rating >= 4.0:
+                total_score += 8   # Very good outfit rating
+                high_rated_outfits += 1
+                logger.info(f"🔍 DEBUG: Item in 4-star outfit: +8 points")
+            elif outfit_rating >= 3.5:
+                total_score += 6   # Good outfit rating
+                logger.info(f"🔍 DEBUG: Item in 3.5-star outfit: +6 points")
+            elif outfit_rating >= 3.0:
+                total_score += 4   # Average outfit rating
+                logger.info(f"🔍 DEBUG: Item in 3-star outfit: +4 points")
+            elif outfit_rating >= 2.0:
+                total_score += 2   # Below average outfit rating
+                logger.info(f"🔍 DEBUG: Item in 2-star outfit: +2 points")
+            else:
+                total_score += 0   # Poor outfit rating (no bonus)
+                logger.info(f"🔍 DEBUG: Item in 1-star outfit: +0 points")
+            
+            # 2. Outfit Wear Count Bonus (up to 5 points)
+            outfit_wear_count = outfit_data.get('wearCount', 0)
+            if outfit_wear_count >= 5:
+                total_score += 5   # Frequently worn outfit
+                worn_outfits += 1
+                logger.info(f"🔍 DEBUG: Item in frequently worn outfit: +5 points")
+            elif outfit_wear_count >= 3:
+                total_score += 3   # Moderately worn outfit
+                worn_outfits += 1
+                logger.info(f"🔍 DEBUG: Item in moderately worn outfit: +3 points")
+            elif outfit_wear_count >= 1:
+                total_score += 1   # Worn at least once
+                worn_outfits += 1
+                logger.info(f"🔍 DEBUG: Item in worn outfit: +1 point")
+            
+            # 3. Outfit Like/Dislike Bonus (up to 5 points)
+            outfit_liked = outfit_data.get('isLiked', False)
+            outfit_disliked = outfit_data.get('isDisliked', False)
+            
+            if outfit_liked:
+                total_score += 5   # Liked outfit bonus
+                logger.info(f"🔍 DEBUG: Item in liked outfit: +5 points")
+            elif outfit_disliked:
+                total_score -= 2   # Disliked outfit penalty
+                logger.info(f"🔍 DEBUG: Item in disliked outfit: -2 points")
+        
+        # 4. Performance Multipliers
+        if outfit_count > 0:
+            # Average score per outfit
+            base_score = total_score / outfit_count
+            
+            # Bonus for items that consistently perform well
+            if high_rated_outfits >= 3:
+                base_score *= 1.2  # 20% bonus for 3+ high-rated outfits
+                logger.info(f"🔍 DEBUG: Consistency bonus: 20% multiplier for {high_rated_outfits} high-rated outfits")
+            elif high_rated_outfits >= 1:
+                base_score *= 1.1  # 10% bonus for at least 1 high-rated outfit
+                logger.info(f"🔍 DEBUG: Performance bonus: 10% multiplier for {high_rated_outfits} high-rated outfit")
+            
+            # Bonus for items that create worn outfits
+            if worn_outfits >= 3:
+                base_score *= 1.15  # 15% bonus for 3+ worn outfits
+                logger.info(f"🔍 DEBUG: Wearability bonus: 15% multiplier for {worn_outfits} worn outfits")
+            elif worn_outfits >= 1:
+                base_score *= 1.05  # 5% bonus for at least 1 worn outfit
+                logger.info(f"🔍 DEBUG: Usability bonus: 5% multiplier for {worn_outfits} worn outfit")
+            
+            final_score = min(base_score, 20.0)  # Cap at 20 points
+            logger.info(f"🔍 DEBUG: Final outfit performance score: {final_score:.2f} (from {outfit_count} outfits)")
+            return round(final_score, 2)
+        else:
+            logger.info(f"🔍 DEBUG: Item not found in any outfits: 0 points")
+            return 0.0
+            
+    except Exception as e:
+        logger.error(f"❌ Error calculating outfit performance score for item {item_id}: {e}")
+        return 0.0  # Return 0 on error
+
+async def calculate_wardrobe_diversity_bonus(item_id: str, user_id: str) -> float:
+    """Calculate bonus for items that add diversity to the wardrobe."""
+    logger.info(f"🔍 DEBUG: Calculating wardrobe diversity bonus for item {item_id}")
+    
+    try:
+        # Get the current item's type and color
+        wardrobe_ref = db.collection('wardrobe').document(item_id)
+        wardrobe_doc = wardrobe_ref.get()
+        
+        if not wardrobe_doc.exists:
+            return 0.0
+        
+        current_item = wardrobe_doc.to_dict()
+        current_type = current_item.get('type', '').lower()
+        current_color = current_item.get('color', '').lower()
+        
+        # Query all user's wardrobe items
+        all_wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
+        all_wardrobe_docs = all_wardrobe_ref.stream()
+        
+        type_count = 0
+        color_count = 0
+        total_items = 0
+        
+        for doc in all_wardrobe_docs:
+            if doc.id == item_id:
+                continue  # Skip the current item
+            
+            item_data = doc.to_dict()
+            total_items += 1
+            
+            # Count items of the same type
+            if item_data.get('type', '').lower() == current_type:
+                type_count += 1
+            
+            # Count items of the same color
+            if item_data.get('color', '').lower() == current_color:
+                color_count += 1
+        
+        # Calculate diversity bonus
+        diversity_score = 0.0
+        
+        # Type diversity (up to 3 points)
+        if type_count == 0:
+            diversity_score += 3  # Unique type
+        elif type_count <= 2:
+            diversity_score += 2  # Rare type
+        elif type_count <= 5:
+            diversity_score += 1  # Common type
+        else:
+            diversity_score += 0  # Very common type
+        
+        # Color diversity (up to 2 points)
+        if color_count == 0:
+            diversity_score += 2  # Unique color
+        elif color_count <= 3:
+            diversity_score += 1  # Rare color
+        else:
+            diversity_score += 0  # Common color
+        
+        logger.info(f"🔍 DEBUG: Diversity bonus: +{diversity_score} (type_count: {type_count}, color_count: {color_count})")
+        return diversity_score
+        
+    except Exception as e:
+        logger.error(f"❌ Error calculating wardrobe diversity bonus for item {item_id}: {e}")
+        return 0.0
 
 def is_layer_item(item_type: str) -> bool:
     """Check if item type is a layering item."""
