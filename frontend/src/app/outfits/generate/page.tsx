@@ -80,8 +80,8 @@ export default function OutfitGenerationPage() {
     updatedAt: Math.floor(Date.now() / 1000)   // Current timestamp
   });
   
-  // Backend API base URL - DIRECT to Railway (bypassing Vercel proxy due to 502 issues)
-  const API_BASE = 'https://closetgptrenew-backend-production.up.railway.app';
+  // Backend API base URL - Use Vercel proxy routes
+  const API_BASE = '';
   const [formData, setFormData] = useState<OutfitGenerationForm>({
     occasion: '',
     style: '',
