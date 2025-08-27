@@ -1531,6 +1531,10 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         
         logger.info(f"🔍 DEBUG: Found {len(suitable_items)} suitable items")
         
+        # ENHANCED: Add randomization to prevent same outfit generation
+        import random
+        import time
+        
         # ENHANCED: Ensure we have enough diverse items for outfit generation
         if len(suitable_items) < 10:
             # Add more items to ensure variety
@@ -1543,10 +1547,6 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         if not suitable_items:
             logger.info(f"🔍 DEBUG: No suitable items found, using first 4 items")
             suitable_items = wardrobe_items[:4]  # Take first 4 items
-        
-        # ENHANCED: Add randomization to prevent same outfit generation
-        import random
-        import time
         # Use timestamp as seed for different randomization each time
         random.seed(int(time.time() * 1000) % 1000000)
         random.shuffle(suitable_items)
@@ -1637,7 +1637,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         "mood": req.mood,
         "items": [
             {"id": "fallback-1", "name": f"{req.style} Top", "type": "shirt", "imageUrl": None},
-            {"id": "fallback-2", "name": f"{req.mood} Pants", "type": "pants", "imageUrl": None}
+            {"id": "fallback-2", "name": f"{req.mood} Pants", "type": "pants", "imageUrl": None},
+            {"id": "fallback-3", "name": f"{req.occasion} Shoes", "type": "shoes", "imageUrl": None}
         ],
         "occasion": req.occasion,
         "confidence_score": 0.5,
