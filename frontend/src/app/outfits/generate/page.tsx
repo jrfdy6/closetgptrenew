@@ -246,7 +246,7 @@ export default function OutfitGenerationPage() {
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
       
-      const response = await fetch(`${API_BASE}/api/outfits/generate`, {
+      const response = await fetch('/api/outfits/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -276,7 +276,7 @@ export default function OutfitGenerationPage() {
       if (user) {
         try {
           const token = await user.getIdToken();
-          const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
+          const saveResponse = await fetch('/api/outfit/create', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -312,7 +312,7 @@ export default function OutfitGenerationPage() {
       const token = await user.getIdToken();
       
       // First save the outfit to backend
-      const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
+      const saveResponse = await fetch('/api/outfit/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -452,7 +452,7 @@ export default function OutfitGenerationPage() {
       }
       
       // Submit rating to backend
-      const response = await fetch(`${API_BASE}/api/outfits/rate`, {
+      const response = await fetch('/api/outfits/rate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
