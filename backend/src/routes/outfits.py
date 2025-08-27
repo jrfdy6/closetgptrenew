@@ -1294,10 +1294,21 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             # Return default profile instead of throwing error
             return {
                 "id": user_id,
+                "gender": "male",  # Default to male for better filtering
                 "bodyType": "average",
                 "skinTone": "medium",
                 "style": ["casual", "versatile"],
-                "preferences": {}
+                "stylePreferences": ["classic", "modern", "business casual"],  # Default style preferences
+                "preferences": {},
+                "colorPalette": {
+                    "primary": ["navy", "gray", "black", "white"],
+                    "secondary": ["blue", "brown", "beige"],
+                    "avoid": ["pink", "purple", "yellow"]
+                },
+                "materialPreferences": {
+                    "preferred": ["cotton", "wool", "linen"],
+                    "avoid": ["polyester", "acrylic"]
+                }
             }
             
         logger.info(f"👤 Fetching profile for user {user_id}")
@@ -1315,10 +1326,21 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             # Return default profile instead of throwing error
             return {
                 "id": user_id,
+                "gender": "male",  # Default to male for better filtering
                 "bodyType": "average",
                 "skinTone": "medium",
                 "style": ["casual", "versatile"],
-                "preferences": {}
+                "stylePreferences": ["classic", "modern", "business casual"],  # Default style preferences
+                "preferences": {},
+                "colorPalette": {
+                    "primary": ["navy", "gray", "black", "white"],
+                    "secondary": ["blue", "brown", "beige"],
+                    "avoid": ["pink", "purple", "yellow"]
+                },
+                "materialPreferences": {
+                    "preferred": ["cotton", "wool", "linen"],
+                    "avoid": ["polyester", "acrylic"]
+                }
             }
         
     except Exception as e:
@@ -1326,10 +1348,21 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
         # Return default profile instead of throwing error
         return {
             "id": user_id,
+            "gender": "male",  # Default to male for better filtering
             "bodyType": "average",
             "skinTone": "medium",
             "style": ["casual", "versatile"],
-            "preferences": {}
+            "stylePreferences": ["classic", "modern", "business casual"],  # Default style preferences
+            "preferences": {},
+            "colorPalette": {
+                "primary": ["navy", "gray", "black", "white"],
+                "secondary": ["blue", "brown", "beige"],
+                "avoid": ["pink", "purple", "yellow"]
+            },
+            "materialPreferences": {
+                "preferred": ["cotton", "wool", "linen"],
+                "avoid": ["polyester", "acrylic"]
+            }
         }
 
 async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
