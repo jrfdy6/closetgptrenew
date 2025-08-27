@@ -92,6 +92,170 @@ async def get_wardrobe_stats(
         logger.error(f"Error getting wardrobe stats: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving wardrobe statistics: {str(e)}")
 
+@router.get("/top-worn-items")
+async def get_top_worn_items(
+    current_user: UserProfile = Depends(get_current_user_optional),
+    limit: int = 10
+) -> Dict[str, Any]:
+    """Get the top worn wardrobe items for the current user."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Query all wardrobe items for the user, ordered by wear count
+        query = db.collection('wardrobe').where('userId', '==', current_user.id)
+        docs = query.stream()
+        
+        items = []
+        for doc in docs:
+            item_data = doc.to_dict()
+            item_data['id'] = doc.id
+            items.append(item_data)
+        
+        # Sort by wear count (descending) and take top items
+        items.sort(key=lambda x: x.get('wearCount', 0), reverse=True)
+        top_items = items[:limit]
+        
+        # Calculate statistics
+        total_items = len(items)
+        total_wear_count = sum(item.get('wearCount', 0) for item in items)
+        avg_wear_count = total_wear_count / total_items if total_items > 0 else 0
+        
+        # Get items with no wear (unworn items)
+        unworn_items = [item for item in items if item.get('wearCount', 0) == 0]
+        
+        # Get items worn this week (last 7 days)
+        from datetime import datetime, timedelta
+        week_ago = datetime.now() - timedelta(days=7)
+        recent_items = [item for item in items if item.get('lastWorn') and 
+                       (isinstance(item['lastWorn'], datetime) and item['lastWorn'] > week_ago or
+                        isinstance(item['lastWorn'], str) and datetime.fromisoformat(item['lastWorn'].replace('Z', '+00:00')) > week_ago)]
+        
+        stats = {
+            "total_items": total_items,
+            "total_wear_count": total_wear_count,
+            "avg_wear_count": round(avg_wear_count, 2),
+            "unworn_items_count": len(unworn_items),
+            "recently_worn_count": len(recent_items),
+            "top_worn_items": [
+                {
+                    "id": item['id'],
+                    "name": item.get('name', 'Unknown'),
+                    "type": item.get('type', 'Unknown'),
+                    "color": item.get('color', 'Unknown'),
+                    "wear_count": item.get('wearCount', 0),
+                    "last_worn": item.get('lastWorn'),
+                    "is_favorite": item.get('isFavorite', False),
+                    "image_url": item.get('imageUrl') or item.get('image_url') or item.get('image')
+                }
+                for item in top_items
+            ]
+        }
+        
+        logger.info(f"Retrieved top worn items for user {current_user.id}: {len(top_items)} items")
+        
+        return {
+            "success": True,
+            "data": stats,
+            "message": f"Top worn items retrieved successfully ({len(top_items)} items found)"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting top worn items: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving top worn items: {str(e)}")
+
+@router.get("/most-worn-by-category")
+async def get_most_worn_by_category(
+    current_user: UserProfile = Depends(get_current_user_optional)
+) -> Dict[str, Any]:
+    """Get the most worn items organized by category (tops, bottoms, shoes, etc.)."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Query all wardrobe items for the user
+        query = db.collection('wardrobe').where('userId', '==', current_user.id)
+        docs = query.stream()
+        
+        items = []
+        for doc in docs:
+            item_data = doc.to_dict()
+            item_data['id'] = doc.id
+            items.append(item_data)
+        
+        # Group items by category
+        categories = {}
+        for item in items:
+            item_type = item.get('type', 'Unknown').lower()
+            
+            # Map item types to categories
+            if any(word in item_type for word in ['shirt', 'blouse', 'sweater', 'jacket', 'coat', 'hoodie', 'tank', 'tee']):
+                category = 'tops'
+            elif any(word in item_type for word in ['pants', 'jeans', 'shorts', 'skirt', 'leggings', 'trousers']):
+                category = 'bottoms'
+            elif any(word in item_type for word in ['shoes', 'boots', 'sneakers', 'heels', 'flats', 'sandals']):
+                category = 'shoes'
+            elif any(word in item_type for word in ['dress', 'jumpsuit', 'romper']):
+                category = 'dresses'
+            elif any(word in item_type for word in ['accessory', 'jewelry', 'bag', 'scarf', 'hat', 'belt']):
+                category = 'accessories'
+            else:
+                category = 'other'
+            
+            if category not in categories:
+                categories[category] = []
+            categories[category].append(item)
+        
+        # Get top worn item for each category
+        most_worn_by_category = {}
+        for category, category_items in categories.items():
+            if category_items:
+                # Sort by wear count and get the most worn
+                category_items.sort(key=lambda x: x.get('wearCount', 0), reverse=True)
+                most_worn = category_items[0]
+                
+                most_worn_by_category[category] = {
+                    "item": {
+                        "id": most_worn['id'],
+                        "name": most_worn.get('name', 'Unknown'),
+                        "type": most_worn.get('type', 'Unknown'),
+                        "color": most_worn.get('color', 'Unknown'),
+                        "wear_count": most_worn.get('wearCount', 0),
+                        "last_worn": most_worn.get('lastWorn'),
+                        "image_url": most_worn.get('imageUrl') or most_worn.get('image_url') or most_worn.get('image')
+                    },
+                    "total_items": len(category_items),
+                    "total_wear_count": sum(item.get('wearCount', 0) for item in category_items),
+                    "avg_wear_count": sum(item.get('wearCount', 0) for item in category_items) / len(category_items) if category_items else 0
+                }
+        
+        # Calculate overall statistics
+        total_items = len(items)
+        total_wear_count = sum(item.get('wearCount', 0) for item in items)
+        
+        stats = {
+            "total_items": total_items,
+            "total_wear_count": total_wear_count,
+            "avg_wear_count": round(total_wear_count / total_items, 2) if total_items > 0 else 0,
+            "categories": most_worn_by_category
+        }
+        
+        logger.info(f"Retrieved most worn by category for user {current_user.id}")
+        
+        return {
+            "success": True,
+            "data": stats,
+            "message": "Most worn items by category retrieved successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting most worn by category: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving most worn by category: {str(e)}")
+
 @router.get("/trending-styles")
 async def get_trending_styles(
     current_user: UserProfile = Depends(get_current_user_optional)
