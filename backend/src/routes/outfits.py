@@ -2056,7 +2056,9 @@ async def rate_outfit(
             raise HTTPException(status_code=404, detail="Outfit not found")
         
         outfit_data = outfit_doc.to_dict()
-        if outfit_data.get('userId') != current_user_id:
+        # Check both possible user ID field names for compatibility
+        outfit_user_id = outfit_data.get('userId') or outfit_data.get('user_id')
+        if outfit_user_id != current_user_id:
             raise HTTPException(status_code=403, detail="Not authorized to rate this outfit")
         
         # Update outfit with rating

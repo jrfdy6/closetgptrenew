@@ -385,14 +385,15 @@ export default function OutfitGenerationPage() {
         const savedOutfit = await saveResponse.json();
         
         // Then mark it as worn
-        const wearResponse = await fetch('/api/outfits/mark-worn', {
+        const wearResponse = await fetch('/api/outfit-history/mark-worn', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            outfitId: savedOutfit.id || savedOutfit.outfitId
+            outfitId: savedOutfit.id || savedOutfit.outfitId,
+            dateWorn: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
           }),
         });
         
