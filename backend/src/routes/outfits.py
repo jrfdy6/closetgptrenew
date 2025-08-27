@@ -294,11 +294,21 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
     
     validated_outfit.extend(additional_items)
     
-    logger.info(f"🔍 DEBUG: Final validated outfit: {len(validated_outfit)} items")
+    # ENHANCED: Final duplicate check and removal
+    final_outfit = []
+    seen_items = set()
     for item in validated_outfit:
-        logger.info(f"🔍 DEBUG: - {item.get('name', 'unnamed')} ({item.get('type', 'unknown')})")
+        item_id = item.get('id', '')
+        if item_id not in seen_items:
+            final_outfit.append(item)
+            seen_items.add(item_id)
+            logger.info(f"🔍 DEBUG: Final outfit item: {item.get('name', 'unnamed')} ({item.get('type', 'unknown')})")
+        else:
+            logger.warning(f"⚠️ Removed duplicate item: {item.get('name', 'unnamed')}")
     
-    return validated_outfit
+    logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items (duplicates removed)")
+    
+    return final_outfit
 
 async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str, Any]:
     """Validate layering rules for the outfit."""
@@ -1297,10 +1307,19 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             
             logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} - style: '{item_style}', occasion: '{item_occasion}'")
             
-            # Basic matching logic
+                    # Basic matching logic
             if (req.style.lower() in item_style or 
                 req.occasion.lower() in item_occasion or
                 'versatile' in item_style):
+                
+                # ENHANCED: Business color validation
+                if req.occasion.lower() in ['business', 'formal', 'office']:
+                    item_color = item.get('color', '').lower()
+                    business_colors = ['white', 'black', 'navy', 'gray', 'charcoal', 'beige', 'brown', 'blue', 'cream']
+                    if item_color and item_color not in business_colors:
+                        logger.info(f"🔍 DEBUG: Skipping non-business color: {item.get('name', 'unnamed')} ({item_color})")
+                        continue
+                
                 suitable_items.append(item)
                 logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} is suitable")
         
