@@ -286,13 +286,77 @@ class OutfitService:
             doc_ref = self.collection.document(outfit_id)
             doc_ref.update(update_data)
             
-            logger.info(f"✅ Successfully marked outfit {outfit_id} as worn")
+            # NEW: Update individual wardrobe item wear counters
+            await self._update_wardrobe_item_wear_counters(existing_outfit.items, user_id)
+            
+            logger.info(f"✅ Successfully marked outfit {outfit_id} as worn and updated wardrobe item counters")
             
         except ValidationError:
             raise
         except Exception as e:
             logger.error(f"❌ Failed to mark outfit {outfit_id} as worn: {e}")
             raise DatabaseError(f"Failed to mark outfit as worn: {str(e)}")
+    
+    async def _update_wardrobe_item_wear_counters(self, outfit_items: List[Dict], user_id: str) -> None:
+        """
+        Update wear counters for individual wardrobe items when an outfit is worn.
+        This ensures the scoring system has accurate wear data for each item.
+        """
+        try:
+            logger.info(f"👕 Updating wear counters for {len(outfit_items)} wardrobe items")
+            
+            # Get Firestore client
+            from firebase_admin import firestore
+            db = firestore.client()
+            
+            current_time = datetime.now()
+            updated_count = 0
+            
+            for item in outfit_items:
+                item_id = item.get('id')
+                if not item_id:
+                    logger.warning(f"⚠️ Skipping item without ID: {item}")
+                    continue
+                
+                try:
+                    # Get the wardrobe item document
+                    wardrobe_ref = db.collection('wardrobe').document(item_id)
+                    wardrobe_doc = wardrobe_ref.get()
+                    
+                    if not wardrobe_doc.exists:
+                        logger.warning(f"⚠️ Wardrobe item {item_id} not found, skipping wear counter update")
+                        continue
+                    
+                    # Verify the item belongs to the user
+                    wardrobe_data = wardrobe_doc.to_dict()
+                    if wardrobe_data.get('userId') != user_id:
+                        logger.warning(f"⚠️ Wardrobe item {item_id} does not belong to user {user_id}, skipping")
+                        continue
+                    
+                    # Update wear counter and last worn date
+                    current_wear_count = wardrobe_data.get('wearCount', 0)
+                    new_wear_count = current_wear_count + 1
+                    
+                    wardrobe_ref.update({
+                        'wearCount': new_wear_count,
+                        'lastWorn': current_time,
+                        'updatedAt': current_time
+                    })
+                    
+                    updated_count += 1
+                    logger.info(f"✅ Updated wear counter for item {item_id}: {current_wear_count} → {new_wear_count}")
+                    
+                except Exception as e:
+                    logger.error(f"❌ Failed to update wear counter for item {item_id}: {e}")
+                    # Continue with other items even if one fails
+                    continue
+            
+            logger.info(f"✅ Successfully updated wear counters for {updated_count}/{len(outfit_items)} wardrobe items")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to update wardrobe item wear counters: {e}")
+            # Don't raise the error - this is a secondary operation
+            # The main outfit wear tracking should still succeed
     
     async def toggle_outfit_favorite(self, user_id: str, outfit_id: str) -> None:
         """

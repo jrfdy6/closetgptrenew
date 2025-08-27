@@ -1706,6 +1706,166 @@ async def generate_outfit(
         logger.error(f"❌ Outfit generation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate outfit")
 
+@router.post("/rate")
+async def rate_outfit(
+    rating_data: dict,
+    current_user: UserProfile = Depends(get_current_user_optional)
+) -> Dict[str, Any]:
+    """
+    Rate an outfit and update analytics for individual wardrobe items.
+    This ensures the scoring system has accurate feedback data.
+    """
+    try:
+        current_user_id = current_user.id if current_user else "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        outfit_id = rating_data.get('outfitId')
+        rating = rating_data.get('rating')
+        is_liked = rating_data.get('isLiked', False)
+        is_disliked = rating_data.get('isDisliked', False)
+        feedback = rating_data.get('feedback', '')
+        
+        logger.info(f"⭐ Rating outfit {outfit_id} for user {current_user_id}: {rating} stars")
+        
+        if not outfit_id or not rating:
+            raise HTTPException(status_code=400, detail="Missing required rating data")
+        
+        # Update outfit with rating data
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get()
+        
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        if outfit_data.get('userId') != current_user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to rate this outfit")
+        
+        # Update outfit with rating
+        outfit_ref.update({
+            'rating': rating,
+            'isLiked': is_liked,
+            'isDisliked': is_disliked,
+            'feedback': feedback,
+            'ratedAt': datetime.utcnow(),
+            'updatedAt': datetime.utcnow()
+        })
+        
+        # Update analytics for individual wardrobe items
+        await _update_item_analytics_from_outfit_rating(
+            outfit_data.get('items', []), 
+            current_user_id, 
+            rating, 
+            is_liked, 
+            is_disliked, 
+            feedback
+        )
+        
+        logger.info(f"✅ Successfully rated outfit {outfit_id} and updated item analytics")
+        
+        return {
+            "success": True,
+            "message": "Outfit rated successfully",
+            "outfit_id": outfit_id,
+            "rating": rating
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to rate outfit: {e}")
+        raise HTTPException(status_code=500, detail="Failed to rate outfit")
+
+async def _update_item_analytics_from_outfit_rating(
+    outfit_items: List[Dict], 
+    user_id: str, 
+    rating: int, 
+    is_liked: bool, 
+    is_disliked: bool, 
+    feedback: str
+) -> None:
+    """
+    Update analytics for individual wardrobe items based on outfit rating.
+    This ensures the scoring system has accurate feedback data for each item.
+    """
+    try:
+        logger.info(f"📊 Updating analytics for {len(outfit_items)} items from outfit rating")
+        
+        current_time = datetime.utcnow()
+        updated_count = 0
+        
+        for item in outfit_items:
+            item_id = item.get('id')
+            if not item_id:
+                continue
+            
+            try:
+                # Check if analytics document exists for this item
+                analytics_ref = db.collection('item_analytics').document(f"{user_id}_{item_id}")
+                analytics_doc = analytics_ref.get()
+                
+                if analytics_doc.exists:
+                    # Update existing analytics
+                    current_data = analytics_doc.to_dict()
+                    
+                    # Update feedback ratings
+                    feedback_ratings = current_data.get('feedback_ratings', [])
+                    feedback_ratings.append({
+                        'rating': rating,
+                        'outfit_rating': rating,
+                        'is_liked': is_liked,
+                        'is_disliked': is_disliked,
+                        'feedback': feedback,
+                        'timestamp': current_time
+                    })
+                    
+                    # Calculate new average rating
+                    total_rating = sum(fr.get('rating', 0) for fr in feedback_ratings)
+                    avg_rating = total_rating / len(feedback_ratings)
+                    
+                    analytics_ref.update({
+                        'feedback_ratings': feedback_ratings,
+                        'average_feedback_rating': round(avg_rating, 2),
+                        'rating': round(avg_rating, 2),
+                        'total_feedback_count': len(feedback_ratings),
+                        'last_feedback_at': current_time,
+                        'updated_at': current_time
+                    })
+                    
+                else:
+                    # Create new analytics document
+                    analytics_data = {
+                        'user_id': user_id,
+                        'item_id': item_id,
+                        'feedback_ratings': [{
+                            'rating': rating,
+                            'outfit_rating': rating,
+                            'is_liked': is_liked,
+                            'is_disliked': is_disliked,
+                            'feedback': feedback,
+                            'timestamp': current_time
+                        }],
+                        'average_feedback_rating': rating,
+                        'rating': rating,
+                        'total_feedback_count': 1,
+                        'last_feedback_at': current_time,
+                        'created_at': current_time,
+                        'updated_at': current_time
+                    }
+                    
+                    analytics_ref.set(analytics_data)
+                
+                updated_count += 1
+                logger.info(f"✅ Updated analytics for item {item_id} with rating {rating}")
+                
+            except Exception as e:
+                logger.error(f"❌ Failed to update analytics for item {item_id}: {e}")
+                continue
+        
+        logger.info(f"✅ Successfully updated analytics for {updated_count}/{len(outfit_items)} items")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to update item analytics from outfit rating: {e}")
+        # Don't raise error - this is a secondary operation
+
 # ⚠️ PARAMETERIZED ROUTE - MUST BE FIRST TO AVOID ROUTE CONFLICTS!
 # This route MUST come BEFORE the root route to avoid catching it
 @router.get("/{outfit_id}", response_model=OutfitResponse)
