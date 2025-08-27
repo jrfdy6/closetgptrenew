@@ -282,7 +282,14 @@ export default function OutfitGenerationPage() {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify({
+              name: data.name,
+              occasion: data.occasion || formData.occasion, 
+              style: data.style,
+              description: data.reasoning,
+              items: data.items,
+              createdAt: Math.floor(Date.now() / 1000)
+            }),
           });
           
           if (saveResponse.ok) {
@@ -318,7 +325,14 @@ export default function OutfitGenerationPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(generatedOutfit),
+        body: JSON.stringify({
+          name: generatedOutfit.name,
+          occasion: generatedOutfit.occasion || formData.occasion,
+          style: generatedOutfit.style,
+          description: generatedOutfit.reasoning,
+          items: generatedOutfit.items,
+          createdAt: Math.floor(Date.now() / 1000)
+        }),
       });
       
       if (saveResponse.ok) {
@@ -433,7 +447,14 @@ export default function OutfitGenerationPage() {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(generatedOutfit),
+          body: JSON.stringify({
+            name: generatedOutfit.name,
+            occasion: generatedOutfit.occasion || formData.occasion,
+            style: generatedOutfit.style,
+            description: generatedOutfit.reasoning,
+            items: generatedOutfit.items,
+            createdAt: Math.floor(Date.now() / 1000)
+          }),
         });
         
         if (saveResponse.ok) {
