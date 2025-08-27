@@ -159,7 +159,7 @@ async def create_outfit(
         result = await outfit_service.create_custom_outfit(outfit_data)
         
         print(f"✅ DEBUG: create_outfit completed successfully")
-        print(f"🔍 DEBUG: Created outfit id: {result.id}")
+        print(f"🔍 DEBUG: Created outfit id: {result.get('id', 'unknown')}")
         return result
         
     except Exception as e:
