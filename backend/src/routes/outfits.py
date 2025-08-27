@@ -1611,7 +1611,7 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             "confidence_score": outfit_score["total_score"],
             "score_breakdown": outfit_score,
             "reasoning": f"Generated {len(outfit_items)} items forming a complete {req.occasion} outfit with {req.style} style. Includes required categories: {', '.join(set([get_item_category(item.get('type', '')) for item in outfit_items]))}",
-            "createdAt": datetime.now()
+            "createdAt": int(datetime.now().timestamp())
         }
         
     except Exception as e:
@@ -1636,7 +1636,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         "occasion": req.occasion,
         "confidence_score": 0.5,
         "reasoning": f"Basic {req.style} outfit for {req.occasion} (fallback generation)",
-        "createdAt": datetime.now()
+        "createdAt": int(datetime.now().timestamp())
     }
 
 # Real Firestore operations
