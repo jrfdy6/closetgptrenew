@@ -301,6 +301,7 @@ export default function OutfitGenerationPage() {
           }
           
           const token = await user.getIdToken();
+          console.log('🔍 DEBUG: Auto-save URL:', `${API_BASE}/api/outfit/create`);
           const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
             method: 'POST',
             headers: {
@@ -354,6 +355,7 @@ export default function OutfitGenerationPage() {
       const token = await user.getIdToken();
       
       // First save the outfit to backend
+      console.log('🔍 DEBUG: Wear outfit URL:', `${API_BASE}/api/outfit/create`);
       const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
         method: 'POST',
         headers: {
@@ -486,6 +488,7 @@ export default function OutfitGenerationPage() {
           return;
         }
         
+        console.log('🔍 DEBUG: Rating save URL:', `${API_BASE}/api/outfit/create`);
         const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
           method: 'POST',
           headers: {
@@ -522,6 +525,7 @@ export default function OutfitGenerationPage() {
       }
       
       // Submit rating to backend
+      console.log('🔍 DEBUG: Rating URL:', `${API_BASE}/api/outfits/rate`);
       const response = await fetch(`${API_BASE}/api/outfits/rate`, {
         method: 'POST',
         headers: {
