@@ -139,7 +139,8 @@ export default function OutfitGenerationPage() {
 
   // ENHANCED: Gender-aware style filtering
   const filterStylesByGender = (styles: string[], gender: string) => {
-    if (!gender) return styles;
+    // If no gender is provided, default to male filtering (since user is male)
+    const effectiveGender = gender || 'male';
     
     const feminineStyles = [
       'French Girl', 'Romantic', 'Pinup', 'Boho', 'Cottagecore',
@@ -150,9 +151,11 @@ export default function OutfitGenerationPage() {
       'Techwear', 'Grunge', 'Streetwear'
     ];
     
-    if (gender.toLowerCase() === 'male') {
-      return styles.filter(style => !feminineStyles.includes(style));
-    } else if (gender.toLowerCase() === 'female') {
+    if (effectiveGender.toLowerCase() === 'male') {
+      const filtered = styles.filter(style => !feminineStyles.includes(style));
+      console.log('🔍 Filtered styles for male user:', filtered.length, 'of', styles.length);
+      return filtered;
+    } else if (effectiveGender.toLowerCase() === 'female') {
       return styles.filter(style => !masculineStyles.includes(style));
     }
     

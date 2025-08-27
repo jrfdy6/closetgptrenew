@@ -1320,6 +1320,12 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
         if profile_doc.exists:
             profile_data = profile_doc.to_dict()
             logger.info(f"✅ Retrieved profile for user {user_id}")
+            
+            # CRITICAL: Ensure gender is set - if missing or null, default to male
+            if not profile_data.get('gender'):
+                profile_data['gender'] = 'male'
+                logger.info(f"🔧 Setting missing gender to 'male' for user {user_id}")
+                
             return profile_data
         else:
             logger.info(f"⚠️ No profile found for user {user_id}, using defaults")
