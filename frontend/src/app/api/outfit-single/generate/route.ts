@@ -286,10 +286,10 @@ export async function POST(request: Request) {
       matchingColors: backendPayload.wardrobe[0].matchingColors?.length || 0
     } : 'No items');
 
-    console.log('🔍 DEBUG: Making backend API call to:', `${API_URL}/api/outfit/generate`);
+    console.log('🔍 DEBUG: Making backend API call to:', `${API_URL}/api/outfits/generate`);
 
     // Forward the request to the backend with authentication header
-    const response = await fetch(`${API_URL}/api/outfit/generate`, {
+    const response = await fetch(`${API_URL}/api/outfits/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
