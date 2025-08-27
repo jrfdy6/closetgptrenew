@@ -26,10 +26,7 @@ export async function GET(request: Request) {
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
-        'User-Agent': 'ClosetGPT-Frontend/1.0',
-        'Accept': 'application/json',
       },
-      signal: AbortSignal.timeout(10000), // 10 second timeout
     });
     
     console.log('🔍 DEBUG: Backend response status:', response.status);
@@ -107,27 +104,8 @@ export async function GET(request: Request) {
     
   } catch (error) {
     console.error('🔍 DEBUG: Error fetching user profile:', error);
-    
-    // Handle timeout specifically
-    if (error && error.name === 'TimeoutError') {
-      console.error('🔍 DEBUG: Request to backend timed out');
-      return NextResponse.json(
-        { error: 'Request timeout - backend took too long to respond' },
-        { status: 504 }
-      );
-    }
-    
-    // Handle network errors
-    if (error && error.message && error.message.includes('fetch')) {
-      console.error('🔍 DEBUG: Network error connecting to backend');
-      return NextResponse.json(
-        { error: 'Unable to connect to backend service' },
-        { status: 502 }
-      );
-    }
-    
     return NextResponse.json(
-      { error: 'Failed to fetch user profile', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to fetch user profile' },
       { status: 500 }
     );
   }

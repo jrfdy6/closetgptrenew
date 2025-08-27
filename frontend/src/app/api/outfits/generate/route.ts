@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     const fullApiUrl = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
 
-    // Forward the request to the backend with timeout
+    // Forward the request to the backend
     const response = await fetch(`${fullApiUrl}/api/outfits/generate`, {
       method: 'POST',
       headers: {
@@ -33,7 +33,6 @@ export async function POST(request: Request) {
         'Authorization': authHeader,
       },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(25000), // 25 second timeout for outfit generation
     });
 
     if (!response.ok) {

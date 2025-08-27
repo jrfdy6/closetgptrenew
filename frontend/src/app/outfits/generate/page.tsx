@@ -61,27 +61,8 @@ export default function OutfitGenerationPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
   
-  // Helper function to ensure items have all required ClothingItem fields
-  const mapItemToClothingItem = (item: any, outfitStyle: string, outfitOccasion: string) => ({
-    ...item,
-    userId: user?.uid || "",  // Required: inject from Firebase auth
-    subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
-    style: [outfitStyle] || ["casual"],  // Required: List[str] from parent outfit
-    occasion: [outfitOccasion] || ["casual"],  // Required: List[str] from parent
-    imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
-    color: item.color || "unknown",  // Ensure color is provided
-    type: item.type || "item",  // Ensure type is provided
-    // Required ClothingItem fields that were missing:
-    season: ["All"],  // Default to all seasons
-    tags: [],  // Default empty array
-    dominantColors: [],  // Default empty array  
-    matchingColors: [],  // Default empty array
-    createdAt: Math.floor(Date.now() / 1000),  // Current timestamp
-    updatedAt: Math.floor(Date.now() / 1000)   // Current timestamp
-  });
-  
-  // Backend API base URL - Use Vercel proxy routes
-  const API_BASE = '';
+  // Backend API base URL
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
   const [formData, setFormData] = useState<OutfitGenerationForm>({
     occasion: '',
     style: '',
@@ -265,7 +246,7 @@ export default function OutfitGenerationPage() {
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
       
-      const response = await fetch(`${API_BASE}/api/outfits/generate`, {
+      const response = await fetch('/api/outfits/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -301,8 +282,7 @@ export default function OutfitGenerationPage() {
           }
           
           const token = await user.getIdToken();
-          console.log('🔍 DEBUG: Auto-save URL:', `${API_BASE}/api/outfit/create`);
-          const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
+          const saveResponse = await fetch('/api/outfit/create', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -313,11 +293,24 @@ export default function OutfitGenerationPage() {
               occasion: data.occasion || formData.occasion, 
               style: data.style,
               description: data.reasoning,
-              items: data.items.map((item: any) => mapItemToClothingItem(
-                item, 
-                data.style, 
-                data.occasion || formData.occasion
-              )),
+              items: data.items.map((item: any) => ({
+                ...item,
+                userId: user.uid,  // Required: inject from Firebase auth
+                subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
+                style: [data.style] || ["casual"],  // Required: List[str] from parent outfit
+                occasion: [data.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+                imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
+                color: item.color || "unknown",  // Ensure color is provided
+                type: item.type || "item",  // Ensure type is provided
+                
+                // Required ClothingItem fields that were missing:
+                season: ["All"],                               // fallback if no season logic yet
+                tags: [],                                      // default empty array
+                dominantColors: [],                            // default empty array
+                matchingColors: [],                            // default empty array
+                createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+                updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+              })),
               createdAt: Math.floor(Date.now() / 1000)
             }),
           });
@@ -355,8 +348,7 @@ export default function OutfitGenerationPage() {
       const token = await user.getIdToken();
       
       // First save the outfit to backend
-      console.log('🔍 DEBUG: Wear outfit URL:', `${API_BASE}/api/outfit/create`);
-      const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
+      const saveResponse = await fetch('/api/outfit/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -367,11 +359,24 @@ export default function OutfitGenerationPage() {
           occasion: generatedOutfit.occasion || formData.occasion,
           style: generatedOutfit.style,
           description: generatedOutfit.reasoning,
-          items: generatedOutfit.items.map((item: any) => mapItemToClothingItem(
-            item, 
-            generatedOutfit.style, 
-            generatedOutfit.occasion || formData.occasion
-          )),
+          items: generatedOutfit.items.map((item: any) => ({
+            ...item,
+            userId: user.uid,  // Required: inject from Firebase auth
+            subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
+            style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
+            occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+            imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
+            color: item.color || "unknown",  // Ensure color is provided
+            type: item.type || "item",  // Ensure type is provided
+            
+            // Required ClothingItem fields that were missing:
+            season: ["All"],                               // fallback if no season logic yet
+            tags: [],                                      // default empty array
+            dominantColors: [],                            // default empty array
+            matchingColors: [],                            // default empty array
+            createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+            updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+          })),
           createdAt: Math.floor(Date.now() / 1000)
         }),
       });
@@ -488,8 +493,7 @@ export default function OutfitGenerationPage() {
           return;
         }
         
-        console.log('🔍 DEBUG: Rating save URL:', `${API_BASE}/api/outfit/create`);
-        const saveResponse = await fetch(`${API_BASE}/api/outfit/create`, {
+        const saveResponse = await fetch('/api/outfit/create', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -500,11 +504,24 @@ export default function OutfitGenerationPage() {
             occasion: generatedOutfit.occasion || formData.occasion,
             style: generatedOutfit.style,
             description: generatedOutfit.reasoning,
-            items: generatedOutfit.items.map((item: any) => mapItemToClothingItem(
-              item, 
-              generatedOutfit.style, 
-              generatedOutfit.occasion || formData.occasion
-            )),
+            items: generatedOutfit.items.map((item: any) => ({
+              ...item,
+              userId: user.uid,  // Required: inject from Firebase auth
+              subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
+              style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
+              occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+              imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
+              color: item.color || "unknown",  // Ensure color is provided
+              type: item.type || "item",  // Ensure type is provided
+              
+              // Required ClothingItem fields that were missing:
+              season: ["All"],                               // fallback if no season logic yet
+              tags: [],                                      // default empty array
+              dominantColors: [],                            // default empty array
+              matchingColors: [],                            // default empty array
+              createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+              updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+            })),
             createdAt: Math.floor(Date.now() / 1000)
           }),
         });
@@ -525,8 +542,7 @@ export default function OutfitGenerationPage() {
       }
       
       // Submit rating to backend
-      console.log('🔍 DEBUG: Rating URL:', `${API_BASE}/api/outfits/rate`);
-      const response = await fetch(`${API_BASE}/api/outfits/rate`, {
+      const response = await fetch('/api/outfits/rate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
