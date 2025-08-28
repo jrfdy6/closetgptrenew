@@ -32,9 +32,13 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Backend response status:', response.status);
     
     if (!response.ok) {
+      const errorText = await response.text();
       console.error('🔍 DEBUG: Backend responded with status:', response.status);
+      console.error('🔍 DEBUG: Backend error response:', errorText);
+      
+      // Return the actual backend status instead of converting to frontend error
       return NextResponse.json(
-        { error: 'Backend server error', status: response.status },
+        { error: `Backend error: ${errorText}`, backend_status: response.status },
         { status: response.status }
       );
     }
