@@ -29,13 +29,6 @@ interface OutfitCardProps {
   onDelete: (id: string) => void;
 }
 
-interface OutfitFiltersProps {
-  filters: OutfitFilters;
-  onFiltersChange: (filters: OutfitFilters) => void;
-  onSearch: (query: string) => void;
-  onClear: () => void;
-}
-
 // ===== OUTFIT CARD COMPONENT =====
 function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCardProps) {
   const handleFavorite = () => onFavorite(outfit.id);
@@ -124,7 +117,18 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
 
         {/* Outfit Stats */}
         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-          <span>Worn {outfit.wearCount || 0} times</span>
+          <div className="flex flex-col gap-1">
+            <span>Worn {outfit.wearCount || 0} times</span>
+            <span>Created: {
+              outfit.createdAt ? 
+                (outfit.createdAt instanceof Date ? 
+                  outfit.createdAt.toLocaleDateString() : 
+                  typeof outfit.createdAt === 'string' ? 
+                    new Date(outfit.createdAt).toLocaleDateString() :
+                    new Date(outfit.createdAt.seconds * 1000).toLocaleDateString()
+                ) : 'Unknown'
+            }</span>
+          </div>
           {outfit.lastWorn && (
             <span>Last: {outfit.lastWorn instanceof Date ? outfit.lastWorn.toLocaleDateString() : new Date(outfit.lastWorn.seconds * 1000).toLocaleDateString()}</span>
           )}
@@ -180,7 +184,16 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
 }
 
 // ===== FILTERS COMPONENT =====
-function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear }: OutfitFiltersProps) {
+interface OutfitFiltersProps {
+  filters: OutfitFilters;
+  onFiltersChange: (filters: OutfitFilters) => void;
+  onSearch: (query: string) => void;
+  onClear: () => void;
+  sortBy: 'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least';
+  onSortChange: (sortBy: 'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least') => void;
+}
+
+function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, sortBy, onSortChange }: OutfitFiltersProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = () => {
@@ -194,7 +207,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear }:
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Search Input */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -258,6 +271,27 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear }:
             </SelectContent>
           </Select>
         </div>
+
+        {/* Sort By */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Sort By
+          </label>
+          <Select
+            value={sortBy}
+            onValueChange={onSortChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date-newest">Newest First</SelectItem>
+              <SelectItem value="date-oldest">Oldest First</SelectItem>
+              <SelectItem value="wear-most">Most Worn</SelectItem>
+              <SelectItem value="wear-least">Least Worn</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Action Buttons */}
@@ -266,7 +300,12 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear }:
           {filters.occasion && filters.occasion !== 'all' && `Occasion: ${filters.occasion}`}
           {filters.style && filters.style !== 'all' && ` Style: ${filters.style}`}
           {((filters.occasion && filters.occasion !== 'all') || (filters.style && filters.style !== 'all')) && ' • '}
-          <span>Showing filtered results</span>
+          <span>Sort: {
+            sortBy === 'date-newest' ? 'Newest First' :
+            sortBy === 'date-oldest' ? 'Oldest First' :
+            sortBy === 'wear-most' ? 'Most Worn' :
+            'Least Worn'
+          }</span>
         </div>
         <Button variant="outline" onClick={handleClear} size="sm">
           Clear Filters
@@ -305,6 +344,7 @@ export default function OutfitGrid({
   const [filters, setFilters] = useState<OutfitFilters>({ limit: maxOutfits });
   const [searchResults, setSearchResults] = useState<Outfit[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [sortBy, setSortBy] = useState<'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least'>('date-newest');
 
   // ===== COMPUTED VALUES =====
   const filteredOutfits = useMemo(() => {
@@ -314,23 +354,53 @@ export default function OutfitGrid({
       baseOutfits = searchResults;
     }
     
-    // Sort by creation date (newest first) to ensure proper ordering
+    // Apply sorting based on selected option
     const sorted = [...baseOutfits].sort((a, b) => {
-      const dateA = new Date(a.createdAt);
-      const dateB = new Date(b.createdAt);
-      return dateB.getTime() - dateA.getTime(); // Newest first
+      switch (sortBy) {
+        case 'date-newest':
+          const dateA = new Date(a.createdAt);
+          const dateB = new Date(b.createdAt);
+          return dateB.getTime() - dateA.getTime(); // Newest first
+        
+        case 'date-oldest':
+          const dateAOld = new Date(a.createdAt);
+          const dateBOld = new Date(b.createdAt);
+          return dateAOld.getTime() - dateBOld.getTime(); // Oldest first
+        
+        case 'wear-most':
+          const wearCountA = a.wearCount || 0;
+          const wearCountB = b.wearCount || 0;
+          return wearCountB - wearCountA; // Most worn first
+        
+        case 'wear-least':
+          const wearCountALeast = a.wearCount || 0;
+          const wearCountBLeast = b.wearCount || 0;
+          return wearCountALeast - wearCountBLeast; // Least worn first
+        
+        default:
+          return 0;
+      }
     });
     
     if (sorted.length > 0) {
       console.log('🔄 [OutfitGrid] Sorted outfits:', {
         total: sorted.length,
-        newest: sorted[0]?.createdAt,
-        oldest: sorted[sorted.length - 1]?.createdAt
+        sortBy: sortBy,
+        first: {
+          name: sorted[0]?.name,
+          createdAt: sorted[0]?.createdAt,
+          wearCount: sorted[0]?.wearCount || 0
+        },
+        last: {
+          name: sorted[sorted.length - 1]?.name,
+          createdAt: sorted[sorted.length - 1]?.createdAt,
+          wearCount: sorted[sorted.length - 1]?.wearCount || 0
+        }
       });
     }
     
     return sorted;
-  }, [outfits, searchResults, isSearching]);
+  }, [outfits, searchResults, isSearching, sortBy]);
 
   // ===== EVENT HANDLERS =====
   const handleFiltersChange = (newFilters: OutfitFilters) => {
@@ -459,6 +529,8 @@ export default function OutfitGrid({
           onFiltersChange={handleFiltersChange}
           onSearch={handleSearch}
           onClear={handleClear}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
         />
       )}
 
