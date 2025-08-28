@@ -74,17 +74,23 @@ export function useOutfits(): UseOutfitsReturn {
       setLoading(true);
       clearError();
       
-      console.log('🔍 [useOutfits] Fetching outfits with filters:', filters);
+      // Ensure we always have a reasonable limit
+      const finalFilters = {
+        limit: 1000, // Default to 1000 to get all outfits
+        ...filters, // Allow filters to override if needed
+      };
+      
+      console.log('🔍 [useOutfits] Fetching outfits with filters:', finalFilters);
       
       // Call Next.js API route instead of backend directly
       const token = await user.getIdToken();
       
       // Build query parameters
       const params = new URLSearchParams();
-      if (filters.limit) params.append('limit', filters.limit.toString());
-      if (filters.offset) params.append('offset', filters.offset.toString());
-      if (filters.occasion) params.append('occasion', filters.occasion);
-      if (filters.style) params.append('style', filters.style);
+      if (finalFilters.limit) params.append('limit', finalFilters.limit.toString());
+      if (finalFilters.offset) params.append('offset', finalFilters.offset.toString());
+      if (finalFilters.occasion) params.append('occasion', finalFilters.occasion);
+      if (finalFilters.style) params.append('style', finalFilters.style);
       
       const queryString = params.toString();
       const url = queryString ? `/api/outfits?${queryString}` : '/api/outfits';
