@@ -203,7 +203,7 @@ async def mark_outfit_as_worn(
         return {
             "success": True,
             "message": "Outfit marked as worn successfully",
-            "entryId": doc_ref[0].id
+            "entryId": doc_ref[1].id
         }
         
     except Exception as e:
