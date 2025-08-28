@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
-import OutfitService, { 
+import OutfitService from '@/lib/services/outfitService_proper';
+import { 
   Outfit, 
   OutfitFilters, 
   OutfitCreate, 
   OutfitUpdate, 
   OutfitStats 
-} from '@/lib/services/outfitService_proper';
+} from '@/lib/types/outfit';
 
 // ===== HOOK RETURN INTERFACE =====
 interface UseOutfitsReturn {
@@ -75,7 +76,21 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log('🔍 [useOutfits] Fetching outfits with filters:', filters);
       
-      const fetchedOutfits = await OutfitService.getUserOutfits(user, filters);
+      // Call Next.js API route instead of backend directly
+      const token = await user.getIdToken();
+      const response = await fetch('/api/outfits', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch outfits: ${response.status}`);
+      }
+      
+      const fetchedOutfits = await response.json();
       setOutfits(fetchedOutfits);
       
       console.log(`✅ [useOutfits] Successfully fetched ${fetchedOutfits.length} outfits`);
@@ -102,7 +117,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`🔍 [useOutfits] Fetching outfit ${id}`);
       
-      const fetchedOutfit = await OutfitService.getOutfitById(user, id);
+      const token = await user.getIdToken();
+      const fetchedOutfit = await OutfitService.getOutfitById(id, token);
       setOutfit(fetchedOutfit);
       
       if (fetchedOutfit) {
@@ -133,7 +149,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log('🎨 [useOutfits] Creating new outfit:', data);
       
-      const newOutfit = await OutfitService.createOutfit(user, data);
+      const token = await user.getIdToken();
+      const newOutfit = await OutfitService.createOutfit(data, token);
       
       if (newOutfit) {
         // Add to local state
@@ -166,7 +183,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`🔄 [useOutfits] Updating outfit ${id}:`, updates);
       
-      const updatedOutfit = await OutfitService.updateOutfit(user, id, updates);
+      const token = await user.getIdToken();
+      const updatedOutfit = await OutfitService.updateOutfit(id, updates, token);
       
       if (updatedOutfit) {
         // Update local state
@@ -202,7 +220,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`🗑️ [useOutfits] Deleting outfit ${id}`);
       
-      await OutfitService.deleteOutfit(user, id);
+      const token = await user.getIdToken();
+      await OutfitService.deleteOutfit(id, token);
       
       // Remove from local state
       setOutfits(prev => prev.filter(o => o.id !== id));
@@ -236,7 +255,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`👕 [useOutfits] Marking outfit ${id} as worn`);
       
-      await OutfitService.markOutfitAsWorn(user, id);
+      const token = await user.getIdToken();
+      await OutfitService.markOutfitAsWorn(id, token);
       
       // Update local state
       setOutfits(prev => prev.map(o => {
@@ -244,7 +264,7 @@ export function useOutfits(): UseOutfitsReturn {
           return {
             ...o,
             wearCount: (o.wearCount || 0) + 1,
-            lastWorn: new Date()
+            lastWorn: new Date().toISOString()
           };
         }
         return o;
@@ -254,7 +274,7 @@ export function useOutfits(): UseOutfitsReturn {
         setOutfit(prev => prev ? {
           ...prev,
           wearCount: (prev.wearCount || 0) + 1,
-          lastWorn: new Date()
+          lastWorn: new Date().toISOString()
         } : null);
       }
       
@@ -284,7 +304,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`❤️ [useOutfits] Toggling favorite for outfit ${id}`);
       
-      await OutfitService.toggleOutfitFavorite(user, id);
+      const token = await user.getIdToken();
+      await OutfitService.toggleOutfitFavorite(id, token);
       
       // Update local state
       setOutfits(prev => prev.map(o => {
@@ -324,7 +345,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`🔍 [useOutfits] Searching outfits with query: "${query}"`);
       
-      const searchResults = await OutfitService.searchOutfits(user, query, filters);
+      const token = await user.getIdToken();
+      const searchResults = await OutfitService.searchOutfits(query, filters, token);
       
       console.log(`✅ [useOutfits] Search returned ${searchResults.length} results`);
       return searchResults;
@@ -352,7 +374,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log('📊 [useOutfits] Fetching outfit statistics');
       
-      const outfitStats = await OutfitService.getOutfitStats(user);
+      const token = await user.getIdToken();
+      const outfitStats = await OutfitService.getOutfitStats(token);
       setStats(outfitStats);
       
       console.log('✅ [useOutfits] Successfully fetched outfit statistics');

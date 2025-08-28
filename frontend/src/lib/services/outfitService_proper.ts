@@ -1,4 +1,4 @@
-import { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters } from '@/custom_types/outfit';
+import { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters } from '@/lib/types/outfit';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
