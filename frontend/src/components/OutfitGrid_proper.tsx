@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -402,6 +402,32 @@ export default function OutfitGrid({
     return sorted;
   }, [outfits, searchResults, isSearching, sortBy]);
 
+  // ===== EFFECTS =====
+  /**
+   * Refresh outfits when component mounts to catch newly generated outfits
+   */
+  useEffect(() => {
+    if (!loading && outfits.length === 0) {
+      console.log('🔄 [OutfitGrid] Component mounted with no outfits, triggering refresh');
+      refresh();
+    }
+  }, [refresh, loading, outfits.length]);
+
+  /**
+   * Refresh outfits when page becomes visible (for new outfits from generation page)
+   */
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && outfits.length > 0) {
+        console.log('🔄 [OutfitGrid] Page became visible, refreshing to catch new outfits');
+        refresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refresh, outfits.length]);
+
   // ===== EVENT HANDLERS =====
   const handleFiltersChange = (newFilters: OutfitFilters) => {
     setFilters(newFilters);
@@ -515,8 +541,16 @@ export default function OutfitGrid({
         </div>
         
         <div className="flex gap-2">
-          <Button onClick={refresh} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={() => {
+              console.log('🔄 [OutfitGrid] Manual refresh triggered by user');
+              refresh();
+            }} 
+            variant="outline" 
+            size="sm"
+            disabled={loading}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
             Refresh
           </Button>
         </div>
