@@ -308,10 +308,28 @@ export default function OutfitGrid({
 
   // ===== COMPUTED VALUES =====
   const filteredOutfits = useMemo(() => {
+    let baseOutfits = outfits;
+    
     if (isSearching && searchResults.length > 0) {
-      return searchResults;
+      baseOutfits = searchResults;
     }
-    return outfits;
+    
+    // Sort by creation date (newest first) to ensure proper ordering
+    const sorted = [...baseOutfits].sort((a, b) => {
+      const dateA = new Date(a.createdAt);
+      const dateB = new Date(b.createdAt);
+      return dateB.getTime() - dateA.getTime(); // Newest first
+    });
+    
+    if (sorted.length > 0) {
+      console.log('🔄 [OutfitGrid] Sorted outfits:', {
+        total: sorted.length,
+        newest: sorted[0]?.createdAt,
+        oldest: sorted[sorted.length - 1]?.createdAt
+      });
+    }
+    
+    return sorted;
   }, [outfits, searchResults, isSearching]);
 
   // ===== EVENT HANDLERS =====
