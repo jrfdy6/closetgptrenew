@@ -2024,6 +2024,50 @@ async def generate_outfit(
         logger.error(f"❌ Outfit generation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate outfit")
 
+@router.post("/create", response_model=OutfitResponse)
+async def create_outfit(
+    request: dict,
+):
+    """
+    Save an already generated outfit to Firestore.
+    This is for auto-saving generated outfits.
+    """
+    try:
+        # Get real user ID 
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
+        logger.info(f"💾 Saving generated outfit for user: {current_user_id}")
+        
+        # Generate outfit ID if not provided
+        outfit_id = request.get('id', str(uuid4()))
+        
+        # Prepare outfit record for save
+        outfit_record = {
+            "id": outfit_id,
+            "user_id": current_user_id,
+            "name": request.get('name', 'Generated Outfit'),
+            "style": request.get('style', 'casual'),
+            "mood": request.get('mood', 'comfortable'),
+            "occasion": request.get('occasion', 'casual'),
+            "items": request.get('items', []),
+            "description": request.get('description', ''),
+            "reasoning": request.get('reasoning', ''),
+            "confidence_score": request.get('confidence_score', 0.8),
+            "createdAt": request.get('createdAt', int(datetime.now().timestamp())),
+            "generated_at": datetime.utcnow().isoformat(),
+        }
+        
+        logger.info(f"🔍 DEBUG: Saving outfit with {len(outfit_record.get('items', []))} items")
+        
+        # Save to Firestore using existing save function
+        await save_outfit(current_user_id, outfit_id, outfit_record)
+        
+        logger.info(f"✅ Successfully saved outfit {outfit_id}")
+        return OutfitResponse(**outfit_record)
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to save outfit: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save outfit: {e}")
+
 @router.post("/rate")
 async def rate_outfit(
     rating_data: dict,

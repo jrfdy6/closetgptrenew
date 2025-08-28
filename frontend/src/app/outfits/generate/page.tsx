@@ -282,7 +282,7 @@ export default function OutfitGenerationPage() {
           }
           
           const token = await user.getIdToken();
-          const saveResponse = await fetch('/api/outfit/create', {
+          const saveResponse = await fetch('/api/outfits/create', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
