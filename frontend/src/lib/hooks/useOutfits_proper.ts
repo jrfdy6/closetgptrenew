@@ -374,8 +374,21 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log('📊 [useOutfits] Fetching outfit statistics');
       
+      // Call Next.js API route instead of backend directly
       const token = await user.getIdToken();
-      const outfitStats = await OutfitService.getOutfitStats(token);
+      const response = await fetch('/api/outfits/stats', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch stats: ${response.status}`);
+      }
+      
+      const outfitStats = await response.json();
       setStats(outfitStats);
       
       console.log('✅ [useOutfits] Successfully fetched outfit statistics');
