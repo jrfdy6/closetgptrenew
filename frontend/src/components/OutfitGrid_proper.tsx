@@ -11,8 +11,7 @@ import { cn } from '@/lib/utils';
 
 // Import the established pattern components
 import useOutfits from '@/lib/hooks/useOutfits_proper';
-import { Outfit } from '@/lib/services/outfitService_proper';
-import type { OutfitFilters } from '@/lib/services/outfitService_proper';
+import { Outfit, OutfitFilters } from '@/lib/services/outfitService';
 
 // ===== COMPONENT INTERFACES =====
 interface OutfitGridProps {
@@ -86,12 +85,37 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
           <p className="text-sm text-gray-600 mb-2">Items ({outfit.items.length}):</p>
           <div className="grid grid-cols-2 gap-2">
             {outfit.items.slice(0, 4).map((item, index) => (
-              <div key={index} className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                {item.name}
+              <div key={index} className="relative group">
+                {item.imageUrl ? (
+                  <div className="aspect-square rounded-lg overflow-hidden border border-gray-200">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                      onError={(e) => {
+                        // Fallback to text if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'block';
+                      }}
+                    />
+                    <div 
+                      className="hidden text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded absolute inset-0 flex items-center justify-center"
+                      style={{ display: 'none' }}
+                    >
+                      {item.name}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded aspect-square flex items-center justify-center text-center">
+                    {item.name}
+                  </div>
+                )}
               </div>
             ))}
             {outfit.items.length > 4 && (
-              <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">
+              <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded aspect-square flex items-center justify-center">
                 +{outfit.items.length - 4} more
               </div>
             )}
@@ -102,7 +126,7 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
           <span>Worn {outfit.wearCount || 0} times</span>
           {outfit.lastWorn && (
-            <span>Last: {new Date(outfit.lastWorn).toLocaleDateString()}</span>
+            <span>Last: {outfit.lastWorn instanceof Date ? outfit.lastWorn.toLocaleDateString() : new Date(outfit.lastWorn.seconds * 1000).toLocaleDateString()}</span>
           )}
         </div>
 
