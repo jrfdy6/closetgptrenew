@@ -1688,6 +1688,13 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
         # This matches where outfits are actually stored: outfits collection with user_id field
         outfits_ref = db.collection("outfits").where("user_id", "==", user_id)
         
+        # Sort by creation date (newest first) before pagination
+        try:
+            outfits_ref = outfits_ref.order_by('createdAt', direction=db.Query.DESCENDING)
+            logger.info("🔍 DEBUG: Added sorting by createdAt (newest first)")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not sort by createdAt: {e}, proceeding without sorting")
+        
         # Apply pagination
         if offset > 0:
             outfits_ref = outfits_ref.offset(offset)
