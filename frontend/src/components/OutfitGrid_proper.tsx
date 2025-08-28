@@ -319,7 +319,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 export default function OutfitGrid({ 
   showFilters = true, 
   showSearch = true, 
-  maxOutfits = 50,
+  maxOutfits = 1000,
   className 
 }: OutfitGridProps) {
   // ===== HOOK USAGE =====

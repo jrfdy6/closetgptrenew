@@ -78,7 +78,20 @@ export function useOutfits(): UseOutfitsReturn {
       
       // Call Next.js API route instead of backend directly
       const token = await user.getIdToken();
-      const response = await fetch('/api/outfits', {
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (filters.limit) params.append('limit', filters.limit.toString());
+      if (filters.offset) params.append('offset', filters.offset.toString());
+      if (filters.occasion) params.append('occasion', filters.occasion);
+      if (filters.style) params.append('style', filters.style);
+      
+      const queryString = params.toString();
+      const url = queryString ? `/api/outfits?${queryString}` : '/api/outfits';
+      
+      console.log('🔍 [useOutfits] Fetching from URL:', url);
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

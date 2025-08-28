@@ -45,7 +45,7 @@ export default function OutfitsPage() {
       <OutfitGrid 
         showFilters={true}
         showSearch={true}
-        maxOutfits={100}
+        maxOutfits={1000}
       />
     </div>
   );
