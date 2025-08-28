@@ -9,7 +9,7 @@ from ..config.firebase import db
 from ..core.logging import get_logger
 from ..services.analytics_service import log_analytics_event
 
-router = APIRouter(prefix="/outfit-history", tags=["outfit-history"])
+router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
 
 db = db
