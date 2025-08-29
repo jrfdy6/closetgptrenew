@@ -424,7 +424,7 @@ export default function OutfitGrid({
    */
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden && outfits.length > 0) {
+      if (!document.hidden) {
         console.log('🔄 [OutfitGrid] Page became visible, refreshing to catch new outfits');
         refresh();
       }
@@ -432,7 +432,20 @@ export default function OutfitGrid({
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [refresh, outfits.length]);
+  }, [refresh]);
+
+  /**
+   * Refresh outfits when user navigates to this page (for new outfits from generation page)
+   */
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🔄 [OutfitGrid] Window focused, refreshing to catch new outfits');
+      refresh();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [refresh]);
 
   /**
    * Intersection observer for automatic infinite scroll

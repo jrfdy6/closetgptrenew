@@ -9,7 +9,7 @@ import {
   OutfitStats 
 } from '@/lib/types/outfit';
 
-// ===== HOOK RETURN INTERFACE =====
+  // ===== HOOK RETURN INTERFACE =====
 interface UseOutfitsReturn {
   // ===== STATE =====
   outfits: Outfit[];
@@ -24,6 +24,7 @@ interface UseOutfitsReturn {
   fetchOutfits: (filters?: OutfitFilters) => Promise<void>;
   fetchOutfit: (id: string) => Promise<void>;
   loadMoreOutfits: () => Promise<void>;
+  addNewOutfit: (outfit: Outfit) => void;
   createOutfit: (data: OutfitCreate) => Promise<Outfit | null>;
   updateOutfit: (id: string, updates: OutfitUpdate) => Promise<Outfit | null>;
   deleteOutfit: (id: string) => Promise<boolean>;
@@ -199,6 +200,23 @@ export function useOutfits(): UseOutfitsReturn {
       setLoadingMore(false);
     }
   }, [user, hasMore, loadingMore, outfits.length, currentFilters, clearError, handleError, PAGE_SIZE]);
+
+  /**
+   * Add a new outfit to the beginning of the list (for newly generated outfits)
+   */
+  const addNewOutfit = useCallback((newOutfit: Outfit) => {
+    setOutfits(prev => {
+      // Check if outfit already exists to avoid duplicates
+      const exists = prev.some(outfit => outfit.id === newOutfit.id);
+      if (exists) {
+        console.log('🔍 [useOutfits] Outfit already exists, not adding duplicate');
+        return prev;
+      }
+      
+      console.log('🔍 [useOutfits] Adding new outfit to the beginning of list:', newOutfit.name);
+      return [newOutfit, ...prev];
+    });
+  }, []);
 
   /**
    * Fetch a specific outfit by ID
@@ -548,6 +566,7 @@ export function useOutfits(): UseOutfitsReturn {
     fetchOutfits,
     fetchOutfit,
     loadMoreOutfits,
+    addNewOutfit,
     createOutfit,
     updateOutfit,
     deleteOutfit,

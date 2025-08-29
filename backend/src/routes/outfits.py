@@ -1784,7 +1784,18 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
             outfits_ref = outfits_ref.order_by('createdAt', direction=db.Query.DESCENDING)
             logger.info("🔍 DEBUG: Added sorting by createdAt (newest first)")
         except Exception as e:
-            logger.warning(f"⚠️ Could not sort by createdAt: {e}, proceeding without sorting")
+            logger.warning(f"⚠️ Could not sort by createdAt: {e}, trying alternative sort fields")
+            # Try alternative sorting if createdAt index doesn't exist
+            try:
+                outfits_ref = outfits_ref.order_by('updatedAt', direction=db.Query.DESCENDING)
+                logger.info("🔍 DEBUG: Fallback to sorting by updatedAt (newest first)")
+            except Exception as e2:
+                try:
+                    # Last resort: use document ID which has timestamp info
+                    outfits_ref = outfits_ref.order_by('__name__', direction=db.Query.DESCENDING)
+                    logger.info("🔍 DEBUG: Fallback to sorting by document ID (newest first)")
+                except Exception as e3:
+                    logger.warning(f"⚠️ All sorting methods failed: {e3}, returning unsorted results")
         
         # Apply pagination
         if offset > 0:
@@ -1802,7 +1813,12 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
             outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append(outfit_data)
-            logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
+            created_at = outfit_data.get('createdAt', 'Unknown')
+            logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id}, Created: {created_at})")
+        
+        if outfits:
+            logger.info(f"🔍 DEBUG: First outfit in results: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
+            logger.info(f"🔍 DEBUG: Last outfit in results: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
         
         # Optimization: Fetch user's wardrobe once for all outfits
         logger.info(f"🔍 DEBUG: Fetching wardrobe cache for batch item resolution...")
