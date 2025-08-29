@@ -479,6 +479,10 @@ export function useOutfits(): UseOutfitsReturn {
    * Fetch outfit statistics
    */
   const fetchStats = useCallback(async () => {
+    // TEMPORARILY DISABLED - the stats endpoint is causing 500 errors and refresh loops
+    console.log('📊 [useOutfits] Stats fetching temporarily disabled to prevent refresh loops');
+    return;
+    
     if (!user) {
       setError('User not authenticated');
       return;

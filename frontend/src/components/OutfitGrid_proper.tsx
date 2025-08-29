@@ -421,31 +421,51 @@ export default function OutfitGrid({
 
   /**
    * Refresh outfits when page becomes visible (for new outfits from generation page)
+   * DEBOUNCED to prevent infinite refresh loops
    */
   useEffect(() => {
+    let debounceTimer: NodeJS.Timeout;
+    
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('🔄 [OutfitGrid] Page became visible, refreshing to catch new outfits');
-        refresh();
+      if (!document.hidden && outfits.length > 0) { // Only refresh if we have existing outfits
+        console.log('🔄 [OutfitGrid] Page became visible, debounced refresh in 2s');
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          refresh();
+        }, 2000); // 2 second debounce
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [refresh]);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearTimeout(debounceTimer);
+    };
+  }, [refresh, outfits.length]);
 
   /**
-   * Refresh outfits when user navigates to this page (for new outfits from generation page)
+   * Refresh outfits when user navigates to this page (for new outfits from generation page)  
+   * DEBOUNCED to prevent infinite refresh loops
    */
   useEffect(() => {
+    let debounceTimer: NodeJS.Timeout;
+    
     const handleFocus = () => {
-      console.log('🔄 [OutfitGrid] Window focused, refreshing to catch new outfits');
-      refresh();
+      if (outfits.length > 0) { // Only refresh if we have existing outfits
+        console.log('🔄 [OutfitGrid] Window focused, debounced refresh in 3s');
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          refresh();
+        }, 3000); // 3 second debounce
+      }
     };
 
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [refresh]);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearTimeout(debounceTimer);
+    };
+  }, [refresh, outfits.length]);
 
   /**
    * Intersection observer for automatic infinite scroll
