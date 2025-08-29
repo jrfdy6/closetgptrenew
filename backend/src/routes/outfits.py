@@ -1671,11 +1671,16 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
         logger.error(f"❌ Failed to save outfit {outfit_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to save outfit: {e}")
 
-async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Dict[str, Any]]:
+async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_cache: Dict[str, Dict] = None) -> List[Dict[str, Any]]:
     """
     Resolve item IDs to actual item objects from the wardrobe collection.
     If an item is already a dictionary, return it as is.
     If an item is a string ID, fetch the item from the wardrobe collection.
+    
+    Args:
+        items: List of item IDs or item objects
+        user_id: User ID for the wardrobe
+        wardrobe_cache: Optional cache of wardrobe items to avoid repeated queries
     """
     resolved_items = []
     
@@ -1694,40 +1699,22 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Di
                 })
         return resolved_items
     
+    # Collect unique item IDs that need to be fetched
+    item_ids_to_fetch = []
     for item in items:
         if isinstance(item, dict):
             # Item is already a complete object
             resolved_items.append(item)
         elif isinstance(item, str):
-            # Item is an ID, need to fetch from wardrobe
-            try:
-                item_doc = db.collection('wardrobe').document(item).get()
-                if item_doc.exists:
-                    item_data = item_doc.to_dict()
-                    # Add the ID to the item data
-                    item_data['id'] = item
-                    resolved_items.append(item_data)
-                else:
-                    logger.warning(f"Item {item} not found in wardrobe for user {user_id}")
-                    # Add a placeholder item
-                    resolved_items.append({
-                        'id': item,
-                        'name': 'Item not found',
-                        'type': 'unknown',
-                        'imageUrl': None
-                    })
-            except Exception as e:
-                logger.error(f"Error fetching item {item}: {e}")
-                # Add a placeholder item
-                resolved_items.append({
-                    'id': item,
-                    'name': 'Error loading item',
-                    'type': 'unknown',
-                    'imageUrl': None
-                })
+            if wardrobe_cache and item in wardrobe_cache:
+                # Use cached item
+                resolved_items.append(wardrobe_cache[item])
+            else:
+                # Need to fetch this item
+                item_ids_to_fetch.append(item)
+                resolved_items.append(None)  # Placeholder for position
         else:
             logger.warning(f"Unexpected item type: {type(item)} for item: {item}")
-            # Add a placeholder item
             resolved_items.append({
                 'id': str(item),
                 'name': 'Invalid item',
@@ -1735,7 +1722,45 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Di
                 'imageUrl': None
             })
     
-    return resolved_items
+    # Batch fetch missing items if any
+    if item_ids_to_fetch:
+        try:
+            # Batch fetch items from wardrobe
+            docs = db.collection('wardrobe').where('userId', '==', user_id).stream()
+            user_wardrobe = {}
+            for doc in docs:
+                item_data = doc.to_dict()
+                item_data['id'] = doc.id
+                user_wardrobe[doc.id] = item_data
+            
+            # Fill in the placeholders
+            item_index = 0
+            for i, item in enumerate(items):
+                if isinstance(item, str) and not (wardrobe_cache and item in wardrobe_cache):
+                    if item in user_wardrobe:
+                        resolved_items[i] = user_wardrobe[item]
+                    else:
+                        logger.warning(f"Item {item} not found in wardrobe for user {user_id}")
+                        resolved_items[i] = {
+                            'id': item,
+                            'name': 'Item not found',
+                            'type': 'unknown',
+                            'imageUrl': None
+                        }
+                        
+        except Exception as e:
+            logger.error(f"Error batch fetching items: {e}")
+            # Fill placeholders with error items
+            for i, item in enumerate(resolved_items):
+                if item is None:
+                    resolved_items[i] = {
+                        'id': str(items[i]),
+                        'name': 'Error loading item',
+                        'type': 'unknown',
+                        'imageUrl': None
+                    }
+    
+    return [item for item in resolved_items if item is not None]
 
 async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
@@ -1771,19 +1796,34 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
         docs = outfits_ref.stream()
         logger.info(f"🔍 DEBUG: Firestore query executed successfully, processing results...")
         
+        # First pass: collect outfit data
         outfits = []
         for doc in docs:
             outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
-            
-            # ✅ CRITICAL FIX: Resolve item IDs to full objects
-            if 'items' in outfit_data and outfit_data['items']:
-                logger.info(f"🔍 DEBUG: Resolving {len(outfit_data['items'])} items for outfit {outfit_data.get('name', 'unnamed')}")
-                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id)
-                logger.info(f"✅ DEBUG: Resolved items to full objects")
-            
             outfits.append(outfit_data)
             logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
+        
+        # Optimization: Fetch user's wardrobe once for all outfits
+        logger.info(f"🔍 DEBUG: Fetching wardrobe cache for batch item resolution...")
+        try:
+            wardrobe_docs = db.collection('wardrobe').where('userId', '==', user_id).stream()
+            wardrobe_cache = {}
+            for doc in wardrobe_docs:
+                item_data = doc.to_dict()
+                item_data['id'] = doc.id
+                wardrobe_cache[doc.id] = item_data
+            logger.info(f"✅ DEBUG: Cached {len(wardrobe_cache)} wardrobe items")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not cache wardrobe: {e}, will fetch items individually")
+            wardrobe_cache = None
+        
+        # Second pass: resolve items using cache
+        for outfit_data in outfits:
+            if 'items' in outfit_data and outfit_data['items']:
+                logger.info(f"🔍 DEBUG: Resolving {len(outfit_data['items'])} items for outfit {outfit_data.get('name', 'unnamed')}")
+                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
+                logger.info(f"✅ DEBUG: Resolved items to full objects")
         
         logger.info(f"✅ DEBUG: Successfully retrieved {len(outfits)} outfits from Firestore for user {user_id}")
         return outfits

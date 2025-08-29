@@ -16,11 +16,14 @@ interface UseOutfitsReturn {
   outfit: Outfit | null;
   stats: OutfitStats | null;
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
   error: string | null;
   
   // ===== ACTIONS =====
   fetchOutfits: (filters?: OutfitFilters) => Promise<void>;
   fetchOutfit: (id: string) => Promise<void>;
+  loadMoreOutfits: () => Promise<void>;
   createOutfit: (data: OutfitCreate) => Promise<Outfit | null>;
   updateOutfit: (id: string, updates: OutfitUpdate) => Promise<Outfit | null>;
   deleteOutfit: (id: string) => Promise<boolean>;
@@ -44,7 +47,14 @@ export function useOutfits(): UseOutfitsReturn {
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [stats, setStats] = useState<OutfitStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({});
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination constants
+  const INITIAL_PAGE_SIZE = 20; // Load 20 outfits initially
+  const PAGE_SIZE = 12; // Load 12 more each time
 
   // ===== ERROR HANDLING =====
   const clearError = useCallback(() => {
@@ -61,7 +71,7 @@ export function useOutfits(): UseOutfitsReturn {
   // ===== CORE ACTIONS =====
   
   /**
-   * Fetch user's outfits with optional filtering
+   * Fetch user's outfits with optional filtering (resets pagination)
    * Follows the established wardrobe service pattern
    */
   const fetchOutfits = useCallback(async (filters: OutfitFilters = {}) => {
@@ -74,13 +84,16 @@ export function useOutfits(): UseOutfitsReturn {
       setLoading(true);
       clearError();
       
-      // Ensure we always have a reasonable limit
+      // Start fresh with initial page size
       const finalFilters = {
-        limit: 1000, // Default to 1000 to get all outfits
+        limit: INITIAL_PAGE_SIZE,
+        offset: 0,
         ...filters, // Allow filters to override if needed
       };
       
-      console.log('🔍 [useOutfits] Fetching outfits with filters:', finalFilters);
+      setCurrentFilters(filters); // Store for loadMore
+      
+      console.log('🔍 [useOutfits] Fetching initial outfits with filters:', finalFilters);
       
       // Call Next.js API route instead of backend directly
       const token = await user.getIdToken();
@@ -112,14 +125,80 @@ export function useOutfits(): UseOutfitsReturn {
       const fetchedOutfits = await response.json();
       setOutfits(fetchedOutfits);
       
-      console.log(`✅ [useOutfits] Successfully fetched ${fetchedOutfits.length} outfits`);
+      // Check if there are more to load
+      setHasMore(fetchedOutfits.length === INITIAL_PAGE_SIZE);
+      
+      console.log(`✅ [useOutfits] Successfully fetched ${fetchedOutfits.length} initial outfits`);
       
     } catch (error) {
       handleError(error as Error);
     } finally {
       setLoading(false);
     }
-  }, [user, clearError, handleError]);
+  }, [user, clearError, handleError, INITIAL_PAGE_SIZE]);
+
+  /**
+   * Load more outfits (pagination)
+   */
+  const loadMoreOutfits = useCallback(async () => {
+    if (!user || !hasMore || loadingMore) {
+      return;
+    }
+
+    try {
+      setLoadingMore(true);
+      clearError();
+      
+      const finalFilters = {
+        limit: PAGE_SIZE,
+        offset: outfits.length, // Use current length as offset
+        ...currentFilters,
+      };
+      
+      console.log('🔍 [useOutfits] Loading more outfits with filters:', finalFilters);
+      
+      const token = await user.getIdToken();
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (finalFilters.limit) params.append('limit', finalFilters.limit.toString());
+      if (finalFilters.offset) params.append('offset', finalFilters.offset.toString());
+      if (finalFilters.occasion) params.append('occasion', finalFilters.occasion);
+      if (finalFilters.style) params.append('style', finalFilters.style);
+      
+      const queryString = params.toString();
+      const url = queryString ? `/api/outfits?${queryString}` : '/api/outfits';
+      
+      console.log('🔍 [useOutfits] Loading more from URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load more outfits: ${response.status}`);
+      }
+      
+      const moreOutfits = await response.json();
+      
+      // Append to existing outfits
+      setOutfits(prev => [...prev, ...moreOutfits]);
+      
+      // Check if there are more to load
+      setHasMore(moreOutfits.length === PAGE_SIZE);
+      
+      console.log(`✅ [useOutfits] Successfully loaded ${moreOutfits.length} more outfits (total: ${outfits.length + moreOutfits.length})`);
+      
+    } catch (error) {
+      handleError(error as Error);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [user, hasMore, loadingMore, outfits.length, currentFilters, clearError, handleError, PAGE_SIZE]);
 
   /**
    * Fetch a specific outfit by ID
@@ -424,11 +503,15 @@ export function useOutfits(): UseOutfitsReturn {
    */
   const refresh = useCallback(async () => {
     console.log('🔄 [useOutfits] Refreshing all data');
+    
+    // Reset pagination state
+    setHasMore(true);
+    
     await Promise.all([
-      fetchOutfits(),
+      fetchOutfits(currentFilters),
       fetchStats()
     ]);
-  }, [fetchOutfits, fetchStats]);
+  }, [fetchOutfits, fetchStats, currentFilters]);
 
   /**
    * Get outfit by ID from local state
@@ -457,11 +540,14 @@ export function useOutfits(): UseOutfitsReturn {
     outfit,
     stats,
     loading,
+    loadingMore,
+    hasMore,
     error,
     
     // Actions
     fetchOutfits,
     fetchOutfit,
+    loadMoreOutfits,
     createOutfit,
     updateOutfit,
     deleteOutfit,

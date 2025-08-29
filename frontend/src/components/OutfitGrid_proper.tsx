@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Heart, HeartOff, Eye, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Heart, HeartOff, Eye, Edit, Trash2, RefreshCw, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import the established pattern components
@@ -330,8 +330,11 @@ export default function OutfitGrid({
   const { 
     outfits, 
     loading, 
+    loadingMore,
+    hasMore,
     error, 
     fetchOutfits, 
+    loadMoreOutfits,
     markAsWorn, 
     toggleFavorite, 
     updateOutfit, 
@@ -341,10 +344,13 @@ export default function OutfitGrid({
   } = useOutfits();
 
   // ===== LOCAL STATE =====
-  const [filters, setFilters] = useState<OutfitFilters>({ limit: maxOutfits });
+  const [filters, setFilters] = useState<OutfitFilters>({});
   const [searchResults, setSearchResults] = useState<Outfit[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [sortBy, setSortBy] = useState<'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least'>('date-newest');
+
+  // Intersection observer for infinite scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // ===== COMPUTED VALUES =====
   const filteredOutfits = useMemo(() => {
@@ -427,6 +433,33 @@ export default function OutfitGrid({
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [refresh, outfits.length]);
+
+  /**
+   * Intersection observer for automatic infinite scroll
+   */
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && hasMore && !loadingMore) {
+          console.log('🔄 [OutfitGrid] Load more trigger reached, loading more outfits');
+          loadMoreOutfits();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [hasMore, loadingMore, loadMoreOutfits]);
 
   // ===== EVENT HANDLERS =====
   const handleFiltersChange = (newFilters: OutfitFilters) => {
@@ -621,11 +654,34 @@ export default function OutfitGrid({
         </div>
       )}
 
-      {/* Loading More Indicator */}
-      {loading && outfits.length > 0 && (
-        <div className="text-center py-4">
-          <RefreshCw className="h-6 w-6 animate-spin text-gray-400 mx-auto" />
-          <p className="text-gray-500 text-sm mt-2">Loading more outfits...</p>
+      {/* Load More Section */}
+      {hasMore && (
+        <div ref={loadMoreRef} className="text-center py-8">
+          {loadingMore ? (
+            <div className="flex flex-col items-center gap-3">
+              <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+              <p className="text-gray-500 text-sm">Loading more outfits...</p>
+            </div>
+          ) : (
+            <Button 
+              onClick={loadMoreOutfits}
+              variant="outline" 
+              className="flex items-center gap-2"
+              disabled={loadingMore}
+            >
+              <ChevronDown className="h-4 w-4" />
+              Load More Outfits
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* End of Results */}
+      {!hasMore && outfits.length > 0 && (
+        <div className="text-center py-6">
+          <p className="text-gray-500 text-sm">
+            That's all your outfits! You have {outfits.length} total outfits.
+          </p>
         </div>
       )}
     </div>
