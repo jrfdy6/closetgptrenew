@@ -1779,23 +1779,9 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
         # This matches where outfits are actually stored: outfits collection with user_id field
         outfits_ref = db.collection("outfits").where("user_id", "==", user_id)
         
-        # Sort by creation date (newest first) before pagination
-        try:
-            outfits_ref = outfits_ref.order_by('createdAt', direction=db.Query.DESCENDING)
-            logger.info("🔍 DEBUG: Added sorting by createdAt (newest first)")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not sort by createdAt: {e}, trying alternative sort fields")
-            # Try alternative sorting if createdAt index doesn't exist
-            try:
-                outfits_ref = outfits_ref.order_by('updatedAt', direction=db.Query.DESCENDING)
-                logger.info("🔍 DEBUG: Fallback to sorting by updatedAt (newest first)")
-            except Exception as e2:
-                try:
-                    # Last resort: use document ID which has timestamp info
-                    outfits_ref = outfits_ref.order_by('__name__', direction=db.Query.DESCENDING)
-                    logger.info("🔍 DEBUG: Fallback to sorting by document ID (newest first)")
-                except Exception as e3:
-                    logger.warning(f"⚠️ All sorting methods failed: {e3}, returning unsorted results")
+        # Skip Firestore sorting - we'll do reliable client-side sorting after fetching
+        # This prevents index errors and ensures consistent sorting behavior
+        logger.info("🔍 DEBUG: Skipping Firestore sorting, will use client-side sorting for reliability")
         
         # Apply pagination
         if offset > 0:
@@ -1853,15 +1839,25 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
                     if 'T' in created_at and not created_at.endswith('Z'):
                         outfit_data['createdAt'] = created_at + 'Z'
         
-        # Sort outfits by createdAt in Python to ensure consistent ordering
+        # Force client-side sorting by createdAt (newest first) to ensure reliable ordering
+        # This is necessary because Firestore sorting may fail due to missing indexes
         try:
-            outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
-            logger.info(f"✅ DEBUG: Client-side sorted {len(outfits)} outfits by createdAt")
+            def get_sortable_date(outfit):
+                created_at = outfit.get('createdAt', '')
+                if isinstance(created_at, str):
+                    return created_at
+                elif hasattr(created_at, 'isoformat'):
+                    return created_at.isoformat()
+                else:
+                    return str(created_at)
+            
+            outfits.sort(key=get_sortable_date, reverse=True)
+            logger.info(f"✅ DEBUG: Force client-side sorted {len(outfits)} outfits by createdAt (newest first)")
             if outfits:
-                logger.info(f"🔍 DEBUG: After sorting - First: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
-                logger.info(f"🔍 DEBUG: After sorting - Last: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
+                logger.info(f"🔍 DEBUG: After FORCE sorting - First: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
+                logger.info(f"🔍 DEBUG: After FORCE sorting - Last: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
         except Exception as e:
-            logger.warning(f"⚠️ Client-side sorting failed: {e}")
+            logger.warning(f"⚠️ Force client-side sorting failed: {e}")
         
         logger.info(f"✅ DEBUG: Successfully retrieved {len(outfits)} outfits from Firestore for user {user_id}")
         return outfits
