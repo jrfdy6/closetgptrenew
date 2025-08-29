@@ -5,7 +5,9 @@ export async function GET(req: NextRequest) {
   
   try {
     const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits/stats/summary`;
+    const authHeader = req.headers.get('authorization');
     console.log("🔍 [API] Proxying to backend URL:", backendUrl);
+    console.log("🔍 [API] Authorization header:", authHeader ? `Present (${authHeader.substring(0, 20)}...)` : 'Missing');
     
     const res = await fetch(backendUrl, {
       method: 'GET',
@@ -18,8 +20,21 @@ export async function GET(req: NextRequest) {
     });
 
     if (!res.ok) {
-      console.error('❌ [API] Backend responded with:', res.status);
-      return NextResponse.json({ error: `Backend error: ${res.status}` }, { status: res.status });
+      console.error('❌ [API] Backend responded with:', res.status, res.statusText);
+      const errorText = await res.text().catch(() => 'Unable to read error response');
+      console.error('❌ [API] Backend error details:', errorText);
+      
+      // Special handling for auth errors
+      if (res.status === 403 || res.status === 401) {
+        console.error('🔐 AUTH ERROR: Token may be invalid or expired');
+        console.error('🔐 AUTH DEBUG: Auth header sent:', authHeader ? 'Yes' : 'No');
+      }
+      
+      return NextResponse.json({ 
+        error: `Backend error: ${res.status} ${res.statusText}`, 
+        details: errorText,
+        authHeaderSent: !!authHeader
+      }, { status: res.status });
     }
 
     const data = await res.json();
