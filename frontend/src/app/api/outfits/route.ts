@@ -37,7 +37,16 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json();
     console.log("🚀 FORCE REBUILD: Successfully fetched data from backend");
-    return NextResponse.json(data, { status: res.status });
+    console.log("🔍 DEBUG: First 3 outfits from backend:", data.slice(0, 3).map((o: any) => `${o.name}: ${o.createdAt}`));
+    
+    const response = NextResponse.json(data, { status: res.status });
+    // Add cache-busting headers to prevent browser caching
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
+    
+    return response;
   } catch (err) {
     console.error('❌ FORCE REBUILD: /api/outfits proxy failed:', err);
     console.error('❌ FORCE REBUILD: Error type:', typeof err);

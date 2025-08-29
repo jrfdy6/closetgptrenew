@@ -403,6 +403,9 @@ export default function OutfitGrid({
           wearCount: sorted[sorted.length - 1]?.wearCount || 0
         }
       });
+      
+      // DEBUG: Show first 3 outfit dates explicitly
+      console.log('🔍 [OutfitGrid] First 3 outfit dates:', sorted.slice(0, 3).map(o => `${o.name}: ${o.createdAt}`));
     }
     
     return sorted;
