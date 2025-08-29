@@ -1783,10 +1783,9 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
         # This prevents index errors and ensures consistent sorting behavior
         logger.info("🔍 DEBUG: Skipping Firestore sorting, will use client-side sorting for reliability")
         
-        # Apply pagination
-        if offset > 0:
-            outfits_ref = outfits_ref.offset(offset)
-        outfits_ref = outfits_ref.limit(limit)
+        # DON'T apply pagination here - we need ALL outfits to sort properly first
+        # Pagination will be applied after client-side sorting
+        logger.info("🔍 DEBUG: Fetching ALL outfits first, then sorting, then paginating for correct order")
         
         # Execute query
         logger.info(f"🔍 DEBUG: Executing Firestore query with .stream()...")
@@ -1858,6 +1857,18 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
                 logger.info(f"🔍 DEBUG: After FORCE sorting - Last: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
         except Exception as e:
             logger.warning(f"⚠️ Force client-side sorting failed: {e}")
+        
+        # NOW apply pagination after sorting to get the correct newest outfits
+        total_outfits = len(outfits)
+        if offset > 0:
+            outfits = outfits[offset:]
+        if limit > 0:
+            outfits = outfits[:limit]
+            
+        logger.info(f"✅ DEBUG: Applied pagination - Total: {total_outfits}, Offset: {offset}, Limit: {limit}, Returned: {len(outfits)}")
+        if outfits:
+            logger.info(f"🔍 DEBUG: After pagination - First: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
+            logger.info(f"🔍 DEBUG: After pagination - Last: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
         
         logger.info(f"✅ DEBUG: Successfully retrieved {len(outfits)} outfits from Firestore for user {user_id}")
         return outfits
