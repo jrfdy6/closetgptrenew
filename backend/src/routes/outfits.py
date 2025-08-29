@@ -1834,12 +1834,34 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
             logger.warning(f"⚠️ Could not cache wardrobe: {e}, will fetch items individually")
             wardrobe_cache = None
         
-        # Second pass: resolve items using cache
+        # Second pass: resolve items using cache and normalize timestamps
         for outfit_data in outfits:
             if 'items' in outfit_data and outfit_data['items']:
                 logger.info(f"🔍 DEBUG: Resolving {len(outfit_data['items'])} items for outfit {outfit_data.get('name', 'unnamed')}")
                 outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
                 logger.info(f"✅ DEBUG: Resolved items to full objects")
+            
+            # Normalize timestamps to ensure consistent sorting
+            created_at = outfit_data.get('createdAt')
+            if created_at:
+                if isinstance(created_at, (int, float)):
+                    # Convert Unix timestamp to ISO string
+                    outfit_data['createdAt'] = datetime.fromtimestamp(created_at).isoformat() + 'Z'
+                    logger.info(f"🔍 DEBUG: Converted Unix timestamp {created_at} to ISO format")
+                elif isinstance(created_at, str) and not created_at.endswith('Z'):
+                    # Ensure ISO string has Z suffix
+                    if 'T' in created_at and not created_at.endswith('Z'):
+                        outfit_data['createdAt'] = created_at + 'Z'
+        
+        # Sort outfits by createdAt in Python to ensure consistent ordering
+        try:
+            outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
+            logger.info(f"✅ DEBUG: Client-side sorted {len(outfits)} outfits by createdAt")
+            if outfits:
+                logger.info(f"🔍 DEBUG: After sorting - First: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
+                logger.info(f"🔍 DEBUG: After sorting - Last: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
+        except Exception as e:
+            logger.warning(f"⚠️ Client-side sorting failed: {e}")
         
         logger.info(f"✅ DEBUG: Successfully retrieved {len(outfits)} outfits from Firestore for user {user_id}")
         return outfits

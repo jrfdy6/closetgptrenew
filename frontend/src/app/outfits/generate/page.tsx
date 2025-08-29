@@ -308,10 +308,10 @@ export default function OutfitGenerationPage() {
                 tags: [],                                      // default empty array
                 dominantColors: [],                            // default empty array
                 matchingColors: [],                            // default empty array
-                createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
-                updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+                createdAt: new Date().toISOString(),      // ISO timestamp for consistency
+                updatedAt: new Date().toISOString(),      // ISO timestamp for consistency
               })),
-              createdAt: Math.floor(Date.now() / 1000)
+              createdAt: new Date().toISOString()
             }),
           });
           
@@ -374,10 +374,10 @@ export default function OutfitGenerationPage() {
             tags: [],                                      // default empty array
             dominantColors: [],                            // default empty array
             matchingColors: [],                            // default empty array
-            createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
-            updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+            createdAt: new Date().toISOString(),      // timestamp in seconds
+            updatedAt: new Date().toISOString(),      // timestamp in seconds
           })),
-          createdAt: Math.floor(Date.now() / 1000)
+          createdAt: new Date().toISOString()
         }),
       });
       
@@ -521,10 +521,10 @@ export default function OutfitGenerationPage() {
               tags: [],                                      // default empty array
               dominantColors: [],                            // default empty array
               matchingColors: [],                            // default empty array
-              createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
-              updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+              createdAt: new Date().toISOString(),      // timestamp in seconds
+              updatedAt: new Date().toISOString(),      // timestamp in seconds
             })),
-            createdAt: Math.floor(Date.now() / 1000)
+            createdAt: new Date().toISOString()
           }),
         });
         
