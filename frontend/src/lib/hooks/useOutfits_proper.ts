@@ -50,6 +50,7 @@ export function useOutfits(): UseOutfitsReturn {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [currentFilters, setCurrentFilters] = useState<OutfitFilters>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -131,12 +132,27 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`✅ [useOutfits] Successfully fetched ${fetchedOutfits.length} initial outfits`);
       
+      // Reset retry count on success
+      setRetryCount(0);
+      
     } catch (error) {
-      handleError(error as Error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ [useOutfits] Error fetching outfits:', errorMessage);
+      
+      // Prevent infinite retry loops
+      if (retryCount < 3) {
+        console.warn(`⚠️ [useOutfits] Retry ${retryCount + 1}/3 in 2 seconds...`);
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => fetchOutfits(filters), 2000);
+      } else {
+        console.error('🚫 [useOutfits] Max retries reached, stopping fetch attempts');
+        handleError(error as Error);
+        setRetryCount(0); // Reset for next manual retry
+      }
     } finally {
       setLoading(false);
     }
-  }, [user, clearError, handleError, INITIAL_PAGE_SIZE]);
+  }, [user, clearError, handleError, INITIAL_PAGE_SIZE, retryCount]);
 
   /**
    * Load more outfits (pagination)
@@ -495,7 +511,7 @@ export function useOutfits(): UseOutfitsReturn {
       
       // Call Next.js API route instead of backend directly
       const token = await user.getIdToken();
-      const response = await fetch('/api/outfits/stats/summary', {
+      const response = await fetch('/api/outfits/stats', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
