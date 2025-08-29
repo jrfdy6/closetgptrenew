@@ -1671,6 +1671,72 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
         logger.error(f"❌ Failed to save outfit {outfit_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to save outfit: {e}")
 
+async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Dict[str, Any]]:
+    """
+    Resolve item IDs to actual item objects from the wardrobe collection.
+    If an item is already a dictionary, return it as is.
+    If an item is a string ID, fetch the item from the wardrobe collection.
+    """
+    resolved_items = []
+    
+    # If Firebase is not available, return mock items
+    if not firebase_initialized:
+        logger.warning("Firebase not available, returning mock items")
+        for item in items:
+            if isinstance(item, dict):
+                resolved_items.append(item)
+            else:
+                resolved_items.append({
+                    'id': str(item),
+                    'name': 'Mock Item',
+                    'type': 'shirt',
+                    'imageUrl': None
+                })
+        return resolved_items
+    
+    for item in items:
+        if isinstance(item, dict):
+            # Item is already a complete object
+            resolved_items.append(item)
+        elif isinstance(item, str):
+            # Item is an ID, need to fetch from wardrobe
+            try:
+                item_doc = db.collection('wardrobe').document(item).get()
+                if item_doc.exists:
+                    item_data = item_doc.to_dict()
+                    # Add the ID to the item data
+                    item_data['id'] = item
+                    resolved_items.append(item_data)
+                else:
+                    logger.warning(f"Item {item} not found in wardrobe for user {user_id}")
+                    # Add a placeholder item
+                    resolved_items.append({
+                        'id': item,
+                        'name': 'Item not found',
+                        'type': 'unknown',
+                        'imageUrl': None
+                    })
+            except Exception as e:
+                logger.error(f"Error fetching item {item}: {e}")
+                # Add a placeholder item
+                resolved_items.append({
+                    'id': item,
+                    'name': 'Error loading item',
+                    'type': 'unknown',
+                    'imageUrl': None
+                })
+        else:
+            logger.warning(f"Unexpected item type: {type(item)} for item: {item}")
+            # Add a placeholder item
+            resolved_items.append({
+                'id': str(item),
+                'name': 'Invalid item',
+                'type': 'unknown',
+                'imageUrl': None
+            })
+    
+    return resolved_items
+
 async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
     logger.info(f"🔍 DEBUG: Fetching outfits for user {user_id} (limit={limit}, offset={offset})")
@@ -1709,6 +1775,13 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
         for doc in docs:
             outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
+            
+            # ✅ CRITICAL FIX: Resolve item IDs to full objects
+            if 'items' in outfit_data and outfit_data['items']:
+                logger.info(f"🔍 DEBUG: Resolving {len(outfit_data['items'])} items for outfit {outfit_data.get('name', 'unnamed')}")
+                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id)
+                logger.info(f"✅ DEBUG: Resolved items to full objects")
+            
             outfits.append(outfit_data)
             logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id})")
         
