@@ -479,17 +479,16 @@ export function useOutfits(): UseOutfitsReturn {
    * Fetch outfit statistics
    */
   const fetchStats = useCallback(async () => {
-    // TEMPORARILY DISABLED - the stats endpoint is causing 500 errors and refresh loops
-    console.log('📊 [useOutfits] Stats fetching temporarily disabled to prevent refresh loops');
-    return;
-    
+    // RE-ENABLED - stats endpoint should be working now
     if (!user) {
       setError('User not authenticated');
       return;
     }
 
+    console.log('📊 [useOutfits] Fetching outfit stats...');
+
     try {
-      setLoading(true);
+      // Don't set main loading state for stats to avoid blocking outfit display
       clearError();
       
       console.log('📊 [useOutfits] Fetching outfit statistics');
@@ -509,14 +508,15 @@ export function useOutfits(): UseOutfitsReturn {
       }
       
       const outfitStats = await response.json();
-      setStats(outfitStats);
+      setStats(outfitStats?.data || outfitStats);
       
       console.log('✅ [useOutfits] Successfully fetched outfit statistics');
       
     } catch (error) {
-      handleError(error as Error);
-    } finally {
-      setLoading(false);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn('⚠️ [useOutfits] Stats fetch failed (non-critical):', errorMessage);
+      // Don't set error state for stats failures - just log as warning
+      setStats(null);
     }
   }, [user, clearError, handleError]);
 
