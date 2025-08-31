@@ -1666,16 +1666,42 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
             
         logger.info(f"💾 Saving outfit {outfit_id} for user {user_id}")
+        logger.info(f"💾 Outfit record keys: {list(outfit_record.keys())}")
+        logger.info(f"💾 Outfit record user_id: {outfit_record.get('user_id', 'MISSING')}")
         
         # Save to main outfits collection with user_id field (consistent with fetching)
         outfits_ref = db.collection('outfits')
-        outfits_ref.document(outfit_id).set(outfit_record)
+        doc_ref = outfits_ref.document(outfit_id)
+        
+        logger.info(f"💾 About to call Firestore set() for document: outfits/{outfit_id}")
+        try:
+            # CRITICAL FIX: Wrap Firestore operation in try/catch to catch silent failures
+            doc_ref.set(outfit_record)
+            logger.info(f"💾 Firestore set() completed without exception")
+        except Exception as firestore_error:
+            logger.error(f"💾 Firestore set() FAILED with exception: {firestore_error}")
+            logger.error(f"💾 Exception type: {type(firestore_error)}")
+            raise firestore_error
+        
+        # Verify the write by immediately reading it back
+        logger.info(f"🔍 Verifying save by reading document back...")
+        verification_doc = doc_ref.get()
+        if verification_doc.exists:
+            logger.info(f"✅ VERIFICATION PASSED: Document exists after save")
+            verification_data = verification_doc.to_dict()
+            logger.info(f"✅ Verified data user_id: {verification_data.get('user_id', 'MISSING')}")
+        else:
+            logger.error(f"❌ VERIFICATION FAILED: Document does NOT exist after save!")
+            return False
         
         logger.info(f"✅ Successfully saved outfit {outfit_id}")
         return True
         
     except Exception as e:
         logger.error(f"❌ Failed to save outfit {outfit_id}: {e}")
+        logger.error(f"❌ Exception type: {type(e)}")
+        import traceback
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Failed to save outfit: {e}")
 
 async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_cache: Dict[str, Dict] = None) -> List[Dict[str, Any]]:
@@ -1915,6 +1941,60 @@ async def outfits_debug():
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False
     }
 
+@router.get("/outfit-save-test", response_model=dict)
+async def outfit_save_test():
+    """Test saving to the outfits collection specifically."""
+    logger.info("🔍 DEBUG: Outfit save test called")
+    
+    test_results = {
+        "firebase_available": FIREBASE_AVAILABLE,
+        "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False,
+        "test_timestamp": datetime.now().isoformat()
+    }
+    
+    if FIREBASE_AVAILABLE and firebase_initialized:
+        try:
+            # Test saving to the same outfits collection that generate_outfit uses
+            test_outfit_id = f"test-outfit-{int(datetime.now().timestamp())}"
+            test_outfit_data = {
+                "id": test_outfit_id,
+                "name": "Test Outfit",
+                "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+                "createdAt": datetime.now().isoformat(),
+                "test": True,
+                "items": [{"type": "shirt", "name": "Test Shirt"}]
+            }
+            
+            logger.info(f"🔥 Testing outfit save to outfits/{test_outfit_id}...")
+            outfits_ref = db.collection('outfits')
+            doc_ref = outfits_ref.document(test_outfit_id)
+            doc_ref.set(test_outfit_data)
+            test_results["outfit_save_test"] = "success"
+            logger.info("✅ Outfit save test successful")
+            
+            # Verify by reading back
+            logger.info("🔥 Testing outfit read...")
+            verification_doc = doc_ref.get()
+            if verification_doc.exists:
+                test_results["outfit_read_test"] = "success"
+                test_results["read_data"] = verification_doc.to_dict()
+                logger.info("✅ Outfit read test successful")
+            else:
+                test_results["outfit_read_test"] = "failed - document not found"
+                logger.error("❌ Outfit read test failed - document not found")
+                
+        except Exception as e:
+            error_msg = f"Outfit save test error: {str(e)}"
+            test_results["error"] = error_msg
+            logger.error(error_msg)
+    else:
+        test_results["error"] = "Firebase not available or not initialized"
+    
+    return {
+        "status": "outfit_save_test",
+        "results": test_results
+    }
+
 @router.get("/firebase-test", response_model=dict)
 async def firebase_connectivity_test():
     """Test Firebase write/read operations."""
@@ -2072,6 +2152,51 @@ async def debug_outfit_retrieval():
     
     return {
         "status": "debug_outfit_retrieval",
+        "debug_info": debug_info
+    }
+
+@router.get("/debug-specific/{outfit_id}", response_model=dict)
+async def debug_specific_outfit(outfit_id: str):
+    """Debug endpoint to check if a specific outfit exists in Firestore."""
+    debug_info = {
+        "outfit_id": outfit_id,
+        "timestamp": datetime.now().isoformat(),
+        "steps": []
+    }
+    
+    try:
+        if not FIREBASE_AVAILABLE or not firebase_initialized:
+            debug_info["steps"].append("Firebase not available")
+            return {"status": "firebase_unavailable", "debug_info": debug_info}
+        
+        debug_info["steps"].append("Firebase is available")
+        
+        # Direct document query by ID
+        debug_info["steps"].append(f"Querying outfits/{outfit_id} directly")
+        doc_ref = db.collection('outfits').document(outfit_id)
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            outfit_data = doc.to_dict()
+            debug_info["steps"].append("Document exists!")
+            debug_info["outfit_data"] = {
+                "id": doc.id,
+                "name": outfit_data.get('name', 'unknown'),
+                "user_id": outfit_data.get('user_id', 'unknown'),
+                "createdAt": outfit_data.get('createdAt', 'unknown'),
+                "has_items": len(outfit_data.get('items', [])) > 0
+            }
+        else:
+            debug_info["steps"].append("Document does NOT exist!")
+            debug_info["outfit_data"] = None
+            
+    except Exception as e:
+        error_msg = f"Debug error: {str(e)}"
+        debug_info["steps"].append(error_msg)
+        debug_info["error"] = error_msg
+    
+    return {
+        "status": "debug_specific_outfit",
         "debug_info": debug_info
     }
 
