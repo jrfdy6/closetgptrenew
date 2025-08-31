@@ -2200,8 +2200,7 @@ async def create_outfit(
     """
     try:
         logger.info(f"🎨 Creating custom outfit: {request.name}")
-        logger.info(f"🔍 DEBUG: Received request data: name={request.name}, occasion={request.occasion}, style={request.style}")
-        logger.info(f"🔍 DEBUG: Items count: {len(request.items)}, createdAt: {request.createdAt}")
+        # Reduced logging to prevent rate limits
         
         # Use the same user ID pattern as the generate route
         current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
@@ -2334,8 +2333,6 @@ async def rate_outfit(
     """
     try:
         logger.info(f"📊 Rating outfit request received")
-        logger.info(f"🔍 DEBUG: Raw rating_data: {rating_data}")
-        logger.info(f"🔍 DEBUG: rating_data type: {type(rating_data)}")
         
         current_user_id = current_user.id if current_user else "dANqjiI0CKgaitxzYtw1bhtvQrG3"
         outfit_id = rating_data.get('outfitId')
