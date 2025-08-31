@@ -1768,11 +1768,11 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
     
     return [item for item in resolved_items if item is not None]
 
-async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> List[Dict[str, Any]]:
+async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
+    # EMERGENCY: Hard limit for 5000+ outfit datasets to prevent crashes
+    limit = min(limit, 50)
     logger.info(f"🔍 DEBUG: Fetching outfits for user {user_id} (limit={limit}, offset={offset})")
-    logger.info(f"🔍 DEBUG: FIREBASE_AVAILABLE: {FIREBASE_AVAILABLE}")
-    logger.info(f"🔍 DEBUG: firebase_initialized: {firebase_initialized}")
     
     try:
         if not FIREBASE_AVAILABLE or not firebase_initialized:
