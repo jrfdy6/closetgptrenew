@@ -2300,8 +2300,8 @@ async def debug_outfits():
         }
 
 
-@router.get("/debug")
-async def debug_outfits():
+@router.get("/debug-simple")
+async def debug_outfits_simple():
     """Quick debug: show last 5 outfits"""
     try:
         current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
