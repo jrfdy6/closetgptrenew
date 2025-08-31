@@ -2333,6 +2333,10 @@ async def rate_outfit(
     This ensures the scoring system has accurate feedback data.
     """
     try:
+        logger.info(f"📊 Rating outfit request received")
+        logger.info(f"🔍 DEBUG: Raw rating_data: {rating_data}")
+        logger.info(f"🔍 DEBUG: rating_data type: {type(rating_data)}")
+        
         current_user_id = current_user.id if current_user else "dANqjiI0CKgaitxzYtw1bhtvQrG3"
         outfit_id = rating_data.get('outfitId')
         rating = rating_data.get('rating')
