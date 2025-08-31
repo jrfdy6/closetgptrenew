@@ -2300,6 +2300,27 @@ async def debug_outfits():
         }
 
 
+@router.get("/debug")
+async def debug_outfits():
+    """Quick debug: show last 5 outfits"""
+    try:
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        outfits = await get_user_outfits(current_user_id, 5, 0)
+        
+        return {
+            "total_outfits": len(outfits),
+            "outfits": [
+                {
+                    "id": o.get("id"),
+                    "name": o.get("name"),
+                    "createdAt": o.get("createdAt"),
+                    "user_id": o.get("user_id")
+                } for o in outfits
+            ]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 @router.post("/rate")
 async def rate_outfit(
     rating_data: dict,
