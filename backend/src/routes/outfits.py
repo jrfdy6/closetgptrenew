@@ -2180,7 +2180,9 @@ async def generate_outfit(
         }
 
         # 3. Save to Firestore
-        await save_outfit(current_user_id, outfit_id, outfit_record)
+        logger.info(f"🔄 About to save generated outfit {outfit_id}")
+        save_result = await save_outfit(current_user_id, outfit_id, outfit_record)
+        logger.info(f"💾 Save operation result: {save_result}")
 
         # 4. Return standardized outfit response
         logger.info(f"✅ Successfully generated and saved outfit {outfit_id}")
