@@ -1785,18 +1785,24 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
         # This matches where outfits are actually stored: outfits collection with user_id field
         outfits_ref = db.collection("outfits").where("user_id", "==", user_id)
         
-        # PERFORMANCE FIX: Use Firestore ordering + pagination for speed
-        # This is MUCH faster than client-side sorting of hundreds of outfits
+        # Try Firestore ordering, fallback to client-side if index missing
+        use_firestore_ordering = True
         try:
             outfits_ref = outfits_ref.order_by("createdAt", direction=db.Query.DESCENDING)
             logger.info("✅ DEBUG: Using Firestore server-side ordering by createdAt DESC")
         except Exception as e:
-            logger.warning(f"⚠️ DEBUG: Firestore ordering failed ({e}), using limit only")
+            logger.warning(f"⚠️ DEBUG: Firestore ordering failed ({e}), will use client-side sorting")
+            use_firestore_ordering = False
         
-        # Apply pagination directly in Firestore query (much faster)
-        if offset > 0:
-            outfits_ref = outfits_ref.offset(offset)
-        outfits_ref = outfits_ref.limit(limit)
+        # Apply pagination based on whether ordering worked
+        if use_firestore_ordering:
+            # Firestore ordering worked, use efficient pagination
+            if offset > 0:
+                outfits_ref = outfits_ref.offset(offset)
+            outfits_ref = outfits_ref.limit(limit)
+        else:
+            # Firestore ordering failed, fetch more for client-side sorting
+            outfits_ref = outfits_ref.limit(min(100, offset + limit * 2))
         
         logger.info(f"🔍 DEBUG: Firestore query: limit={limit}, offset={offset}")
         
@@ -1855,13 +1861,21 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
                     if 'T' in created_at and not created_at.endswith('Z'):
                         outfit_data['createdAt'] = created_at + 'Z'
         
-        # Firestore already sorted and paginated the results - no need for client-side sorting!
-        logger.info(f"✅ DEBUG: Firestore returned {len(outfits)} pre-sorted outfits (newest first)")
+        # Check if we need client-side sorting (when Firestore ordering failed)
+        if not use_firestore_ordering:
+            logger.info("🔄 DEBUG: Applying client-side sorting since Firestore ordering failed")
+            outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
+            # Apply pagination after sorting
+            start_idx = offset
+            end_idx = offset + limit
+            outfits = outfits[start_idx:end_idx]
+            logger.info(f"✅ DEBUG: Client-side sorted and paginated to {len(outfits)} outfits")
+        else:
+            logger.info(f"✅ DEBUG: Firestore returned {len(outfits)} pre-sorted outfits")
+            
         if outfits:
             logger.info(f"🔍 DEBUG: First outfit: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
             logger.info(f"🔍 DEBUG: Last outfit: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
-        
-        # No pagination needed - Firestore already did it!
         
         logger.info(f"✅ DEBUG: Successfully retrieved {len(outfits)} outfits from Firestore for user {user_id}")
         return outfits
