@@ -2253,12 +2253,59 @@ async def create_outfit(
         outfit_id = outfit_data["id"]
         await save_outfit(current_user_id, outfit_id, outfit_data)
         
-        logger.info(f"✅ Successfully created custom outfit {outfit_id}")
+        # Enhanced logging for debugging
+        logger.info(f"✅ Outfit created: {outfit_id} for user {current_user_id}")
+        logger.info(f"🔍 DEBUG: Created outfit name='{outfit_data['name']}' style='{outfit_data['style']}' occasion='{outfit_data['occasion']}'")
+        logger.info(f"📊 DEBUG: Outfit contains {len(outfit_data['items'])} items")
+        
         return outfit_data
         
     except Exception as e:
         logger.error(f"❌ Error creating custom outfit: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/debug")
+async def debug_outfits():
+    """
+    Debug route: Dump the last 5 outfits from Firestore for troubleshooting.
+    Helps confirm backend state without guesswork.
+    """
+    try:
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
+        logger.info(f"🔍 DEBUG: Fetching last 5 outfits for debugging")
+        
+        # Fetch recent outfits with minimal processing
+        outfits = await get_user_outfits(current_user_id, 5, 0)
+        
+        debug_info = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "user_id": current_user_id,
+            "total_outfits": len(outfits),
+            "outfits": []
+        }
+        
+        for outfit in outfits:
+            debug_info["outfits"].append({
+                "id": outfit.get("id", "unknown"),
+                "name": outfit.get("name", "unknown"),
+                "style": outfit.get("style", "unknown"),
+                "occasion": outfit.get("occasion", "unknown"),
+                "createdAt": outfit.get("createdAt", "unknown"),
+                "user_id": outfit.get("user_id", "unknown"),
+                "item_count": len(outfit.get("items", []))
+            })
+        
+        logger.info(f"🔍 DEBUG: Returning {len(outfits)} outfits for debugging")
+        return debug_info
+        
+    except Exception as e:
+        logger.error(f"❌ Debug route failed: {e}", exc_info=True)
+        return {
+            "error": str(e),
+            "timestamp": datetime.utcnow().isoformat(),
+            "status": "failed"
+        }
 
 
 @router.post("/rate")
@@ -2495,7 +2542,16 @@ async def list_outfits_with_slash(
         logger.info(f"📚 Fetching outfits for user: {current_user_id}")
         
         outfits = await get_user_outfits(current_user_id, limit, offset)
-        logger.info(f"✅ Successfully retrieved {len(outfits)} outfits for user {current_user_id}")
+        
+        # Enhanced logging for debugging
+        logger.info(f"📥 Fetch returned {len(outfits)} outfits for user {current_user_id}")
+        if outfits:
+            # Log the most recent outfit for debugging
+            latest = outfits[0]
+            logger.info(f"🔍 DEBUG: Latest outfit: '{latest.get('name', 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
+        else:
+            logger.info(f"⚠️ DEBUG: No outfits found for user {current_user_id}")
+            
         return [OutfitResponse(**o) for o in outfits]
         
     except Exception as e:
@@ -2526,7 +2582,16 @@ async def list_outfits_no_slash(
         logger.info(f"📚 Fetching outfits for user: {current_user_id}")
         
         outfits = await get_user_outfits(current_user_id, limit, offset)
-        logger.info(f"✅ Successfully retrieved {len(outfits)} outfits for user {current_user_id}")
+        
+        # Enhanced logging for debugging
+        logger.info(f"📥 Fetch returned {len(outfits)} outfits for user {current_user_id}")
+        if outfits:
+            # Log the most recent outfit for debugging
+            latest = outfits[0]
+            logger.info(f"🔍 DEBUG: Latest outfit: '{latest.get('name', 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
+        else:
+            logger.info(f"⚠️ DEBUG: No outfits found for user {current_user_id}")
+            
         return [OutfitResponse(**o) for o in outfits]
         
     except Exception as e:

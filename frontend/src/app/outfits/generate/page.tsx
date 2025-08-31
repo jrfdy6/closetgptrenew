@@ -411,6 +411,7 @@ export default function OutfitGenerationPage() {
           setTimeout(() => {
             // Add timestamp to force refresh of outfits page
             const timestamp = Date.now();
+            console.log('🔄 [Generate] Navigating to outfits page with forced refresh');
             router.push(`/outfits?refresh=${timestamp}`);
           }, 1500);
         } else {
@@ -587,6 +588,7 @@ export default function OutfitGenerationPage() {
           isDisliked: outfitRating.isDisliked
         } : null);
         console.log('✅ Rating submitted successfully');
+        console.log('🔄 [Generate] Rating submitted - outfit should now be available in outfits list');
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ Rating submission failed:', errorData);
