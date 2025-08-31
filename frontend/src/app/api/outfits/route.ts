@@ -72,10 +72,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// FORCE REBUILD: August 31 2025 - Route conflict fix deployed
 export async function POST(req: NextRequest) {
-  console.log("🚀 UNIFIED: /api/outfits POST route HIT:", req.method);
-  console.log("🚀 UNIFIED: Request URL:", req.url);
-  console.log("🚀 UNIFIED: Request headers:", Object.fromEntries(req.headers.entries()));
+  console.log("🚀 UNIFIED v2: /api/outfits POST route HIT:", req.method);
+  console.log("🚀 UNIFIED v2: Request URL:", req.url);
+  console.log("🚀 UNIFIED v2: Request headers:", Object.fromEntries(req.headers.entries()));
   
   try {
     const body = await req.text();
