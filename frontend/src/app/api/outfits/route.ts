@@ -87,6 +87,17 @@ export async function POST(req: NextRequest) {
     console.log(`🚀 UNIFIED: ${isCreation ? 'CREATION' : 'GENERATION'} request to:`, backendUrl);
     console.log("🔍 Request type detected:", isCreation ? "outfit creation" : "outfit generation");
     
+    if (isCreation) {
+      console.log("🔍 CREATION DEBUG: Outfit data being sent:", {
+        name: requestData.name,
+        occasion: requestData.occasion,
+        style: requestData.style,
+        itemsCount: requestData.items?.length,
+        createdAt: requestData.createdAt,
+        createdAtType: typeof requestData.createdAt
+      });
+    }
+    
     const res = await fetch(backendUrl, {
       method: 'POST',
       headers: {
