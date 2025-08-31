@@ -374,10 +374,10 @@ export default function OutfitGenerationPage() {
             tags: [],                                      // default empty array
             dominantColors: [],                            // default empty array
             matchingColors: [],                            // default empty array
-            createdAt: new Date().toISOString(),      // timestamp in seconds
-            updatedAt: new Date().toISOString(),      // timestamp in seconds
+            createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+            updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
           })),
-          createdAt: new Date().toISOString()
+          createdAt: Math.floor(Date.now() / 1000)
         }),
       });
       
@@ -409,7 +409,9 @@ export default function OutfitGenerationPage() {
           
           // Navigate after a short delay to show success
           setTimeout(() => {
-            router.push('/outfits');
+            // Add timestamp to force refresh of outfits page
+            const timestamp = Date.now();
+            router.push(`/outfits?refresh=${timestamp}`);
           }, 1500);
         } else {
           setError('Outfit saved but failed to mark as worn');
@@ -536,12 +538,15 @@ export default function OutfitGenerationPage() {
           const savedOutfit = await saveResponse.json();
           outfitId = savedOutfit.id || savedOutfit.outfitId;
           
+          console.log('✅ [Generate] Outfit saved successfully:', savedOutfit);
+          
           // Update the generated outfit with the new ID
           setGeneratedOutfit(prev => prev ? {
             ...prev,
             id: outfitId
           } : null);
         } else {
+          console.error('❌ [Generate] Failed to save outfit:', saveResponse.status, await saveResponse.text());
           setError('Failed to save outfit for rating');
           return;
         }
@@ -957,14 +962,44 @@ export default function OutfitGenerationPage() {
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <Button onClick={handleWearOutfit} className="flex-1">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Wear Outfit
-                    </Button>
-                    <Button variant="outline" onClick={handleRegenerate}>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Regenerate
-                    </Button>
+                    {/* Show different buttons based on state */}
+                    {generatedOutfit?.isWorn ? (
+                      // After outfit is worn, show navigation button
+                      <Button 
+                        onClick={() => router.push(`/outfits?refresh=${Date.now()}`)} 
+                        className="flex-1"
+                      >
+                        <Shirt className="h-4 w-4 mr-2" />
+                        View My Outfits
+                      </Button>
+                    ) : ratingSubmitted ? (
+                      // After rating is submitted, show both options
+                      <>
+                        <Button onClick={handleWearOutfit} className="flex-1">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Wear Outfit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => router.push(`/outfits?refresh=${Date.now()}`)}
+                        >
+                          <Shirt className="h-4 w-4 mr-2" />
+                          View Outfits
+                        </Button>
+                      </>
+                    ) : (
+                      // Default state: wear outfit and regenerate
+                      <>
+                        <Button onClick={handleWearOutfit} className="flex-1">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Wear Outfit
+                        </Button>
+                        <Button variant="outline" onClick={handleRegenerate}>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Regenerate
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>

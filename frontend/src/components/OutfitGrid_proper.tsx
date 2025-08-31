@@ -423,6 +423,23 @@ export default function OutfitGrid({
   }, [refresh, loading, outfits.length]);
 
   /**
+   * Check for refresh parameter in URL and trigger refresh
+   */
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refreshParam = urlParams.get('refresh');
+    
+    if (refreshParam) {
+      console.log('🔄 [OutfitGrid] Refresh parameter detected, triggering immediate refresh');
+      refresh();
+      
+      // Clean up URL without refresh param
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [refresh]);
+
+  /**
    * Refresh outfits when page becomes visible (for new outfits from generation page)
    * DEBOUNCED to prevent infinite refresh loops
    */
