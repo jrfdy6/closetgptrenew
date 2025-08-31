@@ -2486,8 +2486,8 @@ async def get_outfit_stats(
         
         logger.info(f"📊 Getting outfit stats for user {current_user_id}")
         
-        # Get real outfits for stats
-        outfits = await get_user_outfits(current_user_id, 1000, 0)  # Get all outfits for stats
+        # Get reasonable sample of outfits for stats (performance optimized)
+        outfits = await get_user_outfits(current_user_id, 100, 0)  # Get recent 100 outfits for stats
         
         # Calculate basic statistics
         stats = {

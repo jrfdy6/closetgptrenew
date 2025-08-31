@@ -495,37 +495,41 @@ export default function OutfitGenerationPage() {
           return;
         }
         
+        const outfitPayload = {
+          name: generatedOutfit.name,
+          occasion: generatedOutfit.occasion || formData.occasion,
+          style: generatedOutfit.style,
+          description: generatedOutfit.reasoning,
+          items: generatedOutfit.items.map((item: any) => ({
+            ...item,
+            userId: user.uid,  // Required: inject from Firebase auth
+            subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
+            style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
+            occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
+            imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
+            color: item.color || "unknown",  // Ensure color is provided
+            type: item.type || "item",  // Ensure type is provided
+            
+            // Required ClothingItem fields that were missing:
+            season: ["All"],                               // fallback if no season logic yet
+            tags: [],                                      // default empty array
+            dominantColors: [],                            // default empty array
+            matchingColors: [],                            // default empty array
+            createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+            updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
+          })),
+          createdAt: Math.floor(Date.now() / 1000)
+        };
+        
+        console.log('🔍 DEBUG: Outfit creation payload:', JSON.stringify(outfitPayload, null, 2));
+        
         const saveResponse = await fetch('/api/outfit/create', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            name: generatedOutfit.name,
-            occasion: generatedOutfit.occasion || formData.occasion,
-            style: generatedOutfit.style,
-            description: generatedOutfit.reasoning,
-            items: generatedOutfit.items.map((item: any) => ({
-              ...item,
-              userId: user.uid,  // Required: inject from Firebase auth
-              subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
-              style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
-              occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
-              imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
-              color: item.color || "unknown",  // Ensure color is provided
-              type: item.type || "item",  // Ensure type is provided
-              
-              // Required ClothingItem fields that were missing:
-              season: ["All"],                               // fallback if no season logic yet
-              tags: [],                                      // default empty array
-              dominantColors: [],                            // default empty array
-              matchingColors: [],                            // default empty array
-              createdAt: new Date().toISOString(),      // timestamp in seconds
-              updatedAt: new Date().toISOString(),      // timestamp in seconds
-            })),
-            createdAt: new Date().toISOString()
-          }),
+          body: JSON.stringify(outfitPayload),
         });
         
         if (saveResponse.ok) {
