@@ -275,6 +275,12 @@ export default function OutfitGenerationPage() {
       // Auto-save the generated outfit so it has an ID for ratings
       if (user) {
         try {
+          // Skip auto-save if outfit already has an ID (already saved by backend)
+          if (data.id) {
+            console.log('🔍 DEBUG: Skipping auto-save - outfit already has ID:', data.id);
+            return;
+          }
+          
           // Validate minimum items before saving
           if (!data.items || data.items.length < 3) {
             console.warn('🔍 DEBUG: Skipping auto-save - need at least 3 items to save outfit');
