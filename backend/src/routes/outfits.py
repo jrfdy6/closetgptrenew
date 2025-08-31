@@ -1869,14 +1869,9 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             logger.info(f"⚠️ DEBUG: Skipping wardrobe cache for {len(outfits)} outfits (too many for performance)")
             wardrobe_cache = None
         
-        # Second pass: resolve items using cache and normalize timestamps
+        # CRITICAL FIX: Normalize timestamps BEFORE sorting for consistent comparison
         for outfit_data in outfits:
-            if 'items' in outfit_data and outfit_data['items']:
-                logger.info(f"🔍 DEBUG: Resolving {len(outfit_data['items'])} items for outfit {outfit_data.get('name', 'unnamed')}")
-                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
-                logger.info(f"✅ DEBUG: Resolved items to full objects")
-            
-            # Normalize timestamps to ensure consistent sorting
+            # Normalize timestamps FIRST to ensure consistent sorting
             created_at = outfit_data.get('createdAt')
             if created_at:
                 if isinstance(created_at, (int, float)):
@@ -1892,6 +1887,13 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         if not use_firestore_ordering:
             logger.info("🔄 DEBUG: Applying client-side sorting since Firestore ordering failed")
             outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
+        
+        # Second pass: resolve items using cache
+        for outfit_data in outfits:
+            if 'items' in outfit_data and outfit_data['items']:
+                logger.info(f"🔍 DEBUG: Resolving {len(outfit_data['items'])} items for outfit {outfit_data.get('name', 'unnamed')}")
+                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
+                logger.info(f"✅ DEBUG: Resolved items to full objects")
             # Apply pagination after sorting
             start_idx = offset
             end_idx = offset + limit
