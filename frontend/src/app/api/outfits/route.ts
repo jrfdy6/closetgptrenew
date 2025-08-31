@@ -72,9 +72,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// FORCE REBUILD: August 31 2025 - Route conflict fix deployed
+// FORCE REBUILD: August 31 2025 15:10 - Aggressive cache bust
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
-  console.log("🚀 UNIFIED v2: /api/outfits POST route HIT:", req.method);
+  const timestamp = new Date().toISOString();
+  console.log(`🚀 UNIFIED v3 [${timestamp}]: /api/outfits POST route HIT:`, req.method);
   console.log("🚀 UNIFIED v2: Request URL:", req.url);
   console.log("🚀 UNIFIED v2: Request headers:", Object.fromEntries(req.headers.entries()));
   
