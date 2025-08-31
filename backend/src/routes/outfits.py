@@ -2200,6 +2200,8 @@ async def create_outfit(
     """
     try:
         logger.info(f"🎨 Creating custom outfit: {request.name}")
+        logger.info(f"🔍 DEBUG: Received request data: name={request.name}, occasion={request.occasion}, style={request.style}")
+        logger.info(f"🔍 DEBUG: Items count: {len(request.items)}, createdAt: {request.createdAt}")
         
         # Use the same user ID pattern as the generate route
         current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
