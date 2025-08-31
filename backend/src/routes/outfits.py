@@ -1666,31 +1666,21 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
             
         logger.info(f"💾 Saving outfit {outfit_id} for user {user_id}")
-        logger.info(f"💾 Outfit record keys: {list(outfit_record.keys())}")
-        logger.info(f"💾 Outfit record user_id: {outfit_record.get('user_id', 'MISSING')}")
         
         # Save to main outfits collection with user_id field (consistent with fetching)
         outfits_ref = db.collection('outfits')
         doc_ref = outfits_ref.document(outfit_id)
         
-        logger.info(f"💾 About to call Firestore set() for document: outfits/{outfit_id}")
         try:
             # CRITICAL FIX: Wrap Firestore operation in try/catch to catch silent failures
             doc_ref.set(outfit_record)
-            logger.info(f"💾 Firestore set() completed without exception")
         except Exception as firestore_error:
             logger.error(f"💾 Firestore set() FAILED with exception: {firestore_error}")
-            logger.error(f"💾 Exception type: {type(firestore_error)}")
             raise firestore_error
         
         # Verify the write by immediately reading it back
-        logger.info(f"🔍 Verifying save by reading document back...")
         verification_doc = doc_ref.get()
-        if verification_doc.exists:
-            logger.info(f"✅ VERIFICATION PASSED: Document exists after save")
-            verification_data = verification_doc.to_dict()
-            logger.info(f"✅ Verified data user_id: {verification_data.get('user_id', 'MISSING')}")
-        else:
+        if not verification_doc.exists:
             logger.error(f"❌ VERIFICATION FAILED: Document does NOT exist after save!")
             return False
         
@@ -1877,7 +1867,6 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
                 if isinstance(created_at, (int, float)):
                     # Convert Unix timestamp to ISO string
                     outfit_data['createdAt'] = datetime.fromtimestamp(created_at).isoformat() + 'Z'
-                    logger.info(f"🔍 DEBUG: Converted Unix timestamp {created_at} to ISO format")
                 elif isinstance(created_at, str) and not created_at.endswith('Z'):
                     # Ensure ISO string has Z suffix
                     if 'T' in created_at and not created_at.endswith('Z'):
@@ -1888,17 +1877,17 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             logger.info("🔄 DEBUG: Applying client-side sorting since Firestore ordering failed")
             outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
         
-        # Second pass: resolve items using cache
-        for outfit_data in outfits:
-            if 'items' in outfit_data and outfit_data['items']:
-                logger.info(f"🔍 DEBUG: Resolving {len(outfit_data['items'])} items for outfit {outfit_data.get('name', 'unnamed')}")
-                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
-                logger.info(f"✅ DEBUG: Resolved items to full objects")
-            # Apply pagination after sorting
+        # Apply pagination after sorting (ONLY when client-side sorting was used)
+        if not use_firestore_ordering:
             start_idx = offset
             end_idx = offset + limit
             outfits = outfits[start_idx:end_idx]
             logger.info(f"✅ DEBUG: Client-side sorted and paginated to {len(outfits)} outfits")
+        
+        # Final pass: resolve items using cache (reduced logging)
+        for outfit_data in outfits:
+            if 'items' in outfit_data and outfit_data['items']:
+                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
         else:
             logger.info(f"✅ DEBUG: Firestore returned {len(outfits)} pre-sorted outfits")
             
