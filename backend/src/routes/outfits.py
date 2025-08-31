@@ -2500,7 +2500,7 @@ async def get_outfit(outfit_id: str):
         try:
             outfit_doc = db.collection('outfits').document(outfit_id).get()
             if outfit_doc.exists:
-        outfit_data = outfit_doc.to_dict()
+                outfit_data = outfit_doc.to_dict()
                 outfit_data['id'] = outfit_id
                 logger.info(f"Successfully retrieved outfit {outfit_id} from database")
                 return OutfitResponse(**outfit_data)
