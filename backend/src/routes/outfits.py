@@ -2060,7 +2060,7 @@ async def debug_outfit_retrieval():
         
         outfits = []
         for doc in docs:
-                outfit_data = doc.to_dict()
+            outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append({
                 "id": doc.id,
