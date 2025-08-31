@@ -74,9 +74,14 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   console.log("🚀 UNIFIED: /api/outfits POST route HIT:", req.method);
+  console.log("🚀 UNIFIED: Request URL:", req.url);
+  console.log("🚀 UNIFIED: Request headers:", Object.fromEntries(req.headers.entries()));
   
   try {
     const body = await req.text();
+    console.log("🚀 UNIFIED: Request body length:", body.length);
+    console.log("🚀 UNIFIED: Request body preview:", body.substring(0, 200) + "...");
+    
     const requestData = JSON.parse(body);
     
     // Determine if this is outfit creation (has 'items' field) or generation (has 'mood' field)
