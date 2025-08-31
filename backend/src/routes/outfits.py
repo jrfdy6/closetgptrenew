@@ -1797,9 +1797,9 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         # Apply pagination based on whether ordering worked
         if use_firestore_ordering:
             # Firestore ordering worked, use efficient pagination
-        if offset > 0:
-            outfits_ref = outfits_ref.offset(offset)
-        outfits_ref = outfits_ref.limit(limit)
+            if offset > 0:
+                outfits_ref = outfits_ref.offset(offset)
+            outfits_ref = outfits_ref.limit(limit)
         else:
             # Firestore ordering failed, fetch more for client-side sorting
             outfits_ref = outfits_ref.limit(min(100, offset + limit * 2))
