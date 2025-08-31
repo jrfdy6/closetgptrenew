@@ -1783,12 +1783,17 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
         # This prevents index errors and ensures consistent sorting behavior
         logger.info("🔍 DEBUG: Skipping Firestore sorting, will use client-side sorting for reliability")
         
-        # DON'T apply pagination here - we need ALL outfits to sort properly first
-        # Pagination will be applied after client-side sorting
-        logger.info("🔍 DEBUG: Fetching ALL outfits first, then sorting, then paginating for correct order")
+        # PERFORMANCE FIX: Add safety limit to prevent memory crashes
+        # Fetch a reasonable batch size for sorting, not ALL outfits
+        MAX_FETCH_SIZE = 500  # Reasonable limit to prevent memory exhaustion
+        fetch_limit = min(MAX_FETCH_SIZE, offset + limit * 3)  # Fetch enough for sorting + pagination
+        logger.info(f"🔍 DEBUG: Using SAFE fetch limit of {fetch_limit} outfits to prevent memory crashes")
+        
+        # Apply reasonable limit to prevent backend crashes
+        outfits_ref = outfits_ref.limit(fetch_limit)
         
         # Execute query
-        logger.info(f"🔍 DEBUG: Executing Firestore query with .stream()...")
+        logger.info(f"🔍 DEBUG: Executing Firestore query with .stream() (limited to {fetch_limit})...")
         docs = outfits_ref.stream()
         logger.info(f"🔍 DEBUG: Firestore query executed successfully, processing results...")
         
@@ -1805,18 +1810,22 @@ async def get_user_outfits(user_id: str, limit: int = 1000, offset: int = 0) -> 
             logger.info(f"🔍 DEBUG: First outfit in results: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
             logger.info(f"🔍 DEBUG: Last outfit in results: {outfits[-1].get('name')} - {outfits[-1].get('createdAt')}")
         
-        # Optimization: Fetch user's wardrobe once for all outfits
-        logger.info(f"🔍 DEBUG: Fetching wardrobe cache for batch item resolution...")
-        try:
-            wardrobe_docs = db.collection('wardrobe').where('userId', '==', user_id).stream()
-            wardrobe_cache = {}
-            for doc in wardrobe_docs:
-                item_data = doc.to_dict()
-                item_data['id'] = doc.id
-                wardrobe_cache[doc.id] = item_data
-            logger.info(f"✅ DEBUG: Cached {len(wardrobe_cache)} wardrobe items")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not cache wardrobe: {e}, will fetch items individually")
+        # Optimization: Fetch user's wardrobe once for all outfits (only if reasonable size)
+        if len(outfits) <= 100:  # Only cache for reasonable dataset sizes
+            logger.info(f"🔍 DEBUG: Fetching wardrobe cache for batch item resolution...")
+            try:
+                wardrobe_docs = db.collection('wardrobe').where('userId', '==', user_id).stream()
+                wardrobe_cache = {}
+                for doc in wardrobe_docs:
+                    item_data = doc.to_dict()
+                    item_data['id'] = doc.id
+                    wardrobe_cache[doc.id] = item_data
+                logger.info(f"✅ DEBUG: Cached {len(wardrobe_cache)} wardrobe items")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not cache wardrobe: {e}, will fetch items individually")
+                wardrobe_cache = None
+        else:
+            logger.info(f"⚠️ DEBUG: Skipping wardrobe cache for {len(outfits)} outfits (too many for performance)")
             wardrobe_cache = None
         
         # Second pass: resolve items using cache and normalize timestamps
