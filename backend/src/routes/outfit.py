@@ -120,76 +120,22 @@ async def generate_outfit(request: OutfitGenerationRequest):
         print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/create", response_model=OutfitGeneratedOutfit)
-async def create_outfit(
-    request: CreateOutfitRequest
-):
-    """
-    Create a custom outfit by manually selecting items from the user's wardrobe.
-    """
-    try:
-        print(f"🔍 DEBUG: Backend create_outfit called")
-        
-        # Use the same user ID pattern as the generate route
-        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
-        
-        print(f"🔍 DEBUG: Request data:")
-        print(f"  - name: {request.name}")
-        print(f"  - occasion: {request.occasion}")
-        print(f"  - style: {request.style}")
-        print(f"  - items count: {len(request.items)}")
-        print(f"  - user_id: {current_user_id}")
-        
-        # Create outfit data with all required OutfitGeneratedOutfit fields
-        outfit_data = {
-            "id": str(uuid.uuid4()),
-            "name": request.name,
-            "occasion": request.occasion,
-            "style": request.style,
-            "description": request.description or "",
-            "items": request.items,
-            "user_id": current_user_id,
-            "createdAt": request.createdAt or int(time.time()),
-            "is_custom": True,  # Mark as custom outfit
-            "confidence_score": 1.0,  # Custom outfits have full confidence
-            "reasoning": f"Custom outfit created by user: {request.description or 'No description provided'}",
-            
-            # Required OutfitGeneratedOutfit fields
-            "explanation": request.description or f"Custom {request.style} outfit for {request.occasion}",
-            "pieces": [],  # Empty for custom outfits, could be populated later
-            "styleTags": [request.style.lower().replace(' ', '_')],  # Convert style to tag format
-            "colorHarmony": "custom",  # Mark as custom color harmony
-            "styleNotes": f"Custom {request.style} style selected by user",
-            "season": "all",  # Default to all seasons for custom outfits
-            "mood": "custom",  # Default mood for custom outfits
-            "updatedAt": request.createdAt or int(time.time()),
-            "metadata": {"created_method": "custom"},
-            "wasSuccessful": True,
-            "baseItemId": None,
-            "validationErrors": [],
-            "userFeedback": None
-        }
-        
-        # Save directly to Firebase (same approach as working generate route)
-        outfit_id = outfit_data["id"]
-        
-        # Use the same save_outfit function that works in the generate route
-        from .outfits import save_outfit
-        await save_outfit(current_user_id, outfit_id, outfit_data)
-        
-        # Return the outfit data directly
-        result = outfit_data
-        
-        print(f"✅ DEBUG: create_outfit completed successfully")
-        print(f"🔍 DEBUG: Created outfit id: {result.get('id', 'unknown')}")
-        return result
-        
-    except Exception as e:
-        print(f"❌ DEBUG: Error in create_outfit: {str(e)}")
-        print(f"🔍 DEBUG: Exception type: {type(e)}")
-        import traceback
-        print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+# MOVED TO OUTFITS.PY - Using unified REST structure
+# @router.post("/create", response_model=OutfitGeneratedOutfit)
+# async def create_outfit(
+#     request: CreateOutfitRequest
+# ):
+#     """
+#     Create a custom outfit by manually selecting items from the user's wardrobe.
+#     MOVED TO: outfits.py as POST /api/outfits for unified REST structure
+#     """
+# OLD IMPLEMENTATION - MOVED TO outfits.py for unified REST structure
+#     try:
+#         print(f"🔍 DEBUG: Backend create_outfit called")
+#         ...implementation moved to outfits.py...
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+    pass  # Placeholder since function is moved
 
 @router.put("/{outfit_id}/update", response_model=OutfitGeneratedOutfit)
 async def update_outfit(

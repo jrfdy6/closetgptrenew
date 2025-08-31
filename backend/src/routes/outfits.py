@@ -24,6 +24,7 @@ try:
     from ..config.firebase import db, firebase_initialized
     from ..auth.auth_service import get_current_user_optional
     from ..custom_types.profile import UserProfile
+    from ..custom_types.outfit import OutfitGeneratedOutfit
     FIREBASE_AVAILABLE = True
     logger.info("✅ Firebase modules imported successfully")
 except ImportError as e:
@@ -94,6 +95,15 @@ class OutfitRequest(BaseModel):
     mood: str
     occasion: str
     description: Optional[str] = None
+
+class CreateOutfitRequest(BaseModel):
+    """Request model for outfit creation."""
+    name: str
+    occasion: str
+    style: str
+    description: Optional[str] = None
+    items: List[Dict[str, Any]]
+    createdAt: Optional[int] = None
 
 class OutfitResponse(BaseModel):
     """Response model for outfits."""
@@ -1656,13 +1666,9 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
             
         logger.info(f"💾 Saving outfit {outfit_id} for user {user_id}")
         
-        # Save to user's outfits collection
-        outfits_ref = db.collection('users').document(user_id).collection('outfits')
+        # Save to main outfits collection with user_id field (consistent with fetching)
+        outfits_ref = db.collection('outfits')
         outfits_ref.document(outfit_id).set(outfit_record)
-        
-        # Also save to global outfits collection for analytics
-        global_ref = db.collection('outfits').document(outfit_id)
-        global_ref.set(outfit_record)
         
         logger.info(f"✅ Successfully saved outfit {outfit_id}")
         return True
@@ -1955,7 +1961,7 @@ async def firebase_connectivity_test():
                 test_results["read_test"] = "document_not_found"
                 logger.warning("⚠️ Document not found after write")
                 
-        except Exception as e:
+    except Exception as e:
             error_msg = f"Firebase test error: {str(e)}"
             logger.error(f"❌ {error_msg}")
             test_results["error"] = error_msg
@@ -2054,7 +2060,7 @@ async def debug_outfit_retrieval():
         
         outfits = []
         for doc in docs:
-            outfit_data = doc.to_dict()
+                outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
             outfits.append({
                 "id": doc.id,
@@ -2190,6 +2196,69 @@ async def generate_outfit(
     except Exception as e:
         logger.error(f"❌ Outfit generation failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to generate outfit")
+
+
+@router.post("", response_model=OutfitGeneratedOutfit)
+async def create_outfit(
+    request: CreateOutfitRequest
+):
+    """
+    Create a custom outfit by manually selecting items from the user's wardrobe.
+    REST endpoint: POST /api/outfits
+    """
+    try:
+        logger.info(f"🎨 Creating custom outfit: {request.name}")
+        
+        # Use the same user ID pattern as the generate route
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
+        
+        logger.info(f"🔍 Request data:")
+        logger.info(f"  - name: {request.name}")
+        logger.info(f"  - occasion: {request.occasion}")
+        logger.info(f"  - style: {request.style}")
+        logger.info(f"  - items count: {len(request.items)}")
+        logger.info(f"  - user_id: {current_user_id}")
+        
+        # Create outfit data with all required OutfitGeneratedOutfit fields
+        outfit_data = {
+            "id": str(uuid4()),
+            "name": request.name,
+            "occasion": request.occasion,
+            "style": request.style,
+            "description": request.description or "",
+            "items": request.items,
+            "user_id": current_user_id,
+            "createdAt": request.createdAt or int(time.time()),
+            "is_custom": True,  # Mark as custom outfit
+            "confidence_score": 1.0,  # Custom outfits have full confidence
+            "reasoning": f"Custom outfit created by user: {request.description or 'No description provided'}",
+            
+            # Required OutfitGeneratedOutfit fields
+            "explanation": request.description or f"Custom {request.style} outfit for {request.occasion}",
+            "pieces": [],  # Empty for custom outfits, could be populated later
+            "styleTags": [request.style.lower().replace(' ', '_')],  # Convert style to tag format
+            "colorHarmony": "custom",  # Mark as custom color harmony
+            "styleNotes": f"Custom {request.style} style selected by user",
+            "season": "all",  # Default to all seasons for custom outfits
+            "mood": "custom",  # Default mood for custom outfits
+            "updatedAt": request.createdAt or int(time.time()),
+            "metadata": {"created_method": "custom"},
+            "wasSuccessful": True,
+            "baseItemId": None,
+            "validationErrors": [],
+            "userFeedback": None
+        }
+        
+        # Save using the same unified save_outfit function
+        outfit_id = outfit_data["id"]
+        await save_outfit(current_user_id, outfit_id, outfit_data)
+        
+        logger.info(f"✅ Successfully created custom outfit {outfit_id}")
+        return outfit_data
+        
+    except Exception as e:
+        logger.error(f"❌ Error creating custom outfit: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/rate")
@@ -2384,7 +2453,7 @@ async def get_outfit(outfit_id: str):
         try:
             outfit_doc = db.collection('outfits').document(outfit_id).get()
             if outfit_doc.exists:
-                outfit_data = outfit_doc.to_dict()
+        outfit_data = outfit_doc.to_dict()
                 outfit_data['id'] = outfit_id
                 logger.info(f"Successfully retrieved outfit {outfit_id} from database")
                 return OutfitResponse(**outfit_data)

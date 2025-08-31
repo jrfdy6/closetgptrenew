@@ -73,13 +73,19 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  console.log("🚀 FORCE REBUILD: /api/outfits POST route HIT:", req.method);
+  console.log("🚀 UNIFIED: /api/outfits POST route HIT:", req.method);
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits/generate`;
     const body = await req.text();
+    const requestData = JSON.parse(body);
     
-    console.log("🚀 FORCE REBUILD: POST to backend URL:", backendUrl);
+    // Determine if this is outfit creation (has 'items' field) or generation (has 'mood' field)
+    const isCreation = requestData.items && Array.isArray(requestData.items);
+    const backendEndpoint = isCreation ? '/api/outfits' : '/api/outfits/generate';
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}${backendEndpoint}`;
+    
+    console.log(`🚀 UNIFIED: ${isCreation ? 'CREATION' : 'GENERATION'} request to:`, backendUrl);
+    console.log("🔍 Request type detected:", isCreation ? "outfit creation" : "outfit generation");
     
     const res = await fetch(backendUrl, {
       method: 'POST',
@@ -93,15 +99,21 @@ export async function POST(req: NextRequest) {
     });
 
     if (!res.ok) {
-      console.error('❌ FORCE REBUILD: Backend POST responded with:', res.status);
-      return NextResponse.json({ error: `Backend error: ${res.status}` }, { status: res.status });
+      console.error(`❌ UNIFIED: Backend ${isCreation ? 'creation' : 'generation'} responded with:`, res.status);
+      const errorText = await res.text().catch(() => 'Unable to read error response');
+      console.error('❌ UNIFIED: Backend error details:', errorText);
+      return NextResponse.json({ 
+        error: `Backend error: ${res.status}`, 
+        details: errorText,
+        requestType: isCreation ? "creation" : "generation"
+      }, { status: res.status });
     }
 
     const data = await res.json();
-    console.log("🚀 FORCE REBUILD: Successfully posted data to backend");
+    console.log(`🚀 UNIFIED: Successfully ${isCreation ? 'created' : 'generated'} outfit`);
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
-    console.error('❌ FORCE REBUILD: /api/outfits POST proxy failed:', err);
+    console.error('❌ UNIFIED: /api/outfits POST proxy failed:', err);
     return NextResponse.json({ error: 'Proxy failed', details: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 }
