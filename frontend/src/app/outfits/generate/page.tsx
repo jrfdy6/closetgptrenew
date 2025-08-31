@@ -491,7 +491,14 @@ export default function OutfitGenerationPage() {
       
       // If outfit doesn't have an ID yet, save it first
       let outfitId = generatedOutfit.id;
+      console.log('🔍 DEBUG: Checking outfit ID for rating:', { 
+        outfitId, 
+        hasId: !!outfitId,
+        outfitName: generatedOutfit.name 
+      });
+      
       if (!outfitId) {
+        console.log('🔍 DEBUG: No outfit ID found, will save outfit first');
         // Validate minimum items before saving for rating
         if (!generatedOutfit.items || generatedOutfit.items.length < 3) {
           setError('Need at least 3 items to save and rate an outfit');
