@@ -2300,6 +2300,7 @@ async def mark_outfit_as_worn(
 ):
     """
     Mark an outfit as worn (simplified endpoint for frontend compatibility).
+    This will update both the outfit wear counter AND individual wardrobe item wear counters.
     """
     try:
         if not current_user:
@@ -2307,36 +2308,39 @@ async def mark_outfit_as_worn(
             
         logger.info(f"👕 Marking outfit {outfit_id} as worn for user {current_user.id}")
         
-        # Check if outfit exists and belongs to user
+        # Import OutfitService to use proper business logic
+        from ..services.outfit_service import OutfitService
+        
+        # Use OutfitService to handle the complete wear tracking logic
+        # This will update both outfit and wardrobe item wear counters
+        outfit_service = OutfitService()
+        await outfit_service.mark_outfit_as_worn(current_user.id, outfit_id)
+        
+        # Get updated outfit data to return current wear count
         outfit_ref = db.collection('outfits').document(outfit_id)
         outfit_doc = outfit_ref.get()
         
-        if not outfit_doc.exists:
-            raise HTTPException(status_code=404, detail="Outfit not found")
+        if outfit_doc.exists:
+            outfit_data = outfit_doc.to_dict()
+            current_wear_count = outfit_data.get('wearCount', 0)
+            last_worn = outfit_data.get('lastWorn')
+            
+            # Format lastWorn for frontend
+            if isinstance(last_worn, datetime):
+                last_worn_str = last_worn.isoformat() + "Z"
+            else:
+                last_worn_str = datetime.utcnow().isoformat() + "Z"
+        else:
+            current_wear_count = 1
+            last_worn_str = datetime.utcnow().isoformat() + "Z"
         
-        outfit_data = outfit_doc.to_dict()
-        if outfit_data.get('user_id') != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized to modify this outfit")
-        
-        # Update wear count and last worn timestamp
-        current_timestamp = datetime.utcnow()
-        current_wear_count = outfit_data.get('wearCount', 0)
-        
-        update_data = {
-            'wearCount': current_wear_count + 1,
-            'lastWorn': current_timestamp,
-            'updatedAt': current_timestamp
-        }
-        
-        outfit_ref.update(update_data)
-        
-        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (count: {current_wear_count} -> {current_wear_count + 1})")
+        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (updated outfit + wardrobe items)")
         
         return {
             "success": True,
-            "message": "Outfit marked as worn successfully",
-            "wearCount": current_wear_count + 1,
-            "lastWorn": current_timestamp.isoformat() + "Z"
+            "message": "Outfit marked as worn successfully (outfit + wardrobe items updated)",
+            "wearCount": current_wear_count,
+            "lastWorn": last_worn_str
         }
         
     except HTTPException:
