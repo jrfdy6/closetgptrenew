@@ -60,7 +60,16 @@ class QuizResult(BaseModel):
     @field_validator('completed_at', mode='before')
     def convert_timestamp(cls, v, info):
         if isinstance(v, (int, float)):
-            return datetime.fromtimestamp(v)
+            try:
+                # Sanity check for reasonable timestamp range
+                if 946684800 <= v <= 4102444800:
+                    return datetime.fromtimestamp(v)
+                else:
+                    # Invalid timestamp, use current time
+                    return datetime.utcnow()
+            except (ValueError, OverflowError, OSError):
+                # Conversion failed, use current time
+                return datetime.utcnow()
         return v
 
 class StyleFormula(BaseModel):
@@ -95,7 +104,16 @@ class StyleDiscoveryProfile(BaseModel):
     @field_validator('created_at', 'last_updated', mode='before')
     def convert_timestamp(cls, v, info):
         if isinstance(v, (int, float)):
-            return datetime.fromtimestamp(v)
+            try:
+                # Sanity check for reasonable timestamp range
+                if 946684800 <= v <= 4102444800:
+                    return datetime.fromtimestamp(v)
+                else:
+                    # Invalid timestamp, use current time
+                    return datetime.utcnow()
+            except (ValueError, OverflowError, OSError):
+                # Conversion failed, use current time
+                return datetime.utcnow()
         return v
 
     def generate_style_formula(self) -> StyleFormula:

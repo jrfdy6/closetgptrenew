@@ -258,11 +258,20 @@ class WardrobeAnalysisService:
             for doc in docs:
                 outfit_data = doc.to_dict()
                 
-                # Convert timestamp
+                # Convert timestamp with error handling
                 if 'createdAt' in outfit_data and hasattr(outfit_data['createdAt'], 'timestamp'):
-                    created_at = datetime.fromtimestamp(outfit_data['createdAt'].timestamp())
-                    if created_at >= cutoff_date:
-                        history.append(outfit_data)
+                    try:
+                        timestamp_val = outfit_data['createdAt'].timestamp()
+                        # Sanity check: Unix timestamps should be roughly between 2000-2100
+                        if 946684800 <= timestamp_val <= 4102444800:
+                            created_at = datetime.fromtimestamp(timestamp_val)
+                            if created_at >= cutoff_date:
+                                history.append(outfit_data)
+                        else:
+                            logger.warning(f"⚠️ Skipping outfit with invalid timestamp: {timestamp_val}")
+                    except (ValueError, OverflowError, OSError) as e:
+                        logger.warning(f"⚠️ Failed to convert timestamp for outfit {outfit_data.get('id', 'unknown')}: {e}")
+                        # Skip this outfit instead of crashing
             
             return history
         except Exception as e:
@@ -284,11 +293,20 @@ class WardrobeAnalysisService:
                 
                 # Check if this log has validation errors
                 if 'validationErrors' in log_data and log_data['validationErrors']:
-                    # Convert timestamp
+                    # Convert timestamp with error handling
                     if 'timestamp' in log_data and hasattr(log_data['timestamp'], 'timestamp'):
-                        log_time = datetime.fromtimestamp(log_data['timestamp'].timestamp())
-                        if log_time >= cutoff_date:
-                            errors.append(log_data)
+                        try:
+                            timestamp_val = log_data['timestamp'].timestamp()
+                            # Sanity check: Unix timestamps should be roughly between 2000-2100
+                            if 946684800 <= timestamp_val <= 4102444800:
+                                log_time = datetime.fromtimestamp(timestamp_val)
+                                if log_time >= cutoff_date:
+                                    errors.append(log_data)
+                            else:
+                                logger.warning(f"⚠️ Skipping log with invalid timestamp: {timestamp_val}")
+                        except (ValueError, OverflowError, OSError) as e:
+                            logger.warning(f"⚠️ Failed to convert timestamp for log {log_data.get('id', 'unknown')}: {e}")
+                            # Skip this log instead of crashing
             
             return errors
         except Exception as e:

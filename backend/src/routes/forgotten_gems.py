@@ -94,8 +94,16 @@ async def get_forgotten_gems(
             
             # Calculate days since last worn
             if usage_data and usage_data.last_used_timestamp:
-                last_worn = datetime.fromtimestamp(usage_data.last_used_timestamp)
-                days_since_worn = (now - last_worn).days
+                try:
+                    if 946684800 <= usage_data.last_used_timestamp <= 4102444800:
+                        last_worn = datetime.fromtimestamp(usage_data.last_used_timestamp)
+                        days_since_worn = (now - last_worn).days
+                    else:
+                        # Invalid timestamp, treat as never worn (use 365 days as default)
+                        days_since_worn = 365
+                except (ValueError, OverflowError, OSError):
+                    # Conversion failed, treat as never worn
+                    days_since_worn = 365
             else:
                 # If no usage data, assume it was never worn
                 days_since_worn = 365  # Assume 1 year

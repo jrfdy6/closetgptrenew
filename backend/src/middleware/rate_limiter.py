@@ -258,7 +258,13 @@ def create_rate_limit_middleware(rate_limiter: RateLimiter):
             
             if not rate_limit_result["allowed"]:
                 # Rate limit exceeded
-                reset_time = datetime.fromtimestamp(rate_limit_result["reset_time"])
+                try:
+                    if 946684800 <= rate_limit_result["reset_time"] <= 4102444800:
+                        reset_time = datetime.fromtimestamp(rate_limit_result["reset_time"])
+                    else:
+                        reset_time = datetime.utcnow() + timedelta(seconds=60)  # Default 1 minute
+                except (ValueError, OverflowError, OSError):
+                    reset_time = datetime.utcnow() + timedelta(seconds=60)  # Default 1 minute
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={
@@ -310,7 +316,13 @@ def create_rate_limit_dependency(rate_limiter: RateLimiter, endpoint_limit: Opti
         rate_limit_result = rate_limiter.check_rate_limit(identifier, limit, is_admin)
         
         if not rate_limit_result["allowed"]:
-            reset_time = datetime.fromtimestamp(rate_limit_result["reset_time"])
+            try:
+                if 946684800 <= rate_limit_result["reset_time"] <= 4102444800:
+                    reset_time = datetime.fromtimestamp(rate_limit_result["reset_time"])
+                else:
+                    reset_time = datetime.utcnow() + timedelta(seconds=60)  # Default 1 minute
+            except (ValueError, OverflowError, OSError):
+                reset_time = datetime.utcnow() + timedelta(seconds=60)  # Default 1 minute
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail={
