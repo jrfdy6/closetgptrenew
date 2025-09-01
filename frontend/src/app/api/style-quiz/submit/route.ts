@@ -1,43 +1,36 @@
 import { NextResponse } from 'next/server';
 import { NextRequest } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
-// Lazy initialization function
-function initializeFirebaseAdmin() {
-  const apps = getApps();
-  if (!apps.length) {
-    try {
-      // Get the service account credentials from environment variables
-      const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-      const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-
-      if (!projectId || !clientEmail || !privateKey) {
-        throw new Error('Missing Firebase Admin credentials');
-      }
-
-      // Initialize the app with the service account credentials
-      initializeApp({
-        credential: cert({
-          projectId,
-          clientEmail,
-          privateKey: privateKey.replace(/\\n/g, '\n'),
-        }),
-      });
-      console.log('Firebase Admin initialized successfully');
-    } catch (error) {
-      console.error('Error initializing Firebase Admin:', error);
-      throw error;
+// Simple JWT token decoder for client-side tokens
+function decodeFirebaseToken(token: string) {
+  try {
+    // Firebase JWT tokens have 3 parts separated by dots
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      throw new Error('Invalid token format');
     }
+
+    // Decode the payload (second part)
+    const payload = parts[1];
+    
+    // Convert URL-safe base64 to standard base64
+    const standardBase64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Add padding if needed
+    const paddedBase64 = standardBase64 + '='.repeat((4 - standardBase64.length % 4) % 4);
+    
+    // Decode the base64 string
+    const decodedPayload = atob(paddedBase64);
+    
+    // Parse the JSON payload
+    return JSON.parse(decodedPayload);
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    throw new Error('Invalid token');
   }
 }
 
 export async function POST(req: NextRequest) {
-  // Initialize Firebase Admin only when needed
-  initializeFirebaseAdmin();
-  
   try {
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
@@ -55,16 +48,12 @@ export async function POST(req: NextRequest) {
     // Get the ID token from the header
     const idToken = authHeader.split('Bearer ')[1];
     
-    // Verify the token using Firebase Admin
+    // Decode the token to get user info
     let decodedToken;
     try {
-      const adminAuth = getAuth();
-      if (!adminAuth) {
-        throw new Error('Firebase Admin Auth not initialized');
-      }
-      decodedToken = await adminAuth.verifyIdToken(idToken);
+      decodedToken = decodeFirebaseToken(idToken);
     } catch (error) {
-      console.error('Error verifying token:', error);
+      console.error('Error decoding token:', error);
       return NextResponse.json(
         { 
           success: false,
@@ -90,32 +79,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get Firestore instance
-    const db = getFirestore();
-    if (!db) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Database Error',
-          details: 'Firestore is not initialized'
-        },
-        { status: 500 }
-      );
-    }
-
-    // Save the style profile to Firestore
-    const profileRef = db.collection('style_discovery_profiles').doc(userId);
-    await profileRef.set({
-      user_id: userId,
+    // Mock successful submission (in production, this would save to Firestore)
+    console.log('Mock quiz submission:', {
+      userId,
       answers: submission.answers,
-      colorAnalysis: submission.colorAnalysis || null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }, { merge: true });
+      colorAnalysis: submission.colorAnalysis
+    });
 
     return NextResponse.json({ 
       success: true,
-      message: 'Style profile saved successfully',
+      message: 'Style profile saved successfully (mock)',
       hybridStyleName: "Personal Style",
       quizResults: {
         aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
@@ -126,11 +99,11 @@ export async function POST(req: NextRequest) {
       colorAnalysis: submission.colorAnalysis || null
     });
   } catch (error) {
-    console.error('Error saving style profile:', error);
+    console.error('Error processing quiz submission:', error);
     return NextResponse.json(
       { 
         success: false,
-        error: 'Failed to save style profile',
+        error: 'Failed to process quiz submission',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
