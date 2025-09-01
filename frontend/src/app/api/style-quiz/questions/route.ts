@@ -35,7 +35,7 @@ const MOCK_QUIZ_QUESTIONS = [
     category: "personal"
   },
   {
-    id: "body_type",
+    id: "body_type_female",
     question: "Which body type best describes you?",
     type: "image_choice",
     options: [
@@ -82,47 +82,149 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       }
     ],
-    category: "measurements"
+    category: "measurements",
+    depends_on: { gender: "female" }
+  },
+  {
+    id: "body_type_male",
+    question: "Which body type best describes you?",
+    type: "image_choice",
+    options: [
+      {
+        image: "athletic.png",
+        text: "Athletic",
+        scores: {
+          body_type: "athletic"
+        }
+      },
+      {
+        image: "rectangular.png",
+        text: "Rectangle",
+        scores: {
+          body_type: "rectangle"
+        }
+      },
+      {
+        image: "inverted.png",
+        text: "Inverted Triangle",
+        scores: {
+          body_type: "inverted_triangle"
+        }
+      },
+      {
+        image: "apple.png",
+        text: "Apple",
+        scores: {
+          body_type: "apple"
+        }
+      }
+    ],
+    category: "measurements",
+    depends_on: { gender: "male" }
+  },
+  {
+    id: "body_type_nonbinary",
+    question: "Which body type best describes you?",
+    type: "image_choice",
+    options: [
+      {
+        image: "apple.png",
+        text: "Apple",
+        scores: {
+          body_type: "apple"
+        }
+      },
+      {
+        image: "athletic.png",
+        text: "Athletic",
+        scores: {
+          body_type: "athletic"
+        }
+      },
+      {
+        image: "hourglass.png",
+        text: "Hourglass",
+        scores: {
+          body_type: "hourglass"
+        }
+      },
+      {
+        image: "pear.png",
+        text: "Pear",
+        scores: {
+          body_type: "pear"
+        }
+      },
+      {
+        image: "rectangular.png",
+        text: "Rectangle",
+        scores: {
+          body_type: "rectangle"
+        }
+      },
+      {
+        image: "inverted.png",
+        text: "Inverted Triangle",
+        scores: {
+          body_type: "inverted_triangle"
+        }
+      }
+    ],
+    category: "measurements",
+    depends_on: { gender: "non-binary" }
   },
   {
     id: "skin_tone",
     question: "Which skin tone best matches yours?",
-    type: "multiple_choice",
+    type: "skin_tone_scale",
     options: [
       {
-        text: "Light/Cool",
+        text: "Very Light",
+        color: "#F5E6D3",
         scores: {
-          skin_tone: "light_cool"
+          skin_tone: "very_light"
         }
       },
       {
-        text: "Light/Warm",
+        text: "Light",
+        color: "#E6C7A8",
         scores: {
-          skin_tone: "light_warm"
+          skin_tone: "light"
         }
       },
       {
-        text: "Medium/Cool",
+        text: "Light-Medium",
+        color: "#D4A574",
         scores: {
-          skin_tone: "medium_cool"
+          skin_tone: "light_medium"
         }
       },
       {
-        text: "Medium/Warm",
+        text: "Medium",
+        color: "#C68642",
         scores: {
-          skin_tone: "medium_warm"
+          skin_tone: "medium"
         }
       },
       {
-        text: "Deep/Cool",
+        text: "Medium-Dark",
+        color: "#A0522D",
         scores: {
-          skin_tone: "deep_cool"
+          skin_tone: "medium_dark"
         }
       },
       {
-        text: "Deep/Warm",
+        text: "Dark",
+        color: "#8B4513",
         scores: {
-          skin_tone: "deep_warm"
+          skin_tone: "dark"
+        }
+      },
+      {
+        text: "Very Dark",
+        color: "#654321",
+        scores: {
+          skin_tone: "very_dark"
         }
       }
     ],
@@ -324,7 +426,7 @@ const MOCK_QUIZ_QUESTIONS = [
   },
   {
     id: "cup_size",
-    question: "What is your cup size? (Women only)",
+    question: "What is your cup size?",
     type: "multiple_choice",
     options: [
       {
@@ -370,7 +472,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       }
     ],
-    category: "sizes"
+    category: "sizes",
+    depends_on: { gender: ["female", "non-binary"] }
   },
   {
     id: "shoe_size",
@@ -429,7 +532,7 @@ const MOCK_QUIZ_QUESTIONS = [
     category: "sizes"
   },
   {
-    id: "style_preference",
+    id: "style_preference_female",
     question: "Which style resonates with you most?",
     type: "image_choice",
     options: [
@@ -470,7 +573,116 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       }
     ],
-    category: "aesthetic"
+    category: "aesthetic",
+    depends_on: { gender: "female" }
+  },
+  {
+    id: "style_preference_male",
+    question: "Which style resonates with you most?",
+    type: "image_choice",
+    options: [
+      {
+        image: "M-ST1.png",
+        text: "Street Style",
+        scores: {
+          streetwear: 0.8,
+          edgy: 0.6,
+          athletic: 0.4
+        }
+      },
+      {
+        image: "M-CB1.png",
+        text: "Natural Boho",
+        scores: {
+          bohemian: 0.8,
+          romantic: 0.6,
+          vintage: 0.4
+        }
+      },
+      {
+        image: "M-MIN1.png",
+        text: "Minimalist",
+        scores: {
+          minimalist: 0.9,
+          sophisticated: 0.5,
+          comfortable: 0.3
+        }
+      },
+      {
+        image: "M-OM1.png",
+        text: "Old Money",
+        scores: {
+          classic: 0.8,
+          sophisticated: 0.6,
+          romantic: 0.4
+        }
+      }
+    ],
+    category: "aesthetic",
+    depends_on: { gender: "male" }
+  },
+  {
+    id: "style_preference_nonbinary",
+    question: "Which style resonates with you most?",
+    type: "image_choice",
+    options: [
+      {
+        image: "F-ST1.png",
+        text: "Street Style (F)",
+        scores: {
+          streetwear: 0.8,
+          edgy: 0.6,
+          athletic: 0.4
+        }
+      },
+      {
+        image: "M-ST1.png",
+        text: "Street Style (M)",
+        scores: {
+          streetwear: 0.8,
+          edgy: 0.6,
+          athletic: 0.4
+        }
+      },
+      {
+        image: "F-CB1.png",
+        text: "Cottagecore (F)",
+        scores: {
+          romantic: 0.8,
+          bohemian: 0.6,
+          vintage: 0.4
+        }
+      },
+      {
+        image: "M-CB1.png",
+        text: "Natural Boho (M)",
+        scores: {
+          bohemian: 0.8,
+          romantic: 0.6,
+          vintage: 0.4
+        }
+      },
+      {
+        image: "F-MIN1.png",
+        text: "Minimalist (F)",
+        scores: {
+          minimalist: 0.9,
+          sophisticated: 0.5,
+          comfortable: 0.3
+        }
+      },
+      {
+        image: "M-MIN1.png",
+        text: "Minimalist (M)",
+        scores: {
+          minimalist: 0.9,
+          sophisticated: 0.5,
+          comfortable: 0.3
+        }
+      }
+    ],
+    category: "aesthetic",
+    depends_on: { gender: "non-binary" }
   },
   {
     id: "outfit_style",
@@ -639,78 +851,146 @@ const MOCK_QUIZ_QUESTIONS = [
   {
     id: "color_preferences",
     question: "Which colors do you prefer to wear? (Select all that apply)",
-    type: "multiple_choice",
+    type: "color_choice",
     options: [
       {
         text: "Black",
+        color: "#000000",
         scores: {
           color_preference: "black"
         }
       },
       {
         text: "White",
+        color: "#FFFFFF",
         scores: {
           color_preference: "white"
         }
       },
       {
         text: "Navy",
+        color: "#000080",
         scores: {
           color_preference: "navy"
         }
       },
       {
         text: "Gray",
+        color: "#808080",
         scores: {
           color_preference: "gray"
         }
       },
       {
+        text: "Charcoal",
+        color: "#36454F",
+        scores: {
+          color_preference: "charcoal"
+        }
+      },
+      {
         text: "Brown",
+        color: "#8B4513",
         scores: {
           color_preference: "brown"
         }
       },
       {
-        text: "Beige/Cream",
+        text: "Beige",
+        color: "#F5F5DC",
         scores: {
           color_preference: "beige"
         }
       },
       {
+        text: "Cream",
+        color: "#FFFDD0",
+        scores: {
+          color_preference: "cream"
+        }
+      },
+      {
         text: "Red",
+        color: "#FF0000",
         scores: {
           color_preference: "red"
         }
       },
       {
         text: "Blue",
+        color: "#0000FF",
         scores: {
           color_preference: "blue"
         }
       },
       {
-        text: "Green",
+        text: "Olive",
+        color: "#808000",
         scores: {
-          color_preference: "green"
+          color_preference: "olive"
+        }
+      },
+      {
+        text: "Terracotta",
+        color: "#E2725B",
+        scores: {
+          color_preference: "terracotta"
         }
       },
       {
         text: "Pink",
+        color: "#FFC0CB",
         scores: {
           color_preference: "pink"
         }
       },
       {
-        text: "Purple",
+        text: "Lavender",
+        color: "#E6E6FA",
         scores: {
-          color_preference: "purple"
+          color_preference: "lavender"
         }
       },
       {
-        text: "Yellow",
+        text: "Mint",
+        color: "#98FB98",
         scores: {
-          color_preference: "yellow"
+          color_preference: "mint"
+        }
+      },
+      {
+        text: "Peach",
+        color: "#FFCBA4",
+        scores: {
+          color_preference: "peach"
+        }
+      },
+      {
+        text: "Sky Blue",
+        color: "#87CEEB",
+        scores: {
+          color_preference: "sky_blue"
+        }
+      },
+      {
+        text: "Burgundy",
+        color: "#800020",
+        scores: {
+          color_preference: "burgundy"
+        }
+      },
+      {
+        text: "Emerald",
+        color: "#50C878",
+        scores: {
+          color_preference: "emerald"
+        }
+      },
+      {
+        text: "Camel",
+        color: "#C19A6B",
+        scores: {
+          color_preference: "camel"
         }
       }
     ],

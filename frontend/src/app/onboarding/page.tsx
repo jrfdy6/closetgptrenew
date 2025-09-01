@@ -17,9 +17,10 @@ interface QuizQuestion {
   question: string;
   options: string[];
   category: string;
-  type?: "visual" | "color_swatches" | "text";
+  type?: "visual" | "color_swatches" | "text" | "skin_tone_scale" | "color_choice";
   images?: string[];
   colors?: string[];
+  depends_on?: { gender?: string | string[] };
 }
 
 // Mock quiz questions as fallback
@@ -31,7 +32,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
     category: "personal"
   },
   {
-    id: "body_type",
+    id: "body_type_female",
     question: "Which body type best describes you?",
     options: ["Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle"],
     category: "measurements",
@@ -43,13 +44,46 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
       "/images/body-types/pear.png",
       "/images/body-types/rectangular.png",
       "/images/body-types/inverted.png"
-    ]
+    ],
+    depends_on: { gender: "female" }
+  },
+  {
+    id: "body_type_male",
+    question: "Which body type best describes you?",
+    options: ["Athletic", "Rectangle", "Inverted Triangle", "Apple"],
+    category: "measurements",
+    type: "visual",
+    images: [
+      "/images/body-types/athletic.png",
+      "/images/body-types/rectangular.png",
+      "/images/body-types/inverted.png",
+      "/images/body-types/apple.png"
+    ],
+    depends_on: { gender: "male" }
+  },
+  {
+    id: "body_type_nonbinary",
+    question: "Which body type best describes you?",
+    options: ["Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle"],
+    category: "measurements",
+    type: "visual",
+    images: [
+      "/images/body-types/apple.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/hourglass.png",
+      "/images/body-types/pear.png",
+      "/images/body-types/rectangular.png",
+      "/images/body-types/inverted.png"
+    ],
+    depends_on: { gender: "non-binary" }
   },
   {
     id: "skin_tone",
     question: "Which skin tone best matches yours?",
-    options: ["Light/Cool", "Light/Warm", "Medium/Cool", "Medium/Warm", "Deep/Cool", "Deep/Warm"],
-    category: "measurements"
+    options: ["Very Light", "Light", "Light-Medium", "Medium", "Medium-Dark", "Dark", "Very Dark"],
+    category: "measurements",
+    type: "skin_tone_scale",
+    colors: ["#F5E6D3", "#E6C7A8", "#D4A574", "#C68642", "#A0522D", "#8B4513", "#654321"]
   },
   {
     id: "height",
@@ -77,9 +111,10 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
   },
   {
     id: "cup_size",
-    question: "What is your cup size? (Women only)",
+    question: "What is your cup size?",
     options: ["A", "B", "C", "D", "DD", "DDD", "Prefer not to say"],
-    category: "sizes"
+    category: "sizes",
+    depends_on: { gender: ["female", "non-binary"] }
   },
   {
     id: "shoe_size",
@@ -88,7 +123,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
     category: "sizes"
   },
   {
-    id: "style_preference",
+    id: "style_preference_female",
     question: "Which style resonates with you most?",
     options: ["Street Style", "Cottagecore", "Minimalist", "Old Money"],
     category: "aesthetic",
@@ -98,7 +133,38 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
       "/images/outfit-quiz/F-CB1.png",
       "/images/outfit-quiz/F-MIN1.png",
       "/images/outfit-quiz/F-OM1.png"
-    ]
+    ],
+    depends_on: { gender: "female" }
+  },
+  {
+    id: "style_preference_male",
+    question: "Which style resonates with you most?",
+    options: ["Street Style", "Natural Boho", "Minimalist", "Old Money"],
+    category: "aesthetic",
+    type: "visual",
+    images: [
+      "/images/outfit-quiz/M-ST1.png",
+      "/images/outfit-quiz/M-CB1.png",
+      "/images/outfit-quiz/M-MIN1.png",
+      "/images/outfit-quiz/M-OM1.png"
+    ],
+    depends_on: { gender: "male" }
+  },
+  {
+    id: "style_preference_nonbinary",
+    question: "Which style resonates with you most?",
+    options: ["Street Style (F)", "Street Style (M)", "Cottagecore (F)", "Natural Boho (M)", "Minimalist (F)", "Minimalist (M)"],
+    category: "aesthetic",
+    type: "visual",
+    images: [
+      "/images/outfit-quiz/F-ST1.png",
+      "/images/outfit-quiz/M-ST1.png",
+      "/images/outfit-quiz/F-CB1.png",
+      "/images/outfit-quiz/M-CB1.png",
+      "/images/outfit-quiz/F-MIN1.png",
+      "/images/outfit-quiz/M-MIN1.png"
+    ],
+    depends_on: { gender: "non-binary" }
   },
   {
     id: "outfit_style",
@@ -141,8 +207,10 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
   {
     id: "color_preferences",
     question: "Which colors do you prefer to wear? (Select all that apply)",
-    options: ["Black", "White", "Navy", "Gray", "Brown", "Beige/Cream", "Red", "Blue", "Green", "Pink", "Purple", "Yellow"],
-    category: "color_preferences"
+    options: ["Black", "White", "Navy", "Gray", "Charcoal", "Brown", "Beige", "Cream", "Red", "Blue", "Olive", "Terracotta", "Pink", "Lavender", "Mint", "Peach", "Sky Blue", "Burgundy", "Emerald", "Camel"],
+    category: "color_preferences",
+    type: "color_choice",
+    colors: ["#000000", "#FFFFFF", "#000080", "#808080", "#36454F", "#8B4513", "#F5F5DC", "#FFFDD0", "#FF0000", "#0000FF", "#808000", "#E2725B", "#FFC0CB", "#E6E6FA", "#98FB98", "#FFCBA4", "#87CEEB", "#800020", "#50C878", "#C19A6B"]
   },
   {
     id: "style_preferences",
@@ -156,6 +224,7 @@ export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userGender, setUserGender] = useState<string | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResults, setQuizResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -196,14 +265,37 @@ export default function Onboarding() {
     }
   }, [user, authLoading]);
 
+  // Filter questions based on user's gender selection
+  const getFilteredQuestions = (questions: QuizQuestion[], gender: string | null): QuizQuestion[] => {
+    if (!gender) return questions;
+    
+    return questions.filter(question => {
+      if (!question.depends_on) return true;
+      
+      const { gender: requiredGender } = question.depends_on;
+      if (Array.isArray(requiredGender)) {
+        return requiredGender.includes(gender);
+      }
+      return requiredGender === gender;
+    });
+  };
+
+  // Get filtered questions based on current gender selection
+  const filteredQuestions = getFilteredQuestions(quizQuestions, userGender);
+
   const handleAnswer = (questionId: string, selectedOption: string) => {
     const newAnswers = answers.filter(a => a.question_id !== questionId);
     newAnswers.push({ question_id: questionId, selected_option: selectedOption });
     setAnswers(newAnswers);
+
+    // Track gender selection for filtering
+    if (questionId === 'gender') {
+      setUserGender(selectedOption.toLowerCase());
+    }
   };
 
   const nextStep = () => {
-    if (currentStep < quizQuestions.length) {
+    if (currentStep < filteredQuestions.length) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -215,8 +307,8 @@ export default function Onboarding() {
   };
 
   const canProceed = () => {
-    if (quizQuestions.length === 0) return false;
-    const currentQuestion = quizQuestions[currentStep - 1];
+    if (filteredQuestions.length === 0) return false;
+    const currentQuestion = filteredQuestions[currentStep - 1];
     return answers.some(a => a.question_id === currentQuestion.id);
   };
 
@@ -283,8 +375,8 @@ export default function Onboarding() {
   };
 
   const renderQuestion = () => {
-    if (quizQuestions.length === 0) return null;
-    const question = quizQuestions[currentStep - 1];
+    if (filteredQuestions.length === 0) return null;
+    const question = filteredQuestions[currentStep - 1];
     const currentAnswer = answers.find(a => a.question_id === question.id);
 
     return (
@@ -296,6 +388,8 @@ export default function Onboarding() {
           <p className="text-gray-600 dark:text-gray-400">
             {question.type === "visual" ? "Click on the image that best represents your style" :
              question.type === "color_swatches" ? "Select the color that best matches your skin tone" :
+             question.type === "skin_tone_scale" ? "Select the skin tone that best matches yours" :
+             question.type === "color_choice" ? "Select all colors you prefer to wear" :
              "Choose the option that best describes you"}
           </p>
         </div>
@@ -358,6 +452,62 @@ export default function Onboarding() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : question.type === "skin_tone_scale" && question.colors ? (
+          <div className="space-y-4">
+            {question.options.map((option, index) => (
+              <div
+                key={option}
+                className={`flex items-center space-x-4 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                  currentAnswer?.selected_option === option
+                    ? "border-purple-600 ring-2 ring-purple-200 dark:ring-purple-800 bg-purple-50 dark:bg-purple-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                }`}
+                onClick={() => handleAnswer(question.id, option)}
+              >
+                <div 
+                  className="w-12 h-12 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                  style={{ backgroundColor: question.colors[index] }}
+                />
+                <span className="text-lg font-medium text-gray-900 dark:text-white">
+                  {option}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : question.type === "color_choice" && question.colors ? (
+          <div className="grid grid-cols-4 gap-4">
+            {question.options.map((option, index) => {
+              const isSelected = currentAnswer?.selected_option?.includes(option);
+              return (
+                <div
+                  key={option}
+                  className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                    isSelected
+                      ? "border-purple-600 ring-2 ring-purple-200 dark:ring-purple-800 bg-purple-50 dark:bg-purple-900/20"
+                      : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                  }`}
+                  onClick={() => {
+                    const currentSelections = currentAnswer?.selected_option?.split(',') || [];
+                    let newSelections;
+                    if (isSelected) {
+                      newSelections = currentSelections.filter(s => s !== option);
+                    } else {
+                      newSelections = [...currentSelections, option];
+                    }
+                    handleAnswer(question.id, newSelections.join(','));
+                  }}
+                >
+                  <div 
+                    className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                    style={{ backgroundColor: question.colors[index] }}
+                  />
+                  <span className="text-sm font-medium text-gray-900 dark:text-white text-center">
+                    {option}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="space-y-4">
@@ -510,7 +660,7 @@ export default function Onboarding() {
             ))}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Question {currentStep} of {quizQuestions.length}
+            Question {currentStep} of {filteredQuestions.length}
           </p>
         </CardHeader>
         <CardContent>
