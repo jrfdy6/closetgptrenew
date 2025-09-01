@@ -1,6 +1,6 @@
 import { ClothingItem, WardrobeFilters } from '@/lib/hooks/useWardrobe';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
 
 export interface WardrobeResponse {
   success: boolean;

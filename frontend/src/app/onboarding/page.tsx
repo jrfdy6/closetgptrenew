@@ -599,18 +599,18 @@ export default function Onboarding() {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            {question.options.map((option) => (
-              <Button
-                key={option}
-                variant={currentAnswer?.selected_option === option ? "default" : "outline"}
-                className="w-full h-20 text-lg justify-start text-left px-6"
-                onClick={() => handleAnswer(question.id, option)}
-              >
-                {option}
-              </Button>
-            ))}
-          </div>
+        <div className="space-y-4">
+          {question.options.map((option) => (
+            <Button
+              key={option}
+              variant={currentAnswer?.selected_option === option ? "default" : "outline"}
+              className="w-full h-20 text-lg justify-start text-left px-6"
+              onClick={() => handleAnswer(question.id, option)}
+            >
+              {option}
+            </Button>
+          ))}
+        </div>
         )}
       </div>
     );

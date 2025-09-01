@@ -48,22 +48,9 @@ export function useWardrobe() {
       setLoading(true);
       setError(null);
       
-      // Use Next.js API route instead of backend directly
-      const token = await user.getIdToken();
-      const response = await fetch('/api/wardrobe', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch wardrobe: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setItems(data.items || []);
+      // Use real API call to backend directly
+      const wardrobeItems = await WardrobeService.getWardrobeItems();
+      setItems(wardrobeItems);
     } catch (err) {
       console.error('Error fetching wardrobe items:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch wardrobe items');
@@ -77,23 +64,8 @@ export function useWardrobe() {
     if (!user) return;
 
     try {
-      // Use Next.js API route instead of backend directly
-      const token = await user.getIdToken();
-      const response = await fetch('/api/wardrobe', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(item),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to add item: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const newItem = data.item;
+      // Use real API call to backend
+      const newItem = await WardrobeService.addWardrobeItem(item);
       setItems(prev => [...prev, newItem]);
       return newItem;
     } catch (err) {

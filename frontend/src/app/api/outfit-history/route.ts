@@ -14,7 +14,7 @@ export async function GET(request: Request) {
         { status: 401 }
       );
     }
-    
+
     // Return mock outfit history data in the format the frontend expects
     const mockOutfitHistory = [
       {
