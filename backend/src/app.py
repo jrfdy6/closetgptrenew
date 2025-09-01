@@ -3,19 +3,67 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import routers
-from src.routes import (
-    auth,
-    image_processing,
-    image_analysis,
-    weather,
-    wardrobe,
-    wardrobe_analysis,
-    outfit,
-    outfits,
-    outfit_history,
-    forgotten_gems
-)
+# Import routers with error handling
+logger.info("🔗 Registering routers...")
+
+# Try to import and register each router individually
+try:
+    from src.routes import auth
+    app.include_router(auth.router, prefix="/api/auth")
+    logger.info("✅ Registered /api/auth")
+except Exception as e:
+    logger.error(f"❌ Failed to register auth router: {e}")
+
+try:
+    from src.routes import image_processing, image_analysis
+    app.include_router(image_processing.router, prefix="/api/image")
+    app.include_router(image_analysis.router, prefix="/api/image")
+    logger.info("✅ Registered /api/image routes")
+except Exception as e:
+    logger.error(f"❌ Failed to register image routers: {e}")
+
+try:
+    from src.routes import weather
+    app.include_router(weather.router, prefix="/api/weather")
+    logger.info("✅ Registered /api/weather")
+except Exception as e:
+    logger.error(f"❌ Failed to register weather router: {e}")
+
+try:
+    from src.routes import wardrobe, wardrobe_analysis
+    app.include_router(wardrobe.router, prefix="/api/wardrobe")
+    app.include_router(wardrobe_analysis.router, prefix="/api/wardrobe")
+    logger.info("✅ Registered /api/wardrobe routes")
+except Exception as e:
+    logger.error(f"❌ Failed to register wardrobe routers: {e}")
+
+try:
+    from src.routes import outfit
+    app.include_router(outfit.router, prefix="/api/outfit")
+    logger.info("✅ Registered /api/outfit (singular)")
+except Exception as e:
+    logger.error(f"❌ Failed to register outfit router: {e}")
+
+try:
+    from src.routes import outfits
+    app.include_router(outfits.router, prefix="/api/outfits")
+    logger.info("✅ Registered /api/outfits (plural)")
+except Exception as e:
+    logger.error(f"❌ Failed to register outfits router: {e}")
+
+try:
+    from src.routes import outfit_history
+    app.include_router(outfit_history.router, prefix="/api/outfit-history")
+    logger.info("✅ Registered /api/outfit-history")
+except Exception as e:
+    logger.error(f"❌ Failed to register outfit history router: {e}")
+
+try:
+    from src.routes import forgotten_gems
+    app.include_router(forgotten_gems.router, prefix="/api/wardrobe")
+    logger.info("✅ Registered forgotten gems")
+except Exception as e:
+    logger.error(f"❌ Failed to register forgotten gems router: {e}")
 
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
@@ -50,22 +98,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
-# Include routers with proper prefixes
-logger.info("🔗 Registering routers...")
-app.include_router(auth.router, prefix="/api/auth")
-logger.info("✅ Registered /api/auth")
-app.include_router(image_processing.router, prefix="/api/image")
-app.include_router(image_analysis.router, prefix="/api/image")
-app.include_router(weather.router, prefix="/api/weather")
-app.include_router(wardrobe.router, prefix="/api/wardrobe")
-app.include_router(wardrobe_analysis.router, prefix="/api/wardrobe")
-app.include_router(outfit.router, prefix="/api/outfit")
-logger.info("✅ Registered /api/outfit (singular)")
-app.include_router(outfits.router, prefix="/api/outfits")  # ✅ Fix for GET /api/outfits
-logger.info("✅ Registered /api/outfits (plural) - THIS SHOULD HANDLE /api/outfits?limit=20")
-app.include_router(outfit_history.router, prefix="/api/outfit-history")  # ✅ Add missing outfit history routes
-app.include_router(forgotten_gems.router, prefix="/api/wardrobe")  # ✅ Re-enabled forgotten gems
 
 # Startup logging
 logger.info("=== Starting FastAPI application ===")
