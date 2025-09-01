@@ -54,9 +54,14 @@ class UpdateOutfitRequest(BaseModel):
 
 @router.get("/", response_model=List[OutfitGeneratedOutfit])
 async def get_outfits(current_user: UserProfile = Depends(get_current_user)):
+    logger.info("🚨 DEBUG: /api/outfit/ endpoint called (NOT /api/outfits/)")
     try:
-        return await outfit_service.get_outfits_by_user(current_user.id)
+        logger.info(f"🔍 [outfit.py] Fetching outfits for user: {current_user.id}")
+        result = await outfit_service.get_outfits_by_user(current_user.id)
+        logger.info(f"✅ [outfit.py] Successfully retrieved {len(result)} outfits")
+        return result
     except Exception as e:
+        logger.error(f"❌ [outfit.py] Error fetching outfits: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{outfit_id}", response_model=OutfitGeneratedOutfit)

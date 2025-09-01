@@ -52,14 +52,18 @@ app.add_middleware(
 )
 
 # Include routers with proper prefixes
+logger.info("🔗 Registering routers...")
 app.include_router(auth.router, prefix="/api/auth")
+logger.info("✅ Registered /api/auth")
 app.include_router(image_processing.router, prefix="/api/image")
 app.include_router(image_analysis.router, prefix="/api/image")
 app.include_router(weather.router, prefix="/api/weather")
 app.include_router(wardrobe.router, prefix="/api/wardrobe")
 app.include_router(wardrobe_analysis.router, prefix="/api/wardrobe")
 app.include_router(outfit.router, prefix="/api/outfit")
+logger.info("✅ Registered /api/outfit (singular)")
 app.include_router(outfits.router, prefix="/api/outfits")  # ✅ Fix for GET /api/outfits
+logger.info("✅ Registered /api/outfits (plural) - THIS SHOULD HANDLE /api/outfits?limit=20")
 app.include_router(outfit_history.router, prefix="/api/outfit-history")  # ✅ Add missing outfit history routes
 app.include_router(forgotten_gems.router, prefix="/api/wardrobe")  # ✅ Add forgotten gems under wardrobe
 

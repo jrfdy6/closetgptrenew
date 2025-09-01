@@ -76,6 +76,32 @@ class OutfitService:
                 try:
                     outfit_data = doc.to_dict()
                     outfit_data['id'] = doc.id
+                    
+                    # Fix timestamp issues before creating Outfit object
+                    if 'createdAt' in outfit_data:
+                        created_at = outfit_data['createdAt']
+                        if isinstance(created_at, (int, float)):
+                            # Handle both seconds and milliseconds timestamps
+                            if created_at > 1e12:  # Likely milliseconds
+                                timestamp_seconds = created_at / 1000.0
+                            else:
+                                timestamp_seconds = created_at
+                            # Sanity check: Unix timestamps should be roughly between 2000-2100
+                            if 946684800 <= timestamp_seconds <= 4102444800:
+                                outfit_data['createdAt'] = datetime.fromtimestamp(timestamp_seconds)
+                            else:
+                                logger.warning(f"⚠️ Invalid createdAt timestamp for outfit {doc.id}: {created_at}")
+                                outfit_data['createdAt'] = datetime.utcnow()
+                        elif hasattr(created_at, 'timestamp'):
+                            # Firestore timestamp object
+                            outfit_data['createdAt'] = created_at
+                        elif isinstance(created_at, str):
+                            # Already a string, leave as is
+                            pass
+                        else:
+                            logger.warning(f"⚠️ Unknown createdAt type for outfit {doc.id}: {type(created_at)}")
+                            outfit_data['createdAt'] = datetime.utcnow()
+                    
                     outfit = Outfit(**outfit_data)
                     outfits.append(outfit)
                 except Exception as e:

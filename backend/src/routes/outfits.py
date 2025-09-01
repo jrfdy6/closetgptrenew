@@ -2753,6 +2753,8 @@ async def list_outfits_with_slash(
     """
     Fetch a user's outfit history from Firestore.
     """
+    logger.info("🎯 DEBUG: /api/outfits/ endpoint called (CORRECT ENDPOINT)")
+    logger.info(f"🔍 DEBUG: Request params - limit: {limit}, offset: {offset}")
     try:
         # TEMPORARY FIX: Use the actual user ID from your database
         # TODO: Fix authentication to get real user ID
