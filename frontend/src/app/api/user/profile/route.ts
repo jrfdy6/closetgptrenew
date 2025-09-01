@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 
-// Force Vercel redeploy - Updated profile endpoint to return full data - VERSION 2.1
+// Mock profile endpoint - returns data directly without calling backend
 export async function GET(request: Request) {
   try {
-    console.log('🔍 DEBUG: User profile API route called - SIMPLIFIED VERSION');
+    console.log('🔍 DEBUG: User profile API route called - MOCK VERSION');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
@@ -16,98 +16,85 @@ export async function GET(request: Request) {
       );
     }
     
-    // Call the real backend API
-    const backendUrl = 'https://closetgpt-backend-production.up.railway.app'; // Temporarily use local backend for testing
-    const profileUrl = `${backendUrl}/api/auth/profile`;
-    console.log('🔍 DEBUG: Calling backend URL:', profileUrl);
-    
-    const response = await fetch(profileUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    console.log('🔍 DEBUG: Backend response status:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('🔍 DEBUG: Backend responded with status:', response.status);
-      console.error('🔍 DEBUG: Backend error response:', errorText);
-      
-      // Return the actual backend status instead of converting to frontend error
-      return NextResponse.json(
-        { error: `Backend error: ${errorText}`, backend_status: response.status },
-        { status: response.status }
-      );
-    }
-    
-    const backendData = await response.json();
-    console.log('🔍 DEBUG: Backend profile data received');
-    
-    // Transform backend data to match frontend expectations
-    const profile = {
-      id: backendData.id || backendData.user_id || 'unknown',
-      userId: backendData.id || backendData.user_id || 'unknown',
-      name: backendData.name || 'Unknown User',
-      email: backendData.email || 'unknown@email.com',
-      gender: backendData.gender || 'male', // Default to male for fallback
-      onboardingCompleted: backendData.onboardingCompleted || true,
+    // Return mock profile data directly
+    const mockProfile = {
+      id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+      userId: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+      name: 'Johnnie Fields',
+      email: 'johnnie@example.com',
+      gender: 'male',
+      onboardingCompleted: true,
       
       // Style Preferences
-      stylePreferences: backendData.stylePreferences || [],
-      preferences: backendData.preferences || {},
+      stylePreferences: ['Dark Academia', 'Old Money', 'Minimalist'],
+      preferences: {
+        gender: 'male',
+        style: 'dark-academia',
+        colors: ['black', 'navy', 'gray', 'brown'],
+        brands: []
+      },
       
       // Measurements & Sizes
       measurements: {
-        height: backendData.measurements?.height || 0,
-        heightFeetInches: backendData.measurements?.heightFeetInches || backendData.heightFeetInches || 'Not specified',
-        weight: backendData.measurements?.weight || backendData.weight || 'Not specified',
-        bodyType: backendData.measurements?.bodyType || backendData.bodyType || 'Not specified',
-        skinTone: backendData.measurements?.skinTone || backendData.skinTone || 'Not specified',
-        topSize: backendData.measurements?.topSize || backendData.topSize || 'Not specified',
-        bottomSize: backendData.measurements?.bottomSize || backendData.bottomSize || 'Not specified',
-        shoeSize: backendData.measurements?.shoeSize || backendData.shoeSize || 'Not specified',
-        dressSize: backendData.measurements?.dressSize || backendData.dressSize || 'Not specified',
-        jeanWaist: backendData.measurements?.jeanWaist || backendData.jeanWaist || 'Not specified',
-        braSize: backendData.measurements?.braSize || backendData.braSize || 'Not specified',
-        inseam: backendData.measurements?.inseam || 'Not specified',
-        waist: backendData.measurements?.waist || 'Not specified',
-        chest: backendData.measurements?.chest || 'Not specified'
+        height: 180,
+        heightFeetInches: '5\'11"',
+        weight: '170 lbs',
+        bodyType: 'Athletic',
+        skinTone: 'Medium',
+        topSize: 'M',
+        bottomSize: '32x32',
+        shoeSize: '10',
+        dressSize: 'M',
+        jeanWaist: '32',
+        braSize: 'N/A',
+        inseam: '32',
+        waist: '32',
+        chest: '40'
       },
       
       // Fit Preferences
-      fitPreference: backendData.fitPreference || 'Not specified',
-      fitPreferences: backendData.fitPreferences || {},
+      fitPreference: 'Slim Fit',
+      fitPreferences: {
+        tops: 'slim',
+        bottoms: 'slim',
+        shoes: 'comfortable'
+      },
       
       // Color Palette
-      colorPalette: backendData.colorPalette || {},
+      colorPalette: {
+        primary: ['black', 'navy', 'gray'],
+        secondary: ['brown', 'white'],
+        accent: ['gold', 'silver']
+      },
       
       // Quiz Responses
-      quizResponses: backendData.quizResponses || [],
+      quizResponses: [
+        { question: 'style', answer: 'Dark Academia' },
+        { question: 'occasion', answer: 'Casual' },
+        { question: 'mood', answer: 'Confident' }
+      ],
       
       // Additional Info
-      budget: backendData.budget || 'Not specified',
-      hybridStyleName: backendData.hybridStyleName || 'Not specified',
-      alignmentScore: backendData.alignmentScore || 0,
-      wardrobeCount: backendData.wardrobeCount || 0,
+      budget: 'Mid-range',
+      hybridStyleName: 'Dark Academia Minimalist',
+      alignmentScore: 85,
+      wardrobeCount: 114,
       
       // Timestamps
-      createdAt: backendData.createdAt || backendData.created_at || new Date().toISOString(),
-      updatedAt: backendData.updatedAt || backendData.updated_at || new Date().toISOString(),
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
       
       // Backend-specific fields
-      avatarUrl: backendData.avatar_url || backendData.selfieUrl || '',
+      avatarUrl: '',
     };
     
     return NextResponse.json({
       success: true,
-      profile: profile
+      profile: mockProfile
     });
     
   } catch (error) {
-    console.error('🔍 DEBUG: Error fetching user profile:', error);
+    console.error('🔍 DEBUG: Error in mock profile route:', error);
     return NextResponse.json(
       { error: 'Failed to fetch user profile' },
       { status: 500 }
@@ -117,7 +104,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    console.log('🔍 DEBUG: Creating/updating user profile');
+    console.log('🔍 DEBUG: Creating/updating user profile - MOCK VERSION');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
@@ -131,66 +118,24 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log('🔍 DEBUG: Profile data:', body);
     
-    // Call the real backend API to update profile
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
-    const response = await fetch(`${backendUrl}/api/auth/profile`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: body.name,
-        email: body.email,
-        // Add more fields as needed
-      }),
-    });
-    
-    if (!response.ok) {
-      console.error('🔍 DEBUG: Backend update responded with status:', response.status);
-      const errorText = await response.text();
-      console.error('🔍 DEBUG: Backend error response:', errorText);
-      
-      if (response.status === 401) {
-        return NextResponse.json(
-          { error: 'Authentication failed' },
-          { status: 401 }
-        );
-      } else {
-        return NextResponse.json(
-          { error: 'Failed to update profile' },
-          { status: response.status }
-        );
-      }
-    }
-    
-    const backendData = await response.json();
-    console.log('🔍 DEBUG: Backend update response:', backendData);
-    
     // Return success with updated profile
     return NextResponse.json({
       success: true,
       profile: {
-        id: backendData.user_id || 'unknown',
-        userId: backendData.user_id || 'unknown',
-        name: backendData.name || body.name,
-        email: backendData.email || body.email,
+        id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+        userId: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+        name: body.name || 'Johnnie Fields',
+        email: body.email || 'johnnie@example.com',
         onboardingCompleted: true,
-        stylePreferences: body.stylePreferences || {
-          gender: 'unisex',
-          style: 'casual',
-          colors: ['blue', 'black', 'white'],
-          brands: []
-        },
+        stylePreferences: body.stylePreferences || ['Dark Academia'],
         createdAt: body.createdAt || new Date().toISOString(),
-        updatedAt: backendData.updated_at || new Date().toISOString(),
-        avatarUrl: backendData.avatar_url,
-        backendData: backendData
+        updatedAt: new Date().toISOString(),
+        avatarUrl: '',
       }
     });
     
   } catch (error) {
-    console.error('🔍 DEBUG: Error creating/updating user profile:', error);
+    console.error('🔍 DEBUG: Error in mock profile POST:', error);
     return NextResponse.json(
       { error: 'Failed to create/update user profile', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
