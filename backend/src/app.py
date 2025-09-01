@@ -13,8 +13,8 @@ from src.routes import (
     wardrobe_analysis,
     outfit,
     outfits,
-    outfit_history
-    # forgotten_gems  # Temporarily disabled due to import issues
+    outfit_history,
+    forgotten_gems
 )
 
 # Logging setup
@@ -65,7 +65,7 @@ logger.info("✅ Registered /api/outfit (singular)")
 app.include_router(outfits.router, prefix="/api/outfits")  # ✅ Fix for GET /api/outfits
 logger.info("✅ Registered /api/outfits (plural) - THIS SHOULD HANDLE /api/outfits?limit=20")
 app.include_router(outfit_history.router, prefix="/api/outfit-history")  # ✅ Add missing outfit history routes
-# app.include_router(forgotten_gems.router, prefix="/api/wardrobe")  # ✅ Temporarily disabled
+app.include_router(forgotten_gems.router, prefix="/api/wardrobe")  # ✅ Re-enabled forgotten gems
 
 # Startup logging
 logger.info("=== Starting FastAPI application ===")
