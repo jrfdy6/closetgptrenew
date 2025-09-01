@@ -13,12 +13,12 @@ COPY requirements.txt ./
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the source code
-COPY src ./src
+# Copy the main.py file
+COPY main.py ./
 
 # Expose port (Railway automatically maps to $PORT)
 ENV PORT=8080
 EXPOSE $PORT
 
 # Run the FastAPI app
-CMD ["uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "main.py"]
