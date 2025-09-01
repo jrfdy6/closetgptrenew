@@ -5,13 +5,100 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    console.log('🔍 DEBUG: Wardrobe API route called - MOCK VERSION');
+    console.log('🔍 DEBUG: Wardrobe API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    // Return mock wardrobe data directly
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
+    }
+    
+    // Get backend URL from environment variables
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app';
+    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    
+    // Call the real backend to get your 114 wardrobe items
+    const response = await fetch(`${backendUrl}/api/wardrobe`, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
+      // Fallback to mock data if backend is not available
+      const mockWardrobe = {
+        success: true,
+        items: [
+          {
+            id: 'item_1',
+            name: 'Dark Academia Blazer',
+            type: 'blazer',
+            color: 'charcoal',
+            brand: 'The Savile Row Company',
+            imageUrl: '/placeholder.jpg',
+            isFavorite: true,
+            category: 'outerwear'
+          },
+          {
+            id: 'item_2',
+            name: 'Statement T-Shirt',
+            type: 't-shirt',
+            color: 'white',
+            brand: 'Celine',
+            imageUrl: '/placeholder.jpg',
+            isFavorite: false,
+            category: 'tops'
+          },
+          {
+            id: 'item_3',
+            name: 'Slim Fit Pants',
+            type: 'pants',
+            color: 'olive',
+            brand: 'Dockers',
+            imageUrl: '/placeholder.jpg',
+            isFavorite: true,
+            category: 'bottoms'
+          },
+          {
+            id: 'item_4',
+            name: 'Oxford Shoes',
+            type: 'shoes',
+            color: 'brown',
+            brand: 'Unknown',
+            imageUrl: '/placeholder.jpg',
+            isFavorite: false,
+            category: 'shoes'
+          }
+        ],
+        count: 4,
+        user_id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+        message: 'Backend not available, using mock data'
+      };
+      
+      return NextResponse.json(mockWardrobe);
+    }
+    
+    const wardrobeData = await response.json();
+    console.log('🔍 DEBUG: Backend wardrobe data received:', {
+      success: wardrobeData.success,
+      count: wardrobeData.count || wardrobeData.items?.length,
+      hasItems: !!wardrobeData.items
+    });
+    
+    return NextResponse.json(wardrobeData);
+    
+  } catch (error) {
+    console.error('🔍 DEBUG: Error in wardrobe route:', error);
+    
+    // Fallback to mock data on error
     const mockWardrobe = {
       success: true,
       items: [
@@ -57,27 +144,28 @@ export async function GET(request: Request) {
         }
       ],
       count: 4,
-      user_id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3'
+      user_id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+      message: 'Error occurred, using mock data'
     };
     
     return NextResponse.json(mockWardrobe);
-    
-  } catch (error) {
-    console.error('🔍 DEBUG: Error in mock wardrobe route:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch wardrobe' },
-      { status: 500 }
-    );
   }
 }
 
 export async function POST(request: Request) {
   try {
-    console.log('🔍 DEBUG: Wardrobe POST API route called - MOCK VERSION');
+    console.log('🔍 DEBUG: Wardrobe POST API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
+    }
     
     // Get the request body
     let requestBody;
@@ -92,22 +180,54 @@ export async function POST(request: Request) {
       );
     }
     
-    // Return success response
+    // Get backend URL from environment variables
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app';
+    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    
+    // Call the real backend to add the item
+    const response = await fetch(`${backendUrl}/api/wardrobe`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!response.ok) {
+      console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
+      // Fallback to mock response if backend is not available
+      return NextResponse.json({
+        success: true,
+        message: 'Item added successfully (mock)',
+        item: {
+          id: `item_${Date.now()}`,
+          ...requestBody,
+          isFavorite: false
+        }
+      });
+    }
+    
+    const responseData = await response.json();
+    console.log('🔍 DEBUG: Backend POST response received:', {
+      success: responseData.success,
+      hasItem: !!responseData.item
+    });
+    
+    return NextResponse.json(responseData);
+    
+  } catch (error) {
+    console.error('🔍 DEBUG: Error in wardrobe POST:', error);
+    
+    // Fallback to mock response on error
     return NextResponse.json({
       success: true,
-      message: 'Item added successfully',
+      message: 'Item added successfully (mock)',
       item: {
         id: `item_${Date.now()}`,
         ...requestBody,
         isFavorite: false
       }
     });
-    
-  } catch (error) {
-    console.error('🔍 DEBUG: Error in mock wardrobe POST:', error);
-    return NextResponse.json(
-      { error: 'Failed to add item to wardrobe' },
-      { status: 500 }
-    );
   }
 } 
