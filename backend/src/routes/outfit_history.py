@@ -519,4 +519,226 @@ async def get_todays_outfit(
         logger.error(f"Error getting today's outfit: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get today's outfit")
 
+@router.get("/today-suggestion")
+async def get_todays_outfit_suggestion(
+    current_user = Depends(get_current_user_optional)
+):
+    """
+    Get or generate today's outfit suggestion for the current user.
+    This generates a new outfit suggestion once per day and caches it.
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        logger.info(f"Getting today's outfit suggestion for user {current_user.id}")
+        
+        # Get today's date as a string for caching
+        from datetime import datetime, timezone
+        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        
+        # Check if firebase is available
+        if not db:
+            logger.warning("Firebase not available, returning fallback suggestion")
+            return {
+                "success": True,
+                "suggestion": None,
+                "isWorn": False,
+                "message": "Service temporarily unavailable"
+            }
+        
+        # Look for existing suggestion for today
+        suggestions_ref = db.collection('daily_outfit_suggestions')
+        query = suggestions_ref.where('user_id', '==', current_user.id).where('date', '==', today_str)
+        existing_docs = list(query.stream())
+        
+        if existing_docs:
+            # Return existing suggestion
+            doc = existing_docs[0]
+            suggestion_data = doc.to_dict()
+            logger.info(f"Found existing suggestion for {today_str}")
+            
+            return {
+                "success": True,
+                "suggestion": {
+                    "id": doc.id,
+                    "outfitData": suggestion_data.get('outfit_data', {}),
+                    "generatedAt": suggestion_data.get('generated_at'),
+                    "date": suggestion_data.get('date')
+                },
+                "isWorn": suggestion_data.get('is_worn', False),
+                "wornAt": suggestion_data.get('worn_at'),
+                "message": "Today's outfit suggestion"
+            }
+        
+        else:
+            # Generate new suggestion for today
+            logger.info(f"Generating new outfit suggestion for {today_str}")
+            
+            try:
+                # Import outfit generation logic
+                from ..routes.outfits import generate_outfit_logic
+                from ..custom_types.outfit import OutfitRequest
+                
+                # Create a default request for casual daily wear
+                daily_request = OutfitRequest(
+                    occasion="casual",
+                    style="comfortable",
+                    mood="confident",
+                    weather={}  # We can enhance this later with actual weather
+                )
+                
+                # Generate outfit using existing logic
+                generated_outfit = await generate_outfit_logic(daily_request, current_user.id)
+                
+                # Save suggestion to cache
+                current_timestamp = int(datetime.utcnow().timestamp() * 1000)
+                suggestion_doc = {
+                    'user_id': current_user.id,
+                    'date': today_str,
+                    'outfit_data': generated_outfit,
+                    'generated_at': current_timestamp,
+                    'is_worn': False,
+                    'worn_at': None,
+                    'created_at': current_timestamp,
+                    'updated_at': current_timestamp
+                }
+                
+                # Save to Firestore
+                doc_ref = db.collection('daily_outfit_suggestions').add(suggestion_doc)
+                suggestion_id = doc_ref[1].id
+                
+                logger.info(f"Generated and saved new outfit suggestion {suggestion_id}")
+                
+                return {
+                    "success": True,
+                    "suggestion": {
+                        "id": suggestion_id,
+                        "outfitData": generated_outfit,
+                        "generatedAt": current_timestamp,
+                        "date": today_str
+                    },
+                    "isWorn": False,
+                    "wornAt": None,
+                    "message": "Generated new outfit suggestion for today"
+                }
+                
+            except Exception as generation_error:
+                logger.error(f"Failed to generate outfit suggestion: {generation_error}")
+                return {
+                    "success": True,
+                    "suggestion": None,
+                    "isWorn": False,
+                    "message": "Could not generate outfit suggestion today"
+                }
+        
+    except Exception as e:
+        logger.error(f"Error getting today's outfit suggestion: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get today's outfit suggestion")
+
+@router.post("/today-suggestion/wear")
+async def mark_today_suggestion_as_worn(
+    data: Dict[str, Any],
+    current_user = Depends(get_current_user_optional)
+):
+    """
+    Mark today's outfit suggestion as worn.
+    This creates an outfit history entry and updates the suggestion status.
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        suggestion_id = data.get('suggestionId')
+        if not suggestion_id:
+            raise HTTPException(status_code=400, detail="suggestionId is required")
+            
+        logger.info(f"Marking today's suggestion {suggestion_id} as worn for user {current_user.id}")
+        
+        # Check if firebase is available
+        if not db:
+            raise HTTPException(status_code=503, detail="Service temporarily unavailable")
+        
+        # Get the suggestion document
+        suggestion_ref = db.collection('daily_outfit_suggestions').document(suggestion_id)
+        suggestion_doc = suggestion_ref.get()
+        
+        if not suggestion_doc.exists:
+            raise HTTPException(status_code=404, detail="Suggestion not found")
+        
+        suggestion_data = suggestion_doc.to_dict()
+        
+        # Verify ownership
+        if suggestion_data.get('user_id') != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # Check if already worn
+        if suggestion_data.get('is_worn'):
+            return {
+                "success": True,
+                "message": "Suggestion already marked as worn",
+                "alreadyWorn": True
+            }
+        
+        # Mark suggestion as worn
+        current_timestamp = int(datetime.utcnow().timestamp() * 1000)
+        suggestion_ref.update({
+            'is_worn': True,
+            'worn_at': current_timestamp,
+            'updated_at': current_timestamp
+        })
+        
+        # Create outfit history entry
+        outfit_data = suggestion_data.get('outfit_data', {})
+        history_entry = {
+            'user_id': current_user.id,
+            'outfit_id': f"suggestion_{suggestion_id}",  # Special ID for suggested outfits
+            'outfit_name': outfit_data.get('name', 'Daily Suggestion'),
+            'outfit_image': outfit_data.get('imageUrl', ''),
+            'date_worn': current_timestamp,
+            'occasion': 'Daily Suggestion',
+            'mood': 'Confident',
+            'weather': {},
+            'notes': 'Generated daily outfit suggestion',
+            'tags': ['daily-suggestion'],
+            'created_at': current_timestamp,
+            'updated_at': current_timestamp,
+            'suggestion_id': suggestion_id  # Link back to the suggestion
+        }
+        
+        # Save to outfit history
+        db.collection('outfit_history').add(history_entry)
+        
+        # Log analytics event
+        try:
+            from ..models.analytics_event import AnalyticsEvent
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="daily_suggestion_worn",
+                metadata={
+                    "suggestion_id": suggestion_id,
+                    "outfit_name": outfit_data.get('name', 'Daily Suggestion'),
+                    "date": suggestion_data.get('date'),
+                    "source": "daily_outfit_suggestion"
+                }
+            )
+            from ..services.analytics_service import log_analytics_event
+            log_analytics_event(analytics_event)
+        except Exception as analytics_error:
+            logger.warning(f"Failed to log analytics: {analytics_error}")
+        
+        logger.info(f"Successfully marked suggestion {suggestion_id} as worn")
+        
+        return {
+            "success": True,
+            "message": "Daily outfit suggestion marked as worn",
+            "wornAt": current_timestamp
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error marking suggestion as worn: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to mark suggestion as worn")
+
 # Force redeploy Sun Aug 17 07:23:59 EDT 2025

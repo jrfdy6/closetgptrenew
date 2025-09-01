@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const { user, loading } = useAuthContext();
 
   // Fetch real dashboard data
@@ -79,6 +80,27 @@ export default function Dashboard() {
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleMarkAsWorn = async () => {
+    if (!user || !dashboardData?.todaysOutfit?.suggestionId) return;
+    
+    try {
+      setMarkingAsWorn(true);
+      const success = await dashboardService.markSuggestionAsWorn(user, dashboardData.todaysOutfit.suggestionId);
+      
+      if (success) {
+        // Refresh dashboard data to show updated state
+        await fetchDashboardData();
+      } else {
+        setError('Failed to mark outfit as worn');
+      }
+    } catch (err) {
+      console.error('Error marking outfit as worn:', err);
+      setError('Failed to mark outfit as worn');
+    } finally {
+      setMarkingAsWorn(false);
     }
   };
 
@@ -287,7 +309,7 @@ export default function Dashboard() {
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="text-xl">Today's Outfit</CardTitle>
-            <CardDescription>Perfect for your day ahead</CardDescription>
+            <CardDescription>Daily personalized outfit suggestion just for you</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
@@ -319,10 +341,31 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div className="text-right">
-                    <Button variant="outline" size="sm">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      View Details
-                    </Button>
+                    {dashboardData.todaysOutfit.isSuggestion && !dashboardData.todaysOutfit.isWorn ? (
+                      <Button 
+                        onClick={handleMarkAsWorn}
+                        disabled={markingAsWorn}
+                        className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white"
+                        size="sm"
+                      >
+                        {markingAsWorn ? (
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                        )}
+                        {markingAsWorn ? 'Marking...' : 'Wear This'}
+                      </Button>
+                    ) : dashboardData.todaysOutfit.isWorn ? (
+                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Worn Today
+                      </Badge>
+                    ) : (
+                      <Button variant="outline" size="sm">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        View Details
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
@@ -339,12 +382,26 @@ export default function Dashboard() {
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
-                <p className="text-gray-500 dark:text-gray-500 mb-6">
-                  No outfit generated yet
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-blue-100 dark:from-emerald-900 dark:to-blue-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-500 mb-2 font-medium">
+                  Daily Outfit Suggestion
                 </p>
-                <Button className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Outfit
+                <p className="text-sm text-gray-400 dark:text-gray-600 mb-6 max-w-md mx-auto">
+                  We'll generate a personalized outfit suggestion for you once a day. If you like it, you can mark it as worn!
+                </p>
+                <Button 
+                  onClick={fetchDashboardData}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
+                >
+                  {isLoading ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-2" />
+                  )}
+                  {isLoading ? 'Generating...' : 'Generate Today\'s Outfit'}
                 </Button>
               </div>
             )}

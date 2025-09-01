@@ -91,7 +91,7 @@ export interface TodaysOutfit {
 }
 
 class DashboardService {
-  private async makeAuthenticatedRequest(endpoint: string, user: User): Promise<any> {
+  private async makeAuthenticatedRequest(endpoint: string, user: User, options: RequestInit = {}): Promise<any> {
     if (!user) {
       throw new Error('Authentication required');
     }
@@ -105,7 +105,9 @@ class DashboardService {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        ...options.headers,
       },
+      ...options,
     });
 
     if (!response.ok) {
@@ -216,14 +218,54 @@ class DashboardService {
 
   private async getTodaysOutfit(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching today\'s outfit from /api/outfit-history/today');
+      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /api/outfit-history/today');
       const response = await this.makeAuthenticatedRequest('/api/outfit-history/today', user);
-      console.log('🔍 DEBUG: Today\'s outfit response:', response);
-      return response.todaysOutfit || null;
+      console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
+      
+      // Handle new suggestion format
+      if (response.suggestion) {
+        const suggestion = response.suggestion;
+        const outfitData = suggestion.outfitData || {};
+        
+        return {
+          suggestionId: suggestion.id,
+          outfitName: outfitData.name || 'Daily Suggestion',
+          outfitImage: outfitData.imageUrl || '',
+          occasion: outfitData.occasion || 'Daily Suggestion',
+          mood: outfitData.mood || 'Confident',
+          weather: outfitData.weather || {},
+          items: outfitData.items || [],
+          isWorn: response.isWorn || false,
+          wornAt: response.wornAt,
+          generatedAt: suggestion.generatedAt,
+          isSuggestion: true // Flag to distinguish from worn outfits
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error fetching today\'s outfit:', error);
       // Return null for production when backend is not ready
       return null;
+    }
+  }
+
+  async markSuggestionAsWorn(user: User, suggestionId: string): Promise<boolean> {
+    try {
+      console.log('👕 DEBUG: Marking suggestion as worn:', suggestionId);
+      const response = await this.makeAuthenticatedRequest('/api/outfit-history/today-suggestion/wear', user, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ suggestionId }),
+      });
+      
+      console.log('✅ DEBUG: Suggestion marked as worn:', response);
+      return response.success || false;
+    } catch (error) {
+      console.error('Error marking suggestion as worn:', error);
+      return false;
     }
   }
 

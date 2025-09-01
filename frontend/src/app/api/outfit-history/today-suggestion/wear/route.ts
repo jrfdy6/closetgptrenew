@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
-  console.log("🌅 Today's outfit API route called");
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
+  console.log("👕 Mark today's suggestion as worn API route called");
   
   try {
-    // Use the new suggestion endpoint instead of the old today endpoint
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfit-history/today-suggestion`;
-    console.log("🔗 Proxying to backend suggestion URL:", backendUrl);
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfit-history/today-suggestion/wear`;
+    console.log("🔗 Proxying to backend URL:", backendUrl);
     
     const authHeader = req.headers.get('authorization');
     console.log("🔍 Authorization header:", authHeader ? 'Present' : 'Missing');
     
+    const body = await req.json();
+    console.log("📦 Request body:", body);
+    
     const res = await fetch(backendUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(authHeader && {
           Authorization: authHeader,
         }),
       },
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -26,23 +31,24 @@ export async function GET(req: NextRequest) {
       const errorText = await res.text().catch(() => 'Unable to read error');
       console.error('❌ Backend error details:', errorText);
       
-      // Return graceful fallback for today's outfit instead of propagating error
       return NextResponse.json({ 
-        success: true,
-        todaysOutfit: null,
-        hasOutfitToday: false,
-        message: `Backend temporarily unavailable (${res.status})`
-      }, { status: 200 });
+        success: false,
+        error: `Backend error: ${res.status} ${res.statusText}`, 
+        details: errorText
+      }, { status: res.status });
     }
 
     const data = await res.json();
-    console.log("✅ Successfully fetched today's outfit from backend");
+    console.log("✅ Successfully marked today's suggestion as worn");
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('❌ Error in today outfit API route:', error);
+    console.error('❌ Error in today suggestion wear route:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch today\'s outfit' },
+      { 
+        success: false,
+        error: 'Failed to mark suggestion as worn' 
+      },
       { status: 500 }
     );
   }
