@@ -31,7 +31,11 @@ export async function GET(request: Request) {
       console.log('🔍 DEBUG: Token parts count:', tokenParts.length);
       
       if (tokenParts.length === 3) {
-        const payload = JSON.parse(atob(tokenParts[1]));
+        // Firebase tokens use URL-safe base64, so we need to convert it
+        const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+        // Add padding if needed
+        const paddedPayload = base64Payload + '='.repeat((4 - base64Payload.length % 4) % 4);
+        const payload = JSON.parse(atob(paddedPayload));
         console.log('🔍 DEBUG: Token payload:', payload);
         console.log('🔍 DEBUG: Available payload keys:', Object.keys(payload));
         
@@ -160,7 +164,11 @@ export async function POST(request: Request) {
       console.log('🔍 DEBUG: POST - Token parts count:', tokenParts.length);
       
       if (tokenParts.length === 3) {
-        const payload = JSON.parse(atob(tokenParts[1]));
+        // Firebase tokens use URL-safe base64, so we need to convert it
+        const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+        // Add padding if needed
+        const paddedPayload = base64Payload + '='.repeat((4 - base64Payload.length % 4) % 4);
+        const payload = JSON.parse(atob(paddedPayload));
         console.log('🔍 DEBUG: POST - Token payload:', payload);
         console.log('🔍 DEBUG: POST - Available payload keys:', Object.keys(payload));
         

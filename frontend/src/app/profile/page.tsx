@@ -163,7 +163,11 @@ export default function ProfilePage() {
         const tokenParts = token.split('.');
         console.log('🔍 DEBUG: Client - Token parts count:', tokenParts.length);
         if (tokenParts.length === 3) {
-          const payload = JSON.parse(atob(tokenParts[1]));
+          // Firebase tokens use URL-safe base64, so we need to convert it
+          const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+          // Add padding if needed
+          const paddedPayload = base64Payload + '='.repeat((4 - base64Payload.length % 4) % 4);
+          const payload = JSON.parse(atob(paddedPayload));
           console.log('🔍 DEBUG: Client - Token payload:', payload);
           console.log('🔍 DEBUG: Client - Available payload keys:', Object.keys(payload));
           console.log('🔍 DEBUG: Client - Email from token:', payload.email);
