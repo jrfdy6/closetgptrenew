@@ -52,12 +52,19 @@ async def get_forgotten_gems(
             
         print(f"🔍 Forgotten Gems: Analyzing for user {current_user.id}")
         
-        # Initialize services
-        analytics_service = ItemAnalyticsService()
-        wardrobe_service = WardrobeAnalysisService()
+        # Use simple Firestore query instead of complex services
+        from ..config.firebase import db
         
-        # Get user's wardrobe
-        wardrobe = await wardrobe_service._get_user_wardrobe(current_user.id)
+        print(f"🔍 Forgotten Gems: Getting wardrobe items directly from Firestore")
+        query = db.collection('wardrobe').where('userId', '==', current_user.id)
+        docs = query.stream()
+        
+        wardrobe = []
+        for doc in docs:
+            item_data = doc.to_dict()
+            item_data['id'] = doc.id
+            wardrobe.append(item_data)
+            
         print(f"🔍 Forgotten Gems: Found {len(wardrobe)} wardrobe items")
         
         if not wardrobe:
@@ -73,16 +80,10 @@ async def get_forgotten_gems(
                 message="No wardrobe items found"
             )
         
-        # Get usage analytics for all items (with fallback if analytics fail)
-        try:
-            favorites = await analytics_service.get_user_favorites(current_user.id, limit=100)
-            print(f"🔍 Forgotten Gems: Found {len(favorites)} items with usage data")
-        except Exception as analytics_error:
-            print(f"⚠️ Forgotten Gems: Analytics service failed ({analytics_error}), using simplified analysis")
-            favorites = []
-        
-        # Create a map of item_id to usage data
-        usage_map = {fav.item_id: fav for fav in favorites}
+        # Skip complex analytics for now - use simplified analysis
+        print(f"🔍 Forgotten Gems: Using simplified analysis without complex analytics")
+        favorites = []
+        usage_map = {}
         
         # Calculate current timestamp
         now = datetime.now()
@@ -94,7 +95,8 @@ async def get_forgotten_gems(
         
         for item in wardrobe:
             # Get usage data for this item
-            usage_data = usage_map.get(item.id)
+            item_id = item.get('id')
+            usage_data = usage_map.get(item_id)
             
             # Calculate days since last worn
             if usage_data and usage_data.last_used_timestamp:
@@ -116,13 +118,14 @@ async def get_forgotten_gems(
                     days_since_worn = 365
             else:
                 # No analytics data - try item's own lastWorn field as fallback
-                if hasattr(item, 'lastWorn') and item.lastWorn:
+                last_worn_timestamp = item.get('lastWorn')
+                if last_worn_timestamp:
                     try:
                         # Handle both seconds and milliseconds timestamps
-                        if item.lastWorn > 1e12:  # Likely milliseconds
-                            timestamp_seconds = item.lastWorn / 1000.0
+                        if last_worn_timestamp > 1e12:  # Likely milliseconds
+                            timestamp_seconds = last_worn_timestamp / 1000.0
                         else:
-                            timestamp_seconds = item.lastWorn
+                            timestamp_seconds = last_worn_timestamp
                         
                         if 946684800 <= timestamp_seconds <= 4102444800:
                             last_worn = datetime.fromtimestamp(timestamp_seconds)
@@ -131,7 +134,7 @@ async def get_forgotten_gems(
                             days_since_worn = 365
                     except (ValueError, OverflowError, OSError):
                         days_since_worn = 365
-                elif hasattr(item, 'wearCount') and item.wearCount == 0:
+                elif item.get('wearCount', 0) == 0:
                     # Never worn - high priority for rediscovery
                     days_since_worn = 999
                 else:
@@ -146,15 +149,15 @@ async def get_forgotten_gems(
                 # Calculate usage count (analytics or item wearCount)
                 if usage_data and hasattr(usage_data, 'usage_count'):
                     usage_count = usage_data.usage_count
-                elif hasattr(item, 'wearCount'):
-                    usage_count = item.wearCount or 0
+                elif item.get('wearCount') is not None:
+                    usage_count = item.get('wearCount', 0)
                 else:
                     usage_count = 0
                 
                 # Calculate favorite score (analytics or item favorite status)
                 if usage_data and hasattr(usage_data, 'total_score'):
                     favorite_score = usage_data.total_score
-                elif hasattr(item, 'isFavorite') and item.isFavorite:
+                elif item.get('isFavorite', False):
                     favorite_score = 50.0  # Boost for favorited items
                 else:
                     favorite_score = 0.0
@@ -179,13 +182,13 @@ async def get_forgotten_gems(
                     potential_savings += item_savings
                     
                     forgotten_item = ForgottenItem(
-                        id=item.id,
-                        name=item.name or f"{item.type.title()} Item",
-                        type=item.type,
-                        imageUrl=item.imageUrl or "/placeholder.svg",
-                        color=item.color or "unknown",
-                        style=item.style or [],
-                        lastWorn=usage_data.last_used_timestamp if usage_data else None,
+                        id=item_id,
+                        name=item.get('name', f"{item.get('type', 'Unknown').title()} Item"),
+                        type=item.get('type', 'unknown'),
+                        imageUrl=item.get('imageUrl', "/placeholder.svg"),
+                        color=item.get('color', 'unknown'),
+                        style=item.get('style', []),
+                        lastWorn=last_worn_timestamp,
                         daysSinceWorn=days_since_worn,
                         usageCount=usage_count,
                         favoriteScore=favorite_score,
