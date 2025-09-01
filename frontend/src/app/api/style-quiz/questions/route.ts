@@ -8,7 +8,7 @@ const MOCK_QUIZ_QUESTIONS = [
     type: "image_choice",
     options: [
       {
-        image: "street.jpeg",
+        image: "F-ST1.png",
         text: "Street Style",
         scores: {
           streetwear: 0.8,
@@ -17,7 +17,7 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "cottagecore_floral_dress.jpg",
+        image: "F-CB1.png",
         text: "Cottagecore",
         scores: {
           romantic: 0.8,
@@ -26,8 +26,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "coastal.jpeg",
-        text: "Coastal Chic",
+        image: "F-MIN1.png",
+        text: "Minimalist",
         scores: {
           minimalist: 0.9,
           sophisticated: 0.5,
@@ -35,8 +35,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "darkacad.jpeg",
-        text: "Dark Academia",
+        image: "F-OM1.png",
+        text: "Old Money",
         scores: {
           classic: 0.8,
           sophisticated: 0.6,
@@ -52,8 +52,8 @@ const MOCK_QUIZ_QUESTIONS = [
     type: "image_choice",
     options: [
       {
-        image: "streetwear_oversized_hoodie.jpg",
-        text: "Streetwear",
+        image: "M-ST1.png",
+        text: "Grunge Street",
         scores: {
           streetwear: 0.9,
           edgy: 0.7,
@@ -61,8 +61,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "boho_flowy_dress.jpg",
-        text: "Bohemian",
+        image: "M-CB1.png",
+        text: "Natural Boho",
         scores: {
           bohemian: 0.9,
           romantic: 0.7,
@@ -70,8 +70,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "coastal_chic_linen_set.jpg",
-        text: "Coastal Chic",
+        image: "M-MIN1.png",
+        text: "Clean Minimal",
         scores: {
           minimalist: 0.9,
           sophisticated: 0.7,
@@ -79,8 +79,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "old_money_tweed_suit.jpg",
-        text: "Old Money",
+        image: "M-OM1.png",
+        text: "Classic Elegant",
         scores: {
           classic: 0.9,
           sophisticated: 0.7,
@@ -96,8 +96,8 @@ const MOCK_QUIZ_QUESTIONS = [
     type: "image_choice",
     options: [
       {
-        image: "minimal_clean_blazer.jpg",
-        text: "Minimalist",
+        image: "F-MIN2.png",
+        text: "Modern Minimal",
         scores: {
           minimalist: 0.9,
           sophisticated: 0.7,
@@ -105,8 +105,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "grunge_flannel_combat.jpg",
-        text: "Grunge",
+        image: "F-ST2.png",
+        text: "Urban Street",
         scores: {
           edgy: 0.9,
           streetwear: 0.7,
@@ -114,21 +114,21 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "y2k_crop_top_set.jpg",
-        text: "Y2K",
+        image: "F-CB2.png",
+        text: "Boho Layered",
         scores: {
-          edgy: 0.9,
-          streetwear: 0.7,
-          athletic: 0.5
+          bohemian: 0.9,
+          romantic: 0.7,
+          vintage: 0.5
         }
       },
       {
-        image: "romantic_lace_blouse.jpg",
-        text: "Romantic",
+        image: "F-OM2.png",
+        text: "Classic Preppy",
         scores: {
-          romantic: 0.9,
-          bohemian: 0.7,
-          vintage: 0.5
+          classic: 0.9,
+          sophisticated: 0.7,
+          preppy: 0.5
         }
       }
     ],
@@ -224,14 +224,7 @@ export async function GET() {
       type: question.type === "image_choice" ? "visual" : "text",
       options: question.options.map(option => option.text),
       images: question.type === "image_choice" 
-        ? question.options.map(option => {
-            // Use the correct directory based on image type
-            if (option.image.includes('_')) {
-              return `/images/outfit-quiz/${option.image}`;
-            } else {
-              return `/images/styles/${option.image}`;
-            }
-          })
+        ? question.options.map(option => `/images/outfit-quiz/${option.image}`)
         : undefined
     }));
 

@@ -30,52 +30,52 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
     options: [
       "Street Style",
       "Cottagecore", 
-      "Coastal Chic",
-      "Dark Academia"
+      "Minimalist",
+      "Old Money"
     ],
     category: "aesthetic",
     type: "visual",
     images: [
-      "/images/styles/street.jpeg",
-      "/images/outfit-quiz/cottagecore_floral_dress.jpg",
-      "/images/styles/coastal.jpeg",
-      "/images/styles/darkacad.jpeg"
+      "/images/outfit-quiz/F-ST1.png",
+      "/images/outfit-quiz/F-CB1.png",
+      "/images/outfit-quiz/F-MIN1.png",
+      "/images/outfit-quiz/F-OM1.png"
     ]
   },
   {
     id: "outfit_style",
     question: "Which outfit style appeals to you most?",
     options: [
-      "Streetwear",
-      "Bohemian",
-      "Coastal Chic", 
-      "Old Money"
+      "Grunge Street",
+      "Natural Boho",
+      "Clean Minimal", 
+      "Classic Elegant"
     ],
     category: "style",
     type: "visual",
     images: [
-      "/images/outfit-quiz/streetwear_oversized_hoodie.jpg",
-      "/images/outfit-quiz/boho_flowy_dress.jpg",
-      "/images/outfit-quiz/coastal_chic_linen_set.jpg",
-      "/images/outfit-quiz/old_money_tweed_suit.jpg"
+      "/images/outfit-quiz/M-ST1.png",
+      "/images/outfit-quiz/M-CB1.png",
+      "/images/outfit-quiz/M-MIN1.png",
+      "/images/outfit-quiz/M-OM1.png"
     ]
   },
   {
     id: "fashion_style",
     question: "Which fashion style speaks to you?",
     options: [
-      "Minimalist",
-      "Grunge",
-      "Y2K",
-      "Romantic"
+      "Modern Minimal",
+      "Urban Street",
+      "Boho Layered",
+      "Classic Preppy"
     ],
     category: "aesthetic",
     type: "visual",
     images: [
-      "/images/outfit-quiz/minimalist_clean_blazer.jpg",
-      "/images/outfit-quiz/grunge_flannel_combat.jpg",
-      "/images/outfit-quiz/y2k_crop_top_set.jpg",
-      "/images/outfit-quiz/romantic_lace_blouse.jpg"
+      "/images/outfit-quiz/F-MIN2.png",
+      "/images/outfit-quiz/F-ST2.png",
+      "/images/outfit-quiz/F-CB2.png",
+      "/images/outfit-quiz/F-OM2.png"
     ]
   },
   {
