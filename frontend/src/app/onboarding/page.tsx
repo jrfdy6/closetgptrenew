@@ -25,14 +25,72 @@ interface QuizQuestion {
 // Mock quiz questions as fallback
 const getMockQuizQuestions = (): QuizQuestion[] => [
   {
+    id: "gender",
+    question: "What is your gender?",
+    options: ["Female", "Male", "Non-binary", "Prefer not to say"],
+    category: "personal"
+  },
+  {
+    id: "body_type",
+    question: "Which body type best describes you?",
+    options: ["Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle"],
+    category: "measurements",
+    type: "visual",
+    images: [
+      "/images/body-types/apple.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/hourglass.png",
+      "/images/body-types/pear.png",
+      "/images/body-types/rectangular.png",
+      "/images/body-types/inverted.png"
+    ]
+  },
+  {
+    id: "skin_tone",
+    question: "Which skin tone best matches yours?",
+    options: ["Light/Cool", "Light/Warm", "Medium/Cool", "Medium/Warm", "Deep/Cool", "Deep/Warm"],
+    category: "measurements"
+  },
+  {
+    id: "height",
+    question: "What is your height?",
+    options: ["Under 5'0\"", "5'0\" - 5'3\"", "5'4\" - 5'7\"", "5'8\" - 5'11\"", "6'0\" - 6'3\"", "Over 6'3\""],
+    category: "measurements"
+  },
+  {
+    id: "weight",
+    question: "What is your weight range?",
+    options: ["Under 100 lbs", "100-120 lbs", "121-140 lbs", "141-160 lbs", "161-180 lbs", "181-200 lbs", "Over 200 lbs"],
+    category: "measurements"
+  },
+  {
+    id: "top_size",
+    question: "What is your top size?",
+    options: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    category: "sizes"
+  },
+  {
+    id: "bottom_size",
+    question: "What is your bottom size?",
+    options: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    category: "sizes"
+  },
+  {
+    id: "cup_size",
+    question: "What is your cup size? (Women only)",
+    options: ["A", "B", "C", "D", "DD", "DDD", "Prefer not to say"],
+    category: "sizes"
+  },
+  {
+    id: "shoe_size",
+    question: "What is your shoe size?",
+    options: ["5 or smaller", "6", "7", "8", "9", "10", "11", "12 or larger"],
+    category: "sizes"
+  },
+  {
     id: "style_preference",
     question: "Which style resonates with you most?",
-    options: [
-      "Street Style",
-      "Cottagecore", 
-      "Minimalist",
-      "Old Money"
-    ],
+    options: ["Street Style", "Cottagecore", "Minimalist", "Old Money"],
     category: "aesthetic",
     type: "visual",
     images: [
@@ -45,12 +103,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
   {
     id: "outfit_style",
     question: "Which outfit style appeals to you most?",
-    options: [
-      "Grunge Street",
-      "Natural Boho",
-      "Clean Minimal", 
-      "Classic Elegant"
-    ],
+    options: ["Grunge Street", "Natural Boho", "Clean Minimal", "Classic Elegant"],
     category: "style",
     type: "visual",
     images: [
@@ -63,12 +116,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
   {
     id: "fashion_style",
     question: "Which fashion style speaks to you?",
-    options: [
-      "Modern Minimal",
-      "Urban Street",
-      "Boho Layered",
-      "Classic Preppy"
-    ],
+    options: ["Modern Minimal", "Urban Street", "Boho Layered", "Classic Preppy"],
     category: "aesthetic",
     type: "visual",
     images: [
@@ -81,24 +129,26 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
   {
     id: "daily_activities",
     question: "What best describes your daily activities?",
-    options: [
-      "Office work and meetings",
-      "Creative work and casual meetings",
-      "Active lifestyle and sports",
-      "Mix of everything"
-    ],
+    options: ["Office work and meetings", "Creative work and casual meetings", "Active lifestyle and sports", "Mix of everything"],
     category: "lifestyle"
   },
   {
     id: "style_elements",
     question: "Which style elements do you gravitate towards?",
-    options: [
-      "Clean lines and minimal details",
-      "Rich textures and patterns",
-      "Classic and timeless pieces",
-      "Bold and statement pieces"
-    ],
+    options: ["Clean lines and minimal details", "Rich textures and patterns", "Classic and timeless pieces", "Bold and statement pieces"],
     category: "style"
+  },
+  {
+    id: "color_preferences",
+    question: "Which colors do you prefer to wear? (Select all that apply)",
+    options: ["Black", "White", "Navy", "Gray", "Brown", "Beige/Cream", "Red", "Blue", "Green", "Pink", "Purple", "Yellow"],
+    category: "color_preferences"
+  },
+  {
+    id: "style_preferences",
+    question: "Which style categories interest you most? (Select all that apply)",
+    options: ["Streetwear", "Cottagecore", "Minimalist", "Old Money", "Bohemian", "Dark Academia", "Grunge", "Y2K", "Romantic", "Preppy", "Athletic/Sporty", "Vintage"],
+    category: "style_preferences"
   }
 ];
 

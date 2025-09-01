@@ -3,6 +3,432 @@ import { NextResponse } from 'next/server';
 // Mock quiz questions that match the backend structure
 const MOCK_QUIZ_QUESTIONS = [
   {
+    id: "gender",
+    question: "What is your gender?",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "Female",
+        scores: {
+          gender: "female"
+        }
+      },
+      {
+        text: "Male",
+        scores: {
+          gender: "male"
+        }
+      },
+      {
+        text: "Non-binary",
+        scores: {
+          gender: "non-binary"
+        }
+      },
+      {
+        text: "Prefer not to say",
+        scores: {
+          gender: "prefer-not-to-say"
+        }
+      }
+    ],
+    category: "personal"
+  },
+  {
+    id: "body_type",
+    question: "Which body type best describes you?",
+    type: "image_choice",
+    options: [
+      {
+        image: "apple.png",
+        text: "Apple",
+        scores: {
+          body_type: "apple"
+        }
+      },
+      {
+        image: "athletic.png",
+        text: "Athletic",
+        scores: {
+          body_type: "athletic"
+        }
+      },
+      {
+        image: "hourglass.png",
+        text: "Hourglass",
+        scores: {
+          body_type: "hourglass"
+        }
+      },
+      {
+        image: "pear.png",
+        text: "Pear",
+        scores: {
+          body_type: "pear"
+        }
+      },
+      {
+        image: "rectangular.png",
+        text: "Rectangle",
+        scores: {
+          body_type: "rectangle"
+        }
+      },
+      {
+        image: "inverted.png",
+        text: "Inverted Triangle",
+        scores: {
+          body_type: "inverted_triangle"
+        }
+      }
+    ],
+    category: "measurements"
+  },
+  {
+    id: "skin_tone",
+    question: "Which skin tone best matches yours?",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "Light/Cool",
+        scores: {
+          skin_tone: "light_cool"
+        }
+      },
+      {
+        text: "Light/Warm",
+        scores: {
+          skin_tone: "light_warm"
+        }
+      },
+      {
+        text: "Medium/Cool",
+        scores: {
+          skin_tone: "medium_cool"
+        }
+      },
+      {
+        text: "Medium/Warm",
+        scores: {
+          skin_tone: "medium_warm"
+        }
+      },
+      {
+        text: "Deep/Cool",
+        scores: {
+          skin_tone: "deep_cool"
+        }
+      },
+      {
+        text: "Deep/Warm",
+        scores: {
+          skin_tone: "deep_warm"
+        }
+      }
+    ],
+    category: "measurements"
+  },
+  {
+    id: "height",
+    question: "What is your height?",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "Under 5'0\"",
+        scores: {
+          height: "under_5ft"
+        }
+      },
+      {
+        text: "5'0\" - 5'3\"",
+        scores: {
+          height: "5ft_0_5ft_3"
+        }
+      },
+      {
+        text: "5'4\" - 5'7\"",
+        scores: {
+          height: "5ft_4_5ft_7"
+        }
+      },
+      {
+        text: "5'8\" - 5'11\"",
+        scores: {
+          height: "5ft_8_5ft_11"
+        }
+      },
+      {
+        text: "6'0\" - 6'3\"",
+        scores: {
+          height: "6ft_0_6ft_3"
+        }
+      },
+      {
+        text: "Over 6'3\"",
+        scores: {
+          height: "over_6ft_3"
+        }
+      }
+    ],
+    category: "measurements"
+  },
+  {
+    id: "weight",
+    question: "What is your weight range?",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "Under 100 lbs",
+        scores: {
+          weight: "under_100"
+        }
+      },
+      {
+        text: "100-120 lbs",
+        scores: {
+          weight: "100_120"
+        }
+      },
+      {
+        text: "121-140 lbs",
+        scores: {
+          weight: "121_140"
+        }
+      },
+      {
+        text: "141-160 lbs",
+        scores: {
+          weight: "141_160"
+        }
+      },
+      {
+        text: "161-180 lbs",
+        scores: {
+          weight: "161_180"
+        }
+      },
+      {
+        text: "181-200 lbs",
+        scores: {
+          weight: "181_200"
+        }
+      },
+      {
+        text: "Over 200 lbs",
+        scores: {
+          weight: "over_200"
+        }
+      }
+    ],
+    category: "measurements"
+  },
+  {
+    id: "top_size",
+    question: "What is your top size?",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "XS",
+        scores: {
+          top_size: "xs"
+        }
+      },
+      {
+        text: "S",
+        scores: {
+          top_size: "s"
+        }
+      },
+      {
+        text: "M",
+        scores: {
+          top_size: "m"
+        }
+      },
+      {
+        text: "L",
+        scores: {
+          top_size: "l"
+        }
+      },
+      {
+        text: "XL",
+        scores: {
+          top_size: "xl"
+        }
+      },
+      {
+        text: "XXL",
+        scores: {
+          top_size: "xxl"
+        }
+      },
+      {
+        text: "XXXL",
+        scores: {
+          top_size: "xxxl"
+        }
+      }
+    ],
+    category: "sizes"
+  },
+  {
+    id: "bottom_size",
+    question: "What is your bottom size?",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "XS",
+        scores: {
+          bottom_size: "xs"
+        }
+      },
+      {
+        text: "S",
+        scores: {
+          bottom_size: "s"
+        }
+      },
+      {
+        text: "M",
+        scores: {
+          bottom_size: "m"
+        }
+      },
+      {
+        text: "L",
+        scores: {
+          bottom_size: "l"
+        }
+      },
+      {
+        text: "XL",
+        scores: {
+          bottom_size: "xl"
+        }
+      },
+      {
+        text: "XXL",
+        scores: {
+          bottom_size: "xxl"
+        }
+      },
+      {
+        text: "XXXL",
+        scores: {
+          bottom_size: "xxxl"
+        }
+      }
+    ],
+    category: "sizes"
+  },
+  {
+    id: "cup_size",
+    question: "What is your cup size? (Women only)",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "A",
+        scores: {
+          cup_size: "a"
+        }
+      },
+      {
+        text: "B",
+        scores: {
+          cup_size: "b"
+        }
+      },
+      {
+        text: "C",
+        scores: {
+          cup_size: "c"
+        }
+      },
+      {
+        text: "D",
+        scores: {
+          cup_size: "d"
+        }
+      },
+      {
+        text: "DD",
+        scores: {
+          cup_size: "dd"
+        }
+      },
+      {
+        text: "DDD",
+        scores: {
+          cup_size: "ddd"
+        }
+      },
+      {
+        text: "Prefer not to say",
+        scores: {
+          cup_size: "prefer_not_to_say"
+        }
+      }
+    ],
+    category: "sizes"
+  },
+  {
+    id: "shoe_size",
+    question: "What is your shoe size?",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "5 or smaller",
+        scores: {
+          shoe_size: "5_or_smaller"
+        }
+      },
+      {
+        text: "6",
+        scores: {
+          shoe_size: "6"
+        }
+      },
+      {
+        text: "7",
+        scores: {
+          shoe_size: "7"
+        }
+      },
+      {
+        text: "8",
+        scores: {
+          shoe_size: "8"
+        }
+      },
+      {
+        text: "9",
+        scores: {
+          shoe_size: "9"
+        }
+      },
+      {
+        text: "10",
+        scores: {
+          shoe_size: "10"
+        }
+      },
+      {
+        text: "11",
+        scores: {
+          shoe_size: "11"
+        }
+      },
+      {
+        text: "12 or larger",
+        scores: {
+          shoe_size: "12_or_larger"
+        }
+      }
+    ],
+    category: "sizes"
+  },
+  {
     id: "style_preference",
     question: "Which style resonates with you most?",
     type: "image_choice",
@@ -209,6 +635,166 @@ const MOCK_QUIZ_QUESTIONS = [
       }
     ],
     category: "style"
+  },
+  {
+    id: "color_preferences",
+    question: "Which colors do you prefer to wear? (Select all that apply)",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "Black",
+        scores: {
+          color_preference: "black"
+        }
+      },
+      {
+        text: "White",
+        scores: {
+          color_preference: "white"
+        }
+      },
+      {
+        text: "Navy",
+        scores: {
+          color_preference: "navy"
+        }
+      },
+      {
+        text: "Gray",
+        scores: {
+          color_preference: "gray"
+        }
+      },
+      {
+        text: "Brown",
+        scores: {
+          color_preference: "brown"
+        }
+      },
+      {
+        text: "Beige/Cream",
+        scores: {
+          color_preference: "beige"
+        }
+      },
+      {
+        text: "Red",
+        scores: {
+          color_preference: "red"
+        }
+      },
+      {
+        text: "Blue",
+        scores: {
+          color_preference: "blue"
+        }
+      },
+      {
+        text: "Green",
+        scores: {
+          color_preference: "green"
+        }
+      },
+      {
+        text: "Pink",
+        scores: {
+          color_preference: "pink"
+        }
+      },
+      {
+        text: "Purple",
+        scores: {
+          color_preference: "purple"
+        }
+      },
+      {
+        text: "Yellow",
+        scores: {
+          color_preference: "yellow"
+        }
+      }
+    ],
+    category: "color_preferences"
+  },
+  {
+    id: "style_preferences",
+    question: "Which style categories interest you most? (Select all that apply)",
+    type: "multiple_choice",
+    options: [
+      {
+        text: "Streetwear",
+        scores: {
+          style_preference: "streetwear"
+        }
+      },
+      {
+        text: "Cottagecore",
+        scores: {
+          style_preference: "cottagecore"
+        }
+      },
+      {
+        text: "Minimalist",
+        scores: {
+          style_preference: "minimalist"
+        }
+      },
+      {
+        text: "Old Money",
+        scores: {
+          style_preference: "old_money"
+        }
+      },
+      {
+        text: "Bohemian",
+        scores: {
+          style_preference: "bohemian"
+        }
+      },
+      {
+        text: "Dark Academia",
+        scores: {
+          style_preference: "dark_academia"
+        }
+      },
+      {
+        text: "Grunge",
+        scores: {
+          style_preference: "grunge"
+        }
+      },
+      {
+        text: "Y2K",
+        scores: {
+          style_preference: "y2k"
+        }
+      },
+      {
+        text: "Romantic",
+        scores: {
+          style_preference: "romantic"
+        }
+      },
+      {
+        text: "Preppy",
+        scores: {
+          style_preference: "preppy"
+        }
+      },
+      {
+        text: "Athletic/Sporty",
+        scores: {
+          style_preference: "athletic"
+        }
+      },
+      {
+        text: "Vintage",
+        scores: {
+          style_preference: "vintage"
+        }
+      }
+    ],
+    category: "style_preferences"
   }
 ];
 
