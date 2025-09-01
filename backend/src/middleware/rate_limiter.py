@@ -259,8 +259,15 @@ def create_rate_limit_middleware(rate_limiter: RateLimiter):
             if not rate_limit_result["allowed"]:
                 # Rate limit exceeded
                 try:
-                    if 946684800 <= rate_limit_result["reset_time"] <= 4102444800:
-                        reset_time = datetime.fromtimestamp(rate_limit_result["reset_time"])
+                    # Handle both seconds and milliseconds timestamps
+                    reset_timestamp = rate_limit_result["reset_time"]
+                    if reset_timestamp > 1e12:  # Likely milliseconds
+                        timestamp_seconds = reset_timestamp / 1000.0
+                    else:
+                        timestamp_seconds = reset_timestamp
+                    
+                    if 946684800 <= timestamp_seconds <= 4102444800:
+                        reset_time = datetime.fromtimestamp(timestamp_seconds)
                     else:
                         reset_time = datetime.utcnow() + timedelta(seconds=60)  # Default 1 minute
                 except (ValueError, OverflowError, OSError):
@@ -317,8 +324,15 @@ def create_rate_limit_dependency(rate_limiter: RateLimiter, endpoint_limit: Opti
         
         if not rate_limit_result["allowed"]:
             try:
-                if 946684800 <= rate_limit_result["reset_time"] <= 4102444800:
-                    reset_time = datetime.fromtimestamp(rate_limit_result["reset_time"])
+                # Handle both seconds and milliseconds timestamps
+                reset_timestamp = rate_limit_result["reset_time"]
+                if reset_timestamp > 1e12:  # Likely milliseconds
+                    timestamp_seconds = reset_timestamp / 1000.0
+                else:
+                    timestamp_seconds = reset_timestamp
+                
+                if 946684800 <= timestamp_seconds <= 4102444800:
+                    reset_time = datetime.fromtimestamp(timestamp_seconds)
                 else:
                     reset_time = datetime.utcnow() + timedelta(seconds=60)  # Default 1 minute
             except (ValueError, OverflowError, OSError):

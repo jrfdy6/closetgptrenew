@@ -77,11 +77,16 @@ async def get_style_discovery_profile(user_id: str) -> Optional[StyleDiscoveryPr
                 data['quiz_result']['completed_at'] = completed_at
             elif isinstance(completed_at, (int, float)):
                 try:
-                    # Sanity check for reasonable timestamp range
-                    if 946684800 <= completed_at <= 4102444800:
-                        data['quiz_result']['completed_at'] = datetime.fromtimestamp(completed_at)
+                    # Handle both seconds and milliseconds timestamps
+                    if completed_at > 1e12:  # Likely milliseconds
+                        timestamp_seconds = completed_at / 1000.0
                     else:
-                        logger.warning(f"⚠️ Invalid completed_at timestamp: {completed_at}, using current time")
+                        timestamp_seconds = completed_at
+                    # Sanity check for reasonable timestamp range
+                    if 946684800 <= timestamp_seconds <= 4102444800:
+                        data['quiz_result']['completed_at'] = datetime.fromtimestamp(timestamp_seconds)
+                    else:
+                        logger.warning(f"⚠️ Invalid completed_at timestamp: {completed_at} (computed: {timestamp_seconds}), using current time")
                         data['quiz_result']['completed_at'] = datetime.utcnow()
                 except (ValueError, OverflowError, OSError) as e:
                     logger.warning(f"⚠️ Failed to convert completed_at timestamp {completed_at}: {e}, using current time")
@@ -99,11 +104,16 @@ async def get_style_discovery_profile(user_id: str) -> Optional[StyleDiscoveryPr
                         evolution['timestamp'] = timestamp
                     elif isinstance(timestamp, (int, float)):
                         try:
-                            # Sanity check for reasonable timestamp range
-                            if 946684800 <= timestamp <= 4102444800:
-                                evolution['timestamp'] = datetime.fromtimestamp(timestamp)
+                            # Handle both seconds and milliseconds timestamps
+                            if timestamp > 1e12:  # Likely milliseconds
+                                timestamp_seconds = timestamp / 1000.0
                             else:
-                                logger.warning(f"⚠️ Invalid evolution timestamp: {timestamp}, using current time")
+                                timestamp_seconds = timestamp
+                            # Sanity check for reasonable timestamp range
+                            if 946684800 <= timestamp_seconds <= 4102444800:
+                                evolution['timestamp'] = datetime.fromtimestamp(timestamp_seconds)
+                            else:
+                                logger.warning(f"⚠️ Invalid evolution timestamp: {timestamp} (computed: {timestamp_seconds}), using current time")
                                 evolution['timestamp'] = datetime.utcnow()
                         except (ValueError, OverflowError, OSError) as e:
                             logger.warning(f"⚠️ Failed to convert evolution timestamp {timestamp}: {e}, using current time")

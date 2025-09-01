@@ -1726,14 +1726,20 @@ def normalize_created_at(created_at) -> str:
         if isinstance(created_at, datetime):
             return created_at.isoformat() + "Z" if not created_at.isoformat().endswith("Z") else created_at.isoformat()
         
-        # Case 3: Int/float timestamp (seconds since epoch) - SAFE RANGE CHECK
+        # Case 3: Int/float timestamp (seconds or milliseconds since epoch) - SAFE RANGE CHECK
         if isinstance(created_at, (int, float)):
-            # Sanity check: Unix timestamps should be roughly between 2000-2100
-            # 946684800 = Jan 1, 2000 UTC, 4102444800 = Jan 1, 2100 UTC
-            if 946684800 <= created_at <= 4102444800:
-                return datetime.utcfromtimestamp(created_at).isoformat() + "Z"
+            # Handle both seconds and milliseconds timestamps
+            if created_at > 1e12:  # Likely milliseconds (> year 33658)
+                timestamp_seconds = created_at / 1000.0
             else:
-                logger.warning(f"⚠️ Invalid timestamp value: {created_at} (out of reasonable range)")
+                timestamp_seconds = created_at
+            
+            # Sanity check: Unix timestamps should be roughly between 2000-2100
+            # 946684800 = Jan 1, 2000 UTC, 4102444800 = Jan 1, 2100 UTC  
+            if 946684800 <= timestamp_seconds <= 4102444800:
+                return datetime.utcfromtimestamp(timestamp_seconds).isoformat() + "Z"
+            else:
+                logger.warning(f"⚠️ Invalid timestamp value: {created_at} (computed seconds: {timestamp_seconds}, out of reasonable range)")
                 return datetime.utcnow().isoformat() + "Z"
         
         # Case 4: Already ISO string

@@ -61,9 +61,14 @@ class QuizResult(BaseModel):
     def convert_timestamp(cls, v, info):
         if isinstance(v, (int, float)):
             try:
+                # Handle both seconds and milliseconds timestamps
+                if v > 1e12:  # Likely milliseconds
+                    timestamp_seconds = v / 1000.0
+                else:
+                    timestamp_seconds = v
                 # Sanity check for reasonable timestamp range
-                if 946684800 <= v <= 4102444800:
-                    return datetime.fromtimestamp(v)
+                if 946684800 <= timestamp_seconds <= 4102444800:
+                    return datetime.fromtimestamp(timestamp_seconds)
                 else:
                     # Invalid timestamp, use current time
                     return datetime.utcnow()
@@ -105,9 +110,14 @@ class StyleDiscoveryProfile(BaseModel):
     def convert_timestamp(cls, v, info):
         if isinstance(v, (int, float)):
             try:
+                # Handle both seconds and milliseconds timestamps
+                if v > 1e12:  # Likely milliseconds
+                    timestamp_seconds = v / 1000.0
+                else:
+                    timestamp_seconds = v
                 # Sanity check for reasonable timestamp range
-                if 946684800 <= v <= 4102444800:
-                    return datetime.fromtimestamp(v)
+                if 946684800 <= timestamp_seconds <= 4102444800:
+                    return datetime.fromtimestamp(timestamp_seconds)
                 else:
                     # Invalid timestamp, use current time
                     return datetime.utcnow()
