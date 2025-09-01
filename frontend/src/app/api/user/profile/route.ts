@@ -16,12 +16,32 @@ export async function GET(request: Request) {
       );
     }
     
-    // Return mock profile data directly
+    // Extract user info from Firebase token
+    let userEmail = 'johnnie@example.com'; // fallback
+    let userName = 'Johnnie Fields'; // fallback
+    let userId = 'dANqjiI0CKgaitxzYtw1bhtvQrG3'; // fallback
+    
+    try {
+      // Decode the JWT token to get user info
+      const token = authHeader.replace('Bearer ', '');
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        userEmail = payload.email || userEmail;
+        userName = payload.name || payload.email?.split('@')[0] || userName;
+        userId = payload.user_id || payload.sub || userId;
+        console.log('🔍 DEBUG: Extracted user info from token:', { userEmail, userName, userId });
+      }
+    } catch (tokenError) {
+      console.log('🔍 DEBUG: Could not decode token, using fallback values:', tokenError);
+    }
+    
+    // Return mock profile data with actual user info
     const mockProfile = {
-      id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
-      userId: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
-      name: 'Johnnie Fields',
-      email: 'johnnie@example.com',
+      id: userId,
+      userId: userId,
+      name: userName,
+      email: userEmail,
       gender: 'male',
       onboardingCompleted: true,
       
@@ -115,6 +135,26 @@ export async function POST(request: Request) {
       );
     }
     
+    // Extract user info from Firebase token
+    let userEmail = 'johnnie@example.com'; // fallback
+    let userName = 'Johnnie Fields'; // fallback
+    let userId = 'dANqjiI0CKgaitxzYtw1bhtvQrG3'; // fallback
+    
+    try {
+      // Decode the JWT token to get user info
+      const token = authHeader.replace('Bearer ', '');
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]));
+        userEmail = payload.email || userEmail;
+        userName = payload.name || payload.email?.split('@')[0] || userName;
+        userId = payload.user_id || payload.sub || userId;
+        console.log('🔍 DEBUG: POST - Extracted user info from token:', { userEmail, userName, userId });
+      }
+    } catch (tokenError) {
+      console.log('🔍 DEBUG: POST - Could not decode token, using fallback values:', tokenError);
+    }
+    
     const body = await request.json();
     console.log('🔍 DEBUG: Profile data:', body);
     
@@ -122,10 +162,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       profile: {
-        id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
-        userId: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
-        name: body.name || 'Johnnie Fields',
-        email: body.email || 'johnnie@example.com',
+        id: userId,
+        userId: userId,
+        name: body.name || userName,
+        email: body.email || userEmail,
         onboardingCompleted: true,
         stylePreferences: body.stylePreferences || ['Dark Academia'],
         createdAt: body.createdAt || new Date().toISOString(),
