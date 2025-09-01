@@ -587,8 +587,22 @@ async def get_todays_outfit_suggestion(
                     description="Daily outfit suggestion"
                 )
                 
-                # Generate outfit using existing logic
-                generated_outfit = await generate_outfit_logic(daily_request, current_user.id)
+                logger.info(f"About to generate outfit with request: {daily_request}")
+                
+                # Generate outfit using existing logic with timeout
+                import asyncio
+                try:
+                    generated_outfit = await asyncio.wait_for(
+                        generate_outfit_logic(daily_request, current_user.id),
+                        timeout=30.0  # 30 second timeout
+                    )
+                    logger.info(f"Successfully generated outfit: {generated_outfit.get('name', 'Unknown')}")
+                except asyncio.TimeoutError:
+                    logger.error("Outfit generation timed out after 30 seconds")
+                    raise Exception("Outfit generation timed out")
+                except Exception as gen_error:
+                    logger.error(f"Outfit generation failed: {gen_error}")
+                    raise gen_error
                 
                 # Save suggestion to cache
                 current_timestamp = int(datetime.utcnow().timestamp() * 1000)
@@ -624,12 +638,60 @@ async def get_todays_outfit_suggestion(
                 
             except Exception as generation_error:
                 logger.error(f"Failed to generate outfit suggestion: {generation_error}")
-                return {
-                    "success": True,
-                    "suggestion": None,
-                    "isWorn": False,
-                    "message": "Could not generate outfit suggestion today"
+                
+                # Create a simple fallback outfit
+                fallback_outfit = {
+                    "name": "Today's Casual Look",
+                    "occasion": "casual",
+                    "style": "comfortable",
+                    "mood": "confident",
+                    "description": "A simple, comfortable outfit for your day",
+                    "items": [],  # Empty items list - will show basic info
+                    "imageUrl": "",
+                    "weather": {}
                 }
+                
+                # Save fallback suggestion to cache
+                try:
+                    current_timestamp = int(datetime.utcnow().timestamp() * 1000)
+                    fallback_doc = {
+                        'user_id': current_user.id,
+                        'date': today_str,
+                        'outfit_data': fallback_outfit,
+                        'generated_at': current_timestamp,
+                        'is_worn': False,
+                        'worn_at': None,
+                        'created_at': current_timestamp,
+                        'updated_at': current_timestamp,
+                        'is_fallback': True  # Mark as fallback
+                    }
+                    
+                    doc_ref = db.collection('daily_outfit_suggestions').add(fallback_doc)
+                    suggestion_id = doc_ref[1].id
+                    
+                    logger.info(f"Created fallback outfit suggestion {suggestion_id}")
+                    
+                    return {
+                        "success": True,
+                        "suggestion": {
+                            "id": suggestion_id,
+                            "outfitData": fallback_outfit,
+                            "generatedAt": current_timestamp,
+                            "date": today_str
+                        },
+                        "isWorn": False,
+                        "wornAt": None,
+                        "message": "Daily outfit suggestion (simplified)"
+                    }
+                    
+                except Exception as fallback_error:
+                    logger.error(f"Failed to save fallback suggestion: {fallback_error}")
+                    return {
+                        "success": True,
+                        "suggestion": None,
+                        "isWorn": False,
+                        "message": "Could not generate outfit suggestion today"
+                    }
         
     except Exception as e:
         logger.error(f"Error getting today's outfit suggestion: {str(e)}")
