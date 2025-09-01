@@ -10,6 +10,14 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
 
+# Import for Firestore timestamp handling
+try:
+    from google.cloud.firestore_v1._helpers import DatetimeWithNanoseconds
+    from google.cloud.firestore_v1.base_document import DocumentSnapshot
+    FIRESTORE_TIMESTAMP_AVAILABLE = True
+except ImportError:
+    FIRESTORE_TIMESTAMP_AVAILABLE = False
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -1707,6 +1715,41 @@ def convert_firebase_url(raw_image_url: str) -> str:
             return f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
     return raw_image_url
 
+def normalize_created_at(created_at) -> str:
+    """Safely normalize Firestore created_at into ISO8601 string."""
+    try:
+        # Case 1: Firestore Timestamp object (DatetimeWithNanoseconds)
+        if FIRESTORE_TIMESTAMP_AVAILABLE and isinstance(created_at, DatetimeWithNanoseconds):
+            return created_at.isoformat() + "Z" if not created_at.isoformat().endswith("Z") else created_at.isoformat()
+        
+        # Case 2: Python datetime object
+        if isinstance(created_at, datetime):
+            return created_at.isoformat() + "Z" if not created_at.isoformat().endswith("Z") else created_at.isoformat()
+        
+        # Case 3: Int/float timestamp (seconds since epoch) - SAFE RANGE CHECK
+        if isinstance(created_at, (int, float)):
+            # Sanity check: Unix timestamps should be roughly between 2000-2100
+            # 946684800 = Jan 1, 2000 UTC, 4102444800 = Jan 1, 2100 UTC
+            if 946684800 <= created_at <= 4102444800:
+                return datetime.utcfromtimestamp(created_at).isoformat() + "Z"
+            else:
+                logger.warning(f"⚠️ Invalid timestamp value: {created_at} (out of reasonable range)")
+                return datetime.utcnow().isoformat() + "Z"
+        
+        # Case 4: Already ISO string
+        if isinstance(created_at, str):
+            # Ensure it ends with Z for consistency
+            return created_at if created_at.endswith("Z") else created_at + "Z"
+        
+        # Case 5: None or other unexpected types
+        logger.warning(f"⚠️ Unexpected created_at type: {type(created_at)} value: {created_at}")
+        return datetime.utcnow().isoformat() + "Z"
+        
+    except Exception as e:
+        # Fallback for any corrupted values
+        logger.warning(f"⚠️ Failed to normalize created_at {created_at}: {e}, using current time")
+        return datetime.utcnow().isoformat() + "Z"
+
 async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_cache: Dict[str, Dict] = None) -> List[Dict[str, Any]]:
     """
     Resolve item IDs to actual item objects from the wardrobe collection.
@@ -1891,13 +1934,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             # Normalize timestamps FIRST to ensure consistent sorting
             created_at = outfit_data.get('createdAt')
             if created_at:
-                if isinstance(created_at, (int, float)):
-                    # Convert Unix timestamp to ISO string
-                    outfit_data['createdAt'] = datetime.fromtimestamp(created_at).isoformat() + 'Z'
-                elif isinstance(created_at, str) and not created_at.endswith('Z'):
-                    # Ensure ISO string has Z suffix
-                    if 'T' in created_at and not created_at.endswith('Z'):
-                        outfit_data['createdAt'] = created_at + 'Z'
+                outfit_data['createdAt'] = normalize_created_at(created_at)
         
         # Check if we need client-side sorting (when Firestore ordering failed)
         if not use_firestore_ordering:
@@ -1905,8 +1942,8 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             # First normalize timestamps, then sort
             for outfit_data in outfits:
                 created_at = outfit_data.get('createdAt')
-                if created_at and isinstance(created_at, (int, float)):
-                    outfit_data['createdAt'] = datetime.fromtimestamp(created_at).isoformat() + 'Z'
+                if created_at:
+                    outfit_data['createdAt'] = normalize_created_at(created_at)
             outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
         
         # Apply pagination after sorting (ONLY when client-side sorting was used)
@@ -2814,7 +2851,7 @@ async def get_outfit_stats(
                 {
                     'id': o['id'],
                     'name': o['name'],
-                    'lastUpdated': o.get('createdAt', datetime.now().isoformat() + 'Z')
+                    'lastUpdated': normalize_created_at(o.get('createdAt')) if o.get('createdAt') else datetime.utcnow().isoformat() + 'Z'
                 }
                 for o in outfits[:5]  # Last 5 outfits
             ]
