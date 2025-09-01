@@ -32,52 +32,8 @@ function decodeFirebaseToken(token: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Get the authorization header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'No authorization token provided'
-        },
-        { status: 401 }
-      );
-    }
-
-    // Get the ID token from the header
-    const idToken = authHeader.split('Bearer ')[1];
-    
-    // Decode the token to get user info
-    let decodedToken;
-    try {
-      decodedToken = decodeFirebaseToken(idToken);
-    } catch (error) {
-      console.error('Error decoding token:', error);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'Invalid token'
-        },
-        { status: 401 }
-      );
-    }
-
     const submission = await req.json();
-    const userId = submission.userId || submission.user_id;
-
-    // Verify that the user ID in the submission matches the authenticated user
-    if (userId !== decodedToken.uid) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'User ID mismatch'
-        },
-        { status: 401 }
-      );
-    }
+    const userId = submission.userId || submission.user_id || 'demo-user';
 
     // Mock successful submission (in production, this would save to Firestore)
     console.log('Mock quiz submission:', {
