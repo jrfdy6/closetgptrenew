@@ -2334,7 +2334,33 @@ async def mark_outfit_as_worn(
             current_wear_count = 1
             last_worn_str = datetime.utcnow().isoformat() + "Z"
         
-        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (updated outfit + wardrobe items)")
+        # ALSO create outfit history entry for today's outfit tracking
+        try:
+            current_timestamp = int(datetime.utcnow().timestamp() * 1000)
+            history_entry = {
+                'user_id': current_user.id,
+                'outfit_id': outfit_id,
+                'outfit_name': outfit_data.get('name', 'Outfit'),
+                'outfit_image': outfit_data.get('imageUrl', ''),
+                'date_worn': current_timestamp,
+                'occasion': 'Casual',  # Default values
+                'mood': 'Comfortable',
+                'weather': {},
+                'notes': '',
+                'tags': [],
+                'created_at': current_timestamp,
+                'updated_at': current_timestamp
+            }
+            
+            # Save to outfit_history collection for today's outfit tracking
+            db.collection('outfit_history').add(history_entry)
+            logger.info(f"📅 Created outfit history entry for outfit {outfit_id}")
+            
+        except Exception as history_error:
+            # Don't fail the whole request if history creation fails
+            logger.warning(f"⚠️ Failed to create outfit history entry: {history_error}")
+        
+        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (updated outfit + wardrobe items + history)")
         
         return {
             "success": True,
