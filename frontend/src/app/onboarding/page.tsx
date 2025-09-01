@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -225,6 +225,7 @@ export default function Onboarding() {
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userGender, setUserGender] = useState<string | null>(null);
+  const [isFiltering, setIsFiltering] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResults, setQuizResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -265,32 +266,29 @@ export default function Onboarding() {
     }
   }, [user, authLoading]);
 
-  // Filter questions based on user's gender selection
-  const getFilteredQuestions = (questions: QuizQuestion[], gender: string | null): QuizQuestion[] => {
-    if (!gender) return questions;
+  // Memoize filtered questions to prevent flickering
+  const filteredQuestions = useMemo(() => {
+    if (!userGender || quizQuestions.length === 0) return quizQuestions;
     
-    const filtered = questions.filter(question => {
+    const filtered = quizQuestions.filter(question => {
       if (!question.depends_on) return true;
       
       const { gender: requiredGender } = question.depends_on;
       if (Array.isArray(requiredGender)) {
-        return requiredGender.includes(gender);
+        return requiredGender.includes(userGender);
       }
-      return requiredGender === gender;
+      return requiredGender === userGender;
     });
     
     console.log('🔍 DEBUG: Gender filtering', { 
-      userGender: gender, 
-      totalQuestions: questions.length, 
+      userGender, 
+      totalQuestions: quizQuestions.length, 
       filteredQuestions: filtered.length,
       bodyTypeQuestions: filtered.filter(q => q.id.includes('body_type'))
     });
     
     return filtered;
-  };
-
-  // Get filtered questions based on current gender selection
-  const filteredQuestions = getFilteredQuestions(quizQuestions, userGender);
+  }, [quizQuestions, userGender]);
 
   const handleAnswer = (questionId: string, selectedOption: string) => {
     const newAnswers = answers.filter(a => a.question_id !== questionId);
@@ -299,6 +297,7 @@ export default function Onboarding() {
 
     // Track gender selection for filtering
     if (questionId === 'gender') {
+      setIsFiltering(true);
       // Map display text to gender values used in depends_on
       const genderMap: { [key: string]: string } = {
         'Female': 'female',
@@ -306,7 +305,13 @@ export default function Onboarding() {
         'Non-binary': 'non-binary',
         'Prefer not to say': 'prefer-not-to-say'
       };
-      setUserGender(genderMap[selectedOption] || selectedOption.toLowerCase());
+      const newGender = genderMap[selectedOption] || selectedOption.toLowerCase();
+      
+      // Small delay to prevent flickering
+      setTimeout(() => {
+        setUserGender(newGender);
+        setIsFiltering(false);
+      }, 100);
     }
   };
 
@@ -543,15 +548,17 @@ export default function Onboarding() {
     );
   };
 
-  // Show loading state while authenticating or loading questions
-  if (authLoading || !questionsLoaded) {
+  // Show loading state while authenticating, loading questions, or filtering
+  if (authLoading || !questionsLoaded || isFiltering) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl border-0 shadow-xl text-center">
           <CardContent className="p-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-400">
-              {authLoading ? 'Authenticating...' : 'Loading style quiz...'}
+              {authLoading ? 'Authenticating...' : 
+               isFiltering ? 'Updating questions...' : 
+               'Loading style quiz...'}
             </p>
           </CardContent>
         </Card>
@@ -649,6 +656,20 @@ export default function Onboarding() {
     );
   }
 
+  // Don't render quiz content while filtering
+  if (isFiltering) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl border-0 shadow-xl text-center">
+          <CardContent className="p-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Updating questions...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl border-0 shadow-xl">
@@ -662,7 +683,7 @@ export default function Onboarding() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Style Discovery Quiz</h1>
           </div>
           <div className="flex items-center justify-center space-x-2">
-            {quizQuestions.map((_, index) => (
+            {filteredQuestions.map((_, index) => (
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full ${
