@@ -2293,6 +2293,58 @@ async def debug_specific_outfit(outfit_id: str):
         "debug_info": debug_info
     }
 
+@router.post("/{outfit_id}/worn")
+async def mark_outfit_as_worn(
+    outfit_id: str,
+    current_user: UserProfile = Depends(get_current_user_optional)
+):
+    """
+    Mark an outfit as worn (simplified endpoint for frontend compatibility).
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+            
+        logger.info(f"👕 Marking outfit {outfit_id} as worn for user {current_user.id}")
+        
+        # Check if outfit exists and belongs to user
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get()
+        
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        if outfit_data.get('user_id') != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to modify this outfit")
+        
+        # Update wear count and last worn timestamp
+        current_timestamp = datetime.utcnow()
+        current_wear_count = outfit_data.get('wearCount', 0)
+        
+        update_data = {
+            'wearCount': current_wear_count + 1,
+            'lastWorn': current_timestamp,
+            'updatedAt': current_timestamp
+        }
+        
+        outfit_ref.update(update_data)
+        
+        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (count: {current_wear_count} -> {current_wear_count + 1})")
+        
+        return {
+            "success": True,
+            "message": "Outfit marked as worn successfully",
+            "wearCount": current_wear_count + 1,
+            "lastWorn": current_timestamp.isoformat() + "Z"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to mark outfit {outfit_id} as worn: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to mark outfit as worn: {str(e)}")
+
 @router.get("/debug-user", response_model=dict)
 async def debug_user_outfits(
     current_user: UserProfile = Depends(get_current_user_optional)
