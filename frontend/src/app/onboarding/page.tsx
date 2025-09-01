@@ -107,85 +107,183 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["5 or smaller", "6", "7", "8", "9", "10", "11", "12 or larger"],
     category: "sizes"
   },
+  // Female style questions
   {
-    id: "style_item_1",
+    id: "style_item_f_1",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/F-ST1.png"],
     style_name: "Street Style",
-    colors: ["black", "white", "gray", "navy"]
+    colors: ["black", "white", "gray", "navy"],
+    gender: "female"
   },
   {
-    id: "style_item_2",
+    id: "style_item_f_2",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/F-CB1.png"],
     style_name: "Cottagecore",
-    colors: ["cream", "brown", "green", "pink"]
+    colors: ["cream", "brown", "green", "pink"],
+    gender: "female"
   },
   {
-    id: "style_item_3",
+    id: "style_item_f_3",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/F-MIN1.png"],
     style_name: "Minimalist",
-    colors: ["white", "black", "beige", "gray"]
+    colors: ["white", "black", "beige", "gray"],
+    gender: "female"
   },
   {
-    id: "style_item_4",
+    id: "style_item_f_4",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/F-OM1.png"],
     style_name: "Old Money",
-    colors: ["navy", "camel", "cream", "burgundy"]
+    colors: ["navy", "camel", "cream", "burgundy"],
+    gender: "female"
   },
   {
-    id: "style_item_5",
+    id: "style_item_f_5",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-ST2.png"],
+    style_name: "Urban Street",
+    colors: ["black", "gray", "white", "olive"],
+    gender: "female"
+  },
+  {
+    id: "style_item_f_6",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-CB2.png"],
+    style_name: "Natural Boho",
+    colors: ["brown", "green", "cream", "terracotta"],
+    gender: "female"
+  },
+  {
+    id: "style_item_f_7",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-MIN2.png"],
+    style_name: "Clean Minimal",
+    colors: ["white", "black", "gray", "beige"],
+    gender: "female"
+  },
+  {
+    id: "style_item_f_8",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-OM2.png"],
+    style_name: "Classic Elegant",
+    colors: ["navy", "camel", "cream", "burgundy"],
+    gender: "female"
+  },
+  // Male style questions
+  {
+    id: "style_item_m_1",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/M-ST1.png"],
-    style_name: "Urban Street",
-    colors: ["black", "gray", "white", "olive"]
+    style_name: "Street Style",
+    colors: ["black", "white", "gray", "navy"],
+    gender: "male"
   },
   {
-    id: "style_item_6",
+    id: "style_item_m_2",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/M-CB1.png"],
-    style_name: "Natural Boho",
-    colors: ["brown", "green", "cream", "terracotta"]
+    style_name: "Cottagecore",
+    colors: ["cream", "brown", "green", "pink"],
+    gender: "male"
   },
   {
-    id: "style_item_7",
+    id: "style_item_m_3",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/M-MIN1.png"],
-    style_name: "Clean Minimal",
-    colors: ["white", "black", "gray", "beige"]
+    style_name: "Minimalist",
+    colors: ["white", "black", "beige", "gray"],
+    gender: "male"
   },
   {
-    id: "style_item_8",
+    id: "style_item_m_4",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
     images: ["/images/outfit-quiz/M-OM1.png"],
+    style_name: "Old Money",
+    colors: ["navy", "camel", "cream", "burgundy"],
+    gender: "male"
+  },
+  {
+    id: "style_item_m_5",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-ST2.png"],
+    style_name: "Urban Street",
+    colors: ["black", "gray", "white", "olive"],
+    gender: "male"
+  },
+  {
+    id: "style_item_m_6",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-CB2.png"],
+    style_name: "Natural Boho",
+    colors: ["brown", "green", "cream", "terracotta"],
+    gender: "male"
+  },
+  {
+    id: "style_item_m_7",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-MIN2.png"],
+    style_name: "Clean Minimal",
+    colors: ["white", "black", "gray", "beige"],
+    gender: "male"
+  },
+  {
+    id: "style_item_m_8",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-OM2.png"],
     style_name: "Classic Elegant",
-    colors: ["navy", "camel", "cream", "burgundy"]
+    colors: ["navy", "camel", "cream", "burgundy"],
+    gender: "male"
   },
   {
     id: "daily_activities",
@@ -238,6 +336,14 @@ export default function Onboarding() {
         return false;
       }
       
+      // Show gender-specific style questions
+      if (question.id.startsWith('style_item_f_') && userGender !== 'female') {
+        return false;
+      }
+      if (question.id.startsWith('style_item_m_') && userGender !== 'male') {
+        return false;
+      }
+      
       return true;
     });
   };
@@ -280,7 +386,7 @@ export default function Onboarding() {
 
     // Count colors from styles the user liked
     answers.forEach(answer => {
-      if (answer.selected_option === "Yes" && answer.question_id.startsWith("style_item_")) {
+      if (answer.selected_option === "Yes" && (answer.question_id.startsWith("style_item_f_") || answer.question_id.startsWith("style_item_m_"))) {
         const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
         if (question && question.colors) {
           likedStyles.push(question.style_name || "");
