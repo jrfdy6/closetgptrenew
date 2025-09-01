@@ -50,7 +50,7 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Getting wardrobe items...'); // Trigger Vercel deployment
       // Trigger Vercel deployment - Firebase auth fix
       
-      const response = await fetch('/api/wardrobe/', {
+      const response = await fetch(`${API_BASE_URL}/api/wardrobe`, {
         method: 'GET',
         headers: await this.getAuthHeaders(),
       });
