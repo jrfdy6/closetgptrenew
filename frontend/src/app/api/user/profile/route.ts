@@ -29,7 +29,7 @@ export async function GET(request: Request) {
       stylePreferences: ['Dark Academia', 'Old Money', 'Minimalist'],
       preferences: {
         gender: 'male',
-        style: 'dark-academia',
+        style: ['dark-academia', 'old-money', 'minimalist'],
         colors: ['black', 'navy', 'gray', 'brown'],
         brands: []
       },
