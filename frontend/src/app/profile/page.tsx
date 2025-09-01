@@ -158,6 +158,21 @@ export default function ProfilePage() {
       console.log('🔍 DEBUG: Got token, length:', token.length);
       console.log('🔍 DEBUG: Token starts with:', token.substring(0, 20) + '...');
       
+      // Decode token on client side to see what's in it
+      try {
+        const tokenParts = token.split('.');
+        console.log('🔍 DEBUG: Client - Token parts count:', tokenParts.length);
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('🔍 DEBUG: Client - Token payload:', payload);
+          console.log('🔍 DEBUG: Client - Available payload keys:', Object.keys(payload));
+          console.log('🔍 DEBUG: Client - Email from token:', payload.email);
+          console.log('🔍 DEBUG: Client - User ID from token:', payload.user_id || payload.sub);
+        }
+      } catch (tokenError) {
+        console.log('🔍 DEBUG: Client - Could not decode token:', tokenError);
+      }
+      
       console.log('🔍 DEBUG: Making fetch request to /api/user/profile');
       const response = await fetch('/api/user/profile', {
         headers: {
