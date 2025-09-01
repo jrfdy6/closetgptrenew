@@ -24,13 +24,23 @@ export async function GET(request: Request) {
     try {
       // Decode the JWT token to get user info
       const token = authHeader.replace('Bearer ', '');
+      console.log('🔍 DEBUG: Token length:', token.length);
+      console.log('🔍 DEBUG: Token starts with:', token.substring(0, 20) + '...');
+      
       const tokenParts = token.split('.');
+      console.log('🔍 DEBUG: Token parts count:', tokenParts.length);
+      
       if (tokenParts.length === 3) {
         const payload = JSON.parse(atob(tokenParts[1]));
+        console.log('🔍 DEBUG: Token payload:', payload);
+        console.log('🔍 DEBUG: Available payload keys:', Object.keys(payload));
+        
         userEmail = payload.email || userEmail;
         userName = payload.name || payload.email?.split('@')[0] || userName;
         userId = payload.user_id || payload.sub || userId;
         console.log('🔍 DEBUG: Extracted user info from token:', { userEmail, userName, userId });
+      } else {
+        console.log('🔍 DEBUG: Invalid token format, expected 3 parts, got:', tokenParts.length);
       }
     } catch (tokenError) {
       console.log('🔍 DEBUG: Could not decode token, using fallback values:', tokenError);
@@ -143,13 +153,23 @@ export async function POST(request: Request) {
     try {
       // Decode the JWT token to get user info
       const token = authHeader.replace('Bearer ', '');
+      console.log('🔍 DEBUG: POST - Token length:', token.length);
+      console.log('🔍 DEBUG: POST - Token starts with:', token.substring(0, 20) + '...');
+      
       const tokenParts = token.split('.');
+      console.log('🔍 DEBUG: POST - Token parts count:', tokenParts.length);
+      
       if (tokenParts.length === 3) {
         const payload = JSON.parse(atob(tokenParts[1]));
+        console.log('🔍 DEBUG: POST - Token payload:', payload);
+        console.log('🔍 DEBUG: POST - Available payload keys:', Object.keys(payload));
+        
         userEmail = payload.email || userEmail;
         userName = payload.name || payload.email?.split('@')[0] || userName;
         userId = payload.user_id || payload.sub || userId;
         console.log('🔍 DEBUG: POST - Extracted user info from token:', { userEmail, userName, userId });
+      } else {
+        console.log('🔍 DEBUG: POST - Invalid token format, expected 3 parts, got:', tokenParts.length);
       }
     } catch (tokenError) {
       console.log('🔍 DEBUG: POST - Could not decode token, using fallback values:', tokenError);
