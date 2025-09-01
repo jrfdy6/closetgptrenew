@@ -577,15 +577,14 @@ async def get_todays_outfit_suggestion(
             
             try:
                 # Import outfit generation logic
-                from ..routes.outfits import generate_outfit_logic
-                from ..custom_types.outfit import OutfitRequest
+                from ..routes.outfits import generate_outfit_logic, OutfitRequest
                 
                 # Create a default request for casual daily wear
                 daily_request = OutfitRequest(
                     occasion="casual",
-                    style="comfortable",
+                    style="comfortable", 
                     mood="confident",
-                    weather={}  # We can enhance this later with actual weather
+                    description="Daily outfit suggestion"
                 )
                 
                 # Generate outfit using existing logic
