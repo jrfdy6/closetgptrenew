@@ -475,9 +475,34 @@ export default function Dashboard() {
               <div className="space-y-4">
                 {dashboardData.topItems.map((item, index) => (
                   <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg">
-                    <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <Shirt className="w-6 h-6 text-gray-600" />
-                    </div>
+                    {item.imageUrl ? (
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to icon if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `
+                                <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                                  <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                  </svg>
+                                </div>
+                              `;
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Shirt className="w-6 h-6 text-gray-600" />
+                      </div>
+                    )}
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900 dark:text-white">{item.name}</h4>
                       <p className="text-sm text-gray-600 dark:text-gray-400">{item.type}</p>

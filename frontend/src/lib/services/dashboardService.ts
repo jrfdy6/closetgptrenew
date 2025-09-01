@@ -126,12 +126,14 @@ class DashboardService {
         wardrobeStats,
         outfitHistory,
         trendingStyles,
-        todaysOutfit
+        todaysOutfit,
+        topWornItems
       ] = await Promise.all([
         this.getWardrobeStats(user),
         this.getOutfitHistory(user),
         this.getTrendingStyles(user),
-        this.getTodaysOutfit(user)
+        this.getTodaysOutfit(user),
+        this.getTopWornItems(user)
       ]);
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
@@ -154,7 +156,7 @@ class DashboardService {
         seasonalBalance: this.buildSeasonalBalance(wardrobeStats),
         colorVariety: this.buildColorVariety(wardrobeStats),
         wardrobeGaps: this.buildWardrobeGaps(wardrobeStats),
-        topItems: this.buildTopItems(wardrobeStats),
+        topItems: this.buildTopItems(topWornItems),
         recentOutfits: this.buildRecentOutfits(outfitHistory),
         todaysOutfit: todaysOutfit
       };
@@ -247,6 +249,24 @@ class DashboardService {
       console.error('Error fetching today\'s outfit:', error);
       // Return null for production when backend is not ready
       return null;
+    }
+  }
+
+  private async getTopWornItems(user: User) {
+    try {
+      console.log('🔍 DEBUG: Fetching top worn items from /api/wardrobe/top-worn-items');
+      const response = await this.makeAuthenticatedRequest('/api/wardrobe/top-worn-items?limit=5', user);
+      console.log('🔍 DEBUG: Top worn items response:', response);
+      return response.data || response || {};
+    } catch (error) {
+      console.error('Error fetching top worn items:', error);
+      // Return fallback data for production when backend is not ready
+      return {
+        top_worn_items: [],
+        total_items: 0,
+        total_wear_count: 0,
+        avg_wear_count: 0
+      };
     }
   }
 
@@ -430,9 +450,23 @@ class DashboardService {
     return gaps;
   }
 
-  private buildTopItems(wardrobeStats: any): TopItem[] {
-    // Production backend doesn't have top items data yet, return empty array
-    return [];
+  private buildTopItems(topWornItemsResponse: any): TopItem[] {
+    try {
+      const topWornItems = topWornItemsResponse.top_worn_items || [];
+      console.log('🔍 DEBUG: Processing top worn items:', topWornItems);
+      
+      return topWornItems.map((item: any) => ({
+        id: item.id,
+        name: item.name || 'Unknown Item',
+        type: item.type || 'clothing',
+        imageUrl: item.image_url || '',
+        wearCount: item.wear_count || 0,
+        rating: item.is_favorite ? 5 : 3 // Use favorite status as rating proxy
+      }));
+    } catch (error) {
+      console.error('Error building top items:', error);
+      return [];
+    }
   }
 
   private buildRecentOutfits(outfitHistory: any[]): RecentOutfit[] {
