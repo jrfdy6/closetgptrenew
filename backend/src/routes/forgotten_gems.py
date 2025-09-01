@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+import logging
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
@@ -11,6 +12,8 @@ from ..services.wardrobe_analysis_service import WardrobeAnalysisService
 # namespace here to avoid collisions with dynamic wardrobe routes
 # such as "/api/wardrobe/{item_id}".
 router = APIRouter(prefix="/insights", tags=["forgotten-gems"])
+
+logger = logging.getLogger(__name__)
 
 class ForgottenItem(BaseModel):
     id: str
@@ -57,18 +60,46 @@ async def get_forgotten_gems(
         
         # Use simple Firestore query instead of complex services
         from ..config.firebase import db
-        
-        print(f"🔍 Forgotten Gems: Getting wardrobe items directly from Firestore")
-        query = db.collection('wardrobe').where('userId', '==', current_user.id)
-        docs = query.stream()
-        
-        wardrobe = []
-        for doc in docs:
-            item_data = doc.to_dict()
-            item_data['id'] = doc.id
-            wardrobe.append(item_data)
-            
-        print(f"🔍 Forgotten Gems: Found {len(wardrobe)} wardrobe items")
+
+        if not db:
+            logger.warning("Forgotten Gems: Firebase not initialized; returning empty insights")
+            return ForgottenGemsResponse(
+                success=True,
+                data={
+                    "forgottenItems": [],
+                    "totalUnwornItems": 0,
+                    "potentialSavings": 0,
+                    "rediscoveryOpportunities": 0,
+                    "analysis_timestamp": datetime.now().isoformat()
+                },
+                message="Firebase unavailable"
+            )
+
+        try:
+            logger.info("Forgotten Gems: Getting wardrobe items directly from Firestore")
+            query = db.collection('wardrobe').where('userId', '==', current_user.id)
+            docs = query.stream()
+
+            wardrobe = []
+            for doc in docs:
+                item_data = doc.to_dict()
+                item_data['id'] = doc.id
+                wardrobe.append(item_data)
+
+            logger.info(f"Forgotten Gems: Found {len(wardrobe)} wardrobe items")
+        except Exception as e:
+            logger.error(f"Forgotten Gems: Error fetching wardrobe items: {e}")
+            return ForgottenGemsResponse(
+                success=True,
+                data={
+                    "forgottenItems": [],
+                    "totalUnwornItems": 0,
+                    "potentialSavings": 0,
+                    "rediscoveryOpportunities": 0,
+                    "analysis_timestamp": datetime.now().isoformat()
+                },
+                message="Failed to fetch wardrobe; returning empty insights"
+            )
         
         # Return simple response for now to test endpoint
         return ForgottenGemsResponse(
