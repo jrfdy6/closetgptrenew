@@ -19,6 +19,7 @@ interface QuizQuestion {
   category: string;
   type?: "visual" | "text" | "rgb_slider";
   images?: string[];
+  gender?: string;
 }
 
 // Simple, clean quiz questions
@@ -30,7 +31,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     category: "personal"
   },
   {
-    id: "body_type",
+    id: "body_type_female",
     question: "Which body type best describes you?",
     options: ["Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle"],
     category: "measurements",
@@ -42,7 +43,24 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
       "/images/body-types/pear.png",
       "/images/body-types/rectangular.png",
       "/images/body-types/inverted.png"
-    ]
+    ],
+    gender: "female"
+  },
+  {
+    id: "body_type_male",
+    question: "Which body type best describes you?",
+    options: ["Apple", "Athletic", "Rectangle", "Inverted Triangle", "Pear", "Oval"],
+    category: "measurements",
+    type: "visual",
+    images: [
+      "/images/body-types/apple.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/rectangular.png",
+      "/images/body-types/inverted.png",
+      "/images/body-types/pear.png",
+      "/images/body-types/curvy.png"
+    ],
+    gender: "male"
   },
   {
     id: "skin_tone",
@@ -179,6 +197,15 @@ export default function Onboarding() {
       if (question.id === 'cup_size' && userGender !== 'female') {
         return false;
       }
+      
+      // Show gender-specific body type questions
+      if (question.id === 'body_type_female' && userGender !== 'female') {
+        return false;
+      }
+      if (question.id === 'body_type_male' && userGender !== 'male') {
+        return false;
+      }
+      
       return true;
     });
   };
