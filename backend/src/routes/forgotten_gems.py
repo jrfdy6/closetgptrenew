@@ -73,9 +73,13 @@ async def get_forgotten_gems(
                 message="No wardrobe items found"
             )
         
-        # Get usage analytics for all items
-        favorites = await analytics_service.get_user_favorites(current_user.id, limit=100)
-        print(f"🔍 Forgotten Gems: Found {len(favorites)} items with usage data")
+        # Get usage analytics for all items (with fallback if analytics fail)
+        try:
+            favorites = await analytics_service.get_user_favorites(current_user.id, limit=100)
+            print(f"🔍 Forgotten Gems: Found {len(favorites)} items with usage data")
+        except Exception as analytics_error:
+            print(f"⚠️ Forgotten Gems: Analytics service failed ({analytics_error}), using simplified analysis")
+            favorites = []
         
         # Create a map of item_id to usage data
         usage_map = {fav.item_id: fav for fav in favorites}
@@ -111,19 +115,49 @@ async def get_forgotten_gems(
                     # Conversion failed, treat as never worn
                     days_since_worn = 365
             else:
-                # If no usage data, assume it was never worn
-                days_since_worn = 365  # Assume 1 year
+                # No analytics data - try item's own lastWorn field as fallback
+                if hasattr(item, 'lastWorn') and item.lastWorn:
+                    try:
+                        # Handle both seconds and milliseconds timestamps
+                        if item.lastWorn > 1e12:  # Likely milliseconds
+                            timestamp_seconds = item.lastWorn / 1000.0
+                        else:
+                            timestamp_seconds = item.lastWorn
+                        
+                        if 946684800 <= timestamp_seconds <= 4102444800:
+                            last_worn = datetime.fromtimestamp(timestamp_seconds)
+                            days_since_worn = (now - last_worn).days
+                        else:
+                            days_since_worn = 365
+                    except (ValueError, OverflowError, OSError):
+                        days_since_worn = 365
+                elif hasattr(item, 'wearCount') and item.wearCount == 0:
+                    # Never worn - high priority for rediscovery
+                    days_since_worn = 999
+                else:
+                    # If no usage data, assume it was never worn
+                    days_since_worn = 365  # Assume 1 year
                 usage_data = None
             
             # Check if item meets forgotten criteria
             if days_since_worn >= days_threshold:
                 total_unworn_items += 1
                 
-                # Calculate usage count
-                usage_count = usage_data.usage_count if usage_data else 0
+                # Calculate usage count (analytics or item wearCount)
+                if usage_data and hasattr(usage_data, 'usage_count'):
+                    usage_count = usage_data.usage_count
+                elif hasattr(item, 'wearCount'):
+                    usage_count = item.wearCount or 0
+                else:
+                    usage_count = 0
                 
-                # Calculate favorite score
-                favorite_score = usage_data.total_score if usage_data else 0.0
+                # Calculate favorite score (analytics or item favorite status)
+                if usage_data and hasattr(usage_data, 'total_score'):
+                    favorite_score = usage_data.total_score
+                elif hasattr(item, 'isFavorite') and item.isFavorite:
+                    favorite_score = 50.0  # Boost for favorited items
+                else:
+                    favorite_score = 0.0
                 
                 # Calculate rediscovery potential based on multiple factors
                 rediscovery_potential = _calculate_rediscovery_potential(
