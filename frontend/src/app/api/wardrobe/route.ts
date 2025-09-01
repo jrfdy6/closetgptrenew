@@ -21,7 +21,7 @@ export async function GET(request: Request) {
           type: 'blazer',
           color: 'charcoal',
           brand: 'The Savile Row Company',
-          imageUrl: '/images/placeholder.jpg',
+          imageUrl: '/placeholder.jpg',
           isFavorite: true,
           category: 'outerwear'
         },
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
           type: 't-shirt',
           color: 'white',
           brand: 'Celine',
-          imageUrl: '/images/placeholder.jpg',
+          imageUrl: '/placeholder.jpg',
           isFavorite: false,
           category: 'tops'
         },
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
           type: 'pants',
           color: 'olive',
           brand: 'Dockers',
-          imageUrl: '/images/placeholder.jpg',
+          imageUrl: '/placeholder.jpg',
           isFavorite: true,
           category: 'bottoms'
         },
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
           type: 'shoes',
           color: 'brown',
           brand: 'Unknown',
-          imageUrl: '/images/placeholder.jpg',
+          imageUrl: '/placeholder.jpg',
           isFavorite: false,
           category: 'shoes'
         }
