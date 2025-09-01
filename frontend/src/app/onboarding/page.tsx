@@ -107,16 +107,16 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["5 or smaller", "6", "7", "8", "9", "10", "11", "12 or larger"],
     category: "sizes"
   },
-  // Female style questions
+  // Female style questions - using different numbered images for color variety
   {
     id: "style_item_f_1",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-ST1.png"],
+    images: ["/images/outfit-quiz/F-ST4.png"],
     style_name: "Street Style",
-    colors: ["black", "white", "gray", "navy"],
+    colors: ["black", "red", "white", "gray"],
     gender: "female"
   },
   {
@@ -125,9 +125,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-CB1.png"],
+    images: ["/images/outfit-quiz/F-CB5.png"],
     style_name: "Cottagecore",
-    colors: ["cream", "brown", "green", "pink"],
+    colors: ["pink", "cream", "brown", "green"],
     gender: "female"
   },
   {
@@ -136,9 +136,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-MIN1.png"],
+    images: ["/images/outfit-quiz/F-MIN6.png"],
     style_name: "Minimalist",
-    colors: ["white", "black", "beige", "gray"],
+    colors: ["white", "beige", "gray", "navy"],
     gender: "female"
   },
   {
@@ -147,9 +147,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-OM1.png"],
+    images: ["/images/outfit-quiz/F-OM7.png"],
     style_name: "Old Money",
-    colors: ["navy", "camel", "cream", "burgundy"],
+    colors: ["burgundy", "camel", "cream", "navy"],
     gender: "female"
   },
   {
@@ -158,9 +158,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-ST2.png"],
+    images: ["/images/outfit-quiz/F-ST8.png"],
     style_name: "Urban Street",
-    colors: ["black", "gray", "white", "olive"],
+    colors: ["black", "blue", "white", "gray"],
     gender: "female"
   },
   {
@@ -169,9 +169,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-CB2.png"],
+    images: ["/images/outfit-quiz/F-CB9.png"],
     style_name: "Natural Boho",
-    colors: ["brown", "green", "cream", "terracotta"],
+    colors: ["brown", "terracotta", "cream", "green"],
     gender: "female"
   },
   {
@@ -180,9 +180,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-MIN2.png"],
+    images: ["/images/outfit-quiz/F-MIN10.png"],
     style_name: "Clean Minimal",
-    colors: ["white", "black", "gray", "beige"],
+    colors: ["white", "gray", "black", "beige"],
     gender: "female"
   },
   {
@@ -191,21 +191,21 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/F-OM2.png"],
+    images: ["/images/outfit-quiz/F-OM3.png"],
     style_name: "Classic Elegant",
-    colors: ["navy", "camel", "cream", "burgundy"],
+    colors: ["navy", "burgundy", "camel", "cream"],
     gender: "female"
   },
-  // Male style questions
+  // Male style questions - using different numbered images for color variety
   {
     id: "style_item_m_1",
     question: "Do you like this style?",
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-ST1.png"],
+    images: ["/images/outfit-quiz/M-ST3.png"],
     style_name: "Street Style",
-    colors: ["black", "white", "gray", "navy"],
+    colors: ["black", "red", "gray", "white"],
     gender: "male"
   },
   {
@@ -214,9 +214,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-CB1.png"],
+    images: ["/images/outfit-quiz/M-CB4.png"],
     style_name: "Cottagecore",
-    colors: ["cream", "brown", "green", "pink"],
+    colors: ["brown", "green", "cream", "olive"],
     gender: "male"
   },
   {
@@ -225,9 +225,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-MIN1.png"],
+    images: ["/images/outfit-quiz/M-MIN5.png"],
     style_name: "Minimalist",
-    colors: ["white", "black", "beige", "gray"],
+    colors: ["white", "beige", "gray", "navy"],
     gender: "male"
   },
   {
@@ -236,9 +236,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-OM1.png"],
+    images: ["/images/outfit-quiz/M-OM6.png"],
     style_name: "Old Money",
-    colors: ["navy", "camel", "cream", "burgundy"],
+    colors: ["burgundy", "camel", "cream", "navy"],
     gender: "male"
   },
   {
@@ -247,9 +247,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-ST2.png"],
+    images: ["/images/outfit-quiz/M-ST7.png"],
     style_name: "Urban Street",
-    colors: ["black", "gray", "white", "olive"],
+    colors: ["black", "blue", "white", "gray"],
     gender: "male"
   },
   {
@@ -258,9 +258,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-CB2.png"],
+    images: ["/images/outfit-quiz/M-CB8.png"],
     style_name: "Natural Boho",
-    colors: ["brown", "green", "cream", "terracotta"],
+    colors: ["brown", "terracotta", "cream", "green"],
     gender: "male"
   },
   {
@@ -269,9 +269,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-MIN2.png"],
+    images: ["/images/outfit-quiz/M-MIN9.png"],
     style_name: "Clean Minimal",
-    colors: ["white", "black", "gray", "beige"],
+    colors: ["white", "gray", "black", "beige"],
     gender: "male"
   },
   {
@@ -280,9 +280,9 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Yes", "No"],
     category: "aesthetic",
     type: "visual_yesno",
-    images: ["/images/outfit-quiz/M-OM2.png"],
+    images: ["/images/outfit-quiz/M-OM10.png"],
     style_name: "Classic Elegant",
-    colors: ["navy", "camel", "cream", "burgundy"],
+    colors: ["navy", "burgundy", "camel", "cream"],
     gender: "male"
   },
   {
