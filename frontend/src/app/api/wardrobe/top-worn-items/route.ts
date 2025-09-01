@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '5');
     
-    // Return mock top worn items data
+    // Return mock top worn items data in the format the frontend expects
     const mockTopWornItems = [
       {
         id: 'item_1',
@@ -27,9 +27,10 @@ export async function GET(request: Request) {
         type: 'blazer',
         color: 'charcoal',
         brand: 'The Savile Row Company',
-        wearCount: 12,
-        lastWorn: '2024-01-15T00:00:00Z',
-        imageUrl: '/images/placeholder.jpg'
+        wear_count: 12,
+        last_worn: '2024-01-15T00:00:00Z',
+        image_url: '/images/placeholder.jpg',
+        is_favorite: true
       },
       {
         id: 'item_3',
@@ -37,9 +38,10 @@ export async function GET(request: Request) {
         type: 'pants',
         color: 'olive',
         brand: 'Dockers',
-        wearCount: 8,
-        lastWorn: '2024-01-14T00:00:00Z',
-        imageUrl: '/images/placeholder.jpg'
+        wear_count: 8,
+        last_worn: '2024-01-14T00:00:00Z',
+        image_url: '/images/placeholder.jpg',
+        is_favorite: true
       },
       {
         id: 'item_4',
@@ -47,9 +49,10 @@ export async function GET(request: Request) {
         type: 'shoes',
         color: 'brown',
         brand: 'Unknown',
-        wearCount: 6,
-        lastWorn: '2024-01-13T00:00:00Z',
-        imageUrl: '/images/placeholder.jpg'
+        wear_count: 6,
+        last_worn: '2024-01-13T00:00:00Z',
+        image_url: '/images/placeholder.jpg',
+        is_favorite: false
       },
       {
         id: 'item_2',
@@ -57,15 +60,16 @@ export async function GET(request: Request) {
         type: 't-shirt',
         color: 'white',
         brand: 'Celine',
-        wearCount: 4,
-        lastWorn: '2024-01-12T00:00:00Z',
-        imageUrl: '/images/placeholder.jpg'
+        wear_count: 4,
+        last_worn: '2024-01-12T00:00:00Z',
+        image_url: '/images/placeholder.jpg',
+        is_favorite: false
       }
     ].slice(0, limit);
     
     return NextResponse.json({
       success: true,
-      data: mockTopWornItems,
+      top_worn_items: mockTopWornItems,
       count: mockTopWornItems.length
     });
     

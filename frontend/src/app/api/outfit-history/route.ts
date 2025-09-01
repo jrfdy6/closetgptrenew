@@ -15,14 +15,16 @@ export async function GET(request: Request) {
       );
     }
     
-    // Return mock outfit history data
+    // Return mock outfit history data in the format the frontend expects
     const mockOutfitHistory = [
       {
         id: 'outfit_1',
-        name: 'Dark Academia Confident Look',
+        outfitName: 'Dark Academia Confident Look',
         occasion: 'Casual',
         style: 'Dark Academia',
         mood: 'Confident',
+        dateWorn: '2024-01-15T00:00:00Z',
+        tags: ['blazer', 'pants', 'shoes', 'dark-academia'],
         items: [
           {
             id: 'item_1',
@@ -49,10 +51,12 @@ export async function GET(request: Request) {
       },
       {
         id: 'outfit_2',
-        name: 'Old Money Dynamic Interview',
+        outfitName: 'Old Money Dynamic Interview',
         occasion: 'Interview',
         style: 'Old Money',
         mood: 'Dynamic',
+        dateWorn: '2024-01-14T00:00:00Z',
+        tags: ['t-shirt', 'pants', 'shoes', 'old-money'],
         items: [
           {
             id: 'item_2',
@@ -79,10 +83,12 @@ export async function GET(request: Request) {
       },
       {
         id: 'outfit_3',
-        name: 'Minimalist Clean Look',
+        outfitName: 'Minimalist Clean Look',
         occasion: 'Casual',
         style: 'Minimalist',
         mood: 'Clean',
+        dateWorn: '2024-01-13T00:00:00Z',
+        tags: ['t-shirt', 'pants', 'minimalist'],
         items: [
           {
             id: 'item_2',
