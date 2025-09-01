@@ -1694,6 +1694,19 @@ async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any
         logger.error(f"❌ Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Failed to save outfit: {e}")
 
+def convert_firebase_url(raw_image_url: str) -> str:
+    """Convert Firebase Storage gs:// URLs to https:// URLs"""
+    if raw_image_url and raw_image_url.startswith('gs://'):
+        # Convert gs://bucket-name/path to https://firebasestorage.googleapis.com/v0/b/bucket-name/o/path
+        parts = raw_image_url.replace('gs://', '').split('/', 1)
+        if len(parts) == 2:
+            bucket_name = parts[0]
+            file_path = parts[1]
+            # Encode the file path for URL
+            encoded_path = urllib.parse.quote(file_path, safe='')
+            return f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
+    return raw_image_url
+
 async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_cache: Dict[str, Dict] = None) -> List[Dict[str, Any]]:
     """
     Resolve item IDs to actual item objects from the wardrobe collection.
@@ -1712,7 +1725,11 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
         logger.warning("Firebase not available, returning mock items")
         for item in items:
             if isinstance(item, dict):
-                resolved_items.append(item)
+                # Fix imageUrl even for existing items
+                item_copy = item.copy()
+                raw_url = item_copy.get('imageUrl', '') or item_copy.get('image_url', '') or item_copy.get('image', '')
+                item_copy['imageUrl'] = convert_firebase_url(raw_url)
+                resolved_items.append(item_copy)
             else:
                 resolved_items.append({
                     'id': str(item),
@@ -1726,12 +1743,18 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
     item_ids_to_fetch = []
     for item in items:
         if isinstance(item, dict):
-            # Item is already a complete object
-            resolved_items.append(item)
+            # Item is already a complete object - fix imageUrl
+            item_copy = item.copy()
+            raw_url = item_copy.get('imageUrl', '') or item_copy.get('image_url', '') or item_copy.get('image', '')
+            item_copy['imageUrl'] = convert_firebase_url(raw_url)
+            resolved_items.append(item_copy)
         elif isinstance(item, str):
             if wardrobe_cache and item in wardrobe_cache:
-                # Use cached item
-                resolved_items.append(wardrobe_cache[item])
+                # Use cached item - fix imageUrl
+                cached_item = wardrobe_cache[item].copy()
+                raw_url = cached_item.get('imageUrl', '') or cached_item.get('image_url', '') or cached_item.get('image', '')
+                cached_item['imageUrl'] = convert_firebase_url(raw_url)
+                resolved_items.append(cached_item)
             else:
                 # Need to fetch this item
                 item_ids_to_fetch.append(item)
@@ -1754,6 +1777,9 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
             for doc in docs:
                 item_data = doc.to_dict()
                 item_data['id'] = doc.id
+                # Fix imageUrl for fetched items
+                raw_url = item_data.get('imageUrl', '') or item_data.get('image_url', '') or item_data.get('image', '')
+                item_data['imageUrl'] = convert_firebase_url(raw_url)
                 user_wardrobe[doc.id] = item_data
             
             # Fill in the placeholders
@@ -2788,7 +2814,7 @@ async def get_outfit_stats(
                 {
                     'id': o['id'],
                     'name': o['name'],
-                    'lastUpdated': o.get('createdAt', datetime.now())
+                    'lastUpdated': o.get('createdAt', datetime.now().isoformat() + 'Z')
                 }
                 for o in outfits[:5]  # Last 5 outfits
             ]
