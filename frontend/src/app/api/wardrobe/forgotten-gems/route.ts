@@ -1,66 +1,68 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    console.log('🔍 DEBUG: Forgotten gems API route called - MOCK VERSION');
+    
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    
+    if (!authHeader) {
+      console.log('🔍 DEBUG: No auth header - returning 401');
       return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'No authorization token provided'
-        },
+        { error: 'Not authenticated' },
         { status: 401 }
       );
     }
-
-    const { searchParams } = new URL(req.url);
-    const daysThreshold = searchParams.get('days_threshold') || '30';
-    const minRediscoveryPotential = searchParams.get('min_rediscovery_potential') || '20.0';
-
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgpt-backend-production.up.railway.app';
     
-    console.log(`🔍 Fetching forgotten gems from: ${baseUrl}/api/wardrobe/insights/forgotten-gems`);
-    
-    const response = await fetch(`${baseUrl}/api/wardrobe/insights/forgotten-gems?days_threshold=${daysThreshold}&min_rediscovery_potential=${minRediscoveryPotential}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
+    // Return mock forgotten gems data
+    const mockForgottenGems = [
+      {
+        id: 'item_5',
+        name: 'Vintage Denim Jacket',
+        type: 'jacket',
+        color: 'blue',
+        brand: 'Levi\'s',
+        lastWorn: '2023-12-01T00:00:00Z',
+        daysSinceLastWorn: 45,
+        imageUrl: '/images/placeholder.jpg',
+        reason: 'Perfect for layering in spring'
       },
+      {
+        id: 'item_6',
+        name: 'Silk Scarf',
+        type: 'accessory',
+        color: 'burgundy',
+        brand: 'Hermès',
+        lastWorn: '2023-11-15T00:00:00Z',
+        daysSinceLastWorn: 60,
+        imageUrl: '/images/placeholder.jpg',
+        reason: 'Great for adding color to neutral outfits'
+      },
+      {
+        id: 'item_7',
+        name: 'Leather Belt',
+        type: 'accessory',
+        color: 'brown',
+        brand: 'Unknown',
+        lastWorn: '2023-10-20T00:00:00Z',
+        daysSinceLastWorn: 85,
+        imageUrl: '/images/placeholder.jpg',
+        reason: 'Essential for formal occasions'
+      }
+    ];
+    
+    return NextResponse.json({
+      success: true,
+      data: mockForgottenGems,
+      count: mockForgottenGems.length,
+      message: 'Found items you haven\'t worn in a while'
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error(`❌ Backend error fetching forgotten gems: ${response.status} ${response.statusText}`);
-      console.error('❌ Backend error details:', data);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: data.detail || 'Failed to fetch forgotten gems',
-          details: data.detail || 'Backend request failed'
-        },
-        { status: response.status }
-      );
-    }
-
-    console.log("✅ Successfully fetched forgotten gems from backend");
-    return NextResponse.json(data);
-
+    
   } catch (error) {
-    console.error('❌ Error in forgotten gems API route:', error);
+    console.error('🔍 DEBUG: Error in mock forgotten gems route:', error);
     return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to fetch forgotten gems',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to fetch forgotten gems' },
       { status: 500 }
     );
   }

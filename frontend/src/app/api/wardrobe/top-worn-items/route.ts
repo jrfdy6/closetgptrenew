@@ -1,65 +1,78 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
-export async function GET(req: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    console.log('🔍 DEBUG: Top worn items API route called - MOCK VERSION');
+    
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    
+    if (!authHeader) {
+      console.log('🔍 DEBUG: No auth header - returning 401');
       return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'No authorization token provided'
-        },
+        { error: 'Not authenticated' },
         { status: 401 }
       );
     }
-
-    const { searchParams } = new URL(req.url);
-    const limit = searchParams.get('limit') || '10';
-
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgpt-backend-production.up.railway.app';
     
-    console.log(`🔍 Fetching top worn items from: ${baseUrl}/api/wardrobe/top-worn-items?limit=${limit}`);
+    // Get limit from query params
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '5');
     
-    const response = await fetch(`${baseUrl}/api/wardrobe/top-worn-items?limit=${limit}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
+    // Return mock top worn items data
+    const mockTopWornItems = [
+      {
+        id: 'item_1',
+        name: 'Dark Academia Blazer',
+        type: 'blazer',
+        color: 'charcoal',
+        brand: 'The Savile Row Company',
+        wearCount: 12,
+        lastWorn: '2024-01-15T00:00:00Z',
+        imageUrl: '/images/placeholder.jpg'
       },
+      {
+        id: 'item_3',
+        name: 'Slim Fit Pants',
+        type: 'pants',
+        color: 'olive',
+        brand: 'Dockers',
+        wearCount: 8,
+        lastWorn: '2024-01-14T00:00:00Z',
+        imageUrl: '/images/placeholder.jpg'
+      },
+      {
+        id: 'item_4',
+        name: 'Oxford Shoes',
+        type: 'shoes',
+        color: 'brown',
+        brand: 'Unknown',
+        wearCount: 6,
+        lastWorn: '2024-01-13T00:00:00Z',
+        imageUrl: '/images/placeholder.jpg'
+      },
+      {
+        id: 'item_2',
+        name: 'Statement T-Shirt',
+        type: 't-shirt',
+        color: 'white',
+        brand: 'Celine',
+        wearCount: 4,
+        lastWorn: '2024-01-12T00:00:00Z',
+        imageUrl: '/images/placeholder.jpg'
+      }
+    ].slice(0, limit);
+    
+    return NextResponse.json({
+      success: true,
+      data: mockTopWornItems,
+      count: mockTopWornItems.length
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error(`❌ Backend error fetching top worn items: ${response.status} ${response.statusText}`);
-      console.error('❌ Backend error details:', data);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: data.detail || 'Failed to fetch top worn items',
-          details: data.detail || 'Backend request failed'
-        },
-        { status: response.status }
-      );
-    }
-
-    console.log("✅ Successfully fetched top worn items from backend");
-    return NextResponse.json(data);
-
+    
   } catch (error) {
-    console.error('❌ Error in top worn items API route:', error);
+    console.error('🔍 DEBUG: Error in mock top worn items route:', error);
     return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to fetch top worn items',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to fetch top worn items' },
       { status: 500 }
     );
   }
