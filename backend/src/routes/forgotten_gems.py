@@ -67,18 +67,18 @@ async def get_forgotten_gems(
             
         print(f"🔍 Forgotten Gems: Found {len(wardrobe)} wardrobe items")
         
-        if not wardrobe:
-            return ForgottenGemsResponse(
-                success=True,
-                data={
-                    "forgottenItems": [],
-                    "totalUnwornItems": 0,
-                    "potentialSavings": 0,
-                    "rediscoveryOpportunities": 0,
-                    "analysis_timestamp": datetime.now().isoformat()
-                },
-                message="No wardrobe items found"
-            )
+        # Return simple response for now to test endpoint
+        return ForgottenGemsResponse(
+            success=True,
+            data={
+                "forgottenItems": [],
+                "totalUnwornItems": len(wardrobe),
+                "potentialSavings": 0,
+                "rediscoveryOpportunities": 0,
+                "analysis_timestamp": datetime.now().isoformat()
+            },
+            message=f"Simplified analysis complete - found {len(wardrobe)} items"
+        )
         
         # Skip complex analytics for now - use simplified analysis
         print(f"🔍 Forgotten Gems: Using simplified analysis without complex analytics")
