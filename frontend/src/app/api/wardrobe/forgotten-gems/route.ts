@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         brand: 'Levi\'s',
         lastWorn: '2023-12-01T00:00:00Z',
         daysSinceLastWorn: 45,
-        imageUrl: '/images/placeholder.jpg',
+                            imageUrl: '',
         reason: 'Perfect for layering in spring'
       },
       {
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
         brand: 'Hermès',
         lastWorn: '2023-11-15T00:00:00Z',
         daysSinceLastWorn: 60,
-        imageUrl: '/images/placeholder.jpg',
+                            imageUrl: '',
         reason: 'Great for adding color to neutral outfits'
       },
       {
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
         brand: 'Unknown',
         lastWorn: '2023-10-20T00:00:00Z',
         daysSinceLastWorn: 85,
-        imageUrl: '/images/placeholder.jpg',
+                            imageUrl: '',
         reason: 'Essential for formal occasions'
       }
     ];

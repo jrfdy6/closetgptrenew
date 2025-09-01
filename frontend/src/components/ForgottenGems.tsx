@@ -206,7 +206,7 @@ export default function ForgottenGems() {
     );
   }
 
-  if (!data || data.forgottenItems.length === 0) {
+  if (!data || !data.forgottenItems || data.forgottenItems.length === 0) {
     return (
       <Card className="text-center py-12">
         <CardContent>
@@ -314,7 +314,7 @@ export default function ForgottenGems() {
               </div>
 
               {/* Style Tags */}
-              {item.style && item.style.length > 0 && (
+              {item.style && Array.isArray(item.style) && item.style.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {item.style.slice(0, 3).map((style, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
@@ -330,7 +330,7 @@ export default function ForgottenGems() {
               )}
 
               {/* Suggested Outfits */}
-              {item.suggestedOutfits && item.suggestedOutfits.length > 0 && (
+              {item.suggestedOutfits && Array.isArray(item.suggestedOutfits) && item.suggestedOutfits.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
                     Try these combinations:

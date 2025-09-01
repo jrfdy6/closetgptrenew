@@ -29,7 +29,7 @@ export async function GET(request: Request) {
         brand: 'The Savile Row Company',
         wear_count: 12,
         last_worn: '2024-01-15T00:00:00Z',
-        image_url: '/images/placeholder.jpg',
+        image_url: '',
         is_favorite: true
       },
       {
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
         brand: 'Dockers',
         wear_count: 8,
         last_worn: '2024-01-14T00:00:00Z',
-        image_url: '/images/placeholder.jpg',
+        image_url: '',
         is_favorite: true
       },
       {
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
         brand: 'Unknown',
         wear_count: 6,
         last_worn: '2024-01-13T00:00:00Z',
-        image_url: '/images/placeholder.jpg',
+        image_url: '',
         is_favorite: false
       },
       {
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
         brand: 'Celine',
         wear_count: 4,
         last_worn: '2024-01-12T00:00:00Z',
-        image_url: '/images/placeholder.jpg',
+        image_url: '',
         is_favorite: false
       }
     ].slice(0, limit);
