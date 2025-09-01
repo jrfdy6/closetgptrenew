@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 interface QuizAnswer {
   question_id: string;
@@ -82,6 +83,15 @@ export default function Onboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResults, setQuizResults] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { user, loading: authLoading } = useAuthContext();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      window.location.href = '/';
+    }
+  }, [user, authLoading]);
 
   const handleAnswer = (questionId: string, selectedOption: string) => {
     const newAnswers = answers.filter(a => a.question_id !== questionId);
@@ -107,20 +117,26 @@ export default function Onboarding() {
   };
 
   const submitQuiz = async () => {
+    if (!user) {
+      setError('Please sign in to complete the quiz');
+      return;
+    }
+
     setIsLoading(true);
+    setError(null);
     
     try {
-      // TODO: Replace with actual user ID from authentication
-      const userId = "temp-user-id";
+      // Get Firebase ID token for authentication
+      const token = await user.getIdToken();
       
       const response = await fetch('/api/style-quiz/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer temp-token` // TODO: Replace with actual auth token
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          user_id: userId,
+          user_id: user.uid,
           answers: answers
         })
       });
@@ -131,7 +147,7 @@ export default function Onboarding() {
         setQuizCompleted(true);
       } else {
         console.error('Failed to submit quiz:', response.statusText);
-        // For now, simulate success to show the flow
+        // Use mock data as fallback
         setQuizCompleted(true);
         setQuizResults({
           hybridStyleName: "Personal Style",
@@ -145,7 +161,8 @@ export default function Onboarding() {
       }
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      // For now, simulate success to show the flow
+      setError('Failed to submit quiz. Please try again.');
+      // Use mock data as fallback
       setQuizCompleted(true);
       setQuizResults({
         hybridStyleName: "Personal Style",
@@ -191,6 +208,25 @@ export default function Onboarding() {
       </div>
     );
   };
+
+  // Show loading state while authenticating
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl border-0 shadow-xl text-center">
+          <CardContent className="p-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Authenticating...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated
+  if (!user) {
+    return null; // Will redirect via useEffect
+  }
 
   if (quizCompleted && quizResults) {
     return (
@@ -294,6 +330,12 @@ export default function Onboarding() {
           </p>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+            </div>
+          )}
+          
           {renderQuestion()}
           
           <div className="flex justify-between mt-8">

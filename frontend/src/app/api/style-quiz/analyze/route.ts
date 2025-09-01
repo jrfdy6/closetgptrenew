@@ -1,31 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-
-// Lazy initialization function
-function initializeFirebaseAdmin() {
-  if (getApps().length === 0) {
-    try {
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-      if (!privateKey) {
-        throw new Error('FIREBASE_PRIVATE_KEY is not set');
-      }
-
-      initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: privateKey,
-        }),
-      });
-      console.log('Firebase Admin initialized successfully');
-    } catch (error) {
-      console.error('Error initializing Firebase Admin:', error);
-      throw error;
-    }
-  }
-}
 
 // Function to calculate quiz results (matching backend logic)
 function calculateQuizResults(answers: any[]) {
@@ -168,9 +141,9 @@ function generateHybridStyleName(aestheticScores: Record<string, number>): strin
 }
 
 export async function POST(req: NextRequest) {
-  // Initialize Firebase Admin only when needed
-  initializeFirebaseAdmin();
   try {
+    console.log('🔍 DEBUG: Style quiz analyze API called - MOCK VERSION');
+    
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -184,56 +157,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Get the ID token from the header
-    const idToken = authHeader.split('Bearer ')[1];
+    // Extract user info from Firebase token (client-side decoding)
+    let userEmail = 'user@example.com';
+    let userName = 'User';
+    let userId = 'temp-user-id';
     
-    // Verify the token using Firebase Admin
-    let decodedToken;
     try {
-      const adminAuth = getAuth();
-      if (!adminAuth) {
-        throw new Error('Firebase Admin Auth not initialized');
+      const token = authHeader.replace('Bearer ', '');
+      const tokenParts = token.split('.');
+      if (tokenParts.length === 3) {
+        // Firebase tokens use URL-safe base64, so we need to convert it
+        const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
+        // Add padding if needed
+        const paddedPayload = base64Payload + '='.repeat((4 - base64Payload.length % 4) % 4);
+        const payload = JSON.parse(atob(paddedPayload));
+        userEmail = payload.email || userEmail;
+        userName = payload.name || payload.email?.split('@')[0] || userName;
+        userId = payload.user_id || payload.sub || userId;
+        console.log('🔍 DEBUG: Extracted user info from token:', { userEmail, userName, userId });
       }
-      decodedToken = await adminAuth.verifyIdToken(idToken);
-    } catch (error) {
-      console.error('Error verifying token:', error);
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'Invalid token'
-        },
-        { status: 401 }
-      );
+    } catch (tokenError) {
+      console.log('🔍 DEBUG: Could not decode token, using fallback values:', tokenError);
     }
 
     const submission = await req.json();
-    const userId = submission.user_id;
-
-    // Verify that the user ID in the submission matches the authenticated user
-    if (userId !== decodedToken.uid) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Unauthorized',
-          details: 'User ID mismatch'
-        },
-        { status: 401 }
-      );
-    }
-
-    // Get Firestore instance
-    const db = getFirestore();
-    if (!db) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'Database Error',
-          details: 'Firestore is not initialized'
-        },
-        { status: 500 }
-      );
-    }
+    console.log('🔍 DEBUG: Quiz submission:', submission);
 
     // Calculate quiz results
     const quizResults = calculateQuizResults(submission.answers);
@@ -247,43 +195,14 @@ export async function POST(req: NextRequest) {
       .slice(0, 5)
       .map(([style]) => style);
 
-    console.log('Style Quiz Debug - User ID:', userId);
-    console.log('Style Quiz Debug - Quiz Results:', quizResults);
-    console.log('Style Quiz Debug - Hybrid Style Name:', hybridStyleName);
-    console.log('Style Quiz Debug - Top Styles:', topStyles);
+    console.log('🔍 DEBUG: Quiz Results:', quizResults);
+    console.log('🔍 DEBUG: Hybrid Style Name:', hybridStyleName);
+    console.log('🔍 DEBUG: Top Styles:', topStyles);
 
-    // Save the comprehensive style profile to Firestore
-    const userRef = db.collection('users').doc(userId);
-    const saveData = {
-      hybridStyleName: hybridStyleName,
-      styleQuizResults: quizResults,
-      aestheticScores: quizResults.aesthetic_scores,
-      colorSeason: quizResults.color_season,
-      bodyType: quizResults.body_type,
-      stylePreferences: topStyles, // Save as array of strings instead of scores object
-      quizAnswers: submission.answers,
-      quizCompletedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    console.log('Style Quiz Debug - Saving to Firestore:', saveData);
-    await userRef.set(saveData, { merge: true });
-    console.log('Style Quiz Debug - Successfully saved to Firestore');
-
-    // Also save to style discovery profiles collection for backend compatibility
-    const profileRef = db.collection('style_discovery_profiles').doc(userId);
-    await profileRef.set({
-      user_id: userId,
-      answers: submission.answers,
-      quiz_results: quizResults,
-      hybrid_style_name: hybridStyleName,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }, { merge: true });
-
+    // Return mock success response (no database saving in mock version)
     return NextResponse.json({ 
       success: true,
-      message: 'Style profile analyzed and saved successfully',
+      message: 'Style profile analyzed successfully (mock version)',
       data: {
         hybridStyleName,
         quizResults
@@ -300,4 +219,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
