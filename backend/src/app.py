@@ -3,68 +3,6 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import routers with error handling
-logger.info("🔗 Registering routers...")
-
-# Try to import and register each router individually
-try:
-    from src.routes import auth
-    app.include_router(auth.router, prefix="/api/auth")
-    logger.info("✅ Registered /api/auth")
-except Exception as e:
-    logger.error(f"❌ Failed to register auth router: {e}")
-
-try:
-    from src.routes import image_processing, image_analysis
-    app.include_router(image_processing.router, prefix="/api/image")
-    app.include_router(image_analysis.router, prefix="/api/image")
-    logger.info("✅ Registered /api/image routes")
-except Exception as e:
-    logger.error(f"❌ Failed to register image routers: {e}")
-
-try:
-    from src.routes import weather
-    app.include_router(weather.router, prefix="/api/weather")
-    logger.info("✅ Registered /api/weather")
-except Exception as e:
-    logger.error(f"❌ Failed to register weather router: {e}")
-
-try:
-    from src.routes import wardrobe, wardrobe_analysis
-    app.include_router(wardrobe.router, prefix="/api/wardrobe")
-    app.include_router(wardrobe_analysis.router, prefix="/api/wardrobe")
-    logger.info("✅ Registered /api/wardrobe routes")
-except Exception as e:
-    logger.error(f"❌ Failed to register wardrobe routers: {e}")
-
-try:
-    from src.routes import outfit
-    app.include_router(outfit.router, prefix="/api/outfit")
-    logger.info("✅ Registered /api/outfit (singular)")
-except Exception as e:
-    logger.error(f"❌ Failed to register outfit router: {e}")
-
-try:
-    from src.routes import outfits
-    app.include_router(outfits.router, prefix="/api/outfits")
-    logger.info("✅ Registered /api/outfits (plural)")
-except Exception as e:
-    logger.error(f"❌ Failed to register outfits router: {e}")
-
-try:
-    from src.routes import outfit_history
-    app.include_router(outfit_history.router, prefix="/api/outfit-history")
-    logger.info("✅ Registered /api/outfit-history")
-except Exception as e:
-    logger.error(f"❌ Failed to register outfit history router: {e}")
-
-try:
-    from src.routes import forgotten_gems
-    app.include_router(forgotten_gems.router, prefix="/api/wardrobe")
-    logger.info("✅ Registered forgotten gems")
-except Exception as e:
-    logger.error(f"❌ Failed to register forgotten gems router: {e}")
-
 # Logging setup
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -107,12 +45,12 @@ logger.info(f"__file__ location: {__file__}")
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Application startup complete. All routers mounted successfully.")
+    logger.info("Application startup complete. Basic app is running.")
 
 # ---------------- ROOT ----------------
 @app.get("/")
 def root():
-    return {"status": "API running", "message": "ClosetGPT API is running with clean router mounting"}
+    return {"status": "API running", "message": "ClosetGPT API is running with basic functionality"}
 
 # ---------------- HEALTH CHECKS ----------------
 @app.get("/health")
@@ -123,7 +61,7 @@ async def health_check():
             "status": "healthy",
             "timestamp": "2024-01-01T00:00:00Z",
             "environment": os.getenv("ENVIRONMENT", "development"),
-            "version": "1.0.1"  # Updated version to trigger redeploy
+            "version": "1.0.2"  # Updated version to trigger redeploy
         }
     except Exception as e:
         return {
@@ -137,13 +75,13 @@ async def simple_health_check():
     """Simple health check for Railway"""
     return {
         "status": "healthy",
-        "message": "Full app is working",
+        "message": "Basic app is working",
         "port": os.getenv("PORT", "8000")
     }
 
 @app.get("/api/health")
 async def api_health():
-    return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
+    return {"status": "ok", "api": "working", "features": ["basic", "health", "ready"]}
 
 # ---------------- TEST ENDPOINTS ----------------
 @app.post("/api/test-upload")
@@ -160,3 +98,40 @@ async def test_inline():
 async def upload_image_inline():
     """Inline test route to verify FastAPI routing is working"""
     return {"message": "Inline upload route is working", "status": "success"}
+
+# ---------------- MOCK ENDPOINTS FOR FRONTEND ----------------
+@app.get("/api/wardrobe/")
+async def mock_wardrobe():
+    """Mock wardrobe endpoint to prevent frontend errors"""
+    return {
+        "success": True,
+        "items": [],
+        "count": 0,
+        "user_id": "mock_user"
+    }
+
+@app.get("/api/auth/profile")
+async def mock_profile():
+    """Mock profile endpoint to prevent frontend errors"""
+    return {
+        "id": "mock_user",
+        "name": "Mock User",
+        "email": "mock@example.com",
+        "gender": "male",
+        "onboardingCompleted": True
+    }
+
+@app.post("/api/outfits/generate")
+async def mock_outfit_generation():
+    """Mock outfit generation endpoint"""
+    return {
+        "success": True,
+        "outfit": {
+            "id": "mock_outfit_1",
+            "name": "Mock Outfit",
+            "items": [
+                {"id": "item1", "name": "Mock Shirt", "type": "shirt"},
+                {"id": "item2", "name": "Mock Pants", "type": "pants"}
+            ]
+        }
+    }
