@@ -1802,10 +1802,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         # This matches where outfits are actually stored: outfits collection with user_id field
         outfits_ref = db.collection("outfits").where("user_id", "==", user_id)
         
-        # Try Firestore ordering, fallback to client-side if index missing
+        # CRITICAL FIX: Use proper Firestore ordering to get newest outfits first
         use_firestore_ordering = True
         try:
-            outfits_ref = outfits_ref.order_by("createdAt", direction=db.Query.DESCENDING)
+            from firebase_admin import firestore
+            outfits_ref = outfits_ref.order_by("createdAt", direction=firestore.Query.DESCENDING)
             logger.info("✅ DEBUG: Using Firestore server-side ordering by createdAt DESC")
         except Exception as e:
             logger.warning(f"⚠️ DEBUG: Firestore ordering failed ({e}), will use client-side sorting")
@@ -1875,6 +1876,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         # Check if we need client-side sorting (when Firestore ordering failed)
         if not use_firestore_ordering:
             logger.info("🔄 DEBUG: Applying client-side sorting since Firestore ordering failed")
+            # First normalize timestamps, then sort
+            for outfit_data in outfits:
+                created_at = outfit_data.get('createdAt')
+                if created_at and isinstance(created_at, (int, float)):
+                    outfit_data['createdAt'] = datetime.fromtimestamp(created_at).isoformat() + 'Z'
             outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
         
         # Apply pagination after sorting (ONLY when client-side sorting was used)
