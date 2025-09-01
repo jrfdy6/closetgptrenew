@@ -284,7 +284,8 @@ export default function Onboarding() {
       userGender, 
       totalQuestions: quizQuestions.length, 
       filteredQuestions: filtered.length,
-      bodyTypeQuestions: filtered.filter(q => q.id.includes('body_type'))
+      bodyTypeQuestions: filtered.filter(q => q.id.includes('body_type')).map(q => ({ id: q.id, depends_on: q.depends_on })),
+      allBodyTypeQuestions: quizQuestions.filter(q => q.id.includes('body_type')).map(q => ({ id: q.id, depends_on: q.depends_on }))
     });
     
     return filtered;
@@ -399,6 +400,15 @@ export default function Onboarding() {
     if (filteredQuestions.length === 0) return null;
     const question = filteredQuestions[currentStep - 1];
     const currentAnswer = answers.find(a => a.question_id === question.id);
+    
+    console.log('🔍 DEBUG: Rendering question', { 
+      questionId: question.id, 
+      questionText: question.question,
+      options: question.options,
+      depends_on: question.depends_on,
+      currentStep,
+      userGender
+    });
 
     return (
       <div className="space-y-6">
