@@ -7,7 +7,10 @@ from ..custom_types.wardrobe import ClothingItem
 from ..services.item_analytics_service import ItemAnalyticsService
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
 
-router = APIRouter(prefix="/api/wardrobe", tags=["forgotten-gems"])
+# Note: Do NOT prefix with "/api/wardrobe" here because app.py already mounts this
+# router under that prefix. Double-prefixing would produce
+# /api/wardrobe/api/wardrobe/forgotten-gems.
+router = APIRouter(tags=["forgotten-gems"])
 
 class ForgottenItem(BaseModel):
     id: str
