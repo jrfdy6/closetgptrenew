@@ -85,13 +85,13 @@ def root():
 # ---------------- HEALTH CHECKS ----------------
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for Railway deployment"""
+    """Health check endpoint for Railway deployment - REDEPLOY FIX"""
     try:
         return {
             "status": "healthy",
             "timestamp": "2024-01-01T00:00:00Z",
             "environment": os.getenv("ENVIRONMENT", "development"),
-            "version": "1.0.0"
+            "version": "1.0.1"  # Updated version to trigger redeploy
         }
     except Exception as e:
         return {
