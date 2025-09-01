@@ -35,7 +35,7 @@ const MOCK_QUIZ_QUESTIONS = [
     category: "personal"
   },
   {
-    id: "body_type_female",
+    id: "body_type",
     question: "Which body type best describes you?",
     type: "image_choice",
     options: [
@@ -82,149 +82,17 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       }
     ],
-    category: "measurements",
-    depends_on: { gender: "female" }
-  },
-  {
-    id: "body_type_male",
-    question: "Which body type best describes you?",
-    type: "image_choice",
-    options: [
-      {
-        image: "athletic.png",
-        text: "Athletic",
-        scores: {
-          body_type: "athletic"
-        }
-      },
-      {
-        image: "rectangular.png",
-        text: "Rectangle",
-        scores: {
-          body_type: "rectangle"
-        }
-      },
-      {
-        image: "inverted.png",
-        text: "Inverted Triangle",
-        scores: {
-          body_type: "inverted_triangle"
-        }
-      },
-      {
-        image: "apple.png",
-        text: "Apple",
-        scores: {
-          body_type: "apple"
-        }
-      }
-    ],
-    category: "measurements",
-    depends_on: { gender: "male" }
-  },
-  {
-    id: "body_type_nonbinary",
-    question: "Which body type best describes you?",
-    type: "image_choice",
-    options: [
-      {
-        image: "apple.png",
-        text: "Apple",
-        scores: {
-          body_type: "apple"
-        }
-      },
-      {
-        image: "athletic.png",
-        text: "Athletic",
-        scores: {
-          body_type: "athletic"
-        }
-      },
-      {
-        image: "hourglass.png",
-        text: "Hourglass",
-        scores: {
-          body_type: "hourglass"
-        }
-      },
-      {
-        image: "pear.png",
-        text: "Pear",
-        scores: {
-          body_type: "pear"
-        }
-      },
-      {
-        image: "rectangular.png",
-        text: "Rectangle",
-        scores: {
-          body_type: "rectangle"
-        }
-      },
-      {
-        image: "inverted.png",
-        text: "Inverted Triangle",
-        scores: {
-          body_type: "inverted_triangle"
-        }
-      }
-    ],
-    category: "measurements",
-    depends_on: { gender: "non-binary" }
+    category: "measurements"
   },
   {
     id: "skin_tone",
-    question: "Which skin tone best matches yours?",
-    type: "skin_tone_scale",
+    question: "Select your skin tone using the slider below",
+    type: "rgb_slider",
     options: [
       {
-        text: "Very Light",
-        color: "#F5E6D3",
+        text: "skin_tone_slider",
         scores: {
-          skin_tone: "very_light"
-        }
-      },
-      {
-        text: "Light",
-        color: "#E6C7A8",
-        scores: {
-          skin_tone: "light"
-        }
-      },
-      {
-        text: "Light-Medium",
-        color: "#D4A574",
-        scores: {
-          skin_tone: "light_medium"
-        }
-      },
-      {
-        text: "Medium",
-        color: "#C68642",
-        scores: {
-          skin_tone: "medium"
-        }
-      },
-      {
-        text: "Medium-Dark",
-        color: "#A0522D",
-        scores: {
-          skin_tone: "medium_dark"
-        }
-      },
-      {
-        text: "Dark",
-        color: "#8B4513",
-        scores: {
-          skin_tone: "dark"
-        }
-      },
-      {
-        text: "Very Dark",
-        color: "#654321",
-        scores: {
-          skin_tone: "very_dark"
+          skin_tone: "custom"
         }
       }
     ],
@@ -473,7 +341,7 @@ const MOCK_QUIZ_QUESTIONS = [
       }
     ],
     category: "sizes",
-    depends_on: { gender: ["female", "non-binary"] }
+    depends_on: { gender: "female" }
   },
   {
     id: "shoe_size",
@@ -532,7 +400,7 @@ const MOCK_QUIZ_QUESTIONS = [
     category: "sizes"
   },
   {
-    id: "style_preference_female",
+    id: "style_preference",
     question: "Which style resonates with you most?",
     type: "image_choice",
     options: [
@@ -573,116 +441,7 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       }
     ],
-    category: "aesthetic",
-    depends_on: { gender: "female" }
-  },
-  {
-    id: "style_preference_male",
-    question: "Which style resonates with you most?",
-    type: "image_choice",
-    options: [
-      {
-        image: "M-ST1.png",
-        text: "Street Style",
-        scores: {
-          streetwear: 0.8,
-          edgy: 0.6,
-          athletic: 0.4
-        }
-      },
-      {
-        image: "M-CB1.png",
-        text: "Natural Boho",
-        scores: {
-          bohemian: 0.8,
-          romantic: 0.6,
-          vintage: 0.4
-        }
-      },
-      {
-        image: "M-MIN1.png",
-        text: "Minimalist",
-        scores: {
-          minimalist: 0.9,
-          sophisticated: 0.5,
-          comfortable: 0.3
-        }
-      },
-      {
-        image: "M-OM1.png",
-        text: "Old Money",
-        scores: {
-          classic: 0.8,
-          sophisticated: 0.6,
-          romantic: 0.4
-        }
-      }
-    ],
-    category: "aesthetic",
-    depends_on: { gender: "male" }
-  },
-  {
-    id: "style_preference_nonbinary",
-    question: "Which style resonates with you most?",
-    type: "image_choice",
-    options: [
-      {
-        image: "F-ST1.png",
-        text: "Street Style (F)",
-        scores: {
-          streetwear: 0.8,
-          edgy: 0.6,
-          athletic: 0.4
-        }
-      },
-      {
-        image: "M-ST1.png",
-        text: "Street Style (M)",
-        scores: {
-          streetwear: 0.8,
-          edgy: 0.6,
-          athletic: 0.4
-        }
-      },
-      {
-        image: "F-CB1.png",
-        text: "Cottagecore (F)",
-        scores: {
-          romantic: 0.8,
-          bohemian: 0.6,
-          vintage: 0.4
-        }
-      },
-      {
-        image: "M-CB1.png",
-        text: "Natural Boho (M)",
-        scores: {
-          bohemian: 0.8,
-          romantic: 0.6,
-          vintage: 0.4
-        }
-      },
-      {
-        image: "F-MIN1.png",
-        text: "Minimalist (F)",
-        scores: {
-          minimalist: 0.9,
-          sophisticated: 0.5,
-          comfortable: 0.3
-        }
-      },
-      {
-        image: "M-MIN1.png",
-        text: "Minimalist (M)",
-        scores: {
-          minimalist: 0.9,
-          sophisticated: 0.5,
-          comfortable: 0.3
-        }
-      }
-    ],
-    category: "aesthetic",
-    depends_on: { gender: "non-binary" }
+    category: "aesthetic"
   },
   {
     id: "outfit_style",

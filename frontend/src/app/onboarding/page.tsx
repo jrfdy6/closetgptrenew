@@ -17,13 +17,13 @@ interface QuizQuestion {
   question: string;
   options: string[];
   category: string;
-  type?: "visual" | "color_swatches" | "text" | "skin_tone_scale" | "color_choice";
+  type?: "visual" | "color_swatches" | "text" | "skin_tone_scale" | "color_choice" | "rgb_slider";
   images?: string[];
   colors?: string[];
   depends_on?: { gender?: string | string[] };
 }
 
-// Mock quiz questions as fallback
+// Mock quiz questions as fallback - SIMPLIFIED TO MATCH API
 const getMockQuizQuestions = (): QuizQuestion[] => [
   {
     id: "gender",
@@ -32,7 +32,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
     category: "personal"
   },
   {
-    id: "body_type_female",
+    id: "body_type",
     question: "Which body type best describes you?",
     options: ["Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle"],
     category: "measurements",
@@ -44,46 +44,14 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
       "/images/body-types/pear.png",
       "/images/body-types/rectangular.png",
       "/images/body-types/inverted.png"
-    ],
-    depends_on: { gender: "female" }
-  },
-  {
-    id: "body_type_male",
-    question: "Which body type best describes you?",
-    options: ["Athletic", "Rectangle", "Inverted Triangle", "Apple"],
-    category: "measurements",
-    type: "visual",
-    images: [
-      "/images/body-types/athletic.png",
-      "/images/body-types/rectangular.png",
-      "/images/body-types/inverted.png",
-      "/images/body-types/apple.png"
-    ],
-    depends_on: { gender: "male" }
-  },
-  {
-    id: "body_type_nonbinary",
-    question: "Which body type best describes you?",
-    options: ["Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle"],
-    category: "measurements",
-    type: "visual",
-    images: [
-      "/images/body-types/apple.png",
-      "/images/body-types/athletic.png",
-      "/images/body-types/hourglass.png",
-      "/images/body-types/pear.png",
-      "/images/body-types/rectangular.png",
-      "/images/body-types/inverted.png"
-    ],
-    depends_on: { gender: "non-binary" }
+    ]
   },
   {
     id: "skin_tone",
-    question: "Which skin tone best matches yours?",
-    options: ["Very Light", "Light", "Light-Medium", "Medium", "Medium-Dark", "Dark", "Very Dark"],
+    question: "Select your skin tone using the slider below",
+    options: ["skin_tone_slider"],
     category: "measurements",
-    type: "skin_tone_scale",
-    colors: ["#F5E6D3", "#E6C7A8", "#D4A574", "#C68642", "#A0522D", "#8B4513", "#654321"]
+    type: "rgb_slider"
   },
   {
     id: "height",
@@ -114,7 +82,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
     question: "What is your cup size?",
     options: ["A", "B", "C", "D", "DD", "DDD", "Prefer not to say"],
     category: "sizes",
-    depends_on: { gender: ["female", "non-binary"] }
+    depends_on: { gender: "female" }
   },
   {
     id: "shoe_size",
@@ -123,7 +91,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
     category: "sizes"
   },
   {
-    id: "style_preference_female",
+    id: "style_preference",
     question: "Which style resonates with you most?",
     options: ["Street Style", "Cottagecore", "Minimalist", "Old Money"],
     category: "aesthetic",
@@ -133,38 +101,7 @@ const getMockQuizQuestions = (): QuizQuestion[] => [
       "/images/outfit-quiz/F-CB1.png",
       "/images/outfit-quiz/F-MIN1.png",
       "/images/outfit-quiz/F-OM1.png"
-    ],
-    depends_on: { gender: "female" }
-  },
-  {
-    id: "style_preference_male",
-    question: "Which style resonates with you most?",
-    options: ["Street Style", "Natural Boho", "Minimalist", "Old Money"],
-    category: "aesthetic",
-    type: "visual",
-    images: [
-      "/images/outfit-quiz/M-ST1.png",
-      "/images/outfit-quiz/M-CB1.png",
-      "/images/outfit-quiz/M-MIN1.png",
-      "/images/outfit-quiz/M-OM1.png"
-    ],
-    depends_on: { gender: "male" }
-  },
-  {
-    id: "style_preference_nonbinary",
-    question: "Which style resonates with you most?",
-    options: ["Street Style (F)", "Street Style (M)", "Cottagecore (F)", "Natural Boho (M)", "Minimalist (F)", "Minimalist (M)"],
-    category: "aesthetic",
-    type: "visual",
-    images: [
-      "/images/outfit-quiz/F-ST1.png",
-      "/images/outfit-quiz/M-ST1.png",
-      "/images/outfit-quiz/F-CB1.png",
-      "/images/outfit-quiz/M-CB1.png",
-      "/images/outfit-quiz/F-MIN1.png",
-      "/images/outfit-quiz/M-MIN1.png"
-    ],
-    depends_on: { gender: "non-binary" }
+    ]
   },
   {
     id: "outfit_style",
@@ -421,6 +358,7 @@ export default function Onboarding() {
              question.type === "color_swatches" ? "Select the color that best matches your skin tone" :
              question.type === "skin_tone_scale" ? "Select the skin tone that best matches yours" :
              question.type === "color_choice" ? "Select all colors you prefer to wear" :
+             question.type === "rgb_slider" ? "Drag the slider to select your skin tone" :
              "Choose the option that best describes you"}
           </p>
         </div>
@@ -539,6 +477,48 @@ export default function Onboarding() {
                 </div>
               );
             })}
+          </div>
+        ) : question.type === "rgb_slider" ? (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+              <div className="space-y-4">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                  <span>Lightest</span>
+                  <span>Darkest</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  defaultValue="50"
+                  className="w-full h-8 bg-gradient-to-r from-yellow-100 via-orange-200 via-pink-200 via-red-200 via-purple-200 via-blue-200 via-green-200 via-yellow-200 via-orange-300 via-red-300 via-purple-300 via-blue-300 via-green-300 via-yellow-300 via-orange-400 via-red-400 via-purple-400 via-blue-400 via-green-400 via-yellow-400 via-orange-500 via-red-500 via-purple-500 via-blue-500 via-green-500 via-yellow-500 via-orange-600 via-red-600 via-purple-600 via-blue-600 via-green-600 via-yellow-600 via-orange-700 via-red-700 via-purple-700 via-blue-700 via-green-700 via-yellow-700 via-orange-800 via-red-800 via-purple-800 via-blue-800 via-green-800 via-yellow-800 via-orange-900 via-red-900 via-purple-900 via-blue-900 via-green-900 via-yellow-900 via-orange-950 via-red-950 via-purple-950 via-blue-950 via-green-950 via-yellow-950 to-black rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: 'linear-gradient(to right, #FEF3C7, #FDE68A, #FCD34D, #F59E0B, #D97706, #B45309, #92400E, #78350F, #451A03, #1F2937)'
+                  }}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    const skinTone = `skin_tone_${value}`;
+                    handleAnswer(question.id, skinTone);
+                  }}
+                />
+                <div className="text-center">
+                  <div 
+                    className="w-16 h-16 rounded-full border-4 border-gray-300 dark:border-gray-600 mx-auto mb-2"
+                    style={{ 
+                      backgroundColor: currentAnswer?.selected_option ? 
+                        `hsl(${Math.max(0, 30 - (parseInt(currentAnswer.selected_option.split('_')[2]) || 50) * 0.3)}, ${Math.max(20, 60 - (parseInt(currentAnswer.selected_option.split('_')[2]) || 50) * 0.4)}%, ${Math.max(20, 80 - (parseInt(currentAnswer.selected_option.split('_')[2]) || 50) * 0.6)}%)` :
+                        'hsl(30, 40%, 60%)'
+                    }}
+                  />
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {currentAnswer?.selected_option ? 
+                      `Skin tone: ${currentAnswer.selected_option.split('_')[2] || 50}%` : 
+                      'Select your skin tone'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
