@@ -101,147 +101,77 @@ async def get_forgotten_gems(
                 message="Failed to fetch wardrobe; returning empty insights"
             )
         
-        # Return simple response for now to test endpoint
-        return ForgottenGemsResponse(
-            success=True,
-            data={
-                "forgottenItems": [],
-                "totalUnwornItems": len(wardrobe),
-                "potentialSavings": 0,
-                "rediscoveryOpportunities": 0,
-                "analysis_timestamp": datetime.now().isoformat()
-            },
-            message=f"Simplified analysis complete - found {len(wardrobe)} items"
-        )
-        
-        # Skip complex analytics for now - use simplified analysis
-        print(f"🔍 Forgotten Gems: Using simplified analysis without complex analytics")
-        favorites = []
-        usage_map = {}
-        
-        # Calculate current timestamp
+        # Implement basic scoring to return real forgotten items
         now = datetime.now()
-        
-        # Analyze each item
-        forgotten_items = []
-        total_unworn_items = 0
-        potential_savings = 0
-        
-        for item in wardrobe:
-            # Get usage data for this item
-            item_id = item.get('id')
-            usage_data = usage_map.get(item_id)
-            
-            # Calculate days since last worn
-            if usage_data and usage_data.last_used_timestamp:
-                try:
-                    # Handle both seconds and milliseconds timestamps
-                    if usage_data.last_used_timestamp > 1e12:  # Likely milliseconds
-                        timestamp_seconds = usage_data.last_used_timestamp / 1000.0
-                    else:
-                        timestamp_seconds = usage_data.last_used_timestamp
-                    
-                    if 946684800 <= timestamp_seconds <= 4102444800:
-                        last_worn = datetime.fromtimestamp(timestamp_seconds)
-                        days_since_worn = (now - last_worn).days
-                    else:
-                        # Invalid timestamp, treat as never worn (use 365 days as default)
-                        days_since_worn = 365
-                except (ValueError, OverflowError, OSError):
-                    # Conversion failed, treat as never worn
-                    days_since_worn = 365
-            else:
-                # No analytics data - try item's own lastWorn field as fallback
-                last_worn_timestamp = item.get('lastWorn')
-                if last_worn_timestamp:
-                    try:
-                        # Handle both seconds and milliseconds timestamps
-                        if last_worn_timestamp > 1e12:  # Likely milliseconds
-                            timestamp_seconds = last_worn_timestamp / 1000.0
-                        else:
-                            timestamp_seconds = last_worn_timestamp
-                        
-                        if 946684800 <= timestamp_seconds <= 4102444800:
-                            last_worn = datetime.fromtimestamp(timestamp_seconds)
-                            days_since_worn = (now - last_worn).days
-                        else:
-                            days_since_worn = 365
-                    except (ValueError, OverflowError, OSError):
-                        days_since_worn = 365
-                elif item.get('wearCount', 0) == 0:
-                    # Never worn - high priority for rediscovery
-                    days_since_worn = 999
-                else:
-                    # If no usage data, assume it was never worn
-                    days_since_worn = 365  # Assume 1 year
-                usage_data = None
-            
-            # Check if item meets forgotten criteria
-            if days_since_worn >= days_threshold:
-                total_unworn_items += 1
-                
-                # Calculate usage count (analytics or item wearCount)
-                if usage_data and hasattr(usage_data, 'usage_count'):
-                    usage_count = usage_data.usage_count
-                elif item.get('wearCount') is not None:
-                    usage_count = item.get('wearCount', 0)
-                else:
-                    usage_count = 0
-                
-                # Calculate favorite score (analytics or item favorite status)
-                if usage_data and hasattr(usage_data, 'total_score'):
-                    favorite_score = usage_data.total_score
-                elif item.get('isFavorite', False):
-                    favorite_score = 50.0  # Boost for favorited items
-                else:
-                    favorite_score = 0.0
-                
-                # Simple rediscovery potential calculation
-                rediscovery_potential = 50.0  # Basic score for now
-                
-                # Only include items with sufficient rediscovery potential
-                if rediscovery_potential >= min_rediscovery_potential:
-                    # Simplified data for basic functionality
-                    suggested_outfits = ["Casual outfit suggestion"]
-                    declutter_reason = None
-                    potential_savings += 10  # Basic estimate
-                    
-                    forgotten_item = ForgottenItem(
-                        id=item_id,
-                        name=item.get('name', f"{item.get('type', 'Unknown').title()} Item"),
-                        type=item.get('type', 'unknown'),
-                        imageUrl=item.get('imageUrl', "/placeholder.svg"),
-                        color=item.get('color', 'unknown'),
-                        style=item.get('style', []),
-                        lastWorn=last_worn_timestamp,
-                        daysSinceWorn=days_since_worn,
-                        usageCount=usage_count,
-                        favoriteScore=favorite_score,
-                        suggestedOutfits=suggested_outfits,
-                        declutterReason=declutter_reason,
-                        rediscoveryPotential=rediscovery_potential
-                    )
-                    
-                    forgotten_items.append(forgotten_item)
-        
-        # Sort by rediscovery potential (highest first)
-        forgotten_items.sort(key=lambda x: x.rediscoveryPotential, reverse=True)
-        
-        # Limit to top 10 items
-        forgotten_items = forgotten_items[:10]
-        
-        print(f"🔍 Forgotten Gems: Found {len(forgotten_items)} forgotten items with high rediscovery potential")
-        
+
+        def compute_days_since_worn(item_dict: Dict[str, Any]) -> int:
+            ts = item_dict.get('lastWorn')
+            if ts is None:
+                return 999 if item_dict.get('wearCount', 0) == 0 else 365
+            try:
+                seconds = ts / 1000.0 if ts > 1e12 else ts
+                if 946684800 <= seconds <= 4102444800:
+                    last = datetime.fromtimestamp(seconds)
+                    return max(0, (now - last).days)
+                return 365
+            except Exception:
+                return 365
+
+        scored: List[ForgottenItem] = []
+        total_unworn = 0
+        potential_savings = 0.0
+
+        for it in wardrobe:
+            days_since_worn = compute_days_since_worn(it)
+            if days_since_worn < days_threshold:
+                continue
+            total_unworn += 1
+            wear_count = int(it.get('wearCount', 0) or 0)
+            is_fav = bool(it.get('isFavorite', False))
+
+            # Basic rediscovery potential: 
+            # more days since worn -> higher, fewer wears -> higher, favorite -> small boost
+            score = 40.0
+            score += min(days_since_worn / 7.0, 40.0)       # up to +40 for very old items
+            score -= min(wear_count * 5.0, 25.0)            # up to -25 for commonly worn
+            if is_fav:
+                score += 5.0                                 # small nudge for favorites
+            score = max(0.0, min(100.0, score))
+
+            if score < min_rediscovery_potential:
+                continue
+
+            fi = ForgottenItem(
+                id=it.get('id', ''),
+                name=it.get('name', f"{it.get('type', 'Item').title()}"),
+                type=it.get('type', 'unknown'),
+                imageUrl=it.get('imageUrl', '/placeholder.svg'),
+                color=it.get('color', 'unknown'),
+                style=it.get('style', []) if isinstance(it.get('style', []), list) else [],
+                lastWorn=it.get('lastWorn'),
+                daysSinceWorn=days_since_worn,
+                usageCount=wear_count,
+                favoriteScore=5.0 if is_fav else 0.0,
+                suggestedOutfits=[],
+                declutterReason=None,
+                rediscoveryPotential=score,
+            )
+            scored.append(fi)
+            potential_savings += 10.0
+
+        scored.sort(key=lambda x: x.rediscoveryPotential, reverse=True)
+        scored = scored[:10]
+
         return ForgottenGemsResponse(
             success=True,
             data={
-                "forgottenItems": [item.dict() for item in forgotten_items],
-                "totalUnwornItems": total_unworn_items,
+                "forgottenItems": [s.dict() for s in scored],
+                "totalUnwornItems": total_unworn,
                 "potentialSavings": round(potential_savings, 2),
-                "rediscoveryOpportunities": len(forgotten_items),
-                "analysis_timestamp": datetime.now().isoformat()
+                "rediscoveryOpportunities": len(scored),
+                "analysis_timestamp": datetime.now().isoformat(),
             },
-            message=f"Found {len(forgotten_items)} items with rediscovery potential"
+            message=f"Found {len(scored)} forgotten items",
         )
         
     except Exception as e:
