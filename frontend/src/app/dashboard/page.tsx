@@ -377,9 +377,34 @@ export default function Dashboard() {
                       <div className="grid gap-2">
                         {dashboardData.todaysOutfit.items.map((item: any, index: number) => (
                           <div key={index} className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center">
-                              <Shirt className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                            </div>
+                            {item.imageUrl ? (
+                              <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+                                <img 
+                                  src={item.imageUrl} 
+                                  alt={item.name || 'Wardrobe item'}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    // Fallback to icon if image fails to load
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `
+                                        <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center">
+                                          <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                          </svg>
+                                        </div>
+                                      `;
+                                    }
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center flex-shrink-0">
+                                <Shirt className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                              </div>
+                            )}
                             <div className="flex-1">
                               <p className="font-medium text-gray-900 dark:text-white text-sm">
                                 {item.name || 'Wardrobe Item'}
