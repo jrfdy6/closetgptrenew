@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     // Determine if this is outfit creation (has 'items' field) or generation (has 'mood' field)
     const isCreation = requestData.items && Array.isArray(requestData.items);
     const backendEndpoint = isCreation ? '/api/outfits' : '/api/outfits/generate';
-    const backendUrl = `http://localhost:3001${backendEndpoint}`; // Temporarily use local backend for testing
+    const backendUrl = `https://closetgpt-backend-production.up.railway.app${backendEndpoint}`; // Temporarily use local backend for testing
     
     console.log(`🚀 UNIFIED: ${isCreation ? 'CREATION' : 'GENERATION'} request to:`, backendUrl);
     console.log("🔍 Request type detected:", isCreation ? "outfit creation" : "outfit generation");

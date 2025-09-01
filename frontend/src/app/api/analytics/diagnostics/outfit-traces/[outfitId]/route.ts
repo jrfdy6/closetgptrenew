@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { outfitId } = await params;
     
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app';
     const response = await authenticatedFetch(
       `${backendUrl}/analytics/diagnostics/outfit-traces/${outfitId}`,
       {

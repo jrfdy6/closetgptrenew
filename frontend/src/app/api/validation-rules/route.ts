@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'http://localhost:3001';
+  'https://closetgpt-backend-production.up.railway.app';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';

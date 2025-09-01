@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'http://localhost:3001';
+      'https://closetgpt-backend-production.up.railway.app';
     
     console.log(`🔍 Fetching forgotten gems from: ${baseUrl}/api/wardrobe/insights/forgotten-gems`);
     

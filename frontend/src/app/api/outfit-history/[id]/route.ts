@@ -28,7 +28,7 @@ export async function PATCH(
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'http://localhost:3001';
+      'https://closetgpt-backend-production.up.railway.app';
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'PATCH',
       headers: {
@@ -88,7 +88,7 @@ export async function DELETE(
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'http://localhost:3001';
+      'https://closetgpt-backend-production.up.railway.app';
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'DELETE',
       headers: {

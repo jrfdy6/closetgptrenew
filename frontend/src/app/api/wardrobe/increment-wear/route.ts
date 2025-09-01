@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app';
     const response = await fetch(`${backendUrl}/api/wardrobe/${itemId}/increment-wear`, {
       method: 'POST',
       headers: {

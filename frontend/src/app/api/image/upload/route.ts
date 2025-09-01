@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'http://localhost:3001';
+      'https://closetgpt-backend-production.up.railway.app';
 
     const response = await fetch(`${backendUrl}/api/image/upload`, {
       method: 'POST',

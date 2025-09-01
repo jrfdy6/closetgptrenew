@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app';
     
     // Get gender from URL query parameters
     const { searchParams } = new URL(request.url);

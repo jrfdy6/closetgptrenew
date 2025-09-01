@@ -4,7 +4,7 @@ const BACKEND_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.BACKEND_URL ||
-  'http://localhost:3001';
+  'https://closetgpt-backend-production.up.railway.app';
 
 export async function POST(request: NextRequest) {
   try {

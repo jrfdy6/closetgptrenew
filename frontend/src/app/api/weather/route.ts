@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     console.log("🌤️ Frontend weather API called with:", requestBody);
 
     // Forward the request to the backend server
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001'}/api/weather`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app'}/api/weather`;
     console.log("🌤️ Forwarding to backend:", backendUrl);
     
     console.log("🌤️ About to make fetch request to backend");
