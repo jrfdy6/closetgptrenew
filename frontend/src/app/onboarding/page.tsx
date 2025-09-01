@@ -174,21 +174,30 @@ export default function Onboarding() {
   useEffect(() => {
     const loadQuizQuestions = async () => {
       try {
+        console.log('🔍 DEBUG: Loading quiz questions from API...');
         const response = await fetch('/api/style-quiz/questions');
+        console.log('🔍 DEBUG: API response status:', response.status);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('🔍 DEBUG: API data received:', data);
           setQuizQuestions(data.questions || []);
         } else {
+          console.log('🔍 DEBUG: API failed, using mock questions');
           // Fallback to mock questions if backend is unavailable
           setQuizQuestions(getMockQuizQuestions());
         }
       } catch (error) {
-        console.error('Error loading quiz questions:', error);
+        console.error('🔍 DEBUG: Error loading quiz questions:', error);
         // Fallback to mock questions
         setQuizQuestions(getMockQuizQuestions());
       } finally {
         setQuestionsLoaded(true);
       }
+      
+      // TEMPORARY: Force use mock questions for testing
+      console.log('🔍 DEBUG: FORCING MOCK QUESTIONS FOR TESTING');
+      setQuizQuestions(getMockQuizQuestions());
     };
 
     if (!authLoading && user) {
@@ -205,6 +214,12 @@ export default function Onboarding() {
 
   // Memoize filtered questions to prevent flickering
   const filteredQuestions = useMemo(() => {
+    console.log('🔍 DEBUG: Filtering questions', { 
+      userGender, 
+      quizQuestionsLength: quizQuestions.length,
+      quizQuestions: quizQuestions.map(q => ({ id: q.id, depends_on: q.depends_on }))
+    });
+    
     if (!userGender || quizQuestions.length === 0) return quizQuestions;
     
     const filtered = quizQuestions.filter(question => {
@@ -217,10 +232,11 @@ export default function Onboarding() {
       return requiredGender === userGender;
     });
     
-    console.log('🔍 DEBUG: Gender filtering', { 
+    console.log('🔍 DEBUG: Gender filtering result', { 
       userGender, 
       totalQuestions: quizQuestions.length, 
       filteredQuestions: filtered.length,
+      filteredQuestionIds: filtered.map(q => q.id),
       bodyTypeQuestions: filtered.filter(q => q.id.includes('body_type')).map(q => ({ id: q.id, depends_on: q.depends_on })),
       allBodyTypeQuestions: quizQuestions.filter(q => q.id.includes('body_type')).map(q => ({ id: q.id, depends_on: q.depends_on }))
     });
