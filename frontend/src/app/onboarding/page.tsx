@@ -17,45 +17,70 @@ interface QuizQuestion {
   question: string;
   options: string[];
   category: string;
+  type?: "visual" | "color_swatches" | "text";
+  images?: string[];
+  colors?: string[];
 }
 
-const QUIZ_QUESTIONS: QuizQuestion[] = [
+// Mock quiz questions as fallback
+const getMockQuizQuestions = (): QuizQuestion[] => [
   {
     id: "movie_vibe",
-    question: "What movie vibe speaks to your soul?",
+    question: "Which movie's aesthetic speaks to you the most?",
     options: [
       "Classic Hollywood Glamour",
       "Indie Romance", 
       "Minimalist Scandinavian",
       "Urban Street Style"
     ],
-    category: "aesthetic"
+    category: "aesthetic",
+    type: "visual",
+    images: [
+      "/quiz-images/classic-hollywood.jpg",
+      "/quiz-images/indie-romance.jpg",
+      "/quiz-images/minimalist-scandi.jpg",
+      "/quiz-images/street-style.jpg"
+    ]
   },
   {
     id: "color_preference",
-    question: "Which color palette feels most like you?",
+    question: "Which color palette feels most 'you'?",
     options: [
       "Warm & Fresh",
       "Soft & Cool",
       "Rich & Deep", 
       "Earthy & Warm"
     ],
-    category: "color"
+    category: "color",
+    type: "visual",
+    images: [
+      "/quiz-images/warm-spring.jpg",
+      "/quiz-images/cool-summer.jpg",
+      "/quiz-images/deep-winter.jpg",
+      "/quiz-images/earthy-autumn.jpg"
+    ]
   },
   {
     id: "silhouette_preference",
-    question: "What fit makes you feel most confident?",
+    question: "Which silhouette do you feel most confident in?",
     options: [
       "Fitted & Structured",
       "Flowy & Relaxed",
       "Balanced & Proportional",
       "Dramatic & Statement"
     ],
-    category: "fit"
+    category: "fit",
+    type: "visual",
+    images: [
+      "/quiz-images/fitted.jpg",
+      "/quiz-images/flowy.jpg",
+      "/quiz-images/balanced.jpg",
+      "/quiz-images/dramatic.jpg"
+    ]
   },
   {
     id: "daily_activities",
-    question: "What does your typical day look like?",
+    question: "What best describes your daily activities?",
     options: [
       "Office work and meetings",
       "Creative work and casual meetings",
@@ -66,7 +91,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "style_elements",
-    question: "What style elements do you gravitate toward?",
+    question: "Which style elements do you gravitate towards?",
     options: [
       "Clean lines and minimal details",
       "Rich textures and patterns",
@@ -84,7 +109,35 @@ export default function Onboarding() {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResults, setQuizResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
   const { user, loading: authLoading } = useAuthContext();
+
+  // Load quiz questions from backend
+  useEffect(() => {
+    const loadQuizQuestions = async () => {
+      try {
+        const response = await fetch('/api/style-quiz/questions');
+        if (response.ok) {
+          const data = await response.json();
+          setQuizQuestions(data.questions || []);
+        } else {
+          // Fallback to mock questions if backend is unavailable
+          setQuizQuestions(getMockQuizQuestions());
+        }
+      } catch (error) {
+        console.error('Error loading quiz questions:', error);
+        // Fallback to mock questions
+        setQuizQuestions(getMockQuizQuestions());
+      } finally {
+        setQuestionsLoaded(true);
+      }
+    };
+
+    if (!authLoading && user) {
+      loadQuizQuestions();
+    }
+  }, [user, authLoading]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -100,7 +153,7 @@ export default function Onboarding() {
   };
 
   const nextStep = () => {
-    if (currentStep < QUIZ_QUESTIONS.length) {
+    if (currentStep < quizQuestions.length) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -112,7 +165,8 @@ export default function Onboarding() {
   };
 
   const canProceed = () => {
-    const currentQuestion = QUIZ_QUESTIONS[currentStep - 1];
+    if (quizQuestions.length === 0) return false;
+    const currentQuestion = quizQuestions[currentStep - 1];
     return answers.some(a => a.question_id === currentQuestion.id);
   };
 
@@ -179,7 +233,8 @@ export default function Onboarding() {
   };
 
   const renderQuestion = () => {
-    const question = QUIZ_QUESTIONS[currentStep - 1];
+    if (quizQuestions.length === 0) return null;
+    const question = quizQuestions[currentStep - 1];
     const currentAnswer = answers.find(a => a.question_id === question.id);
 
     return (
@@ -189,34 +244,99 @@ export default function Onboarding() {
             {question.question}
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Choose the option that best describes you
+            {question.type === "visual" ? "Click on the image that best represents your style" :
+             question.type === "color_swatches" ? "Select the color that best matches your skin tone" :
+             "Choose the option that best describes you"}
           </p>
         </div>
         
-        <div className="space-y-4">
-          {question.options.map((option) => (
-            <Button
-              key={option}
-              variant={currentAnswer?.selected_option === option ? "default" : "outline"}
-              className="w-full h-20 text-lg justify-start text-left px-6"
-              onClick={() => handleAnswer(question.id, option)}
-            >
-              {option}
-            </Button>
-          ))}
-        </div>
+        {question.type === "visual" && question.images ? (
+          <div className="grid grid-cols-2 gap-4">
+            {question.options.map((option, index) => (
+              <div
+                key={option}
+                className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                  currentAnswer?.selected_option === option
+                    ? "border-purple-600 ring-2 ring-purple-200 dark:ring-purple-800"
+                    : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                }`}
+                onClick={() => handleAnswer(question.id, option)}
+              >
+                <div className="aspect-square relative">
+                  <img
+                    src={question.images[index]}
+                    alt={option}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/images/placeholder.png";
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200" />
+                </div>
+                <div className="p-3 bg-white dark:bg-gray-800">
+                  <p className="text-sm font-medium text-center text-gray-900 dark:text-white">
+                    {option}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : question.type === "color_swatches" && question.colors ? (
+          <div className="grid grid-cols-3 gap-4">
+            {question.options.map((option, index) => (
+              <div
+                key={option}
+                className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                  currentAnswer?.selected_option === option
+                    ? "border-purple-600 ring-2 ring-purple-200 dark:ring-purple-800"
+                    : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
+                }`}
+                onClick={() => handleAnswer(question.id, option)}
+              >
+                <div className="aspect-square relative">
+                  <div 
+                    className="w-full h-full"
+                    style={{ backgroundColor: question.colors[index] }}
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200" />
+                </div>
+                <div className="p-2 bg-white dark:bg-gray-800">
+                  <p className="text-xs font-medium text-center text-gray-900 dark:text-white">
+                    {option}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {question.options.map((option) => (
+              <Button
+                key={option}
+                variant={currentAnswer?.selected_option === option ? "default" : "outline"}
+                className="w-full h-20 text-lg justify-start text-left px-6"
+                onClick={() => handleAnswer(question.id, option)}
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
 
-  // Show loading state while authenticating
-  if (authLoading) {
+  // Show loading state while authenticating or loading questions
+  if (authLoading || !questionsLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl border-0 shadow-xl text-center">
           <CardContent className="p-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Authenticating...</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              {authLoading ? 'Authenticating...' : 'Loading style quiz...'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -226,6 +346,20 @@ export default function Onboarding() {
   // Redirect if not authenticated
   if (!user) {
     return null; // Will redirect via useEffect
+  }
+
+  // Show error if no questions loaded
+  if (quizQuestions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+        <Card className="w-full max-w-2xl border-0 shadow-xl text-center">
+          <CardContent className="p-8">
+            <p className="text-red-600 dark:text-red-400 mb-4">Failed to load quiz questions</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (quizCompleted && quizResults) {
@@ -312,7 +446,7 @@ export default function Onboarding() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Style Discovery Quiz</h1>
           </div>
           <div className="flex items-center justify-center space-x-2">
-            {QUIZ_QUESTIONS.map((_, index) => (
+            {quizQuestions.map((_, index) => (
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full ${
@@ -326,7 +460,7 @@ export default function Onboarding() {
             ))}
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Question {currentStep} of {QUIZ_QUESTIONS.length}
+            Question {currentStep} of {quizQuestions.length}
           </p>
         </CardHeader>
         <CardContent>
@@ -347,7 +481,7 @@ export default function Onboarding() {
               Previous
             </Button>
             
-            {currentStep === QUIZ_QUESTIONS.length ? (
+            {currentStep === quizQuestions.length ? (
               <Button
                 onClick={submitQuiz}
                 disabled={!canProceed() || isLoading}

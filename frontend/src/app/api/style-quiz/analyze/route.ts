@@ -7,7 +7,7 @@ function calculateQuizResults(answers: any[]) {
   const bodyTypeScores: Record<string, number> = {};
   const styleScores: Record<string, number> = {};
 
-  // Quiz questions mapping (matching the frontend questions)
+  // Quiz questions mapping (matching the backend structure)
   const quizQuestions = [
     {
       id: "movie_vibe",
