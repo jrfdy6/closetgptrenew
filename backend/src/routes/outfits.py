@@ -20,7 +20,7 @@ except ImportError:
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -127,6 +127,18 @@ class OutfitResponse(BaseModel):
     createdAt: Optional[datetime] = None
     user_id: Optional[str] = None
     generated_at: Optional[str] = None
+
+    @field_validator("createdAt", mode="before")
+    @classmethod
+    def normalize_datetime(cls, v):
+        if isinstance(v, str):
+            # Fix double timezone issue: "2025-08-27T21:10:11.828353+00:00Z" → "2025-08-27T21:10:11.828353+00:00"
+            if "+00:00Z" in v:
+                v = v.replace("+00:00Z", "+00:00")
+            elif v.endswith("Z") and "+00:00" not in v:
+                # Convert "2025-08-27T21:10:11.828353Z" → "2025-08-27T21:10:11.828353+00:00"
+                v = v.replace("Z", "+00:00")
+        return v
 
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:

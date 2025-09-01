@@ -13,7 +13,7 @@ import os
 
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from ..core.logging import get_logger
 from ..config.firebase import db, firebase_initialized
@@ -105,6 +105,18 @@ class OutfitResponse(BaseModel):
     confidence_score: float
     reasoning: str
     createdAt: datetime
+
+    @field_validator("createdAt", mode="before")
+    @classmethod
+    def normalize_datetime(cls, v):
+        if isinstance(v, str):
+            # Fix double timezone issue: "2025-08-27T21:10:11.828353+00:00Z" → "2025-08-27T21:10:11.828353+00:00"
+            if "+00:00Z" in v:
+                v = v.replace("+00:00Z", "+00:00")
+            elif v.endswith("Z") and "+00:00" not in v:
+                # Convert "2025-08-27T21:10:11.828353Z" → "2025-08-27T21:10:11.828353+00:00"
+                v = v.replace("Z", "+00:00")
+        return v
 
 class OutfitFeedback(BaseModel):
     outfit_id: str

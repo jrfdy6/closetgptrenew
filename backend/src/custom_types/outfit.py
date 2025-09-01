@@ -145,6 +145,18 @@ class OutfitResponse(BaseModel):
     wearCount: Optional[int] = 0
     lastWorn: Optional[datetime] = None
 
+    @field_validator("createdAt", "updatedAt", "lastWorn", mode="before")
+    @classmethod
+    def normalize_datetime(cls, v):
+        if isinstance(v, str):
+            # Fix double timezone issue: "2025-08-27T21:10:11.828353+00:00Z" → "2025-08-27T21:10:11.828353+00:00"
+            if "+00:00Z" in v:
+                v = v.replace("+00:00Z", "+00:00")
+            elif v.endswith("Z") and "+00:00" not in v:
+                # Convert "2025-08-27T21:10:11.828353Z" → "2025-08-27T21:10:11.828353+00:00"
+                v = v.replace("Z", "+00:00")
+        return v
+
 # ===== FLEXIBLE OUTFIT MODEL FOR EXISTING DATA =====
 
 class Outfit(BaseModel):
@@ -158,6 +170,18 @@ class Outfit(BaseModel):
     user_id: str  # Use underscore to match database field
     createdAt: Optional[Union[datetime, int]] = None
     updatedAt: Optional[Union[datetime, int]] = None
+    
+    @field_validator("createdAt", "updatedAt", "lastWorn", mode="before")
+    @classmethod
+    def normalize_datetime(cls, v):
+        if isinstance(v, str):
+            # Fix double timezone issue: "2025-08-27T21:10:11.828353+00:00Z" → "2025-08-27T21:10:11.828353+00:00"
+            if "+00:00Z" in v:
+                v = v.replace("+00:00Z", "+00:00")
+            elif v.endswith("Z") and "+00:00" not in v:
+                # Convert "2025-08-27T21:10:11.828353Z" → "2025-08-27T21:10:11.828353+00:00"
+                v = v.replace("Z", "+00:00")
+        return v
     
     # Additional fields that exist in the actual data
     description: Optional[str] = None
