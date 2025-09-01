@@ -450,18 +450,24 @@ async def get_todays_outfit(
         start_timestamp = int(start_of_day.timestamp() * 1000)
         end_timestamp = int(end_of_day.timestamp() * 1000)
         
+        logger.info(f"Querying outfit history for today: {start_timestamp} to {end_timestamp}")
+        
+        # Check if firebase is available
+        if not db:
+            logger.warning("Firebase not available, returning empty today's outfit")
+            return {
+                "success": True,
+                "todaysOutfit": None,
+                "hasOutfitToday": False,
+                "message": "Database not available"
+            }
+        
         # Query outfit history for today
         query = db.collection('outfit_history').where('user_id', '==', current_user.id)
         query = query.where('date_worn', '>=', start_timestamp)
         query = query.where('date_worn', '<=', end_timestamp)
         
-        # Order by most recent first
-        try:
-            query = query.order_by('date_worn', direction=db.Query.DESCENDING)
-        except Exception as e:
-            logger.warning(f"Could not order by date_worn: {e}")
-        
-        # Execute query
+        # Execute query (simplified without ordering to avoid import issues)
         docs = query.stream()
         
         todays_outfits = []
