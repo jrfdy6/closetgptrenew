@@ -156,18 +156,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: ["Clean lines and minimal details", "Rich textures and patterns", "Classic and timeless pieces", "Bold and statement pieces"],
     category: "style"
   },
-  {
-    id: "color_preferences",
-    question: "Which colors do you prefer to wear? (Select all that apply)",
-    options: ["Black", "White", "Navy", "Gray", "Charcoal", "Brown", "Beige", "Cream", "Red", "Blue", "Olive", "Terracotta", "Pink", "Lavender", "Mint", "Peach", "Sky Blue", "Burgundy", "Emerald", "Camel"],
-    category: "color_preferences"
-  },
-  {
-    id: "style_preferences",
-    question: "Which style categories interest you most? (Select all that apply)",
-    options: ["Streetwear", "Cottagecore", "Minimalist", "Old Money", "Bohemian", "Dark Academia", "Grunge", "Y2K", "Romantic", "Preppy", "Athletic/Sporty", "Vintage"],
-    category: "style_preferences"
-  }
+
 ];
 
 export default function Onboarding() {
