@@ -639,17 +639,59 @@ async def get_todays_outfit_suggestion(
             except Exception as generation_error:
                 logger.error(f"Failed to generate outfit suggestion: {generation_error}")
                 
-                # Create a simple fallback outfit
-                fallback_outfit = {
-                    "name": "Today's Casual Look",
-                    "occasion": "casual",
-                    "style": "comfortable",
-                    "mood": "confident",
-                    "description": "A simple, comfortable outfit for your day",
-                    "items": [],  # Empty items list - will show basic info
-                    "imageUrl": "",
-                    "weather": {}
-                }
+                # Create a simple fallback outfit with actual wardrobe items
+                logger.info("Creating fallback outfit with user's wardrobe items")
+                
+                # Get user's wardrobe items for fallback
+                from ..routes.outfits import get_user_wardrobe
+                try:
+                    wardrobe_items = await get_user_wardrobe(current_user.id)
+                    logger.info(f"Retrieved {len(wardrobe_items)} wardrobe items for fallback")
+                    
+                    # Simple fallback logic: pick basic items
+                    selected_items = []
+                    categories_needed = ['tops', 'bottoms']  # Basic outfit needs
+                    
+                    for category in categories_needed:
+                        # Find items in this category
+                        category_items = [item for item in wardrobe_items if item.get('type', '').lower() in [category[:-1], category]]  # 'top'/'tops', 'bottom'/'bottoms'
+                        if category_items:
+                            # Pick the first suitable item
+                            selected_items.append(category_items[0])
+                            logger.info(f"Selected {category_items[0].get('name', 'Unknown')} for {category}")
+                    
+                    # Add a jacket/outerwear if available
+                    outerwear = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'outerwear', 'blazer', 'cardigan']]
+                    if outerwear:
+                        selected_items.append(outerwear[0])
+                        logger.info(f"Added outerwear: {outerwear[0].get('name', 'Unknown')}")
+                    
+                    fallback_outfit = {
+                        "name": "Today's Casual Look",
+                        "occasion": "casual",
+                        "style": "comfortable",
+                        "mood": "confident",
+                        "description": "A simple, comfortable outfit for your day",
+                        "items": selected_items,  # Actual wardrobe items
+                        "imageUrl": "",
+                        "weather": {}
+                    }
+                    
+                    logger.info(f"Created fallback outfit with {len(selected_items)} items")
+                    
+                except Exception as wardrobe_error:
+                    logger.error(f"Failed to get wardrobe items for fallback: {wardrobe_error}")
+                    # Ultimate fallback with empty items
+                    fallback_outfit = {
+                        "name": "Today's Casual Look",
+                        "occasion": "casual",
+                        "style": "comfortable",
+                        "mood": "confident",
+                        "description": "A simple, comfortable outfit for your day",
+                        "items": [],
+                        "imageUrl": "",
+                        "weather": {}
+                    }
                 
                 # Save fallback suggestion to cache
                 try:

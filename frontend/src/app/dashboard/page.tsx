@@ -323,50 +323,81 @@ export default function Dashboard() {
                   </Badge>
                 </div>
                 
-                <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-blue-100 dark:from-emerald-900 dark:to-blue-900 rounded-lg flex items-center justify-center">
-                    <Shirt className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 dark:text-white text-lg">
-                      {dashboardData.todaysOutfit.outfitName}
-                    </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Mood: {dashboardData.todaysOutfit.mood}
-                    </p>
-                    {dashboardData.todaysOutfit.weather && (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-blue-100 dark:from-emerald-900 dark:to-blue-900 rounded-lg flex items-center justify-center">
+                      <Shirt className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-white text-lg">
+                        {dashboardData.todaysOutfit.outfitName}
+                      </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
+                        Mood: {dashboardData.todaysOutfit.mood}
                       </p>
-                    )}
+                      {dashboardData.todaysOutfit.weather && dashboardData.todaysOutfit.weather.condition && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      {dashboardData.todaysOutfit.isSuggestion && !dashboardData.todaysOutfit.isWorn ? (
+                        <Button 
+                          onClick={handleMarkAsWorn}
+                          disabled={markingAsWorn}
+                          className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white"
+                          size="sm"
+                        >
+                          {markingAsWorn ? (
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                          )}
+                          {markingAsWorn ? 'Marking...' : 'Wear This'}
+                        </Button>
+                      ) : dashboardData.todaysOutfit.isWorn ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Worn Today
+                        </Badge>
+                      ) : (
+                        <Button variant="outline" size="sm">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          View Details
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    {dashboardData.todaysOutfit.isSuggestion && !dashboardData.todaysOutfit.isWorn ? (
-                      <Button 
-                        onClick={handleMarkAsWorn}
-                        disabled={markingAsWorn}
-                        className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white"
-                        size="sm"
-                      >
-                        {markingAsWorn ? (
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                        )}
-                        {markingAsWorn ? 'Marking...' : 'Wear This'}
-                      </Button>
-                    ) : dashboardData.todaysOutfit.isWorn ? (
-                      <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Worn Today
-                      </Badge>
-                    ) : (
-                      <Button variant="outline" size="sm">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        View Details
-                      </Button>
-                    )}
-                  </div>
+
+                  {/* Outfit Items */}
+                  {dashboardData.todaysOutfit.items && dashboardData.todaysOutfit.items.length > 0 && (
+                    <div className="space-y-3">
+                      <h5 className="font-medium text-gray-900 dark:text-white text-sm">Outfit Items:</h5>
+                      <div className="grid gap-2">
+                        {dashboardData.todaysOutfit.items.map((item: any, index: number) => (
+                          <div key={index} className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center">
+                              <Shirt className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 dark:text-white text-sm">
+                                {item.name || 'Wardrobe Item'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {item.type || 'clothing'} {item.color && `• ${item.color}`}
+                              </p>
+                            </div>
+                            {item.brand && (
+                              <Badge variant="outline" className="text-xs">
+                                {item.brand}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {dashboardData.todaysOutfit.notes && (
