@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       'http://localhost:3001';
     
-    console.log(`🔍 Fetching forgotten gems from: ${baseUrl}/api/wardrobe/forgotten-gems`);
+    console.log(`🔍 Fetching forgotten gems from: ${baseUrl}/api/wardrobe/insights/forgotten-gems`);
     
-    const response = await fetch(`${baseUrl}/api/wardrobe/forgotten-gems?days_threshold=${daysThreshold}&min_rediscovery_potential=${minRediscoveryPotential}`, {
+    const response = await fetch(`${baseUrl}/api/wardrobe/insights/forgotten-gems?days_threshold=${daysThreshold}&min_rediscovery_potential=${minRediscoveryPotential}`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
