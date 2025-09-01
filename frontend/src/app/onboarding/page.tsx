@@ -25,57 +25,57 @@ interface QuizQuestion {
 // Mock quiz questions as fallback
 const getMockQuizQuestions = (): QuizQuestion[] => [
   {
-    id: "movie_vibe",
-    question: "Which movie's aesthetic speaks to you the most?",
+    id: "style_preference",
+    question: "Which style resonates with you most?",
     options: [
-      "Classic Hollywood Glamour",
-      "Indie Romance", 
-      "Minimalist Scandinavian",
-      "Urban Street Style"
+      "Street Style",
+      "Cottagecore", 
+      "Coastal Chic",
+      "Dark Academia"
     ],
     category: "aesthetic",
     type: "visual",
     images: [
-      "/quiz-images/classic-hollywood.jpg",
-      "/quiz-images/indie-romance.jpg",
-      "/quiz-images/minimalist-scandi.jpg",
-      "/quiz-images/street-style.jpg"
+      "/images/styles/street.jpeg",
+      "/images/outfit-quiz/cottagecore_floral_dress.jpg",
+      "/images/styles/coastal.jpeg",
+      "/images/styles/darkacad.jpeg"
     ]
   },
   {
-    id: "color_preference",
-    question: "Which color palette feels most 'you'?",
+    id: "outfit_style",
+    question: "Which outfit style appeals to you most?",
     options: [
-      "Warm & Fresh",
-      "Soft & Cool",
-      "Rich & Deep", 
-      "Earthy & Warm"
+      "Streetwear",
+      "Bohemian",
+      "Coastal Chic", 
+      "Old Money"
     ],
-    category: "color",
+    category: "style",
     type: "visual",
     images: [
-      "/quiz-images/warm-spring.jpg",
-      "/quiz-images/cool-summer.jpg",
-      "/quiz-images/deep-winter.jpg",
-      "/quiz-images/earthy-autumn.jpg"
+      "/images/outfit-quiz/streetwear_oversized_hoodie.jpg",
+      "/images/outfit-quiz/boho_flowy_dress.jpg",
+      "/images/outfit-quiz/coastal_chic_linen_set.jpg",
+      "/images/outfit-quiz/old_money_tweed_suit.jpg"
     ]
   },
   {
-    id: "silhouette_preference",
-    question: "Which silhouette do you feel most confident in?",
+    id: "fashion_style",
+    question: "Which fashion style speaks to you?",
     options: [
-      "Fitted & Structured",
-      "Flowy & Relaxed",
-      "Balanced & Proportional",
-      "Dramatic & Statement"
+      "Minimalist",
+      "Grunge",
+      "Y2K",
+      "Romantic"
     ],
-    category: "fit",
+    category: "aesthetic",
     type: "visual",
     images: [
-      "/quiz-images/fitted.jpg",
-      "/quiz-images/flowy.jpg",
-      "/quiz-images/balanced.jpg",
-      "/quiz-images/dramatic.jpg"
+      "/images/outfit-quiz/minimalist_clean_blazer.jpg",
+      "/images/outfit-quiz/grunge_flannel_combat.jpg",
+      "/images/outfit-quiz/y2k_crop_top_set.jpg",
+      "/images/outfit-quiz/romantic_lace_blouse.jpg"
     ]
   },
   {

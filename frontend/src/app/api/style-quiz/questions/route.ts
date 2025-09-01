@@ -3,22 +3,22 @@ import { NextResponse } from 'next/server';
 // Mock quiz questions that match the backend structure
 const MOCK_QUIZ_QUESTIONS = [
   {
-    id: "movie_vibe",
-    question: "Which movie's aesthetic speaks to you the most?",
+    id: "style_preference",
+    question: "Which style resonates with you most?",
     type: "image_choice",
     options: [
       {
-        image: "classic_hollywood.jpg",
-        text: "Classic Hollywood Glamour",
+        image: "street.jpeg",
+        text: "Street Style",
         scores: {
-          classic: 0.8,
-          sophisticated: 0.6,
-          romantic: 0.4
+          streetwear: 0.8,
+          edgy: 0.6,
+          athletic: 0.4
         }
       },
       {
-        image: "indie_romance.jpg",
-        text: "Indie Romance",
+        image: "cottagecore_floral_dress.jpg",
+        text: "Cottagecore",
         scores: {
           romantic: 0.8,
           bohemian: 0.6,
@@ -26,8 +26,8 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "minimalist_scandi.jpg",
-        text: "Minimalist Scandinavian",
+        image: "coastal.jpeg",
+        text: "Coastal Chic",
         scores: {
           minimalist: 0.9,
           sophisticated: 0.5,
@@ -35,96 +35,104 @@ const MOCK_QUIZ_QUESTIONS = [
         }
       },
       {
-        image: "street_style.jpg",
-        text: "Urban Street Style",
+        image: "darkacad.jpeg",
+        text: "Dark Academia",
         scores: {
-          streetwear: 0.8,
-          edgy: 0.6,
-          athletic: 0.4
+          classic: 0.8,
+          sophisticated: 0.6,
+          romantic: 0.4
         }
       }
     ],
     category: "aesthetic"
   },
   {
-    id: "color_preference",
-    question: "Which color palette feels most 'you'?",
+    id: "outfit_style",
+    question: "Which outfit style appeals to you most?",
     type: "image_choice",
     options: [
       {
-        image: "warm_spring.jpg",
-        text: "Warm & Fresh",
+        image: "streetwear_oversized_hoodie.jpg",
+        text: "Streetwear",
         scores: {
-          warm_spring: 0.9,
-          warm_autumn: 0.7
+          streetwear: 0.9,
+          edgy: 0.7,
+          athletic: 0.5
         }
       },
       {
-        image: "cool_summer.jpg",
-        text: "Soft & Cool",
+        image: "boho_flowy_dress.jpg",
+        text: "Bohemian",
         scores: {
-          cool_summer: 0.9,
-          cool_spring: 0.7
+          bohemian: 0.9,
+          romantic: 0.7,
+          vintage: 0.5
         }
       },
       {
-        image: "deep_winter.jpg",
-        text: "Rich & Deep",
+        image: "coastal_chic_linen_set.jpg",
+        text: "Coastal Chic",
         scores: {
-          cool_winter: 0.9,
-          warm_winter: 0.7
+          minimalist: 0.9,
+          sophisticated: 0.7,
+          comfortable: 0.5
         }
       },
       {
-        image: "earthy_autumn.jpg",
-        text: "Earthy & Warm",
+        image: "old_money_tweed_suit.jpg",
+        text: "Old Money",
         scores: {
-          warm_autumn: 0.9,
-          cool_autumn: 0.7
+          classic: 0.9,
+          sophisticated: 0.7,
+          preppy: 0.5
         }
       }
     ],
-    category: "color"
+    category: "style"
   },
   {
-    id: "silhouette_preference",
-    question: "Which silhouette do you feel most confident in?",
+    id: "fashion_style",
+    question: "Which fashion style speaks to you?",
     type: "image_choice",
     options: [
       {
-        image: "fitted.jpg",
-        text: "Fitted & Structured",
+        image: "minimal_clean_blazer.jpg",
+        text: "Minimalist",
         scores: {
-          hourglass: 0.8,
-          rectangle: 0.6
+          minimalist: 0.9,
+          sophisticated: 0.7,
+          comfortable: 0.5
         }
       },
       {
-        image: "flowy.jpg",
-        text: "Flowy & Relaxed",
+        image: "grunge_flannel_combat.jpg",
+        text: "Grunge",
         scores: {
-          pear: 0.8,
-          apple: 0.6
+          edgy: 0.9,
+          streetwear: 0.7,
+          vintage: 0.5
         }
       },
       {
-        image: "balanced.jpg",
-        text: "Balanced & Proportional",
+        image: "y2k_crop_top_set.jpg",
+        text: "Y2K",
         scores: {
-          rectangle: 0.8,
-          hourglass: 0.6
+          edgy: 0.9,
+          streetwear: 0.7,
+          athletic: 0.5
         }
       },
       {
-        image: "dramatic.jpg",
-        text: "Dramatic & Statement",
+        image: "romantic_lace_blouse.jpg",
+        text: "Romantic",
         scores: {
-          inverted_triangle: 0.8,
-          triangle: 0.6
+          romantic: 0.9,
+          bohemian: 0.7,
+          vintage: 0.5
         }
       }
     ],
-    category: "fit"
+    category: "aesthetic"
   },
   {
     id: "daily_activities",
@@ -216,7 +224,14 @@ export async function GET() {
       type: question.type === "image_choice" ? "visual" : "text",
       options: question.options.map(option => option.text),
       images: question.type === "image_choice" 
-        ? question.options.map(option => `/quiz-images/${option.image}`)
+        ? question.options.map(option => {
+            // Use the correct directory based on image type
+            if (option.image.includes('_')) {
+              return `/images/outfit-quiz/${option.image}`;
+            } else {
+              return `/images/styles/${option.image}`;
+            }
+          })
         : undefined
     }));
 
