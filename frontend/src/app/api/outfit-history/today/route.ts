@@ -25,10 +25,13 @@ export async function GET(req: NextRequest) {
       const errorText = await res.text().catch(() => 'Unable to read error');
       console.error('❌ Backend error details:', errorText);
       
+      // Return graceful fallback for today's outfit instead of propagating error
       return NextResponse.json({ 
-        error: `Backend error: ${res.status} ${res.statusText}`, 
-        details: errorText
-      }, { status: res.status });
+        success: true,
+        todaysOutfit: null,
+        hasOutfitToday: false,
+        message: `Backend temporarily unavailable (${res.status})`
+      }, { status: 200 });
     }
 
     const data = await res.json();

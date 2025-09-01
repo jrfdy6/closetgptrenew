@@ -467,30 +467,45 @@ async def get_todays_outfit(
         query = query.where('date_worn', '>=', start_timestamp)
         query = query.where('date_worn', '<=', end_timestamp)
         
-        # Execute query (simplified without ordering to avoid import issues)
-        docs = query.stream()
-        
+        # Execute query with enhanced error handling
         todays_outfits = []
-        for doc in docs:
-            data = doc.to_dict()
-            todays_outfits.append({
-                "id": doc.id,
-                "outfitId": data.get('outfit_id'),
-                "outfitName": data.get('outfit_name', 'Today\'s Outfit'),
-                "outfitImage": data.get('outfit_image', ''),
-                "dateWorn": data.get('date_worn'),
-                "weather": data.get('weather', {
-                    "temperature": 0,
-                    "condition": "Unknown",
-                    "humidity": 0
-                }),
-                "occasion": data.get('occasion', 'Casual'),
-                "mood": data.get('mood', 'Comfortable'),
-                "notes": data.get('notes', ''),
-                "tags": data.get('tags', []),
-                "createdAt": data.get('created_at'),
-                "updatedAt": data.get('updated_at')
-            })
+        try:
+            docs = query.stream()
+            
+            for doc in docs:
+                try:
+                    data = doc.to_dict()
+                    todays_outfits.append({
+                        "id": doc.id,
+                        "outfitId": data.get('outfit_id'),
+                        "outfitName": data.get('outfit_name', 'Today\'s Outfit'),
+                        "outfitImage": data.get('outfit_image', ''),
+                        "dateWorn": data.get('date_worn'),
+                        "weather": data.get('weather', {
+                            "temperature": 0,
+                            "condition": "Unknown",
+                            "humidity": 0
+                        }),
+                        "occasion": data.get('occasion', 'Casual'),
+                        "mood": data.get('mood', 'Comfortable'),
+                        "notes": data.get('notes', ''),
+                        "tags": data.get('tags', []),
+                        "createdAt": data.get('created_at'),
+                        "updatedAt": data.get('updated_at')
+                    })
+                except Exception as doc_error:
+                    logger.warning(f"Error processing outfit history document {doc.id}: {doc_error}")
+                    continue
+                    
+        except Exception as query_error:
+            logger.error(f"Error executing outfit history query: {query_error}")
+            # Return empty result gracefully
+            return {
+                "success": True,
+                "todaysOutfit": None,
+                "hasOutfitToday": False,
+                "message": "Could not retrieve today's outfit data"
+            }
         
         logger.info(f"Retrieved {len(todays_outfits)} today's outfits for user {current_user.id}")
         
