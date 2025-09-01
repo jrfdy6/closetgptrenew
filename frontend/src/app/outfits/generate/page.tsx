@@ -60,9 +60,63 @@ interface OutfitRating {
 export default function OutfitGenerationPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
+  const [baseItem, setBaseItem] = useState<any>(null);
+  const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
+  const [wardrobeLoading, setWardrobeLoading] = useState(false);
+  
+  // Extract base item from URL query parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const baseItemParam = urlParams.get('baseItem');
+    if (baseItemParam) {
+      try {
+        const decodedItem = JSON.parse(decodeURIComponent(baseItemParam));
+        setBaseItem(decodedItem);
+        console.log('🔍 Base item loaded from URL:', decodedItem);
+      } catch (error) {
+        console.error('🔍 Error parsing base item from URL:', error);
+      }
+    }
+  }, []);
+
+  // Fetch wardrobe items
+  const fetchWardrobeItems = async () => {
+    if (!user) return;
+    
+    try {
+      setWardrobeLoading(true);
+      const token = await user.getIdToken();
+      const response = await fetch('/api/wardrobe', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Handle the wardrobe API response structure
+        const items = data.items || data;
+        setWardrobeItems(items);
+        console.log('🔍 Wardrobe items loaded:', items.length);
+      } else {
+        console.error('🔍 Failed to fetch wardrobe items:', response.status);
+      }
+    } catch (error) {
+      console.error('🔍 Error fetching wardrobe items:', error);
+    } finally {
+      setWardrobeLoading(false);
+    }
+  };
+
+  // Fetch wardrobe items when user is available
+  useEffect(() => {
+    if (user) {
+      fetchWardrobeItems();
+    }
+  }, [user]);
   
   // Backend API base URL
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+  const API_BASE = 'http://localhost:3001'; // Temporarily use local backend for testing
   const [formData, setFormData] = useState<OutfitGenerationForm>({
     occasion: '',
     style: '',
@@ -246,13 +300,53 @@ export default function OutfitGenerationPage() {
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
       
+      // Prepare request data with all required fields
+      const requestData = {
+        occasion: formData.occasion,
+        style: formData.style,
+        mood: formData.mood,
+        weather: {
+          temperature: 20, // Default temperature
+          condition: formData.weather || "Sunny",
+          location: "Default"
+        },
+        wardrobe: Array.isArray(wardrobeItems) ? wardrobeItems : (wardrobeItems as any)?.items || [],
+        user_profile: {
+          id: user.uid,
+          name: user.displayName || "User",
+          email: user.email || "",
+          gender: userProfile?.gender || "male",
+          age: userProfile?.age || 25,
+          style_preferences: userProfile?.style_preferences || [],
+          size_preferences: userProfile?.size_preferences || [],
+          color_preferences: userProfile?.color_preferences || []
+        },
+        likedOutfits: [],
+        trendingStyles: [],
+        ...(baseItem && { baseItem: baseItem })
+      };
+      
+      console.log('🔍 DEBUG: Request data being sent:', {
+        occasion: requestData.occasion,
+        style: requestData.style,
+        mood: requestData.mood,
+        wardrobeCount: requestData.wardrobe?.length,
+        wardrobeType: typeof requestData.wardrobe,
+        wardrobeKeys: requestData.wardrobe ? Object.keys(requestData.wardrobe) : null,
+        baseItem: baseItem ? {
+          id: baseItem.id,
+          name: baseItem.name,
+          type: baseItem.type
+        } : null
+      });
+      
       const response = await fetch('/api/outfits', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestData),
       });
       
       if (!response.ok) {
@@ -668,6 +762,48 @@ export default function OutfitGenerationPage() {
           </div>
         </div>
 
+        {/* Base Item Indicator */}
+        {baseItem && (
+          <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+                  <img
+                    src={baseItem.imageUrl}
+                    alt={baseItem.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder.jpg';
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    Generating outfit with: {baseItem.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    This item will be included as the base layer in your outfit
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setBaseItem(null);
+                    // Remove base item from URL
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('baseItem');
+                    window.history.replaceState({}, '', url.toString());
+                  }}
+                >
+                  Remove
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Generation Form */}
           <Card>
@@ -767,7 +903,7 @@ export default function OutfitGenerationPage() {
 
               <Button 
                 onClick={handleGenerateOutfit} 
-                disabled={generating || !formData.occasion || !formData.style || !formData.mood}
+                disabled={generating || wardrobeLoading || !formData.occasion || !formData.style || !formData.mood}
                 className="w-full"
                 size="lg"
               >
@@ -775,6 +911,11 @@ export default function OutfitGenerationPage() {
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                     Generating Outfit...
+                  </>
+                ) : wardrobeLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Loading Wardrobe...
                   </>
                 ) : (
                   <>

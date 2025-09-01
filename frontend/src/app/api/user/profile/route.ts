@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     }
     
     // Call the real backend API
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'http://localhost:3001'; // Temporarily use local backend for testing
     const profileUrl = `${backendUrl}/api/auth/profile`;
     console.log('🔍 DEBUG: Calling backend URL:', profileUrl);
     

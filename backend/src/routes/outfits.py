@@ -104,6 +104,7 @@ class OutfitRequest(BaseModel):
     mood: str
     occasion: str
     description: Optional[str] = None
+    baseItem: Optional[Dict[str, Any]] = None
 
 class CreateOutfitRequest(BaseModel):
     """Request model for outfit creation."""
@@ -221,7 +222,7 @@ async def validate_style_gender_compatibility(style: str, user_gender: str) -> D
             "suggested_alternatives": []
         }
 
-async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[Dict]:
+async def validate_outfit_composition(items: List[Dict], occasion: str, base_item: Optional[Dict] = None) -> List[Dict]:
     """Validate and ensure outfit has required components."""
     logger.info(f"🔍 DEBUG: Validating outfit composition for {occasion} occasion")
     
@@ -269,12 +270,40 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
     # Build validated outfit with required categories
     validated_outfit = []
     
+    # ENHANCED: Ensure base item is included if provided
+    if base_item:
+        base_item_id = base_item.get('id')
+        logger.info(f"🎯 DEBUG: Ensuring base item is included: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
+        
+        # Find the base item in the categorized items
+        base_item_found = False
+        for category, category_items in categorized_items.items():
+            for item in category_items:
+                if item.get('id') == base_item_id:
+                    # Remove the base item from its category to avoid duplication
+                    category_items.remove(item)
+                    # Add the base item to the beginning of validated_outfit
+                    validated_outfit.insert(0, item)
+                    logger.info(f"🎯 DEBUG: Added base item to validated outfit: {item.get('name', 'unnamed')}")
+                    base_item_found = True
+                    break
+            if base_item_found:
+                break
+        
+        if not base_item_found:
+            logger.warning(f"⚠️ DEBUG: Base item not found in categorized items")
+    
     # ENHANCED: Smart initial selection to ensure category diversity
     for category in required:
         if category in categorized_items and categorized_items[category]:
-            # Take the first item from this category
-            validated_outfit.append(categorized_items[category][0])
-            logger.info(f"🔍 DEBUG: Added {category} item: {categorized_items[category][0].get('name', 'unnamed')}")
+            # Check if we already have an item from this category (e.g., from base item)
+            existing_categories = [get_item_category(item.get('type', '')) for item in validated_outfit]
+            if category not in existing_categories:
+                # Take the first item from this category
+                validated_outfit.append(categorized_items[category][0])
+                logger.info(f"🔍 DEBUG: Added {category} item: {categorized_items[category][0].get('name', 'unnamed')}")
+            else:
+                logger.info(f"🔍 DEBUG: Skipping {category} - already have item from this category")
     
     # ENHANCED: If we're missing required categories, try to find alternatives
     if len(validated_outfit) < len(required):
@@ -393,6 +422,30 @@ async def validate_outfit_composition(items: List[Dict], occasion: str) -> List[
     
     logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items (duplicates removed)")
     
+    # ENHANCED: Prevent shirt-on-shirt combinations
+    shirt_types = ['t-shirt', 'polo', 'shirt', 'blouse', 'dress shirt', 'button up', 'button-up', 'oxford', 'dress-shirt']
+    shirt_items = [item for item in final_outfit if any(shirt_type in item.get('type', '').lower() for shirt_type in shirt_types)]
+    if len(shirt_items) > 1:
+        logger.warning(f"🔍 DEBUG: Multiple shirt items detected, removing duplicates: {[item.get('name', 'unnamed') for item in shirt_items]}")
+        # Keep only the first shirt item (usually the base item)
+        shirt_to_keep = shirt_items[0]
+        final_outfit = [item for item in final_outfit if item.get('id') == shirt_to_keep.get('id') or not any(shirt_type in item.get('type', '').lower() for shirt_type in shirt_types)]
+        logger.info(f"🔍 DEBUG: Kept shirt item: {shirt_to_keep.get('name', 'unnamed')}")
+    
+    # ENHANCED: Prevent flip-flops/slides with formal wear
+    formal_items = ['blazer', 'suit', 'suit jacket', 'sport coat', 'jacket']
+    casual_shoes = ['flip-flops', 'flip flops', 'slides', 'sandals', 'thongs']
+    
+    outfit_types = [item.get('type', '').lower() for item in final_outfit]
+    has_formal_item = any(formal_type in outfit_type for formal_type in formal_items for outfit_type in outfit_types)
+    has_casual_shoes = any(casual_shoe in outfit_type for casual_shoe in casual_shoes for outfit_type in outfit_types)
+    
+    if has_formal_item and has_casual_shoes:
+        logger.warning(f"🔍 DEBUG: Formal-casual shoe mismatch detected, removing casual shoes")
+        # Remove casual shoes when formal items are present
+        final_outfit = [item for item in final_outfit if not any(casual_shoe in item.get('type', '').lower() for casual_shoe in casual_shoes)]
+        logger.info(f"🔍 DEBUG: Removed casual shoes due to formal wear")
+    
     return final_outfit
 
 async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str, Any]:
@@ -439,6 +492,24 @@ async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str,
     heavy_items = [item for item in layer_items if item.get('type', '').lower() in ['sweater', 'jacket', 'coat']]
     if len(heavy_items) > 2:
         warnings.append(f"Too many heavy layering items: {len(heavy_items)}")
+    
+    # ENHANCED: Prevent shirt-on-shirt combinations
+    shirt_types = ['t-shirt', 'polo', 'shirt', 'blouse', 'dress shirt', 'button up', 'button-up', 'oxford', 'dress-shirt']
+    shirt_count = sum(1 for layer_type in layer_types if any(shirt_type in layer_type for shirt_type in shirt_types))
+    if shirt_count > 1:
+        warnings.append(f"Multiple shirt types detected ({shirt_count}): Avoid layering shirts on shirts")
+        logger.warning(f"🔍 DEBUG: Shirt-on-shirt combination detected: {layer_types}")
+    
+    # ENHANCED: Prevent flip-flops/slides with formal wear
+    formal_items = ['blazer', 'suit', 'suit jacket', 'sport coat', 'jacket']
+    casual_shoes = ['flip-flops', 'flip flops', 'slides', 'sandals', 'thongs']
+    
+    has_formal_item = any(formal_type in layer_type for formal_type in formal_items for layer_type in layer_types)
+    has_casual_shoes = any(casual_shoe in layer_type for casual_shoe in casual_shoes for layer_type in layer_types)
+    
+    if has_formal_item and has_casual_shoes:
+        warnings.append("Flip-flops/slides should not be worn with blazers or suits")
+        logger.warning(f"🔍 DEBUG: Formal-casual shoe mismatch detected: formal={formal_items}, casual_shoes={casual_shoes}")
     
     logger.info(f"🔍 DEBUG: Layering validation complete: {len(warnings)} warnings")
     
@@ -1259,8 +1330,11 @@ async def calculate_wardrobe_diversity_bonus(item_id: str, user_id: str) -> floa
 def is_layer_item(item_type: str) -> bool:
     """Check if item type is a layering item."""
     item_type_lower = item_type.lower()
-    layer_types = ["shirt", "t-shirt", "blouse", "sweater", "jacket", "coat", "blazer", "cardigan", "hoodie"]
-    return item_type_lower in layer_types
+    layer_types = [
+        "shirt", "t-shirt", "blouse", "sweater", "jacket", "coat", "blazer", "cardigan", "hoodie",
+        "dress shirt", "button up", "button-up", "oxford", "dress-shirt", "polo"
+    ]
+    return any(layer_type in item_type_lower for layer_type in layer_types)
 
 def get_item_category(item_type: str) -> str:
     """Categorize item type into outfit categories."""
@@ -1562,6 +1636,30 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         
         logger.info(f"🔍 DEBUG: Found {len(suitable_items)} suitable items")
         
+        # ENHANCED: Prioritize base item if provided
+        if req.baseItem:
+            base_item_id = req.baseItem.get('id')
+            logger.info(f"🎯 DEBUG: Base item provided: {req.baseItem.get('name', 'unnamed')} (ID: {base_item_id})")
+            
+            # Find the base item in the wardrobe
+            base_item = None
+            for item in wardrobe_items:
+                if item.get('id') == base_item_id:
+                    base_item = item
+                    break
+            
+            if base_item:
+                logger.info(f"🎯 DEBUG: Found base item in wardrobe: {base_item.get('name', 'unnamed')}")
+                # Remove base item from suitable_items if it's there to avoid duplication
+                suitable_items = [item for item in suitable_items if item.get('id') != base_item_id]
+                # Add base item to the beginning of suitable_items
+                suitable_items.insert(0, base_item)
+                logger.info(f"🎯 DEBUG: Prioritized base item in selection")
+            else:
+                logger.warning(f"⚠️ DEBUG: Base item not found in wardrobe")
+        else:
+            logger.info(f"🔍 DEBUG: No base item provided")
+        
         # ENHANCED: Add randomization to prevent same outfit generation
         import random
         import time
@@ -1584,7 +1682,7 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         logger.info(f"🔍 DEBUG: Randomized suitable items order with seed")
         
         # Validate and ensure complete outfit composition
-        validated_items = await validate_outfit_composition(suitable_items, req.occasion)
+        validated_items = await validate_outfit_composition(suitable_items, req.occasion, req.baseItem)
         logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
         
         # Apply layering validation rules

@@ -109,21 +109,34 @@ export function useWardrobe() {
   // Toggle favorite
   const toggleFavorite = useCallback(async (id: string) => {
     try {
+      console.log(`🔍 [useWardrobe] Starting toggle favorite for item ${id}`);
+      
       const currentItem = items.find(item => item.id === id);
-      if (!currentItem) return;
+      if (!currentItem) {
+        console.error(`🔍 [useWardrobe] Item ${id} not found in current items`);
+        return;
+      }
       
       const newFavoriteValue = !currentItem.favorite;
+      console.log(`🔍 [useWardrobe] Current favorite: ${currentItem.favorite}, new value: ${newFavoriteValue}`);
       
       // Use real API call to backend
       await WardrobeService.toggleFavorite(id, newFavoriteValue);
       
       // Update local state
-      setItems(prev => prev.map(item => 
-        item.id === id 
-          ? { ...item, favorite: newFavoriteValue, updatedAt: new Date() }
-          : item
-      ));
+      setItems(prev => {
+        const updated = prev.map(item => 
+          item.id === id 
+            ? { ...item, favorite: newFavoriteValue, updatedAt: new Date() }
+            : item
+        );
+        console.log(`🔍 [useWardrobe] Updated items state, item ${id} favorite: ${newFavoriteValue}`);
+        return updated;
+      });
+      
+      console.log(`✅ [useWardrobe] Successfully toggled favorite for item ${id}`);
     } catch (err) {
+      console.error(`❌ [useWardrobe] Error toggling favorite:`, err);
       setError(err instanceof Error ? err.message : 'Failed to toggle favorite');
       throw err;
     }

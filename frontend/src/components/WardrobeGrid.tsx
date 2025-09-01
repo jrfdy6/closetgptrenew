@@ -31,6 +31,7 @@ interface WardrobeGridProps {
   loading: boolean;
   onItemClick: (item: WardrobeItem) => void;
   onGenerateOutfit: (item: WardrobeItem) => void;
+  onToggleFavorite?: (itemId: string) => void;
   showActions?: boolean;
 }
 
@@ -39,6 +40,7 @@ export default function WardrobeGrid({
   loading, 
   onItemClick, 
   onGenerateOutfit, 
+  onToggleFavorite,
   showActions = true 
 }: WardrobeGridProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -160,7 +162,15 @@ export default function WardrobeGrid({
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onToggleFavorite) {
+                          console.log(`🔍 [WardrobeGrid] Dropdown favorite clicked for item ${item.id}`);
+                          onToggleFavorite(item.id);
+                        }
+                      }}
+                    >
                       <Heart className="w-4 h-4 mr-2" />
                       {item.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
                     </DropdownMenuItem>

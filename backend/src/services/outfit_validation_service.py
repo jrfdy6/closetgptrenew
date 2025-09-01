@@ -14,7 +14,39 @@ class OutfitValidationService:
     """Handles all validation operations for outfit generation."""
     
     def __init__(self):
-        pass
+        # Define inappropriate combinations
+        self.inappropriate_combinations = {
+            "blazer_shorts": {
+                "description": "Blazer + Shorts",
+                "reason": "Blazers are formal wear and should not be paired with casual shorts",
+                "remove_items": ["shorts", "athletic shorts", "basketball shorts"],
+                "keep_items": ["blazer", "suit jacket", "sport coat"]
+            },
+            "formal_jacket_casual_shorts": {
+                "description": "Formal Jacket + Casual Shorts", 
+                "reason": "Formal jackets require more formal bottoms",
+                "remove_items": ["shorts", "athletic shorts", "basketball shorts"],
+                "keep_items": ["blazer", "suit jacket", "sport coat", "coat"]
+            },
+            "business_athletic": {
+                "description": "Business Wear + Athletic Wear",
+                "reason": "Business items should not be mixed with athletic wear",
+                "remove_items": ["athletic shorts", "basketball shorts", "sweatpants", "athletic pants"],
+                "keep_items": ["blazer", "suit", "dress shirt", "dress pants"]
+            },
+            "formal_shoes_casual_shorts": {
+                "description": "Formal Shoes + Casual Shorts",
+                "reason": "Formal shoes require more formal bottoms",
+                "remove_items": ["shorts", "athletic shorts"],
+                "keep_items": ["oxford", "loafers", "dress shoes", "heels"]
+            },
+            "formal_wear_casual_shoes": {
+                "description": "Formal Wear + Casual Shoes",
+                "reason": "Flip-flops/slides should not be worn with blazers or suits",
+                "remove_items": ["flip-flops", "flip flops", "slides", "sandals", "thongs"],
+                "keep_items": ["blazer", "suit", "suit jacket", "sport coat", "jacket"]
+            }
+        }
     
     async def validate_outfit_with_orchestration(
         self,

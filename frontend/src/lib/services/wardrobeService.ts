@@ -198,6 +198,8 @@ export class WardrobeService {
 
   static async toggleFavorite(id: string, favorite: boolean): Promise<void> {
     try {
+      console.log(`🔍 [WardrobeService] Toggling favorite for item ${id} to ${favorite}`);
+      
       const headers = await this.getAuthHeaders();
       const response = await fetch(`${API_BASE_URL}/api/wardrobe/${id}`, {
         method: 'PUT',
@@ -205,15 +207,22 @@ export class WardrobeService {
         body: JSON.stringify({ favorite }),
       });
 
+      console.log(`🔍 [WardrobeService] Response status: ${response.status}`);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`🔍 [WardrobeService] Error response: ${errorText}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log(`🔍 [WardrobeService] Response data:`, data);
       
       if (!data.success) {
         throw new Error(data.message || 'Failed to toggle favorite');
       }
+      
+      console.log(`✅ [WardrobeService] Successfully toggled favorite for item ${id}`);
     } catch (error) {
       console.error('Error toggling favorite:', error);
       throw error;

@@ -143,10 +143,18 @@ export default function WardrobePage() {
   // Handle favorite toggle
   const handleToggleFavorite = async (itemId: string) => {
     try {
+      console.log(`🔍 [WardrobePage] Favorite button clicked for item ${itemId}`);
       await toggleFavorite(itemId);
+      console.log(`✅ [WardrobePage] Favorite toggle completed for item ${itemId}`);
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
     }
+  };
+
+  // Test button click
+  const handleTestClick = () => {
+    console.log('🔍 [WardrobePage] Test button clicked!');
+    alert('Test button works!');
   };
 
   // Handle wear count increment
@@ -167,6 +175,17 @@ export default function WardrobePage() {
         console.error('Failed to delete item:', error);
       }
     }
+  };
+
+  // Handle outfit generation with base item
+  const handleGenerateOutfitWithBaseItem = (baseItem: any) => {
+    console.log('🎉 OUTFIT BUTTON CLICKED! 🎉');
+    console.log('🚀 Navigating to outfit generation with base item:', baseItem.name);
+    // Navigate to outfit generation page with base item as query parameter
+    const baseItemData = encodeURIComponent(JSON.stringify(baseItem));
+    const targetUrl = `/outfits/generate?baseItem=${baseItemData}`;
+    console.log('🎯 Target URL:', targetUrl);
+    router.push(targetUrl);
   };
 
   // Get type icon
@@ -274,6 +293,13 @@ export default function WardrobePage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Test Button */}
+        <div className="mb-4">
+          <Button onClick={handleTestClick} variant="outline" className="bg-red-100 text-red-700">
+            🔍 TEST BUTTON - Click me to test if buttons work!
+          </Button>
+        </div>
         
         {/* Upload Forms */}
         {showUploadForm && (
@@ -478,7 +504,8 @@ export default function WardrobePage() {
                     items={currentItems}
                     loading={false}
                     onItemClick={(item) => console.log('Item clicked:', item)}
-                    onGenerateOutfit={(item) => console.log('Generate outfit for:', item)}
+                    onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
+                    onToggleFavorite={handleToggleFavorite}
                     showActions={true}
                   />
                 ) : (
@@ -585,7 +612,7 @@ export default function WardrobePage() {
                     items={getFavorites()}
                     loading={false}
                     onItemClick={(item) => console.log('Item clicked:', item)}
-                    onGenerateOutfit={(item) => console.log('Generate outfit for:', item)}
+                    onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     showActions={true}
                   />
                 ) : (
@@ -682,7 +709,7 @@ export default function WardrobePage() {
                     items={getRecentlyWorn()}
                     loading={false}
                     onItemClick={(item) => console.log('Item clicked:', item)}
-                    onGenerateOutfit={(item) => console.log('Generate outfit for:', item)}
+                    onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     showActions={true}
                   />
                 ) : (
@@ -787,7 +814,7 @@ export default function WardrobePage() {
                     items={getUnwornItems()}
                     loading={false}
                     onItemClick={(item) => console.log('Item clicked:', item)}
-                    onGenerateOutfit={(item) => console.log('Generate outfit for:', item)}
+                    onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     showActions={true}
                   />
                 ) : (

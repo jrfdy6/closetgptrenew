@@ -12,10 +12,7 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
     // Use the correct backend URL
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'http://localhost:3001';
+    const apiUrl = 'http://localhost:3001'; // Temporarily use local backend for testing
     console.log('🔍 DEBUG: Using apiUrl:', apiUrl);
     
     // Ensure the URL has a protocol

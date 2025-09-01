@@ -290,9 +290,13 @@ class DashboardService {
   }
 
   private calculateFavorites(wardrobeStats: any): number {
-    // This would need to be implemented based on your data structure
-    // For now, return a placeholder
-    return 1;
+    // Calculate favorites from wardrobe stats
+    if (wardrobeStats && wardrobeStats.favorites !== undefined) {
+      return wardrobeStats.favorites;
+    }
+    
+    // Fallback: if no favorites count in stats, return 0
+    return 0;
   }
 
   private calculateStyleGoals(wardrobeStats: any, trendingStyles: any): number {

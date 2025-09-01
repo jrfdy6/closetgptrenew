@@ -45,6 +45,9 @@ class OutfitGenerationPipelineService:
                 trendingStyles or [], likedOutfits or [], baseItem, outfit_history, wardrobe
             )
             print(f"✅ Phase 1: Context gathered - {len(wardrobe)} items, {occasion}, {style}")
+            if baseItem:
+                print(f"🎯 Base item in context: {baseItem.name} ({baseItem.type})")
+                print(f"🎯 Context base_item: {context.get('base_item', 'Not found')}")
             
             # Phase 2: Light Filtering (based on availability/weather only)
             filtered_wardrobe = self.filtering_service.apply_light_filtering(wardrobe, context)

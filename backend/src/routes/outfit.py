@@ -6,12 +6,14 @@ from ..custom_types.weather import WeatherData
 from ..custom_types.profile import UserProfile
 from pydantic import BaseModel
 from ..services.outfit_service import OutfitService
+from ..services.outfit_generation_service import OutfitGenerationService
 from ..auth.auth_service import get_current_user, get_current_user_optional
 import time
 import uuid
 
 router = APIRouter()
 outfit_service = OutfitService()
+outfit_generation_service = OutfitGenerationService()
 
 class OutfitGenerationRequest(BaseModel):
     occasion: str
@@ -85,6 +87,8 @@ async def generate_outfit(request: OutfitGenerationRequest):
     print(f"  - style: {request.style}")
     print(f"  - wardrobe size: {len(request.wardrobe)}")
     print(f"  - baseItem: {request.baseItem.name if request.baseItem else 'None'}")
+    if request.baseItem:
+        print(f"  - baseItem details: id={request.baseItem.id}, type={request.baseItem.type}, color={request.baseItem.color}")
     print(f"  - user_profile.id: {request.user_profile.id}")
     
     # NEW: More detailed debugging
@@ -99,21 +103,16 @@ async def generate_outfit(request: OutfitGenerationRequest):
         print(f"  - No wardrobe items received!")
     
     try:
-        print(f"🔍 DEBUG: Calling outfit_service.generate_outfit")
-        result = await outfit_service.generate_outfit(
+        print(f"🔍 DEBUG: Calling outfit_generation_service.generate_outfit")
+        result = await outfit_generation_service.generate_outfit(
+            user_id=request.user_profile.id,
+            wardrobe=request.wardrobe,
             occasion=request.occasion,
             weather=request.weather,
-            wardrobe=request.wardrobe,
             user_profile=request.user_profile,
-            likedOutfits=request.likedOutfits,
-            trendingStyles=request.trendingStyles,
-            preferences=request.preferences,
-            outfitHistory=request.outfitHistory,
-            randomSeed=request.randomSeed,
-            season=request.season,
             style=request.style,
-            mood=request.mood,  # Add mood parameter
-            baseItem=request.baseItem
+            mood=request.mood,
+            base_item_id=request.baseItem.id if request.baseItem else None
         )
         print(f"✅ DEBUG: outfit_service.generate_outfit completed successfully")
         print(f"🔍 DEBUG: Generated outfit id: {result.id}")

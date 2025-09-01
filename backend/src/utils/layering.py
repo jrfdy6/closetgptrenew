@@ -189,16 +189,16 @@ CORE_CATEGORY_MAPPING: Dict[ClothingType, CoreCategory] = {
 
 # Layer level mapping for layering logic
 LAYER_LEVEL_MAPPING: Dict[ClothingType, LayerLevel] = {
-    # Base/Inner layers
+    # Base/Inner layers - these should not be layered on top of each other
     ClothingType.T_SHIRT: LayerLevel.BASE,
     ClothingType.TANK_TOP: LayerLevel.BASE,
     ClothingType.CROP_TOP: LayerLevel.BASE,
+    ClothingType.POLO: LayerLevel.BASE,  # Changed from INNER to BASE to prevent shirt-on-shirt
     
     # Inner layers
     ClothingType.SHIRT: LayerLevel.INNER,
     ClothingType.DRESS_SHIRT: LayerLevel.INNER,
     ClothingType.BLOUSE: LayerLevel.INNER,
-    ClothingType.POLO: LayerLevel.INNER,
     
     # Middle layers
     ClothingType.SWEATER: LayerLevel.MIDDLE,

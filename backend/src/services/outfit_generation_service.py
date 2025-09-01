@@ -42,7 +42,7 @@ class OutfitGenerationService:
         unique_wardrobe = list(unique_items.values())
         
         # Select appropriate items based on occasion
-        selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style)
+        selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style, base_item_id)
         
         print(f"🔍 Selected {len(selected_items)} items for {occasion} occasion")
         for i, item in enumerate(selected_items):
@@ -105,12 +105,26 @@ class OutfitGenerationService:
             }
         )
 
-    def _select_appropriate_items(self, wardrobe: List[ClothingItem], occasion: str, style: Optional[str]) -> List[ClothingItem]:
+    def _select_appropriate_items(self, wardrobe: List[ClothingItem], occasion: str, style: Optional[str], base_item_id: Optional[str] = None) -> List[ClothingItem]:
         """Select appropriate items based on occasion and style."""
         selected_items = []
         
         # First, filter items by occasion appropriateness
         filtered_wardrobe = self._filter_items_by_occasion(wardrobe, occasion)
+        
+        # If base item is specified, prioritize it
+        if base_item_id:
+            base_item = None
+            for item in filtered_wardrobe:
+                if item.id == base_item_id:
+                    base_item = item
+                    break
+            
+            if base_item:
+                print(f"🎯 Including base item in selection: {base_item.name} ({base_item.type})")
+                selected_items.append(base_item)
+                # Remove base item from filtered wardrobe to avoid duplicates
+                filtered_wardrobe = [item for item in filtered_wardrobe if item.id != base_item_id]
         
         # Add comprehensive handling for all dropdown occasions
         occasion_lower = occasion.lower()
@@ -288,6 +302,28 @@ class OutfitGenerationService:
         
         # Return original type if no normalization applies
         return type_lower
+
+    def _is_layering_item(self, item: ClothingItem) -> bool:
+        """Check if an item is a layering item (can be worn over other items)."""
+        layering_types = [
+            'sweater', 'cardigan', 'hoodie', 'jacket', 'blazer', 'coat', 'vest'
+        ]
+        return any(layer_type in item.type.lower() for layer_type in layering_types)
+
+    def _get_item_category(self, item: ClothingItem) -> str:
+        """Get the broad category of an item."""
+        item_type = item.type.lower()
+        
+        if any(top in item_type for top in ['shirt', 'blouse', 't-shirt', 'sweater', 'hoodie']):
+            return "top"
+        elif any(bottom in item_type for bottom in ['pants', 'jeans', 'shorts', 'skirt']):
+            return "bottom"
+        elif any(shoe in item_type for shoe in ['shoes', 'sneakers', 'boots', 'sandals']):
+            return "shoes"
+        elif any(outer in item_type for outer in ['jacket', 'blazer', 'coat']):
+            return "outerwear"
+        else:
+            return "accessory"
 
     def _filter_items_by_occasion(self, wardrobe: List[ClothingItem], occasion: str) -> List[ClothingItem]:
         """Filter items based on occasion appropriateness."""

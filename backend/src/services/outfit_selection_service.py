@@ -29,15 +29,47 @@ class OutfitSelectionService:
         if not filtered_wardrobe:
             return []
         
-        # For now, select the first 3-4 items as a simple implementation
+        # Get base item from context
+        base_item = context.get("base_item")
+        selected_items = []
+        
+        # Always include the base item if provided
+        if base_item:
+            print(f"🎯 Including base item in selection: {base_item.name} ({base_item.type})")
+            selected_items.append(base_item)
+        
+        # For now, select additional items from filtered wardrobe
         # In a full implementation, this would use sophisticated selection logic
         target_count = context.get("target_counts", {}).get("min_items", 3)
         
-        selected_items = filtered_wardrobe[:target_count]
+        # Add additional items, excluding the base item if it's already in filtered_wardrobe
+        additional_items_needed = target_count - len(selected_items)
+        additional_items = []
+        
+        for item in filtered_wardrobe:
+            if len(additional_items) >= additional_items_needed:
+                break
+            # Skip if this item is the same as the base item (already included)
+            if base_item and item.id == base_item.id:
+                continue
+            additional_items.append(item)
+        
+        selected_items.extend(additional_items)
         
         # Ensure we have at least 2 items
         if len(selected_items) < 2:
-            selected_items = filtered_wardrobe[:2] if len(filtered_wardrobe) >= 2 else filtered_wardrobe
+            # Add more items if needed
+            for item in filtered_wardrobe:
+                if len(selected_items) >= 2:
+                    break
+                if base_item and item.id == base_item.id:
+                    continue
+                if item not in selected_items:
+                    selected_items.append(item)
+        
+        print(f"🎯 Final selection: {len(selected_items)} items")
+        for i, item in enumerate(selected_items):
+            print(f"  {i+1}. {item.name} ({item.type})")
         
         return selected_items
         
