@@ -17,9 +17,11 @@ interface QuizQuestion {
   question: string;
   options: string[];
   category: string;
-  type?: "visual" | "text" | "rgb_slider";
+  type?: "visual" | "text" | "rgb_slider" | "visual_yesno";
   images?: string[];
   gender?: string;
+  style_name?: string;
+  colors?: string[];
 }
 
 // Simple, clean quiz questions
@@ -106,43 +108,84 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     category: "sizes"
   },
   {
-    id: "style_preference",
-    question: "Which style resonates with you most?",
-    options: ["Street Style", "Cottagecore", "Minimalist", "Old Money"],
+    id: "style_item_1",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
     category: "aesthetic",
-    type: "visual",
-    images: [
-      "/images/outfit-quiz/F-ST1.png",
-      "/images/outfit-quiz/F-CB1.png",
-      "/images/outfit-quiz/F-MIN1.png",
-      "/images/outfit-quiz/F-OM1.png"
-    ]
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-ST1.png"],
+    style_name: "Street Style",
+    colors: ["black", "white", "gray", "navy"]
   },
   {
-    id: "outfit_style",
-    question: "Which outfit style appeals to you most?",
-    options: ["Grunge Street", "Natural Boho", "Clean Minimal", "Classic Elegant"],
-    category: "style",
-    type: "visual",
-    images: [
-      "/images/outfit-quiz/M-ST1.png",
-      "/images/outfit-quiz/M-CB1.png",
-      "/images/outfit-quiz/M-MIN1.png",
-      "/images/outfit-quiz/M-OM1.png"
-    ]
+    id: "style_item_2",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-CB1.png"],
+    style_name: "Cottagecore",
+    colors: ["cream", "brown", "green", "pink"]
   },
   {
-    id: "fashion_style",
-    question: "Which fashion style speaks to you?",
-    options: ["Modern Minimal", "Urban Street", "Boho Layered", "Classic Preppy"],
+    id: "style_item_3",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
     category: "aesthetic",
-    type: "visual",
-    images: [
-      "/images/outfit-quiz/F-MIN2.png",
-      "/images/outfit-quiz/F-ST2.png",
-      "/images/outfit-quiz/F-CB2.png",
-      "/images/outfit-quiz/F-OM2.png"
-    ]
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-MIN1.png"],
+    style_name: "Minimalist",
+    colors: ["white", "black", "beige", "gray"]
+  },
+  {
+    id: "style_item_4",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/F-OM1.png"],
+    style_name: "Old Money",
+    colors: ["navy", "camel", "cream", "burgundy"]
+  },
+  {
+    id: "style_item_5",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-ST1.png"],
+    style_name: "Urban Street",
+    colors: ["black", "gray", "white", "olive"]
+  },
+  {
+    id: "style_item_6",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-CB1.png"],
+    style_name: "Natural Boho",
+    colors: ["brown", "green", "cream", "terracotta"]
+  },
+  {
+    id: "style_item_7",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-MIN1.png"],
+    style_name: "Clean Minimal",
+    colors: ["white", "black", "gray", "beige"]
+  },
+  {
+    id: "style_item_8",
+    question: "Do you like this style?",
+    options: ["Yes", "No"],
+    category: "aesthetic",
+    type: "visual_yesno",
+    images: ["/images/outfit-quiz/M-OM1.png"],
+    style_name: "Classic Elegant",
+    colors: ["navy", "camel", "cream", "burgundy"]
   },
   {
     id: "daily_activities",
@@ -230,6 +273,37 @@ export default function Onboarding() {
     return answers.some(a => a.question_id === currentQuestion.id);
   };
 
+  // Analyze colors from user's style preferences
+  const analyzeColors = () => {
+    const colorCounts: { [key: string]: number } = {};
+    const likedStyles: string[] = [];
+
+    // Count colors from styles the user liked
+    answers.forEach(answer => {
+      if (answer.selected_option === "Yes" && answer.question_id.startsWith("style_item_")) {
+        const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+        if (question && question.colors) {
+          likedStyles.push(question.style_name || "");
+          question.colors.forEach(color => {
+            colorCounts[color] = (colorCounts[color] || 0) + 1;
+          });
+        }
+      }
+    });
+
+    // Get top 3 colors
+    const topColors = Object.entries(colorCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([color]) => color);
+
+    return {
+      topColors,
+      likedStyles,
+      colorCounts
+    };
+  };
+
   const submitQuiz = async () => {
     if (!user) {
       setError('Please sign in to complete the quiz');
@@ -240,6 +314,7 @@ export default function Onboarding() {
     setError(null);
 
     try {
+      const colorAnalysis = analyzeColors();
       const token = await user.getIdToken();
       const response = await fetch('/api/style-quiz/submit', {
         method: 'POST',
@@ -249,14 +324,18 @@ export default function Onboarding() {
         },
         body: JSON.stringify({
           userId: user.uid,
-          answers: answers
+          answers: answers,
+          colorAnalysis: colorAnalysis
         })
       });
 
       if (response.ok) {
         const data = await response.json();
         setQuizCompleted(true);
-        setQuizResults(data);
+        setQuizResults({
+          ...data,
+          colorAnalysis: colorAnalysis
+        });
       } else {
         throw new Error('Failed to submit quiz');
       }
@@ -264,6 +343,7 @@ export default function Onboarding() {
       console.error('Error submitting quiz:', error);
       setError('Failed to submit quiz. Please try again.');
       // Use mock data as fallback
+      const colorAnalysis = analyzeColors();
       setQuizCompleted(true);
       setQuizResults({
         hybridStyleName: "Personal Style",
@@ -272,7 +352,8 @@ export default function Onboarding() {
           color_season: "warm_spring",
           body_type: "rectangle",
           style_preferences: { "classic": 0.7, "minimalist": 0.3 }
-        }
+        },
+        colorAnalysis: colorAnalysis
       });
     } finally {
       setIsLoading(false);
@@ -328,6 +409,46 @@ export default function Onboarding() {
                 </div>
               </div>
             ))}
+          </div>
+        ) : question.type === "visual_yesno" && question.images ? (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+              <div className="aspect-[4/5] relative mb-4">
+                <img
+                  src={question.images[0]}
+                  alt={question.style_name}
+                  className="w-full h-full object-cover rounded-lg"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/placeholder.png";
+                  }}
+                />
+              </div>
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  {question.style_name}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {question.colors?.join(", ").replace(/\b\w/g, l => l.toUpperCase())}
+                </p>
+              </div>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  variant={currentAnswer?.selected_option === "Yes" ? "default" : "outline"}
+                  className="flex-1 h-12 text-lg"
+                  onClick={() => handleAnswer(question.id, "Yes")}
+                >
+                  👍 Yes
+                </Button>
+                <Button
+                  variant={currentAnswer?.selected_option === "No" ? "default" : "outline"}
+                  className="flex-1 h-12 text-lg"
+                  onClick={() => handleAnswer(question.id, "No")}
+                >
+                  👎 No
+                </Button>
+              </div>
+            </div>
           </div>
         ) : question.type === "rgb_slider" ? (
           <div className="space-y-6">
@@ -452,6 +573,22 @@ export default function Onboarding() {
                     <span><strong>Top Styles:</strong> {Object.keys(quizResults.quizResults.style_preferences).slice(0, 3).map(style => 
                       style.replace(/\b\w/g, l => l.toUpperCase())
                     ).join(', ')}</span>
+                  </div>
+                )}
+                
+                {quizResults.colorAnalysis?.topColors && (
+                  <div className="flex items-center space-x-3">
+                    <Palette className="h-5 w-5 text-purple-500" />
+                    <span><strong>Your Colors:</strong> {quizResults.colorAnalysis.topColors.map(color => 
+                      color.replace(/\b\w/g, l => l.toUpperCase())
+                    ).join(', ')}</span>
+                  </div>
+                )}
+                
+                {quizResults.colorAnalysis?.likedStyles && (
+                  <div className="flex items-center space-x-3">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    <span><strong>Liked Styles:</strong> {quizResults.colorAnalysis.likedStyles.join(', ')}</span>
                   </div>
                 )}
               </div>
