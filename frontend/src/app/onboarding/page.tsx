@@ -269,7 +269,7 @@ export default function Onboarding() {
   const getFilteredQuestions = (questions: QuizQuestion[], gender: string | null): QuizQuestion[] => {
     if (!gender) return questions;
     
-    return questions.filter(question => {
+    const filtered = questions.filter(question => {
       if (!question.depends_on) return true;
       
       const { gender: requiredGender } = question.depends_on;
@@ -278,6 +278,15 @@ export default function Onboarding() {
       }
       return requiredGender === gender;
     });
+    
+    console.log('🔍 DEBUG: Gender filtering', { 
+      userGender: gender, 
+      totalQuestions: questions.length, 
+      filteredQuestions: filtered.length,
+      bodyTypeQuestions: filtered.filter(q => q.id.includes('body_type'))
+    });
+    
+    return filtered;
   };
 
   // Get filtered questions based on current gender selection
@@ -290,7 +299,14 @@ export default function Onboarding() {
 
     // Track gender selection for filtering
     if (questionId === 'gender') {
-      setUserGender(selectedOption.toLowerCase());
+      // Map display text to gender values used in depends_on
+      const genderMap: { [key: string]: string } = {
+        'Female': 'female',
+        'Male': 'male', 
+        'Non-binary': 'non-binary',
+        'Prefer not to say': 'prefer-not-to-say'
+      };
+      setUserGender(genderMap[selectedOption] || selectedOption.toLowerCase());
     }
   };
 
