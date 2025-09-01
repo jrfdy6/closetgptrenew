@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     const submission = await req.json();
-    const userId = submission.user_id;
+    const userId = submission.userId || submission.user_id;
 
     // Verify that the user ID in the submission matches the authenticated user
     if (userId !== decodedToken.uid) {
@@ -108,13 +108,22 @@ export async function POST(req: NextRequest) {
     await profileRef.set({
       user_id: userId,
       answers: submission.answers,
+      colorAnalysis: submission.colorAnalysis || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }, { merge: true });
 
     return NextResponse.json({ 
       success: true,
-      message: 'Style profile saved successfully'
+      message: 'Style profile saved successfully',
+      hybridStyleName: "Personal Style",
+      quizResults: {
+        aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
+        color_season: "warm_spring",
+        body_type: "rectangle",
+        style_preferences: { "classic": 0.7, "minimalist": 0.3 }
+      },
+      colorAnalysis: submission.colorAnalysis || null
     });
   } catch (error) {
     console.error('Error saving style profile:', error);
