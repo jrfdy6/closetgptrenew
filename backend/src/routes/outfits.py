@@ -1878,7 +1878,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
     try:
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, returning empty outfits")
-            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+            return []
             
         logger.info(f"📚 DEBUG: About to query Firestore collection('outfits') with user_id == '{user_id}'")
         
@@ -1908,19 +1908,31 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         
         logger.info(f"🔍 DEBUG: Firestore query: limit={limit}, offset={offset}")
         
-        # Execute query
-        logger.info(f"🔍 DEBUG: Executing Firestore query with .stream()...")
-        docs = outfits_ref.stream()
-        logger.info(f"🔍 DEBUG: Firestore query executed successfully, processing results...")
+        # Execute query with error handling to prevent timeout
+        try:
+            logger.info(f"🔍 DEBUG: Executing Firestore query with .stream()...")
+            docs = outfits_ref.stream()
+            logger.info(f"🔍 DEBUG: Firestore query executed successfully, processing results...")
+        except Exception as e:
+            logger.error(f"🔥 Firestore query failed: {e}", exc_info=True)
+            return []  # Return empty list instead of crashing
         
         # First pass: collect outfit data
         outfits = []
         for doc in docs:
-            outfit_data = doc.to_dict()
-            outfit_data['id'] = doc.id
-            outfits.append(outfit_data)
-            created_at = outfit_data.get('createdAt', 'Unknown')
-            logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id}, Created: {created_at})")
+            try:
+                outfit_data = doc.to_dict()
+                outfit_data['id'] = doc.id
+                
+                # Normalize timestamp immediately to prevent later errors
+                outfit_data['createdAt'] = normalize_created_at(outfit_data.get('createdAt'))
+                
+                outfits.append(outfit_data)
+                logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id}, Created: {outfit_data.get('createdAt', 'Unknown')})")
+            except Exception as e:
+                logger.error(f"🔥 Failed to process outfit {doc.id}: {e}", exc_info=True)
+                # Skip this outfit instead of crashing the whole request
+                continue
         
         if outfits:
             logger.info(f"🔍 DEBUG: First outfit in results: {outfits[0].get('name')} - {outfits[0].get('createdAt')}")
@@ -1944,21 +1956,10 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             logger.info(f"⚠️ DEBUG: Skipping wardrobe cache for {len(outfits)} outfits (too many for performance)")
             wardrobe_cache = None
         
-        # CRITICAL FIX: Normalize timestamps BEFORE sorting for consistent comparison
-        for outfit_data in outfits:
-            # Normalize timestamps FIRST to ensure consistent sorting
-            created_at = outfit_data.get('createdAt')
-            if created_at:
-                outfit_data['createdAt'] = normalize_created_at(created_at)
-        
         # Check if we need client-side sorting (when Firestore ordering failed)
         if not use_firestore_ordering:
             logger.info("🔄 DEBUG: Applying client-side sorting since Firestore ordering failed")
-            # First normalize timestamps, then sort
-            for outfit_data in outfits:
-                created_at = outfit_data.get('createdAt')
-                if created_at:
-                    outfit_data['createdAt'] = normalize_created_at(created_at)
+            # Timestamps already normalized during collection, just sort
             outfits.sort(key=lambda x: x.get('createdAt', ''), reverse=True)
         
         # Apply pagination after sorting (ONLY when client-side sorting was used)
@@ -1971,7 +1972,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         # Final pass: resolve items using cache (reduced logging)
         for outfit_data in outfits:
             if 'items' in outfit_data and outfit_data['items']:
-                outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
+                try:
+                    outfit_data['items'] = await resolve_item_ids_to_objects(outfit_data['items'], user_id, wardrobe_cache)
+                except Exception as e:
+                    logger.error(f"🔥 Failed to resolve items for outfit {outfit_data.get('id')}: {e}")
+                    outfit_data['items'] = []  # Set empty items instead of crashing
         else:
             logger.info(f"✅ DEBUG: Firestore returned {len(outfits)} pre-sorted outfits")
             
@@ -1988,7 +1993,8 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         logger.error(f"❌ ERROR: Exception details: {str(e)}")
         import traceback
         logger.error(f"❌ ERROR: Full traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
+        # Return empty list instead of raising exception to prevent timeout
+        return []
 
 # Health and debug endpoints (MUST be before parameterized routes)
 @router.get("/health", response_model=dict)
