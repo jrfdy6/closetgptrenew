@@ -1738,8 +1738,17 @@ def normalize_created_at(created_at) -> str:
         
         # Case 4: Already ISO string
         if isinstance(created_at, str):
-            # Ensure it ends with Z for consistency
-            return created_at if created_at.endswith("Z") else created_at + "Z"
+            # Handle double timezone issue: "2025-08-27T21:10:11.828353+00:00Z"
+            if "+00:00Z" in created_at:
+                # Remove the +00:00 part, keep only Z
+                created_at = created_at.replace("+00:00Z", "Z")
+            elif "+00:00" in created_at and not created_at.endswith("Z"):
+                # Replace +00:00 with Z
+                created_at = created_at.replace("+00:00", "Z")
+            elif not created_at.endswith("Z"):
+                # Add Z if missing
+                created_at = created_at + "Z"
+            return created_at
         
         # Case 5: None or other unexpected types
         logger.warning(f"⚠️ Unexpected created_at type: {type(created_at)} value: {created_at}")
