@@ -159,6 +159,35 @@ async def get_forgotten_gems(
             scored.append(fi)
             potential_savings += 10.0
 
+        # If none met the min threshold, take top candidates by daysSinceWorn anyway
+        if not scored:
+            fallback_candidates: List[ForgottenItem] = []
+            for it in wardrobe:
+                dsw = compute_days_since_worn(it)
+                if dsw < days_threshold:
+                    continue
+                wc = int(it.get('wearCount', 0) or 0)
+                fav = bool(it.get('isFavorite', False))
+                basic_score = 30.0 + min(dsw / 10.0, 30.0) - min(wc * 3.0, 15.0) + (5.0 if fav else 0.0)
+                fi = ForgottenItem(
+                    id=it.get('id', ''),
+                    name=it.get('name', f"{it.get('type', 'Item').title()}"),
+                    type=it.get('type', 'unknown'),
+                    imageUrl=it.get('imageUrl', '/placeholder.svg'),
+                    color=it.get('color', 'unknown'),
+                    style=it.get('style', []) if isinstance(it.get('style', []), list) else [],
+                    lastWorn=it.get('lastWorn'),
+                    daysSinceWorn=dsw,
+                    usageCount=wc,
+                    favoriteScore=5.0 if fav else 0.0,
+                    suggestedOutfits=[],
+                    declutterReason=None,
+                    rediscoveryPotential=max(0.0, min(100.0, basic_score)),
+                )
+                fallback_candidates.append(fi)
+            fallback_candidates.sort(key=lambda x: x.daysSinceWorn, reverse=True)
+            scored = fallback_candidates[:10]
+
         scored.sort(key=lambda x: x.rediscoveryPotential, reverse=True)
         scored = scored[:10]
 
