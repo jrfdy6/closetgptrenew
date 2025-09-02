@@ -454,13 +454,15 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
         if not firebase_initialized or db is None:
             return {"error": "Firebase not initialized"}
         
-        # Get all documents in wardrobe collection (limit 20 for debugging)
-        all_docs = db.collection('wardrobe').limit(20).stream()
+        # Get ALL documents in wardrobe collection (no limit)
+        all_docs = db.collection('wardrobe').stream()
         
         items = []
         user_ids_found = set()
+        total_count = 0
         
         for doc in all_docs:
+            total_count += 1
             data = doc.to_dict()
             data['id'] = doc.id
             
@@ -469,21 +471,24 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
             if user_id:
                 user_ids_found.add(user_id)
             
-            items.append({
-                'id': doc.id,
-                'userId': data.get('userId', 'NOT_FOUND'),
-                'uid': data.get('uid', 'NOT_FOUND'),
-                'ownerId': data.get('ownerId', 'NOT_FOUND'),
-                'user_id': data.get('user_id', 'NOT_FOUND'),
-                'name': data.get('name', 'NO_NAME'),
-                'keys': list(data.keys())
-            })
+            # Only include first 10 items for response size
+            if len(items) < 10:
+                items.append({
+                    'id': doc.id,
+                    'userId': data.get('userId', 'NOT_FOUND'),
+                    'uid': data.get('uid', 'NOT_FOUND'),
+                    'ownerId': data.get('ownerId', 'NOT_FOUND'),
+                    'user_id': data.get('user_id', 'NOT_FOUND'),
+                    'name': data.get('name', 'NO_NAME'),
+                    'keys': list(data.keys())
+                })
         
         return {
             "success": True,
-            "total_items_found": len(items),
+            "total_items_in_database": total_count,
             "user_ids_in_collection": list(user_ids_found),
-            "items": items
+            "sample_items": items,
+            "message": f"Found {total_count} total items in database"
         }
         
     except Exception as e:
