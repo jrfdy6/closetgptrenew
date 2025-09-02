@@ -519,28 +519,56 @@ async def get_wardrobe_items_with_slash(
         print(f"🔍 DEBUG: User authenticated: {current_user.id}")
         print(f"🔍 DEBUG: Querying wardrobe collection for userId: {current_user.id}")
         
-        # Query Firestore for user's wardrobe items
+        # Query Firestore for user's wardrobe items - try multiple field names
         try:
+            # First try the standard userId field
             docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
-            print("🔍 DEBUG: Firestore query executed successfully")
-            
-            # Convert to list to count and debug
             docs_list = list(docs)
-            print(f"🔍 DEBUG: Found {len(docs_list)} documents in query result")
+            print(f"🔍 DEBUG: Found {len(docs_list)} documents with 'userId' field")
+            
+            # If no results, try other possible field names
+            if len(docs_list) == 0:
+                print("🔍 DEBUG: No items found with 'userId', trying 'uid' field...")
+                docs = db.collection('wardrobe').where('uid', '==', current_user.id).stream()
+                docs_list = list(docs)
+                print(f"🔍 DEBUG: Found {len(docs_list)} documents with 'uid' field")
+            
+            if len(docs_list) == 0:
+                print("🔍 DEBUG: No items found with 'uid', trying 'ownerId' field...")
+                docs = db.collection('wardrobe').where('ownerId', '==', current_user.id).stream()
+                docs_list = list(docs)
+                print(f"🔍 DEBUG: Found {len(docs_list)} documents with 'ownerId' field")
+            
+            if len(docs_list) == 0:
+                print("🔍 DEBUG: No items found with 'ownerId', trying 'user_id' field...")
+                docs = db.collection('wardrobe').where('user_id', '==', current_user.id).stream()
+                docs_list = list(docs)
+                print(f"🔍 DEBUG: Found {len(docs_list)} documents with 'user_id' field")
             
             # Debug: Check what user IDs exist in the collection
             print("🔍 DEBUG: Checking all user IDs in wardrobe collection...")
-            all_docs = db.collection('wardrobe').limit(10).stream()
+            all_docs = db.collection('wardrobe').limit(20).stream()
             user_ids_found = set()
+            field_names_found = set()
             for doc in all_docs:
                 data = doc.to_dict()
-                user_id = data.get('userId') or data.get('uid') or data.get('ownerId') or data.get('user_id')
-                if user_id:
-                    user_ids_found.add(user_id)
+                # Check all possible user ID field names
+                for field_name in ['userId', 'uid', 'ownerId', 'user_id']:
+                    if field_name in data and data[field_name]:
+                        user_ids_found.add(data[field_name])
+                        field_names_found.add(field_name)
             print(f"🔍 DEBUG: User IDs found in wardrobe collection: {list(user_ids_found)}")
+            print(f"🔍 DEBUG: Field names found: {list(field_names_found)}")
             
             # Re-execute the query since we consumed the stream
-            docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
+            if len(docs_list) > 0:
+                # Use the field that worked
+                if len(docs_list) > 0:
+                    docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
+                else:
+                    docs = db.collection('wardrobe').where('uid', '==', current_user.id).stream()
+            else:
+                docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
             
         except Exception as db_error:
             print(f"🔍 DEBUG: Firestore query failed: {db_error}")
