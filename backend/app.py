@@ -334,6 +334,25 @@ async def count_wardrobe_direct():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/api/wardrobe/firebase-debug")
+async def firebase_debug():
+    """Debug Firebase configuration."""
+    try:
+        import os
+        from src.config.firebase import firebase_initialized, db
+        
+        return {
+            "success": True,
+            "firebase_initialized": firebase_initialized,
+            "db_available": db is not None,
+            "firebase_project_id": os.getenv("FIREBASE_PROJECT_ID", "NOT_SET"),
+            "firebase_client_email": os.getenv("FIREBASE_CLIENT_EMAIL", "NOT_SET")[:50] + "..." if os.getenv("FIREBASE_CLIENT_EMAIL") else "NOT_SET",
+            "environment": os.getenv("ENVIRONMENT", "NOT_SET")
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.post("/api/test-upload")
 async def test_upload():
     """Test endpoint to verify routing is working"""
