@@ -451,8 +451,31 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
     return {
         "success": True,
         "message": "Wardrobe endpoint is working",
-        "timestamp": "2024-01-01T00:00:00Z"
+        "timestamp": "2024-01-01T00:00:00Z",
+        "backend": "closetgptrenew-backend-production"
     }
+
+@router.get("/count", include_in_schema=False)
+async def count_wardrobe_items() -> Dict[str, Any]:
+    """Count all items in wardrobe collection."""
+    try:
+        from src.config.firebase import firebase_initialized, db
+        
+        if not firebase_initialized or db is None:
+            return {"error": "Firebase not initialized"}
+        
+        # Count all items
+        all_docs = db.collection('wardrobe').stream()
+        total_count = len(list(all_docs))
+        
+        return {
+            "success": True,
+            "total_items": total_count,
+            "message": f"Found {total_count} items in wardrobe collection"
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
 
 @router.get("/debug", include_in_schema=False)
 async def debug_wardrobe_data() -> Dict[str, Any]:
