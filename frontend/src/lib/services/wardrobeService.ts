@@ -51,9 +51,10 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Getting wardrobe items...'); // Trigger Vercel deployment
       // Trigger Vercel deployment - Firebase auth fix
       
-      const fullUrl = `${API_BASE_URL}/api/wardrobe`;
-      console.log('🔍 DEBUG: Full wardrobe URL:', fullUrl);
-      console.log('🔍 DEBUG: API_BASE_URL:', API_BASE_URL);
+      // Use Next.js API route as proxy to avoid Railway HTTPS redirect issues
+      const fullUrl = '/api/wardrobe';
+      console.log('🔍 DEBUG: Using Next.js API route as proxy:', fullUrl);
+      console.log('🔍 DEBUG: This avoids Railway HTTPS->HTTP redirect issues');
       
       const response = await fetch(fullUrl, {
         method: 'GET',
