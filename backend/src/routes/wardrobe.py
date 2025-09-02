@@ -473,11 +473,31 @@ async def get_wardrobe_items_with_slash(
         
         logger.info(f"Getting wardrobe items for user: {current_user.id}")
         print(f"🔍 DEBUG: User authenticated: {current_user.id}")
+        print(f"🔍 DEBUG: Querying wardrobe collection for userId: {current_user.id}")
         
         # Query Firestore for user's wardrobe items
         try:
             docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
             print("🔍 DEBUG: Firestore query executed successfully")
+            
+            # Convert to list to count and debug
+            docs_list = list(docs)
+            print(f"🔍 DEBUG: Found {len(docs_list)} documents in query result")
+            
+            # Debug: Check what user IDs exist in the collection
+            print("🔍 DEBUG: Checking all user IDs in wardrobe collection...")
+            all_docs = db.collection('wardrobe').limit(10).stream()
+            user_ids_found = set()
+            for doc in all_docs:
+                data = doc.to_dict()
+                user_id = data.get('userId') or data.get('uid') or data.get('ownerId') or data.get('user_id')
+                if user_id:
+                    user_ids_found.add(user_id)
+            print(f"🔍 DEBUG: User IDs found in wardrobe collection: {list(user_ids_found)}")
+            
+            # Re-execute the query since we consumed the stream
+            docs = db.collection('wardrobe').where('userId', '==', current_user.id).stream()
+            
         except Exception as db_error:
             print(f"🔍 DEBUG: Firestore query failed: {db_error}")
             logger.error(f"Firestore query failed: {db_error}")
@@ -489,10 +509,17 @@ async def get_wardrobe_items_with_slash(
         items = []
         errors = []
         
-        for doc in docs:
+        print(f"🔍 DEBUG: Processing {len(docs_list)} documents...")
+        for i, doc in enumerate(docs):
             try:
                 item_data = doc.to_dict()
                 item_data['id'] = doc.id
+                print(f"🔍 DEBUG: Processing document {i+1}: {doc.id}")
+                print(f"🔍 DEBUG: Document data keys: {list(item_data.keys())}")
+                print(f"🔍 DEBUG: Document userId field: {item_data.get('userId', 'NOT_FOUND')}")
+                print(f"🔍 DEBUG: Document uid field: {item_data.get('uid', 'NOT_FOUND')}")
+                print(f"🔍 DEBUG: Document ownerId field: {item_data.get('ownerId', 'NOT_FOUND')}")
+                print(f"🔍 DEBUG: Document user_id field: {item_data.get('user_id', 'NOT_FOUND')}")
                 
                 # Ensure required fields exist
                 if 'name' not in item_data:
