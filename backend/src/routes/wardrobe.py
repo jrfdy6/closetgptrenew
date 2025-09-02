@@ -533,30 +533,47 @@ async def get_wardrobe_items_with_slash(
         print(f"🔍 DEBUG: User authenticated: {current_user.id}")
         print(f"🔍 DEBUG: Querying wardrobe collection for userId: {current_user.id}")
         
-        # Query Firestore for user's wardrobe items - use a more robust approach
+        # Query Firestore for user's wardrobe items - try multiple approaches
         try:
-            # Get ALL documents and filter by user ID in Python (more reliable)
-            all_docs = db.collection('wardrobe').stream()
-            
             items = []
-            total_count = 0
-            for doc in all_docs:
-                total_count += 1
-                data = doc.to_dict()
-                data['id'] = doc.id
-                
-                # Check all possible user ID field names
-                user_id = (data.get('userId') or 
-                          data.get('uid') or 
-                          data.get('ownerId') or 
-                          data.get('user_id'))
-                
-                # If this item belongs to the current user, include it
-                if user_id == current_user.id:
-                    items.append(data)
             
-            # Log the results
-            logger.info(f"Found {len(items)} items for user {current_user.id} out of {total_count} total items")
+            # Try different field names and approaches
+            field_names = ['userId', 'uid', 'ownerId', 'user_id']
+            
+            for field_name in field_names:
+                try:
+                    docs = db.collection('wardrobe').where(field_name, '==', current_user.id).stream()
+                    docs_list = list(docs)
+                    
+                    if len(docs_list) > 0:
+                        logger.info(f"Found {len(docs_list)} items using field '{field_name}'")
+                        items = docs_list
+                        break
+                        
+                except Exception as e:
+                    logger.warning(f"Query with field '{field_name}' failed: {e}")
+                    continue
+            
+            # If no items found with queries, try getting all and filtering
+            if len(items) == 0:
+                logger.info("No items found with queries, trying manual filtering...")
+                all_docs = db.collection('wardrobe').stream()
+                
+                for doc in all_docs:
+                    data = doc.to_dict()
+                    data['id'] = doc.id
+                    
+                    # Check all possible user ID field names
+                    user_id = (data.get('userId') or 
+                              data.get('uid') or 
+                              data.get('ownerId') or 
+                              data.get('user_id'))
+                    
+                    # If this item belongs to the current user, include it
+                    if user_id == current_user.id:
+                        items.append(data)
+                
+                logger.info(f"Found {len(items)} items with manual filtering")
             
             # Convert to the format expected by the rest of the function
             docs_list = items
