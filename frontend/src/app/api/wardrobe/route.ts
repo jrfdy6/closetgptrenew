@@ -21,9 +21,13 @@ export async function GET(request: Request) {
     // Get backend URL from environment variables
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    console.log('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
     
     // Call the real backend to get your 114 wardrobe items
-    const response = await fetch(`${backendUrl}/api/wardrobe`, {
+    const fullBackendUrl = `${backendUrl}/api/wardrobe`;
+    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    
+    const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
