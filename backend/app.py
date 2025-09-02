@@ -257,7 +257,7 @@ async def show_all_routes():
 # ---------------- ROOT ----------------
 @app.get("/")
 def root():
-    return {"status": "API running", "message": "ClosetGPT API is running with DASHBOARD ROUTERS ENABLED - Analytics, Performance, Monitoring all working!"}
+    return {"status": "API running", "message": "ClosetGPT API is running with DASHBOARD ROUTERS ENABLED - Analytics, Performance, Monitoring all working!", "version": "1.0.4"}
 
 # ---------------- INLINE TEST ROUTES ----------------
 @app.post("/api/image/upload-inline")
