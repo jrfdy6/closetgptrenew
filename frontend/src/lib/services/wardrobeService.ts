@@ -1,5 +1,6 @@
 import { ClothingItem, WardrobeFilters } from '@/lib/hooks/useWardrobe';
 
+// Force HTTPS to prevent mixed content errors
 const API_BASE_URL = 'https://closetgptrenew-backend-production.up.railway.app';
 
 export interface WardrobeResponse {
@@ -50,7 +51,11 @@ export class WardrobeService {
       console.log('🔍 DEBUG: Getting wardrobe items...'); // Trigger Vercel deployment
       // Trigger Vercel deployment - Firebase auth fix
       
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe`, {
+      const fullUrl = `${API_BASE_URL}/api/wardrobe`;
+      console.log('🔍 DEBUG: Full wardrobe URL:', fullUrl);
+      console.log('🔍 DEBUG: API_BASE_URL:', API_BASE_URL);
+      
+      const response = await fetch(fullUrl, {
         method: 'GET',
         headers: await this.getAuthHeaders(),
       });
