@@ -24,7 +24,8 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
     
     // Call the real backend to get your 114 wardrobe items
-    const fullBackendUrl = `${backendUrl}/api/wardrobe`;
+    // Add trailing slash to avoid 307 redirect that changes protocol
+    const fullBackendUrl = `${backendUrl}/api/wardrobe/`;
     console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
