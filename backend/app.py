@@ -302,6 +302,38 @@ async def simple_health_check():
 async def api_health():
     return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
 
+@app.get("/api/wardrobe/test")
+async def test_wardrobe_direct():
+    """Direct test endpoint to verify wardrobe functionality."""
+    return {
+        "success": True,
+        "message": "Direct wardrobe test endpoint is working",
+        "backend": "closetgptrenew-backend-production",
+        "timestamp": "2024-01-01T00:00:00Z"
+    }
+
+@app.get("/api/wardrobe/count")
+async def count_wardrobe_direct():
+    """Direct count endpoint to check wardrobe items."""
+    try:
+        from src.config.firebase import firebase_initialized, db
+        
+        if not firebase_initialized or db is None:
+            return {"error": "Firebase not initialized"}
+        
+        # Count all items
+        all_docs = db.collection('wardrobe').stream()
+        total_count = len(list(all_docs))
+        
+        return {
+            "success": True,
+            "total_items": total_count,
+            "message": f"Found {total_count} items in wardrobe collection"
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.post("/api/test-upload")
 async def test_upload():
     """Test endpoint to verify routing is working"""
