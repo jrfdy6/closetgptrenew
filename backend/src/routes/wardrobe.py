@@ -556,25 +556,16 @@ async def get_wardrobe_items_with_slash(
         print(f"🔍 DEBUG: User authenticated: {current_user.id}")
         print(f"🔍 DEBUG: Querying wardrobe collection for userId: {current_user.id}")
         
-        # Query Firestore for user's wardrobe items - SIMPLE DIRECT APPROACH
+        # Query Firestore for user's wardrobe items - FORCE ALL ITEMS FOR TESTING
         try:
-            # Get ALL documents and filter by user ID in Python
+            # TEMPORARY: Return all items regardless of user ID for testing
             all_docs = db.collection('wardrobe').stream()
             
             items = []
             for doc in all_docs:
                 data = doc.to_dict()
                 data['id'] = doc.id
-                
-                # Check all possible user ID field names
-                user_id = (data.get('userId') or 
-                          data.get('uid') or 
-                          data.get('ownerId') or 
-                          data.get('user_id'))
-                
-                # If this item belongs to the current user, include it
-                if user_id == current_user.id:
-                    items.append(data)
+                items.append(data)
             
             # Convert to the format expected by the rest of the function
             docs_list = items
