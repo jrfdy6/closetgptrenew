@@ -445,6 +445,50 @@ async def add_wardrobe_item(
         logger.error(f"Error adding wardrobe item: {e}")
         raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
 
+@router.get("/debug", include_in_schema=False)
+async def debug_wardrobe_data() -> Dict[str, Any]:
+    """Debug endpoint to check what's actually in the wardrobe collection."""
+    try:
+        from src.config.firebase import firebase_initialized, db
+        
+        if not firebase_initialized or db is None:
+            return {"error": "Firebase not initialized"}
+        
+        # Get all documents in wardrobe collection (limit 20 for debugging)
+        all_docs = db.collection('wardrobe').limit(20).stream()
+        
+        items = []
+        user_ids_found = set()
+        
+        for doc in all_docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            
+            # Check all possible user ID field names
+            user_id = data.get('userId') or data.get('uid') or data.get('ownerId') or data.get('user_id')
+            if user_id:
+                user_ids_found.add(user_id)
+            
+            items.append({
+                'id': doc.id,
+                'userId': data.get('userId', 'NOT_FOUND'),
+                'uid': data.get('uid', 'NOT_FOUND'),
+                'ownerId': data.get('ownerId', 'NOT_FOUND'),
+                'user_id': data.get('user_id', 'NOT_FOUND'),
+                'name': data.get('name', 'NO_NAME'),
+                'keys': list(data.keys())
+            })
+        
+        return {
+            "success": True,
+            "total_items_found": len(items),
+            "user_ids_in_collection": list(user_ids_found),
+            "items": items
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 @router.get("", include_in_schema=False)
 async def get_wardrobe_items_no_slash(
     current_user: UserProfile = Depends(get_current_user_optional)
