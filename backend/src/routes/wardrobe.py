@@ -445,6 +445,15 @@ async def add_wardrobe_item(
         logger.error(f"Error adding wardrobe item: {e}")
         raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
 
+@router.get("/test", include_in_schema=False)
+async def test_wardrobe_endpoint() -> Dict[str, Any]:
+    """Simple test endpoint to verify the wardrobe endpoint is working."""
+    return {
+        "success": True,
+        "message": "Wardrobe endpoint is working",
+        "timestamp": "2024-01-01T00:00:00Z"
+    }
+
 @router.get("/debug", include_in_schema=False)
 async def debug_wardrobe_data() -> Dict[str, Any]:
     """Debug endpoint to check what's actually in the wardrobe collection."""
@@ -530,7 +539,9 @@ async def get_wardrobe_items_with_slash(
             all_docs = db.collection('wardrobe').stream()
             
             items = []
+            total_count = 0
             for doc in all_docs:
+                total_count += 1
                 data = doc.to_dict()
                 data['id'] = doc.id
                 
@@ -544,8 +555,8 @@ async def get_wardrobe_items_with_slash(
                 if user_id == current_user.id:
                     items.append(data)
             
-            print(f"🔍 DEBUG: Found {len(items)} items for user {current_user.id}")
-            print(f"🔍 DEBUG: Total items in database: {len(list(db.collection('wardrobe').stream()))}")
+            # Log the results
+            logger.info(f"Found {len(items)} items for user {current_user.id} out of {total_count} total items")
             
             # Convert to the format expected by the rest of the function
             docs_list = items
