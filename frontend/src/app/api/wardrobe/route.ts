@@ -28,12 +28,21 @@ export async function GET(request: Request) {
     const fullBackendUrl = `${backendUrl}/api/wardrobe/`;
     console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
+    console.log('🔍 DEBUG: About to call backend with URL:', fullBackendUrl);
+    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
+    });
+    
+    console.log('🔍 DEBUG: Backend response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
     });
     
     if (!response.ok) {
