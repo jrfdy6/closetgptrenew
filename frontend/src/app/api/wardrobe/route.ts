@@ -95,7 +95,9 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Backend wardrobe data received:', {
       success: wardrobeData.success,
       count: wardrobeData.count || wardrobeData.items?.length,
-      hasItems: !!wardrobeData.items
+      hasItems: !!wardrobeData.items,
+      userId: wardrobeData.user_id,
+      items: wardrobeData.items?.map(item => ({ id: item.id, name: item.name })) || []
     });
     
     return NextResponse.json(wardrobeData);
