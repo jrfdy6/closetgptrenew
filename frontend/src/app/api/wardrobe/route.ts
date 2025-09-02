@@ -19,9 +19,10 @@ export async function GET(request: Request) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app'; // Force correct backend URL
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     console.log('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
+    console.log('🔍 DEBUG: Using hardcoded backend URL to ensure correct backend is called');
     
     // Call the real backend to get your 114 wardrobe items
     // Add trailing slash to avoid 307 redirect that changes protocol
