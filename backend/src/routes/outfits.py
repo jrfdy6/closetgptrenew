@@ -1981,8 +1981,8 @@ async def resolve_item_ids_to_objects(items: List[Any], user_id: str, wardrobe_c
 
 async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     """Get user outfits from Firestore with pagination."""
-    # Temporary: Increase limit to show recent outfits
-    limit = min(limit, 100)
+    # Temporary: Increase limit to show more outfits
+    limit = min(limit, 200)
     logger.info(f"🔍 DEBUG: Fetching outfits for user {user_id} (limit={limit}, offset={offset})")
     
     try:
