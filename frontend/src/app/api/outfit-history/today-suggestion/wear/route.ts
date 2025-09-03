@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   console.log("👕 Mark today's suggestion as worn API route called");
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfit-history/today-suggestion/wear`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/today-suggestion/wear`;
     console.log("🔗 Proxying to backend URL:", backendUrl);
     
     const authHeader = req.headers.get('authorization');
