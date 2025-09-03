@@ -148,6 +148,9 @@ export async function POST(request: Request) {
       console.log('💾 Saving item via backend API:', finalItem);
       
       const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+      console.log('🔍 DEBUG: Backend URL:', `${backendUrl}/api/wardrobe/`);
+      console.log('🔍 DEBUG: Auth header present:', !!authHeader);
+      console.log('🔍 DEBUG: Final item keys:', Object.keys(finalItem));
       const saveResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
         method: 'POST',
         headers: {
@@ -156,6 +159,9 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify(finalItem),
       });
+      
+      console.log('🔍 DEBUG: Backend response status:', saveResponse.status);
+      console.log('🔍 DEBUG: Backend response ok:', saveResponse.ok);
 
       if (!saveResponse.ok) {
         const errorData = await saveResponse.json();
