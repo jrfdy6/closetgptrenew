@@ -266,6 +266,26 @@ async def upload_image_inline():
     """Inline test route to verify FastAPI routing is working"""
     return {"message": "Inline upload route is working", "status": "success"}
 
+@app.post("/analyze-image")
+async def analyze_image_test(request: dict):
+    """Test endpoint for image analysis - direct in app.py"""
+    try:
+        # Try to import the image analysis service
+        from src.services.openai_service import analyze_image_with_gpt4
+        
+        if not request.get("image") or not request["image"].get("url"):
+            return {"error": "No image provided"}
+        
+        # For now, just return a mock response to test the endpoint
+        return {
+            "success": True,
+            "message": "Image analysis endpoint is working",
+            "received_image": bool(request.get("image", {}).get("url"))
+        }
+        
+    except Exception as e:
+        return {"error": f"Image analysis failed: {str(e)}"}
+
 @app.get("/api/test-inline")
 async def test_inline():
     """Inline test route to verify FastAPI routing is working"""
