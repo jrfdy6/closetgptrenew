@@ -229,14 +229,9 @@ async def get_top_worn_items(limit: int = 5):
         # Sort by wear count (assuming wear_count field exists)
         items_with_wear_count = []
         for item in items:
-            wear_count = item.get('wear_count', 0)
-            # Try different possible image field names
-            image_url = (item.get('image_url') or 
-                        item.get('imageUrl') or 
-                        item.get('image') or 
-                        item.get('photo_url') or 
-                        item.get('photoUrl') or 
-                        '/placeholder.jpg')
+            wear_count = item.get('wearCount', 0)
+            # Use the correct image field name from the database
+            image_url = item.get('imageUrl', '/placeholder.jpg')
             
             items_with_wear_count.append({
                 'id': item.get('id'),
@@ -244,9 +239,7 @@ async def get_top_worn_items(limit: int = 5):
                 'type': item.get('type', 'unknown'),
                 'image_url': image_url,
                 'wear_count': wear_count,
-                'is_favorite': item.get('is_favorite', False),
-                # Debug: include all available fields
-                'debug_fields': list(item.keys())
+                'is_favorite': item.get('is_favorite', False)
             })
         
         # Sort by wear count descending and take top items
