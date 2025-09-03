@@ -103,7 +103,7 @@ def mock_outfit():
         }
     }
 
-@app.get("/api/outfits/stats")
+@app.get("/api/outfits/stats/summary")
 def get_outfit_stats():
     """Get outfit statistics for the current user."""
     try:
