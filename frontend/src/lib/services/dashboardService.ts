@@ -358,8 +358,8 @@ class DashboardService {
     const categories = wardrobeStats.categories || {};
     const collections: StyleCollection[] = [];
     
-    // Basic Collection
-    const basicCount = categories['basic'] || categories['tops'] || 0;
+    // Basic Collection (shirts, sweaters, basic tops)
+    const basicCount = (categories['shirt'] || 0) + (categories['dress_shirt'] || 0) + (categories['sweater'] || 0);
     collections.push({
       name: 'Basic Collection',
       progress: basicCount,
@@ -367,8 +367,8 @@ class DashboardService {
       status: basicCount >= 15 ? 'Great job! Consider exploring new styles' : 'Building your basic collection'
     });
     
-    // Bottoms Collection
-    const bottomsCount = categories['bottoms'] || categories['pants'] || 0;
+    // Bottoms Collection (pants, shorts, jeans)
+    const bottomsCount = (categories['pants'] || 0) + (categories['shorts'] || 0) + (categories['jeans'] || 0);
     collections.push({
       name: 'Bottoms Collection',
       progress: bottomsCount,
@@ -399,16 +399,42 @@ class DashboardService {
   }
 
   private buildSeasonalBalance(wardrobeStats: any): SeasonalBalance {
-    // Production backend doesn't have seasonal data yet, return default
+    const categories = wardrobeStats.categories || {};
+    
+    // Map items to seasons based on type
+    const winterItems = (categories['sweater'] || 0) + (categories['jacket'] || 0);
+    const summerItems = (categories['shorts'] || 0);
+    const springItems = (categories['shirt'] || 0) + (categories['dress_shirt'] || 0);
+    const fallItems = (categories['pants'] || 0) + (categories['jeans'] || 0);
+    
+    const totalItems = winterItems + springItems + summerItems + fallItems;
+    const winterPercentage = totalItems > 0 ? Math.round((winterItems / totalItems) * 100) : 0;
+    
+    // Calculate overall score based on seasonal distribution
+    const score = Math.min(100, Math.round((winterItems + springItems + summerItems + fallItems) / 4));
+    
+    let status = "Basic Coverage";
+    let recommendations = ["Add seasonal items"];
+    
+    if (winterItems === 0) {
+      recommendations = ["Consider adding items for: Winter (0 items, 0%)", "Focus on: Add seasonal items"];
+    } else if (score >= 75) {
+      status = "Excellent Coverage";
+      recommendations = ["Great seasonal balance!"];
+    } else if (score >= 50) {
+      status = "Good Coverage";
+      recommendations = ["Consider adding more seasonal variety"];
+    }
+    
     return {
-      score: 25,
-      status: "Basic Coverage",
-      recommendations: ["Add seasonal items"],
-      winterItems: 0,
-      winterPercentage: 0,
-      springItems: 0,
-      summerItems: 0,
-      fallItems: 0
+      score,
+      status,
+      recommendations,
+      winterItems,
+      winterPercentage,
+      springItems,
+      summerItems,
+      fallItems
     };
   }
 
@@ -437,10 +463,20 @@ class DashboardService {
     
     // Analyze item types based on production backend data
     const categories = wardrobeStats.categories || {};
-    const essentialTypes = ['tops', 'bottoms', 'outerwear', 'shoes'];
     
-    essentialTypes.forEach(type => {
-      const count = categories[type] || 0;
+    // Map actual category names to expected types
+    const categoryMapping = {
+      'tops': ['shirt', 'dress_shirt', 'sweater'],
+      'bottoms': ['pants', 'shorts', 'jeans'],
+      'outerwear': ['jacket'],
+      'shoes': ['shoes', 'sneakers', 'dress_shoes']
+    };
+    
+    Object.entries(categoryMapping).forEach(([type, categoryNames]) => {
+      const count = categoryNames.reduce((total, categoryName) => {
+        return total + (categories[categoryName] || 0);
+      }, 0);
+      
       if (count < 3) {
         gaps.push({
           category: 'Essential Items',
