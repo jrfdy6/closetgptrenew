@@ -71,6 +71,7 @@ async def get_wardrobe_stats_simple(
         items = []
         categories = {}
         colors = {}
+        favorites = 0
         
         for doc in docs:
             item_data = doc.to_dict()
@@ -83,11 +84,16 @@ async def get_wardrobe_stats_simple(
             # Count by color
             item_color = item_data.get('color', 'unknown')
             colors[item_color] = colors.get(item_color, 0) + 1
+            
+            # Count favorites
+            if item_data.get('favorite', False):
+                favorites += 1
         
         stats = {
             "total_items": len(items),
             "categories": categories,
             "colors": colors,
+            "favorites": favorites,
             "user_id": current_user.id
         }
         
