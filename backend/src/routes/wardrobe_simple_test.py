@@ -7,7 +7,7 @@ from typing import Dict, Any
 from ..auth.auth_service import get_current_user_optional
 from ..custom_types.profile import UserProfile
 
-router = APIRouter(tags=["wardrobe-simple"])
+router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe-simple"])
 
 @router.get("/")
 async def get_wardrobe_items_simple(
