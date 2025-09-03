@@ -1,66 +1,57 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
+  console.log("💎 Forgotten Gems API route called");
+  
   try {
-    console.log('🔍 DEBUG: Forgotten gems API route called - MOCK VERSION');
-    
     // Get the authorization header
-    const authHeader = request.headers.get('authorization');
+    const authHeader = req.headers.get('authorization');
+    console.log("🔍 Authorization header:", authHeader ? 'Present' : 'Missing');
     
     if (!authHeader) {
-      console.log('🔍 DEBUG: No auth header - returning 401');
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
     
-    // Return mock forgotten gems data
-    const mockForgottenGems = [
-      {
-        id: 'item_5',
-        name: 'Vintage Denim Jacket',
-        type: 'jacket',
-        color: 'blue',
-        brand: 'Levi\'s',
-        lastWorn: '2023-12-01T00:00:00Z',
-        daysSinceLastWorn: 45,
-                            imageUrl: '',
-        reason: 'Perfect for layering in spring'
-      },
-      {
-        id: 'item_6',
-        name: 'Silk Scarf',
-        type: 'accessory',
-        color: 'burgundy',
-        brand: 'Hermès',
-        lastWorn: '2023-11-15T00:00:00Z',
-        daysSinceLastWorn: 60,
-                            imageUrl: '',
-        reason: 'Great for adding color to neutral outfits'
-      },
-      {
-        id: 'item_7',
-        name: 'Leather Belt',
-        type: 'accessory',
-        color: 'brown',
-        brand: 'Unknown',
-        lastWorn: '2023-10-20T00:00:00Z',
-        daysSinceLastWorn: 85,
-                            imageUrl: '',
-        reason: 'Essential for formal occasions'
-      }
-    ];
+    // Call the backend forgotten gems endpoint
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/wardrobe/insights/forgotten-gems`;
+    console.log("🔗 Proxying to backend URL:", backendUrl);
     
-    return NextResponse.json({
-      success: true,
-      data: mockForgottenGems,
-      count: mockForgottenGems.length,
-      message: 'Found items you haven\'t worn in a while'
+    const res = await fetch(backendUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
     });
-    
+
+    if (!res.ok) {
+      console.error(`❌ Backend error: ${res.status} ${res.statusText}`);
+      const errorText = await res.text().catch(() => 'Unable to read error');
+      console.error('❌ Backend error details:', errorText);
+      
+      // Return graceful fallback instead of propagating error
+      return NextResponse.json({ 
+        success: true,
+        data: {
+          forgottenItems: [],
+          totalUnwornItems: 0,
+          potentialSavings: 0,
+          rediscoveryOpportunities: 0,
+          analysis_timestamp: new Date().toISOString()
+        },
+        message: `Backend temporarily unavailable (${res.status})`
+      }, { status: 200 });
+    }
+
+    const data = await res.json();
+    console.log("✅ Successfully fetched forgotten gems from backend");
+    return NextResponse.json(data);
+
   } catch (error) {
-    console.error('🔍 DEBUG: Error in mock forgotten gems route:', error);
+    console.error('❌ Error in forgotten gems API route:', error);
     return NextResponse.json(
       { error: 'Failed to fetch forgotten gems' },
       { status: 500 }
