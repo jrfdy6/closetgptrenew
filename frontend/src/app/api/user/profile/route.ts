@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    console.log('🔍 DEBUG: User profile API route called - CONNECTING TO PRODUCTION BACKEND');
+    console.log('🔍 DEBUG: User profile API route called - CONNECTING TO PRODUCTION BACKEND v2');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
