@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { processAndAddImages } from '@/lib/firebase/wardrobeService';
-import { uploadImage } from '@/lib/firebase/storageService';
 import { analyzeClothingImage } from '@/lib/services/clothingImageAnalysis';
 import { convertOpenAIAnalysisToClothingItem } from '@/lib/utils/validation';
 // Removed direct Firestore imports - now using backend API
@@ -48,8 +47,30 @@ export async function POST(request: Request) {
     const tempId = uuidv4();
 
     try {
-      // 1. Upload image to Firebase Storage
-      const uploadedImage = await uploadImage(file, userId);
+      // 1. Upload image to Firebase Storage using existing upload-direct route
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('category', 'clothing');
+      uploadFormData.append('name', 'ai-analyzed-item');
+      
+      const uploadResponse = await fetch(`${request.url.split('/api')[0]}/api/image/upload-direct`, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+        },
+        body: uploadFormData,
+      });
+      
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(`Failed to upload image: ${errorData.error || 'Unknown error'}`);
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      const uploadedImage = {
+        url: uploadResult.image_url,
+        path: uploadResult.path
+      };
       console.log('Image uploaded:', uploadedImage);
 
       // 2. Generate OpenAI analysis
