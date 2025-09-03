@@ -255,4 +255,54 @@ async def get_top_worn_items(limit: int = 5):
         raise HTTPException(
             status_code=500,
             detail="Failed to get top worn items"
+        )
+
+@router.get("/wardrobe-stats")
+async def get_wardrobe_stats():
+    """Get wardrobe statistics for the dashboard"""
+    try:
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        # Get all wardrobe items
+        wardrobe_ref = db.collection('wardrobe')
+        docs = wardrobe_ref.stream()
+        
+        items = []
+        categories = {}
+        colors = {}
+        favorites = 0
+        
+        for doc in docs:
+            item_data = doc.to_dict()
+            item_data['id'] = doc.id
+            items.append(item_data)
+            
+            # Count categories
+            category = item_data.get('category', 'unknown')
+            categories[category] = categories.get(category, 0) + 1
+            
+            # Count colors
+            color = item_data.get('color', 'unknown')
+            colors[color] = colors.get(color, 0) + 1
+            
+            # Count favorites
+            if item_data.get('is_favorite', False):
+                favorites += 1
+        
+        return {
+            "success": True,
+            "total_items": len(items),
+            "categories": categories,
+            "colors": colors,
+            "favorites": favorites,
+            "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+            "message": "Wardrobe stats retrieved successfully"
+        }
+        
+    except Exception as e:
+        print(f"DEBUG: Error getting wardrobe stats: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get wardrobe stats"
         ) 
