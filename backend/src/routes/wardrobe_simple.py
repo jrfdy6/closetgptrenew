@@ -278,8 +278,8 @@ async def get_wardrobe_stats():
             item_data['id'] = doc.id
             items.append(item_data)
             
-            # Count categories
-            category = item_data.get('category', 'unknown')
+            # Count categories (use 'type' field if 'category' is not available)
+            category = item_data.get('category') or item_data.get('type', 'unknown')
             categories[category] = categories.get(category, 0) + 1
             
             # Count colors
