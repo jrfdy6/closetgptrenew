@@ -37,6 +37,16 @@ interface UploadItem {
   analysisResult?: any;
 }
 
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
@@ -122,13 +132,14 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
 
           console.log(`🚀 Uploading item ${i + 1}/${totalItems} with AI analysis`);
           
-          // Use the AI-powered process-image endpoint
-          const response = await fetch('/api/process-image', {
+          // Use the AI-powered analyze-image endpoint directly
+          const response = await fetch('/api/analyze-image', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`,
+              'Content-Type': 'application/json',
             },
-            body: formData,
+            body: JSON.stringify({ image: await fileToBase64(item.file) }),
           });
 
           if (!response.ok) {
@@ -137,19 +148,29 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           }
 
           const result = await response.json();
-          console.log(`✅ Item ${i + 1} uploaded successfully:`, result);
+          console.log(`✅ Item ${i + 1} analyzed successfully:`, result);
 
-          if (result.success && result.data) {
-            successfulItems.push(result.data);
+          if (result.analysis) {
+            // Create a mock item from the analysis result
+            const mockItem = {
+              id: `item-${Date.now()}-${i}`,
+              name: result.analysis.clothing_type || 'Analyzed Item',
+              type: result.analysis.clothing_type || 'unknown',
+              color: result.analysis.primary_color || 'unknown',
+              imageUrl: await fileToBase64(item.file), // Use base64 as image URL for now
+              analysis: result.analysis
+            };
+            
+            successfulItems.push(mockItem);
 
             // Update status to success
             setUploadItems(prev => prev.map(prevItem => 
               prevItem.id === item.id 
-                ? { ...prevItem, status: 'success', progress: 100, analysisResult: result.data }
+                ? { ...prevItem, status: 'success', progress: 100, analysisResult: result.analysis }
                 : prevItem
             ));
           } else {
-            throw new Error('Invalid response from server');
+            throw new Error('No analysis result from server');
           }
 
           completedItems++;

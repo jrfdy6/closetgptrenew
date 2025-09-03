@@ -30,6 +30,16 @@ interface UploadFormProps {
   onCancel?: () => void;
 }
 
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function UploadForm({ onUploadComplete, onCancel }: UploadFormProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
@@ -248,13 +258,14 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
 
       console.log('🚀 Uploading with AI analysis to /api/process-image');
       
-      // Use the AI-powered process-image endpoint
-      const response = await fetch('/api/process-image', {
+      // Use the AI-powered analyze-image endpoint directly
+      const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${await user.getIdToken()}`,
+          'Content-Type': 'application/json',
         },
-        body: formData,
+        body: JSON.stringify({ image: await fileToBase64(uploadedFile) }),
       });
 
       if (!response.ok) {
@@ -263,18 +274,28 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
       }
 
       const result = await response.json();
-      console.log('✅ Upload successful:', result);
+      console.log('✅ Analysis successful:', result);
 
-      if (result.success && result.data) {
+      if (result.analysis) {
+        // Create a mock item from the analysis result
+        const mockItem = {
+          id: `item-${Date.now()}`,
+          name: result.analysis.clothing_type || itemName || 'Analyzed Item',
+          type: result.analysis.clothing_type || itemType || 'unknown',
+          color: result.analysis.primary_color || itemColor || 'unknown',
+          imageUrl: await fileToBase64(uploadedFile), // Use base64 as image URL for now
+          analysis: result.analysis
+        };
+        
         setUploadSuccess(true);
         toast({
-          title: "Upload successful! ✨",
-          description: `${result.data.name || itemName} has been added to your wardrobe with AI analysis`,
+          title: "Analysis successful! ✨",
+          description: `${mockItem.name} has been analyzed with AI`,
         });
 
         // Call callback if provided
         if (onUploadComplete) {
-          onUploadComplete(result.data);
+          onUploadComplete(mockItem);
         }
 
         // Reset form after a delay
@@ -282,7 +303,7 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
           resetForm();
         }, 2000);
       } else {
-        throw new Error('Invalid response from server');
+        throw new Error('No analysis result from server');
       }
 
     } catch (error) {
