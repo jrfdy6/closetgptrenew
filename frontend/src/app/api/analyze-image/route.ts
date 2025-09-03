@@ -7,7 +7,22 @@ export async function POST(request: Request) {
   try {
     // Accept both { image } and { imageUrl }
     const body = await request.json();
-    const image = body.image || body.imageUrl;
+    console.log("🔍 Payload sent to backend:", JSON.stringify(body, null, 2));
+
+    // Extract image from request body - handle nested format { image: { url: "..." } }
+    let image;
+    if (body.image && typeof body.image === "object" && body.image.url) {
+      image = body.image.url;
+      console.log("🔍 Extracted image from nested format");
+    } else if (typeof body.image === "string") {
+      image = body.image;
+      console.log("🔍 Extracted image from string format");
+    } else {
+      image = body.imageUrl;
+      console.log("🔍 Extracted image from imageUrl field");
+    }
+
+    console.log("🔍 Extracted image:", image ? "Found" : "Not found");
 
     if (!image || typeof image !== "string") {
       return NextResponse.json(
