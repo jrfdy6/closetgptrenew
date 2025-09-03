@@ -14,7 +14,7 @@ from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
 from ..auth.auth_service import get_current_user_optional
 
-router = APIRouter(tags=["wardrobe"])
+router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
 
 # Initialize Firestore conditionally
 try:
