@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   
   try {
     // Use the new suggestion endpoint instead of the old today endpoint
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfit-history/today-suggestion`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/today-suggestion`;
     console.log("🔗 Proxying to backend suggestion URL:", backendUrl);
     
     const authHeader = req.headers.get('authorization');
