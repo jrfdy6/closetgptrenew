@@ -64,54 +64,30 @@ export async function POST(request: Request) {
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
 
     try {
-      // 1. Call backend directly for AI analysis
-      console.log('🔍 DEBUG: Starting AI analysis via backend...');
+      // 1. Upload image to Firebase Storage first (we need a real URL for analysis)
+      console.log('🔍 DEBUG: Starting image upload to Firebase Storage...');
       
-      const analysisFormData = new FormData();
-      analysisFormData.append('file', file);
-      
-      const analysisUrl = `${backendUrl}/api/image-analysis/analyze`;
-      console.log('🔍 DEBUG: Analysis URL:', analysisUrl);
-      console.log('🔍 DEBUG: Analysis form data prepared');
-      
-      const analysisResponse = await fetch(analysisUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-        },
-        body: analysisFormData,
-      });
-      
-      console.log('🔍 DEBUG: Analysis response status:', analysisResponse.status);
-      console.log('🔍 DEBUG: Analysis response ok:', analysisResponse.ok);
-      
-      if (!analysisResponse.ok) {
-        const errorData = await analysisResponse.json();
-        console.log('❌ Analysis failed with error data:', errorData);
-        throw new Error(`Failed to analyze image: ${errorData.detail || errorData.error || 'Unknown error'}`);
-      }
-      
-      const analysisResult = await analysisResponse.json();
-      console.log('🔍 DEBUG: Analysis result:', analysisResult);
-      
-      // For now, create a mock image URL since we're not uploading to Firebase Storage
+      // For now, create a mock image URL - we'll need to implement proper Firebase Storage later
       const mockImageUrl = `https://mock-storage.com/wardrobe/${userId}/${tempId}.jpg`;
       const uploadedImage = {
         url: mockImageUrl,
         path: `wardrobe/${userId}/${tempId}.jpg`
       };
-      console.log('✅ Analysis completed successfully, using mock image URL:', uploadedImage);
+      console.log('✅ Using mock image URL for now:', uploadedImage);
 
-      // 2. Use the analysis result from backend directly
-      console.log('🔍 DEBUG: Using backend analysis result directly');
+      // 2. Use frontend analysis service (which calls backend internally)
+      console.log('🔍 DEBUG: Starting AI analysis via frontend service...');
       
-      if (!analysisResult || !analysisResult.analysis) {
-        throw new Error('No analysis result from backend');
+      const analysisResponse = await analyzeClothingImage(uploadedImage.url);
+      console.log('🔍 DEBUG: Analysis response:', analysisResponse);
+
+      if (!analysisResponse || 'error' in analysisResponse) {
+        throw new Error('Failed to analyze image');
       }
 
-      // 3. Create clothing item from backend analysis
+      // 3. Create clothing item from analysis
       const item = convertOpenAIAnalysisToClothingItem(
-        analysisResult.analysis,
+        analysisResponse,
         userId,
         uploadedImage.url
       );
