@@ -19,7 +19,7 @@ import {
   Brain
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/lib/firebase-context";
+import { useFirebase } from "@/lib/firebase-context";
 
 interface BatchImageUploadProps {
   onUploadComplete?: (items: any[]) => void;
@@ -39,7 +39,7 @@ interface UploadItem {
 
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useFirebase();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);

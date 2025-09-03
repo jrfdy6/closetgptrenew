@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { processImageForAnalysis } from "@/lib/services/clothingImageAnalysis";
-import { useAuth } from "@/lib/firebase-context";
+import { useFirebase } from "@/lib/firebase-context";
 
 interface UploadFormProps {
   onUploadComplete?: (item: any) => void;
@@ -32,7 +32,7 @@ interface UploadFormProps {
 
 export default function UploadForm({ onUploadComplete, onCancel }: UploadFormProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useFirebase();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
