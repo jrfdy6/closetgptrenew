@@ -28,22 +28,45 @@ def health_check():
     }
 
 @app.get("/api/wardrobe/")
-def mock_wardrobe():
-    return {
-        "success": True, 
-        "items": [
-            {
-                "id": "item_1",
-                "name": "Dark Academia Blazer",
-                "type": "blazer",
-                "color": "charcoal",
-                "brand": "The Savile Row Company",
-                "isFavorite": True
-            }
-        ], 
-        "count": 1,
-        "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3"
-    }
+async def get_wardrobe_items():
+    """Get all wardrobe items for the current user."""
+    try:
+        from src.config.firebase import firebase_initialized, db
+        from src.auth.auth_service import get_current_user_optional
+        
+        if not firebase_initialized or db is None:
+            return {"error": "Firebase not initialized"}
+        
+        # Get current user (simplified for now)
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your user ID
+        
+        # Get all documents and filter by user ID
+        all_docs = db.collection('wardrobe').stream()
+        
+        items = []
+        for doc in all_docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            
+            # Check all possible user ID field names
+            user_id = (data.get('userId') or 
+                      data.get('uid') or 
+                      data.get('ownerId') or 
+                      data.get('user_id'))
+            
+            # If this item belongs to the current user, include it
+            if user_id == current_user_id:
+                items.append(data)
+        
+        return {
+            "success": True,
+            "items": items,
+            "count": len(items),
+            "user_id": current_user_id
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get("/api/auth/profile")
 def mock_profile():
