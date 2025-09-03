@@ -256,16 +256,22 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
       formData.append('file', uploadedFile);
       formData.append('userId', user.uid);
 
-      console.log('🚀 Uploading with AI analysis to /api/process-image');
+      console.log('🚀 Uploading with AI analysis to backend directly');
       
-      // Use the AI-powered analyze-image endpoint directly
-      const response = await fetch('/api/analyze-image', {
+      // Call backend directly for AI analysis
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+      const payload = { image: { url: await fileToBase64(uploadedFile) } };
+      
+      console.log("POSTing to backend:", backendUrl + "/analyze-image");
+      console.log("Payload:", JSON.stringify(payload));
+      
+      const response = await fetch(`${backendUrl}/analyze-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${await user.getIdToken()}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: { url: await fileToBase64(uploadedFile) } }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

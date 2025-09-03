@@ -132,14 +132,20 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
 
           console.log(`🚀 Uploading item ${i + 1}/${totalItems} with AI analysis`);
           
-          // Use the AI-powered analyze-image endpoint directly
-          const response = await fetch('/api/analyze-image', {
+          // Call backend directly for AI analysis
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+          const payload = { image: { url: await fileToBase64(item.file) } };
+          
+          console.log("POSTing to backend:", backendUrl + "/analyze-image");
+          console.log("Payload:", JSON.stringify(payload));
+          
+          const response = await fetch(`${backendUrl}/analyze-image`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ image: { url: await fileToBase64(item.file) } }),
+            body: JSON.stringify(payload),
           });
 
           if (!response.ok) {
