@@ -103,6 +103,65 @@ def mock_outfit():
         }
     }
 
+@app.get("/api/outfits/stats")
+def get_outfit_stats():
+    """Get outfit statistics for the current user."""
+    try:
+        # Try to import Firebase modules
+        try:
+            from src.config.firebase import firebase_initialized, db
+        except ImportError as e:
+            return {"error": f"Firebase import failed: {str(e)}"}
+        
+        if not firebase_initialized or db is None:
+            return {"error": "Firebase not initialized"}
+        
+        # Get current user (simplified for now)
+        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your user ID
+        
+        # Get all outfit documents and filter by user ID
+        all_docs = db.collection('outfits').stream()
+        
+        outfits = []
+        for doc in all_docs:
+            data = doc.to_dict()
+            data['id'] = doc.id
+            
+            # Check all possible user ID field names
+            user_id = (data.get('userId') or 
+                      data.get('uid') or 
+                      data.get('ownerId') or 
+                      data.get('user_id'))
+            
+            # If this outfit belongs to the current user, include it
+            if user_id == current_user_id:
+                outfits.append(data)
+        
+        # Calculate basic stats
+        total_outfits = len(outfits)
+        styles = {}
+        occasions = {}
+        
+        for outfit in outfits:
+            style = outfit.get('style', 'Unknown')
+            occasion = outfit.get('occasion', 'Unknown')
+            
+            styles[style] = styles.get(style, 0) + 1
+            occasions[occasion] = occasions.get(occasion, 0) + 1
+        
+        return {
+            "success": True,
+            "stats": {
+                "total_outfits": total_outfits,
+                "styles": styles,
+                "occasions": occasions,
+                "user_id": current_user_id
+            }
+        }
+        
+    except Exception as e:
+        return {"error": f"Stats fetch failed: {str(e)}"}
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
     uvicorn.run(app, host="0.0.0.0", port=port)
