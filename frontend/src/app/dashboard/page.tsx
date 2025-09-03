@@ -24,7 +24,8 @@ import {
   ArrowRight,
   AlertCircle,
   Info,
-  RefreshCw
+  RefreshCw,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -40,6 +41,11 @@ const WardrobeStats = dynamic(() => import('@/components/WardrobeStats'), {
 const ForgottenGems = dynamic(() => import('@/components/ForgottenGems'), {
   ssr: false,
   loading: () => <div className="animate-pulse space-y-4">Loading forgotten gems...</div>
+});
+
+const UploadForm = dynamic(() => import('@/components/UploadForm'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse space-y-4">Loading upload form...</div>
 });
 
 export default function Dashboard() {
@@ -716,18 +722,27 @@ export default function Dashboard() {
         {/* Upload Form */}
         {showUploadForm && (
           <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Add New Item</CardTitle>
-              <CardDescription>Upload a single clothing item to your wardrobe</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Add Single Item with AI ✨</CardTitle>
+                <CardDescription>Upload one clothing item, review AI analysis, and edit before saving</CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowUploadForm(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8">
-                <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-500 mb-4">Upload form component will go here</p>
-                <Button onClick={() => setShowUploadForm(false)} variant="outline">
-                  Close
-                </Button>
-              </div>
+              <UploadForm 
+                onUploadComplete={(item) => {
+                  console.log('Item uploaded:', item);
+                  setShowUploadForm(false);
+                }}
+                onCancel={() => setShowUploadForm(false)}
+              />
             </CardContent>
           </Card>
         )}

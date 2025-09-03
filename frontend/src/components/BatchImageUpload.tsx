@@ -14,9 +14,12 @@ import {
   AlertCircle, 
   Loader2,
   Trash2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Sparkles,
+  Brain
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/lib/firebase-context";
 
 interface BatchImageUploadProps {
   onUploadComplete?: (items: any[]) => void;
@@ -28,13 +31,15 @@ interface UploadItem {
   id: string;
   file: File;
   preview: string;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'analyzing' | 'uploading' | 'success' | 'error';
   progress: number;
   error?: string;
+  analysisResult?: any;
 }
 
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -81,10 +86,10 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
   };
 
   const startBatchUpload = async () => {
-    if (uploadItems.length === 0) {
+    if (uploadItems.length === 0 || !user) {
       toast({
-        title: "No files selected",
-        description: "Please add some images to upload",
+        title: "Missing requirements",
+        description: "Please add some images and ensure you're logged in",
         variant: "destructive",
       });
       return;
@@ -110,57 +115,64 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         ));
 
         try {
-          // Simulate upload with progress updates
-          for (let progress = 0; progress <= 100; progress += 10) {
-            setUploadItems(prev => prev.map(prevItem => 
-              prevItem.id === item.id 
-                ? { ...prevItem, progress }
-                : prevItem
-            ));
-            
-            setOverallProgress(((completedItems * 100) + progress) / totalItems);
-            await new Promise(resolve => setTimeout(resolve, 100));
+          // Create FormData for the AI-powered upload
+          const formData = new FormData();
+          formData.append('file', item.file);
+          formData.append('userId', user.uid);
+
+          console.log(`🚀 Uploading item ${i + 1}/${totalItems} with AI analysis`);
+          
+          // Use the AI-powered process-image endpoint
+          const response = await fetch('/api/process-image', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${await user.getIdToken()}`,
+            },
+            body: formData,
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
           }
 
-          // Simulate successful upload
-          const mockItem = {
-            id: item.id,
-            name: `Item ${i + 1}`,
-            type: 'clothing',
-            color: 'unknown',
-            imageUrl: item.preview,
-            wearCount: 0,
-            favorite: false,
-            createdAt: new Date().toISOString()
-          };
+          const result = await response.json();
+          console.log(`✅ Item ${i + 1} uploaded successfully:`, result);
 
-          successfulItems.push(mockItem);
+          if (result.success && result.data) {
+            successfulItems.push(result.data);
 
-          // Update status to success
-          setUploadItems(prev => prev.map(prevItem => 
-            prevItem.id === item.id 
-              ? { ...prevItem, status: 'success', progress: 100 }
-              : prevItem
-          ));
+            // Update status to success
+            setUploadItems(prev => prev.map(prevItem => 
+              prevItem.id === item.id 
+                ? { ...prevItem, status: 'success', progress: 100, analysisResult: result.data }
+                : prevItem
+            ));
+          } else {
+            throw new Error('Invalid response from server');
+          }
 
           completedItems++;
+          setOverallProgress((completedItems / totalItems) * 100);
 
         } catch (error) {
+          console.error(`❌ Upload failed for item ${i + 1}:`, error);
+          
           // Update status to error
           setUploadItems(prev => prev.map(prevItem => 
             prevItem.id === item.id 
               ? { 
                   ...prevItem, 
                   status: 'error', 
-                  error: 'Upload failed',
+                  error: error instanceof Error ? error.message : 'Upload failed',
                   progress: 0 
                 }
               : prevItem
           ));
         }
 
-        // Small delay between uploads
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Small delay between uploads to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       // All uploads completed
@@ -168,8 +180,8 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
       
       if (successfulItems.length > 0) {
         toast({
-          title: "Batch upload completed!",
-          description: `Successfully uploaded ${successfulItems.length} items`,
+          title: "Batch upload completed! ✨",
+          description: `Successfully uploaded ${successfulItems.length} items with AI analysis`,
         });
 
         if (onUploadComplete) {
@@ -207,6 +219,8 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
     switch (status) {
       case 'pending':
         return <ImageIcon className="w-4 h-4 text-gray-400" />;
+      case 'analyzing':
+        return <Brain className="w-4 h-4 text-purple-500 animate-pulse" />;
       case 'uploading':
         return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
       case 'success':
@@ -222,6 +236,8 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
     switch (status) {
       case 'pending':
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      case 'analyzing':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
       case 'uploading':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'success':
@@ -239,11 +255,16 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
       <div>
         <div className="text-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Batch Upload Clothing Items
+            Batch Upload with AI ✨
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Upload multiple clothing items at once to quickly build your wardrobe
+            Upload multiple clothing items at once. AI will automatically analyze and save each item to your wardrobe.
           </p>
+          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              <strong>Auto-save mode:</strong> Items are automatically saved with AI analysis - no manual editing required.
+            </p>
+          </div>
         </div>
 
         <div
@@ -299,12 +320,12 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
                   {isUploading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading...
+                      Uploading with AI...
                     </>
                   ) : (
                     <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload All ({uploadItems.length})
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Upload All with AI ({uploadItems.length})
                     </>
                   )}
                 </Button>

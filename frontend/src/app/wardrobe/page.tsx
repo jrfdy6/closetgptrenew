@@ -306,8 +306,8 @@ export default function WardrobePage() {
           <Card className="mb-8">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Add New Item</CardTitle>
-                <CardDescription>Upload a single clothing item to your wardrobe</CardDescription>
+                <CardTitle>Add Single Item with AI ✨</CardTitle>
+                <CardDescription>Upload one clothing item, review AI analysis, and edit before saving</CardDescription>
               </div>
               <Button
                 variant="ghost"
@@ -318,7 +318,14 @@ export default function WardrobePage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <UploadForm />
+              <UploadForm 
+                onUploadComplete={(item) => {
+                  console.log('Single item uploaded:', item);
+                  setShowUploadForm(false);
+                  refetch(); // Refresh the wardrobe data
+                }}
+                onCancel={() => setShowUploadForm(false)}
+              />
             </CardContent>
           </Card>
         )}
@@ -327,8 +334,8 @@ export default function WardrobePage() {
           <Card className="mb-8">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Batch Upload</CardTitle>
-                <CardDescription>Upload multiple clothing items at once</CardDescription>
+                <CardTitle>Batch Upload with AI ⚡</CardTitle>
+                <CardDescription>Upload multiple items - AI will automatically analyze and save each one</CardDescription>
               </div>
               <Button
                 variant="ghost"

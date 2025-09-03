@@ -41,6 +41,7 @@ async def get_wardrobe_items() -> Dict[str, Any]:
         
         # Get wardrobe items from Firestore using flat collection structure
         wardrobe_ref = db.collection('wardrobe')
+        print(f"DEBUG: Querying wardrobe collection for userId: dANqjiI0CKgaitxzYtw1bhtvQrG3")
         docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
         
         items = []
@@ -151,7 +152,7 @@ async def add_wardrobe_item(item_data: Dict[str, Any]) -> Dict[str, Any]:
         # Prepare item data
         wardrobe_item = {
             "id": item_id,
-            "userId": "test-user-id",
+            "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Use the same user ID as retrieval
             "name": item_data["name"],
             "type": item_data["type"],
             "color": item_data["color"],
@@ -195,6 +196,10 @@ async def add_wardrobe_item(item_data: Dict[str, Any]) -> Dict[str, Any]:
         doc_ref.set(wardrobe_item)
         
         print(f"DEBUG: Successfully added item with ID: {item_id}")
+        print(f"DEBUG: Item saved with userId: {wardrobe_item['userId']}")
+        print(f"DEBUG: Item name: {wardrobe_item['name']}")
+        print(f"DEBUG: Item type: {wardrobe_item['type']}")
+        print(f"DEBUG: Item color: {wardrobe_item['color']}")
         
         return {
             "success": True,

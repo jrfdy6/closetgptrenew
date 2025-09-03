@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,13 @@ import {
   Image as ImageIcon,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Brain
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { processImageForAnalysis } from "@/lib/services/clothingImageAnalysis";
+import { useAuth } from "@/lib/firebase-context";
 
 interface UploadFormProps {
   onUploadComplete?: (item: any) => void;
@@ -28,10 +32,17 @@ interface UploadFormProps {
 
 export default function UploadForm({ onUploadComplete, onCancel }: UploadFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  
+  // AI Analysis states
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [autoPopulated, setAutoPopulated] = useState(false);
   
   // Form fields
   const [itemName, setItemName] = useState("");
@@ -42,14 +53,59 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const analyzeImage = async (file: File) => {
+    console.log('🚀 analyzeImage called with file:', file.name, file.size);
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    
+    try {
+      console.log('🤖 Starting AI analysis for:', file.name);
+      const analysis = await processImageForAnalysis(file);
+      console.log('✅ AI analysis completed:', analysis);
+      
+      setAnalysisResult(analysis);
+      
+      // Auto-populate form fields
+      populateFormFromAnalysis(analysis);
+      
+      toast({
+        title: "AI Analysis Complete! ✨",
+        description: "Form has been auto-populated with detected clothing details",
+      });
+      
+    } catch (error) {
+      console.error('❌ AI analysis failed:', error);
+      setAnalysisError(error instanceof Error ? error.message : 'Analysis failed');
+      
+      toast({
+        title: "AI Analysis Failed",
+        description: "Could not analyze the image. You can still fill the form manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('📁 onDrop called with files:', acceptedFiles.length);
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
+      console.log('📄 Processing file:', file.name, file.size, file.type);
       setUploadedFile(file);
       
       // Create preview URL
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+      
+      // Reset analysis state
+      setAnalysisResult(null);
+      setAnalysisError(null);
+      setAutoPopulated(false);
+      
+      // Start AI analysis
+      console.log('🔄 Starting AI analysis...');
+      await analyzeImage(file);
     }
   }, []);
 
@@ -59,7 +115,16 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
       'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
     },
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024 // 10MB
+    maxSize: 10 * 1024 * 1024, // 10MB
+    onDropAccepted: (files) => {
+      console.log('✅ Dropzone accepted files:', files.length);
+    },
+    onDropRejected: (fileRejections) => {
+      console.log('❌ Dropzone rejected files:', fileRejections);
+    },
+    onError: (error) => {
+      console.error('❌ Dropzone error:', error);
+    }
   });
 
   const removeFile = () => {
@@ -68,6 +133,64 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
     }
     setUploadedFile(null);
     setPreviewUrl("");
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setAutoPopulated(false);
+  };
+
+  const populateFormFromAnalysis = (analysis: any) => {
+    try {
+      // Populate basic fields
+      if (analysis.name) {
+        setItemName(analysis.name);
+      }
+      
+      if (analysis.type) {
+        setItemType(analysis.type);
+      }
+      
+      if (analysis.subType && !analysis.name) {
+        setItemName(analysis.subType);
+      }
+      
+      // Populate colors (use first dominant color)
+      if (analysis.dominantColors && analysis.dominantColors.length > 0) {
+        const firstColor = analysis.dominantColors[0];
+        if (firstColor.name) {
+          setItemColor(firstColor.name.toLowerCase());
+        }
+      }
+      
+      // Populate seasons
+      if (analysis.season && Array.isArray(analysis.season)) {
+        setSelectedSeasons(analysis.season);
+      }
+      
+      // Populate occasions
+      if (analysis.occasion && Array.isArray(analysis.occasion)) {
+        setSelectedOccasions(analysis.occasion);
+      }
+      
+      // Populate styles
+      if (analysis.style && Array.isArray(analysis.style)) {
+        setSelectedStyles(analysis.style);
+      }
+      
+      // Create description from analysis
+      const descriptionParts = [];
+      if (analysis.material) descriptionParts.push(`Material: ${analysis.material}`);
+      if (analysis.pattern) descriptionParts.push(`Pattern: ${analysis.pattern}`);
+      if (analysis.brand) descriptionParts.push(`Brand: ${analysis.brand}`);
+      
+      if (descriptionParts.length > 0) {
+        setItemDescription(descriptionParts.join(', '));
+      }
+      
+      setAutoPopulated(true);
+      
+    } catch (error) {
+      console.error('Error populating form from analysis:', error);
+    }
   };
 
   const handleSeasonToggle = (season: string) => {
@@ -97,10 +220,10 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!uploadedFile) {
+    if (!uploadedFile || !user) {
       toast({
-        title: "No file selected",
-        description: "Please select an image to upload",
+        title: "Missing requirements",
+        description: "Please select an image and ensure you're logged in",
         variant: "destructive",
       });
       return;
@@ -118,57 +241,55 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
     setIsUploading(true);
 
     try {
-      // Create FormData for file upload
+      // Create FormData for the AI-powered upload
       const formData = new FormData();
-      formData.append('image', uploadedFile);
-      formData.append('name', itemName);
-      formData.append('type', itemType);
-      formData.append('color', itemColor);
-      formData.append('description', itemDescription);
-      formData.append('seasons', JSON.stringify(selectedSeasons));
-      formData.append('occasions', JSON.stringify(selectedOccasions));
-      formData.append('styles', JSON.stringify(selectedStyles));
+      formData.append('file', uploadedFile);
+      formData.append('userId', user.uid);
 
-      // Simulate API call - replace with actual upload endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Mock successful response
-      const mockItem = {
-        id: Date.now().toString(),
-        name: itemName,
-        type: itemType,
-        color: itemColor,
-        description: itemDescription,
-        seasons: selectedSeasons,
-        occasions: selectedOccasions,
-        styles: selectedStyles,
-        imageUrl: previewUrl,
-        wearCount: 0,
-        favorite: false,
-        createdAt: new Date().toISOString()
-      };
-
-      setUploadSuccess(true);
-      toast({
-        title: "Upload successful!",
-        description: `${itemName} has been added to your wardrobe`,
+      console.log('🚀 Uploading with AI analysis to /api/process-image');
+      
+      // Use the AI-powered process-image endpoint
+      const response = await fetch('/api/process-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${await user.getIdToken()}`,
+        },
+        body: formData,
       });
 
-      // Call callback if provided
-      if (onUploadComplete) {
-        onUploadComplete(mockItem);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
       }
 
-      // Reset form after a delay
-      setTimeout(() => {
-        resetForm();
-      }, 2000);
+      const result = await response.json();
+      console.log('✅ Upload successful:', result);
+
+      if (result.success && result.data) {
+        setUploadSuccess(true);
+        toast({
+          title: "Upload successful! ✨",
+          description: `${result.data.name || itemName} has been added to your wardrobe with AI analysis`,
+        });
+
+        // Call callback if provided
+        if (onUploadComplete) {
+          onUploadComplete(result.data);
+        }
+
+        // Reset form after a delay
+        setTimeout(() => {
+          resetForm();
+        }, 2000);
+      } else {
+        throw new Error('Invalid response from server');
+      }
 
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your item. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error uploading your item. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -184,6 +305,9 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
     setSelectedSeasons([]);
     setSelectedOccasions([]);
     setSelectedStyles([]);
+    setAnalysisResult(null);
+    setAnalysisError(null);
+    setAutoPopulated(false);
     removeFile();
     setUploadSuccess(false);
   };
@@ -216,6 +340,18 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* File Upload Area */}
       <div>
+        <div className="mb-2 p-2 bg-green-50 dark:bg-green-950/20 rounded-lg">
+          <p className="text-xs text-green-700 dark:text-green-300">
+            <strong>Edit mode:</strong> Review and edit AI-detected details before saving to your wardrobe.
+          </p>
+          <button 
+            type="button" 
+            onClick={() => console.log('🧪 Test button clicked - component is working!')}
+            className="mt-1 text-xs text-blue-600 hover:text-blue-800 underline"
+          >
+            🧪 Test: Click to verify component is working
+          </button>
+        </div>
         <Label htmlFor="image-upload" className="text-sm font-medium">
           Clothing Image *
         </Label>
@@ -262,6 +398,73 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
           )}
         </div>
       </div>
+
+      {/* AI Analysis Status */}
+      {uploadedFile && (
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Brain className="w-5 h-5 text-blue-500" />
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                AI Analysis Status
+              </span>
+            </div>
+            {!isAnalyzing && !analysisResult && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => uploadedFile && analyzeImage(uploadedFile)}
+                className="text-xs"
+              >
+                <Brain className="w-3 h-3 mr-1" />
+                Analyze Now
+              </Button>
+            )}
+          </div>
+          
+          {isAnalyzing && (
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Analyzing clothing item with AI...</span>
+            </div>
+          )}
+          
+          {analysisError && (
+            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-sm">Analysis failed: {analysisError}</span>
+            </div>
+          )}
+          
+          {analysisResult && autoPopulated && (
+            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-sm">Form auto-populated with AI analysis ✨</span>
+            </div>
+          )}
+          
+          {analysisResult && autoPopulated && (
+            <div className="mt-2 p-2 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+              <p className="text-xs text-green-700 dark:text-green-300">
+                <strong>Ready to edit:</strong> Review the AI-detected details below and make any changes before saving to your wardrobe.
+              </p>
+            </div>
+          )}
+          
+          {analysisResult && (
+            <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+              <p>Detected: {analysisResult.type} {analysisResult.subType && `(${analysisResult.subType})`}</p>
+              {analysisResult.dominantColors && analysisResult.dominantColors.length > 0 && (
+                <p>Colors: {analysisResult.dominantColors.map((c: any) => c.name).join(', ')}</p>
+              )}
+              {analysisResult.style && analysisResult.style.length > 0 && (
+                <p>Styles: {analysisResult.style.join(', ')}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Basic Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -408,18 +611,23 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
         </Button>
         <Button
           type="submit"
-          disabled={!uploadedFile || isUploading}
+          disabled={!uploadedFile || isUploading || isAnalyzing}
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
         >
           {isUploading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Uploading...
+              Uploading with AI...
+            </>
+          ) : isAnalyzing ? (
+            <>
+              <Brain className="w-4 h-4 mr-2 animate-pulse" />
+              Analyzing...
             </>
           ) : (
             <>
-              <Upload className="w-4 h-4 mr-2" />
-              Add to Wardrobe
+              <Sparkles className="w-4 h-4 mr-2" />
+              {analysisResult ? 'Save to Wardrobe' : 'Add to Wardrobe with AI'}
             </>
           )}
         </Button>

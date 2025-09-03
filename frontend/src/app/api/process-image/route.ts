@@ -3,8 +3,7 @@ import { processAndAddImages } from '@/lib/firebase/wardrobeService';
 import { uploadImage } from '@/lib/firebase/storageService';
 import { analyzeClothingImage } from '@/lib/services/clothingImageAnalysis';
 import { convertOpenAIAnalysisToClothingItem } from '@/lib/utils/validation';
-import { doc, setDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
+// Removed direct Firestore imports - now using backend API
 import { v4 as uuidv4 } from 'uuid';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
@@ -145,30 +144,41 @@ export async function POST(request: Request) {
         }
       };
 
-      // 6. Save to Firestore
-      const docRef = doc(collection(db, 'wardrobe'));
-      await setDoc(docRef, {
-        ...finalItem,
-        id: docRef.id,
-        userId: userId
+      // 6. Save to backend API (which saves to Firestore)
+      console.log('💾 Saving item via backend API:', finalItem);
+      
+      const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+      const saveResponse = await fetch(`${backendUrl}/api/wardrobe/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader, // Pass through the original auth header
+        },
+        body: JSON.stringify(finalItem),
       });
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(`Failed to save item: ${errorData.error || 'Unknown error'}`);
+      }
+
+      const saveResult = await saveResponse.json();
+      console.log('✅ Item saved via backend API:', saveResult);
 
       // 7. Return the processed item with all metadata
       return NextResponse.json({
         success: true,
-        data: {
-          ...finalItem,
-          id: docRef.id,
-          userId: userId
-        }
+        data: saveResult.item || finalItem
       });
 
     } catch (error) {
-      console.error('Error processing image:', error);
+      console.error('❌ Error processing image:', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       return NextResponse.json(
         { 
           success: false, 
-          error: error instanceof Error ? error.message : 'Failed to process image'
+          error: error instanceof Error ? error.message : 'Failed to process image',
+          details: error instanceof Error ? error.stack : 'No details available'
         },
         { status: 500 }
       );
