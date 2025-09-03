@@ -41,7 +41,7 @@ async def get_wardrobe_items() -> Dict[str, Any]:
         
         # Get wardrobe items from Firestore using flat collection structure
         wardrobe_ref = db.collection('wardrobe')
-        docs = wardrobe_ref.where('userId', '==', 'test-user-id').stream()
+        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
         
         items = []
         errors = []
@@ -216,9 +216,9 @@ async def get_top_worn_items(limit: int = 5):
         if not db:
             raise HTTPException(status_code=500, detail="Database not available")
         
-        # Get all wardrobe items
+        # Get all wardrobe items for the user
         wardrobe_ref = db.collection('wardrobe')
-        docs = wardrobe_ref.stream()
+        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
         
         items = []
         for doc in docs:
@@ -267,9 +267,9 @@ async def get_wardrobe_stats():
         if not db:
             raise HTTPException(status_code=500, detail="Database not available")
         
-        # Get all wardrobe items
+        # Get all wardrobe items for the user
         wardrobe_ref = db.collection('wardrobe')
-        docs = wardrobe_ref.stream()
+        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
         
         items = []
         categories = {}
