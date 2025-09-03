@@ -289,9 +289,18 @@ async def get_wardrobe_stats():
             color = item_data.get('color', 'unknown')
             colors[color] = colors.get(color, 0) + 1
             
-            # Count favorites
-            if item_data.get('isFavorite', False):
+            # Count favorites - debug version
+            is_favorite_snake = item_data.get('is_favorite', False)
+            is_favorite_camel = item_data.get('isFavorite', False)
+            if is_favorite_snake or is_favorite_camel:
                 favorites += 1
+                print(f"DEBUG: Found favorite item: {item_data.get('name', 'Unknown')} - snake: {is_favorite_snake}, camel: {is_favorite_camel}")
+        
+        # Debug: show sample item fields
+        if items:
+            sample_item = items[0]
+            print(f"DEBUG: Sample item fields: {list(sample_item.keys())}")
+            print(f"DEBUG: Sample item favorite fields: is_favorite={sample_item.get('is_favorite')}, isFavorite={sample_item.get('isFavorite')}")
         
         return {
             "success": True,
