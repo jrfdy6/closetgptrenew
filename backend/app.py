@@ -121,7 +121,7 @@ ROUTERS = [
     # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
     # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
-    ("src.routes.wardrobe_simple_test", ""),         # Simple wardrobe router for testing
+    ("src.routes.wardrobe", ""),         # Full wardrobe router
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     # ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix - TEMPORARILY DISABLED
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
