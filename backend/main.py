@@ -31,8 +31,11 @@ def health_check():
 async def get_wardrobe_items():
     """Get all wardrobe items for the current user."""
     try:
-        from src.config.firebase import firebase_initialized, db
-        from src.auth.auth_service import get_current_user_optional
+        # Try to import Firebase modules
+        try:
+            from src.config.firebase import firebase_initialized, db
+        except ImportError as e:
+            return {"error": f"Firebase import failed: {str(e)}"}
         
         if not firebase_initialized or db is None:
             return {"error": "Firebase not initialized"}
@@ -66,7 +69,7 @@ async def get_wardrobe_items():
         }
         
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Wardrobe fetch failed: {str(e)}"}
 
 @app.get("/api/auth/profile")
 def mock_profile():
