@@ -239,7 +239,7 @@ async def get_top_worn_items(limit: int = 5):
                 'type': item.get('type', 'unknown'),
                 'image_url': image_url,
                 'wear_count': wear_count,
-                'is_favorite': item.get('is_favorite', False)
+                'is_favorite': item.get('isFavorite', False)
             })
         
         # Sort by wear count descending and take top items
@@ -290,7 +290,7 @@ async def get_wardrobe_stats():
             colors[color] = colors.get(color, 0) + 1
             
             # Count favorites
-            if item_data.get('is_favorite', False):
+            if item_data.get('isFavorite', False):
                 favorites += 1
         
         return {
