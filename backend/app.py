@@ -357,4 +357,4 @@ async def firebase_debug():
 @app.post("/api/test-upload")
 async def test_upload():
     """Test endpoint to verify routing is working"""
-    return {"message": "Test upload endpoint is working", "status": "success"}
+    return {"message": "Test upload endpoint is working", "status": "success"}# Force Railway redeploy - Wed Sep  3 02:41:38 EDT 2025
