@@ -265,7 +265,7 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
           'Authorization': `Bearer ${await user.getIdToken()}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ image: await fileToBase64(uploadedFile) }),
+        body: JSON.stringify({ image: { url: await fileToBase64(uploadedFile) } }),
       });
 
       if (!response.ok) {

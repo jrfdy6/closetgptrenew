@@ -139,7 +139,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               'Authorization': `Bearer ${await user.getIdToken()}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ image: await fileToBase64(item.file) }),
+            body: JSON.stringify({ image: { url: await fileToBase64(item.file) } }),
           });
 
           if (!response.ok) {
