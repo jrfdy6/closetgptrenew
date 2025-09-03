@@ -1,89 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Mock outfits endpoint - returns data directly without calling backend
 export async function GET(req: NextRequest) {
-  console.log("🔍 DEBUG: Outfits GET route called - MOCK VERSION");
+  console.log("🔍 DEBUG: Outfits GET route called - CONNECTING TO PRODUCTION BACKEND");
   
   try {
-    // Return mock outfits data
-    const mockOutfits = [
-      {
-        id: 'outfit_1',
-        name: 'Dark Academia Confident Look',
-        occasion: 'Casual',
-        style: 'Dark Academia',
-        mood: 'Confident',
-        items: [
-          {
-            id: 'item_1',
-            name: 'Dark Academia Blazer',
-            type: 'blazer',
-            color: 'charcoal',
-            brand: 'The Savile Row Company'
-          },
-          {
-            id: 'item_3',
-            name: 'Slim Fit Pants',
-            type: 'pants',
-            color: 'olive',
-            brand: 'Dockers'
-          },
-          {
-            id: 'item_4',
-            name: 'Oxford Shoes',
-            type: 'shoes',
-            color: 'brown',
-            brand: 'Unknown'
-          }
-        ],
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-        matchScore: 86
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
+    }
+    
+    // Get query parameters
+    const { searchParams } = new URL(req.url);
+    const limit = searchParams.get('limit') || '50';
+    const offset = searchParams.get('offset') || '0';
+    
+    console.log('🔍 DEBUG: Query params:', { limit, offset });
+    
+    // Call the production backend
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const fullBackendUrl = `${backendUrl}/api/outfits/?limit=${limit}&offset=${offset}`;
+    console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
+    
+    const response = await fetch(fullBackendUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
       },
-      {
-        id: 'outfit_2',
-        name: 'Old Money Dynamic Interview',
-        occasion: 'Interview',
-        style: 'Old Money',
-        mood: 'Dynamic',
-        items: [
-          {
-            id: 'item_2',
-            name: 'Statement T-Shirt',
-            type: 't-shirt',
-            color: 'white',
-            brand: 'Celine'
-          },
-          {
-            id: 'item_3',
-            name: 'Slim Fit Pants',
-            type: 'pants',
-            color: 'olive',
-            brand: 'Dockers'
-          },
-          {
-            id: 'item_4',
-            name: 'Oxford Shoes',
-            type: 'shoes',
-            color: 'brown',
-            brand: 'Unknown'
-          }
-        ],
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-        matchScore: 82
-      }
-    ];
+    });
     
-    const response = NextResponse.json(mockOutfits);
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-    response.headers.set('Surrogate-Control', 'no-store');
+    console.log('🔍 DEBUG: Backend response status:', response.status);
     
-    return response;
+    if (!response.ok) {
+      console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
+      return NextResponse.json({ 
+        error: 'Backend request failed', 
+        details: `Status: ${response.status} ${response.statusText}`
+      }, { status: response.status });
+    }
+    
+    const outfitsData = await response.json();
+    console.log('🔍 DEBUG: Backend outfits data received:', {
+      success: outfitsData.success,
+      count: outfitsData.outfits?.length || 0,
+      total: outfitsData.total,
+      hasOutfits: !!outfitsData.outfits
+    });
+    
+    const response_obj = NextResponse.json(outfitsData);
+    response_obj.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    response_obj.headers.set('Pragma', 'no-cache');
+    response_obj.headers.set('Expires', '0');
+    response_obj.headers.set('Surrogate-Control', 'no-store');
+    
+    return response_obj;
   } catch (err) {
-    console.error('❌ MOCK: /api/outfits GET failed:', err);
+    console.error('❌ PRODUCTION: /api/outfits GET failed:', err);
     return NextResponse.json({ 
       error: 'Failed to fetch outfits', 
       details: err instanceof Error ? err.message : 'Unknown error'
@@ -96,9 +74,20 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
-  console.log(`🔍 DEBUG: Outfits POST route called - MOCK VERSION [${timestamp}]`);
+  console.log(`🔍 DEBUG: Outfits POST route called - CONNECTING TO PRODUCTION BACKEND [${timestamp}]`);
   
   try {
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
+    }
+    
     const body = await req.text();
     console.log("🔍 DEBUG: Request body length:", body.length);
     console.log("🔍 DEBUG: Request body preview:", body.substring(0, 200) + "...");
@@ -109,62 +98,42 @@ export async function POST(req: NextRequest) {
     const isCreation = requestData.items && Array.isArray(requestData.items);
     console.log("🔍 DEBUG: Request type detected:", isCreation ? "outfit creation" : "outfit generation");
     
-    if (isCreation) {
-      // Mock outfit creation response
-      const mockCreatedOutfit = {
-        id: `outfit_${Date.now()}`,
-        name: requestData.name || 'Generated Outfit',
-        occasion: requestData.occasion || 'Casual',
-        style: requestData.style || 'Dark Academia',
-        mood: requestData.mood || 'Confident',
-        items: requestData.items || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        matchScore: 85
-      };
-      
-      return NextResponse.json(mockCreatedOutfit);
-    } else {
-      // Mock outfit generation response
-      const mockGeneratedOutfit = {
-        id: `outfit_${Date.now()}`,
-        name: 'Dark Academia Confident Look',
-        occasion: requestData.occasion || 'Casual',
-        style: requestData.style || 'Dark Academia',
-        mood: requestData.mood || 'Confident',
-        items: [
-          {
-            id: 'item_1',
-            name: 'Dark Academia Blazer',
-            type: 'blazer',
-            color: 'charcoal',
-            brand: 'The Savile Row Company'
-          },
-          {
-            id: 'item_3',
-            name: 'Slim Fit Pants',
-            type: 'pants',
-            color: 'olive',
-            brand: 'Dockers'
-          },
-          {
-            id: 'item_4',
-            name: 'Oxford Shoes',
-            type: 'shoes',
-            color: 'brown',
-            brand: 'Unknown'
-          }
-        ],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        matchScore: 86,
-        aiReasoning: 'Generated 3 items forming a complete Casual outfit with Dark Academia style. Includes required categories: top, bottom, shoes'
-      };
-      
-      return NextResponse.json(mockGeneratedOutfit);
+    // Call the production backend
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendEndpoint = isCreation ? '/api/outfits' : '/api/outfits/generate';
+    const fullBackendUrl = `${backendUrl}${backendEndpoint}`;
+    console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
+    
+    const response = await fetch(fullBackendUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: body,
+    });
+    
+    console.log('🔍 DEBUG: Backend response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
+      return NextResponse.json({ 
+        error: 'Backend request failed', 
+        details: `Status: ${response.status} ${response.statusText}`
+      }, { status: response.status });
     }
+    
+    const outfitData = await response.json();
+    console.log('🔍 DEBUG: Backend outfit data received:', {
+      success: outfitData.success,
+      hasOutfit: !!outfitData.outfit,
+      hasItems: !!outfitData.items,
+      outfitId: outfitData.id || outfitData.outfit?.id
+    });
+    
+    return NextResponse.json(outfitData);
   } catch (err) {
-    console.error('❌ MOCK: /api/outfits POST failed:', err);
+    console.error('❌ PRODUCTION: /api/outfits POST failed:', err);
     return NextResponse.json({ 
       error: 'Failed to process outfit request', 
       details: err instanceof Error ? err.message : 'Unknown error' 
