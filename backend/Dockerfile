@@ -10,12 +10,12 @@ COPY requirements.txt ./
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the main.py file and necessary directories
-COPY main.py ./
+# Copy the app.py file and necessary directories
+COPY app.py ./
 COPY src/ ./src/
 
 # Expose port
 EXPOSE 8080
 
 # Run the FastAPI app
-CMD ["python", "main.py"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
