@@ -5,37 +5,10 @@ import { analyzeClothingImage } from '@/lib/services/clothingImageAnalysis';
 import { convertOpenAIAnalysisToClothingItem } from '@/lib/utils/validation';
 // Removed direct Firestore imports - now using backend API
 import { v4 as uuidv4 } from 'uuid';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-
-// Lazy initialization function
-function initializeFirebaseAdmin() {
-  if (!getApps().length) {
-    try {
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-      if (!privateKey) {
-        throw new Error('FIREBASE_PRIVATE_KEY is not set');
-      }
-
-      initializeApp({
-        credential: cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: privateKey,
-        }),
-      });
-      console.log('Firebase Admin initialized successfully');
-    } catch (error) {
-      console.error('Error initializing Firebase Admin:', error);
-      throw error;
-    }
-  }
-}
+// Removed Firebase Admin SDK - now using backend API directly
 
 export async function POST(request: Request) {
   try {
-    // Initialize Firebase Admin only when needed
-    initializeFirebaseAdmin();
     
     // Get the current user's ID token
     const authHeader = request.headers.get('authorization');
