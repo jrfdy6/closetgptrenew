@@ -122,6 +122,7 @@ ROUTERS = [
     # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.wardrobe", ""),         # Full wardrobe router
+    ("src.routes.forgotten_gems", "/api/wardrobe"),  # Forgotten gems router - mounted at /api/wardrobe for frontend compatibility
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     # ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix - TEMPORARILY DISABLED
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
