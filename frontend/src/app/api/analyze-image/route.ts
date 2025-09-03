@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       'https://closetgpt-backend-production.up.railway.app';
-    const fullUrl = `${backendUrl}/api/analyze-image`;
+    const fullUrl = `${backendUrl}/analyze-image`;
     console.log('🔍 Debug - Backend URL:', backendUrl);
     console.log('🔍 Debug - Full URL:', fullUrl);
 
@@ -48,10 +48,10 @@ export async function POST(request: Request) {
     ].filter(Boolean))) as string[];
 
     const candidatePaths = [
+      '/analyze-image',
       '/api/analyze-image',
       '/api/analyze-image-legacy',
       '/api/analyze-image-clip-only',
-      '/analyze-image',
     ];
 
     const candidateBodies = [
