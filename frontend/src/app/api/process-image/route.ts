@@ -60,55 +60,57 @@ export async function POST(request: Request) {
     const tempId = uuidv4();
 
     try {
-      // 1. Upload image to Firebase Storage using existing upload-direct route
-      console.log('🔍 DEBUG: Starting image upload to upload-direct route...');
+      // 1. Call backend directly for AI analysis
+      console.log('🔍 DEBUG: Starting AI analysis via backend...');
       
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-      uploadFormData.append('category', 'clothing');
-      uploadFormData.append('name', 'ai-analyzed-item');
+      const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+      console.log('🔍 DEBUG: Backend URL:', backendUrl);
       
-      const uploadUrl = `${request.url.split('/api')[0]}/api/image/upload-direct`;
-      console.log('🔍 DEBUG: Upload URL:', uploadUrl);
-      console.log('🔍 DEBUG: Upload form data prepared');
+      const analysisFormData = new FormData();
+      analysisFormData.append('file', file);
       
-      const uploadResponse = await fetch(uploadUrl, {
+      const analysisUrl = `${backendUrl}/api/image-analysis/analyze`;
+      console.log('🔍 DEBUG: Analysis URL:', analysisUrl);
+      console.log('🔍 DEBUG: Analysis form data prepared');
+      
+      const analysisResponse = await fetch(analysisUrl, {
         method: 'POST',
         headers: {
           'Authorization': authHeader,
         },
-        body: uploadFormData,
+        body: analysisFormData,
       });
       
-      console.log('🔍 DEBUG: Upload response status:', uploadResponse.status);
-      console.log('🔍 DEBUG: Upload response ok:', uploadResponse.ok);
+      console.log('🔍 DEBUG: Analysis response status:', analysisResponse.status);
+      console.log('🔍 DEBUG: Analysis response ok:', analysisResponse.ok);
       
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        console.log('❌ Upload failed with error data:', errorData);
-        throw new Error(`Failed to upload image: ${errorData.error || 'Unknown error'}`);
+      if (!analysisResponse.ok) {
+        const errorData = await analysisResponse.json();
+        console.log('❌ Analysis failed with error data:', errorData);
+        throw new Error(`Failed to analyze image: ${errorData.detail || errorData.error || 'Unknown error'}`);
       }
       
-      const uploadResult = await uploadResponse.json();
-      console.log('🔍 DEBUG: Upload result:', uploadResult);
+      const analysisResult = await analysisResponse.json();
+      console.log('🔍 DEBUG: Analysis result:', analysisResult);
       
+      // For now, create a mock image URL since we're not uploading to Firebase Storage
+      const mockImageUrl = `https://mock-storage.com/wardrobe/${userId}/${tempId}.jpg`;
       const uploadedImage = {
-        url: uploadResult.image_url,
-        path: uploadResult.path
+        url: mockImageUrl,
+        path: `wardrobe/${userId}/${tempId}.jpg`
       };
-      console.log('✅ Image uploaded successfully:', uploadedImage);
+      console.log('✅ Analysis completed successfully, using mock image URL:', uploadedImage);
 
-      // 2. Generate OpenAI analysis
-      const analysisResponse = await analyzeClothingImage(uploadedImage.url);
-      console.log('Analysis response:', analysisResponse);
-
-      if (!analysisResponse || 'error' in analysisResponse) {
-        throw new Error('Failed to analyze image');
+      // 2. Use the analysis result from backend directly
+      console.log('🔍 DEBUG: Using backend analysis result directly');
+      
+      if (!analysisResult || !analysisResult.analysis) {
+        throw new Error('No analysis result from backend');
       }
 
-      // 3. Create clothing item from analysis
+      // 3. Create clothing item from backend analysis
       const item = convertOpenAIAnalysisToClothingItem(
-        analysisResponse,
+        analysisResult.analysis,
         userId,
         uploadedImage.url
       );
