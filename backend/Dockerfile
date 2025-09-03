@@ -10,8 +10,10 @@ COPY requirements.txt ./
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the main.py file
+# Copy the main.py file and necessary directories
 COPY main.py ./
+COPY src/ ./src/
+COPY service-account-key.json ./
 
 # Expose port
 EXPOSE 8080
