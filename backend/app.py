@@ -117,7 +117,7 @@ print("🔍 DEBUG: This print should appear before router loading...")
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
-    # ("src.routes.auth", "/api/auth"),    # TEMPORARILY DISABLED - causing router loading to fail
+    ("src.routes.auth", "/api/auth"),    # Re-enabled auth router
     # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
     # ("src.routes.image_analysis", ""),   # Router already has /api/image prefix - TEMPORARILY DISABLED
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
