@@ -59,12 +59,13 @@ export async function POST(request: Request) {
     // Generate a temporary ID for the embedding request
     const tempId = uuidv4();
 
+    // Define backend URL once at the top
+    const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+
     try {
       // 1. Call backend directly for AI analysis
       console.log('🔍 DEBUG: Starting AI analysis via backend...');
-      
-      const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-      console.log('🔍 DEBUG: Backend URL:', backendUrl);
       
       const analysisFormData = new FormData();
       analysisFormData.append('file', file);
@@ -154,7 +155,6 @@ export async function POST(request: Request) {
       // 6. Save to backend API (which saves to Firestore)
       console.log('💾 Saving item via backend API:', finalItem);
       
-      const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
       console.log('🔍 DEBUG: Backend URL:', `${backendUrl}/api/wardrobe/`);
       console.log('🔍 DEBUG: Auth header present:', !!authHeader);
       console.log('🔍 DEBUG: Final item keys:', Object.keys(finalItem));
