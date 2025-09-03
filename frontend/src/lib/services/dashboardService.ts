@@ -410,20 +410,45 @@ class DashboardService {
     const totalItems = winterItems + springItems + summerItems + fallItems;
     const winterPercentage = totalItems > 0 ? Math.round((winterItems / totalItems) * 100) : 0;
     
-    // Calculate overall score based on seasonal distribution
-    const score = Math.min(100, Math.round((winterItems + springItems + summerItems + fallItems) / 4));
+    // Calculate seasonal balance score based on distribution
+    const seasons = [winterItems, springItems, summerItems, fallItems];
+    const maxSeason = Math.max(...seasons);
+    const minSeason = Math.min(...seasons);
+    const avgSeason = totalItems / 4;
+    
+    // Score based on how balanced the seasons are (higher = more balanced)
+    let score = 0;
+    if (totalItems > 0) {
+      // Base score from having items in each season
+      const seasonsWithItems = seasons.filter(count => count > 0).length;
+      const baseScore = (seasonsWithItems / 4) * 50;
+      
+      // Balance bonus (how evenly distributed)
+      const balanceRatio = minSeason > 0 ? minSeason / maxSeason : 0;
+      const balanceBonus = balanceRatio * 50;
+      
+      score = Math.round(baseScore + balanceBonus);
+    }
     
     let status = "Basic Coverage";
     let recommendations = ["Add seasonal items"];
     
+    // Determine status and recommendations based on actual data
     if (winterItems === 0) {
-      recommendations = ["Consider adding items for: Winter (0 items, 0%)", "Focus on: Add seasonal items"];
+      status = "Needs Winter Items";
+      recommendations = ["Consider adding items for: Winter (0 items, 0%)", "Focus on: Add winter clothing"];
+    } else if (summerItems === 0) {
+      status = "Needs Summer Items";
+      recommendations = ["Consider adding items for: Summer (0 items, 0%)", "Focus on: Add summer clothing"];
     } else if (score >= 75) {
       status = "Excellent Coverage";
       recommendations = ["Great seasonal balance!"];
     } else if (score >= 50) {
       status = "Good Coverage";
       recommendations = ["Consider adding more seasonal variety"];
+    } else {
+      status = "Basic Coverage";
+      recommendations = ["Add seasonal items for better coverage"];
     }
     
     return {
