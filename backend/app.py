@@ -119,7 +119,7 @@ ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
     ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
     # ("src.routes.image_processing", ""),  # Router already has /api/image prefix - TEMPORARILY DISABLED
-    ("src.routes.image_analysis", ""),   # Image analysis router - re-enabled for AI analysis
+    ("src.routes.image_analysis", ""),   # Image analysis router - re-enabled for AI analysis - FORCE REDEPLOY
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.wardrobe_simple", ""),         # Simple wardrobe router - has its own /api/wardrobe prefix
     ("src.routes.forgotten_gems", "/api/wardrobe"),  # Forgotten gems router - mounted at /api/wardrobe for frontend compatibility
