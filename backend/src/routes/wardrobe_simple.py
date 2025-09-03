@@ -207,4 +207,52 @@ async def add_wardrobe_item(item_data: Dict[str, Any]) -> Dict[str, Any]:
         raise HTTPException(
             status_code=500,
             detail="Failed to add item"
+        )
+
+@router.get("/top-worn-items")
+async def get_top_worn_items(limit: int = 5):
+    """Get top worn items from the wardrobe"""
+    try:
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        # Get all wardrobe items
+        wardrobe_ref = db.collection('wardrobe')
+        docs = wardrobe_ref.stream()
+        
+        items = []
+        for doc in docs:
+            item_data = doc.to_dict()
+            item_data['id'] = doc.id
+            items.append(item_data)
+        
+        # Sort by wear count (assuming wear_count field exists)
+        items_with_wear_count = []
+        for item in items:
+            wear_count = item.get('wear_count', 0)
+            items_with_wear_count.append({
+                'id': item.get('id'),
+                'name': item.get('name', 'Unknown Item'),
+                'type': item.get('type', 'unknown'),
+                'image_url': item.get('image_url', '/placeholder.jpg'),
+                'wear_count': wear_count,
+                'is_favorite': item.get('is_favorite', False)
+            })
+        
+        # Sort by wear count descending and take top items
+        top_items = sorted(items_with_wear_count, key=lambda x: x['wear_count'], reverse=True)[:limit]
+        
+        return {
+            "success": True,
+            "top_worn_items": top_items,
+            "count": len(top_items),
+            "total_items": len(items),
+            "message": "Top worn items retrieved successfully"
+        }
+        
+    except Exception as e:
+        print(f"DEBUG: Error getting top worn items: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get top worn items"
         ) 
