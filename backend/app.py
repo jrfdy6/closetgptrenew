@@ -270,17 +270,24 @@ async def upload_image_inline():
 async def analyze_image_test(request: dict):
     """Test endpoint for image analysis - direct in app.py"""
     try:
-        # Try to import the image analysis service
-        from src.services.openai_service import analyze_image_with_gpt4
-        
         if not request.get("image") or not request["image"].get("url"):
             return {"error": "No image provided"}
         
-        # For now, just return a mock response to test the endpoint
+        # Return a mock analysis response for testing
         return {
             "success": True,
-            "message": "Image analysis endpoint is working",
-            "received_image": bool(request.get("image", {}).get("url"))
+            "analysis": {
+                "type": "shirt",
+                "color": "blue",
+                "brand": "Test Brand",
+                "style": "casual",
+                "material": "cotton",
+                "season": ["spring", "summer"],
+                "occasion": ["casual", "work"],
+                "name": "Test Blue Shirt",
+                "description": "A casual blue cotton shirt perfect for spring and summer"
+            },
+            "message": "Mock analysis completed successfully"
         }
         
     except Exception as e:
