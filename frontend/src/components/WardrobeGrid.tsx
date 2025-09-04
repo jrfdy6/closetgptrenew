@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Sparkles, MoreVertical, Eye } from "lucide-react";
+import { safeSlice } from "@/lib/utils/arrayUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -216,16 +217,16 @@ export default function WardrobeGrid({
                   {item.color}
                 </Badge>
                 
-                {item.style && (Array.isArray(item.style) ? item.style : [item.style]).length > 0 && (
+                {item.style && safeSlice(item.style, 0, 2).length > 0 && (
                   <div className="flex gap-1">
-                    {(Array.isArray(item.style) ? item.style : [item.style]).slice(0, 2).map((style, index) => (
+                    {safeSlice(item.style, 0, 2).map((style, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {style}
                       </Badge>
                     ))}
-                    {(Array.isArray(item.style) ? item.style : [item.style]).length > 2 && (
+                    {safeSlice(item.style, 0).length > 2 && (
                       <Badge variant="outline" className="text-xs">
-                        +{(Array.isArray(item.style) ? item.style : [item.style]).length - 2}
+                        +{safeSlice(item.style, 0).length - 2}
                       </Badge>
                     )}
                   </div>

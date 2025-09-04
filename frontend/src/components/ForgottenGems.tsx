@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { safeSlice } from "@/lib/utils/arrayUtils";
 import { 
   RefreshCw, 
   Heart, 
@@ -314,16 +315,16 @@ export default function ForgottenGems() {
               </div>
 
               {/* Style Tags */}
-              {item.style && (Array.isArray(item.style) ? item.style : [item.style]).length > 0 && (
+              {item.style && safeSlice(item.style, 0, 3).length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {(Array.isArray(item.style) ? item.style : [item.style]).slice(0, 3).map((style, index) => (
+                  {safeSlice(item.style, 0, 3).map((style, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {style}
                     </Badge>
                   ))}
-                  {(Array.isArray(item.style) ? item.style : [item.style]).length > 3 && (
+                  {safeSlice(item.style, 0).length > 3 && (
                     <Badge variant="outline" className="text-xs">
-                      +{(Array.isArray(item.style) ? item.style : [item.style]).length - 3}
+                      +{safeSlice(item.style, 0).length - 3}
                     </Badge>
                   )}
                 </div>
