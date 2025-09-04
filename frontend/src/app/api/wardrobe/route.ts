@@ -202,6 +202,10 @@ export async function POST(request: Request) {
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to add the item
+    console.log('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/`);
+    console.log('🔍 DEBUG: Request body:', JSON.stringify(requestBody, null, 2));
+    console.log('🔍 DEBUG: Authorization header:', authHeader);
+    
     const response = await fetch(`${backendUrl}/api/wardrobe/`, {
       method: 'POST',
       headers: {
@@ -211,8 +215,13 @@ export async function POST(request: Request) {
       body: JSON.stringify(requestBody),
     });
     
+    console.log('🔍 DEBUG: Backend response status:', response.status);
+    console.log('🔍 DEBUG: Backend response ok:', response.ok);
+    
     if (!response.ok) {
+      const errorText = await response.text();
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
+      console.error('🔍 DEBUG: Backend error response body:', errorText);
       // Fallback to mock response if backend is not available
       return NextResponse.json({
         success: true,
