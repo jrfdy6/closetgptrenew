@@ -2611,7 +2611,10 @@ async def generate_outfit(
 
     except Exception as e:
         logger.error(f"❌ Outfit generation failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to generate outfit")
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"❌ Full traceback: {error_details}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate outfit: {str(e)}")
 
 
 @router.post("", response_model=OutfitGeneratedOutfit)
