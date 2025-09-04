@@ -421,6 +421,29 @@ async def check_dependencies():
         "all_dependencies_installed": all_ok
     }
 
+@app.get("/api/test/openai")
+async def test_openai_client():
+    """Test OpenAI client initialization"""
+    try:
+        from openai import OpenAI
+        import os
+        
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return {"error": "OPENAI_API_KEY not set"}
+        
+        # Test client initialization
+        client = OpenAI(api_key=api_key)
+        
+        return {
+            "status": "ok",
+            "message": "OpenAI client initialized successfully",
+            "api_key_present": bool(api_key),
+            "api_key_length": len(api_key) if api_key else 0
+        }
+    except Exception as e:
+        return {"error": f"OpenAI client test failed: {str(e)}"}
+
 @app.get("/api/wardrobe/test")
 async def test_wardrobe_direct():
     """Direct test endpoint to verify wardrobe functionality."""
