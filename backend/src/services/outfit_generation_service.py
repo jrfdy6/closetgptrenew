@@ -110,14 +110,11 @@ class OutfitGenerationService:
         """Select appropriate items based on occasion and style."""
         selected_items = []
         
-        # First, filter items by occasion appropriateness
-        filtered_wardrobe = self._filter_items_by_occasion(wardrobe, occasion)
-        
-        # If base item is specified, prioritize it
+        # If base item is specified, prioritize it FIRST (before any filtering)
+        base_item = None
         if base_item_id:
-            base_item = None
             # First, try to find it in the provided wardrobe
-            for item in filtered_wardrobe:
+            for item in wardrobe:
                 if item.id == base_item_id:
                     base_item = item
                     break
@@ -130,10 +127,12 @@ class OutfitGenerationService:
             if base_item:
                 print(f"🎯 Including base item in selection: {base_item.name} ({base_item.type})")
                 selected_items.append(base_item)
-                # Remove base item from filtered wardrobe to avoid duplicates
-                filtered_wardrobe = [item for item in filtered_wardrobe if item.id != base_item_id]
             else:
                 print(f"⚠️ Base item not found in database: {base_item_id}")
+        
+        # Now filter items by occasion appropriateness (excluding the base item)
+        wardrobe_without_base = [item for item in wardrobe if not base_item_id or item.id != base_item_id]
+        filtered_wardrobe = self._filter_items_by_occasion(wardrobe_without_base, occasion)
         
         # Add comprehensive handling for all dropdown occasions
         occasion_lower = occasion.lower()
