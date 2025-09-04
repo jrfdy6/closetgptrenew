@@ -157,17 +157,55 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           console.log(`✅ Item ${i + 1} analyzed successfully:`, result);
 
           if (result.analysis) {
-            // Create a mock item from the analysis result
-            const mockItem = {
+            // Create a proper clothing item from the analysis result
+            const clothingItem = {
               id: `item-${Date.now()}-${i}`,
-              name: result.analysis.clothing_type || 'Analyzed Item',
-              type: result.analysis.clothing_type || 'unknown',
-              color: result.analysis.primary_color || 'unknown',
+              name: result.analysis.name || result.analysis.clothing_type || 'Analyzed Item',
+              type: result.analysis.type || result.analysis.clothing_type || 'unknown',
+              color: result.analysis.color || result.analysis.primary_color || 'unknown',
               imageUrl: await fileToBase64(item.file), // Use base64 as image URL for now
-              analysis: result.analysis
+              userId: user.uid,
+              createdAt: new Date().toISOString(),
+              analysis: result.analysis,
+              // Add other required fields
+              brand: result.analysis.brand || '',
+              style: result.analysis.style || '',
+              material: result.analysis.material || '',
+              season: result.analysis.season || [],
+              occasion: result.analysis.occasion || [],
+              subType: result.analysis.subType || '',
+              gender: result.analysis.gender || 'unisex',
+              backgroundRemoved: false,
+              favorite: false,
+              wearCount: 0,
+              lastWorn: null
             };
             
-            successfulItems.push(mockItem);
+            // Save to database via the wardrobe API
+            try {
+              console.log(`💾 Saving item ${i + 1} to database...`);
+              const saveResponse = await fetch('/api/wardrobe', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${await user.getIdToken()}`,
+                },
+                body: JSON.stringify(clothingItem),
+              });
+
+              if (!saveResponse.ok) {
+                throw new Error(`Failed to save item: ${saveResponse.statusText}`);
+              }
+
+              const savedItem = await saveResponse.json();
+              console.log(`✅ Item ${i + 1} saved to database:`, savedItem);
+              
+              successfulItems.push(savedItem);
+            } catch (saveError) {
+              console.error(`❌ Failed to save item ${i + 1} to database:`, saveError);
+              // Still add to successful items but mark as not saved
+              successfulItems.push({ ...clothingItem, saveError: saveError.message });
+            }
 
             // Update status to success
             setUploadItems(prev => prev.map(prevItem => 
