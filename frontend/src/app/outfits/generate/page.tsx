@@ -76,68 +76,67 @@ export default function OutfitGenerationPage() {
     }
   }, []);
 
-  // Fetch wardrobe items
-  const fetchWardrobeItems = async () => {
-    if (!user) return;
-    
-    try {
-      setWardrobeLoading(true);
-      const token = await user.getIdToken();
-      const response = await fetch('/api/wardrobe', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        // Handle the wardrobe API response structure
-        const items = data.items || data;
-        setWardrobeItems(items);
-        console.log('🔍 Wardrobe items loaded:', items.length);
-        
-        // Get base item ID from URL params directly (in case state hasn't been set yet)
-        const urlParams = new URLSearchParams(window.location.search);
-        const baseItemId = urlParams.get('baseItemId');
-        
-        // If we have a baseItem ID, find the full item in wardrobe
-        if (baseItemId) {
-          const fullItem = items.find((item: any) => item.id === baseItemId);
-          if (fullItem) {
-            console.log('🔍 Found base item in wardrobe with full metadata:', fullItem.name);
-            console.log('🔍 Rich metadata includes:', {
-              dominantColors: fullItem.dominantColors?.length || 0,
-              matchingColors: fullItem.matchingColors?.length || 0,
-              metadata: fullItem.metadata ? 'present' : 'missing',
-              material: fullItem.metadata?.visualAttributes?.material,
-              texture: fullItem.metadata?.visualAttributes?.textureStyle,
-              silhouette: fullItem.metadata?.visualAttributes?.silhouette,
-              fit: fullItem.metadata?.visualAttributes?.fit
-            });
-            console.log('🔍 Setting base item to:', {
-              id: fullItem.id,
-              name: fullItem.name,
-              imageUrl: fullItem.imageUrl || fullItem.image_url,
-              type: fullItem.type
-            });
-            setBaseItem(fullItem);
-          } else {
-            console.warn('🔍 Base item not found in wardrobe:', baseItemId);
-            setBaseItem(null);
-          }
-        }
-      } else {
-        console.error('🔍 Failed to fetch wardrobe items:', response.status);
-      }
-    } catch (error) {
-      console.error('🔍 Error fetching wardrobe items:', error);
-    } finally {
-      setWardrobeLoading(false);
-    }
-  };
-
   // Fetch wardrobe items when user is available
   useEffect(() => {
+    const fetchWardrobeItems = async () => {
+      if (!user) return;
+      
+      try {
+        setWardrobeLoading(true);
+        const token = await user.getIdToken();
+        const response = await fetch('/api/wardrobe', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Handle the wardrobe API response structure
+          const items = data.items || data;
+          setWardrobeItems(items);
+          console.log('🔍 Wardrobe items loaded:', items.length);
+          
+          // Get base item ID from URL params directly (in case state hasn't been set yet)
+          const urlParams = new URLSearchParams(window.location.search);
+          const baseItemId = urlParams.get('baseItemId');
+          
+          // If we have a baseItem ID, find the full item in wardrobe
+          if (baseItemId) {
+            const fullItem = items.find((item: any) => item.id === baseItemId);
+            if (fullItem) {
+              console.log('🔍 Found base item in wardrobe with full metadata:', fullItem.name);
+              console.log('🔍 Rich metadata includes:', {
+                dominantColors: fullItem.dominantColors?.length || 0,
+                matchingColors: fullItem.matchingColors?.length || 0,
+                metadata: fullItem.metadata ? 'present' : 'missing',
+                material: fullItem.metadata?.visualAttributes?.material,
+                texture: fullItem.metadata?.visualAttributes?.textureStyle,
+                silhouette: fullItem.metadata?.visualAttributes?.silhouette,
+                fit: fullItem.metadata?.visualAttributes?.fit
+              });
+              console.log('🔍 Setting base item to:', {
+                id: fullItem.id,
+                name: fullItem.name,
+                imageUrl: fullItem.imageUrl || fullItem.image_url,
+                type: fullItem.type
+              });
+              setBaseItem(fullItem);
+            } else {
+              console.warn('🔍 Base item not found in wardrobe:', baseItemId);
+              setBaseItem(null);
+            }
+          }
+        } else {
+          console.error('🔍 Failed to fetch wardrobe items:', response.status);
+        }
+      } catch (error) {
+        console.error('🔍 Error fetching wardrobe items:', error);
+      } finally {
+        setWardrobeLoading(false);
+      }
+    };
+
     if (user) {
       fetchWardrobeItems();
     }
