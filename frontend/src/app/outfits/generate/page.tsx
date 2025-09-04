@@ -365,6 +365,10 @@ export default function OutfitGenerationPage() {
         baseItemName: baseItem ? baseItem.name : null
       });
       
+      // Additional debug to show the full request data
+      console.log('🔍 DEBUG: Full request data:', requestData);
+      console.log('🔍 DEBUG: baseItemId in request:', requestData.baseItemId);
+      
       const response = await fetch('/api/outfits', {
         method: 'POST',
         headers: {
