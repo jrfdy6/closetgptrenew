@@ -75,6 +75,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
   console.log(`🔍 DEBUG: Outfits POST route called - CONNECTING TO PRODUCTION BACKEND [${timestamp}]`);
+  console.log(`🔍 DEBUG: API ROUTE IS BEING CALLED!`);
   
   try {
     // Get the authorization header
