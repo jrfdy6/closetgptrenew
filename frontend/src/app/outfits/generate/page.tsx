@@ -341,7 +341,7 @@ export default function OutfitGenerationPage() {
         },
         likedOutfits: [],
         trendingStyles: [],
-        ...(baseItem && { baseItemId: baseItem.id })
+        ...(baseItem && { baseItem: baseItem })
       };
       
       console.log('🔍 DEBUG: Request data being sent:', {
@@ -351,6 +351,7 @@ export default function OutfitGenerationPage() {
         wardrobeCount: requestData.wardrobe?.length,
         wardrobeType: typeof requestData.wardrobe,
         wardrobeKeys: requestData.wardrobe ? Object.keys(requestData.wardrobe) : null,
+        baseItem: baseItem ? { id: baseItem.id, name: baseItem.name, type: baseItem.type } : null,
         baseItemId: baseItem ? baseItem.id : null,
         baseItemName: baseItem ? baseItem.name : null
       });
