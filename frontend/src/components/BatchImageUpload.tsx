@@ -125,9 +125,12 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               : prevItem
           ));
 
+          // Convert file to base64 once for both analysis and storage
+          const base64Image = await fileToBase64(item.file);
+          
           // Call backend directly for AI analysis
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-          const payload = { image: { url: await fileToBase64(item.file) } };
+          const payload = { image: { url: base64Image } };
           
           console.log(`🤖 Analyzing item ${i + 1}/${totalItems} with AI...`);
           
@@ -159,7 +162,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               color: analysis.dominantColors && analysis.dominantColors.length > 0 
                 ? analysis.dominantColors[0].name 
                 : 'unknown',
-              imageUrl: await fileToBase64(item.file), // Use base64 as image URL for now
+              imageUrl: base64Image, // Reuse the base64 image
               style: analysis.style || [],
               occasion: analysis.occasion || [],
               season: analysis.season || ['all'],
