@@ -7,7 +7,12 @@ from dotenv import load_dotenv
 import requests
 from io import BytesIO
 from PIL import Image
-import pillow_heif
+try:
+    import pillow_heif
+    HEIC_SUPPORT = True
+except ImportError:
+    HEIC_SUPPORT = False
+    print("⚠️ pillow_heif not available - HEIC image support disabled")
 import tempfile
 import mimetypes
 import base64
@@ -45,18 +50,22 @@ def convert_to_jpeg(image_url: str) -> str:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as temp_file:
             # Check if it's a HEIC image
             if image_url.lower().endswith('.heic'):
-                try:
-                    heif_file = pillow_heif.read_heif(response.content)
-                    image = Image.frombytes(
-                        heif_file.mode,
-                        heif_file.size,
-                        heif_file.data,
-                        "raw",
-                    )
-                    image.save(temp_file.name, "JPEG")
-                except Exception as e:
-                    logger.warning(f"Failed to convert HEIC: {str(e)}")
-                    # Fallback: save as is
+                if HEIC_SUPPORT:
+                    try:
+                        heif_file = pillow_heif.read_heif(response.content)
+                        image = Image.frombytes(
+                            heif_file.mode,
+                            heif_file.size,
+                            heif_file.data,
+                            "raw",
+                        )
+                        image.save(temp_file.name, "JPEG")
+                    except Exception as e:
+                        logger.warning(f"Failed to convert HEIC: {str(e)}")
+                        # Fallback: save as is
+                        temp_file.write(response.content)
+                else:
+                    logger.warning("HEIC image detected but pillow_heif not available - saving as is")
                     temp_file.write(response.content)
             else:
                 # For other formats, try to convert to JPEG
@@ -93,22 +102,25 @@ async def analyze_image(
 
         # Convert HEIC to JPEG if necessary
         if file.filename.lower().endswith('.heic'):
-            try:
-                heif_file = pillow_heif.read_heif(temp_file_path)
-                image = Image.frombytes(
-                    heif_file.mode,
-                    heif_file.size,
-                    heif_file.data,
-                    "raw",
-                )
-                # Create a new temporary file for the JPEG
-                jpeg_path = temp_file_path.replace('.heic', '.jpg')
-                image.save(jpeg_path, "JPEG")
-                # Update the path to use the JPEG file
-                os.unlink(temp_file_path)
-                temp_file_path = jpeg_path
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Failed to convert HEIC image: {str(e)}")
+            if HEIC_SUPPORT:
+                try:
+                    heif_file = pillow_heif.read_heif(temp_file_path)
+                    image = Image.frombytes(
+                        heif_file.mode,
+                        heif_file.size,
+                        heif_file.data,
+                        "raw",
+                    )
+                    # Create a new temporary file for the JPEG
+                    jpeg_path = temp_file_path.replace('.heic', '.jpg')
+                    image.save(jpeg_path, "JPEG")
+                    # Update the path to use the JPEG file
+                    os.unlink(temp_file_path)
+                    temp_file_path = jpeg_path
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail=f"Failed to convert HEIC image: {str(e)}")
+            else:
+                raise HTTPException(status_code=400, detail="HEIC images not supported - pillow_heif dependency missing")
 
         # Process the image for analysis
         processed_image = process_image_for_analysis(temp_file_path)
