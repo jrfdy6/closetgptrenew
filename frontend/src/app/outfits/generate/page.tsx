@@ -110,6 +110,12 @@ export default function OutfitGenerationPage() {
               silhouette: fullItem.metadata?.visualAttributes?.silhouette,
               fit: fullItem.metadata?.visualAttributes?.fit
             });
+            console.log('🔍 Setting base item to:', {
+              id: fullItem.id,
+              name: fullItem.name,
+              imageUrl: fullItem.imageUrl || fullItem.image_url,
+              type: fullItem.type
+            });
             setBaseItem(fullItem);
           } else {
             console.warn('🔍 Base item not found in wardrobe:', baseItem.id);
@@ -779,14 +785,15 @@ export default function OutfitGenerationPage() {
         </div>
 
         {/* Base Item Indicator */}
+        {console.log('🔍 Rendering base item indicator, baseItem:', baseItem)}
         {baseItem && (
           <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
                   <img
-                    src={baseItem.imageUrl}
-                    alt={baseItem.name}
+                    src={baseItem.imageUrl || baseItem.image_url || '/placeholder.jpg'}
+                    alt={baseItem.name || 'Base item'}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -796,10 +803,14 @@ export default function OutfitGenerationPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Generating outfit with: {baseItem.name}
+                    Generating outfit with: {baseItem.name || 'Unknown item'}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     This item will be included as the base layer in your outfit
+                  </p>
+                  {/* Debug info */}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Debug: ID={baseItem.id}, Name={baseItem.name}, ImageUrl={baseItem.imageUrl || baseItem.image_url || 'none'}
                   </p>
                 </div>
                 <Button
