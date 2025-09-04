@@ -187,6 +187,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
             };
             
             clothingItems.push(clothingItem);
+            console.log(`🔍 DEBUG: Added item ${i + 1} to clothingItems array. Total items: ${clothingItems.length}`);
 
             // Update status to analyzed
             setUploadItems(prev => prev.map(prevItem => 
@@ -214,6 +215,9 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
       }
 
       // Step 2: Save all items in batch
+      console.log(`🔍 DEBUG: clothingItems array length: ${clothingItems.length}`);
+      console.log(`🔍 DEBUG: clothingItems content:`, clothingItems);
+      
       if (clothingItems.length > 0) {
         console.log(`💾 Saving ${clothingItems.length} items to database in batch...`);
         
