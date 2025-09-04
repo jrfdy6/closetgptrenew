@@ -115,6 +115,15 @@ export async function POST(req: NextRequest) {
     const fullBackendUrl = `${backendUrl}${backendEndpoint}`;
     console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
     
+    // Log what we're sending to the backend
+    console.log('🔍 DEBUG: Sending to backend:', {
+      url: fullBackendUrl,
+      bodyLength: body.length,
+      bodyPreview: body.substring(0, 200) + '...',
+      hasBaseItemId: requestData.baseItemId ? 'YES' : 'NO',
+      baseItemId: requestData.baseItemId
+    });
+    
     const response = await fetch(fullBackendUrl, {
       method: 'POST',
       headers: {
