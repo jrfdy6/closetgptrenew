@@ -47,6 +47,7 @@ const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reje
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
   
   const { user } = useFirebase();
+  const { toast } = useToast();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
