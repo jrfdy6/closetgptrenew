@@ -303,7 +303,11 @@ async def analyze_image_real(request: dict):
             if not api_key:
                 return {"error": "OPENAI_API_KEY not set in environment"}
             
-            # Initialize OpenAI client with minimal configuration
+            # Strip Railway proxy vars if they exist (they cause issues with new OpenAI client)
+            for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"]:
+                os.environ.pop(proxy_var, None)
+            
+            # Initialize OpenAI client with clean environment
             client = OpenAI(api_key=api_key)
             
             # For now, return a mock response to test the flow
@@ -458,6 +462,10 @@ async def test_openai_client():
         if not api_key:
             return {"error": "OPENAI_API_KEY not set"}
         
+        # Strip Railway proxy vars if they exist (they cause issues with new OpenAI client)
+        for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"]:
+            os.environ.pop(proxy_var, None)
+        
         # Test client initialization
         client = OpenAI(api_key=api_key)
         
@@ -469,6 +477,28 @@ async def test_openai_client():
         }
     except Exception as e:
         return {"error": f"OpenAI client test failed: {str(e)}"}
+
+@app.get("/api/debug/environment")
+async def debug_environment():
+    """Debug Railway environment variables"""
+    import os
+    
+    # Check for proxy-related environment variables
+    proxy_vars = {k: v for k, v in os.environ.items() if "PROXY" in k.upper()}
+    
+    # Check for other potentially problematic variables
+    openai_vars = {k: v for k, v in os.environ.items() if "OPENAI" in k.upper()}
+    
+    # Check for HTTP/HTTPS related variables
+    http_vars = {k: v for k, v in os.environ.items() if k.upper().startswith(("HTTP", "HTTPS"))}
+    
+    return {
+        "proxy_variables": proxy_vars,
+        "openai_variables": openai_vars,
+        "http_variables": http_vars,
+        "total_env_vars": len(os.environ),
+        "python_version": os.sys.version
+    }
 
 @app.get("/api/wardrobe/test")
 async def test_wardrobe_direct():
