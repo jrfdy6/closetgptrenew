@@ -316,4 +316,44 @@ async def get_wardrobe_stats():
         raise HTTPException(
             status_code=500,
             detail="Failed to get wardrobe stats"
+        )
+
+@router.delete("/{item_id}")
+async def delete_wardrobe_item(item_id: str, current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
+    """Delete a wardrobe item"""
+    try:
+        print(f"DEBUG: Deleting wardrobe item {item_id} for user {current_user_id}")
+        
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        # Check if item exists and belongs to user
+        doc_ref = db.collection('wardrobe').document(item_id)
+        doc = doc_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        item_data = doc.to_dict()
+        if item_data.get('userId') != current_user_id:
+            raise HTTPException(status_code=403, detail="Item does not belong to user")
+        
+        # Delete the item
+        doc_ref.delete()
+        
+        print(f"DEBUG: Successfully deleted item {item_id}")
+        
+        return {
+            "success": True,
+            "message": "Item deleted successfully",
+            "deleted_id": item_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"DEBUG: Error deleting wardrobe item: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to delete item"
         ) 
