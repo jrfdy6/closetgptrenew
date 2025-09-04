@@ -64,17 +64,26 @@ export default function OutfitGenerationPage() {
   const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
   const [wardrobeLoading, setWardrobeLoading] = useState(false);
   
-  // Extract base item from URL query parameters
+  // Extract base item from localStorage (to avoid URI too long error)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const baseItemParam = urlParams.get('baseItem');
-    if (baseItemParam) {
+    const hasBaseItem = urlParams.get('baseItem') === 'true';
+    
+    if (hasBaseItem) {
       try {
-        const decodedItem = JSON.parse(decodeURIComponent(baseItemParam));
-        setBaseItem(decodedItem);
-        console.log('🔍 Base item loaded from URL:', decodedItem);
+        const storedItem = localStorage.getItem('outfitBaseItem');
+        if (storedItem) {
+          const decodedItem = JSON.parse(storedItem);
+          setBaseItem(decodedItem);
+          console.log('🔍 Base item loaded from localStorage:', decodedItem);
+          
+          // Clean up localStorage after loading
+          localStorage.removeItem('outfitBaseItem');
+        } else {
+          console.warn('🔍 No base item found in localStorage');
+        }
       } catch (error) {
-        console.error('🔍 Error parsing base item from URL:', error);
+        console.error('🔍 Error parsing base item from localStorage:', error);
       }
     }
   }, []);
@@ -98,6 +107,15 @@ export default function OutfitGenerationPage() {
         const items = data.items || data;
         setWardrobeItems(items);
         console.log('🔍 Wardrobe items loaded:', items.length);
+        
+        // If we have a baseItem but it's incomplete, try to find the full item in wardrobe
+        if (baseItem && baseItem.id && (!baseItem.metadata || !baseItem.dominantColors)) {
+          const fullItem = items.find((item: any) => item.id === baseItem.id);
+          if (fullItem) {
+            console.log('🔍 Found full base item in wardrobe, updating:', fullItem.name);
+            setBaseItem(fullItem);
+          }
+        }
       } else {
         console.error('🔍 Failed to fetch wardrobe items:', response.status);
       }

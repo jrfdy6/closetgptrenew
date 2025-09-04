@@ -181,11 +181,27 @@ export default function WardrobePage() {
   const handleGenerateOutfitWithBaseItem = (baseItem: any) => {
     console.log('🎉 OUTFIT BUTTON CLICKED! 🎉');
     console.log('🚀 Navigating to outfit generation with base item:', baseItem.name);
-    // Navigate to outfit generation page with base item as query parameter
-    const baseItemData = encodeURIComponent(JSON.stringify(baseItem));
-    const targetUrl = `/outfits/generate?baseItem=${baseItemData}`;
-    console.log('🎯 Target URL:', targetUrl);
-    router.push(targetUrl);
+    
+    // Store base item in localStorage to avoid URI too long error
+    // Only store essential fields to minimize data size
+    const essentialBaseItem = {
+      id: baseItem.id,
+      name: baseItem.name,
+      type: baseItem.type,
+      color: baseItem.color,
+      imageUrl: baseItem.imageUrl,
+      style: baseItem.style,
+      season: baseItem.season,
+      occasion: baseItem.occasion,
+      subType: baseItem.subType,
+      brand: baseItem.brand
+    };
+    
+    localStorage.setItem('outfitBaseItem', JSON.stringify(essentialBaseItem));
+    console.log('💾 Stored base item in localStorage:', essentialBaseItem);
+    
+    // Navigate to outfit generation page
+    router.push('/outfits/generate?baseItem=true');
   };
 
   // Get type icon
