@@ -220,7 +220,11 @@ async def analyze_single_image(
             )
             log_analytics_event(analytics_event)
             
-            return {"analysis": analysis}
+            return {
+                "success": True,
+                "analysis": analysis,
+                "message": "AI analysis completed successfully with GPT-4 Vision"
+            }
         finally:
             # Clean up temporary file
             os.unlink(temp_path)
