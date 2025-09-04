@@ -92,6 +92,16 @@ export async function POST(req: NextRequest) {
     console.log("🔍 DEBUG: Request body length:", body.length);
     console.log("🔍 DEBUG: Request body preview:", body.substring(0, 200) + "...");
     
+    // Parse and log the request data to check for baseItemId
+    try {
+      const requestData = JSON.parse(body);
+      console.log("🔍 DEBUG: Parsed request data keys:", Object.keys(requestData));
+      console.log("🔍 DEBUG: baseItemId in request:", requestData.baseItemId);
+      console.log("🔍 DEBUG: baseItem in request:", requestData.baseItem);
+    } catch (e) {
+      console.log("🔍 DEBUG: Error parsing request body:", e);
+    }
+    
     const requestData = JSON.parse(body);
     
     // Determine if this is outfit creation (has 'items' field) or generation (has 'mood' field)
