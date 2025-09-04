@@ -820,6 +820,7 @@ export default function WardrobePage() {
                     loading={false}
                     onItemClick={(item) => console.log('Item clicked:', item)}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
+                    onDeleteItem={deleteItem}
                     showActions={true}
                   />
                 ) : (

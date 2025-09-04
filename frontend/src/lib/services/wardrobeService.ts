@@ -181,21 +181,47 @@ export class WardrobeService {
 
   static async deleteWardrobeItem(id: string): Promise<void> {
     try {
-      const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe/${id}`, {
+      console.log(`🔍 [WardrobeService] Deleting wardrobe item ${id}`);
+      
+      // Use Next.js API route as proxy to avoid Railway HTTPS redirect issues
+      const fullUrl = `/api/wardrobe?itemId=${id}`;
+      console.log('🔍 DEBUG: Using Next.js API route as proxy:', fullUrl);
+      
+      const response = await fetch(fullUrl, {
         method: 'DELETE',
-        headers,
+        headers: await this.getAuthHeaders(),
       });
 
+      console.log('🔍 DEBUG: Wardrobe DELETE API response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.log('🔍 DEBUG: Wardrobe DELETE API response not ok:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url
+        });
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please sign in again.');
+        } else if (response.status === 403) {
+          throw new Error('Not authorized to delete this item.');
+        } else if (response.status === 404) {
+          throw new Error('Wardrobe item not found.');
+        } else if (response.status >= 500) {
+          throw new Error('Backend server error. Please try again later.');
+        } else {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
       }
 
       const data = await response.json();
+      console.log('🔍 DEBUG: Wardrobe DELETE response received:', data);
       
       if (!data.success) {
         throw new Error(data.message || 'Failed to delete wardrobe item');
       }
+      
+      console.log(`✅ [WardrobeService] Successfully deleted wardrobe item ${id}`);
     } catch (error) {
       console.error('Error deleting wardrobe item:', error);
       throw error;

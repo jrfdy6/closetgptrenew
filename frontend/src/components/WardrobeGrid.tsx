@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Sparkles, MoreVertical, Eye } from "lucide-react";
+import { Heart, Sparkles, MoreVertical, Eye, Trash2 } from "lucide-react";
 import { safeSlice } from "@/lib/utils/arrayUtils";
 import {
   DropdownMenu,
@@ -12,6 +12,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface WardrobeItem {
   id: string;
@@ -33,6 +44,7 @@ interface WardrobeGridProps {
   onItemClick: (item: WardrobeItem) => void;
   onGenerateOutfit: (item: WardrobeItem) => void;
   onToggleFavorite?: (itemId: string) => void;
+  onDeleteItem?: (itemId: string) => void;
   showActions?: boolean;
 }
 
@@ -42,6 +54,7 @@ export default function WardrobeGrid({
   onItemClick, 
   onGenerateOutfit, 
   onToggleFavorite,
+  onDeleteItem,
   showActions = true 
 }: WardrobeGridProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -175,6 +188,39 @@ export default function WardrobeGrid({
                       <Heart className="w-4 h-4 mr-2" />
                       {item.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
                     </DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem 
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Item
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Wardrobe Item</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{item.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              if (onDeleteItem) {
+                                console.log(`🔍 [WardrobeGrid] Confirmed delete for item ${item.id}`);
+                                onDeleteItem(item.id);
+                              }
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

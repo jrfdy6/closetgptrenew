@@ -232,13 +232,49 @@ export class OutfitService {
     try {
       console.log(`🔍 [OutfitService] Deleting outfit ${outfitId}`);
       
-      // Verify ownership first
-      const existingOutfit = await this.getOutfitById(user, outfitId);
-      if (!existingOutfit) {
-        throw new Error('Outfit not found');
+      // Get Firebase ID token for authentication
+      const token = await user.getIdToken();
+      
+      // Use Next.js API route as proxy to avoid Railway HTTPS redirect issues
+      const fullUrl = `/api/outfits?outfitId=${outfitId}`;
+      console.log('🔍 DEBUG: Using Next.js API route as proxy:', fullUrl);
+      
+      const response = await fetch(fullUrl, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('🔍 DEBUG: Outfit DELETE API response status:', response.status);
+      
+      if (!response.ok) {
+        console.log('🔍 DEBUG: Outfit DELETE API response not ok:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url
+        });
+        
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please sign in again.');
+        } else if (response.status === 403) {
+          throw new Error('Not authorized to delete this outfit.');
+        } else if (response.status === 404) {
+          throw new Error('Outfit not found.');
+        } else if (response.status >= 500) {
+          throw new Error('Backend server error. Please try again later.');
+        } else {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
       }
 
-      await deleteDoc(doc(db, this.COLLECTION_NAME, outfitId));
+      const data = await response.json();
+      console.log('🔍 DEBUG: Outfit DELETE response received:', data);
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to delete outfit');
+      }
       
       console.log(`✅ [OutfitService] Successfully deleted outfit ${outfitId}`);
 
