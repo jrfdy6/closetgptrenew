@@ -106,6 +106,10 @@ class OutfitRequest(BaseModel):
     description: Optional[str] = None
     baseItem: Optional[Dict[str, Any]] = None
     baseItemId: Optional[str] = None  # Add baseItemId field to track user-selected base item
+    wardrobe: Optional[List[Dict[str, Any]]] = []  # Add wardrobe field
+    wardrobeCount: Optional[int] = 0  # Add wardrobeCount field
+    wardrobeType: Optional[str] = "object"  # Add wardrobeType field
+    weather: Optional[Dict[str, Any]] = None  # Add weather field
 
 class CreateOutfitRequest(BaseModel):
     """Request model for outfit creation."""
