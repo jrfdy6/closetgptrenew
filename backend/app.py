@@ -335,7 +335,7 @@ async def test_wardrobe_direct():
     """Direct test endpoint to verify wardrobe functionality."""
     return {
         "success": True,
-        "message": "Direct wardrobe test endpoint is working",
+        "message": "Direct wardrobe test endpoint is working - updated",
         "backend": "closetgptrenew-backend-production",
         "timestamp": "2024-01-01T00:00:00Z"
     }
