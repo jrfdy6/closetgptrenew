@@ -149,30 +149,35 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           console.log(`✅ Item ${i + 1} analyzed successfully:`, result);
 
           if (result.analysis) {
+            // Extract the actual analysis data from the nested structure
+            const analysis = result.analysis.analysis || result.analysis;
+            
             // Create a proper clothing item from the analysis result
             const clothingItem = {
-              name: result.analysis.name || result.analysis.clothing_type || 'Analyzed Item',
-              type: result.analysis.type || result.analysis.clothing_type || 'unknown',
-              color: result.analysis.color || result.analysis.primary_color || 'unknown',
+              name: analysis.name || 'Analyzed Item',
+              type: analysis.type || 'unknown',
+              color: analysis.dominantColors && analysis.dominantColors.length > 0 
+                ? analysis.dominantColors[0].name 
+                : 'unknown',
               imageUrl: await fileToBase64(item.file), // Use base64 as image URL for now
-              style: result.analysis.style || [],
-              occasion: result.analysis.occasion || [],
-              season: result.analysis.season || ['all'],
-              dominantColors: result.analysis.dominantColors || [],
-              matchingColors: result.analysis.matchingColors || [],
-              tags: result.analysis.tags || [],
+              style: analysis.style || [],
+              occasion: analysis.occasion || [],
+              season: analysis.season || ['all'],
+              dominantColors: analysis.dominantColors || [],
+              matchingColors: analysis.matchingColors || [],
+              tags: analysis.tags || [],
               metadata: {
                 analysisTimestamp: Date.now(),
-                originalType: result.analysis.type || 'clothing',
-                styleTags: result.analysis.style || [],
-                occasionTags: result.analysis.occasion || [],
+                originalType: analysis.type || 'clothing',
+                styleTags: analysis.style || [],
+                occasionTags: analysis.occasion || [],
                 colorAnalysis: {
-                  dominant: result.analysis.dominantColors || [],
-                  matching: result.analysis.matchingColors || []
+                  dominant: analysis.dominantColors || [],
+                  matching: analysis.matchingColors || []
                 },
-                visualAttributes: result.analysis.visualAttributes || {},
+                visualAttributes: analysis.metadata?.visualAttributes || {},
                 itemMetadata: {
-                  tags: result.analysis.tags || [],
+                  tags: analysis.tags || [],
                   careInstructions: "Check care label"
                 }
               },
