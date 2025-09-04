@@ -489,11 +489,16 @@ async def add_wardrobe_items_batch(
         # Process each item
         for i, item_data in enumerate(items_data):
             try:
+                logger.info(f"🔍 DEBUG: Processing item {i+1}/{len(items_data)}: {item_data.get('name', 'Unknown')}")
+                
                 # Validate required fields
                 required_fields = ['name', 'type', 'color']
                 for field in required_fields:
                     if field not in item_data:
+                        logger.error(f"❌ DEBUG: Missing required field '{field}' in item {i+1}")
                         raise ValueError(f"Missing required field: {field}")
+                
+                logger.info(f"✅ DEBUG: Item {i+1} validation passed")
                 
                 # Create item ID
                 item_id = str(uuid.uuid4())
@@ -541,8 +546,10 @@ async def add_wardrobe_items_batch(
                 }
                 
                 # Save to Firestore
+                logger.info(f"💾 DEBUG: Saving item {i+1} to Firestore with ID: {item_id}")
                 doc_ref = db.collection('wardrobe').document(item_id)
                 doc_ref.set(wardrobe_item)
+                logger.info(f"✅ DEBUG: Item {i+1} saved to Firestore successfully")
                 
                 successful_items.append({
                     "index": i,
@@ -553,7 +560,10 @@ async def add_wardrobe_items_batch(
                 logger.info(f"Successfully added item {i+1}/{len(items_data)}: {item_id}")
                 
             except Exception as item_error:
-                logger.error(f"Failed to add item {i+1}: {item_error}")
+                logger.error(f"❌ DEBUG: Failed to add item {i+1}: {item_error}")
+                logger.error(f"❌ DEBUG: Item data that failed: {item_data}")
+                import traceback
+                logger.error(f"❌ DEBUG: Full error traceback: {traceback.format_exc()}")
                 failed_items.append({
                     "index": i,
                     "item_data": item_data,
