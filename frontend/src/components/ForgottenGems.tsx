@@ -314,16 +314,16 @@ export default function ForgottenGems() {
               </div>
 
               {/* Style Tags */}
-              {item.style && Array.isArray(item.style) && item.style.length > 0 && (
+              {item.style && (Array.isArray(item.style) ? item.style : [item.style]).length > 0 && (
                 <div className="flex flex-wrap gap-1">
-                  {item.style.slice(0, 3).map((style, index) => (
+                  {(Array.isArray(item.style) ? item.style : [item.style]).slice(0, 3).map((style, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {style}
                     </Badge>
                   ))}
-                  {item.style.length > 3 && (
+                  {(Array.isArray(item.style) ? item.style : [item.style]).length > 3 && (
                     <Badge variant="outline" className="text-xs">
-                      +{item.style.length - 3}
+                      +{(Array.isArray(item.style) ? item.style : [item.style]).length - 3}
                     </Badge>
                   )}
                 </div>

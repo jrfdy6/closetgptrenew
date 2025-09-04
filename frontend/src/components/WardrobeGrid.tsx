@@ -216,16 +216,16 @@ export default function WardrobeGrid({
                   {item.color}
                 </Badge>
                 
-                {item.style && item.style.length > 0 && (
+                {item.style && (Array.isArray(item.style) ? item.style : [item.style]).length > 0 && (
                   <div className="flex gap-1">
-                    {item.style.slice(0, 2).map((style, index) => (
+                    {(Array.isArray(item.style) ? item.style : [item.style]).slice(0, 2).map((style, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {style}
                       </Badge>
                     ))}
-                    {item.style.length > 2 && (
+                    {(Array.isArray(item.style) ? item.style : [item.style]).length > 2 && (
                       <Badge variant="outline" className="text-xs">
-                        +{item.style.length - 2}
+                        +{(Array.isArray(item.style) ? item.style : [item.style]).length - 2}
                       </Badge>
                     )}
                   </div>
