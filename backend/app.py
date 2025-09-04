@@ -455,26 +455,52 @@ async def check_dependencies():
 async def test_openai_client():
     """Test OpenAI client initialization"""
     try:
-        from openai import OpenAI
         import os
+        import sys
         
+        # Get API key
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             return {"error": "OPENAI_API_KEY not set"}
         
-        # Strip Railway proxy vars if they exist (they cause issues with new OpenAI client)
-        for proxy_var in ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"]:
-            os.environ.pop(proxy_var, None)
+        # Strip all proxy-related environment variables
+        proxy_vars = ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy"]
+        for var in proxy_vars:
+            os.environ.pop(var, None)
         
-        # Test client initialization
-        client = OpenAI(api_key=api_key)
+        # Try different initialization approaches
+        try:
+            # Approach 1: Minimal initialization
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            return {
+                "status": "ok",
+                "message": "OpenAI client initialized successfully (minimal approach)",
+                "api_key_present": bool(api_key),
+                "api_key_length": len(api_key) if api_key else 0
+            }
+        except Exception as e1:
+            try:
+                # Approach 2: Explicit parameters
+                from openai import OpenAI
+                client = OpenAI(
+                    api_key=api_key,
+                    timeout=30.0,
+                    max_retries=2
+                )
+                return {
+                    "status": "ok",
+                    "message": "OpenAI client initialized successfully (explicit approach)",
+                    "api_key_present": bool(api_key),
+                    "api_key_length": len(api_key) if api_key else 0
+                }
+            except Exception as e2:
+                return {
+                    "error": f"Both approaches failed. Minimal: {str(e1)}, Explicit: {str(e2)}",
+                    "api_key_present": bool(api_key),
+                    "api_key_length": len(api_key) if api_key else 0
+                }
         
-        return {
-            "status": "ok",
-            "message": "OpenAI client initialized successfully",
-            "api_key_present": bool(api_key),
-            "api_key_length": len(api_key) if api_key else 0
-        }
     except Exception as e:
         return {"error": f"OpenAI client test failed: {str(e)}"}
 
