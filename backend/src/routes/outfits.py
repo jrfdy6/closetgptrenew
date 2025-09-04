@@ -105,6 +105,7 @@ class OutfitRequest(BaseModel):
     occasion: str
     description: Optional[str] = None
     baseItem: Optional[Dict[str, Any]] = None
+    baseItemId: Optional[str] = None  # Add baseItemId field to track user-selected base item
 
 class CreateOutfitRequest(BaseModel):
     """Request model for outfit creation."""
@@ -1672,6 +1673,16 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             suitable_items.extend(additional_items[:10])
             logger.info(f"🔍 DEBUG: Extended suitable items to {len(suitable_items)} for variety")
         
+        # Handle base item - add it to suitable items if specified
+        if req.baseItemId:
+            base_item = next((item for item in wardrobe_items if item.get("id") == req.baseItemId), None)
+            if base_item:
+                logger.info(f"🎯 Adding base item to outfit: {base_item.get('name', 'Unknown')} ({base_item.get('type', 'Unknown')})")
+                # Add base item to the beginning of suitable items to prioritize it
+                suitable_items.insert(0, base_item)
+            else:
+                logger.warning(f"⚠️ Base item {req.baseItemId} not found in wardrobe")
+        
         # If no suitable items, use any available items
         if not suitable_items:
             logger.info(f"🔍 DEBUG: No suitable items found, using first 4 items")
@@ -2562,6 +2573,18 @@ async def generate_outfit(
         # Get real user ID from request context
         current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
         logger.info(f"Using real user ID: {current_user_id}")
+        
+        # Log base item information
+        logger.info(f"🔍 DEBUG: Received baseItemId: {req.baseItemId}")
+        if req.baseItemId:
+            # Find the base item in the wardrobe array
+            base_item = next((item for item in req.wardrobe if item.get("id") == req.baseItemId), None)
+            if base_item:
+                logger.info(f"🔍 DEBUG: Found base item in wardrobe: {base_item.get('name', 'Unknown')} ({base_item.get('type', 'Unknown')})")
+            else:
+                logger.warning(f"⚠️ DEBUG: Base item {req.baseItemId} not found in wardrobe array")
+        else:
+            logger.info("🔍 DEBUG: No baseItemId provided")
         
         logger.info(f"🎨 Generating outfit for user: {current_user_id}")
         
