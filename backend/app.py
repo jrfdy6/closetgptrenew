@@ -457,6 +457,7 @@ async def test_openai_client():
     try:
         import os
         import sys
+        import importlib
         
         # Get API key
         api_key = os.getenv("OPENAI_API_KEY")
@@ -468,38 +469,43 @@ async def test_openai_client():
         for var in proxy_vars:
             os.environ.pop(var, None)
         
-        # Try different initialization approaches
+        # Try to inspect what's happening with the OpenAI import
         try:
-            # Approach 1: Minimal initialization
+            # First, let's see what's in the openai module
+            import openai
+            print(f"OpenAI module version: {openai.__version__}")
+            print(f"OpenAI module file: {openai.__file__}")
+            
+            # Check if there are any global configurations
+            print(f"OpenAI module attributes: {[attr for attr in dir(openai) if not attr.startswith('_')]}")
+            
+            # Try to create client with explicit inspection
             from openai import OpenAI
+            
+            # Inspect the OpenAI class
+            print(f"OpenAI class: {OpenAI}")
+            print(f"OpenAI.__init__ signature: {OpenAI.__init__.__doc__}")
+            
+            # Try to create client step by step
             client = OpenAI(api_key=api_key)
+            
             return {
                 "status": "ok",
-                "message": "OpenAI client initialized successfully (minimal approach)",
+                "message": "OpenAI client initialized successfully",
+                "api_key_present": bool(api_key),
+                "api_key_length": len(api_key) if api_key else 0,
+                "openai_version": openai.__version__
+            }
+            
+        except Exception as e:
+            # If that fails, let's try to see what parameters are being passed
+            import traceback
+            return {
+                "error": f"OpenAI client test failed: {str(e)}",
+                "traceback": traceback.format_exc(),
                 "api_key_present": bool(api_key),
                 "api_key_length": len(api_key) if api_key else 0
             }
-        except Exception as e1:
-            try:
-                # Approach 2: Explicit parameters
-                from openai import OpenAI
-                client = OpenAI(
-                    api_key=api_key,
-                    timeout=30.0,
-                    max_retries=2
-                )
-                return {
-                    "status": "ok",
-                    "message": "OpenAI client initialized successfully (explicit approach)",
-                    "api_key_present": bool(api_key),
-                    "api_key_length": len(api_key) if api_key else 0
-                }
-            except Exception as e2:
-                return {
-                    "error": f"Both approaches failed. Minimal: {str(e1)}, Explicit: {str(e2)}",
-                    "api_key_present": bool(api_key),
-                    "api_key_length": len(api_key) if api_key else 0
-                }
         
     except Exception as e:
         return {"error": f"OpenAI client test failed: {str(e)}"}
