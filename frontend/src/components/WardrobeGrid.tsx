@@ -62,11 +62,14 @@ export default function WardrobeGrid({
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const handleDeleteClick = (itemId: string) => {
+    console.log(`🔍 [WardrobeGrid] Delete button clicked for item ${itemId}`);
     setItemToDelete(itemId);
     setDeleteDialogOpen(true);
+    console.log(`🔍 [WardrobeGrid] Delete dialog opened for item ${itemId}`);
   };
 
   const handleDeleteConfirm = async () => {
+    console.log(`🔍 [WardrobeGrid] Delete confirm clicked. itemToDelete: ${itemToDelete}, onDeleteItem: ${!!onDeleteItem}`);
     if (itemToDelete && onDeleteItem) {
       try {
         console.log(`🔍 [WardrobeGrid] Confirmed delete for item ${itemToDelete}`);
@@ -77,6 +80,8 @@ export default function WardrobeGrid({
         // Keep dialog open on error so user can try again
         return;
       }
+    } else {
+      console.error(`❌ [WardrobeGrid] Missing itemToDelete (${itemToDelete}) or onDeleteItem (${!!onDeleteItem})`);
     }
     setDeleteDialogOpen(false);
     setItemToDelete(null);
@@ -213,6 +218,7 @@ export default function WardrobeGrid({
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={(e) => {
+                        console.log(`🔍 [WardrobeGrid] Dropdown delete clicked for item ${item.id}`);
                         e.stopPropagation();
                         handleDeleteClick(item.id);
                       }}
