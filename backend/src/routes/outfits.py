@@ -1696,8 +1696,17 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         random.shuffle(suitable_items)
         logger.info(f"🔍 DEBUG: Randomized suitable items order with seed")
         
+        # Find base item object if baseItemId is provided
+        base_item_obj = None
+        if req.baseItemId:
+            base_item_obj = next((item for item in wardrobe_items if item.get("id") == req.baseItemId), None)
+            if base_item_obj:
+                logger.info(f"🎯 DEBUG: Found base item object for validation: {base_item_obj.get('name', 'Unknown')}")
+            else:
+                logger.warning(f"⚠️ DEBUG: Base item object not found for validation")
+        
         # Validate and ensure complete outfit composition
-        validated_items = await validate_outfit_composition(suitable_items, req.occasion, req.baseItem)
+        validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
         logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
         
         # Apply layering validation rules
