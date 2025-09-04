@@ -1,41 +1,112 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from firebase_admin import firestore
 import uuid
 import time
 from datetime import datetime
+import logging
 
-# Use relative imports for router loading compatibility
-from ..custom_types.wardrobe import ClothingItem, ClothingType, Color
-from ..custom_types.profile import UserProfile
-from ..services.metadata_enhancement_service import MetadataEnhancementService
-from ..core.logging import get_logger
-from ..models.analytics_event import AnalyticsEvent
-from ..services.analytics_service import log_analytics_event
-from ..auth.auth_service import get_current_user_optional
+# Set up basic logging
+logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
+# Optional imports with graceful fallbacks
+try:
+    from ..custom_types.wardrobe import ClothingItem, ClothingType, Color
+    CUSTOM_TYPES_AVAILABLE = True
+    logger.info("✅ Custom wardrobe types imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Custom wardrobe types import failed: {e}")
+    CUSTOM_TYPES_AVAILABLE = False
+    # Create basic fallback types
+    from typing import TypedDict
+    class ClothingItem(TypedDict):
+        id: str
+        name: str
+        type: str
+        color: str
+        userId: str
+    ClothingType = str
+    Color = str
+
+try:
+    from ..custom_types.profile import UserProfile
+    PROFILE_TYPES_AVAILABLE = True
+    logger.info("✅ Profile types imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Profile types import failed: {e}")
+    PROFILE_TYPES_AVAILABLE = False
+    from typing import TypedDict
+    class UserProfile(TypedDict):
+        id: str
+        name: str
+        email: str
+
+try:
+    from ..services.metadata_enhancement_service import MetadataEnhancementService
+    metadata_service = MetadataEnhancementService()
+    METADATA_SERVICE_AVAILABLE = True
+    logger.info("✅ Metadata enhancement service imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Metadata enhancement service import failed: {e}")
+    metadata_service = None
+    METADATA_SERVICE_AVAILABLE = False
+
+try:
+    from ..core.logging import get_logger
+    logger = get_logger("wardrobe")
+    CORE_LOGGING_AVAILABLE = True
+    logger.info("✅ Core logging imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Core logging import failed: {e}")
+    CORE_LOGGING_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+
+try:
+    from ..models.analytics_event import AnalyticsEvent
+    from ..services.analytics_service import log_analytics_event
+    ANALYTICS_AVAILABLE = True
+    logger.info("✅ Analytics services imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Analytics services import failed: {e}")
+    ANALYTICS_AVAILABLE = False
+    def log_analytics_event(*args, **kwargs):
+        pass  # No-op fallback
+
+try:
+    from ..auth.auth_service import get_current_user_optional
+    AUTH_SERVICE_AVAILABLE = True
+    logger.info("✅ Auth service imported successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Auth service import failed: {e}")
+    AUTH_SERVICE_AVAILABLE = False
+    def get_current_user_optional():
+        return None
+
+# Remove prefix since app.py will mount it at /api/wardrobe
+router = APIRouter(tags=["wardrobe"])
 
 # Initialize Firestore conditionally
 try:
     db = firestore.client()
-    metadata_service = MetadataEnhancementService()
-    logger = get_logger("wardrobe")
+    FIREBASE_AVAILABLE = True
+    logger.info("✅ Firebase client initialized successfully")
 except Exception as e:
-    print(f"Warning: Could not initialize Firebase services: {e}")
+    logger.warning(f"⚠️ Firebase client initialization failed: {e}")
     db = None
-    metadata_service = None
-    logger = None
+    FIREBASE_AVAILABLE = False
 
 # Removed conflicting /wardrobe-stats endpoint - using the one in wardrobe_analysis.py instead
 
 @router.get("/top-worn-items")
 async def get_top_worn_items(
-    current_user: UserProfile = Depends(get_current_user_optional),
+    current_user: Optional[UserProfile] = Depends(get_current_user_optional),
     limit: int = 10
 ) -> Dict[str, Any]:
     """Get the top worn wardrobe items for the current user."""
     try:
+        if not FIREBASE_AVAILABLE or not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
         if not current_user:
             raise HTTPException(status_code=401, detail="Authentication required")
         
@@ -355,18 +426,19 @@ async def add_wardrobe_item(
         doc_ref.set(wardrobe_item)
         
         # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="wardrobe_item_added",
-            metadata={
-                "item_id": item_id,
-                "item_type": item_data["type"],
-                "has_image": bool(item_data.get("imageUrl")),
-                "style_count": len(item_data.get("style", [])),
-                "occasion_count": len(item_data.get("occasion", []))
-            }
-        )
-        log_analytics_event(analytics_event)
+        if ANALYTICS_AVAILABLE:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_item_added",
+                metadata={
+                    "item_id": item_id,
+                    "item_type": item_data["type"],
+                    "has_image": bool(item_data.get("imageUrl")),
+                    "style_count": len(item_data.get("style", [])),
+                    "occasion_count": len(item_data.get("occasion", []))
+                }
+            )
+            log_analytics_event(analytics_event)
         
         logger.info(f"Wardrobe item added: {item_id} for user {current_user.id}")
         
@@ -602,20 +674,21 @@ async def get_wardrobe_items_with_slash(
             logger.warning(f"Encountered {len(errors)} errors while processing items")
         
         # Log analytics event
-        try:
-            analytics_event = AnalyticsEvent(
-                user_id=current_user.id,
-                event_type="wardrobe_items_listed",
-                metadata={
-                    "item_count": len(items),
-                    "has_items": len(items) > 0,
-                    "error_count": len(errors)
-                }
-            )
-            log_analytics_event(analytics_event)
-        except Exception as analytics_error:
-            print(f"🔍 DEBUG: Analytics logging failed: {analytics_error}")
-            # Don't fail the request if analytics fails
+        if ANALYTICS_AVAILABLE:
+            try:
+                analytics_event = AnalyticsEvent(
+                    user_id=current_user.id,
+                    event_type="wardrobe_items_listed",
+                    metadata={
+                        "item_count": len(items),
+                        "has_items": len(items) > 0,
+                        "error_count": len(errors)
+                    }
+                )
+                log_analytics_event(analytics_event)
+            except Exception as analytics_error:
+                print(f"🔍 DEBUG: Analytics logging failed: {analytics_error}")
+                # Don't fail the request if analytics fails
         
         # Transform backend data to match frontend expectations
         transformed_items = []
@@ -680,15 +753,16 @@ async def get_wardrobe_item(
             raise HTTPException(status_code=403, detail="Access denied")
         
         # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="wardrobe_item_viewed",
-            metadata={
-                "item_id": item_id,
-                "item_type": item_data.get("type")
-            }
-        )
-        log_analytics_event(analytics_event)
+        if ANALYTICS_AVAILABLE:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_item_viewed",
+                metadata={
+                    "item_id": item_id,
+                    "item_type": item_data.get("type")
+                }
+            )
+            log_analytics_event(analytics_event)
         
         return item_data
         
@@ -730,16 +804,17 @@ async def update_wardrobe_item(
         doc_ref.update(update_data)
         
         # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="wardrobe_item_updated",
-            metadata={
-                "item_id": item_id,
-                "updated_fields": list(item_data.keys()),
-                "item_type": item.get("type")
-            }
-        )
-        log_analytics_event(analytics_event)
+        if ANALYTICS_AVAILABLE:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_item_updated",
+                metadata={
+                    "item_id": item_id,
+                    "updated_fields": list(item_data.keys()),
+                    "item_type": item.get("type")
+                }
+            )
+            log_analytics_event(analytics_event)
         
         logger.info(f"Wardrobe item updated: {item_id}")
         
@@ -773,16 +848,17 @@ async def delete_wardrobe_item(
             raise HTTPException(status_code=403, detail="Not authorized to delete this item")
         
         # Log analytics event before deletion
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="wardrobe_item_deleted",
-            metadata={
-                "item_id": item_id,
-                "item_type": item.get("type"),
-                "item_name": item.get("name")
-            }
-        )
-        log_analytics_event(analytics_event)
+        if ANALYTICS_AVAILABLE:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_item_deleted",
+                metadata={
+                    "item_id": item_id,
+                    "item_type": item.get("type"),
+                    "item_name": item.get("name")
+                }
+            )
+            log_analytics_event(analytics_event)
         
         # Delete from Firestore
         doc_ref.delete()
@@ -842,16 +918,17 @@ async def enhance_wardrobe_metadata(
                 continue
         
         # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="wardrobe_metadata_enhanced",
-            metadata={
-                "total_items": len(items),
-                "enhanced_count": enhanced_count,
-                "success_rate": enhanced_count / len(items) if items else 0
-            }
-        )
-        log_analytics_event(analytics_event)
+        if ANALYTICS_AVAILABLE:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_metadata_enhanced",
+                metadata={
+                    "total_items": len(items),
+                    "enhanced_count": enhanced_count,
+                    "success_rate": enhanced_count / len(items) if items else 0
+                }
+            )
+            log_analytics_event(analytics_event)
         
         logger.info(f"Enhanced metadata for {enhanced_count}/{len(items)} items")
         
@@ -899,17 +976,18 @@ async def increment_wardrobe_item_wear_count(
         doc_ref.update(update_data)
         
         # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="wardrobe_item_wear_incremented",
-            metadata={
-                "item_id": item_id,
-                "item_type": item.get("type"),
-                "previous_wear_count": current_wear_count,
-                "new_wear_count": new_wear_count
-            }
-        )
-        log_analytics_event(analytics_event)
+        if ANALYTICS_AVAILABLE:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_item_wear_incremented",
+                metadata={
+                    "item_id": item_id,
+                    "item_type": item.get("type"),
+                    "previous_wear_count": current_wear_count,
+                    "new_wear_count": new_wear_count
+                }
+            )
+            log_analytics_event(analytics_event)
         
         logger.info(f"Wear count incremented for item {item_id}: {current_wear_count} -> {new_wear_count}")
         
