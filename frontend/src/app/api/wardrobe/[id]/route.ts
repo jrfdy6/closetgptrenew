@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-// Force dynamic rendering since we use request.headers
+// Force dynamic rendering since we use request headers
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(
@@ -8,7 +8,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('🔍 DEBUG: Wardrobe DELETE API route called - CONNECTING TO BACKEND');
+    const { id } = params;
+    console.log('🔍 DEBUG: Wardrobe DELETE API route called for item:', id);
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
@@ -21,24 +22,13 @@ export async function DELETE(
       );
     }
     
-    const itemId = params.id;
-    
-    if (!itemId) {
-      return NextResponse.json(
-        { error: 'Item ID is required' },
-        { status: 400 }
-      );
-    }
-    
-    console.log('🔍 DEBUG: Deleting wardrobe item:', itemId);
-    
     // Get backend URL from environment variables
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to delete the item
-    const fullBackendUrl = `${backendUrl}/api/wardrobe/${itemId}`;
-    console.log('🔍 DEBUG: About to call backend DELETE:', fullBackendUrl);
+    const fullBackendUrl = `${backendUrl}/api/wardrobe/${id}`;
+    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
       method: 'DELETE',
@@ -48,45 +38,44 @@ export async function DELETE(
       },
     });
     
-    console.log('🔍 DEBUG: Backend DELETE response status:', response.status);
-    console.log('🔍 DEBUG: Backend DELETE response ok:', response.ok);
+    console.log('🔍 DEBUG: Backend DELETE response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('🔍 DEBUG: Backend DELETE response not ok:', response.status, response.statusText);
-      console.error('🔍 DEBUG: Backend DELETE error response body:', errorText);
+      console.error('🔍 DEBUG: Backend error response body:', errorText);
       
-      if (response.status === 404) {
-        return NextResponse.json(
-          { error: 'Wardrobe item not found' },
-          { status: 404 }
-        );
-      } else if (response.status === 403) {
-        return NextResponse.json(
-          { error: 'Not authorized to delete this item' },
-          { status: 403 }
-        );
-      } else {
-        return NextResponse.json(
-          { error: 'Failed to delete wardrobe item' },
-          { status: response.status }
-        );
-      }
+      return NextResponse.json(
+        { 
+          error: `Failed to delete wardrobe item`, 
+          details: errorText,
+          status: response.status 
+        },
+        { status: response.status }
+      );
     }
     
     const responseData = await response.json();
-    console.log('🔍 DEBUG: Backend DELETE response received:', {
-      success: responseData.success,
-      message: responseData.message
-    });
+    console.log('🔍 DEBUG: Backend DELETE response data:', responseData);
     
-    return NextResponse.json(responseData);
+    return NextResponse.json({
+      success: true,
+      message: 'Wardrobe item deleted successfully',
+      deletedItemId: id
+    });
     
   } catch (error) {
     console.error('🔍 DEBUG: Error in wardrobe DELETE:', error);
     
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Wardrobe delete failed', 
+        details: String(error) 
+      },
       { status: 500 }
     );
   }
