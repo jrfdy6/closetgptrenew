@@ -109,11 +109,22 @@ export default function OutfitGenerationPage() {
         console.log('🔍 Wardrobe items loaded:', items.length);
         
         // If we have a baseItem but it's incomplete, try to find the full item in wardrobe
-        if (baseItem && baseItem.id && (!baseItem.metadata || !baseItem.dominantColors)) {
+        if (baseItem && baseItem.id) {
           const fullItem = items.find((item: any) => item.id === baseItem.id);
           if (fullItem) {
-            console.log('🔍 Found full base item in wardrobe, updating:', fullItem.name);
+            console.log('🔍 Found full base item in wardrobe, updating with rich metadata:', fullItem.name);
+            console.log('🔍 Rich metadata includes:', {
+              dominantColors: fullItem.dominantColors?.length || 0,
+              matchingColors: fullItem.matchingColors?.length || 0,
+              metadata: fullItem.metadata ? 'present' : 'missing',
+              material: fullItem.metadata?.visualAttributes?.material,
+              texture: fullItem.metadata?.visualAttributes?.textureStyle,
+              silhouette: fullItem.metadata?.visualAttributes?.silhouette,
+              fit: fullItem.metadata?.visualAttributes?.fit
+            });
             setBaseItem(fullItem);
+          } else {
+            console.warn('🔍 Base item not found in wardrobe, using incomplete data');
           }
         }
       } else {
@@ -354,7 +365,13 @@ export default function OutfitGenerationPage() {
         baseItem: baseItem ? {
           id: baseItem.id,
           name: baseItem.name,
-          type: baseItem.type
+          type: baseItem.type,
+          hasRichMetadata: !!(baseItem.metadata || baseItem.dominantColors),
+          metadataKeys: baseItem.metadata ? Object.keys(baseItem.metadata) : null,
+          dominantColors: baseItem.dominantColors?.length || 0,
+          material: baseItem.metadata?.visualAttributes?.material,
+          texture: baseItem.metadata?.visualAttributes?.textureStyle,
+          silhouette: baseItem.metadata?.visualAttributes?.silhouette
         } : null
       });
       
