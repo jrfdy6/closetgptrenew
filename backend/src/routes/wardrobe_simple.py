@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 from ..routes.auth import get_current_user_id
 
-router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
+router = APIRouter(tags=["wardrobe"])
 
 # Initialize Firestore conditionally
 try:
