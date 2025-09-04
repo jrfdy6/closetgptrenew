@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       'https://closetgpt-backend-production.up.railway.app';
-    const response = await fetch(`${baseUrl}/api/outfit-history/mark-worn`, {
+    const response = await fetch(`${baseUrl}/api/mark-worn`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
