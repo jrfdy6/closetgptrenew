@@ -486,8 +486,20 @@ async def test_openai_client():
             print(f"OpenAI class: {OpenAI}")
             print(f"OpenAI.__init__ signature: {OpenAI.__init__.__doc__}")
             
-            # Try to create client step by step
-            client = OpenAI(api_key=api_key)
+            # Try to create client with explicit HTTP client configuration
+            import httpx
+            
+            # Create a custom httpx client without proxy configuration
+            http_client = httpx.Client(
+                timeout=30.0,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+            )
+            
+            # Create OpenAI client with explicit HTTP client
+            client = OpenAI(
+                api_key=api_key,
+                http_client=http_client
+            )
             
             return {
                 "status": "ok",
