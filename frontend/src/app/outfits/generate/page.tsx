@@ -369,6 +369,7 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Full request data:', requestData);
       console.log('🔍 DEBUG: baseItemId in request:', requestData.baseItemId);
       
+      console.log('🔍 DEBUG: Making API call to /api/outfits');
       const response = await fetch('/api/outfits', {
         method: 'POST',
         headers: {
@@ -377,6 +378,8 @@ export default function OutfitGenerationPage() {
         },
         body: JSON.stringify(requestData),
       });
+      console.log('🔍 DEBUG: API response status:', response.status);
+      console.log('🔍 DEBUG: API response URL:', response.url);
       
       if (!response.ok) {
         if (response.status === 401) {
