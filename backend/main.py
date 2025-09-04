@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
 
+# Import the outfit routes
+from src.routes.outfit import router as outfit_router
+
 app = FastAPI(title="ClosetGPT Backend", version="1.0.5")
 
 # CORS middleware
@@ -13,6 +16,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include the outfit routes
+app.include_router(outfit_router, prefix="/api/outfits", tags=["outfits"])
 
 @app.get("/")
 def read_root():
@@ -81,27 +87,7 @@ def mock_profile():
         "onboardingCompleted": True
     }
 
-@app.post("/api/outfits/generate")
-def mock_outfit():
-    return {
-        "success": True, 
-        "outfit": {
-            "id": "outfit_1",
-            "name": "Dark Academia Confident Look",
-            "occasion": "Casual",
-            "style": "Dark Academia",
-            "mood": "Confident",
-            "items": [
-                {
-                    "id": "item_1",
-                    "name": "Dark Academia Blazer",
-                    "type": "blazer",
-                    "color": "charcoal"
-                }
-            ],
-            "matchScore": 86
-        }
-    }
+# Mock outfit generation endpoint removed - using real outfit generation service
 
 @app.get("/api/outfits/")
 async def get_outfits(limit: int = 50, offset: int = 0):
