@@ -511,6 +511,7 @@ export default function WardrobePage() {
                     onItemClick={(item) => console.log('Item clicked:', item)}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onToggleFavorite={handleToggleFavorite}
+                    onDeleteItem={deleteItem}
                     showActions={true}
                   />
                 ) : (
@@ -618,6 +619,8 @@ export default function WardrobePage() {
                     loading={false}
                     onItemClick={(item) => console.log('Item clicked:', item)}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
+                    onToggleFavorite={handleToggleFavorite}
+                    onDeleteItem={deleteItem}
                     showActions={true}
                   />
                 ) : (
@@ -715,6 +718,8 @@ export default function WardrobePage() {
                     loading={false}
                     onItemClick={(item) => console.log('Item clicked:', item)}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
+                    onToggleFavorite={handleToggleFavorite}
+                    onDeleteItem={deleteItem}
                     showActions={true}
                   />
                 ) : (
