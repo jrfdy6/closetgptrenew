@@ -38,6 +38,17 @@ interface OutfitCardProps {
 
 function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    console.log(`🔍 [OutfitCard] Confirmed delete for outfit ${outfit.id}`);
+    onDelete(outfit.id);
+    setDeleteDialogOpen(false);
+  };
 
   const getOccasionColor = (occasion: string) => {
     const colors: Record<string, string> = {
@@ -150,40 +161,38 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
           >
             Edit
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="w-4 h-4 mr-1" />
-                Delete
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Outfit</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete "{outfit.name}"? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    console.log(`🔍 [OutfitCard] Confirmed delete for outfit ${outfit.id}`);
-                    onDelete(outfit.id);
-                  }}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Delete
+          </Button>
         </div>
       </CardContent>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Outfit</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{outfit.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

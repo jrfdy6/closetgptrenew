@@ -58,6 +58,22 @@ export default function WardrobeGrid({
   showActions = true 
 }: WardrobeGridProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
+  const handleDeleteClick = (itemId: string) => {
+    setItemToDelete(itemId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (itemToDelete && onDeleteItem) {
+      console.log(`🔍 [WardrobeGrid] Confirmed delete for item ${itemToDelete}`);
+      onDeleteItem(itemToDelete);
+    }
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
 
   const getColorBadge = (color: string) => {
     const colorMap: Record<string, string> = {
@@ -188,39 +204,16 @@ export default function WardrobeGrid({
                       <Heart className="w-4 h-4 mr-2" />
                       {item.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
                     </DropdownMenuItem>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem 
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Item
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Wardrobe Item</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{item.name}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => {
-                              if (onDeleteItem) {
-                                console.log(`🔍 [WardrobeGrid] Confirmed delete for item ${item.id}`);
-                                onDeleteItem(item.id);
-                              }
-                            }}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(item.id);
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Item
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -298,6 +291,27 @@ export default function WardrobeGrid({
           </CardContent>
         </Card>
       ))}
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Wardrobe Item</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{items.find(item => item.id === itemToDelete)?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 } 
