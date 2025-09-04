@@ -454,6 +454,142 @@ async def add_wardrobe_item(
         logger.error(f"Error adding wardrobe item: {e}")
         raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
 
+@router.post("/batch")
+async def add_wardrobe_items_batch(
+    items_data: List[Dict[str, Any]],
+    current_user: UserProfile = Depends(get_current_user_optional)
+) -> Dict[str, Any]:
+    """
+    Add multiple wardrobe items in a single batch operation.
+    
+    Expected fields for each item:
+    - name: str
+    - type: str (clothing type)
+    - color: str
+    - style: str or List[str]
+    - occasion: str or List[str]
+    - season: str or List[str]
+    - imageUrl: str (optional)
+    """
+    try:
+        if not items_data:
+            raise HTTPException(status_code=400, detail="No items provided")
+        
+        if not FIREBASE_AVAILABLE or not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        if not current_user:
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
+        logger.info(f"Starting batch upload of {len(items_data)} items for user {current_user.id}")
+        
+        successful_items = []
+        failed_items = []
+        
+        # Process each item
+        for i, item_data in enumerate(items_data):
+            try:
+                # Validate required fields
+                required_fields = ['name', 'type', 'color']
+                for field in required_fields:
+                    if field not in item_data:
+                        raise ValueError(f"Missing required field: {field}")
+                
+                # Create item ID
+                item_id = str(uuid.uuid4())
+                
+                # Prepare item data
+                wardrobe_item = {
+                    "id": item_id,
+                    "userId": current_user.id,
+                    "name": item_data["name"],
+                    "type": item_data["type"],
+                    "color": item_data["color"],
+                    "style": item_data.get("style", []),
+                    "occasion": item_data.get("occasion", []),
+                    "season": item_data.get("season", ["all"]),
+                    "imageUrl": item_data.get("imageUrl", ""),
+                    "dominantColors": [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
+                    "matchingColors": [],
+                    "tags": item_data.get("tags", []),
+                    "createdAt": int(time.time()),
+                    "updatedAt": int(time.time()),
+                    "metadata": {
+                        "analysisTimestamp": int(time.time()),
+                        "originalType": item_data["type"],
+                        "styleTags": item_data.get("style", []),
+                        "occasionTags": item_data.get("occasion", []),
+                        "colorAnalysis": {
+                            "dominant": [item_data["color"]],
+                            "matching": []
+                        },
+                        "visualAttributes": {
+                            "pattern": "solid",
+                            "formalLevel": "casual",
+                            "fit": "regular",
+                            "material": "cotton",
+                            "fabricWeight": "medium"
+                        },
+                        "itemMetadata": {
+                            "tags": item_data.get("tags", []),
+                            "careInstructions": "Check care label"
+                        }
+                    },
+                    "favorite": False,
+                    "wearCount": 0,
+                    "lastWorn": None
+                }
+                
+                # Save to Firestore
+                doc_ref = db.collection('wardrobe').document(item_id)
+                doc_ref.set(wardrobe_item)
+                
+                successful_items.append({
+                    "index": i,
+                    "item_id": item_id,
+                    "item": wardrobe_item
+                })
+                
+                logger.info(f"Successfully added item {i+1}/{len(items_data)}: {item_id}")
+                
+            except Exception as item_error:
+                logger.error(f"Failed to add item {i+1}: {item_error}")
+                failed_items.append({
+                    "index": i,
+                    "item_data": item_data,
+                    "error": str(item_error)
+                })
+        
+        # Log analytics event for batch operation
+        if ANALYTICS_AVAILABLE:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="wardrobe_batch_upload",
+                metadata={
+                    "total_items": len(items_data),
+                    "successful_items": len(successful_items),
+                    "failed_items": len(failed_items),
+                    "success_rate": len(successful_items) / len(items_data) if items_data else 0
+                }
+            )
+            log_analytics_event(analytics_event)
+        
+        logger.info(f"Batch upload completed: {len(successful_items)} successful, {len(failed_items)} failed")
+        
+        return {
+            "success": True,
+            "message": f"Batch upload completed: {len(successful_items)} items added successfully",
+            "total_items": len(items_data),
+            "successful_items": len(successful_items),
+            "failed_items": len(failed_items),
+            "successful_items_data": successful_items,
+            "failed_items_data": failed_items
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in batch upload: {e}")
+        raise HTTPException(status_code=500, detail=f"Error in batch upload: {str(e)}")
+
 @router.get("/test", include_in_schema=False)
 async def test_wardrobe_endpoint() -> Dict[str, Any]:
     """Simple test endpoint to verify the wardrobe endpoint is working."""
