@@ -680,6 +680,126 @@ async def test_wardrobe_post(request: dict):
         print(f"DEBUG: Error adding wardrobe item: {e}")
         return {"error": f"Failed to add item: {str(e)}"}
 
+@app.post("/api/wardrobe/batch")
+async def test_wardrobe_batch_post(items_data: list):
+    """Test wardrobe batch POST endpoint directly in app.py."""
+    try:
+        from firebase_admin import firestore
+        import uuid
+        import time
+        db = firestore.client()
+        
+        if not db:
+            return {"error": "Database not available"}
+        
+        if not items_data:
+            return {"error": "No items provided"}
+        
+        print(f"🔍 DEBUG: Processing batch upload of {len(items_data)} items")
+        
+        successful_items = []
+        failed_items = []
+        
+        # Process each item
+        for i, item_data in enumerate(items_data):
+            try:
+                print(f"🔍 DEBUG: Processing item {i+1}/{len(items_data)}: {item_data.get('name', 'Unknown')}")
+                
+                # Validate required fields
+                required_fields = ['name', 'type', 'color']
+                for field in required_fields:
+                    if field not in item_data:
+                        print(f"❌ DEBUG: Missing required field '{field}' in item {i+1}")
+                        raise ValueError(f"Missing required field: {field}")
+                
+                print(f"✅ DEBUG: Item {i+1} validation passed")
+                
+                # Create item ID
+                item_id = str(uuid.uuid4())
+                
+                # Prepare item data
+                wardrobe_item = {
+                    "id": item_id,
+                    "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Hardcoded for now
+                    "name": item_data["name"],
+                    "type": item_data["type"],
+                    "color": item_data["color"],
+                    "style": item_data.get("style", []),
+                    "occasion": item_data.get("occasion", []),
+                    "season": item_data.get("season", ["all"]),
+                    "imageUrl": item_data.get("imageUrl", ""),
+                    "dominantColors": [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
+                    "matchingColors": [],
+                    "tags": item_data.get("tags", []),
+                    "createdAt": int(time.time()),
+                    "updatedAt": int(time.time()),
+                    "metadata": {
+                        "analysisTimestamp": int(time.time()),
+                        "originalType": item_data["type"],
+                        "styleTags": item_data.get("style", []),
+                        "occasionTags": item_data.get("occasion", []),
+                        "colorAnalysis": {
+                            "dominant": [item_data["color"]],
+                            "matching": []
+                        },
+                        "visualAttributes": {
+                            "pattern": "solid",
+                            "formalLevel": "casual",
+                            "fit": "regular",
+                            "material": "cotton",
+                            "fabricWeight": "medium"
+                        },
+                        "itemMetadata": {
+                            "tags": item_data.get("tags", []),
+                            "careInstructions": "Check care label"
+                        }
+                    },
+                    "favorite": False,
+                    "wearCount": 0,
+                    "lastWorn": None
+                }
+                
+                # Save to Firestore
+                print(f"💾 DEBUG: Saving item {i+1} to Firestore with ID: {item_id}")
+                doc_ref = db.collection('wardrobe').document(item_id)
+                doc_ref.set(wardrobe_item)
+                print(f"✅ DEBUG: Item {i+1} saved to Firestore successfully")
+                
+                successful_items.append({
+                    "index": i,
+                    "item_id": item_id,
+                    "item": wardrobe_item
+                })
+                
+                print(f"Successfully added item {i+1}/{len(items_data)}: {item_id}")
+                
+            except Exception as item_error:
+                print(f"❌ DEBUG: Failed to add item {i+1}: {item_error}")
+                print(f"❌ DEBUG: Item data that failed: {item_data}")
+                import traceback
+                print(f"❌ DEBUG: Full error traceback: {traceback.format_exc()}")
+                failed_items.append({
+                    "index": i,
+                    "item_data": item_data,
+                    "error": str(item_error)
+                })
+        
+        print(f"Batch upload completed: {len(successful_items)} successful, {len(failed_items)} failed")
+        
+        return {
+            "success": True,
+            "message": f"Batch upload completed: {len(successful_items)} items added successfully",
+            "total_items": len(items_data),
+            "successful_items": len(successful_items),
+            "failed_items": len(failed_items),
+            "successful_items_data": successful_items,
+            "failed_items_data": failed_items
+        }
+        
+    except Exception as e:
+        print(f"DEBUG: Error in batch upload: {e}")
+        return {"error": f"Error in batch upload: {str(e)}"}
+
 @app.get("/api/wardrobe/count")
 async def count_wardrobe_direct():
     """Direct count endpoint to check wardrobe items."""
