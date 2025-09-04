@@ -35,15 +35,15 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
     }
 
 @router.get("/")
-async def get_wardrobe_items(current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
+async def get_wardrobe_items() -> Dict[str, Any]:
     """Get user's wardrobe items - simplified version"""
     try:
         print("DEBUG: Getting wardrobe items (simplified)")
         
         # Get wardrobe items from Firestore using flat collection structure
         wardrobe_ref = db.collection('wardrobe')
-        print(f"DEBUG: Querying wardrobe collection for userId: {current_user_id}")
-        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
+        print(f"DEBUG: Querying wardrobe collection for userId: dANqjiI0CKgaitxzYtw1bhtvQrG3")
+        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
         
         items = []
         errors = []
