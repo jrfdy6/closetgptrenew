@@ -190,21 +190,31 @@ async def analyze_single_image(
     Enhanced single image analysis using GPT-4 Vision + CLIP
     """
     try:
+        logger.info("🔍 DEBUG: Starting analyze-image endpoint")
         image_url = image.get("url")
         if not image_url:
+            logger.error("❌ DEBUG: No image URL provided")
             raise HTTPException(status_code=400, detail="Image URL is required")
         
+        logger.info(f"🔍 DEBUG: Image URL: {image_url[:100]}...")
+        
         # Download image to temporary file
+        logger.info("🔍 DEBUG: Downloading image...")
         response = requests.get(image_url)
         response.raise_for_status()
+        logger.info(f"🔍 DEBUG: Image downloaded, size: {len(response.content)} bytes")
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
             temp_file.write(response.content)
             temp_path = temp_file.name
         
+        logger.info(f"🔍 DEBUG: Image saved to temp file: {temp_path}")
+        
         try:
             # Use enhanced analysis (GPT-4 + CLIP)
+            logger.info("🔍 DEBUG: Starting AI analysis...")
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
+            logger.info(f"🔍 DEBUG: AI analysis completed: {analysis}")
             
             # Log analytics event
             analytics_event = AnalyticsEvent(
@@ -230,6 +240,10 @@ async def analyze_single_image(
             os.unlink(temp_path)
             
     except Exception as e:
+        logger.error(f"❌ DEBUG: Error in analyze-image endpoint: {str(e)}")
+        import traceback
+        logger.error(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
+        
         # Log error analytics event
         analytics_event = AnalyticsEvent(
             user_id=current_user_id,
