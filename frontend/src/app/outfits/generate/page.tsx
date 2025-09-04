@@ -96,9 +96,13 @@ export default function OutfitGenerationPage() {
         setWardrobeItems(items);
         console.log('🔍 Wardrobe items loaded:', items.length);
         
+        // Get base item ID from URL params directly (in case state hasn't been set yet)
+        const urlParams = new URLSearchParams(window.location.search);
+        const baseItemId = urlParams.get('baseItemId');
+        
         // If we have a baseItem ID, find the full item in wardrobe
-        if (baseItem && baseItem.id) {
-          const fullItem = items.find((item: any) => item.id === baseItem.id);
+        if (baseItemId) {
+          const fullItem = items.find((item: any) => item.id === baseItemId);
           if (fullItem) {
             console.log('🔍 Found base item in wardrobe with full metadata:', fullItem.name);
             console.log('🔍 Rich metadata includes:', {
@@ -118,7 +122,7 @@ export default function OutfitGenerationPage() {
             });
             setBaseItem(fullItem);
           } else {
-            console.warn('🔍 Base item not found in wardrobe:', baseItem.id);
+            console.warn('🔍 Base item not found in wardrobe:', baseItemId);
             setBaseItem(null);
           }
         }
@@ -785,7 +789,6 @@ export default function OutfitGenerationPage() {
         </div>
 
         {/* Base Item Indicator */}
-        {console.log('🔍 Rendering base item indicator, baseItem:', baseItem)}
         {baseItem && (
           <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
             <CardContent className="p-4">
@@ -807,10 +810,6 @@ export default function OutfitGenerationPage() {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     This item will be included as the base layer in your outfit
-                  </p>
-                  {/* Debug info */}
-                  <p className="text-xs text-gray-500 mt-1">
-                    Debug: ID={baseItem.id}, Name={baseItem.name}, ImageUrl={baseItem.imageUrl || baseItem.image_url || 'none'}
                   </p>
                 </div>
                 <Button
