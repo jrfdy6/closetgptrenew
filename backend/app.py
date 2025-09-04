@@ -308,28 +308,26 @@ async def analyze_image_real(request: dict):
                 os.environ.pop(proxy_var, None)
             
             # Initialize OpenAI client with clean environment
-            client = OpenAI(api_key=api_key)
+            import httpx
             
-            # For now, return a mock response to test the flow
-            # TODO: Replace with actual GPT-4 Vision call once client is working
-            analysis_result = {
-                "type": "shirt",
-                "subType": "t-shirt",
-                "dominantColors": [{"name": "blue", "hex": "#0000FF", "rgb": [0, 0, 255]}],
-                "matchingColors": [],
-                "style": ["casual", "comfortable"],
-                "brand": "Test Brand",
-                "season": ["spring", "summer"],
-                "occasion": ["casual", "everyday"],
-                "name": "Blue T-Shirt",
-                "metadata": {
-                    "visualAttributes": {
-                        "material": "cotton",
-                        "pattern": "solid",
-                        "fit": "regular"
-                    }
-                }
-            }
+            # Create a custom httpx client without proxy configuration
+            http_client = httpx.Client(
+                timeout=30.0,
+                limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
+            )
+            
+            client = OpenAI(
+                api_key=api_key,
+                http_client=http_client
+            )
+            
+            # Use the real AI analysis service
+            from src.services.openai_service import analyze_image_with_gpt4
+            
+            # Analyze the image with GPT-4 Vision
+            print(f"🔍 Starting real GPT-4 Vision analysis for image: {temp_file_path}")
+            analysis_result = await analyze_image_with_gpt4(temp_file_path)
+            print(f"✅ GPT-4 Vision analysis completed: {analysis_result}")
             
             # Ensure all array fields are actually arrays
             style_array = analysis_result.get("style", [])
@@ -365,7 +363,7 @@ async def analyze_image_real(request: dict):
             return {
                 "success": True,
                 "analysis": clothing_item,
-                "message": "AI analysis completed successfully (OpenAI client initialized)"
+                "message": "AI analysis completed successfully with GPT-4 Vision"
             }
             
         finally:
