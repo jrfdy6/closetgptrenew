@@ -340,6 +340,31 @@ async def test_wardrobe_direct():
         "timestamp": "2024-01-01T00:00:00Z"
     }
 
+@app.get("/api/wardrobe/")
+async def test_wardrobe_get():
+    """Test wardrobe GET endpoint directly in app.py."""
+    try:
+        if not db:
+            return {"error": "Database not available"}
+        
+        # Get wardrobe items from Firestore
+        wardrobe_ref = db.collection('wardrobe')
+        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
+        
+        items = []
+        for doc in docs:
+            item_data = doc.to_dict()
+            items.append(item_data)
+        
+        return {
+            "success": True,
+            "items": items,
+            "count": len(items),
+            "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        }
+    except Exception as e:
+        return {"error": f"Failed to get wardrobe items: {str(e)}"}
+
 @app.get("/api/wardrobe/count")
 async def count_wardrobe_direct():
     """Direct count endpoint to check wardrobe items."""
