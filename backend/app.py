@@ -384,6 +384,43 @@ async def simple_health_check():
 async def api_health():
     return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
 
+@app.get("/api/health/dependencies")
+async def check_dependencies():
+    """Check if all required dependencies are installed"""
+    dependencies = {}
+    
+    try:
+        import openai
+        dependencies["openai"] = {"status": "ok", "version": openai.__version__}
+    except ImportError as e:
+        dependencies["openai"] = {"status": "error", "error": str(e)}
+    
+    try:
+        from PIL import Image
+        dependencies["PIL"] = {"status": "ok", "version": Image.__version__}
+    except ImportError as e:
+        dependencies["PIL"] = {"status": "error", "error": str(e)}
+    
+    try:
+        from dotenv import load_dotenv
+        dependencies["dotenv"] = {"status": "ok"}
+    except ImportError as e:
+        dependencies["dotenv"] = {"status": "error", "error": str(e)}
+    
+    try:
+        from firebase_admin import firestore
+        dependencies["firebase_admin"] = {"status": "ok"}
+    except ImportError as e:
+        dependencies["firebase_admin"] = {"status": "error", "error": str(e)}
+    
+    all_ok = all(dep["status"] == "ok" for dep in dependencies.values())
+    
+    return {
+        "status": "ok" if all_ok else "error",
+        "dependencies": dependencies,
+        "all_dependencies_installed": all_ok
+    }
+
 @app.get("/api/wardrobe/test")
 async def test_wardrobe_direct():
     """Direct test endpoint to verify wardrobe functionality."""
