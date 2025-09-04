@@ -301,22 +301,35 @@ async def analyze_image_real(request: dict):
             # Analyze the image with GPT-4 Vision
             analysis_result = await analyze_image_with_gpt4(temp_file_path)
             
+            # Ensure all array fields are actually arrays
+            style_array = analysis_result.get("style", [])
+            if not isinstance(style_array, list):
+                style_array = [style_array] if style_array else []
+            
+            occasion_array = analysis_result.get("occasion", [])
+            if not isinstance(occasion_array, list):
+                occasion_array = [occasion_array] if occasion_array else []
+            
+            season_array = analysis_result.get("season", [])
+            if not isinstance(season_array, list):
+                season_array = [season_array] if season_array else []
+            
             # Convert the analysis to the format expected by the frontend
             clothing_item = {
                 "type": analysis_result.get("type", "other"),
                 "color": analysis_result.get("dominantColors", [{}])[0].get("name", "unknown") if analysis_result.get("dominantColors") else "unknown",
                 "brand": analysis_result.get("brand", ""),
-                "style": analysis_result.get("style", []),
+                "style": style_array,
                 "material": analysis_result.get("metadata", {}).get("visualAttributes", {}).get("material", "unknown"),
-                "season": analysis_result.get("season", []),
-                "occasion": analysis_result.get("occasion", []),
+                "season": season_array,
+                "occasion": occasion_array,
                 "name": analysis_result.get("name", "Unnamed Item"),
                 "description": f"A {analysis_result.get('type', 'item')} in {analysis_result.get('dominantColors', [{}])[0].get('name', 'unknown') if analysis_result.get('dominantColors') else 'unknown'} color",
                 "subType": analysis_result.get("subType", ""),
                 "dominantColors": analysis_result.get("dominantColors", []),
                 "matchingColors": analysis_result.get("matchingColors", []),
                 "metadata": analysis_result.get("metadata", {}),
-                "tags": analysis_result.get("style", []) + analysis_result.get("occasion", [])
+                "tags": style_array + occasion_array
             }
             
             return {
@@ -430,6 +443,23 @@ async def test_wardrobe_post(request: dict):
         # Create item ID
         item_id = str(uuid.uuid4())
         
+        # Ensure style and other array fields are always arrays
+        style_array = request.get("style", [])
+        if not isinstance(style_array, list):
+            style_array = [style_array] if style_array else []
+        
+        occasion_array = request.get("occasion", [])
+        if not isinstance(occasion_array, list):
+            occasion_array = [occasion_array] if occasion_array else []
+        
+        season_array = request.get("season", ["all"])
+        if not isinstance(season_array, list):
+            season_array = [season_array] if season_array else ["all"]
+        
+        tags_array = request.get("tags", [])
+        if not isinstance(tags_array, list):
+            tags_array = [tags_array] if tags_array else []
+        
         # Prepare item data
         wardrobe_item = {
             "id": item_id,
@@ -437,20 +467,20 @@ async def test_wardrobe_post(request: dict):
             "name": request["name"],
             "type": request["type"],
             "color": request["color"],
-            "style": request.get("style", []),
-            "occasion": request.get("occasion", []),
-            "season": request.get("season", ["all"]),
+            "style": style_array,
+            "occasion": occasion_array,
+            "season": season_array,
             "imageUrl": request.get("imageUrl", ""),
             "dominantColors": [{"name": request["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
             "matchingColors": [],
-            "tags": request.get("tags", []),
+            "tags": tags_array,
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
             "metadata": {
                 "analysisTimestamp": int(time.time()),
                 "originalType": request["type"],
-                "styleTags": request.get("style", []),
-                "occasionTags": request.get("occasion", []),
+                "styleTags": style_array,
+                "occasionTags": occasion_array,
                 "colorAnalysis": {
                     "dominant": [request["color"]],
                     "matching": []
@@ -463,7 +493,7 @@ async def test_wardrobe_post(request: dict):
                     "fabricWeight": "medium"
                 },
                 "itemMetadata": {
-                    "tags": request.get("tags", []),
+                    "tags": tags_array,
                     "careInstructions": "Check care label"
                 }
             },
