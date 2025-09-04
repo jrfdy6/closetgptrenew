@@ -86,9 +86,7 @@ async def generate_outfit(request: OutfitGenerationRequest):
     print(f"  - mood: {request.mood}")
     print(f"  - style: {request.style}")
     print(f"  - wardrobe size: {len(request.wardrobe)}")
-    print(f"  - baseItem: {request.baseItem.name if request.baseItem else 'None'}")
-    if request.baseItem:
-        print(f"  - baseItem details: id={request.baseItem.id}, type={request.baseItem.type}, color={request.baseItem.color}")
+    print(f"  - baseItemId: {request.baseItemId if request.baseItemId else 'None'}")
     print(f"  - user_profile.id: {request.user_profile.id}")
     
     # NEW: More detailed debugging
@@ -112,7 +110,7 @@ async def generate_outfit(request: OutfitGenerationRequest):
             user_profile=request.user_profile,
             style=request.style,
             mood=request.mood,
-            base_item_id=request.baseItem.id if request.baseItem else None
+            base_item_id=request.baseItemId
         )
         print(f"✅ DEBUG: outfit_service.generate_outfit completed successfully")
         print(f"🔍 DEBUG: Generated outfit id: {result.id}")

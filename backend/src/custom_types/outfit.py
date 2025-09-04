@@ -258,7 +258,7 @@ class OutfitGenerationRequest(BaseModel):
     randomSeed: Optional[float] = None
     season: Optional[str] = None
     style: Optional[str] = None
-    baseItem: Optional[ClothingItem] = None
+    baseItemId: Optional[str] = None  # Changed from baseItem to baseItemId
 
     @field_validator('wardrobe', mode='before')
     def validate_wardrobe_items(cls, v, info):

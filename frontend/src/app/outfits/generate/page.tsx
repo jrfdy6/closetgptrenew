@@ -64,27 +64,15 @@ export default function OutfitGenerationPage() {
   const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
   const [wardrobeLoading, setWardrobeLoading] = useState(false);
   
-  // Extract base item from localStorage (to avoid URI too long error)
+  // Extract base item ID from URL parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const hasBaseItem = urlParams.get('baseItem') === 'true';
+    const baseItemId = urlParams.get('baseItemId');
     
-    if (hasBaseItem) {
-      try {
-        const storedItem = localStorage.getItem('outfitBaseItem');
-        if (storedItem) {
-          const decodedItem = JSON.parse(storedItem);
-          setBaseItem(decodedItem);
-          console.log('🔍 Base item loaded from localStorage:', decodedItem);
-          
-          // Clean up localStorage after loading
-          localStorage.removeItem('outfitBaseItem');
-        } else {
-          console.warn('🔍 No base item found in localStorage');
-        }
-      } catch (error) {
-        console.error('🔍 Error parsing base item from localStorage:', error);
-      }
+    if (baseItemId) {
+      console.log('🔍 Base item ID from URL:', baseItemId);
+      // We'll find the full item when wardrobe loads
+      setBaseItem({ id: baseItemId });
     }
   }, []);
 
@@ -108,11 +96,11 @@ export default function OutfitGenerationPage() {
         setWardrobeItems(items);
         console.log('🔍 Wardrobe items loaded:', items.length);
         
-        // If we have a baseItem but it's incomplete, try to find the full item in wardrobe
+        // If we have a baseItem ID, find the full item in wardrobe
         if (baseItem && baseItem.id) {
           const fullItem = items.find((item: any) => item.id === baseItem.id);
           if (fullItem) {
-            console.log('🔍 Found full base item in wardrobe, updating with rich metadata:', fullItem.name);
+            console.log('🔍 Found base item in wardrobe with full metadata:', fullItem.name);
             console.log('🔍 Rich metadata includes:', {
               dominantColors: fullItem.dominantColors?.length || 0,
               matchingColors: fullItem.matchingColors?.length || 0,
@@ -124,7 +112,8 @@ export default function OutfitGenerationPage() {
             });
             setBaseItem(fullItem);
           } else {
-            console.warn('🔍 Base item not found in wardrobe, using incomplete data');
+            console.warn('🔍 Base item not found in wardrobe:', baseItem.id);
+            setBaseItem(null);
           }
         }
       } else {
@@ -352,7 +341,7 @@ export default function OutfitGenerationPage() {
         },
         likedOutfits: [],
         trendingStyles: [],
-        ...(baseItem && { baseItem: baseItem })
+        ...(baseItem && { baseItemId: baseItem.id })
       };
       
       console.log('🔍 DEBUG: Request data being sent:', {
@@ -362,17 +351,8 @@ export default function OutfitGenerationPage() {
         wardrobeCount: requestData.wardrobe?.length,
         wardrobeType: typeof requestData.wardrobe,
         wardrobeKeys: requestData.wardrobe ? Object.keys(requestData.wardrobe) : null,
-        baseItem: baseItem ? {
-          id: baseItem.id,
-          name: baseItem.name,
-          type: baseItem.type,
-          hasRichMetadata: !!(baseItem.metadata || baseItem.dominantColors),
-          metadataKeys: baseItem.metadata ? Object.keys(baseItem.metadata) : null,
-          dominantColors: baseItem.dominantColors?.length || 0,
-          material: baseItem.metadata?.visualAttributes?.material,
-          texture: baseItem.metadata?.visualAttributes?.textureStyle,
-          silhouette: baseItem.metadata?.visualAttributes?.silhouette
-        } : null
+        baseItemId: baseItem ? baseItem.id : null,
+        baseItemName: baseItem ? baseItem.name : null
       });
       
       const response = await fetch('/api/outfits', {
