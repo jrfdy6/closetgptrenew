@@ -14,9 +14,19 @@ FAVORITE_SCORES_COLLECTION = "item_favorite_scores"
 
 def log_analytics_event(event: AnalyticsEvent) -> str:
     """Log an analytics event to the data lake."""
-    doc_ref = db.collection(ANALYTICS_COLLECTION).document()
-    doc_ref.set(event.dict())
-    return doc_ref.id
+    try:
+        if not db:
+            logger.warning("❌ Firestore database not available, skipping analytics logging")
+            return "no-db"
+        
+        doc_ref = db.collection(ANALYTICS_COLLECTION).document()
+        doc_ref.set(event.dict())
+        logger.debug(f"✅ Analytics event logged: {event.event_type}")
+        return doc_ref.id
+    except Exception as e:
+        logger.error(f"❌ Failed to log analytics event: {e}")
+        # Do not raise - prevents crashing the main endpoint
+        return "error"
 
 def log_item_interaction(
     user_id: str,
