@@ -194,6 +194,7 @@ async def analyze_single_image(
         image_url = image.get("url")
         if not image_url:
             logger.error("❌ DEBUG: No image URL provided")
+            logger.error(f"❌ DEBUG: Request body received: {image}")
             raise HTTPException(status_code=400, detail="Image URL is required")
         
         logger.info(f"🔍 DEBUG: Image URL: {image_url[:100]}...")

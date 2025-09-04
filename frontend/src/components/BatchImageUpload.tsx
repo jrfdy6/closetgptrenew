@@ -130,7 +130,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           
           // Call backend directly for AI analysis
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-          const payload = { image: { url: base64Image } };
+          const payload = { url: base64Image };
           
           console.log(`🤖 Analyzing item ${i + 1}/${totalItems} with AI...`);
           
