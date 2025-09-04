@@ -368,6 +368,89 @@ async def test_wardrobe_get():
     except Exception as e:
         return {"error": f"Failed to get wardrobe items: {str(e)}"}
 
+@app.post("/api/wardrobe/")
+async def test_wardrobe_post(request: dict):
+    """Test wardrobe POST endpoint directly in app.py."""
+    try:
+        from firebase_admin import firestore
+        import uuid
+        import time
+        db = firestore.client()
+        
+        if not db:
+            return {"error": "Database not available"}
+        
+        # Validate required fields
+        required_fields = ['name', 'type', 'color']
+        for field in required_fields:
+            if field not in request:
+                return {"error": f"Missing required field: {field}"}
+        
+        # Create item ID
+        item_id = str(uuid.uuid4())
+        
+        # Prepare item data
+        wardrobe_item = {
+            "id": item_id,
+            "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Use hardcoded user ID for now
+            "name": request["name"],
+            "type": request["type"],
+            "color": request["color"],
+            "style": request.get("style", []),
+            "occasion": request.get("occasion", []),
+            "season": request.get("season", ["all"]),
+            "imageUrl": request.get("imageUrl", ""),
+            "dominantColors": [{"name": request["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
+            "matchingColors": [],
+            "tags": request.get("tags", []),
+            "createdAt": int(time.time()),
+            "updatedAt": int(time.time()),
+            "metadata": {
+                "analysisTimestamp": int(time.time()),
+                "originalType": request["type"],
+                "styleTags": request.get("style", []),
+                "occasionTags": request.get("occasion", []),
+                "colorAnalysis": {
+                    "dominant": [request["color"]],
+                    "matching": []
+                },
+                "visualAttributes": {
+                    "pattern": "solid",
+                    "formalLevel": "casual",
+                    "fit": "regular",
+                    "material": "cotton",
+                    "fabricWeight": "medium"
+                },
+                "itemMetadata": {
+                    "tags": request.get("tags", []),
+                    "careInstructions": "Check care label"
+                }
+            },
+            "favorite": False,
+            "wearCount": 0,
+            "lastWorn": None
+        }
+        
+        # Save to Firestore
+        doc_ref = db.collection('wardrobe').document(item_id)
+        doc_ref.set(wardrobe_item)
+        
+        print(f"DEBUG: Successfully added item with ID: {item_id}")
+        print(f"DEBUG: Item saved with userId: {wardrobe_item['userId']}")
+        print(f"DEBUG: Item name: {wardrobe_item['name']}")
+        print(f"DEBUG: Item type: {wardrobe_item['type']}")
+        print(f"DEBUG: Item color: {wardrobe_item['color']}")
+        
+        return {
+            "success": True,
+            "message": "Item added successfully",
+            "item_id": item_id,
+            "item": wardrobe_item
+        }
+    except Exception as e:
+        print(f"DEBUG: Error adding wardrobe item: {e}")
+        return {"error": f"Failed to add item: {str(e)}"}
+
 @app.get("/api/wardrobe/count")
 async def count_wardrobe_direct():
     """Direct count endpoint to check wardrobe items."""
