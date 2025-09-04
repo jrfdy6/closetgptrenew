@@ -180,7 +180,7 @@ async def mark_outfit_as_worn(
         }
         
         # Save to Firestore
-        doc_ref = db.collection('outfit_history').add(entry_data)
+        doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
         
         # Log analytics event
         from ..models.analytics_event import AnalyticsEvent
@@ -203,7 +203,7 @@ async def mark_outfit_as_worn(
         return {
             "success": True,
             "message": "Outfit marked as worn successfully",
-            "entryId": doc_ref[1].id
+            "entryId": doc_id
         }
         
     except Exception as e:

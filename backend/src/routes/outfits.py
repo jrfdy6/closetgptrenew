@@ -2430,13 +2430,45 @@ async def mark_outfit_as_worn(
             
         logger.info(f"👕 Marking outfit {outfit_id} as worn for user {current_user.id}")
         
-        # Import OutfitService to use proper business logic
-        from ..services.outfit_service import OutfitService
+        # Simple direct update instead of using the complex OutfitService
+        # This avoids the dictionary update error
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get()
         
-        # Use OutfitService to handle the complete wear tracking logic
-        # This will update both outfit and wardrobe item wear counters
-        outfit_service = OutfitService()
-        await outfit_service.mark_outfit_as_worn(current_user.id, outfit_id)
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        
+        # Verify ownership
+        if outfit_data.get('user_id') != current_user.id:
+            raise HTTPException(status_code=403, detail="Outfit does not belong to user")
+        
+        # Update wear count and last worn
+        current_wear_count = outfit_data.get('wearCount', 0)
+        current_time = datetime.utcnow()
+        
+        outfit_ref.update({
+            'wearCount': current_wear_count + 1,
+            'lastWorn': current_time,
+            'updatedAt': current_time
+        })
+        
+        # Update individual wardrobe item wear counters
+        if outfit_data.get('items'):
+            for item in outfit_data['items']:
+                if isinstance(item, dict) and item.get('id'):
+                    item_ref = db.collection('wardrobe').document(item['id'])
+                    item_doc = item_ref.get()
+                    if item_doc.exists:
+                        item_data = item_doc.to_dict()
+                        if item_data.get('userId') == current_user.id:
+                            current_item_wear = item_data.get('wearCount', 0)
+                            item_ref.update({
+                                'wearCount': current_item_wear + 1,
+                                'lastWorn': current_time,
+                                'updatedAt': current_time
+                            })
         
         # Get updated outfit data to return current wear count
         outfit_ref = db.collection('outfits').document(outfit_id)
@@ -2475,7 +2507,7 @@ async def mark_outfit_as_worn(
             }
             
             # Save to outfit_history collection for today's outfit tracking
-            db.collection('outfit_history').add(history_entry)
+            doc_ref, doc_id = db.collection('outfit_history').add(history_entry)
             logger.info(f"📅 Created outfit history entry for outfit {outfit_id}")
             
         except Exception as history_error:
