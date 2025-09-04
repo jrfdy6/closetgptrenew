@@ -61,6 +61,15 @@ export default function WardrobeGrid({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
+  // Debug logging for component props
+  console.log(`🔍 [WardrobeGrid] Component rendered with:`, {
+    itemsCount: items.length,
+    loading,
+    showActions,
+    hasOnDeleteItem: !!onDeleteItem,
+    hasOnToggleFavorite: !!onToggleFavorite
+  });
+
   const handleDeleteClick = (itemId: string) => {
     console.log(`🔍 [WardrobeGrid] Delete button clicked for item ${itemId}`);
     setItemToDelete(itemId);
@@ -175,6 +184,7 @@ export default function WardrobeGrid({
             {/* Overlay with actions */}
             {showActions && (
               <div className={`absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2`}>
+                {console.log(`🔍 [WardrobeGrid] Rendering actions overlay for item ${item.id}`)}
                 <Button
                   size="sm"
                   variant="secondary"
