@@ -344,6 +344,9 @@ async def test_wardrobe_direct():
 async def test_wardrobe_get():
     """Test wardrobe GET endpoint directly in app.py."""
     try:
+        from firebase_admin import firestore
+        db = firestore.client()
+        
         if not db:
             return {"error": "Database not available"}
         
