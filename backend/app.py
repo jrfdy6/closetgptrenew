@@ -267,30 +267,71 @@ async def upload_image_inline():
     return {"message": "Inline upload route is working", "status": "success"}
 
 @app.post("/analyze-image")
-async def analyze_image_test(request: dict):
-    """Test endpoint for image analysis - direct in app.py"""
+async def analyze_image_real(request: dict):
+    """Real AI-powered image analysis endpoint using GPT-4 Vision"""
     try:
         if not request.get("image") or not request["image"].get("url"):
             return {"error": "No image provided"}
         
-        # Return a mock analysis response for testing
-        return {
-            "success": True,
-            "analysis": {
-                "type": "shirt",
-                "color": "blue",
-                "brand": "Test Brand",
-                "style": "casual",
-                "material": "cotton",
-                "season": ["spring", "summer"],
-                "occasion": ["casual", "work"],
-                "name": "Test Blue Shirt",
-                "description": "A casual blue cotton shirt perfect for spring and summer"
-            },
-            "message": "Mock analysis completed successfully"
-        }
+        # Extract base64 image data
+        image_url = request["image"]["url"]
+        if not image_url.startswith("data:image/"):
+            return {"error": "Invalid image format. Expected base64 data URL."}
+        
+        # Parse the data URL to get the base64 data
+        import base64
+        import tempfile
+        import os
+        
+        # Extract the base64 data (remove data:image/...;base64, prefix)
+        header, base64_data = image_url.split(",", 1)
+        
+        # Decode base64 to bytes
+        image_bytes = base64.b64decode(base64_data)
+        
+        # Create a temporary file to save the image
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(image_bytes)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Import and use the real AI analysis service
+            from src.services.openai_service import analyze_image_with_gpt4
+            
+            # Analyze the image with GPT-4 Vision
+            analysis_result = await analyze_image_with_gpt4(temp_file_path)
+            
+            # Convert the analysis to the format expected by the frontend
+            clothing_item = {
+                "type": analysis_result.get("type", "other"),
+                "color": analysis_result.get("dominantColors", [{}])[0].get("name", "unknown") if analysis_result.get("dominantColors") else "unknown",
+                "brand": analysis_result.get("brand", ""),
+                "style": analysis_result.get("style", []),
+                "material": analysis_result.get("metadata", {}).get("visualAttributes", {}).get("material", "unknown"),
+                "season": analysis_result.get("season", []),
+                "occasion": analysis_result.get("occasion", []),
+                "name": analysis_result.get("name", "Unnamed Item"),
+                "description": f"A {analysis_result.get('type', 'item')} in {analysis_result.get('dominantColors', [{}])[0].get('name', 'unknown') if analysis_result.get('dominantColors') else 'unknown'} color",
+                "subType": analysis_result.get("subType", ""),
+                "dominantColors": analysis_result.get("dominantColors", []),
+                "matchingColors": analysis_result.get("matchingColors", []),
+                "metadata": analysis_result.get("metadata", {}),
+                "tags": analysis_result.get("style", []) + analysis_result.get("occasion", [])
+            }
+            
+            return {
+                "success": True,
+                "analysis": clothing_item,
+                "message": "AI analysis completed successfully with GPT-4 Vision"
+            }
+            
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
         
     except Exception as e:
+        print(f"Error in AI analysis: {str(e)}")
         return {"error": f"Image analysis failed: {str(e)}"}
 
 @app.get("/api/test-inline")
