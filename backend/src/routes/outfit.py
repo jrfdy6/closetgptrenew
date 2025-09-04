@@ -90,6 +90,14 @@ async def generate_outfit(request: OutfitGenerationRequest):
     print(f"  - baseItemId: {request.baseItemId if request.baseItemId else 'None'}")
     print(f"  - user_profile.id: {request.user_profile.id}")
     
+    # Debug: Check if base item is in wardrobe
+    if request.baseItemId:
+        base_item_in_wardrobe = any(item.id == request.baseItemId for item in request.wardrobe)
+        print(f"🔍 DEBUG: Base item {request.baseItemId} found in wardrobe: {base_item_in_wardrobe}")
+        if base_item_in_wardrobe:
+            base_item = next(item for item in request.wardrobe if item.id == request.baseItemId)
+            print(f"🔍 DEBUG: Base item details: {base_item.name} ({base_item.type})")
+    
     # NEW: More detailed debugging
     print(f"🔍 DEBUG: Wardrobe data details:")
     if request.wardrobe:

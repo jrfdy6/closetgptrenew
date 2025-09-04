@@ -108,6 +108,8 @@ class OutfitGenerationService:
 
     def _select_appropriate_items(self, wardrobe: List[ClothingItem], occasion: str, style: Optional[str], base_item_id: Optional[str] = None) -> List[ClothingItem]:
         """Select appropriate items based on occasion and style."""
+        print(f"🔍 DEBUG: _select_appropriate_items called with base_item_id: {base_item_id}")
+        print(f"🔍 DEBUG: Wardrobe size: {len(wardrobe)}")
         selected_items = []
         
         # If base item is specified, prioritize it FIRST (before any filtering)
