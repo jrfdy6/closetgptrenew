@@ -95,12 +95,23 @@ export function useWardrobe() {
   // Delete item
   const deleteItem = useCallback(async (id: string) => {
     try {
+      console.log(`🗑️ [useWardrobe] Starting delete for item ${id}`);
+      
       // Use real API call to backend
       await WardrobeService.deleteWardrobeItem(id);
       
+      console.log(`✅ [useWardrobe] Successfully deleted item ${id} from backend`);
+      
       // Update local state
-      setItems(prev => prev.filter(item => item.id !== id));
+      setItems(prev => {
+        const newItems = prev.filter(item => item.id !== id);
+        console.log(`🔄 [useWardrobe] Updated local state. Items before: ${prev.length}, after: ${newItems.length}`);
+        return newItems;
+      });
+      
+      console.log(`✅ [useWardrobe] Item ${id} successfully deleted and removed from UI`);
     } catch (err) {
+      console.error(`❌ [useWardrobe] Error deleting item ${id}:`, err);
       setError(err instanceof Error ? err.message : 'Failed to delete item');
       throw err;
     }

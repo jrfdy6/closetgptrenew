@@ -66,10 +66,17 @@ export default function WardrobeGrid({
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (itemToDelete && onDeleteItem) {
-      console.log(`🔍 [WardrobeGrid] Confirmed delete for item ${itemToDelete}`);
-      onDeleteItem(itemToDelete);
+      try {
+        console.log(`🔍 [WardrobeGrid] Confirmed delete for item ${itemToDelete}`);
+        await onDeleteItem(itemToDelete);
+        console.log(`✅ [WardrobeGrid] Delete operation completed for item ${itemToDelete}`);
+      } catch (error) {
+        console.error(`❌ [WardrobeGrid] Delete operation failed for item ${itemToDelete}:`, error);
+        // Keep dialog open on error so user can try again
+        return;
+      }
     }
     setDeleteDialogOpen(false);
     setItemToDelete(null);

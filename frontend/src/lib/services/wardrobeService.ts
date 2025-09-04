@@ -184,7 +184,7 @@ export class WardrobeService {
       console.log(`🔍 [WardrobeService] Deleting wardrobe item ${id}`);
       
       // Use Next.js API route as proxy to avoid Railway HTTPS redirect issues
-      const fullUrl = `/api/wardrobe?itemId=${id}`;
+      const fullUrl = `/api/wardrobe/${id}`;
       console.log('🔍 DEBUG: Using Next.js API route as proxy:', fullUrl);
       
       const response = await fetch(fullUrl, {
