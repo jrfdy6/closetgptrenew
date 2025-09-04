@@ -29,6 +29,7 @@ class OutfitGenerationRequest(BaseModel):
     style: Optional[str] = None
     mood: Optional[str] = None  # Add mood parameter
     baseItem: Optional[ClothingItem] = None
+    baseItemId: Optional[str] = None  # Add baseItemId parameter
 
 class OutfitFeedbackRequest(BaseModel):
     liked: bool

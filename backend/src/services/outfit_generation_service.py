@@ -13,6 +13,7 @@ from src.custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
 from src.custom_types.weather import WeatherData
 from src.custom_types.profile import UserProfile
 from src.services.outfit_fallback_service import OutfitFallbackService
+from src.config.firebase import db
 
 logger = logging.getLogger(__name__)
 
@@ -115,16 +116,24 @@ class OutfitGenerationService:
         # If base item is specified, prioritize it
         if base_item_id:
             base_item = None
+            # First, try to find it in the provided wardrobe
             for item in filtered_wardrobe:
                 if item.id == base_item_id:
                     base_item = item
                     break
+            
+            # If not found in wardrobe, fetch from database
+            if not base_item:
+                print(f"🔍 Base item not found in wardrobe, fetching from database: {base_item_id}")
+                base_item = self._fetch_item_from_database(base_item_id)
             
             if base_item:
                 print(f"🎯 Including base item in selection: {base_item.name} ({base_item.type})")
                 selected_items.append(base_item)
                 # Remove base item from filtered wardrobe to avoid duplicates
                 filtered_wardrobe = [item for item in filtered_wardrobe if item.id != base_item_id]
+            else:
+                print(f"⚠️ Base item not found in database: {base_item_id}")
         
         # Add comprehensive handling for all dropdown occasions
         occasion_lower = occasion.lower()
@@ -782,3 +791,26 @@ class OutfitGenerationService:
         
         # For other occasions, return all items
         return wardrobe
+
+    def _fetch_item_from_database(self, item_id: str) -> Optional[ClothingItem]:
+        """Fetch a wardrobe item from the database by ID."""
+        try:
+            print(f"🔍 Fetching item from database: {item_id}")
+            doc_ref = db.collection('wardrobe').document(item_id)
+            doc = doc_ref.get()
+            
+            if not doc.exists:
+                print(f"❌ Item not found in database: {item_id}")
+                return None
+            
+            item_data = doc.to_dict()
+            item_data['id'] = doc.id
+            
+            # Convert to ClothingItem
+            clothing_item = ClothingItem(**item_data)
+            print(f"✅ Successfully fetched item from database: {clothing_item.name} ({clothing_item.type})")
+            return clothing_item
+            
+        except Exception as e:
+            print(f"❌ Error fetching item from database: {e}")
+            return None

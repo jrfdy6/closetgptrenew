@@ -341,7 +341,7 @@ export default function OutfitGenerationPage() {
         },
         likedOutfits: [],
         trendingStyles: [],
-        ...(baseItem && { baseItem: baseItem })
+        ...(baseItem && { baseItemId: baseItem.id })
       };
       
       console.log('🔍 DEBUG: Request data being sent:', {
