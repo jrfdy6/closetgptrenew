@@ -4,6 +4,7 @@ from firebase_admin import firestore
 import uuid
 import time
 from datetime import datetime
+from ..routes.auth import get_current_user_id
 
 router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
 
@@ -34,15 +35,15 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
     }
 
 @router.get("/")
-async def get_wardrobe_items() -> Dict[str, Any]:
+async def get_wardrobe_items(current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """Get user's wardrobe items - simplified version"""
     try:
         print("DEBUG: Getting wardrobe items (simplified)")
         
         # Get wardrobe items from Firestore using flat collection structure
         wardrobe_ref = db.collection('wardrobe')
-        print(f"DEBUG: Querying wardrobe collection for userId: dANqjiI0CKgaitxzYtw1bhtvQrG3")
-        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
+        print(f"DEBUG: Querying wardrobe collection for userId: {current_user_id}")
+        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
         
         items = []
         errors = []
@@ -135,7 +136,7 @@ async def get_wardrobe_items() -> Dict[str, Any]:
         )
 
 @router.post("/")
-async def add_wardrobe_item(item_data: Dict[str, Any]) -> Dict[str, Any]:
+async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """Add item to wardrobe - simplified version"""
     try:
         print(f"DEBUG: Adding wardrobe item")
@@ -152,7 +153,7 @@ async def add_wardrobe_item(item_data: Dict[str, Any]) -> Dict[str, Any]:
         # Prepare item data
         wardrobe_item = {
             "id": item_id,
-            "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Use the same user ID as retrieval
+            "userId": current_user_id,  # Use the authenticated user ID
             "name": item_data["name"],
             "type": item_data["type"],
             "color": item_data["color"],
