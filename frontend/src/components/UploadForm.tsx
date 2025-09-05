@@ -64,28 +64,39 @@ const compressImageForAnalysis = (file: File, maxWidth: number = 800, quality: n
   });
 };
 
-// Helper function to upload image to Firebase Storage
+// Helper function to upload image to Firebase Storage via backend
 const uploadImageToFirebaseStorage = async (file: File, userId: string, user: any): Promise<string> => {
-  // Create FormData for the upload
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('userId', userId);
-  formData.append('category', 'clothing');
-  formData.append('name', file.name || 'uploaded-item');
+  try {
+    console.log('🚀 Uploading image to backend Firebase Storage...');
+    
+    // Create FormData for the upload
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', 'clothing');
+    formData.append('name', file.name || 'uploaded-item');
 
-  // Upload to Firebase Storage via our simple API route
-  const response = await fetch('/api/image/upload-simple', {
-    method: 'POST',
-    body: formData,
-  });
+    // Upload to backend Firebase Storage (secure)
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const response = await fetch(`${backendUrl}/api/image/upload`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Authorization': `Bearer ${await user.getIdToken()}`,
+      },
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Upload failed');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || errorData.error || 'Upload failed');
+    }
+
+    const result = await response.json();
+    console.log('✅ Image uploaded successfully:', result.image_url);
+    return result.image_url;
+  } catch (error) {
+    console.error('❌ Backend Firebase Storage upload failed:', error);
+    throw error;
   }
-
-  const result = await response.json();
-  return result.image_url;
 };
 
 export default function UploadForm({ onUploadComplete, onCancel }: UploadFormProps) {
