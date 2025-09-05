@@ -40,6 +40,37 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+// Helper function to upload image to Firebase Storage
+const uploadImageToFirebaseStorage = async (file: File, userId: string, user: any): Promise<string> => {
+  try {
+    // Create FormData for the upload
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+    formData.append('category', 'clothing');
+    formData.append('name', file.name || 'uploaded-item');
+
+    // Upload to Firebase Storage via our simple API route
+    const response = await fetch('/api/image/upload-simple', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Upload failed');
+    }
+
+    const result = await response.json();
+    return result.image_url;
+  } catch (error) {
+    console.error('❌ Firebase Storage upload failed:', error);
+    // Fallback to base64 if Firebase Storage fails
+    console.log('🔄 Falling back to base64...');
+    return await fileToBase64(file);
+  }
+};
+
 export default function UploadForm({ onUploadComplete, onCancel }: UploadFormProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
@@ -289,7 +320,7 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
           name: result.analysis.name || result.analysis.clothing_type || itemName || 'Analyzed Item',
           type: result.analysis.type || result.analysis.clothing_type || itemType || 'unknown',
           color: result.analysis.color || result.analysis.primary_color || itemColor || 'unknown',
-          imageUrl: await fileToBase64(uploadedFile), // Use base64 as image URL for now
+          imageUrl: await uploadImageToFirebaseStorage(uploadedFile, user.uid, user), // Upload to Firebase Storage
           userId: user.uid,
           createdAt: new Date().toISOString(),
           analysis: result.analysis,
