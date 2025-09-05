@@ -204,10 +204,10 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               season: result.analysis.season
             });
             
-            // Upload image to Firebase Storage first
-            console.log(`📤 Uploading image ${i + 1} to Firebase Storage...`);
-            const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
-            console.log(`✅ Image uploaded to Firebase Storage: ${imageUrl}`);
+            // Temporarily use base64 until Firebase Storage is configured
+            console.log(`📤 Converting image ${i + 1} to base64...`);
+            const imageUrl = await fileToBase64(item.file);
+            console.log(`✅ Image converted to base64: ${imageUrl.substring(0, 50)}...`);
 
             const clothingItem = {
               id: `item-${Date.now()}-${i}`,
