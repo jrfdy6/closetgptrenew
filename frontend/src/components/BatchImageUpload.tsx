@@ -31,23 +31,25 @@ interface UploadItem {
   id: string;
   file: File;
   preview: string;
-  status: 'pending' | 'analyzing' | 'uploading' | 'analyzed' | 'success' | 'error';
+  status: 'pending' | 'analyzing' | 'uploading' | 'success' | 'error';
   progress: number;
   error?: string;
   analysisResult?: any;
 }
 
-const fileToBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(reader.result as string);
-  reader.onerror = reject;
-  reader.readAsDataURL(file);
-});
+// Helper function to convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
 
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
-  
-  const { user } = useFirebase();
   const { toast } = useToast();
+  const { user } = useFirebase();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -108,33 +110,36 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
 
     const totalItems = uploadItems.length;
     let completedItems = 0;
-    const clothingItems: any[] = [];
+    const successfulItems: any[] = [];
 
     try {
-      // Step 1: Analyze all items first
-      console.log(`🤖 Analyzing ${totalItems} items with AI...`);
-      
+      // Process each item sequentially to avoid overwhelming the server
       for (let i = 0; i < uploadItems.length; i++) {
         const item = uploadItems[i];
         
-        try {
-          // Update status to uploading
-          setUploadItems(prev => prev.map(prevItem => 
-            prevItem.id === item.id 
-              ? { ...prevItem, status: 'uploading' }
-              : prevItem
-          ));
+        // Update status to uploading
+        setUploadItems(prev => prev.map(prevItem => 
+          prevItem.id === item.id 
+            ? { ...prevItem, status: 'uploading' }
+            : prevItem
+        ));
 
-          // Convert file to base64 once for both analysis and storage
-          const base64Image = await fileToBase64(item.file);
+        try {
+          // Create FormData for the AI-powered upload
+          const formData = new FormData();
+          formData.append('file', item.file);
+          formData.append('userId', user.uid);
+
+          console.log(`🚀 Uploading item ${i + 1}/${totalItems} with AI analysis`);
           
           // Call backend directly for AI analysis
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-          const payload = { url: base64Image };
+          const payload = { image: { url: await fileToBase64(item.file) } };
           
-          console.log(`🤖 Analyzing item ${i + 1}/${totalItems} with AI...`);
+          console.log("POSTing to backend:", backendUrl + "/api/analyze-image");
+          console.log("Payload:", JSON.stringify(payload));
           
-          const response = await fetch(`${backendUrl}/analyze-image`, {
+          const response = await fetch(`${backendUrl}/api/analyze-image`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`,
@@ -145,57 +150,67 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
 
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || 'Analysis failed');
+            throw new Error(errorData.error || 'Upload failed');
           }
 
           const result = await response.json();
           console.log(`✅ Item ${i + 1} analyzed successfully:`, result);
 
           if (result.analysis) {
-            // Extract the actual analysis data from the nested structure
-            const analysis = result.analysis.analysis || result.analysis;
-            
             // Create a proper clothing item from the analysis result
             const clothingItem = {
-              name: analysis.name || 'Analyzed Item',
-              type: analysis.type || 'unknown',
-              color: analysis.dominantColors && analysis.dominantColors.length > 0 
-                ? analysis.dominantColors[0].name 
-                : 'unknown',
-              imageUrl: base64Image, // Reuse the base64 image
-              style: analysis.style || [],
-              occasion: analysis.occasion || [],
-              season: analysis.season || ['all'],
-              dominantColors: analysis.dominantColors || [],
-              matchingColors: analysis.matchingColors || [],
-              tags: analysis.tags || [],
-              metadata: {
-                analysisTimestamp: Date.now(),
-                originalType: analysis.type || 'clothing',
-                styleTags: analysis.style || [],
-                occasionTags: analysis.occasion || [],
-                colorAnalysis: {
-                  dominant: analysis.dominantColors || [],
-                  matching: analysis.matchingColors || []
-                },
-                visualAttributes: analysis.metadata?.visualAttributes || {},
-                itemMetadata: {
-                  tags: analysis.tags || [],
-                  careInstructions: "Check care label"
-                }
-              },
+              id: `item-${Date.now()}-${i}`,
+              name: result.analysis.name || result.analysis.clothing_type || 'Analyzed Item',
+              type: result.analysis.type || result.analysis.clothing_type || 'unknown',
+              color: result.analysis.color || result.analysis.primary_color || 'unknown',
+              imageUrl: await fileToBase64(item.file), // Use base64 as image URL for now
+              userId: user.uid,
+              createdAt: new Date().toISOString(),
+              analysis: result.analysis,
+              // Add other required fields
+              brand: result.analysis.brand || '',
+              style: result.analysis.style || '',
+              material: result.analysis.material || '',
+              season: result.analysis.season || [],
+              occasion: result.analysis.occasion || [],
+              subType: result.analysis.subType || '',
+              gender: result.analysis.gender || 'unisex',
+              backgroundRemoved: false,
               favorite: false,
               wearCount: 0,
               lastWorn: null
             };
             
-            clothingItems.push(clothingItem);
-            console.log(`🔍 DEBUG: Added item ${i + 1} to clothingItems array. Total items: ${clothingItems.length}`);
+            // Save to database via the wardrobe API
+            try {
+              console.log(`💾 Saving item ${i + 1} to database...`);
+              const saveResponse = await fetch('/api/wardrobe', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${await user.getIdToken()}`,
+                },
+                body: JSON.stringify(clothingItem),
+              });
 
-            // Update status to analyzed
+              if (!saveResponse.ok) {
+                throw new Error(`Failed to save item: ${saveResponse.statusText}`);
+              }
+
+              const savedItem = await saveResponse.json();
+              console.log(`✅ Item ${i + 1} saved to database:`, savedItem);
+              
+              successfulItems.push(savedItem);
+            } catch (saveError) {
+              console.error(`❌ Failed to save item ${i + 1} to database:`, saveError);
+              // Still add to successful items but mark as not saved
+              successfulItems.push({ ...clothingItem, saveError: saveError.message });
+            }
+
+            // Update status to success
             setUploadItems(prev => prev.map(prevItem => 
               prevItem.id === item.id 
-                ? { ...prevItem, status: 'analyzed', progress: 50, analysisResult: result.analysis }
+                ? { ...prevItem, status: 'success', progress: 100, analysisResult: result.analysis }
                 : prevItem
             ));
           } else {
@@ -203,85 +218,61 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           }
 
           completedItems++;
-          setOverallProgress((completedItems / totalItems) * 50); // First half for analysis
+          setOverallProgress((completedItems / totalItems) * 100);
 
         } catch (error) {
-          console.error(`❌ Analysis failed for item ${i + 1}:`, error);
+          console.error(`❌ Upload failed for item ${i + 1}:`, error);
           
           // Update status to error
           setUploadItems(prev => prev.map(prevItem => 
             prevItem.id === item.id 
-              ? { ...prevItem, status: 'error', progress: 0, error: error.message }
+              ? { 
+                  ...prevItem, 
+                  status: 'error', 
+                  error: error instanceof Error ? error.message : 'Upload failed',
+                  progress: 0 
+                }
               : prevItem
           ));
         }
+
+        // Small delay between uploads to avoid overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
-      // Step 2: Save all items in batch
-      console.log(`🔍 DEBUG: clothingItems array length: ${clothingItems.length}`);
-      console.log(`🔍 DEBUG: clothingItems content:`, clothingItems);
+      // All uploads completed
+      setOverallProgress(100);
       
-      if (clothingItems.length > 0) {
-        console.log(`💾 Saving ${clothingItems.length} items to database in batch...`);
-        
-        try {
-          const batchResponse = await fetch('/api/wardrobe/batch', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${await user.getIdToken()}`,
-            },
-            body: JSON.stringify(clothingItems),
-          });
-
-          if (!batchResponse.ok) {
-            const errorData = await batchResponse.json();
-            throw new Error(errorData.detail || `Batch save failed: ${batchResponse.statusText}`);
-          }
-
-          const batchResult = await batchResponse.json();
-          console.log(`✅ Batch save completed:`, batchResult);
-          
-          // Update all analyzed items to success status
-          setUploadItems(prev => prev.map(item => 
-            item.status === 'analyzed' 
-              ? { ...item, status: 'success', progress: 100 }
-              : item
-          ));
-          
-          setOverallProgress(100);
-          
-          // Show success toast
-          toast({
-            title: "Batch upload completed! ✨",
-            description: `${batchResult.successful_items} items added successfully`,
-            variant: "default",
-          });
-          
-          // Call completion callback with successful items
-          onUploadComplete?.(batchResult.successful_items_data || []);
-          
-        } catch (batchError) {
-          console.error(`❌ Batch save failed:`, batchError);
-          toast({
-            title: "Batch save failed",
-            description: batchError.message,
-            variant: "destructive",
-          });
-        }
-      } else {
+      if (successfulItems.length > 0) {
         toast({
-          title: "No items analyzed",
-          description: "No items were successfully analyzed",
+          title: "Batch upload completed! ✨",
+          description: `Successfully uploaded ${successfulItems.length} items with AI analysis`,
+        });
+
+        if (onUploadComplete) {
+          onUploadComplete(successfulItems);
+        }
+      }
+
+      if (successfulItems.length < totalItems) {
+        toast({
+          title: "Some uploads failed",
+          description: `${totalItems - successfulItems.length} items failed to upload`,
           variant: "destructive",
         });
       }
-      
+
     } catch (error) {
-      console.error('❌ Batch upload failed:', error);
+      console.error('Batch upload error:', error);
+      const errorMessage = 'Failed to complete batch upload';
+      
+      if (onError) {
+        onError(errorMessage);
+      }
+      
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -297,8 +288,6 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         return <Brain className="w-4 h-4 text-purple-500 animate-pulse" />;
       case 'uploading':
         return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
-      case 'analyzed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'success':
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'error':
@@ -308,161 +297,196 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
     }
   };
 
-  const getStatusText = (status: UploadItem['status']) => {
+  const getStatusColor = (status: UploadItem['status']) => {
     switch (status) {
       case 'pending':
-        return 'Pending';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
       case 'analyzing':
-        return 'Analyzing...';
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
       case 'uploading':
-        return 'Uploading...';
-      case 'analyzed':
-        return 'Analyzed';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'success':
-        return 'Success';
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'error':
-        return 'Error';
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default:
-        return 'Unknown';
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
 
   return (
     <div className="space-y-6">
       {/* Upload Area */}
-      <div
-        {...getRootProps()}
-        className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-          ${isDragActive 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-300 hover:border-gray-400'
-          }
-          ${isUploading ? 'pointer-events-none opacity-50' : ''}
-        `}
-      >
-        <input {...getInputProps()} />
-        <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-        <h3 className="text-lg font-semibold mb-2">
-          {isDragActive ? 'Drop images here' : 'Upload Images'}
-        </h3>
-        <p className="text-gray-600 mb-4">
-          Drag and drop images here, or click to select files
-        </p>
-        <p className="text-sm text-gray-500">
-          Supports: JPG, PNG, GIF, WebP (max 10MB each)
-        </p>
+      <div>
+        <div className="text-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Batch Upload with AI ✨
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Upload multiple clothing items at once. AI will automatically analyze and save each item to your wardrobe.
+          </p>
+          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              <strong>Auto-save mode:</strong> Items are automatically saved with AI analysis - no manual editing required.
+            </p>
+          </div>
+        </div>
+
+        <div
+          {...getRootProps()}
+          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+            isDragActive
+              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20"
+              : "border-gray-300 dark:border-gray-600 hover:border-emerald-400 dark:hover:border-emerald-500"
+          }`}
+        >
+          <input {...getInputProps()} />
+          <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            {isDragActive
+              ? "Drop the images here..."
+              : "Drag & drop multiple images, or click to select"}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            Supports JPG, PNG, GIF, WebP (max 10MB per file)
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">
+            You can select multiple files or drag them in batches
+          </p>
+        </div>
       </div>
 
-      {/* Progress Bar */}
-      {isUploading && (
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Overall Progress</span>
-            <span>{Math.round(overallProgress)}%</span>
-          </div>
-          <Progress value={overallProgress} className="w-full" />
-        </div>
-      )}
-
-      {/* Upload Items */}
+      {/* File List */}
       {uploadItems.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h4 className="text-lg font-semibold">
-              Upload Queue ({uploadItems.length} items)
-            </h4>
-            <div className="space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAll}
-                disabled={isUploading}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear All
-              </Button>
-              <Button
-                onClick={startBatchUpload}
-                disabled={isUploading || uploadItems.length === 0}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Start Batch Upload
-                  </>
-                )}
-              </Button>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Selected Files ({uploadItems.length})</CardTitle>
+                <CardDescription>
+                  Review your selected images before uploading
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAll}
+                  disabled={isUploading}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear All
+                </Button>
+                <Button
+                  onClick={startBatchUpload}
+                  disabled={isUploading || uploadItems.length === 0}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Uploading with AI...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Upload All with AI ({uploadItems.length})
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          </CardHeader>
+          
+          <CardContent>
+            {/* Overall Progress */}
+            {isUploading && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span>Overall Progress</span>
+                  <span>{Math.round(overallProgress)}%</span>
+                </div>
+                <Progress value={overallProgress} className="h-2" />
+              </div>
+            )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {uploadItems.map((item) => (
-              <Card key={item.id} className="relative">
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    {/* Image Preview */}
-                    <div className="relative">
-                      <img
-                        src={item.preview}
-                        alt="Upload preview"
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2 h-6 w-6 p-0"
-                        onClick={() => removeItem(item.id)}
-                        disabled={isUploading}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-
-                    {/* Status */}
-                    <div className="flex items-center space-x-2">
-                      {getStatusIcon(item.status)}
-                      <span className="text-sm font-medium">
-                        {getStatusText(item.status)}
-                      </span>
-                      {item.status === 'error' && (
-                        <Badge variant="destructive" className="text-xs">
-                          Error
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Progress Bar */}
-                    {item.status === 'uploading' && (
-                      <Progress value={item.progress} className="w-full" />
-                    )}
-
-                    {/* Error Message */}
-                    {item.status === 'error' && item.error && (
-                      <p className="text-xs text-red-600">{item.error}</p>
-                    )}
-
-                    {/* Analysis Result */}
-                    {item.analysisResult && (
-                      <div className="text-xs space-y-1">
-                        <p><strong>Name:</strong> {item.analysisResult.name}</p>
-                        <p><strong>Type:</strong> {item.analysisResult.type}</p>
-                        <p><strong>Color:</strong> {item.analysisResult.color}</p>
-                      </div>
-                    )}
+            {/* File Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {uploadItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="relative border rounded-lg overflow-hidden group"
+                >
+                  {/* Image Preview */}
+                  <div className="aspect-square bg-gray-100 dark:bg-gray-800">
+                    <img
+                      src={item.preview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+
+                  {/* Status Overlay */}
+                  <div className="absolute top-2 right-2">
+                    <Badge className={getStatusColor(item.status)}>
+                      {getStatusIcon(item.status)}
+                    </Badge>
+                  </div>
+
+                  {/* Remove Button */}
+                  {!isUploading && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+
+                  {/* Progress Bar */}
+                  {item.status === 'uploading' && (
+                    <div className="absolute bottom-0 left-0 right-0">
+                      <Progress value={item.progress} className="h-1 rounded-none" />
+                    </div>
+                  )}
+
+                  {/* Error Message */}
+                  {item.status === 'error' && item.error && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs p-1 text-center">
+                      {item.error}
+                    </div>
+                  )}
+
+                  {/* File Info */}
+                  <div className="p-2 bg-white dark:bg-gray-900">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                      {item.file.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      {(item.file.size / 1024 / 1024).toFixed(1)} MB
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Upload Summary */}
+            {!isUploading && uploadItems.length > 0 && (
+              <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Ready to upload:</span>
+                  <span className="font-medium">{uploadItems.length} items</span>
+                </div>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Total size: {(uploadItems.reduce((acc, item) => acc + item.file.size, 0) / 1024 / 1024).toFixed(1)} MB
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
-}
+} 

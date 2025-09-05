@@ -3,8 +3,6 @@ from pydantic import BaseModel
 from openai import OpenAI
 import os
 import logging
-import uuid
-from datetime import datetime
 from dotenv import load_dotenv
 import requests
 from io import BytesIO
@@ -192,90 +190,42 @@ async def analyze_single_image(
     Enhanced single image analysis using GPT-4 Vision + CLIP
     """
     try:
-        logger.info("🔍 DEBUG: Starting analyze-image endpoint")
         image_url = image.get("url")
         if not image_url:
-            logger.error("❌ DEBUG: No image URL provided")
-            logger.error(f"❌ DEBUG: Request body received: {image}")
             raise HTTPException(status_code=400, detail="Image URL is required")
         
-        logger.info(f"🔍 DEBUG: Image URL: {image_url[:100]}...")
-        
         # Download image to temporary file
-        logger.info("🔍 DEBUG: Downloading image...")
         response = requests.get(image_url)
         response.raise_for_status()
-        logger.info(f"🔍 DEBUG: Image downloaded, size: {len(response.content)} bytes")
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
             temp_file.write(response.content)
             temp_path = temp_file.name
         
-        logger.info(f"🔍 DEBUG: Image saved to temp file: {temp_path}")
-        
         try:
             # Use enhanced analysis (GPT-4 + CLIP)
-            logger.info("🔍 DEBUG: Starting AI analysis...")
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
-            logger.info(f"🔍 DEBUG: AI analysis completed: {analysis}")
             
-            # Store the full AI analysis directly in Firestore as a separate document
-            analysis_id = str(uuid.uuid4())
-            analysis_doc = {
-                "id": analysis_id,
-                "user_id": current_user_id,
-                "analysis_data": analysis,  # Full AI analysis result
-                "image_url_length": len(image_url),
-                "file_size": len(response.content),
-                "analysis_timestamp": datetime.utcnow().isoformat(),
-                "created_at": datetime.utcnow().isoformat()
-            }
-            
-            # Save analysis to Firestore
-            try:
-                from firebase_admin import firestore
-                db = firestore.client()
-                db.collection('ai_analyses').document(analysis_id).set(analysis_doc)
-                logger.info(f"✅ AI analysis saved to Firestore with ID: {analysis_id}")
-            except Exception as e:
-                logger.error(f"❌ Failed to save AI analysis to Firestore: {e}")
-            
-            # Log analytics event with only basic metadata and analysis ID (no base64 data)
+            # Log analytics event
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
                     "analysis_type": "enhanced",
-                    "analysis_id": analysis_id,  # Reference to the full analysis in Firestore
-                    "image_url_length": len(image_url),
+                    "image_url": image_url,
                     "file_size": len(response.content),
-                    "has_clothing_detected": bool(analysis.get("analysis", {}).get("type")),
-                    "confidence_score": analysis.get("metadata", {}).get("confidence", 0),
-                    "analysis_method": analysis.get("metadata", {}).get("analysis_method", "unknown"),
-                    "analysis_timestamp": datetime.utcnow().isoformat()
+                    "has_clothing_detected": bool(analysis.get("clothing_type")),
+                    "confidence_score": analysis.get("confidence_score", 0)
                 }
             )
-            
-            # Debug: Print the analytics event before storing
-            logger.info(f"🔍 DEBUG: Analytics event dict: {analytics_event.dict()}")
-            logger.info(f"🔍 DEBUG: Metadata keys: {list(analytics_event.metadata.keys())}")
-            
             log_analytics_event(analytics_event)
             
-            return {
-                "success": True,
-                "analysis": analysis,
-                "message": "AI analysis completed successfully with GPT-4 Vision"
-            }
+            return {"analysis": analysis}
         finally:
             # Clean up temporary file
             os.unlink(temp_path)
             
     except Exception as e:
-        logger.error(f"❌ DEBUG: Error in analyze-image endpoint: {str(e)}")
-        import traceback
-        logger.error(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
-        
         # Log error analytics event
         analytics_event = AnalyticsEvent(
             user_id=current_user_id,

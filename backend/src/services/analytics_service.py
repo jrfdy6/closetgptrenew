@@ -1,8 +1,6 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import math
-from decimal import Decimal
-from uuid import UUID
 from ..config.firebase import db
 from ..models.analytics_event import AnalyticsEvent, ItemInteractionType
 from ..custom_types.wardrobe import ClothingItem
@@ -14,61 +12,11 @@ logger = logging.getLogger(__name__)
 ANALYTICS_COLLECTION = "analytics_events"
 FAVORITE_SCORES_COLLECTION = "item_favorite_scores"
 
-def firestore_safe(obj):
-    """
-    Recursively convert a Python object into a Firestore-safe dict.
-    Handles Pydantic models, datetime, UUID, Decimal, and other unsupported types.
-    """
-    if isinstance(obj, dict):
-        return {str(k): firestore_safe(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [firestore_safe(i) for i in obj]
-    elif isinstance(obj, (str, int, float, bool)) or obj is None:
-        return obj
-    elif isinstance(obj, Decimal):
-        return float(obj)
-    elif isinstance(obj, UUID):
-        return str(obj)
-    elif isinstance(obj, datetime):
-        return obj.isoformat()
-    elif hasattr(obj, 'dict'):  # Pydantic model
-        return firestore_safe(obj.dict())
-    else:
-        # fallback to string for any unsupported type
-        return str(obj)
-
 def log_analytics_event(event: AnalyticsEvent) -> str:
-    """
-    Safely log an analytics event to Firestore.
-    Transforms all nested metadata to be Firestore-compatible.
-    """
-    try:
-        if not db:
-            logger.warning("❌ Firestore database not available, skipping analytics logging")
-            return "no-db"
-        
-        # Convert the whole event to a Firestore-safe dict
-        event_dict = firestore_safe(event.dict())
-        
-        # Optionally add a timestamp if not already present
-        if "created_at" not in event_dict:
-            event_dict["created_at"] = datetime.utcnow().isoformat()
-        
-        logger.debug(f"🔍 DEBUG: Firestore-safe event dict: {event_dict}")
-        
-        # Store in Firestore
-        doc_ref = db.collection(ANALYTICS_COLLECTION).document()
-        doc_ref.set(event_dict)
-        
-        logger.debug(f"✅ Analytics event logged with ID: {doc_ref.id}")
-        return doc_ref.id
-        
-    except Exception as e:
-        logger.error(f"❌ Failed to log analytics event: {e}")
-        import traceback
-        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
-        # Do not raise - prevents crashing the main endpoint
-        return "error"
+    """Log an analytics event to the data lake."""
+    doc_ref = db.collection(ANALYTICS_COLLECTION).document()
+    doc_ref.set(event.dict())
+    return doc_ref.id
 
 def log_item_interaction(
     user_id: str,

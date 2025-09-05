@@ -202,11 +202,11 @@ export async function POST(request: Request) {
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to add the item
-    console.log('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/`);
+    console.log('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/add`);
     console.log('🔍 DEBUG: Request body:', JSON.stringify(requestBody, null, 2));
     console.log('🔍 DEBUG: Authorization header:', authHeader);
     
-    const response = await fetch(`${backendUrl}/api/wardrobe/`, {
+    const response = await fetch(`${backendUrl}/api/wardrobe/add`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
