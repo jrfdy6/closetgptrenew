@@ -1,34 +1,41 @@
 import { NextResponse } from 'next/server';
-import { initializeApp, getApps } from 'firebase/app';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getApps, initializeApp, cert } from 'firebase-admin/app';
+import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
 
-// Initialize Firebase app
-function initFirebase() {
+// Initialize Firebase Admin SDK
+function initAdmin() {
   if (!getApps().length) {
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-    };
-
-    if (!firebaseConfig.projectId) {
-      throw new Error('NEXT_PUBLIC_FIREBASE_PROJECT_ID not set');
+    // Try to load service account key from file
+    const serviceAccountPath = path.join(process.cwd(), 'serviceAccountKey.json');
+    
+    let serviceAccount;
+    try {
+      if (fs.existsSync(serviceAccountPath)) {
+        serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+      } else {
+        throw new Error('Service account key file not found');
+      }
+    } catch (error) {
+      console.error('Error loading service account key:', error);
+      throw new Error('Failed to load Firebase service account key');
     }
 
-    return initializeApp(firebaseConfig);
+    return initializeApp({
+      credential: cert(serviceAccount),
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'closetgptrenew.appspot.com',
+    });
   }
   return getApps()[0];
 }
 
 export async function POST(request: Request) {
   try {
-    // Initialize Firebase
-    const app = initFirebase();
-    const storage = getStorage(app);
+    // Initialize Firebase Admin
+    const app = initAdmin();
+    const bucket = getStorage().bucket();
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -47,23 +54,27 @@ export async function POST(request: Request) {
     // Create a reference to the file
     const ext = file.name?.split('.').pop() || 'jpg';
     const fileName = `${uuidv4()}.${ext}`;
-    const storageRef = ref(storage, `wardrobe/${userId}/${fileName}`);
+    const fileRef = bucket.file(`wardrobe/${userId}/${fileName}`);
 
     // Convert file to buffer
-    const buffer = await file.arrayBuffer();
+    const buffer = Buffer.from(await file.arrayBuffer());
 
     // Upload the file
-    const snapshot = await uploadBytes(storageRef, buffer, {
-      contentType: file.type || 'image/jpeg',
-      customMetadata: {
-        uploadedBy: userId,
-        category: category,
-        originalName: file.name || 'upload'
-      }
+    await fileRef.save(buffer, {
+      metadata: {
+        contentType: file.type || 'image/jpeg',
+        metadata: {
+          uploadedBy: userId,
+          category: category,
+          originalName: file.name || 'upload',
+          firebaseStorageDownloadTokens: uuidv4()
+        }
+      },
+      resumable: false,
     });
 
     // Get the download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
+    const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${uuidv4()}`;
 
     return NextResponse.json({
       success: true,
