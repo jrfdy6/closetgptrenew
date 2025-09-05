@@ -1,5 +1,4 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
-from rembg import remove
 from PIL import Image
 import io
 import firebase_admin
@@ -8,9 +7,37 @@ import os
 from typing import Optional
 import uuid
 import logging
-from ..config.firebase import firebase_admin  # Import Firebase configuration
-from ..auth.auth_service import get_current_user_optional
-from ..custom_types.profile import UserProfile
+
+# Optional imports with fallbacks
+try:
+    from rembg import remove
+    REMBG_AVAILABLE = True
+except ImportError:
+    REMBG_AVAILABLE = False
+    print("⚠️ rembg not available - background removal disabled")
+
+try:
+    from ..config.firebase import firebase_admin  # Import Firebase configuration
+    FIREBASE_CONFIG_AVAILABLE = True
+except ImportError:
+    FIREBASE_CONFIG_AVAILABLE = False
+    print("⚠️ Firebase config not available")
+
+try:
+    from ..auth.auth_service import get_current_user_optional
+    from ..custom_types.profile import UserProfile
+    AUTH_AVAILABLE = True
+except ImportError:
+    AUTH_AVAILABLE = False
+    print("⚠️ Auth services not available - using fallback")
+    
+    # Fallback for when auth is not available
+    def get_current_user_optional():
+        return None
+    
+    class UserProfile:
+        def __init__(self, id="anonymous"):
+            self.id = id
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -22,7 +49,7 @@ async def upload_image(
     file: UploadFile = File(...),
     category: Optional[str] = "clothing",
     name: Optional[str] = None,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: Optional[UserProfile] = Depends(get_current_user_optional) if AUTH_AVAILABLE else None
 ):
     try:
         if not file.content_type or not file.content_type.startswith('image/'):
