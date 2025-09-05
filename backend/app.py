@@ -117,23 +117,24 @@ print("🔍 DEBUG: This print should appear before router loading...")
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
-    ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
-    ("src.routes.image_processing", "/api/image"),  # Image processing router - mounted at /api/image
-    ("src.routes.image_analysis", ""),   # Image analysis router - re-enabled
-    ("src.routes.weather", ""),          # Router already has /api/weather prefix
-    ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
+    ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
+    # ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
+    # ("src.routes.image_processing", "/api/image"),  # Image processing router - mounted at /api/image
+    # ("src.routes.image_analysis", ""),   # Image analysis router - re-enabled
+    # ("src.routes.weather", ""),          # Router already has /api/weather prefix
+    # ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
     # ("src.routes.forgotten_gems", "/api/wardrobe"),  # Forgotten gems router - CONFLICTING with wardrobe_simple
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     # ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix - TEMPORARILY DISABLED
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
-    ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
-    ("src.routes.outfit_history", "/api"),   # Full outfit history router with daily generation
-    ("src.routes.test_debug", ""),       # Router already has /api/test prefix
-    ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
-    ("src.routes.analytics", ""),        # Main analytics router
-    ("src.routes.performance", "/performance"),      # Performance monitoring router - FIXED PREFIX
-    ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
-    ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
+    # ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
+    # ("src.routes.outfit_history", "/api"),   # Full outfit history router with daily generation
+    # ("src.routes.test_debug", ""),       # Router already has /api/test prefix
+    # ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
+    # ("src.routes.analytics", ""),        # Main analytics router
+    # ("src.routes.performance", "/performance"),      # Performance monitoring router - FIXED PREFIX
+    # ("src.routes.monitoring", "/monitoring"),       # System monitoring router - FIXED PREFIX
+    # ("src.routes.public_diagnostics", "/public_diagnostics"), # Public health diagnostics - FIXED PREFIX
 ]
 
 def include_router_safe(module_name: str, prefix: str):
