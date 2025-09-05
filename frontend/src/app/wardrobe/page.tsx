@@ -66,6 +66,7 @@ export default function WardrobePage() {
     toggleFavorite,
     incrementWearCount,
     deleteItem,
+    addItem,
     refetch
   } = useWardrobe();
 
@@ -317,10 +318,33 @@ export default function WardrobePage() {
             </CardHeader>
             <CardContent>
               <UploadForm 
-                onUploadComplete={(item) => {
+                onUploadComplete={async (item) => {
                   console.log('Single item uploaded:', item);
                   setShowUploadForm(false);
-                  refetch(); // Refresh the wardrobe data
+                  
+                  // Add item optimistically to avoid flickering
+                  try {
+                    await addItem({
+                      name: item.name,
+                      type: item.type,
+                      color: item.color,
+                      imageUrl: item.imageUrl,
+                      wearCount: item.wearCount || 0,
+                      favorite: item.favorite || false,
+                      style: item.style || [],
+                      season: item.season || ['all'],
+                      occasion: item.occasion || [],
+                      lastWorn: item.lastWorn,
+                      userId: user?.uid || '',
+                      createdAt: new Date(),
+                      updatedAt: new Date()
+                    });
+                    console.log('✅ Item added optimistically to wardrobe');
+                  } catch (error) {
+                    console.error('❌ Failed to add item optimistically:', error);
+                    // Fallback to refetch if optimistic update fails
+                    refetch();
+                  }
                 }}
                 onCancel={() => setShowUploadForm(false)}
               />
@@ -345,10 +369,35 @@ export default function WardrobePage() {
             </CardHeader>
             <CardContent>
               <BatchImageUpload 
-                onUploadComplete={(items) => {
+                onUploadComplete={async (items) => {
                   console.log('Batch upload complete:', items);
                   setShowBatchUpload(false);
-                  refetch(); // Refresh the wardrobe data
+                  
+                  // Add items optimistically to avoid flickering
+                  try {
+                    for (const item of items) {
+                      await addItem({
+                        name: item.name,
+                        type: item.type,
+                        color: item.color,
+                        imageUrl: item.imageUrl,
+                        wearCount: item.wearCount || 0,
+                        favorite: item.favorite || false,
+                        style: item.style || [],
+                        season: item.season || ['all'],
+                        occasion: item.occasion || [],
+                        lastWorn: item.lastWorn,
+                        userId: user?.uid || '',
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                      });
+                    }
+                    console.log(`✅ ${items.length} items added optimistically to wardrobe`);
+                  } catch (error) {
+                    console.error('❌ Failed to add items optimistically:', error);
+                    // Fallback to refetch if optimistic update fails
+                    refetch();
+                  }
                 }}
                 onError={(message) => {
                   console.error('Batch upload error:', message);
