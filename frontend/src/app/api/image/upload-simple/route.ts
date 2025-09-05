@@ -30,9 +30,14 @@ function initAdmin() {
 
 export async function POST(request: Request) {
   try {
+    console.log('🚀 Starting Firebase Storage upload...');
+    
     // Initialize Firebase Admin
     const app = initAdmin();
+    console.log('✅ Firebase Admin initialized');
+    
     const bucket = getStorage().bucket();
+    console.log('✅ Firebase Storage bucket initialized:', bucket.name);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -48,15 +53,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No user ID provided' }, { status: 400 });
     }
 
+    console.log('📁 File details:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+
     // Create a reference to the file
     const ext = file.name?.split('.').pop() || 'jpg';
     const fileName = `${uuidv4()}.${ext}`;
     const fileRef = bucket.file(`wardrobe/${userId}/${fileName}`);
+    
+    console.log('📂 File reference created:', fileRef.name);
 
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
+    console.log('📦 Buffer created, size:', buffer.length);
 
     // Upload the file
+    console.log('⬆️ Starting file upload...');
     await fileRef.save(buffer, {
       metadata: {
         contentType: file.type || 'image/jpeg',
@@ -69,9 +84,13 @@ export async function POST(request: Request) {
       },
       resumable: false,
     });
+    
+    console.log('✅ File uploaded successfully');
 
     // Get the download URL
     const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${uuidv4()}`;
+    
+    console.log('🔗 Download URL generated:', downloadURL);
 
     return NextResponse.json({
       success: true,
@@ -83,7 +102,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Image upload error:', error);
+    console.error('❌ Image upload error:', error);
     return NextResponse.json(
       { error: 'Upload failed', details: String(error) },
       { status: 500 }
