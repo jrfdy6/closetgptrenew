@@ -182,6 +182,24 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 
+# Add a debug endpoint to show the exact error
+@app.get("/debug-image-import")
+async def debug_image_import():
+    try:
+        from src.routes.image_processing import router as image_router
+        return {
+            "status": "success",
+            "message": "image_processing router imported successfully",
+            "routes": [{"path": route.path, "methods": list(route.methods)} for route in image_router.routes]
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 # ---------------- STARTUP EVENTS ----------------
 @app.on_event("startup")
 async def startup_event():
