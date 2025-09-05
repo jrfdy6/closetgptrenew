@@ -169,36 +169,7 @@ print("🔍 DEBUG: Router loading process completed successfully!")
 print("🔍 DEBUG: Router loading section completed!")
 print("🔍 DEBUG: About to start startup events section...")
 
-# Test image_processing router import specifically
-print("🔍 DEBUG: Testing image_processing router import...")
-try:
-    from src.routes.image_processing import router as image_router
-    print(f"✅ image_processing router imported successfully")
-    print(f"🔍 DEBUG: image_processing router has {len(image_router.routes)} routes")
-    for route in image_router.routes:
-        print(f"🔍 DEBUG: image_processing route: {route.path} -> {route.methods}")
-except Exception as e:
-    print(f"❌ image_processing router import failed: {e}")
-    import traceback
-    traceback.print_exc()
-
-# Add a debug endpoint to show the exact error
-@app.get("/debug-image-import")
-async def debug_image_import():
-    try:
-        from src.routes.image_processing import router as image_router
-        return {
-            "status": "success",
-            "message": "image_processing router imported successfully",
-            "routes": [{"path": route.path, "methods": list(route.methods)} for route in image_router.routes]
-        }
-    except Exception as e:
-        import traceback
-        return {
-            "status": "error",
-            "message": str(e),
-            "traceback": traceback.format_exc()
-        }
+# Image processing router is now working with optional imports
 
 # ---------------- STARTUP EVENTS ----------------
 @app.on_event("startup")
