@@ -217,11 +217,21 @@ export async function POST(request: Request) {
     
     console.log('🔍 DEBUG: Backend response status:', response.status);
     console.log('🔍 DEBUG: Backend response ok:', response.ok);
+    console.log('🔍 DEBUG: Backend response headers:', Object.fromEntries(response.headers.entries()));
     
     if (!response.ok) {
       const errorText = await response.text();
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
       console.error('🔍 DEBUG: Backend error response body:', errorText);
+      console.error('🔍 DEBUG: Request that failed:', {
+        url: `${backendUrl}/api/wardrobe/add`,
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
       // Fallback to mock response if backend is not available
       return NextResponse.json({
         success: true,
