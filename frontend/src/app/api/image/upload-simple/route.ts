@@ -1,24 +1,32 @@
 import { NextResponse } from 'next/server';
-import { initializeApp } from 'firebase/app';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getApps, initializeApp, cert } from 'firebase-admin/app';
+import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ''
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
+// Initialize Firebase Admin SDK
+function initAdmin() {
+  if (!getApps().length) {
+    // Use the same project ID from the client config
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    
+    if (!projectId) {
+      throw new Error('NEXT_PUBLIC_FIREBASE_PROJECT_ID not set');
+    }
+    
+    // Initialize with minimal config - this will use default credentials
+    initializeApp({
+      projectId: projectId,
+      storageBucket: storageBucket || `${projectId}.appspot.com`,
+    });
+  }
+}
 
 export async function POST(request: Request) {
   try {
+    // Initialize Firebase Admin
+    initAdmin();
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const userId = formData.get('userId') as string;
@@ -33,21 +41,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No user ID provided' }, { status: 400 });
     }
 
-    // Create a reference to the file
+    // Create a reference to the file using Admin SDK
     const ext = file.name?.split('.').pop() || 'jpg';
     const fileName = `${uuidv4()}.${ext}`;
-    const storageRef = ref(storage, `wardrobe/${userId}/${fileName}`);
+    const bucket = getStorage().bucket();
+    const fileRef = bucket.file(`wardrobe/${userId}/${fileName}`);
 
     // Convert file to buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Upload the file
-    const snapshot = await uploadBytes(storageRef, buffer, {
-      contentType: file.type || 'image/jpeg',
+    await fileRef.save(buffer, {
+      metadata: {
+        contentType: file.type || 'image/jpeg',
+        metadata: { firebaseStorageDownloadTokens: uuidv4() },
+      },
+      resumable: false,
     });
 
     // Get the download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
+    const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileRef.name)}?alt=media&token=${uuidv4()}`;
 
     return NextResponse.json({
       success: true,
