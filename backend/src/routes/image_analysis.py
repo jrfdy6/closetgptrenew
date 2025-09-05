@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from openai import OpenAI
 import os
 import logging
+from datetime import datetime
 from dotenv import load_dotenv
 import requests
 from io import BytesIO
@@ -217,7 +218,7 @@ async def analyze_single_image(
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
             logger.info(f"🔍 DEBUG: AI analysis completed: {analysis}")
             
-            # Log analytics event with simplified metadata
+            # Log analytics event with full analysis data (now Firestore-safe)
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
@@ -227,7 +228,9 @@ async def analyze_single_image(
                     "file_size": len(response.content),
                     "has_clothing_detected": bool(analysis.get("analysis", {}).get("type")),
                     "confidence_score": analysis.get("metadata", {}).get("confidence", 0),
-                    "analysis_method": analysis.get("metadata", {}).get("analysis_method", "unknown")
+                    "analysis_method": analysis.get("metadata", {}).get("analysis_method", "unknown"),
+                    "clothing_item": analysis,  # Store the full AI analysis result
+                    "analysis_timestamp": datetime.utcnow().isoformat()
                 }
             )
             
