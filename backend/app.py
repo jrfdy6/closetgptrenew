@@ -717,7 +717,25 @@ async def test_wardrobe_batch_post(items_data: list):
                 # Create item ID
                 item_id = str(uuid.uuid4())
                 
-                # Prepare item data
+                # Store the full image data separately in Firestore and get a reference ID
+                image_ref_id = None
+                if item_data.get("imageUrl"):
+                    try:
+                        # Store image data in a separate collection
+                        image_ref_id = str(uuid.uuid4())
+                        image_doc = {
+                            "id": image_ref_id,
+                            "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+                            "image_data": item_data["imageUrl"],  # Full base64 data
+                            "created_at": int(time.time())
+                        }
+                        db.collection('wardrobe_images').document(image_ref_id).set(image_doc)
+                        print(f"✅ DEBUG: Image stored separately with ID: {image_ref_id}")
+                    except Exception as e:
+                        print(f"❌ DEBUG: Failed to store image separately: {e}")
+                        image_ref_id = None
+                
+                # Prepare item data (without base64 image data)
                 wardrobe_item = {
                     "id": item_id,
                     "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Hardcoded for now
@@ -727,7 +745,8 @@ async def test_wardrobe_batch_post(items_data: list):
                     "style": item_data.get("style", []),
                     "occasion": item_data.get("occasion", []),
                     "season": item_data.get("season", ["all"]),
-                    "imageUrl": item_data.get("imageUrl", ""),
+                    "imageRefId": image_ref_id,  # Reference to image data instead of base64
+                    "imageUrl": "",  # Empty to avoid storing base64 data
                     "dominantColors": [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
                     "matchingColors": [],
                     "tags": item_data.get("tags", []),

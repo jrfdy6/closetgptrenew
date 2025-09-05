@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from openai import OpenAI
 import os
 import logging
+import uuid
 from datetime import datetime
 from dotenv import load_dotenv
 import requests
@@ -218,18 +219,39 @@ async def analyze_single_image(
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
             logger.info(f"🔍 DEBUG: AI analysis completed: {analysis}")
             
-            # Log analytics event with full analysis data (now Firestore-safe)
+            # Store the full AI analysis directly in Firestore as a separate document
+            analysis_id = str(uuid.uuid4())
+            analysis_doc = {
+                "id": analysis_id,
+                "user_id": current_user_id,
+                "analysis_data": analysis,  # Full AI analysis result
+                "image_url_length": len(image_url),
+                "file_size": len(response.content),
+                "analysis_timestamp": datetime.utcnow().isoformat(),
+                "created_at": datetime.utcnow().isoformat()
+            }
+            
+            # Save analysis to Firestore
+            try:
+                from firebase_admin import firestore
+                db = firestore.client()
+                db.collection('ai_analyses').document(analysis_id).set(analysis_doc)
+                logger.info(f"✅ AI analysis saved to Firestore with ID: {analysis_id}")
+            except Exception as e:
+                logger.error(f"❌ Failed to save AI analysis to Firestore: {e}")
+            
+            # Log analytics event with only basic metadata and analysis ID (no base64 data)
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
                     "analysis_type": "enhanced",
+                    "analysis_id": analysis_id,  # Reference to the full analysis in Firestore
                     "image_url_length": len(image_url),
                     "file_size": len(response.content),
                     "has_clothing_detected": bool(analysis.get("analysis", {}).get("type")),
                     "confidence_score": analysis.get("metadata", {}).get("confidence", 0),
                     "analysis_method": analysis.get("metadata", {}).get("analysis_method", "unknown"),
-                    "clothing_item": analysis,  # Store the full AI analysis result
                     "analysis_timestamp": datetime.utcnow().isoformat()
                 }
             )
