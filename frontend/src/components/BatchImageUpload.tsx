@@ -57,12 +57,9 @@ const uploadImageToFirebaseStorage = async (file: File, userId: string, user: an
     formData.append('category', 'clothing');
     formData.append('name', file.name || 'uploaded-item');
 
-    // Upload to Firebase Storage via our API route
-    const response = await fetch('/api/image/upload-direct', {
+    // Upload to Firebase Storage via our simple API route
+    const response = await fetch('/api/image/upload-simple', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${await user?.getIdToken()}`,
-      },
       body: formData,
     });
 
@@ -204,10 +201,10 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               season: result.analysis.season
             });
             
-            // Temporarily use base64 until Firebase Storage is configured
-            console.log(`📤 Converting image ${i + 1} to base64...`);
-            const imageUrl = await fileToBase64(item.file);
-            console.log(`✅ Image converted to base64: ${imageUrl.substring(0, 50)}...`);
+            // Upload image to Firebase Storage
+            console.log(`📤 Uploading image ${i + 1} to Firebase Storage...`);
+            const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
+            console.log(`✅ Image uploaded to Firebase Storage: ${imageUrl}`);
 
             const clothingItem = {
               id: `item-${Date.now()}-${i}`,
