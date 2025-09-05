@@ -73,16 +73,37 @@ async def upload_image(
 
         # Upload to Firebase Storage with download token
         if not FIREBASE_AVAILABLE:
+            logger.error("❌ Firebase Storage not available")
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
                 detail="Firebase Storage not available"
             )
         
-        bucket = storage.bucket()
-        blob = bucket.blob(filename)
-        token = str(uuid.uuid4())
-        blob.metadata = {"firebaseStorageDownloadTokens": token}
-        blob.upload_from_string(contents, content_type=file.content_type)
+        try:
+            logger.info(f"🔍 Attempting to get Firebase Storage bucket...")
+            bucket = storage.bucket()
+            logger.info(f"✅ Got bucket: {bucket.name}")
+            
+            blob = bucket.blob(filename)
+            logger.info(f"🔍 Created blob for filename: {filename}")
+            
+            token = str(uuid.uuid4())
+            blob.metadata = {"firebaseStorageDownloadTokens": token}
+            logger.info(f"🔍 Set metadata with token: {token}")
+            
+            logger.info(f"🔍 Uploading {len(contents)} bytes to Firebase Storage...")
+            blob.upload_from_string(contents, content_type=file.content_type)
+            logger.info(f"✅ Successfully uploaded to Firebase Storage")
+            
+        except Exception as firebase_error:
+            logger.error(f"❌ Firebase Storage upload error: {firebase_error}")
+            logger.error(f"❌ Error type: {type(firebase_error).__name__}")
+            import traceback
+            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail=f"Firebase Storage upload failed: {str(firebase_error)}"
+            )
 
         download_url = (
             f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/"

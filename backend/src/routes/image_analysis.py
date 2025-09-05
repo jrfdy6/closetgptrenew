@@ -192,9 +192,11 @@ async def analyze_single_image(
     try:
         image_url = image.get("url")
         if not image_url:
+            logger.error("❌ No image URL provided in request")
             raise HTTPException(status_code=400, detail="Image URL is required")
         
-        logger.info(f"Processing image URL: {image_url[:100]}...")
+        logger.info(f"🔍 Processing image URL: {image_url[:100]}...")
+        logger.info(f"🔍 Image URL type: {'data URL' if image_url.startswith('data:') else 'regular URL'}")
         
         # Handle both data URLs and regular URLs
         if image_url.startswith('data:'):
@@ -226,7 +228,9 @@ async def analyze_single_image(
         
         try:
             # Use enhanced analysis (GPT-4 + CLIP)
+            logger.info(f"🔍 Starting AI analysis for image at: {temp_path}")
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
+            logger.info(f"✅ AI analysis completed successfully")
             
             # Log analytics event
             analytics_event = AnalyticsEvent(
@@ -248,6 +252,11 @@ async def analyze_single_image(
             os.unlink(temp_path)
             
     except Exception as e:
+        logger.error(f"❌ Error in analyze_single_image: {str(e)}")
+        logger.error(f"❌ Error type: {type(e).__name__}")
+        import traceback
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        
         # Log error analytics event
         analytics_event = AnalyticsEvent(
             user_id=current_user_id,
