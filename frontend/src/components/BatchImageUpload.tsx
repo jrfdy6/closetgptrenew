@@ -197,6 +197,15 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
             try {
               console.log(`💾 Saving item ${i + 1} to database...`);
               console.log('🔍 DEBUG: Clothing item being saved:', clothingItem);
+              console.log('🔍 DEBUG: About to call /api/wardrobe with:', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${await user.getIdToken()}`,
+                },
+                body: JSON.stringify(clothingItem)
+              });
+              
               const saveResponse = await fetch('/api/wardrobe', {
                 method: 'POST',
                 headers: {
@@ -205,6 +214,9 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
                 },
                 body: JSON.stringify(clothingItem),
               });
+              
+              console.log('🔍 DEBUG: Save response status:', saveResponse.status);
+              console.log('🔍 DEBUG: Save response ok:', saveResponse.ok);
 
               if (!saveResponse.ok) {
                 throw new Error(`Failed to save item: ${saveResponse.statusText}`);
