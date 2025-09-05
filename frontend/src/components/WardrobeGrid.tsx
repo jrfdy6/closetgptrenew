@@ -61,36 +61,29 @@ export default function WardrobeGrid({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  // Debug logging for component props
-  console.log(`🔍 [WardrobeGrid] Component rendered with:`, {
-    itemsCount: items.length,
-    loading,
-    showActions,
-    hasOnDeleteItem: !!onDeleteItem,
-    hasOnToggleFavorite: !!onToggleFavorite
-  });
+  // Debug logging for component props (disabled to reduce noise)
+  // console.log(`🔍 [WardrobeGrid] Component rendered with:`, {
+  //   itemsCount: items.length,
+  //   loading,
+  //   showActions,
+  //   hasOnDeleteItem: !!onDeleteItem,
+  //   hasOnToggleFavorite: !!onToggleFavorite
+  // });
 
   const handleDeleteClick = (itemId: string) => {
-    console.log(`🔍 [WardrobeGrid] Delete button clicked for item ${itemId}`);
     setItemToDelete(itemId);
     setDeleteDialogOpen(true);
-    console.log(`🔍 [WardrobeGrid] Delete dialog opened for item ${itemId}`);
   };
 
   const handleDeleteConfirm = async () => {
-    console.log(`🔍 [WardrobeGrid] Delete confirm clicked. itemToDelete: ${itemToDelete}, onDeleteItem: ${!!onDeleteItem}`);
     if (itemToDelete && onDeleteItem) {
       try {
-        console.log(`🔍 [WardrobeGrid] Confirmed delete for item ${itemToDelete}`);
         await onDeleteItem(itemToDelete);
-        console.log(`✅ [WardrobeGrid] Delete operation completed for item ${itemToDelete}`);
       } catch (error) {
         console.error(`❌ [WardrobeGrid] Delete operation failed for item ${itemToDelete}:`, error);
         // Keep dialog open on error so user can try again
         return;
       }
-    } else {
-      console.error(`❌ [WardrobeGrid] Missing itemToDelete (${itemToDelete}) or onDeleteItem (${!!onDeleteItem})`);
     }
     setDeleteDialogOpen(false);
     setItemToDelete(null);
@@ -184,7 +177,6 @@ export default function WardrobeGrid({
             {/* Overlay with actions */}
             {showActions && (
               <div className={`absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2`}>
-                {console.log(`🔍 [WardrobeGrid] Rendering actions overlay for item ${item.id}`)}
                 <Button
                   size="sm"
                   variant="secondary"
