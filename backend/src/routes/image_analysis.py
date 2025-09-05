@@ -252,23 +252,26 @@ async def analyze_single_image(
             os.unlink(temp_path)
             
     except Exception as e:
-        logger.error(f"❌ Error in analyze_single_image: {str(e)}")
-        logger.error(f"❌ Error type: {type(e).__name__}")
+        print(f"❌ Error in analyze_single_image: {str(e)}")
+        print(f"❌ Error type: {type(e).__name__}")
         import traceback
-        logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        print(f"❌ Traceback: {traceback.format_exc()}")
         
-        # Log error analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
-            event_type="single_image_analysis_error",
-            metadata={
-                "analysis_type": "enhanced",
-                "error": str(e),
-                "error_type": type(e).__name__,
-                "image_url": image.get("url", "") if 'image' in locals() else ""
-            }
-        )
-        log_analytics_event(analytics_event)
+        # Log error analytics event (simplified)
+        try:
+            analytics_event = AnalyticsEvent(
+                user_id=current_user_id,
+                event_type="single_image_analysis_error",
+                metadata={
+                    "analysis_type": "enhanced",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "image_url": image.get("url", "") if 'image' in locals() else ""
+                }
+            )
+            log_analytics_event(analytics_event)
+        except Exception as analytics_error:
+            print(f"⚠️ Analytics logging failed: {analytics_error}")
         
         raise HTTPException(status_code=500, detail=str(e))
 

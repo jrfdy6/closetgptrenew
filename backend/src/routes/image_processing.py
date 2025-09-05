@@ -80,26 +80,26 @@ async def upload_image(
             )
         
         try:
-            logger.info(f"🔍 Attempting to get Firebase Storage bucket...")
+            print(f"🔍 Attempting to get Firebase Storage bucket...")
             bucket = storage.bucket()
-            logger.info(f"✅ Got bucket: {bucket.name}")
+            print(f"✅ Got bucket: {bucket.name}")
             
             blob = bucket.blob(filename)
-            logger.info(f"🔍 Created blob for filename: {filename}")
+            print(f"🔍 Created blob for filename: {filename}")
             
             token = str(uuid.uuid4())
             blob.metadata = {"firebaseStorageDownloadTokens": token}
-            logger.info(f"🔍 Set metadata with token: {token}")
+            print(f"🔍 Set metadata with token: {token}")
             
-            logger.info(f"🔍 Uploading {len(contents)} bytes to Firebase Storage...")
+            print(f"🔍 Uploading {len(contents)} bytes to Firebase Storage...")
             blob.upload_from_string(contents, content_type=file.content_type)
-            logger.info(f"✅ Successfully uploaded to Firebase Storage")
+            print(f"✅ Successfully uploaded to Firebase Storage")
             
         except Exception as firebase_error:
-            logger.error(f"❌ Firebase Storage upload error: {firebase_error}")
-            logger.error(f"❌ Error type: {type(firebase_error).__name__}")
+            print(f"❌ Firebase Storage upload error: {firebase_error}")
+            print(f"❌ Error type: {type(firebase_error).__name__}")
             import traceback
-            logger.error(f"❌ Traceback: {traceback.format_exc()}")
+            print(f"❌ Traceback: {traceback.format_exc()}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
                 detail=f"Firebase Storage upload failed: {str(firebase_error)}"
