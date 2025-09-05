@@ -61,11 +61,15 @@ export default function WardrobeGrid({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  // Filter out items with broken image URLs (truncated base64)
+  // Filter out items with broken image URLs (truncated base64 or broken placeholder)
   const validItems = items.filter(item => {
     if (!item.imageUrl) return false;
     // Check for truncated base64 URLs
     if (item.imageUrl.startsWith('data:image/') && item.imageUrl.length < 100) {
+      return false;
+    }
+    // Check for broken placeholder URLs
+    if (item.imageUrl.includes('via.placeholder.com')) {
       return false;
     }
     return true;
