@@ -120,8 +120,8 @@ ROUTERS = [
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
     ("src.routes.image_processing", "/api/image"),  # Image processing router - mounted at /api/image
+    ("src.routes.image_analysis", ""),   # Image analysis router - re-enabled
     # ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
-    # ("src.routes.image_analysis", ""),   # Image analysis router - re-enabled
     # ("src.routes.weather", ""),          # Router already has /api/weather prefix
     # ("src.routes.forgotten_gems", "/api/wardrobe"),  # Forgotten gems router - CONFLICTING with wardrobe_simple
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
