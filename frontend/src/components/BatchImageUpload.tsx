@@ -47,6 +47,40 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+// Helper function to upload image to Firebase Storage
+const uploadImageToFirebaseStorage = async (file: File, userId: string, user: any): Promise<string> => {
+  try {
+    // Create FormData for the upload
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+    formData.append('category', 'clothing');
+    formData.append('name', file.name || 'uploaded-item');
+
+    // Upload to Firebase Storage via our API route
+    const response = await fetch('/api/image/upload-direct', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${await user?.getIdToken()}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Upload failed');
+    }
+
+    const result = await response.json();
+    return result.image_url;
+  } catch (error) {
+    console.error('❌ Firebase Storage upload failed:', error);
+    // Fallback to base64 if Firebase Storage fails
+    console.log('🔄 Falling back to base64...');
+    return await fileToBase64(file);
+  }
+};
+
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
@@ -170,12 +204,17 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               season: result.analysis.season
             });
             
+            // Upload image to Firebase Storage first
+            console.log(`📤 Uploading image ${i + 1} to Firebase Storage...`);
+            const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
+            console.log(`✅ Image uploaded to Firebase Storage: ${imageUrl}`);
+
             const clothingItem = {
               id: `item-${Date.now()}-${i}`,
               name: result.analysis.name || result.analysis.clothing_type || 'Analyzed Item',
               type: result.analysis.type || result.analysis.clothing_type || 'unknown',
               color: result.analysis.color || result.analysis.primary_color || 'unknown',
-              imageUrl: await fileToBase64(item.file), // Use base64 as image URL for now
+              imageUrl: imageUrl, // Use Firebase Storage URL
               userId: user.uid,
               createdAt: new Date().toISOString(),
               analysis: result.analysis,
