@@ -217,18 +217,24 @@ async def analyze_single_image(
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
             logger.info(f"🔍 DEBUG: AI analysis completed: {analysis}")
             
-            # Log analytics event
+            # Log analytics event with simplified metadata
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
                     "analysis_type": "enhanced",
-                    "image_url": image_url,
+                    "image_url_length": len(image_url),
                     "file_size": len(response.content),
-                    "has_clothing_detected": bool(analysis.get("clothing_type")),
-                    "confidence_score": analysis.get("confidence_score", 0)
+                    "has_clothing_detected": bool(analysis.get("analysis", {}).get("type")),
+                    "confidence_score": analysis.get("metadata", {}).get("confidence", 0),
+                    "analysis_method": analysis.get("metadata", {}).get("analysis_method", "unknown")
                 }
             )
+            
+            # Debug: Print the analytics event before storing
+            logger.info(f"🔍 DEBUG: Analytics event dict: {analytics_event.dict()}")
+            logger.info(f"🔍 DEBUG: Metadata keys: {list(analytics_event.metadata.keys())}")
+            
             log_analytics_event(analytics_event)
             
             return {

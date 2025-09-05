@@ -19,12 +19,33 @@ def log_analytics_event(event: AnalyticsEvent) -> str:
             logger.warning("❌ Firestore database not available, skipping analytics logging")
             return "no-db"
         
+        # Convert to dict and clean up any problematic nested objects
+        event_dict = event.dict()
+        
+        # Ensure metadata is a simple dict without nested objects
+        if "metadata" in event_dict and event_dict["metadata"]:
+            cleaned_metadata = {}
+            for key, value in event_dict["metadata"].items():
+                # Only store simple types that Firestore can handle
+                if isinstance(value, (str, int, float, bool, list, dict)):
+                    # For dicts, ensure they're simple (no nested dicts)
+                    if isinstance(value, dict):
+                        cleaned_metadata[key] = {k: v for k, v in value.items() 
+                                               if isinstance(v, (str, int, float, bool))}
+                    else:
+                        cleaned_metadata[key] = value
+            event_dict["metadata"] = cleaned_metadata
+        
+        logger.debug(f"🔍 DEBUG: Cleaned event dict: {event_dict}")
+        
         doc_ref = db.collection(ANALYTICS_COLLECTION).document()
-        doc_ref.set(event.dict())
+        doc_ref.set(event_dict)
         logger.debug(f"✅ Analytics event logged: {event.event_type}")
         return doc_ref.id
     except Exception as e:
         logger.error(f"❌ Failed to log analytics event: {e}")
+        import traceback
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
         # Do not raise - prevents crashing the main endpoint
         return "error"
 
