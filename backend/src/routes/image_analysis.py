@@ -61,11 +61,11 @@ def convert_to_jpeg(image_url: str) -> str:
                         )
                         image.save(temp_file.name, "JPEG")
                     except Exception as e:
-                        logger.warning(f"Failed to convert HEIC: {str(e)}")
+                        print(f"Failed to convert HEIC: {str(e)}")
                         # Fallback: save as is
                         temp_file.write(response.content)
                 else:
-                    logger.warning("HEIC image detected but pillow_heif not available - saving as is")
+                    print("HEIC image detected but pillow_heif not available - saving as is")
                     temp_file.write(response.content)
             else:
                 # For other formats, try to convert to JPEG
@@ -75,14 +75,14 @@ def convert_to_jpeg(image_url: str) -> str:
                         image = image.convert('RGB')
                     image.save(temp_file.name, "JPEG")
                 except Exception as e:
-                    logger.warning(f"Failed to convert image: {str(e)}")
+                    print(f"Failed to convert image: {str(e)}")
                     # Fallback: save as is
                     temp_file.write(response.content)
             
             return temp_file.name
             
     except Exception as e:
-        logger.error(f"Error converting image: {str(e)}")
+        print(f"Error converting image: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
 
 @router.post("/analyze")
@@ -126,7 +126,7 @@ async def analyze_image(
         processed_image = process_image_for_analysis(temp_file_path)
         
         # Use enhanced analysis (GPT-4 + CLIP)
-        logger.info("Starting enhanced analysis with GPT-4 Vision and CLIP")
+        print("Starting enhanced analysis with GPT-4 Vision and CLIP")
         analysis = await simple_analyzer.analyze_clothing_item(processed_image)
         
         # Log analytics event
@@ -178,7 +178,7 @@ async def analyze_image(
         )
         log_analytics_event(analytics_event)
         
-        logger.error(f"Enhanced analysis failed: {str(e)}")
+        print(f"Enhanced analysis failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze-image")
@@ -192,16 +192,16 @@ async def analyze_single_image(
     try:
         image_url = image.get("url")
         if not image_url:
-            logger.error("❌ No image URL provided in request")
+            print("❌ No image URL provided in request")
             raise HTTPException(status_code=400, detail="Image URL is required")
         
-        logger.info(f"🔍 Processing image URL: {image_url[:100]}...")
-        logger.info(f"🔍 Image URL type: {'data URL' if image_url.startswith('data:') else 'regular URL'}")
+        print(f"🔍 Processing image URL: {image_url[:100]}...")
+        print(f"🔍 Image URL type: {'data URL' if image_url.startswith('data:') else 'regular URL'}")
         
         # Handle both data URLs and regular URLs
         if image_url.startswith('data:'):
             # Handle base64 data URL
-            logger.info("Processing base64 data URL")
+            print("Processing base64 data URL")
             import base64
             
             # Extract the base64 data from the data URL
@@ -213,24 +213,24 @@ async def analyze_single_image(
                 temp_path = temp_file.name
         else:
             # Handle regular URL (Firebase Storage, S3, etc.)
-            logger.info(f"Processing regular URL: {image_url}")
+            print(f"Processing regular URL: {image_url}")
             try:
                 response = requests.get(image_url, timeout=30)
                 response.raise_for_status()
-                logger.info(f"Successfully downloaded image from URL, size: {len(response.content)} bytes")
+                print(f"Successfully downloaded image from URL, size: {len(response.content)} bytes")
                 
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                     temp_file.write(response.content)
                     temp_path = temp_file.name
             except Exception as download_error:
-                logger.error(f"Failed to download image from URL: {str(download_error)}")
+                print(f"Failed to download image from URL: {str(download_error)}")
                 raise HTTPException(status_code=400, detail=f"Failed to download image: {str(download_error)}")
         
         try:
             # Use enhanced analysis (GPT-4 + CLIP)
-            logger.info(f"🔍 Starting AI analysis for image at: {temp_path}")
+            print(f"🔍 Starting AI analysis for image at: {temp_path}")
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
-            logger.info(f"✅ AI analysis completed successfully")
+            print(f"✅ AI analysis completed successfully")
             
             # Log analytics event
             analytics_event = AnalyticsEvent(
