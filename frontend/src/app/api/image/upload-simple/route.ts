@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     // For now, return a placeholder URL
     // TODO: Implement proper Firebase Storage upload
-    const placeholderUrl = `https://via.placeholder.com/400x400/cccccc/666666?text=${encodeURIComponent(name)}`;
+    const placeholderUrl = `https://picsum.photos/400/400?random=${Date.now()}`;
     
     console.log('🔗 Placeholder URL generated:', placeholderUrl);
 
