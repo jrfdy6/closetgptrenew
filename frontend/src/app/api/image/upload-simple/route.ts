@@ -49,6 +49,12 @@ export async function POST(request: Request) {
     // Check if required environment variables are present
     if (!process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
       console.warn('⚠️ Firebase Admin SDK environment variables not set, falling back to placeholder URLs');
+      console.log('Available env vars:', {
+        hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        hasStorageBucket: !!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+        hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL
+      });
       
       // Fall back to placeholder URLs if Firebase Admin SDK is not configured
       const placeholderUrl = `https://picsum.photos/400/400?random=${Date.now()}`;
