@@ -49,7 +49,7 @@ export class WardrobeService {
   static async getWardrobeItems(): Promise<ClothingItem[]> {
     try {
       console.log('🔍 DEBUG: Getting wardrobe items...'); // Trigger Vercel deployment
-      // Trigger Vercel deployment - Firebase auth fix
+      // Trigger Vercel deployment - Firebase auth fix - Force rebuild
       
       // Use Next.js API route as proxy to avoid Railway HTTPS redirect issues
       const fullUrl = '/api/wardrobe';
