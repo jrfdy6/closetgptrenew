@@ -221,7 +221,8 @@ export async function POST(request: Request) {
     
     // Get the response text first to see what we're actually getting
     const responseText = await response.text();
-    console.log('🔍 DEBUG: Backend response text:', responseText);
+    console.log('🔍 DEBUG: Backend response text (v2):', responseText);
+    console.log('🔍 DEBUG: Response text length:', responseText.length);
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
