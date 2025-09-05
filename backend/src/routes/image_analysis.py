@@ -194,13 +194,30 @@ async def analyze_single_image(
         if not image_url:
             raise HTTPException(status_code=400, detail="Image URL is required")
         
-        # Download image to temporary file
-        response = requests.get(image_url)
-        response.raise_for_status()
+        logger.info(f"Processing image URL: {image_url[:100]}...")
         
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-            temp_file.write(response.content)
-            temp_path = temp_file.name
+        # Handle both data URLs and regular URLs
+        if image_url.startswith('data:'):
+            # Handle base64 data URL
+            logger.info("Processing base64 data URL")
+            import base64
+            
+            # Extract the base64 data from the data URL
+            header, data = image_url.split(',', 1)
+            image_data = base64.b64decode(data)
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                temp_file.write(image_data)
+                temp_path = temp_file.name
+        else:
+            # Handle regular URL
+            logger.info("Processing regular URL")
+            response = requests.get(image_url)
+            response.raise_for_status()
+            
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                temp_file.write(response.content)
+                temp_path = temp_file.name
         
         try:
             # Use enhanced analysis (GPT-4 + CLIP)
