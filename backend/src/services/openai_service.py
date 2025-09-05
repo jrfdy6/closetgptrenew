@@ -83,24 +83,29 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
         }
 
         # Call OpenAI API for image analysis with structured output
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            response_format={"type": "json_schema", "json_schema": {"name": "clothing_analysis", "schema": json_schema}},
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a professional fashion metadata extractor. Analyze clothing items in images and provide detailed, accurate information. Be specific and detailed in your analysis. Always respond with valid JSON matching the provided schema."
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": base64_image}
-                        },
-                        {
-                            "type": "text",
-                            "text": """Analyze this clothing item image and provide detailed metadata. Be specific about:
+        try:
+            logger.info("Calling OpenAI API with image analysis request...")
+            logger.info(f"Image size: {len(base64_image)} characters")
+            logger.info(f"API Key present: {bool(os.getenv('OPENAI_API_KEY'))}")
+            
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                response_format={"type": "json_schema", "json_schema": {"name": "clothing_analysis", "schema": json_schema}},
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a professional fashion metadata extractor. Analyze clothing items in images and provide detailed, accurate information. Be specific and detailed in your analysis. Always respond with valid JSON matching the provided schema."
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": base64_image}
+                            },
+                            {
+                                "type": "text",
+                                "text": """Analyze this clothing item image and provide detailed metadata. Be specific about:
 - The exact type and subtype of clothing
 - Accurate color analysis with proper hex codes
 - Detailed style characteristics (not just "casual")
@@ -109,13 +114,18 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
 - Brand if visible
 
 Provide comprehensive, detailed analysis that would be useful for wardrobe management and outfit planning."""
-                        }
-                    ]
-                }
-            ],
-            max_tokens=2000,
-            temperature=0.1
-        )
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=2000,
+                temperature=0.1
+            )
+            logger.info("OpenAI API call completed successfully")
+        except Exception as api_error:
+            logger.error(f"OpenAI API call failed: {str(api_error)}")
+            logger.error(f"API Error type: {type(api_error).__name__}")
+            raise ValueError(f"OpenAI API call failed: {str(api_error)}")
         
         # Extract the response content
         content = response.choices[0].message.content
