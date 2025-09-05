@@ -184,16 +184,16 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         ));
 
         try {
-          // Create FormData for the AI-powered upload
-          const formData = new FormData();
-          formData.append('file', item.file);
-          formData.append('userId', user.uid);
+          console.log(`🚀 Starting batch upload of ${totalItems} items`);
+          console.log(`📤 Uploading item ${i + 1}/${totalItems}: ${item.file.name}`);
 
-          console.log(`🚀 Uploading item ${i + 1}/${totalItems} with AI analysis`);
-          
-          // Call backend directly for AI analysis
+          // 1️⃣ Upload file to Firebase Storage first
+          const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
+          console.log(`✅ Uploaded to storage: ${imageUrl}`);
+
+          // 2️⃣ Send URL to backend for analysis
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-          const payload = { image: { url: await compressImageForAnalysis(item.file) } };
+          const payload = { image: { url: imageUrl } };
           
           console.log("POSTing to backend:", backendUrl + "/analyze-image");
           console.log("Payload:", JSON.stringify(payload));

@@ -210,14 +210,19 @@ async def analyze_single_image(
                 temp_file.write(image_data)
                 temp_path = temp_file.name
         else:
-            # Handle regular URL
-            logger.info("Processing regular URL")
-            response = requests.get(image_url)
-            response.raise_for_status()
-            
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
-                temp_file.write(response.content)
-                temp_path = temp_file.name
+            # Handle regular URL (Firebase Storage, S3, etc.)
+            logger.info(f"Processing regular URL: {image_url}")
+            try:
+                response = requests.get(image_url, timeout=30)
+                response.raise_for_status()
+                logger.info(f"Successfully downloaded image from URL, size: {len(response.content)} bytes")
+                
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+                    temp_file.write(response.content)
+                    temp_path = temp_file.name
+            except Exception as download_error:
+                logger.error(f"Failed to download image from URL: {str(download_error)}")
+                raise HTTPException(status_code=400, detail=f"Failed to download image: {str(download_error)}")
         
         try:
             # Use enhanced analysis (GPT-4 + CLIP)
