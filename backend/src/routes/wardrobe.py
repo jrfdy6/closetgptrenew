@@ -382,6 +382,32 @@ async def add_wardrobe_item(
         # Create item ID
         item_id = str(uuid.uuid4())
         
+        # Extract AI analysis results if available
+        analysis = item_data.get("analysis", {})
+        metadata_analysis = analysis.get("metadata", {})
+        visual_attrs = metadata_analysis.get("visualAttributes", {})
+        
+        # Use AI analysis results or fallback to defaults
+        visual_attributes = {
+            "pattern": visual_attrs.get("pattern", "solid"),
+            "formalLevel": visual_attrs.get("formalLevel", "casual"),
+            "fit": visual_attrs.get("fit", "regular"),
+            "material": visual_attrs.get("material", "cotton"),
+            "fabricWeight": visual_attrs.get("fabricWeight", "medium"),
+            "sleeveLength": visual_attrs.get("sleeveLength", "unknown"),
+            "silhouette": visual_attrs.get("silhouette", "regular"),
+            "genderTarget": visual_attrs.get("genderTarget", "unisex")
+        }
+        
+        # Extract dominant colors from AI analysis if available
+        dominant_colors = analysis.get("dominantColors", [])
+        if not dominant_colors:
+            # Fallback to basic color analysis
+            dominant_colors = [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}]
+        
+        # Extract matching colors from AI analysis if available
+        matching_colors = analysis.get("matchingColors", [])
+        
         # Prepare item data
         wardrobe_item = {
             "id": item_id,
@@ -393,8 +419,8 @@ async def add_wardrobe_item(
             "occasion": item_data.get("occasion", []),
             "season": item_data.get("season", ["all"]),
             "imageUrl": item_data.get("imageUrl", ""),
-            "dominantColors": [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
-            "matchingColors": [],
+            "dominantColors": dominant_colors,
+            "matchingColors": matching_colors,
             "tags": item_data.get("tags", []),
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
@@ -404,20 +430,16 @@ async def add_wardrobe_item(
                 "styleTags": item_data.get("style", []),
                 "occasionTags": item_data.get("occasion", []),
                 "colorAnalysis": {
-                    "dominant": [item_data["color"]],
-                    "matching": []
+                    "dominant": [color.get("name", item_data["color"]) for color in dominant_colors],
+                    "matching": [color.get("name", "") for color in matching_colors]
                 },
-                "visualAttributes": {
-                    "pattern": "solid",
-                    "formalLevel": "casual",
-                    "fit": "regular",
-                    "material": "cotton",
-                    "fabricWeight": "medium"
-                },
+                "visualAttributes": visual_attributes,
                 "itemMetadata": {
                     "tags": item_data.get("tags", []),
                     "careInstructions": "Check care label"
-                }
+                },
+                # Store the full AI analysis for reference
+                "aiAnalysis": analysis if analysis else None
             }
         }
         

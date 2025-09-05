@@ -620,6 +620,32 @@ async def test_wardrobe_post(request: dict):
         if not isinstance(tags_array, list):
             tags_array = [tags_array] if tags_array else []
         
+        # Extract AI analysis results if available
+        analysis = request.get("analysis", {})
+        metadata_analysis = analysis.get("metadata", {})
+        visual_attrs = metadata_analysis.get("visualAttributes", {})
+        
+        # Use AI analysis results or fallback to defaults
+        visual_attributes = {
+            "pattern": visual_attrs.get("pattern", "solid"),
+            "formalLevel": visual_attrs.get("formalLevel", "casual"),
+            "fit": visual_attrs.get("fit", "regular"),
+            "material": visual_attrs.get("material", "cotton"),
+            "fabricWeight": visual_attrs.get("fabricWeight", "medium"),
+            "sleeveLength": visual_attrs.get("sleeveLength", "unknown"),
+            "silhouette": visual_attrs.get("silhouette", "regular"),
+            "genderTarget": visual_attrs.get("genderTarget", "unisex")
+        }
+        
+        # Extract dominant colors from AI analysis if available
+        dominant_colors = analysis.get("dominantColors", [])
+        if not dominant_colors:
+            # Fallback to basic color analysis
+            dominant_colors = [{"name": request["color"], "hex": "#000000", "rgb": [0, 0, 0]}]
+        
+        # Extract matching colors from AI analysis if available
+        matching_colors = analysis.get("matchingColors", [])
+        
         # Prepare item data
         wardrobe_item = {
             "id": item_id,
@@ -631,8 +657,8 @@ async def test_wardrobe_post(request: dict):
             "occasion": occasion_array,
             "season": season_array,
             "imageUrl": request.get("imageUrl", ""),
-            "dominantColors": [{"name": request["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
-            "matchingColors": [],
+            "dominantColors": dominant_colors,
+            "matchingColors": matching_colors,
             "tags": tags_array,
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
@@ -642,20 +668,16 @@ async def test_wardrobe_post(request: dict):
                 "styleTags": style_array,
                 "occasionTags": occasion_array,
                 "colorAnalysis": {
-                    "dominant": [request["color"]],
-                    "matching": []
+                    "dominant": [color.get("name", request["color"]) for color in dominant_colors],
+                    "matching": [color.get("name", "") for color in matching_colors]
                 },
-                "visualAttributes": {
-                    "pattern": "solid",
-                    "formalLevel": "casual",
-                    "fit": "regular",
-                    "material": "cotton",
-                    "fabricWeight": "medium"
-                },
+                "visualAttributes": visual_attributes,
                 "itemMetadata": {
                     "tags": tags_array,
                     "careInstructions": "Check care label"
-                }
+                },
+                # Store the full AI analysis for reference
+                "aiAnalysis": analysis if analysis else None
             },
             "favorite": False,
             "wearCount": 0,
