@@ -1,8 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, status
 from PIL import Image
 import io
-import firebase_admin
-from firebase_admin import storage
 import os
 from typing import Optional
 import uuid
@@ -15,6 +13,14 @@ try:
 except ImportError:
     REMBG_AVAILABLE = False
     print("⚠️ rembg not available - background removal disabled")
+
+try:
+    import firebase_admin
+    from firebase_admin import storage
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+    print("⚠️ Firebase Admin SDK not available")
 
 try:
     from ..config.firebase import firebase_admin  # Import Firebase configuration
@@ -66,6 +72,12 @@ async def upload_image(
         filename = f"wardrobe/{user_id}/{uuid.uuid4()}.{file_extension}"
 
         # Upload to Firebase Storage with download token
+        if not FIREBASE_AVAILABLE:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+                detail="Firebase Storage not available"
+            )
+        
         bucket = storage.bucket()
         blob = bucket.blob(filename)
         token = str(uuid.uuid4())
