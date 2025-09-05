@@ -35,7 +35,8 @@ async def upload_image(
 
         # Build filename
         file_extension = (file.filename or "").split('.')[-1] or 'jpg'
-        filename = f"wardrobe/{current_user.id}/{uuid.uuid4()}.{file_extension}"
+        user_id = current_user.id if current_user else "anonymous"
+        filename = f"wardrobe/{user_id}/{uuid.uuid4()}.{file_extension}"
 
         # Upload to Firebase Storage with download token
         bucket = storage.bucket()

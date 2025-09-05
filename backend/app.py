@@ -169,6 +169,19 @@ print("🔍 DEBUG: Router loading process completed successfully!")
 print("🔍 DEBUG: Router loading section completed!")
 print("🔍 DEBUG: About to start startup events section...")
 
+# Test image_processing router import specifically
+print("🔍 DEBUG: Testing image_processing router import...")
+try:
+    from src.routes.image_processing import router as image_router
+    print(f"✅ image_processing router imported successfully")
+    print(f"🔍 DEBUG: image_processing router has {len(image_router.routes)} routes")
+    for route in image_router.routes:
+        print(f"🔍 DEBUG: image_processing route: {route.path} -> {route.methods}")
+except Exception as e:
+    print(f"❌ image_processing router import failed: {e}")
+    import traceback
+    traceback.print_exc()
+
 # ---------------- STARTUP EVENTS ----------------
 @app.on_event("startup")
 async def startup_event():
