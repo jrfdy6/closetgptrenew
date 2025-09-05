@@ -61,6 +61,16 @@ export default function WardrobeGrid({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
+  // Filter out items with broken image URLs (truncated base64)
+  const validItems = items.filter(item => {
+    if (!item.imageUrl) return false;
+    // Check for truncated base64 URLs
+    if (item.imageUrl.startsWith('data:image/') && item.imageUrl.length < 100) {
+      return false;
+    }
+    return true;
+  });
+
   // Debug logging for component props (disabled to reduce noise)
   // console.log(`🔍 [WardrobeGrid] Component rendered with:`, {
   //   itemsCount: items.length,
@@ -148,9 +158,19 @@ export default function WardrobeGrid({
     );
   }
 
+  const filteredCount = items.length - validItems.length;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-      {items.map((item) => (
+    <div>
+      {filteredCount > 0 && (
+        <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            ⚠️ {filteredCount} item{filteredCount > 1 ? 's' : ''} with broken images hidden from display
+          </p>
+        </div>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {validItems.map((item) => (
         <Card
           key={item.id}
           className={`group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
@@ -168,8 +188,6 @@ export default function WardrobeGrid({
                 alt={item.name}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => {
-                  console.error('❌ Image failed to load for item:', item.id, 'imageUrl length:', item.imageUrl?.length);
-                  console.error('❌ Image URL preview:', item.imageUrl?.substring(0, 100) + '...');
                   const target = e.target as HTMLImageElement;
                   target.src = '/placeholder.jpg';
                 }}
@@ -311,6 +329,7 @@ export default function WardrobeGrid({
           </CardContent>
         </Card>
       ))}
+      </div>
       
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
