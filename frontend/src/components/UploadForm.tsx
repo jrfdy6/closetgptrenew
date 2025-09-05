@@ -40,6 +40,30 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+// Helper function to compress image for AI analysis
+const compressImageForAnalysis = (file: File, maxWidth: number = 800, quality: number = 0.8): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Calculate new dimensions
+      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+      resolve(compressedDataUrl);
+    };
+    
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 // Helper function to upload image to Firebase Storage
 const uploadImageToFirebaseStorage = async (file: File, userId: string, user: any): Promise<string> => {
   // Create FormData for the upload
@@ -284,7 +308,7 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
       
       // Call backend directly for AI analysis
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-      const payload = { image: { url: await fileToBase64(uploadedFile) } };
+      const payload = { image: { url: await compressImageForAnalysis(uploadedFile) } };
       
       console.log("POSTing to backend:", backendUrl + "/analyze-image");
       console.log("Payload:", JSON.stringify(payload));
