@@ -118,7 +118,7 @@ print("🔍 DEBUG: This print should appear before router loading...")
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
     ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
-    ("src.routes.image_processing_minimal", "/api/image"),  # Image processing router - mounted at /api/image
+    ("src.routes.image_processing", "/api/image"),  # Image processing router - mounted at /api/image
     ("src.routes.image_analysis", ""),   # Image analysis router - re-enabled
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
