@@ -283,25 +283,62 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
       console.log('✅ Analysis successful:', result);
 
       if (result.analysis) {
-        // Create a mock item from the analysis result
-        const mockItem = {
+        // Create a proper clothing item from the analysis result
+        const clothingItem = {
           id: `item-${Date.now()}`,
-          name: result.analysis.clothing_type || itemName || 'Analyzed Item',
-          type: result.analysis.clothing_type || itemType || 'unknown',
-          color: result.analysis.primary_color || itemColor || 'unknown',
+          name: result.analysis.name || result.analysis.clothing_type || itemName || 'Analyzed Item',
+          type: result.analysis.type || result.analysis.clothing_type || itemType || 'unknown',
+          color: result.analysis.color || result.analysis.primary_color || itemColor || 'unknown',
           imageUrl: await fileToBase64(uploadedFile), // Use base64 as image URL for now
-          analysis: result.analysis
+          userId: user.uid,
+          createdAt: new Date().toISOString(),
+          analysis: result.analysis,
+          style: result.analysis.style || [],
+          occasion: result.analysis.occasion || [],
+          season: result.analysis.season || ['all'],
+          material: result.analysis.material || 'unknown',
+          brand: result.analysis.brand || 'unknown',
+          size: result.analysis.size || 'unknown',
+          condition: result.analysis.condition || 'good',
+          price: result.analysis.price || null,
+          purchaseDate: result.analysis.purchaseDate || null,
+          tags: result.analysis.tags || [],
+          notes: result.analysis.notes || '',
+          favorite: false,
+          wearCount: 0,
+          lastWorn: null
         };
+
+        console.log('💾 Saving item to database...');
+        console.log('🔍 DEBUG: Clothing item being saved:', clothingItem);
+
+        // Save to database via the wardrobe API
+        const saveResponse = await fetch('/api/wardrobe', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${await user.getIdToken()}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(clothingItem),
+        });
+
+        if (!saveResponse.ok) {
+          const errorData = await saveResponse.json();
+          throw new Error(errorData.error || 'Failed to save item to database');
+        }
+
+        const saveResult = await saveResponse.json();
+        console.log('✅ Item saved to database:', saveResult);
         
         setUploadSuccess(true);
         toast({
-          title: "Analysis successful! ✨",
-          description: `${mockItem.name} has been analyzed with AI`,
+          title: "Item saved successfully! ✨",
+          description: `${clothingItem.name} has been analyzed and saved to your wardrobe`,
         });
 
         // Call callback if provided
         if (onUploadComplete) {
-          onUploadComplete(mockItem);
+          onUploadComplete(clothingItem);
         }
 
         // Reset form after a delay

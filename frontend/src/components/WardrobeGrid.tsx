@@ -168,8 +168,13 @@ export default function WardrobeGrid({
                 alt={item.name}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => {
+                  console.error('❌ Image failed to load for item:', item.id, 'imageUrl length:', item.imageUrl?.length);
+                  console.error('❌ Image URL preview:', item.imageUrl?.substring(0, 100) + '...');
                   const target = e.target as HTMLImageElement;
                   target.src = '/placeholder.jpg';
+                }}
+                onLoad={() => {
+                  console.log('✅ Image loaded successfully for item:', item.id);
                 }}
               />
             </div>
