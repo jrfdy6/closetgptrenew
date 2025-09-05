@@ -136,10 +136,10 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
           const payload = { image: { url: await fileToBase64(item.file) } };
           
-          console.log("POSTing to backend:", backendUrl + "/api/analyze-image");
+          console.log("POSTing to backend:", backendUrl + "/analyze-image");
           console.log("Payload:", JSON.stringify(payload));
           
-          const response = await fetch(`${backendUrl}/api/analyze-image`, {
+          const response = await fetch(`${backendUrl}/analyze-image`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`,
@@ -158,6 +158,18 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
 
           if (result.analysis) {
             // Create a proper clothing item from the analysis result
+            console.log('🔍 DEBUG: AI Analysis result:', result.analysis);
+            console.log('🔍 DEBUG: Analysis fields:', {
+              name: result.analysis.name,
+              clothing_type: result.analysis.clothing_type,
+              type: result.analysis.type,
+              color: result.analysis.color,
+              primary_color: result.analysis.primary_color,
+              style: result.analysis.style,
+              occasion: result.analysis.occasion,
+              season: result.analysis.season
+            });
+            
             const clothingItem = {
               id: `item-${Date.now()}-${i}`,
               name: result.analysis.name || result.analysis.clothing_type || 'Analyzed Item',
@@ -184,6 +196,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
             // Save to database via the wardrobe API
             try {
               console.log(`💾 Saving item ${i + 1} to database...`);
+              console.log('🔍 DEBUG: Clothing item being saved:', clothingItem);
               const saveResponse = await fetch('/api/wardrobe', {
                 method: 'POST',
                 headers: {
