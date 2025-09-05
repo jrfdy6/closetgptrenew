@@ -119,7 +119,7 @@ ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
-    ("src.routes.image_processing", "/api/image"),  # Image processing router - mounted at /api/image
+    # ("src.routes.image_processing", "/api/image"),  # Image processing router - DISABLED (testing)
     # ("src.routes.image_analysis", ""),   # Image analysis router - DISABLED (causing 502)
     # ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
     # ("src.routes.weather", ""),          # Router already has /api/weather prefix
