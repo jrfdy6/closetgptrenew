@@ -1,11 +1,16 @@
 from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
 import logging
 import tempfile
 import os
 import base64
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+class AnalyzeImagePayload(BaseModel):
+    image_url: Optional[str] = None
+    image: Optional[dict] = None
 
 async def perform_clothing_analysis(image_path: str, image_url: str, file_size: int) -> Dict[str, Any]:
     """
@@ -142,18 +147,24 @@ except ImportError:
 
 @router.post("/analyze-image")
 async def analyze_image(
-    image: dict,
+    payload: AnalyzeImagePayload,
     user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """Minimal image analysis with lazy imports"""
     try:
         logger.info(f"Starting image analysis for user: {user_id}")
         
-        # Get image URL from request
-        image_url = image.get("url")
+        # Try to resolve image URL from different payload formats
+        image_url = payload.image_url
+        
+        if not image_url and payload.image and "url" in payload.image:
+            image_url = payload.image["url"]
+        
         if not image_url:
-            logger.warning("No image URL provided")
-            raise HTTPException(status_code=400, detail="Image URL is required")
+            logger.error("❌ No image URL provided in request")
+            raise HTTPException(status_code=400, detail="No image URL provided")
+        
+        logger.info(f"✅ Received image for analysis: {image_url} (user: {user_id})")
         
         logger.info(f"Image URL: {image_url[:100]}...")
         
