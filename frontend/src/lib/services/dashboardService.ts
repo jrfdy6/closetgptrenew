@@ -409,7 +409,15 @@ class DashboardService {
   }
 
   private buildStyleCollections(wardrobeStats: any, trendingStyles: any): StyleCollection[] {
-    const categories = wardrobeStats.categories || {};
+    const items = wardrobeStats.items || [];
+    
+    // Count items by type from the actual items array
+    const categories: { [key: string]: number } = {};
+    items.forEach((item: any) => {
+      const type = item.type || 'unknown';
+      categories[type] = (categories[type] || 0) + 1;
+    });
+    
     const collections: StyleCollection[] = [];
     
     // Basic Collection (shirts, sweaters, basic tops)
@@ -434,7 +442,15 @@ class DashboardService {
   }
 
   private buildStyleExpansions(wardrobeStats: any, trendingStyles: any): StyleExpansion[] {
-    const categories = wardrobeStats.categories || {};
+    const items = wardrobeStats.items || [];
+    
+    // Count items by type from the actual items array
+    const categories: { [key: string]: number } = {};
+    items.forEach((item: any) => {
+      const type = item.type || 'unknown';
+      categories[type] = (categories[type] || 0) + 1;
+    });
+    
     const expansions: StyleExpansion[] = [];
     
     // Map actual wardrobe categories to style expansion areas
@@ -462,7 +478,14 @@ class DashboardService {
   }
 
   private buildSeasonalBalance(wardrobeStats: any): SeasonalBalance {
-    const categories = wardrobeStats.categories || {};
+    const items = wardrobeStats.items || [];
+    
+    // Count items by type from the actual items array
+    const categories: { [key: string]: number } = {};
+    items.forEach((item: any) => {
+      const type = item.type || 'unknown';
+      categories[type] = (categories[type] || 0) + 1;
+    });
     
     // Map items to seasons based on type
     const winterItems = (categories['sweater'] || 0) + (categories['jacket'] || 0);
@@ -548,10 +571,18 @@ class DashboardService {
 
   private buildWardrobeGaps(wardrobeStats: any): WardrobeGap[] {
     const gaps: WardrobeGap[] = [];
-    const categories = wardrobeStats.categories || {};
-    const totalItems = wardrobeStats.total_items || 0;
+    const items = wardrobeStats.items || [];
+    const totalItems = items.length;
     
-    console.log('🔍 DEBUG: Building wardrobe gaps from categories:', categories);
+    // Count items by type from the actual items array
+    const categories: { [key: string]: number } = {};
+    items.forEach((item: any) => {
+      const type = item.type || 'unknown';
+      categories[type] = (categories[type] || 0) + 1;
+    });
+    
+    console.log('🔍 DEBUG: Building wardrobe gaps from items:', items.length, 'items');
+    console.log('🔍 DEBUG: Categories counted from items:', categories);
     
     // Essential wardrobe categories with minimum requirements
     const essentialCategories = {
