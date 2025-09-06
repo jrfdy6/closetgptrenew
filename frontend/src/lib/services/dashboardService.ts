@@ -101,7 +101,11 @@ class DashboardService {
       throw new Error('Failed to get authentication token');
     }
 
-    const response = await fetch(endpoint, {
+    // Use backend URL for API calls
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const fullUrl = endpoint.startsWith('http') ? endpoint : `${backendUrl}${endpoint}`;
+
+    const response = await fetch(fullUrl, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
