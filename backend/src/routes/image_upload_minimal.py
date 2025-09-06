@@ -92,6 +92,7 @@ async def debug_firebase():
     """Debug Firebase Storage configuration"""
     try:
         import os
+        import firebase_admin
         from firebase_admin import storage
         
         debug_info = {
