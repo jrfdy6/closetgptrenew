@@ -334,11 +334,27 @@ async def get_trending_styles(
                 score = item.get('wearCount', 0)
                 if item.get('lastWorn'):
                     # Add bonus for recent wear
-                    days_since_worn = (int(time.time()) - item.get('lastWorn', 0)) / (24 * 60 * 60)
-                    if days_since_worn < 7:
-                        score += 2
-                    elif days_since_worn < 30:
-                        score += 1
+                    try:
+                        last_worn = item.get('lastWorn', 0)
+                        if isinstance(last_worn, (int, float)):
+                            # Already a timestamp
+                            days_since_worn = (int(time.time()) - last_worn) / (24 * 60 * 60)
+                        else:
+                            # Convert datetime to timestamp
+                            from datetime import datetime, timezone
+                            if hasattr(last_worn, 'timestamp'):
+                                days_since_worn = (int(time.time()) - int(last_worn.timestamp())) / (24 * 60 * 60)
+                            else:
+                                # Skip if we can't convert
+                                continue
+                        
+                        if days_since_worn < 7:
+                            score += 2
+                        elif days_since_worn < 30:
+                            score += 1
+                    except (ValueError, TypeError, AttributeError):
+                        # Skip if we can't process the date
+                        pass
                 trending_items.append({
                     'id': item.get('id'),
                     'name': item.get('name'),
