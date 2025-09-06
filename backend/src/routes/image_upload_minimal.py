@@ -22,43 +22,45 @@ async def upload_image(
 ):
     """Minimal working image upload handler"""
     try:
-        print(f"🔍 Starting image upload for user: {user_id}")
-        print(f"🔍 File: {file.filename}, Content-Type: {file.content_type}")
+        logger.info(f"Starting image upload for user: {user_id}")
+        logger.info(f"File: {file.filename}, Content-Type: {file.content_type}")
         
         # Validate file type
         if not file.content_type or not file.content_type.startswith('image/'):
+            logger.warning(f"Invalid file type: {file.content_type}")
             raise HTTPException(status_code=400, detail="File must be an image")
         
         # Get file contents
         contents = await file.read()
         if not contents:
+            logger.warning("Empty file received")
             raise HTTPException(status_code=400, detail="Empty file")
         
-        print(f"🔍 File size: {len(contents)} bytes")
+        logger.info(f"File size: {len(contents)} bytes")
         
         # Get Firebase Storage bucket
         try:
             bucket = storage.bucket()
-            print(f"✅ Got Firebase Storage bucket: {bucket.name}")
+            logger.info(f"Got Firebase Storage bucket: {bucket.name}")
         except Exception as e:
-            print(f"❌ Failed to get Firebase Storage bucket: {e}")
+            logger.error(f"Failed to get Firebase Storage bucket: {e}")
             raise HTTPException(status_code=503, detail="Firebase Storage not available")
         
         # Create blob name
         file_extension = (file.filename or "").split('.')[-1] or 'jpg'
         blob_name = f"wardrobe/{user_id}/{uuid.uuid4()}_{file.filename}"
-        print(f"🔍 Blob name: {blob_name}")
+        logger.info(f"Blob name: {blob_name}")
         
         # Upload to Firebase Storage
         try:
             blob = bucket.blob(blob_name)
             blob.upload_from_string(contents, content_type=file.content_type)
-            print(f"✅ Successfully uploaded to Firebase Storage")
+            logger.info("Successfully uploaded to Firebase Storage")
             
             # Make public and get URL
             blob.make_public()
             public_url = blob.public_url
-            print(f"✅ Public URL: {public_url}")
+            logger.info(f"Public URL: {public_url}")
             
             return {
                 "success": True, 
@@ -68,13 +70,11 @@ async def upload_image(
             }
             
         except Exception as e:
-            print(f"❌ Firebase Storage upload failed: {e}")
-            logger.error(f"❌ Firebase Storage upload failed: {e}", exc_info=True)
+            logger.error(f"Firebase Storage upload failed: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail="Failed to upload image")
             
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Unexpected error in upload_image: {e}")
-        logger.error(f"❌ Unexpected error in upload_image: {e}", exc_info=True)
+        logger.error(f"Unexpected error in upload_image: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to upload image")

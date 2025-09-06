@@ -22,41 +22,41 @@ async def analyze_image(
 ):
     """Minimal image analysis with lazy imports"""
     try:
-        print(f"🔍 Starting image analysis for user: {user_id}")
+        logger.info(f"Starting image analysis for user: {user_id}")
         
         # Get image URL from request
         image_url = image.get("url")
         if not image_url:
-            print("❌ No image URL provided")
+            logger.warning("No image URL provided")
             raise HTTPException(status_code=400, detail="Image URL is required")
         
-        print(f"🔍 Image URL: {image_url[:100]}...")
+        logger.info(f"Image URL: {image_url[:100]}...")
         
         # Lazy import heavy dependencies
         try:
-            print("🔍 Importing OpenAI...")
+            logger.info("Importing OpenAI...")
             from openai import OpenAI
-            print("✅ OpenAI imported successfully")
+            logger.info("OpenAI imported successfully")
         except ImportError as e:
-            print(f"❌ OpenAI import failed: {e}")
+            logger.error(f"OpenAI import failed: {e}")
             raise HTTPException(status_code=503, detail="AI analysis service not available")
         
         try:
-            print("🔍 Importing requests...")
+            logger.info("Importing requests...")
             import requests
-            print("✅ Requests imported successfully")
+            logger.info("Requests imported successfully")
         except ImportError as e:
-            print(f"❌ Requests import failed: {e}")
+            logger.error(f"Requests import failed: {e}")
             raise HTTPException(status_code=503, detail="Image download service not available")
         
         # Download image
         try:
-            print("🔍 Downloading image...")
+            logger.info("Downloading image...")
             response = requests.get(image_url, timeout=30)
             response.raise_for_status()
-            print(f"✅ Downloaded image, size: {len(response.content)} bytes")
+            logger.info(f"Downloaded image, size: {len(response.content)} bytes")
         except Exception as e:
-            print(f"❌ Failed to download image: {e}")
+            logger.error(f"Failed to download image: {e}")
             raise HTTPException(status_code=400, detail=f"Failed to download image: {str(e)}")
         
         # Create temporary file
@@ -66,7 +66,7 @@ async def analyze_image(
         
         try:
             # Simple analysis (just return basic info for now)
-            print("🔍 Performing basic analysis...")
+            logger.info("Performing basic analysis...")
             
             # Get file size
             file_size = os.path.getsize(temp_path)
@@ -87,20 +87,19 @@ async def analyze_image(
                 "imageUrl": image_url
             }
             
-            print("✅ Analysis completed successfully")
+            logger.info("Analysis completed successfully")
             return {"analysis": analysis}
             
         finally:
             # Clean up temporary file
             try:
                 os.unlink(temp_path)
-                print("✅ Cleaned up temporary file")
+                logger.info("Cleaned up temporary file")
             except Exception as e:
-                print(f"⚠️ Failed to clean up temp file: {e}")
+                logger.warning(f"Failed to clean up temp file: {e}")
                 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Unexpected error in analyze_image: {e}")
-        logger.error(f"❌ Unexpected error in analyze_image: {e}", exc_info=True)
+        logger.error(f"Unexpected error in analyze_image: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to analyze image")
