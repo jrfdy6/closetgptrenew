@@ -319,7 +319,7 @@ async def upload_image(
             
             return {
                 "success": True, 
-                "url": public_url,
+                "image_url": public_url,
                 "filename": file.filename,
                 "size": len(contents)
             }
@@ -331,7 +331,7 @@ async def upload_image(
             mock_url = f"https://picsum.photos/200/300?test={uuid.uuid4()}"
             return {
                 "success": True, 
-                "url": mock_url,
+                "image_url": mock_url,
                 "filename": file.filename,
                 "size": len(contents),
                 "fallback": True
