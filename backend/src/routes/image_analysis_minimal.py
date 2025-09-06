@@ -2,8 +2,133 @@ from fastapi import APIRouter, HTTPException, Depends
 import logging
 import tempfile
 import os
+import base64
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
+
+async def perform_clothing_analysis(image_path: str, image_url: str, file_size: int) -> Dict[str, Any]:
+    """
+    Perform real AI analysis using GPT-4 Vision
+    """
+    try:
+        # Lazy import OpenAI
+        from openai import OpenAI
+        
+        # Initialize OpenAI client
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        # Encode image to base64
+        with open(image_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+        
+        logger.info("Sending image to GPT-4 Vision for analysis...")
+        
+        # Create the analysis prompt
+        prompt = """
+        Analyze this clothing item image and provide detailed information in JSON format. 
+        Focus on:
+        - Clothing type (shirt, pants, dress, etc.)
+        - Style (casual, formal, sporty, etc.)
+        - Occasion (work, casual, party, etc.)
+        - Season (spring, summer, fall, winter, all-season)
+        - Dominant colors (extract 2-3 main colors with hex codes)
+        - Material (cotton, polyester, wool, etc.)
+        - Fit (loose, fitted, tight, etc.)
+        - Sleeve length (long, short, sleeveless, etc.)
+        - Pattern (solid, striped, floral, etc.)
+        - Confidence level (0.0 to 1.0)
+        
+        Return ONLY valid JSON in this exact format:
+        {
+            "type": "string",
+            "style": "string", 
+            "occasion": "string",
+            "season": "string",
+            "dominantColors": [{"name": "string", "hex": "#hexcode"}],
+            "matchingColors": [{"name": "string", "hex": "#hexcode"}],
+            "material": "string",
+            "fit": "string",
+            "sleeveLength": "string",
+            "pattern": "string",
+            "confidence": 0.0
+        }
+        """
+        
+        # Call GPT-4 Vision
+        response = client.chat.completions.create(
+            model="gpt-4-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=1000,
+            temperature=0.1
+        )
+        
+        # Extract the analysis result
+        analysis_text = response.choices[0].message.content
+        logger.info(f"GPT-4 Vision response: {analysis_text[:200]}...")
+        
+        # Parse JSON response
+        import json
+        try:
+            analysis = json.loads(analysis_text)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse GPT-4 response as JSON: {e}")
+            # Fallback to basic analysis
+            analysis = {
+                "type": "clothing",
+                "style": "casual",
+                "occasion": "everyday",
+                "season": "all-season",
+                "dominantColors": [{"name": "unknown", "hex": "#000000"}],
+                "matchingColors": [{"name": "unknown", "hex": "#000000"}],
+                "material": "unknown",
+                "fit": "unknown",
+                "sleeveLength": "unknown",
+                "pattern": "unknown",
+                "confidence": 0.5
+            }
+        
+        # Add metadata
+        analysis["fileSize"] = file_size
+        analysis["imageUrl"] = image_url
+        analysis["analysisMethod"] = "gpt4-vision"
+        
+        logger.info(f"AI analysis completed: {analysis.get('type', 'unknown')} - {analysis.get('style', 'unknown')}")
+        return analysis
+        
+    except Exception as e:
+        logger.error(f"AI analysis failed: {e}", exc_info=True)
+        # Return fallback analysis
+        return {
+            "type": "clothing",
+            "style": "casual",
+            "occasion": "everyday",
+            "season": "all-season",
+            "dominantColors": [{"name": "unknown", "hex": "#000000"}],
+            "matchingColors": [{"name": "unknown", "hex": "#000000"}],
+            "material": "unknown",
+            "fit": "unknown",
+            "sleeveLength": "unknown",
+            "pattern": "unknown",
+            "confidence": 0.1,
+            "fileSize": file_size,
+            "imageUrl": image_url,
+            "analysisMethod": "fallback",
+            "error": str(e)
+        }
 
 router = APIRouter()
 
@@ -65,29 +190,16 @@ async def analyze_image(
             temp_path = temp_file.name
         
         try:
-            # Simple analysis (just return basic info for now)
-            logger.info("Performing basic analysis...")
+            # Real AI analysis using GPT-4 Vision
+            logger.info("Performing GPT-4 Vision analysis...")
             
             # Get file size
             file_size = os.path.getsize(temp_path)
             
-            # Basic analysis result
-            analysis = {
-                "type": "clothing",
-                "style": "casual",
-                "occasion": "everyday",
-                "season": "all-season",
-                "dominantColors": [{"name": "unknown", "hex": "#000000"}],
-                "matchingColors": [{"name": "unknown", "hex": "#000000"}],
-                "material": "unknown",
-                "fit": "unknown",
-                "sleeveLength": "unknown",
-                "confidence": 0.5,
-                "fileSize": file_size,
-                "imageUrl": image_url
-            }
+            # Perform real AI analysis
+            analysis = await perform_clothing_analysis(temp_path, image_url, file_size)
             
-            logger.info("Analysis completed successfully")
+            logger.info("GPT-4 Vision analysis completed successfully")
             return {"analysis": analysis}
             
         finally:
