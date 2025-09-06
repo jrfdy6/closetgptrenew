@@ -81,7 +81,7 @@ router = APIRouter()
 
 # Import auth dependency
 try:
-    from src.services.auth_service import get_current_user_id
+    from src.auth.auth_service import get_current_user_id
     AUTH_AVAILABLE = True
 except ImportError:
     AUTH_AVAILABLE = False
