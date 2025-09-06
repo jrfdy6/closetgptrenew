@@ -243,4 +243,59 @@ async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = 
                 
     except Exception as e:
         print(f"🔍 DEBUG: Error in get_current_user_optional: {e}")
-        return None 
+        return None
+
+async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    """
+    Get current user ID from Firebase JWT token.
+    Returns the user ID string for use in other endpoints.
+    """
+    try:
+        print(f"🔍 DEBUG: get_current_user_id called with credentials: {credentials.credentials[:20]}...")
+        
+        # Accept test token for development
+        if credentials.credentials == "test":
+            print("🔍 DEBUG: Using test token for user ID")
+            return "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        
+        # Verify Firebase JWT token
+        try:
+            print("🔍 DEBUG: Attempting Firebase token verification for user ID...")
+            decoded_token = auth.verify_id_token(credentials.credentials)
+            user_id = decoded_token['uid']
+            print(f"🔍 DEBUG: Token verified successfully for user ID: {user_id}")
+            return user_id
+            
+        except Exception as e:
+            print(f"🔍 DEBUG: Firebase token verification failed: {e}")
+            # If it's a clock issue, try with more lenient settings
+            if "Token used too early" in str(e) or "clock" in str(e).lower():
+                print(f"🔍 DEBUG: Clock skew detected, trying with lenient settings: {e}")
+                try:
+                    decoded_token = auth.verify_id_token(credentials.credentials, check_revoked=False)
+                    user_id = decoded_token['uid']
+                    print(f"🔍 DEBUG: Token verified with lenient settings for user ID: {user_id}")
+                    return user_id
+                except Exception as e2:
+                    print(f"🔍 DEBUG: Still failed with lenient settings: {e2}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token validation failed",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+            else:
+                print(f"🔍 DEBUG: Non-clock related token error: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"🔍 DEBUG: Authentication error in get_current_user_id: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Authentication service error: {str(e)}"
+        ) 
