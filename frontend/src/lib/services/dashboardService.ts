@@ -177,7 +177,7 @@ class DashboardService {
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       
       // Process the wardrobe items to create stats
-      const items = response.wardrobe_items || response || [];
+      const items = response.items || response.wardrobe_items || response || [];
       const totalItems = Array.isArray(items) ? items.length : 0;
       
       // Calculate categories and colors from the actual items
