@@ -129,7 +129,7 @@ ROUTERS = [
     ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix - ENABLED for wardrobe-stats
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
-    # ("src.routes.outfit_history", "/api"),   # Full outfit history router with daily generation
+    ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
     # ("src.routes.test_debug", ""),       # Router already has /api/test prefix
     # ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
     # ("src.routes.analytics", ""),        # Main analytics router
@@ -751,6 +751,159 @@ async def firebase_debug():
 async def test_upload():
     """Test endpoint to verify routing is working"""
     return {"message": "Test upload endpoint is working", "status": "success"}
+
+@app.get("/api/today-suggestion")
+async def get_todays_outfit_suggestion():
+    """Generate today's outfit suggestion using existing outfit generation logic"""
+    try:
+        from firebase_admin import firestore
+        from datetime import datetime, timezone
+        import uuid
+        
+        # Get user ID (hardcoded for now)
+        user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        
+        # Get today's date
+        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        
+        # Check if Firebase is available
+        try:
+            db = firestore.client()
+        except Exception as e:
+            return {
+                "success": True,
+                "suggestion": None,
+                "isWorn": False,
+                "message": "Service temporarily unavailable"
+            }
+        
+        # Check if we already have a suggestion for today
+        suggestions_ref = db.collection('daily_outfit_suggestions')
+        query = suggestions_ref.where('user_id', '==', user_id).where('date', '==', today_str)
+        existing_docs = list(query.stream())
+        
+        if existing_docs:
+            # Return existing suggestion
+            doc = existing_docs[0]
+            suggestion_data = doc.to_dict()
+            return {
+                "success": True,
+                "suggestion": {
+                    "id": doc.id,
+                    "outfitData": suggestion_data.get('outfit_data', {}),
+                    "generatedAt": suggestion_data.get('generated_at'),
+                    "date": suggestion_data.get('date')
+                },
+                "isWorn": suggestion_data.get('is_worn', False),
+                "wornAt": suggestion_data.get('worn_at'),
+                "message": "Today's outfit suggestion"
+            }
+        
+        # Generate new suggestion for today
+        try:
+            # Get user's wardrobe
+            wardrobe_ref = db.collection('wardrobe')
+            wardrobe_docs = wardrobe_ref.where('userId', '==', user_id).stream()
+            
+            wardrobe_items = []
+            for doc in wardrobe_docs:
+                item_data = doc.to_dict()
+                wardrobe_items.append(item_data)
+            
+            if not wardrobe_items:
+                return {
+                    "success": True,
+                    "suggestion": None,
+                    "isWorn": False,
+                    "message": "No wardrobe items found. Add some items to your wardrobe first!"
+                }
+            
+            # Generate a simple outfit suggestion
+            import random
+            
+            # Pick random items for different categories
+            tops = [item for item in wardrobe_items if item.get('type', '').lower() in ['shirt', 'blouse', 'tank', 'sweater', 'hoodie', 't-shirt']]
+            bottoms = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'trousers']]
+            shoes = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals', 'heels']]
+            accessories = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'blazer', 'cardigan', 'scarf', 'hat', 'belt']]
+            
+            selected_items = []
+            if tops:
+                selected_items.append(random.choice(tops))
+            if bottoms:
+                selected_items.append(random.choice(bottoms))
+            if shoes:
+                selected_items.append(random.choice(shoes))
+            if accessories and random.random() > 0.5:  # 50% chance of accessory
+                selected_items.append(random.choice(accessories))
+            
+            if not selected_items:
+                return {
+                    "success": True,
+                    "suggestion": None,
+                    "isWorn": False,
+                    "message": "Not enough items to create an outfit. Add more items to your wardrobe!"
+                }
+            
+            # Create outfit suggestion
+            suggestion_id = str(uuid.uuid4())
+            outfit_data = {
+                "id": suggestion_id,
+                "name": f"Today's Outfit - {today_str}",
+                "occasion": "Daily",
+                "mood": "Confident",
+                "style": "Casual",
+                "items": selected_items,
+                "weather": {
+                    "temperature": 72,
+                    "condition": "Sunny",
+                    "humidity": 50
+                },
+                "notes": "AI-generated daily outfit suggestion",
+                "tags": ["daily", "casual", "ai-suggested"]
+            }
+            
+            # Save suggestion to database
+            suggestion_doc = {
+                "id": suggestion_id,
+                "user_id": user_id,
+                "date": today_str,
+                "outfit_data": outfit_data,
+                "generated_at": datetime.utcnow().isoformat(),
+                "is_worn": False,
+                "worn_at": None
+            }
+            
+            db.collection('daily_outfit_suggestions').document(suggestion_id).set(suggestion_doc)
+            
+            return {
+                "success": True,
+                "suggestion": {
+                    "id": suggestion_id,
+                    "outfitData": outfit_data,
+                    "generatedAt": suggestion_doc["generated_at"],
+                    "date": today_str
+                },
+                "isWorn": False,
+                "wornAt": None,
+                "message": "Today's outfit suggestion generated successfully"
+            }
+            
+        except Exception as e:
+            return {
+                "success": True,
+                "suggestion": None,
+                "isWorn": False,
+                "message": f"Failed to generate suggestion: {str(e)}"
+            }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "suggestion": None,
+            "isWorn": False,
+            "message": f"Error: {str(e)}"
+        }
 
 
 
