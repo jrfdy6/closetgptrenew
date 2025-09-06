@@ -94,7 +94,7 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a professional fashion metadata extractor. Analyze clothing items in images and provide detailed, accurate information. Be specific and detailed in your analysis. Always respond with valid JSON matching the provided schema."
+                        "content": "You are a professional fashion metadata extractor. Analyze clothing items in images and provide detailed, accurate information. IMPORTANT: Only analyze images that contain clothing items. If the image does not contain a clear clothing item, set type to 'other' and provide what you can detect. Be specific and detailed in your analysis. Always respond with valid JSON matching the provided schema."
                     },
                     {
                         "role": "user",
@@ -142,16 +142,43 @@ Provide comprehensive, detailed analysis that would be useful for wardrobe manag
             
             # Generate a descriptive name for the item
             name_parts = []
-            if analysis.get("type") and analysis["type"] != "other":
-                name_parts.append(analysis["type"].title())
-            if analysis.get("subType") and analysis["subType"]:
+            
+            # Handle clothing type - be more flexible with "object" or "other"
+            clothing_type = analysis.get("type", "")
+            if clothing_type and clothing_type not in ["other", "object", "unknown"]:
+                name_parts.append(clothing_type.title())
+            elif clothing_type == "object":
+                # If GPT-4 returns "object", try to infer from other fields
+                if analysis.get("subType"):
+                    name_parts.append(analysis["subType"].title())
+                else:
+                    name_parts.append("Clothing Item")
+            
+            # Add subtype if available
+            if analysis.get("subType") and analysis["subType"] not in ["unknown", "null"]:
                 name_parts.append(analysis["subType"])
+            
+            # Add dominant color if available
             if analysis.get("dominantColors") and len(analysis["dominantColors"]) > 0:
-                name_parts.append(analysis["dominantColors"][0]["name"])
-            if analysis.get("brand") and analysis["brand"]:
+                color = analysis["dominantColors"][0].get("name", "")
+                if color and color not in ["unknown", "null"]:
+                    name_parts.append(color.title())
+            
+            # Add brand if available
+            if analysis.get("brand") and analysis["brand"] not in ["unknown", "null"]:
                 name_parts.append(f"by {analysis['brand']}")
             
-            analysis["name"] = " ".join(name_parts) if name_parts else "Unnamed Item"
+            # Fallback name generation
+            if not name_parts:
+                # Try to use style or occasion information
+                if analysis.get("style") and len(analysis["style"]) > 0:
+                    name_parts.append(analysis["style"][0].title())
+                elif analysis.get("occasion") and len(analysis["occasion"]) > 0:
+                    name_parts.append(analysis["occasion"][0].title())
+                else:
+                    name_parts.append("Clothing Item")
+            
+            analysis["name"] = " ".join(name_parts)
             
             return analysis
             
