@@ -133,11 +133,32 @@ async def get_top_worn_items(
         unworn_items = [item for item in items if item.get('wearCount', 0) == 0]
         
         # Get items worn this week (last 7 days)
-        from datetime import datetime, timedelta
-        week_ago = datetime.now() - timedelta(days=7)
-        recent_items = [item for item in items if item.get('lastWorn') and 
-                       (isinstance(item['lastWorn'], datetime) and item['lastWorn'] > week_ago or
-                        isinstance(item['lastWorn'], str) and datetime.fromisoformat(item['lastWorn'].replace('Z', '+00:00')) > week_ago)]
+        from datetime import datetime, timedelta, timezone
+        week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        recent_items = []
+        for item in items:
+            last_worn = item.get('lastWorn')
+            if last_worn:
+                try:
+                    if isinstance(last_worn, datetime):
+                        item_date = last_worn
+                    elif isinstance(last_worn, str):
+                        item_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                    elif isinstance(last_worn, (int, float)):
+                        item_date = datetime.fromtimestamp(last_worn, tz=timezone.utc)
+                    else:
+                        continue
+                    
+                    # Ensure both dates are timezone-aware
+                    if item_date.tzinfo is None:
+                        item_date = item_date.replace(tzinfo=timezone.utc)
+                    if week_ago.tzinfo is None:
+                        week_ago = week_ago.replace(tzinfo=timezone.utc)
+                    
+                    if item_date > week_ago:
+                        recent_items.append(item)
+                except (ValueError, TypeError):
+                    continue
         
         stats = {
             "total_items": total_items,
