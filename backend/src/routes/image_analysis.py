@@ -233,21 +233,22 @@ async def analyze_single_image(
                 raise HTTPException(status_code=400, detail=f"Failed to download image: {str(download_error)}")
         
         try:
-            # Use enhanced analysis (GPT-4 + CLIP)
+            # Use direct GPT-4 Vision analysis for better name generation
             print(f"🔍 Starting AI analysis for image at: {temp_path}")
-            analysis = await simple_analyzer.analyze_clothing_item(temp_path)
+            analysis = await analyze_image_with_gpt4(temp_path)
             print(f"✅ AI analysis completed successfully")
+            print(f"🔍 Generated name: {analysis.get('name', 'No name')}")
             
             # Log analytics event
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
-                    "analysis_type": "enhanced",
+                    "analysis_type": "gpt4_vision_direct",
                     "image_url": image_url,
                     "file_size": len(response.content),
-                    "has_clothing_detected": bool(analysis.get("clothing_type")),
-                    "confidence_score": analysis.get("confidence_score", 0)
+                    "has_clothing_detected": bool(analysis.get("type")),
+                    "confidence_score": 0.85
                 }
             )
             log_analytics_event(analytics_event)
