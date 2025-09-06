@@ -562,8 +562,17 @@ class DashboardService {
 
   private buildTopItems(topWornItemsResponse: any): TopItem[] {
     try {
-      const topWornItems = topWornItemsResponse.top_worn_items || [];
+      // Handle different response structures
+      const topWornItems = topWornItemsResponse.data?.top_worn_items || 
+                          topWornItemsResponse.top_worn_items || 
+                          topWornItemsResponse || [];
       console.log('🔍 DEBUG: Processing top worn items:', topWornItems);
+      console.log('🔍 DEBUG: Top worn items response structure:', topWornItemsResponse);
+      
+      if (!Array.isArray(topWornItems)) {
+        console.log('🔍 DEBUG: Top worn items is not an array:', topWornItems);
+        return [];
+      }
       
       return topWornItems.map((item: any) => ({
         id: item.id,
