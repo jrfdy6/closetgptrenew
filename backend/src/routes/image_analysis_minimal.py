@@ -57,7 +57,7 @@ async def perform_clothing_analysis(image_path: str, image_url: str, file_size: 
         
         # Call GPT-4 Vision
         response = client.chat.completions.create(
-            model="gpt-4-vision-preview",
+            model="gpt-4o",
             messages=[
                 {
                     "role": "user",
