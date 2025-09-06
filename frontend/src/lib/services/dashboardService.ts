@@ -437,18 +437,27 @@ class DashboardService {
     const categories = wardrobeStats.categories || {};
     const expansions: StyleExpansion[] = [];
     
-    const potentialStyles = ['dresses', 'outerwear', 'shoes', 'accessories'];
+    // Map actual wardrobe categories to style expansion areas
+    const styleMappings = [
+      { category: 'shoes', name: 'Footwear', threshold: 5 },
+      { category: 'accessory', name: 'Accessories', threshold: 5 },
+      { category: 'jacket', name: 'Outerwear', threshold: 3 },
+      { category: 'sweater', name: 'Layering', threshold: 3 },
+      { category: 'shorts', name: 'Casual Wear', threshold: 3 },
+      { category: 'pants', name: 'Bottoms', threshold: 5 }
+    ];
     
-    potentialStyles.forEach(style => {
-      const count = categories[style] || 0;
+    styleMappings.forEach(mapping => {
+      const count = categories[mapping.category] || 0;
       if (count > 0) {
         expansions.push({
-          name: style,
-          direction: count >= 5 ? 'Established' : 'New Direction'
+          name: mapping.name,
+          direction: count >= mapping.threshold ? 'Established' : 'New Direction'
         });
       }
     });
     
+    console.log('🔍 DEBUG: Style Expansions:', expansions);
     return expansions;
   }
 
