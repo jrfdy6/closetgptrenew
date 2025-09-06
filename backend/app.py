@@ -113,6 +113,7 @@ except Exception as e:
 print("🔍 DEBUG: Core modules import section completed successfully!")
 print("🔍 DEBUG: About to start router loading section...")
 print("🔍 DEBUG: This print should appear before router loading...")
+print("🔍 DEBUG: Backend restart - checking if this fixes the timeout issue...")
 
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
