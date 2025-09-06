@@ -61,7 +61,7 @@ def initialize_firebase():
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred, {
                 'projectId': os.environ["FIREBASE_PROJECT_ID"],
-                'storageBucket': f"{os.environ['FIREBASE_PROJECT_ID']}.appspot.com"
+                'storageBucket': f"{os.environ['FIREBASE_PROJECT_ID']}.firebasestorage.app"
             })
         
         # Initialize Firestore with explicit settings
