@@ -354,6 +354,30 @@ async def analyze_single_image(
                 }
                 print(f"🔍 Using fallback analysis: {analysis}")
             
+            # Map AI analysis to wardrobe item schema
+            normalized_analysis = {
+                "name": analysis.get("name", "Unknown Item"),
+                "type": analysis.get("type", "clothing"),
+                "subType": analysis.get("subType", ""),
+                "clothing_type": analysis.get("type", "clothing"),  # Map type to clothing_type
+                "color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if analysis.get("dominantColors") else "unknown",
+                "primary_color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if analysis.get("dominantColors") else "unknown",
+                "dominantColors": analysis.get("dominantColors", []),
+                "matchingColors": analysis.get("matchingColors", []),
+                "style": analysis.get("style", []),
+                "season": analysis.get("season", []),
+                "occasion": analysis.get("occasion", []),
+                "brand": analysis.get("brand", ""),
+                "material": analysis.get("metadata", {}).get("visualAttributes", {}).get("material", "unknown"),
+                "fit": analysis.get("metadata", {}).get("visualAttributes", {}).get("fit", "unknown"),
+                "sleeveLength": analysis.get("metadata", {}).get("visualAttributes", {}).get("sleeveLength", "unknown"),
+                "pattern": analysis.get("metadata", {}).get("visualAttributes", {}).get("pattern", "unknown"),
+                "gender": analysis.get("metadata", {}).get("visualAttributes", {}).get("genderTarget", "unisex"),
+                "formalLevel": analysis.get("metadata", {}).get("visualAttributes", {}).get("formalLevel", "casual")
+            }
+            
+            print(f"🔍 Mapped analysis for wardrobe: {normalized_analysis}")
+            
             # Log analytics event
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
@@ -368,7 +392,7 @@ async def analyze_single_image(
             )
             log_analytics_event(analytics_event)
             
-            return {"analysis": analysis}
+            return {"analysis": normalized_analysis}
         finally:
             # Clean up temporary file
             os.unlink(temp_path)
