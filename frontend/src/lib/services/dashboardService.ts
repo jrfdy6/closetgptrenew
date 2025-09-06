@@ -375,15 +375,21 @@ class DashboardService {
 
   private calculateOverallProgress(wardrobeStats: any, trendingStyles: any): number {
     // Calculate overall progress based on multiple factors
-    const factors = [
-      this.calculateStyleGoals(wardrobeStats, trendingStyles) / 5 * 100, // Style goals (20%)
-      Math.min((wardrobeStats.total_items || 0) / 100 * 100, 100), // Wardrobe size (30%)
-      this.calculateColorVarietyScore(wardrobeStats), // Color variety (25%)
-      this.calculateSeasonalBalanceScore(wardrobeStats) // Seasonal balance (25%)
-    ];
+    const styleGoalsScore = this.calculateStyleGoals(wardrobeStats, trendingStyles) / 5 * 100;
+    const wardrobeSizeScore = Math.min((wardrobeStats.total_items || 0) / 100 * 100, 100);
+    const colorVarietyScore = this.calculateColorVarietyScore(wardrobeStats);
+    const seasonalBalanceScore = this.calculateSeasonalBalanceScore(wardrobeStats);
     
+    const factors = [styleGoalsScore, wardrobeSizeScore, colorVarietyScore, seasonalBalanceScore];
     const weights = [0.2, 0.3, 0.25, 0.25];
     const weightedSum = factors.reduce((sum, factor, index) => sum + factor * weights[index], 0);
+    
+    console.log('🔍 DEBUG: Overall Progress Calculation:');
+    console.log('  - Style Goals:', styleGoalsScore, '%');
+    console.log('  - Wardrobe Size:', wardrobeSizeScore, '%');
+    console.log('  - Color Variety:', colorVarietyScore, '%');
+    console.log('  - Seasonal Balance:', seasonalBalanceScore, '%');
+    console.log('  - Weighted Sum:', weightedSum, '%');
     
     return Math.round(weightedSum);
   }
@@ -391,7 +397,9 @@ class DashboardService {
   private calculateColorVarietyScore(wardrobeStats: any): number {
     const colors = wardrobeStats.colors || {};
     const uniqueColors = Object.keys(colors).length;
-    return Math.min(uniqueColors / 8 * 100, 100); // Target: 8 colors
+    const score = Math.min(uniqueColors / 8 * 100, 100); // Target: 8 colors
+    console.log('🔍 DEBUG: Color Variety - Unique colors:', uniqueColors, 'Score:', score, '%');
+    return score;
   }
 
   private calculateSeasonalBalanceScore(wardrobeStats: any): number {
