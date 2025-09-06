@@ -17,7 +17,7 @@ import tempfile
 import mimetypes
 import base64
 import json
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 from ..services.openai_service import analyze_image_with_gpt4
@@ -42,8 +42,9 @@ load_dotenv()
 
 router = APIRouter(tags=["image-analysis"])
 
-class ImageAnalysisRequest(BaseModel):
-    image: dict[str, str]
+class AnalyzeImagePayload(BaseModel):
+    image_url: Optional[str] = None
+    image: Optional[dict] = None
 
 def convert_to_jpeg(image_url: str) -> str:
     """Convert image to JPEG format for analysis"""
@@ -189,14 +190,18 @@ async def analyze_image(
 
 @router.post("/analyze-image")
 async def analyze_single_image(
-    image: dict,
+    payload: AnalyzeImagePayload,
     current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Enhanced single image analysis using GPT-4 Vision + CLIP
     """
     try:
-        image_url = image.get("url")
+        # Try to resolve image URL from different payload formats
+        image_url = payload.image_url
+        if not image_url and payload.image and "url" in payload.image:
+            image_url = payload.image["url"]
+        
         if not image_url:
             print("❌ No image URL provided in request")
             raise HTTPException(status_code=400, detail="Image URL is required")
