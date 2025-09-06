@@ -548,32 +548,159 @@ class DashboardService {
 
   private buildWardrobeGaps(wardrobeStats: any): WardrobeGap[] {
     const gaps: WardrobeGap[] = [];
-    
-    // Analyze item types based on production backend data
     const categories = wardrobeStats.categories || {};
+    const totalItems = wardrobeStats.total_items || 0;
     
-    // Map actual category names to expected types
-    const categoryMapping = {
-      'tops': ['shirt', 'dress_shirt', 'sweater'],
-      'bottoms': ['pants', 'shorts', 'jeans'],
-      'outerwear': ['jacket'],
-      'shoes': ['shoes', 'sneakers', 'dress_shoes']
+    console.log('🔍 DEBUG: Building wardrobe gaps from categories:', categories);
+    
+    // Essential wardrobe categories with minimum requirements
+    const essentialCategories = {
+      'Tops': {
+        items: ['shirt', 'dress_shirt', 'sweater', 't-shirt', 'blouse', 'tank_top', 'polo'],
+        minRequired: 5,
+        priority: 'high',
+        description: 'Essential tops for layering and variety'
+      },
+      'Bottoms': {
+        items: ['pants', 'shorts', 'jeans', 'chinos', 'slacks'],
+        minRequired: 4,
+        priority: 'high',
+        description: 'Versatile bottoms for different occasions'
+      },
+      'Shoes': {
+        items: ['shoes', 'sneakers', 'dress_shoes', 'boots', 'sandals', 'heels', 'flats'],
+        minRequired: 3,
+        priority: 'high',
+        description: 'Footwear for different activities and seasons'
+      },
+      'Outerwear': {
+        items: ['jacket', 'coat', 'blazer', 'cardigan', 'hoodie'],
+        minRequired: 2,
+        priority: 'medium',
+        description: 'Layering pieces for weather protection'
+      },
+      'Accessories': {
+        items: ['accessory', 'bag', 'belt', 'hat', 'scarf', 'jewelry', 'watch'],
+        minRequired: 2,
+        priority: 'low',
+        description: 'Finishing touches to complete outfits'
+      }
     };
     
-    Object.entries(categoryMapping).forEach(([type, categoryNames]) => {
-      const count = categoryNames.reduce((total, categoryName) => {
-        return total + (categories[categoryName] || 0);
+    // Check each essential category
+    Object.entries(essentialCategories).forEach(([categoryName, config]) => {
+      const count = config.items.reduce((total, itemType) => {
+        return total + (categories[itemType] || 0);
       }, 0);
       
-      if (count < 3) {
+      if (count < config.minRequired) {
+        const percentage = totalItems > 0 ? Math.round((count / totalItems) * 100) : 0;
         gaps.push({
-          category: 'Essential Items',
-          description: `Need more ${type} (currently have ${count})`,
-          priority: count === 0 ? 'high' : 'medium',
-          suggestedItems: [`${type} options`]
+          category: categoryName,
+          description: `${config.description} (${count}/${config.minRequired} items, ${percentage}% of wardrobe)`,
+          priority: config.priority as 'high' | 'medium' | 'low',
+          suggestedItems: config.items.slice(0, 3) // Suggest top 3 item types
         });
       }
     });
+    
+    // Check for seasonal gaps
+    const seasonalGaps = this.analyzeSeasonalGaps(categories, totalItems);
+    gaps.push(...seasonalGaps);
+    
+    // Check for style diversity gaps
+    const styleGaps = this.analyzeStyleGaps(categories, totalItems);
+    gaps.push(...styleGaps);
+    
+    // Check for color variety gaps
+    const colorGaps = this.analyzeColorGaps(wardrobeStats);
+    gaps.push(...colorGaps);
+    
+    console.log('🔍 DEBUG: Wardrobe gaps identified:', gaps);
+    return gaps;
+  }
+  
+  private analyzeSeasonalGaps(categories: any, totalItems: number): WardrobeGap[] {
+    const gaps: WardrobeGap[] = [];
+    
+    // Winter items (warm clothing)
+    const winterItems = (categories['sweater'] || 0) + (categories['jacket'] || 0) + (categories['coat'] || 0);
+    if (winterItems < 2) {
+      gaps.push({
+        category: 'Seasonal Coverage',
+        description: `Limited winter clothing (${winterItems} items) - consider sweaters, jackets, or coats`,
+        priority: 'medium',
+        suggestedItems: ['sweater', 'jacket', 'coat']
+      });
+    }
+    
+    // Summer items (light clothing)
+    const summerItems = (categories['shorts'] || 0) + (categories['tank_top'] || 0) + (categories['sandals'] || 0);
+    if (summerItems < 2) {
+      gaps.push({
+        category: 'Seasonal Coverage',
+        description: `Limited summer clothing (${summerItems} items) - consider shorts, tank tops, or sandals`,
+        priority: 'medium',
+        suggestedItems: ['shorts', 'tank_top', 'sandals']
+      });
+    }
+    
+    return gaps;
+  }
+  
+  private analyzeStyleGaps(categories: any, totalItems: number): WardrobeGap[] {
+    const gaps: WardrobeGap[] = [];
+    
+    // Formal wear
+    const formalItems = (categories['dress_shirt'] || 0) + (categories['dress_shoes'] || 0) + (categories['blazer'] || 0);
+    if (formalItems < 2) {
+      gaps.push({
+        category: 'Style Variety',
+        description: `Limited formal wear (${formalItems} items) - consider dress shirts, blazers, or dress shoes`,
+        priority: 'low',
+        suggestedItems: ['dress_shirt', 'blazer', 'dress_shoes']
+      });
+    }
+    
+    // Casual wear
+    const casualItems = (categories['t-shirt'] || 0) + (categories['jeans'] || 0) + (categories['sneakers'] || 0);
+    if (casualItems < 3) {
+      gaps.push({
+        category: 'Style Variety',
+        description: `Limited casual wear (${casualItems} items) - consider t-shirts, jeans, or sneakers`,
+        priority: 'medium',
+        suggestedItems: ['t-shirt', 'jeans', 'sneakers']
+      });
+    }
+    
+    return gaps;
+  }
+  
+  private analyzeColorGaps(wardrobeStats: any): WardrobeGap[] {
+    const gaps: WardrobeGap[] = [];
+    const colors = wardrobeStats.colors || {};
+    const uniqueColors = Object.keys(colors);
+    
+    if (uniqueColors.length < 5) {
+      gaps.push({
+        category: 'Color Variety',
+        description: `Limited color variety (${uniqueColors.length} colors) - consider adding more colorful pieces`,
+        priority: 'low',
+        suggestedItems: ['Colorful tops', 'Patterned items', 'Accent pieces']
+      });
+    }
+    
+    // Check for neutral base colors
+    const neutralColors = ['black', 'white', 'gray', 'navy', 'brown', 'beige'];
+    const hasNeutrals = neutralColors.some(color => colors[color] > 0);
+    if (!hasNeutrals) {
+      gaps.push({
+        category: 'Color Variety',
+        description: 'Missing neutral base colors - consider black, white, gray, or navy pieces',
+        priority: 'medium',
+        suggestedItems: ['Black basics', 'White shirts', 'Gray sweaters', 'Navy pants']
+      });
+    }
     
     return gaps;
   }
