@@ -87,6 +87,52 @@ except ImportError:
     AUTH_AVAILABLE = False
     logger.warning("Auth service not available, uploads will be anonymous")
 
+@router.get("/test-firebase-upload")
+async def test_firebase_upload():
+    """Test Firebase Storage upload with a simple test file"""
+    try:
+        import os
+        import firebase_admin
+        from firebase_admin import storage
+        
+        # Create a simple test file
+        test_content = b"test image content"
+        test_filename = f"test-{uuid.uuid4()}.txt"
+        blob_name = f"test/{test_filename}"
+        
+        logger.info(f"Testing Firebase Storage upload: {blob_name}")
+        
+        # Get bucket
+        bucket = storage.bucket()
+        logger.info(f"Got bucket: {bucket.name}")
+        
+        # Create blob and upload
+        blob = bucket.blob(blob_name)
+        logger.info(f"Created blob: {blob_name}")
+        
+        blob.upload_from_string(test_content, content_type="text/plain")
+        logger.info("Upload successful")
+        
+        # Make public
+        blob.make_public()
+        public_url = blob.public_url
+        logger.info(f"Public URL: {public_url}")
+        
+        return {
+            "success": True,
+            "blob_name": blob_name,
+            "public_url": public_url,
+            "bucket_name": bucket.name
+        }
+        
+    except Exception as e:
+        logger.error(f"Firebase Storage test failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
 @router.get("/debug-firebase")
 async def debug_firebase():
     """Debug Firebase Storage configuration"""
@@ -184,11 +230,16 @@ async def upload_image(
         
         # Upload to Firebase Storage
         try:
+            logger.info(f"Creating blob: {blob_name}")
             blob = bucket.blob(blob_name)
+            logger.info(f"Blob created successfully")
+            
+            logger.info(f"Uploading {len(contents)} bytes to Firebase Storage...")
             blob.upload_from_string(contents, content_type=file.content_type)
             logger.info("Successfully uploaded to Firebase Storage")
             
             # Make public and get URL
+            logger.info("Making blob public...")
             blob.make_public()
             public_url = blob.public_url
             logger.info(f"Public URL: {public_url}")
