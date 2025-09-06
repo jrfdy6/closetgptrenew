@@ -202,11 +202,15 @@ export default function ProfilePage() {
       
       const data = await response.json();
       console.log('🔍 DEBUG: Response data:', data);
-      console.log('🔍 DEBUG: Profile data being set:', data.profile);
-      console.log('🔍 DEBUG: Profile measurements:', data.profile?.measurements);
-      console.log('🔍 DEBUG: Profile stylePreferences:', data.profile?.stylePreferences);
-      setProfile(data.profile);
-      setFormData(data.profile);
+      
+      // Handle different response structures - backend returns data directly or nested under 'profile'
+      const profileData = data.profile || data;
+      console.log('🔍 DEBUG: Profile data being set:', profileData);
+      console.log('🔍 DEBUG: Profile measurements:', profileData?.measurements);
+      console.log('🔍 DEBUG: Profile stylePreferences:', profileData?.stylePreferences);
+      
+      setProfile(profileData);
+      setFormData(profileData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
     } finally {
@@ -245,8 +249,10 @@ export default function ProfilePage() {
       }
 
       const data = await response.json();
-      setProfile(data.profile);
-      setFormData(data.profile);
+      // Handle different response structures - backend returns data directly or nested under 'profile'
+      const profileData = data.profile || data;
+      setProfile(profileData);
+      setFormData(profileData);
       setIsEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save profile');
