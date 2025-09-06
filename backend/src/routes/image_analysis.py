@@ -20,12 +20,48 @@ import json
 from typing import List, Optional
 from datetime import datetime
 
-from ..services.openai_service import analyze_image_with_gpt4
-from ..services.simple_image_analysis_service import simple_analyzer
-from ..utils.image_processing import process_image_for_analysis
-from ..core.logging import get_logger
-from ..models.analytics_event import AnalyticsEvent
-from ..services.analytics_service import log_analytics_event
+# Debug imports with try/except blocks
+try:
+    from ..services.openai_service import analyze_image_with_gpt4
+    print("✅ Successfully imported openai_service")
+except Exception as e:
+    print(f"❌ Failed import: openai_service - {e}")
+    analyze_image_with_gpt4 = None
+
+try:
+    from ..services.simple_image_analysis_service import simple_analyzer
+    print("✅ Successfully imported simple_image_analysis_service")
+except Exception as e:
+    print(f"❌ Failed import: simple_image_analysis_service - {e}")
+    simple_analyzer = None
+
+try:
+    from ..utils.image_processing import process_image_for_analysis
+    print("✅ Successfully imported utils.image_processing")
+except Exception as e:
+    print(f"❌ Failed import: utils.image_processing - {e}")
+    process_image_for_analysis = None
+
+try:
+    from ..core.logging import get_logger
+    print("✅ Successfully imported core.logging")
+except Exception as e:
+    print(f"❌ Failed import: core.logging - {e}")
+    get_logger = None
+
+try:
+    from ..models.analytics_event import AnalyticsEvent
+    print("✅ Successfully imported models.analytics_event")
+except Exception as e:
+    print(f"❌ Failed import: models.analytics_event - {e}")
+    AnalyticsEvent = None
+
+try:
+    from ..services.analytics_service import log_analytics_event
+    print("✅ Successfully imported services.analytics_service")
+except Exception as e:
+    print(f"❌ Failed import: services.analytics_service - {e}")
+    log_analytics_event = None
 # Import auth dependency
 try:
     from src.auth.auth_service import get_current_user_id
@@ -34,8 +70,13 @@ except ImportError:
     AUTH_AVAILABLE = False
     logger.warning("Auth service not available, analysis will be anonymous")
 
-# Set up logging
-logger = get_logger("image_analysis")
+# Set up logging with fallback
+if get_logger:
+    logger = get_logger("image_analysis")
+else:
+    import logging
+    logger = logging.getLogger("image_analysis")
+    print("⚠️ Using fallback logging due to import failure")
 
 # Load environment variables
 load_dotenv()
@@ -130,25 +171,56 @@ async def analyze_image(
                 raise HTTPException(status_code=400, detail="HEIC images not supported - pillow_heif dependency missing")
 
         # Process the image for analysis
-        processed_image = process_image_for_analysis(temp_file_path)
+        if process_image_for_analysis:
+            processed_image = process_image_for_analysis(temp_file_path)
+        else:
+            print("⚠️ process_image_for_analysis not available, using original image")
+            processed_image = temp_file_path
         
         # Use enhanced analysis (GPT-4 + CLIP)
         print("Starting enhanced analysis with GPT-4 Vision and CLIP")
-        analysis = await simple_analyzer.analyze_clothing_item(processed_image)
+        if simple_analyzer:
+            analysis = await simple_analyzer.analyze_clothing_item(processed_image)
+        else:
+            print("⚠️ simple_analyzer not available, using fallback analysis")
+            analysis = {
+                "name": "Analysis Failed - Service Unavailable",
+                "type": "clothing",
+                "subType": "unknown",
+                "dominantColors": [{"name": "unknown", "hex": "#000000"}],
+                "matchingColors": [{"name": "unknown", "hex": "#000000"}],
+                "style": ["casual"],
+                "season": ["all-season"],
+                "occasion": ["everyday"],
+                "metadata": {
+                    "visualAttributes": {
+                        "material": "unknown",
+                        "pattern": "unknown",
+                        "fit": "unknown",
+                        "sleeveLength": "unknown"
+                    }
+                }
+            }
         
         # Log analytics event
-        analytics_event = AnalyticsEvent(
-            user_id=current_user_id,
-            event_type="image_analyzed",
-            metadata={
-                "analysis_type": "enhanced",
-                "file_type": file.content_type,
-                "file_size": len(content),
-                "has_clothing_detected": bool(analysis.get("clothing_type")),
-                "confidence_score": analysis.get("confidence_score", 0)
-            }
-        )
-        log_analytics_event(analytics_event)
+        if AnalyticsEvent and log_analytics_event:
+            try:
+                analytics_event = AnalyticsEvent(
+                    user_id=current_user_id,
+                    event_type="image_analyzed",
+                    metadata={
+                        "analysis_type": "enhanced",
+                        "file_type": file.content_type,
+                        "file_size": len(content),
+                        "has_clothing_detected": bool(analysis.get("clothing_type")),
+                        "confidence_score": analysis.get("confidence_score", 0)
+                    }
+                )
+                log_analytics_event(analytics_event)
+            except Exception as analytics_error:
+                print(f"⚠️ Analytics logging failed: {analytics_error}")
+        else:
+            print("⚠️ Analytics not available, skipping event logging")
         
         # Clean up temporary files
         os.unlink(temp_file_path)
@@ -244,12 +316,16 @@ async def analyze_single_image(
             print(f"🔍 Image file size: {os.path.getsize(temp_path)} bytes")
             
             try:
-                analysis = await analyze_image_with_gpt4(temp_path)
-                print(f"✅ AI analysis completed successfully")
-                print(f"🔍 Full analysis result: {analysis}")
-                print(f"🔍 Generated name: {analysis.get('name', 'No name')}")
-                print(f"🔍 Analysis type: {analysis.get('type', 'No type')}")
-                print(f"🔍 Analysis subType: {analysis.get('subType', 'No subType')}")
+                if analyze_image_with_gpt4:
+                    analysis = await analyze_image_with_gpt4(temp_path)
+                    print(f"✅ AI analysis completed successfully")
+                    print(f"🔍 Full analysis result: {analysis}")
+                    print(f"🔍 Generated name: {analysis.get('name', 'No name')}")
+                    print(f"🔍 Analysis type: {analysis.get('type', 'No type')}")
+                    print(f"🔍 Analysis subType: {analysis.get('subType', 'No subType')}")
+                else:
+                    print("⚠️ analyze_image_with_gpt4 not available, using fallback")
+                    raise Exception("GPT-4 service not available")
             except Exception as gpt_error:
                 print(f"❌ GPT-4 analysis failed: {gpt_error}")
                 print(f"❌ GPT-4 error type: {type(gpt_error).__name__}")
