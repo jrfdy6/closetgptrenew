@@ -26,7 +26,13 @@ from ..utils.image_processing import process_image_for_analysis
 from ..core.logging import get_logger
 from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
-from ..routes.auth import get_current_user_id
+# Import auth dependency
+try:
+    from src.auth.auth_service import get_current_user_id
+    AUTH_AVAILABLE = True
+except ImportError:
+    AUTH_AVAILABLE = False
+    logger.warning("Auth service not available, analysis will be anonymous")
 
 # Set up logging
 logger = get_logger("image_analysis")
@@ -88,7 +94,7 @@ def convert_to_jpeg(image_url: str) -> str:
 @router.post("/analyze")
 async def analyze_image(
     file: UploadFile = File(...),
-    current_user_id: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Enhanced image analysis using both GPT-4 Vision and CLIP style analysis
@@ -184,7 +190,7 @@ async def analyze_image(
 @router.post("/analyze-image")
 async def analyze_single_image(
     image: dict,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Enhanced single image analysis using GPT-4 Vision + CLIP
@@ -278,7 +284,7 @@ async def analyze_single_image(
 @router.post("/analyze-image-legacy")
 async def analyze_single_image_legacy(
     image: dict,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Legacy single image analysis using only GPT-4 Vision
@@ -338,7 +344,7 @@ async def analyze_single_image_legacy(
 @router.post("/analyze-image-clip-only")
 async def analyze_single_image_clip_only(
     image: dict,
-    current_user_id: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Simple image analysis using GPT-4 Vision only
@@ -397,7 +403,7 @@ async def analyze_single_image_clip_only(
 @router.post("/analyze-batch")
 async def analyze_batch_images(
     images: List[dict],
-    current_user_id: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Enhanced batch image analysis using GPT-4 Vision + CLIP
@@ -489,7 +495,7 @@ async def analyze_batch_images(
 @router.post("/analyze-batch-legacy")
 async def analyze_batch_images_legacy(
     images: List[dict],
-    current_user_id: str = Depends(get_current_user_id)
+    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Legacy batch image analysis using only GPT-4 Vision
