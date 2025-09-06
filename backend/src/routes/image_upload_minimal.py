@@ -87,6 +87,47 @@ except ImportError:
     AUTH_AVAILABLE = False
     logger.warning("Auth service not available, uploads will be anonymous")
 
+@router.get("/create-firebase-bucket")
+async def create_firebase_bucket():
+    """Try to create a Firebase Storage bucket"""
+    try:
+        import os
+        import firebase_admin
+        from firebase_admin import storage
+        
+        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew")
+        bucket_name = f"{project_id}.appspot.com"
+        
+        logger.info(f"Attempting to create bucket: {bucket_name}")
+        
+        # Try to create the bucket
+        from google.cloud import storage as gcs
+        client = gcs.Client()
+        
+        try:
+            bucket = client.create_bucket(bucket_name, location="us-central1")
+            logger.info(f"Bucket created successfully: {bucket.name}")
+            return {
+                "success": True,
+                "bucket_name": bucket.name,
+                "message": "Bucket created successfully"
+            }
+        except Exception as create_error:
+            logger.error(f"Failed to create bucket: {create_error}")
+            return {
+                "success": False,
+                "error": str(create_error),
+                "message": "Failed to create bucket - may already exist or lack permissions"
+            }
+        
+    except Exception as e:
+        logger.error(f"Bucket creation test failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+
 @router.get("/test-firebase-upload")
 async def test_firebase_upload():
     """Test Firebase Storage upload with different bucket name formats"""
