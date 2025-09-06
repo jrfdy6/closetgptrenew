@@ -87,6 +87,38 @@ except ImportError:
     AUTH_AVAILABLE = False
     logger.warning("Auth service not available, uploads will be anonymous")
 
+@router.get("/debug-firebase")
+async def debug_firebase():
+    """Debug Firebase Storage configuration"""
+    try:
+        import os
+        from firebase_admin import storage
+        
+        debug_info = {
+            "firebase_initialized": len(firebase_admin._apps) > 0,
+            "environment_vars": {
+                "FIREBASE_PROJECT_ID": bool(os.environ.get("FIREBASE_PROJECT_ID")),
+                "FIREBASE_PRIVATE_KEY": bool(os.environ.get("FIREBASE_PRIVATE_KEY")),
+                "FIREBASE_CLIENT_EMAIL": bool(os.environ.get("FIREBASE_CLIENT_EMAIL")),
+            },
+            "project_id": os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET"),
+            "expected_bucket": f"{os.environ.get('FIREBASE_PROJECT_ID', 'unknown')}.appspot.com" if os.environ.get("FIREBASE_PROJECT_ID") else "NOT_SET"
+        }
+        
+        # Try to get the bucket
+        try:
+            bucket = storage.bucket()
+            debug_info["bucket_name"] = bucket.name
+            debug_info["bucket_exists"] = True
+        except Exception as e:
+            debug_info["bucket_error"] = str(e)
+            debug_info["bucket_exists"] = False
+            
+        return debug_info
+        
+    except Exception as e:
+        return {"error": str(e), "type": type(e).__name__}
+
 @router.post("/upload")
 async def upload_image(
     file: UploadFile = File(...),
