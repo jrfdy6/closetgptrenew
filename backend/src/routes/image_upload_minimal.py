@@ -140,7 +140,8 @@ async def test_firebase_upload():
         
         # Try different bucket name formats
         bucket_names_to_try = [
-            f"{project_id}.appspot.com",  # Default format
+            f"{project_id}.firebasestorage.app",  # New Firebase format
+            f"{project_id}.appspot.com",  # Old format
             f"{project_id}-default-rtdb",  # Alternative format
             f"{project_id}-storage",  # Another format
             project_id,  # Just project ID
