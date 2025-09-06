@@ -172,10 +172,36 @@ class DashboardService {
 
   private async getWardrobeStats(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching wardrobe stats from /api/wardrobe/wardrobe-stats');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/wardrobe-stats', user);
+      console.log('🔍 DEBUG: Fetching wardrobe stats from /api/wardrobe/');
+      const response = await this.makeAuthenticatedRequest('/api/wardrobe/', user);
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
-      return response.data || response || {};
+      
+      // Process the wardrobe items to create stats
+      const items = response.wardrobe_items || response || [];
+      const totalItems = Array.isArray(items) ? items.length : 0;
+      
+      // Calculate categories and colors from the actual items
+      const categories: { [key: string]: number } = {};
+      const colors: { [key: string]: number } = {};
+      
+      if (Array.isArray(items)) {
+        items.forEach((item: any) => {
+          // Count categories
+          const category = item.type || item.category || 'unknown';
+          categories[category] = (categories[category] || 0) + 1;
+          
+          // Count colors
+          const color = item.color || 'unknown';
+          colors[color] = (colors[color] || 0) + 1;
+        });
+      }
+      
+      return {
+        total_items: totalItems,
+        categories,
+        colors,
+        user_id: user.uid
+      };
     } catch (error) {
       console.error('Error fetching wardrobe stats:', error);
       // Return fallback data for production when backend is not ready
