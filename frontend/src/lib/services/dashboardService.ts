@@ -247,8 +247,8 @@ class DashboardService {
 
   private async getTodaysOutfit(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /api/outfit-history/today');
-      const response = await this.makeAuthenticatedRequest('/api/outfit-history/today', user);
+      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /api/today-suggestion');
+      const response = await this.makeAuthenticatedRequest('/api/today-suggestion', user);
       console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
       
       // Handle new suggestion format
