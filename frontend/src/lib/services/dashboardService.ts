@@ -217,10 +217,10 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history from /api/outfit-history/');
-      const response = await this.makeAuthenticatedRequest('/api/outfit-history/', user);
+      console.log('🔍 DEBUG: Fetching outfit history from /api/outfits');
+      const response = await this.makeAuthenticatedRequest('/api/outfits', user);
       console.log('🔍 DEBUG: Outfit history response:', response);
-      return response.outfitHistory || [];
+      return response || [];
     } catch (error) {
       console.error('Error fetching outfit history:', error);
       // Return empty array for production when backend is not ready
@@ -325,7 +325,7 @@ class DashboardService {
     // Calculate favorites from wardrobe items if available
     if (wardrobeStats && wardrobeStats.items) {
       const items = Array.isArray(wardrobeStats.items) ? wardrobeStats.items : [];
-      return items.filter((item: any) => item.is_favorite === true).length;
+      return items.filter((item: any) => item.favorite === true).length;
     }
     
     // Fallback: if no favorites count in stats, return 0
@@ -348,18 +348,18 @@ class DashboardService {
     console.log('🔍 DEBUG: Calculating outfits this week from:', outfitHistory);
     
     return outfitHistory.filter(outfit => {
-      // Try different possible date fields
-      const dateWorn = outfit.dateWorn || outfit.createdAt || outfit.wornAt || outfit.date_worn;
-      if (!dateWorn) return false;
+      // Use the createdAt field from the outfit data
+      const createdAt = outfit.createdAt || outfit.generated_at;
+      if (!createdAt) return false;
       
-      console.log('🔍 DEBUG: Checking outfit date:', dateWorn, 'for outfit:', outfit);
+      console.log('🔍 DEBUG: Checking outfit date:', createdAt, 'for outfit:', outfit);
       
       // Handle both timestamp and ISO string formats
       let outfitDate: Date;
-      if (typeof dateWorn === 'number') {
-        outfitDate = new Date(dateWorn);
+      if (typeof createdAt === 'number') {
+        outfitDate = new Date(createdAt);
       } else {
-        outfitDate = new Date(dateWorn);
+        outfitDate = new Date(createdAt);
       }
       
       const isThisWeek = outfitDate >= oneWeekAgo;
