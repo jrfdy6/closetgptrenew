@@ -89,40 +89,62 @@ except ImportError:
 
 @router.get("/test-firebase-upload")
 async def test_firebase_upload():
-    """Test Firebase Storage upload with a simple test file"""
+    """Test Firebase Storage upload with different bucket name formats"""
     try:
         import os
         import firebase_admin
         from firebase_admin import storage
         
-        # Create a simple test file
-        test_content = b"test image content"
-        test_filename = f"test-{uuid.uuid4()}.txt"
-        blob_name = f"test/{test_filename}"
+        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew")
         
-        logger.info(f"Testing Firebase Storage upload: {blob_name}")
+        # Try different bucket name formats
+        bucket_names_to_try = [
+            f"{project_id}.appspot.com",  # Default format
+            f"{project_id}-default-rtdb",  # Alternative format
+            f"{project_id}-storage",  # Another format
+            project_id,  # Just project ID
+        ]
         
-        # Get bucket
-        bucket = storage.bucket()
-        logger.info(f"Got bucket: {bucket.name}")
+        results = []
         
-        # Create blob and upload
-        blob = bucket.blob(blob_name)
-        logger.info(f"Created blob: {blob_name}")
-        
-        blob.upload_from_string(test_content, content_type="text/plain")
-        logger.info("Upload successful")
-        
-        # Make public
-        blob.make_public()
-        public_url = blob.public_url
-        logger.info(f"Public URL: {public_url}")
+        for bucket_name in bucket_names_to_try:
+            try:
+                logger.info(f"Trying bucket: {bucket_name}")
+                bucket = storage.bucket(bucket_name)
+                
+                # Create a simple test file
+                test_content = b"test image content"
+                test_filename = f"test-{uuid.uuid4()}.txt"
+                blob_name = f"test/{test_filename}"
+                
+                # Create blob and upload
+                blob = bucket.blob(blob_name)
+                blob.upload_from_string(test_content, content_type="text/plain")
+                
+                # Make public
+                blob.make_public()
+                public_url = blob.public_url
+                
+                results.append({
+                    "bucket_name": bucket_name,
+                    "success": True,
+                    "public_url": public_url
+                })
+                
+                logger.info(f"Success with bucket: {bucket_name}")
+                break  # Stop on first success
+                
+            except Exception as e:
+                results.append({
+                    "bucket_name": bucket_name,
+                    "success": False,
+                    "error": str(e)
+                })
+                logger.warning(f"Failed with bucket {bucket_name}: {e}")
         
         return {
-            "success": True,
-            "blob_name": blob_name,
-            "public_url": public_url,
-            "bucket_name": bucket.name
+            "results": results,
+            "project_id": project_id
         }
         
     except Exception as e:
