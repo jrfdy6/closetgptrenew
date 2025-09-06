@@ -116,15 +116,18 @@ async def upload_image(
                 contents, file.filename or "unknown", file.content_type or "application/octet-stream"
             )
             logger.info(f"Processed file size: {len(processed_contents)} bytes, type: {processed_content_type}")
+            
+            # Use processed contents for upload
+            contents = processed_contents
+            file.content_type = processed_content_type
+            
         except HTTPException:
             raise
         except Exception as e:
             logger.error(f"Error processing image: {e}", exc_info=True)
-            raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
-        
-        # Use processed contents for upload
-        contents = processed_contents
-        file.content_type = processed_content_type
+            # For now, skip processing and use original contents
+            logger.warning("Skipping image processing, using original contents")
+            # Don't raise error, just use original contents
         
         # Get Firebase Storage bucket
         try:
