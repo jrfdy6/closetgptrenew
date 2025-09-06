@@ -161,6 +161,15 @@ async def debug_firebase():
             debug_info["bucket_error"] = str(e)
             debug_info["bucket_exists"] = False
             
+        # Try to list buckets to see what's available
+        try:
+            from google.cloud import storage as gcs
+            client = gcs.Client()
+            buckets = list(client.list_buckets())
+            debug_info["available_buckets"] = [bucket.name for bucket in buckets]
+        except Exception as e:
+            debug_info["bucket_list_error"] = str(e)
+            
         return debug_info
         
     except Exception as e:
