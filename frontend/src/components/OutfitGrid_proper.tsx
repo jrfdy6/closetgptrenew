@@ -246,11 +246,11 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
+    <div className="bg-transparent p-6 mb-6">
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Search Input */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Search Outfits
           </label>
           <div className="flex gap-2">
@@ -268,7 +268,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 
         {/* Occasion Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Occasion
           </label>
           <Select
@@ -291,7 +291,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 
         {/* Style Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Style
           </label>
           <Select
@@ -314,7 +314,7 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 
         {/* Sort By */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Sort By
           </label>
           <Select
