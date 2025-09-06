@@ -109,12 +109,26 @@ async def get_forgotten_gems(
             if ts is None:
                 return 999 if item_dict.get('wearCount', 0) == 0 else 365
             try:
-                seconds = ts / 1000.0 if ts > 1e12 else ts
+                # Handle different timestamp formats
+                if hasattr(ts, 'timestamp'):
+                    # Firestore DatetimeWithNanoseconds object
+                    seconds = ts.timestamp()
+                elif isinstance(ts, (int, float)):
+                    # Already a timestamp
+                    seconds = ts / 1000.0 if ts > 1e12 else ts
+                else:
+                    # Try to convert to datetime first
+                    if hasattr(ts, 'timestamp'):
+                        seconds = ts.timestamp()
+                    else:
+                        seconds = float(ts)
+                
                 if 946684800 <= seconds <= 4102444800:
                     last = datetime.fromtimestamp(seconds)
                     return max(0, (now - last).days)
                 return 365
-            except Exception:
+            except Exception as e:
+                print(f"🔍 DEBUG: Error processing lastWorn timestamp: {e}, type: {type(ts)}")
                 return 365
 
         scored: List[ForgottenItem] = []
@@ -141,6 +155,20 @@ async def get_forgotten_gems(
             if score < min_rediscovery_potential:
                 continue
 
+            # Convert lastWorn to timestamp if it's a datetime object
+            last_worn_ts = it.get('lastWorn')
+            if last_worn_ts is not None:
+                try:
+                    if hasattr(last_worn_ts, 'timestamp'):
+                        # Firestore DatetimeWithNanoseconds object
+                        last_worn_ts = int(last_worn_ts.timestamp() * 1000)  # Convert to milliseconds
+                    elif not isinstance(last_worn_ts, int):
+                        # Try to convert to int
+                        last_worn_ts = int(last_worn_ts)
+                except Exception as e:
+                    print(f"🔍 DEBUG: Error converting lastWorn to timestamp: {e}")
+                    last_worn_ts = None
+
             fi = ForgottenItem(
                 id=it.get('id', ''),
                 name=it.get('name', f"{it.get('type', 'Item').title()}"),
@@ -148,7 +176,7 @@ async def get_forgotten_gems(
                 imageUrl=it.get('imageUrl', '/placeholder.svg'),
                 color=it.get('color', 'unknown'),
                 style=it.get('style', []) if isinstance(it.get('style', []), list) else [],
-                lastWorn=it.get('lastWorn'),
+                lastWorn=last_worn_ts,
                 daysSinceWorn=days_since_worn,
                 usageCount=wear_count,
                 favoriteScore=5.0 if is_fav else 0.0,
