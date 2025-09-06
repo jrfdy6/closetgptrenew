@@ -58,14 +58,9 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
         user_data = user_doc.to_dict()
         logger.info(f"🔍 DEBUG: Profile data retrieved from Firestore: {user_data}")
         
-        return {
-            "user_id": current_user.id,
-            "email": user_data.get('email', current_user.email),
-            "name": user_data.get('name', current_user.name),
-            "avatar_url": user_data.get('avatar_url'),
-            "created_at": user_data.get('created_at', current_user.createdAt),
-            "updated_at": user_data.get('updated_at', current_user.updatedAt)
-        }
+        # Return the full user profile data instead of just basic fields
+        # This includes measurements, style preferences, and all other profile data
+        return user_data
         
     except Exception as e:
         logger.error(f"Failed to get user profile: {e}")
