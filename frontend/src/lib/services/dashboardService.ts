@@ -200,7 +200,8 @@ class DashboardService {
         total_items: totalItems,
         categories,
         colors,
-        user_id: user.uid
+        user_id: user.uid,
+        items: items // Include items for favorites calculation
       };
     } catch (error) {
       console.error('Error fetching wardrobe stats:', error);
@@ -321,6 +322,12 @@ class DashboardService {
       return wardrobeStats.favorites;
     }
     
+    // Calculate favorites from wardrobe items if available
+    if (wardrobeStats && wardrobeStats.items) {
+      const items = Array.isArray(wardrobeStats.items) ? wardrobeStats.items : [];
+      return items.filter((item: any) => item.is_favorite === true).length;
+    }
+    
     // Fallback: if no favorites count in stats, return 0
     return 0;
   }
@@ -338,9 +345,14 @@ class DashboardService {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     
+    console.log('🔍 DEBUG: Calculating outfits this week from:', outfitHistory);
+    
     return outfitHistory.filter(outfit => {
-      const dateWorn = outfit.dateWorn;
+      // Try different possible date fields
+      const dateWorn = outfit.dateWorn || outfit.createdAt || outfit.wornAt || outfit.date_worn;
       if (!dateWorn) return false;
+      
+      console.log('🔍 DEBUG: Checking outfit date:', dateWorn, 'for outfit:', outfit);
       
       // Handle both timestamp and ISO string formats
       let outfitDate: Date;
@@ -350,7 +362,10 @@ class DashboardService {
         outfitDate = new Date(dateWorn);
       }
       
-      return outfitDate >= oneWeekAgo;
+      const isThisWeek = outfitDate >= oneWeekAgo;
+      console.log('🔍 DEBUG: Outfit date:', outfitDate, 'is this week:', isThisWeek);
+      
+      return isThisWeek;
     }).length;
   }
 
