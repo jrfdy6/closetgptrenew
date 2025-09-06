@@ -77,6 +77,7 @@ async def update_user_profile(
     """Update current user's profile."""
     try:
         logger.info(f"🔍 DEBUG: Updating profile for user: {current_user.id}")
+        logger.info(f"🔍 DEBUG: Profile data received: {profile_data}")
         
         # Check if Firebase is available
         if not firebase_initialized:
@@ -88,22 +89,55 @@ async def update_user_profile(
         
         user_ref = db.collection('users').document(current_user.id)
         
+        # Prepare update data with all profile fields
         update_data = {
             'name': profile_data.get('name'),
             'email': profile_data.get('email'),
             'updated_at': int(time.time())  # Use timestamp like wardrobe.py
         }
         
-        user_ref.update(update_data)
+        # Add all the detailed profile fields if they exist
+        if 'gender' in profile_data:
+            update_data['gender'] = profile_data['gender']
+        if 'measurements' in profile_data:
+            update_data['measurements'] = profile_data['measurements']
+        if 'stylePreferences' in profile_data:
+            update_data['stylePreferences'] = profile_data['stylePreferences']
+        if 'preferences' in profile_data:
+            update_data['preferences'] = profile_data['preferences']
+        if 'bodyType' in profile_data:
+            update_data['bodyType'] = profile_data['bodyType']
+        if 'skinTone' in profile_data:
+            update_data['skinTone'] = profile_data['skinTone']
+        if 'fitPreference' in profile_data:
+            update_data['fitPreference'] = profile_data['fitPreference']
+        if 'sizePreference' in profile_data:
+            update_data['sizePreference'] = profile_data['sizePreference']
+        if 'colorPalette' in profile_data:
+            update_data['colorPalette'] = profile_data['colorPalette']
+        if 'stylePersonality' in profile_data:
+            update_data['stylePersonality'] = profile_data['stylePersonality']
+        if 'materialPreferences' in profile_data:
+            update_data['materialPreferences'] = profile_data['materialPreferences']
+        if 'fitPreferences' in profile_data:
+            update_data['fitPreferences'] = profile_data['fitPreferences']
+        if 'comfortLevel' in profile_data:
+            update_data['comfortLevel'] = profile_data['comfortLevel']
+        if 'preferredBrands' in profile_data:
+            update_data['preferredBrands'] = profile_data['preferredBrands']
+        if 'budget' in profile_data:
+            update_data['budget'] = profile_data['budget']
+        if 'avatar_url' in profile_data:
+            update_data['avatar_url'] = profile_data['avatar_url']
+        
+        # Use set() instead of update() to create the document if it doesn't exist
+        user_ref.set(update_data, merge=True)
         
         logger.info(f"User profile updated successfully: {current_user.id}")
+        logger.info(f"🔍 DEBUG: Updated profile data: {update_data}")
         
-        return {
-            "user_id": current_user.id,
-            "email": profile_data.get('email'),
-            "name": profile_data.get('name'),
-            "updated_at": update_data['updated_at']
-        }
+        # Return the updated profile data
+        return update_data
         
     except Exception as e:
         logger.error(f"Failed to update user profile: {e}")
