@@ -374,24 +374,25 @@ class DashboardService {
   }
 
   private calculateOverallProgress(wardrobeStats: any, trendingStyles: any): number {
-    // Calculate overall progress based on multiple factors
-    const styleGoalsScore = this.calculateStyleGoals(wardrobeStats, trendingStyles) / 5 * 100;
-    const wardrobeSizeScore = Math.min((wardrobeStats.total_items || 0) / 100 * 100, 100);
-    const colorVarietyScore = this.calculateColorVarietyScore(wardrobeStats);
-    const seasonalBalanceScore = this.calculateSeasonalBalanceScore(wardrobeStats);
+    // Calculate overall progress based on style collections completion
+    const collections = this.buildStyleCollections(wardrobeStats, trendingStyles);
     
-    const factors = [styleGoalsScore, wardrobeSizeScore, colorVarietyScore, seasonalBalanceScore];
-    const weights = [0.2, 0.3, 0.25, 0.25];
-    const weightedSum = factors.reduce((sum, factor, index) => sum + factor * weights[index], 0);
+    // Calculate average completion of style collections
+    const totalProgress = collections.reduce((sum, collection) => {
+      const completion = Math.min(collection.progress / collection.target * 100, 100);
+      return sum + completion;
+    }, 0);
     
-    console.log('🔍 DEBUG: Overall Progress Calculation:');
-    console.log('  - Style Goals:', styleGoalsScore, '%');
-    console.log('  - Wardrobe Size:', wardrobeSizeScore, '%');
-    console.log('  - Color Variety:', colorVarietyScore, '%');
-    console.log('  - Seasonal Balance:', seasonalBalanceScore, '%');
-    console.log('  - Weighted Sum:', weightedSum, '%');
+    const averageProgress = totalProgress / collections.length;
     
-    return Math.round(weightedSum);
+    console.log('🔍 DEBUG: Overall Progress Calculation (Style Collections Based):');
+    collections.forEach(collection => {
+      const completion = Math.min(collection.progress / collection.target * 100, 100);
+      console.log(`  - ${collection.name}: ${collection.progress}/${collection.target} (${Math.round(completion)}%)`);
+    });
+    console.log('  - Average Progress:', Math.round(averageProgress), '%');
+    
+    return Math.round(averageProgress);
   }
 
   private calculateColorVarietyScore(wardrobeStats: any): number {
