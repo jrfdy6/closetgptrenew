@@ -12,6 +12,31 @@ class AnalyzeImagePayload(BaseModel):
     image_url: Optional[str] = None
     image: Optional[dict] = None
 
+def normalize_analysis(analysis: dict) -> dict:
+    """
+    Normalize AI analysis results to match expected frontend fields
+    """
+    return {
+        "name": analysis.get("name") or "Analyzed Item",
+        "type": analysis.get("type") or "clothing",
+        "clothing_type": analysis.get("type") or "clothing",  # For frontend compatibility
+        "color": analysis.get("color") or "unknown",
+        "primary_color": analysis.get("color") or "unknown",  # For frontend compatibility
+        "style": analysis.get("style") or "casual",
+        "occasion": analysis.get("occasion") or "everyday",
+        "season": analysis.get("season") or "all-season",
+        "material": analysis.get("material") or "unknown",
+        "fit": analysis.get("fit") or "unknown",
+        "sleeveLength": analysis.get("sleeveLength") or "unknown",
+        "pattern": analysis.get("pattern") or "solid",
+        "confidence": analysis.get("confidence", 0.5),
+        "dominantColors": analysis.get("dominantColors", []),
+        "matchingColors": analysis.get("matchingColors", []),
+        "subType": analysis.get("subType") or "",
+        "brand": analysis.get("brand") or "",
+        "gender": analysis.get("gender") or "unisex"
+    }
+
 async def perform_clothing_analysis(image_path: str, image_url: str, file_size: int) -> Dict[str, Any]:
     """
     Perform real AI analysis using GPT-4 Vision
@@ -210,8 +235,11 @@ async def analyze_image(
             # Perform real AI analysis
             analysis = await perform_clothing_analysis(temp_path, image_url, file_size)
             
+            # Normalize analysis results for frontend compatibility
+            normalized_analysis = normalize_analysis(analysis)
+            
             logger.info("GPT-4 Vision analysis completed successfully")
-            return {"analysis": analysis}
+            return {"analysis": normalized_analysis}
             
         finally:
             # Clean up temporary file

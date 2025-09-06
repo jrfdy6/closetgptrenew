@@ -317,12 +317,12 @@ export default function WardrobeGrid({
               {/* Season and Occasion */}
               {(item.season || item.occasion) && (
                 <div className="flex flex-wrap gap-1">
-                  {item.season?.slice(0, 2).map((season, index) => (
+                  {safeSlice(item.season, 0, 2).map((season, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {season}
                     </Badge>
                   ))}
-                  {item.occasion?.slice(0, 1).map((occasion, index) => (
+                  {safeSlice(item.occasion, 0, 1).map((occasion, index) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {occasion}
                     </Badge>
