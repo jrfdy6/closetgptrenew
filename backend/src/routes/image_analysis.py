@@ -235,9 +235,43 @@ async def analyze_single_image(
         try:
             # Use direct GPT-4 Vision analysis for better name generation
             print(f"🔍 Starting AI analysis for image at: {temp_path}")
-            analysis = await analyze_image_with_gpt4(temp_path)
-            print(f"✅ AI analysis completed successfully")
-            print(f"🔍 Generated name: {analysis.get('name', 'No name')}")
+            print(f"🔍 Image file exists: {os.path.exists(temp_path)}")
+            print(f"🔍 Image file size: {os.path.getsize(temp_path)} bytes")
+            
+            try:
+                analysis = await analyze_image_with_gpt4(temp_path)
+                print(f"✅ AI analysis completed successfully")
+                print(f"🔍 Full analysis result: {analysis}")
+                print(f"🔍 Generated name: {analysis.get('name', 'No name')}")
+                print(f"🔍 Analysis type: {analysis.get('type', 'No type')}")
+                print(f"🔍 Analysis subType: {analysis.get('subType', 'No subType')}")
+            except Exception as gpt_error:
+                print(f"❌ GPT-4 analysis failed: {gpt_error}")
+                print(f"❌ GPT-4 error type: {type(gpt_error).__name__}")
+                import traceback
+                print(f"❌ GPT-4 traceback: {traceback.format_exc()}")
+                
+                # Fallback to basic analysis
+                analysis = {
+                    "name": "Analysis Failed",
+                    "type": "clothing",
+                    "subType": "unknown",
+                    "dominantColors": [{"name": "unknown", "hex": "#000000"}],
+                    "matchingColors": [{"name": "unknown", "hex": "#000000"}],
+                    "style": ["casual"],
+                    "season": ["all-season"],
+                    "occasion": ["everyday"],
+                    "metadata": {
+                        "visualAttributes": {
+                            "material": "unknown",
+                            "pattern": "unknown",
+                            "fit": "unknown",
+                            "sleeveLength": "unknown"
+                        }
+                    },
+                    "error": str(gpt_error)
+                }
+                print(f"🔍 Using fallback analysis: {analysis}")
             
             # Log analytics event
             analytics_event = AnalyticsEvent(
