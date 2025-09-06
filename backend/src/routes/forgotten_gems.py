@@ -197,6 +197,20 @@ async def get_forgotten_gems(
                 wc = int(it.get('wearCount', 0) or 0)
                 fav = bool(it.get('isFavorite', False))
                 basic_score = 30.0 + min(dsw / 10.0, 30.0) - min(wc * 3.0, 15.0) + (5.0 if fav else 0.0)
+                # Convert lastWorn to timestamp if it's a datetime object
+                last_worn_ts = it.get('lastWorn')
+                if last_worn_ts is not None:
+                    try:
+                        if hasattr(last_worn_ts, 'timestamp'):
+                            # Firestore DatetimeWithNanoseconds object
+                            last_worn_ts = int(last_worn_ts.timestamp() * 1000)  # Convert to milliseconds
+                        elif not isinstance(last_worn_ts, int):
+                            # Try to convert to int
+                            last_worn_ts = int(last_worn_ts)
+                    except Exception as e:
+                        print(f"🔍 DEBUG: Error converting lastWorn to timestamp in fallback: {e}")
+                        last_worn_ts = None
+
                 fi = ForgottenItem(
                     id=it.get('id', ''),
                     name=it.get('name', f"{it.get('type', 'Item').title()}"),
@@ -204,7 +218,7 @@ async def get_forgotten_gems(
                     imageUrl=it.get('imageUrl', '/placeholder.svg'),
                     color=it.get('color', 'unknown'),
                     style=it.get('style', []) if isinstance(it.get('style', []), list) else [],
-                    lastWorn=it.get('lastWorn'),
+                    lastWorn=last_worn_ts,
                     daysSinceWorn=dsw,
                     usageCount=wc,
                     favoriteScore=5.0 if fav else 0.0,
