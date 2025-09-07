@@ -640,8 +640,8 @@ class DashboardService {
     const seasonalGaps = this.analyzeSeasonalGaps(categories, totalItems);
     gaps.push(...seasonalGaps);
     
-    // Check for style diversity gaps
-    const styleGaps = this.analyzeStyleGaps(categories, totalItems);
+    // Check for style diversity gaps - analyze by style attributes
+    const styleGaps = this.analyzeStyleGapsFromItems(items, totalItems);
     gaps.push(...styleGaps);
     
     // Check for color variety gaps
@@ -683,27 +683,62 @@ class DashboardService {
   private analyzeStyleGaps(categories: any, totalItems: number): WardrobeGap[] {
     const gaps: WardrobeGap[] = [];
     
-    // Formal wear - look for dress shirts, blazers, dress shoes
-    // Note: These might be categorized as 'shirt', 'jacket', 'shoes' in the actual data
-    const formalItems = (categories['dress_shirt'] || 0) + (categories['blazer'] || 0) + (categories['dress_shoes'] || 0);
-    if (formalItems < 2) {
+    // We need to analyze items by style, not just type
+    // This will be handled in the main buildWardrobeGaps method
+    // where we have access to the full items array
+    
+    return gaps;
+  }
+
+  private analyzeStyleGapsFromItems(items: any[], totalItems: number): WardrobeGap[] {
+    const gaps: WardrobeGap[] = [];
+    
+    // Define formal style keywords
+    const formalStyles = ['formal', 'business', 'professional', 'dress', 'suit', 'blazer', 'dress_shirt'];
+    const casualStyles = ['casual', 'streetwear', 'urban', 'sporty', 'relaxed', 'comfortable'];
+    
+    // Count formal and casual items based on style attributes
+    let formalItems = 0;
+    let casualItems = 0;
+    
+    items.forEach(item => {
+      const styles = item.style || [];
+      const styleString = styles.join(' ').toLowerCase();
+      
+      // Check if item has formal characteristics
+      const hasFormalStyle = formalStyles.some(style => styleString.includes(style));
+      const hasCasualStyle = casualStyles.some(style => styleString.includes(style));
+      
+      // Count as formal if it has formal styles and is appropriate type
+      if (hasFormalStyle && ['jacket', 'pants', 'shirt', 'shoes'].includes(item.type)) {
+        formalItems++;
+      }
+      
+      // Count as casual if it has casual styles or is a casual type
+      if (hasCasualStyle || ['shirt', 'pants', 'shorts', 'shoes'].includes(item.type)) {
+        casualItems++;
+      }
+    });
+    
+    console.log('🔍 DEBUG: Style analysis - Formal items:', formalItems, 'Casual items:', casualItems);
+    
+    // Check for formal wear gaps
+    if (formalItems < 3) {
       gaps.push({
         category: 'Style Variety',
-        description: `Limited formal wear (${formalItems} items) - consider dress shirts, blazers, or dress shoes`,
+        description: `Limited formal wear (${formalItems} items) - consider blazers, dress pants, or dress shirts`,
         priority: 'low',
-        suggestedItems: ['dress_shirt', 'blazer', 'dress_shoes']
+        suggestedItems: ['blazer', 'dress_pants', 'dress_shirt']
       });
     }
     
-    // Casual wear - map actual item types to casual categories
-    // shirts, pants, shorts, shoes can all be casual wear
-    const casualItems = (categories['shirt'] || 0) + (categories['pants'] || 0) + (categories['shorts'] || 0) + (categories['shoes'] || 0);
-    if (casualItems < 10) { // Adjusted threshold since you have many items
+    // Check for casual wear gaps (adjusted threshold)
+    if (casualItems < 20) {
       gaps.push({
         category: 'Style Variety',
-        description: `Limited casual wear (${casualItems} items) - consider more shirts, pants, shorts, or shoes`,
+        description: `Limited casual wear (${casualItems} items) - consider more casual shirts, pants, or shoes`,
         priority: 'medium',
-        suggestedItems: ['shirt', 'pants', 'shorts', 'shoes']
+        suggestedItems: ['shirt', 'pants', 'shoes']
       });
     }
     
