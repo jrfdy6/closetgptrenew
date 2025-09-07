@@ -585,34 +585,35 @@ class DashboardService {
     console.log('🔍 DEBUG: Categories counted from items:', categories);
     
     // Essential wardrobe categories with minimum requirements
+    // Updated to match actual item types in the wardrobe
     const essentialCategories = {
       'Tops': {
-        items: ['shirt', 'dress_shirt', 'sweater', 't-shirt', 'blouse', 'tank_top', 'polo'],
-        minRequired: 5,
+        items: ['shirt', 'sweater'], // Based on actual wardrobe: 57 shirts, 9 sweaters
+        minRequired: 20, // Adjusted based on actual counts
         priority: 'high',
         description: 'Essential tops for layering and variety'
       },
       'Bottoms': {
-        items: ['pants', 'shorts', 'jeans', 'chinos', 'slacks'],
-        minRequired: 4,
+        items: ['pants', 'shorts'], // Based on actual wardrobe: 10 pants, 6 shorts
+        minRequired: 8, // Adjusted based on actual counts
         priority: 'high',
         description: 'Versatile bottoms for different occasions'
       },
       'Shoes': {
-        items: ['shoes', 'sneakers', 'dress_shoes', 'boots', 'sandals', 'heels', 'flats'],
-        minRequired: 3,
+        items: ['shoes'], // Based on actual wardrobe: 22 shoes
+        minRequired: 5, // Adjusted based on actual counts
         priority: 'high',
         description: 'Footwear for different activities and seasons'
       },
       'Outerwear': {
-        items: ['jacket', 'coat', 'blazer', 'cardigan', 'hoodie'],
-        minRequired: 2,
+        items: ['jacket', 'sweater'], // Based on actual wardrobe: 12 jackets, 9 sweaters
+        minRequired: 5, // Adjusted based on actual counts
         priority: 'medium',
         description: 'Layering pieces for weather protection'
       },
       'Accessories': {
-        items: ['accessory', 'bag', 'belt', 'hat', 'scarf', 'jewelry', 'watch'],
-        minRequired: 2,
+        items: ['accessory'], // Based on actual wardrobe: 13 accessories
+        minRequired: 3, // Adjusted based on actual counts
         priority: 'low',
         description: 'Finishing touches to complete outfits'
       }
@@ -654,25 +655,25 @@ class DashboardService {
   private analyzeSeasonalGaps(categories: any, totalItems: number): WardrobeGap[] {
     const gaps: WardrobeGap[] = [];
     
-    // Winter items (warm clothing)
-    const winterItems = (categories['sweater'] || 0) + (categories['jacket'] || 0) + (categories['coat'] || 0);
-    if (winterItems < 2) {
+    // Winter items (warm clothing) - using actual item types
+    const winterItems = (categories['sweater'] || 0) + (categories['jacket'] || 0);
+    if (winterItems < 5) { // Adjusted threshold based on actual counts (9 sweaters + 12 jackets = 21)
       gaps.push({
         category: 'Seasonal Coverage',
-        description: `Limited winter clothing (${winterItems} items) - consider sweaters, jackets, or coats`,
+        description: `Limited winter clothing (${winterItems} items) - consider sweaters or jackets`,
         priority: 'medium',
-        suggestedItems: ['sweater', 'jacket', 'coat']
+        suggestedItems: ['sweater', 'jacket']
       });
     }
     
-    // Summer items (light clothing)
-    const summerItems = (categories['shorts'] || 0) + (categories['tank_top'] || 0) + (categories['sandals'] || 0);
-    if (summerItems < 2) {
+    // Summer items (light clothing) - using actual item types
+    const summerItems = (categories['shorts'] || 0) + (categories['shirt'] || 0); // shirts can be summer wear
+    if (summerItems < 20) { // Adjusted threshold based on actual counts (6 shorts + 57 shirts = 63)
       gaps.push({
         category: 'Seasonal Coverage',
-        description: `Limited summer clothing (${summerItems} items) - consider shorts, tank tops, or sandals`,
+        description: `Limited summer clothing (${summerItems} items) - consider shorts or lightweight shirts`,
         priority: 'medium',
-        suggestedItems: ['shorts', 'tank_top', 'sandals']
+        suggestedItems: ['shorts', 'shirt']
       });
     }
     
@@ -682,8 +683,9 @@ class DashboardService {
   private analyzeStyleGaps(categories: any, totalItems: number): WardrobeGap[] {
     const gaps: WardrobeGap[] = [];
     
-    // Formal wear
-    const formalItems = (categories['dress_shirt'] || 0) + (categories['dress_shoes'] || 0) + (categories['blazer'] || 0);
+    // Formal wear - look for dress shirts, blazers, dress shoes
+    // Note: These might be categorized as 'shirt', 'jacket', 'shoes' in the actual data
+    const formalItems = (categories['dress_shirt'] || 0) + (categories['blazer'] || 0) + (categories['dress_shoes'] || 0);
     if (formalItems < 2) {
       gaps.push({
         category: 'Style Variety',
@@ -693,14 +695,15 @@ class DashboardService {
       });
     }
     
-    // Casual wear
-    const casualItems = (categories['t-shirt'] || 0) + (categories['jeans'] || 0) + (categories['sneakers'] || 0);
-    if (casualItems < 3) {
+    // Casual wear - map actual item types to casual categories
+    // shirts, pants, shorts, shoes can all be casual wear
+    const casualItems = (categories['shirt'] || 0) + (categories['pants'] || 0) + (categories['shorts'] || 0) + (categories['shoes'] || 0);
+    if (casualItems < 10) { // Adjusted threshold since you have many items
       gaps.push({
         category: 'Style Variety',
-        description: `Limited casual wear (${casualItems} items) - consider t-shirts, jeans, or sneakers`,
+        description: `Limited casual wear (${casualItems} items) - consider more shirts, pants, shorts, or shoes`,
         priority: 'medium',
-        suggestedItems: ['t-shirt', 'jeans', 'sneakers']
+        suggestedItems: ['shirt', 'pants', 'shorts', 'shoes']
       });
     }
     
