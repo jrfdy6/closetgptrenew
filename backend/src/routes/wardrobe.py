@@ -104,10 +104,6 @@ except Exception as e:
 async def debug_test():
     return {"status": "ok", "message": "Router loading test endpoint"}
 
-@router.get("/wardrobe-stats")
-async def wardrobe_stats_debug():
-    return {"status": "ok"}
-
 @router.get("/top-worn-items")
 async def get_top_worn_items(
     current_user: Optional[UserProfile] = Depends(get_current_user_optional),
