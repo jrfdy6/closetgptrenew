@@ -105,15 +105,16 @@ class DashboardService {
     console.log('🔍 DEBUG: Token length:', token.length);
 
     // Call backend directly using NEXT_PUBLIC_BACKEND_URL
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     
     // Ensure endpoint starts with /api/ for backend routes
     const backendEndpoint = endpoint.startsWith('/api/') ? endpoint : `/api${endpoint}`;
-    const fullUrl = endpoint.startsWith('http') ? endpoint : `${backendUrl}${backendEndpoint}`;
+    const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${backendEndpoint}`;
     
     console.log('🔍 DEBUG: Making request to:', fullUrl);
 
     const response = await fetch(fullUrl, {
+      method: 'GET', // Default to GET, can be overridden in options
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -126,7 +127,16 @@ class DashboardService {
       console.error('🔍 DEBUG: API request failed:', response.status, response.statusText);
       const errorText = await response.text().catch(() => 'Unable to read error');
       console.error('🔍 DEBUG: Error details:', errorText);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      
+      // Try to parse error as JSON for better error messages
+      let errorData = {};
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        // If JSON parsing fails, use the text error
+      }
+      
+      throw new Error(`API request failed: ${response.status} ${JSON.stringify(errorData)}`);
     }
 
     return response.json();
