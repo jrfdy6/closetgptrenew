@@ -130,6 +130,7 @@ print("🔍 DEBUG: Backend restart - checking if this fixes the timeout issue...
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
+    ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix - ENABLED for wardrobe-stats
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
     ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router
     ("src.routes.image_analysis", ""),   # Full image analysis router with debug logging
@@ -137,7 +138,6 @@ ROUTERS = [
     # ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.forgotten_gems", "/api/wardrobe"),  # Forgotten gems router - mounted at /api/wardrobe/insights
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
-    ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix - ENABLED for wardrobe-stats
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
     ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
