@@ -8,6 +8,7 @@ import logging
 
 # Set up basic logging
 logger = logging.getLogger(__name__)
+logger.info("✅ wardrobe router loaded")
 
 # Optional imports with graceful fallbacks
 try:
