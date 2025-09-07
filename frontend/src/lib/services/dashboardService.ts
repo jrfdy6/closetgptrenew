@@ -104,14 +104,14 @@ class DashboardService {
     console.log('🔍 DEBUG: Firebase token obtained:', token.substring(0, 20) + '...');
     console.log('🔍 DEBUG: Token length:', token.length);
 
-    // Call backend directly using NEXT_PUBLIC_BACKEND_URL
-    const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    // Call FastAPI backend directly - don't use Next.js API routes
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     
     // Ensure endpoint starts with /api/ for backend routes
     const backendEndpoint = endpoint.startsWith('/api/') ? endpoint : `/api${endpoint}`;
     const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${backendEndpoint}`;
     
-    console.log('🔍 DEBUG: Making request to:', fullUrl);
+    console.log('🔍 DEBUG: Making request to FastAPI backend:', fullUrl);
 
     const response = await fetch(fullUrl, {
       method: 'GET', // Default to GET, can be overridden in options
@@ -867,12 +867,9 @@ class DashboardService {
       
       console.log('🧪 TEST: Token obtained, length:', token.length);
       
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-      if (!backendUrl) {
-        throw new Error('NEXT_PUBLIC_BACKEND_URL not configured');
-      }
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
       
-      const testUrl = `${backendUrl}/wardrobe/wardrobe-stats`;
+      const testUrl = `${API_BASE_URL}/api/wardrobe/wardrobe-stats`;
       console.log('🧪 TEST: Testing URL:', testUrl);
       
       const response = await fetch(testUrl, {
