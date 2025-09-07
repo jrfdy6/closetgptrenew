@@ -183,7 +183,9 @@ class DashboardService {
   private async getWardrobeStats(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching wardrobe stats from /api/wardrobe/wardrobe-stats');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/wardrobe-stats', user);
+      const response = await this.makeAuthenticatedRequest('/api/wardrobe/wardrobe-stats', user, {
+        method: 'GET'
+      });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       
       // Process the wardrobe items to create stats
@@ -241,7 +243,9 @@ class DashboardService {
   private async getTrendingStyles(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching trending styles from /api/wardrobe/trending-styles');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/trending-styles', user);
+      const response = await this.makeAuthenticatedRequest('/api/wardrobe/trending-styles', user, {
+        method: 'GET'
+      });
       console.log('🔍 DEBUG: Trending styles response:', response);
       return response.data || response || {};
     } catch (error) {
@@ -295,7 +299,9 @@ class DashboardService {
   private async getTopWornItems(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching top worn items from /api/wardrobe/top-worn-items');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/top-worn-items?limit=5', user);
+      const response = await this.makeAuthenticatedRequest('/api/wardrobe/top-worn-items?limit=5', user, {
+        method: 'GET'
+      });
       console.log('🔍 DEBUG: Top worn items response:', response);
       return response.data || response || {};
     } catch (error) {
