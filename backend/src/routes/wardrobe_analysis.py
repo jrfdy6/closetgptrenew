@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
-from ..auth.auth_service import get_current_user
+from ..auth.auth_service import get_current_user_id
 from ..custom_types.profile import UserProfile
 from datetime import datetime
 
@@ -292,7 +292,7 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
         )
 
 @router.get("/wardrobe-stats")
-async def get_wardrobe_stats(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
+async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """
     Get comprehensive wardrobe statistics for the current user.
     
@@ -305,13 +305,13 @@ async def get_wardrobe_stats(current_user: UserProfile = Depends(get_current_use
     - Price analysis
     """
     try:
-        if not current_user:
+        if not current_user_id:
             raise HTTPException(status_code=400, detail="User not found")
             
-        print(f"🔍 DEBUG: Getting wardrobe stats for user: {current_user.id}")
+        print(f"🔍 DEBUG: Getting wardrobe stats for user: {current_user_id}")
         analysis_service = WardrobeAnalysisService()
-        wardrobe = await analysis_service._get_user_wardrobe(current_user.id)
-        print(f"🔍 DEBUG: Retrieved {len(wardrobe)} wardrobe items for user: {current_user.id}")
+        wardrobe = await analysis_service._get_user_wardrobe(current_user_id)
+        print(f"🔍 DEBUG: Retrieved {len(wardrobe)} wardrobe items for user: {current_user_id}")
         stats = analysis_service._get_wardrobe_stats(wardrobe)
         print(f"🔍 DEBUG: Generated stats: {stats}")
         
