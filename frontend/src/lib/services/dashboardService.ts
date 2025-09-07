@@ -704,23 +704,36 @@ class DashboardService {
     items.forEach(item => {
       const styles = item.style || [];
       const styleString = styles.join(' ').toLowerCase();
+      const itemName = (item.name || '').toLowerCase();
       
       // Check if item has formal characteristics
       const hasFormalStyle = formalStyles.some(style => styleString.includes(style));
+      const hasFormalName = formalStyles.some(style => itemName.includes(style));
       const hasCasualStyle = casualStyles.some(style => styleString.includes(style));
       
-      // Count as formal if it has formal styles and is appropriate type
-      if (hasFormalStyle && ['jacket', 'pants', 'shirt', 'shoes'].includes(item.type)) {
+      // Count as formal if it has formal styles OR formal name keywords
+      if (hasFormalStyle || hasFormalName) {
         formalItems++;
       }
       
       // Count as casual if it has casual styles or is a casual type
-      if (hasCasualStyle || ['shirt', 'pants', 'shorts', 'shoes'].includes(item.type)) {
+      if (hasCasualStyle || ['shirt', 'pants', 'shorts', 'shoes', 'sweater', 'accessory'].includes(item.type)) {
         casualItems++;
       }
     });
     
     console.log('🔍 DEBUG: Style analysis - Formal items:', formalItems, 'Casual items:', casualItems);
+    console.log('🔍 DEBUG: Total items analyzed:', items.length);
+    console.log('🔍 DEBUG: Formal styles keywords:', formalStyles);
+    
+    // Debug: Show some sample items with formal styles
+    const formalSample = items.filter(item => {
+      const styles = item.style || [];
+      const styleString = styles.join(' ').toLowerCase();
+      const itemName = (item.name || '').toLowerCase();
+      return formalStyles.some(style => styleString.includes(style)) || formalStyles.some(style => itemName.includes(style));
+    }).slice(0, 3);
+    console.log('🔍 DEBUG: Sample formal items found:', formalSample.map(item => ({name: item.name, style: item.style})));
     
     // Check for formal wear gaps
     if (formalItems < 3) {
