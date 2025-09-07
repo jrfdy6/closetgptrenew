@@ -104,9 +104,14 @@ class DashboardService {
     console.log('🔍 DEBUG: Firebase token obtained:', token.substring(0, 20) + '...');
     console.log('🔍 DEBUG: Token length:', token.length);
 
-    // Use frontend API routes instead of calling backend directly
-    // This ensures proper authentication handling
-    const fullUrl = endpoint.startsWith('http') ? endpoint : endpoint;
+    // Call backend directly using NEXT_PUBLIC_BACKEND_URL
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    
+    // Ensure endpoint starts with /api/ for backend routes
+    const backendEndpoint = endpoint.startsWith('/api/') ? endpoint : `/api${endpoint}`;
+    const fullUrl = endpoint.startsWith('http') ? endpoint : `${backendUrl}${backendEndpoint}`;
+    
+    console.log('🔍 DEBUG: Making request to:', fullUrl);
 
     const response = await fetch(fullUrl, {
       headers: {
