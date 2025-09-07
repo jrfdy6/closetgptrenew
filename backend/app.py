@@ -130,7 +130,7 @@ print("🔍 DEBUG: Backend restart - checking if this fixes the timeout issue...
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
-    ("src.routes.wardrobe_analysis", ""), # Router already has /api/wardrobe prefix - ENABLED for wardrobe-stats
+    ("src.routes.wardrobe_analysis", "/api/wardrobe"), # Router mounted at /api/wardrobe - ENABLED for wardrobe-stats
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
     ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router
     ("src.routes.image_analysis", ""),   # Full image analysis router with debug logging
