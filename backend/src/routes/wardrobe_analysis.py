@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
-from ..auth.auth_service import get_current_user_id
+from ..auth.auth_service import get_current_user_id, get_current_user
 from ..custom_types.profile import UserProfile
 from datetime import datetime
 import logging
