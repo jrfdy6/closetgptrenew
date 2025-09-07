@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Configure logging to see what's happening during startup
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 logger.info("=== Starting FastAPI application ===")
@@ -160,12 +160,24 @@ def include_router_safe(module_name: str, prefix: str):
             print(f"❌ {module_name}: No `router` object found")
             return
             
+        # Log router details before mounting
         print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
+        print(f"🔍 DEBUG: Router type: {type(router)}")
+        print(f"🔍 DEBUG: Router routes count: {len(router.routes) if hasattr(router, 'routes') else 'unknown'}")
+        
+        # Log all routes in the router
+        if hasattr(router, 'routes'):
+            for route in router.routes:
+                if hasattr(route, 'path') and hasattr(route, 'methods'):
+                    print(f"🔍 DEBUG: Route found: {list(route.methods)} {route.path}")
+        
         app.include_router(router, prefix=prefix)
         print(f"✅ Mounted {module_name} at prefix {prefix}")
         
     except Exception as e:
         print(f"🔥 Failed to mount {module_name}")
+        print(f"🔥 Error type: {type(e).__name__}")
+        print(f"🔥 Error message: {str(e)}")
         traceback.print_exc()
 
 print("🚀 Starting router loading process...")
