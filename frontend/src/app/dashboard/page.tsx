@@ -110,6 +110,21 @@ export default function Dashboard() {
     }
   };
 
+  // Test function for production backend
+  const testProductionEndpoint = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🧪 TEST: Starting production endpoint test...');
+      const result = await dashboardService.testWardrobeStatsDirect(user);
+      console.log('✅ TEST: Production test successful:', result);
+      alert('✅ Production test successful! Check console for details.');
+    } catch (error) {
+      console.error('❌ TEST: Production test failed:', error);
+      alert(`❌ Production test failed: ${error.message}`);
+    }
+  };
+
   const handleRetry = () => {
     if (user) {
       fetchDashboardData();
@@ -182,6 +197,9 @@ export default function Dashboard() {
             <Button onClick={handleRetry} className="mr-4">
               <RefreshCw className="w-4 h-4 mr-2" />
               Retry
+            </Button>
+            <Button onClick={testProductionEndpoint} variant="outline" className="mr-4">
+              🧪 Test Production
             </Button>
             <Link href="/profile">
               <Button variant="outline">Go to Profile</Button>

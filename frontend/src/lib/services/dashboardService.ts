@@ -839,6 +839,53 @@ class DashboardService {
       items: outfit.tags || []
     }));
   }
+
+  // Test function to directly hit production backend
+  async testWardrobeStatsDirect(user: User) {
+    try {
+      console.log('🧪 TEST: Testing wardrobe-stats endpoint directly against production backend');
+      
+      const token = await user.getIdToken();
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
+      
+      console.log('🧪 TEST: Token obtained, length:', token.length);
+      
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+      if (!backendUrl) {
+        throw new Error('NEXT_PUBLIC_BACKEND_URL not configured');
+      }
+      
+      const testUrl = `${backendUrl}/wardrobe/wardrobe-stats`;
+      console.log('🧪 TEST: Testing URL:', testUrl);
+      
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('🧪 TEST: Response status:', response.status);
+      console.log('🧪 TEST: Response ok:', response.ok);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🧪 TEST: Error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ TEST: Wardrobe stats response:', data);
+      return data;
+      
+    } catch (err) {
+      console.error('❌ TEST: Error fetching wardrobe stats:', err);
+      throw err;
+    }
+  }
 }
 
 export const dashboardService = new DashboardService();
