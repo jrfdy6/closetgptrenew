@@ -73,7 +73,7 @@ except ImportError as e:
         pass  # No-op fallback
 
 try:
-    from ..auth.auth_service import get_current_user
+    from ..auth.auth_service import get_current_user, get_current_user_id
     AUTH_SERVICE_AVAILABLE = True
     logger.info("✅ Auth service imported successfully")
 except ImportError as e:
@@ -96,6 +96,65 @@ except Exception as e:
     FIREBASE_AVAILABLE = False
 
 # Removed conflicting /wardrobe-stats endpoint - using the one in wardrobe_analysis.py instead
+
+@router.get("/wardrobe-stats")
+async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
+    """Get wardrobe statistics for the dashboard"""
+    try:
+        if not current_user_id:
+            raise HTTPException(status_code=400, detail="User not found")
+            
+        print(f"🔍 DEBUG: Getting wardrobe stats for user: {current_user_id}")
+        
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        # Get all wardrobe items for the user
+        wardrobe_ref = db.collection('wardrobe')
+        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
+        
+        items = []
+        categories = {}
+        colors = {}
+        favorites = 0
+        
+        for doc in docs:
+            item_data = doc.to_dict()
+            item_data['id'] = doc.id
+            items.append(item_data)
+            
+            # Count categories (use 'type' field if 'category' is not available)
+            category = item_data.get('category') or item_data.get('type', 'unknown')
+            categories[category] = categories.get(category, 0) + 1
+            
+            # Count colors
+            color = item_data.get('color', 'unknown')
+            colors[color] = colors.get(color, 0) + 1
+            
+            # Count favorites - use the correct field name
+            if item_data.get('favorite', False):
+                favorites += 1
+        
+        stats = {
+            "total_items": len(items),
+            "categories": categories,
+            "colors": colors,
+            "favorites": favorites,
+            "user_id": current_user_id
+        }
+        
+        return {
+            "success": True,
+            "data": stats,
+            "message": "Wardrobe statistics retrieved successfully"
+        }
+        
+    except Exception as e:
+        print(f"DEBUG: Error getting wardrobe stats: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get wardrobe stats"
+        )
 
 @router.get("/top-worn-items")
 async def get_top_worn_items(
