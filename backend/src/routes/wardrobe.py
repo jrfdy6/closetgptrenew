@@ -99,6 +99,10 @@ except Exception as e:
 
 # Removed conflicting /wardrobe-stats endpoint - using the one in wardrobe_analysis.py instead
 
+@router.get("/debug-test")
+async def debug_test():
+    return {"status": "ok", "message": "Router loading test endpoint"}
+
 @router.get("/wardrobe-stats")
 async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """Get wardrobe statistics for the dashboard"""
