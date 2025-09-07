@@ -81,6 +81,8 @@ except ImportError as e:
     AUTH_SERVICE_AVAILABLE = False
     def get_current_user():
         return None
+    def get_current_user_id():
+        return "fallback-user-id"
 
 # Remove prefix since app.py will mount it at /api/wardrobe
 router = APIRouter(tags=["wardrobe"])
