@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/wardrobe/wardrobe-stats`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/wardrobe/wardrobe-stats`, {
       method: "GET", // ✅ explicitly GET
       headers: {
         Authorization: req.headers.get("authorization") || "",
