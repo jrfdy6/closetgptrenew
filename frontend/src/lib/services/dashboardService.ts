@@ -105,11 +105,10 @@ class DashboardService {
     console.log('🔍 DEBUG: Token length:', token.length);
 
     // Call FastAPI backend directly - don't use Next.js API routes
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://closetgptrenew-backend-production.up.railway.app/api';
     
-    // Ensure endpoint starts with /api/ for backend routes
-    const backendEndpoint = endpoint.startsWith('/api/') ? endpoint : `/api${endpoint}`;
-    const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${backendEndpoint}`;
+    // Use endpoint as-is (should already start with /)
+    const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
     
     console.log('🔍 DEBUG: Making request to FastAPI backend:', fullUrl);
 
@@ -197,8 +196,8 @@ class DashboardService {
 
   private async getWardrobeStats(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching wardrobe stats from /api/wardrobe/wardrobe-stats');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/wardrobe-stats', user, {
+      console.log('🔍 DEBUG: Fetching wardrobe stats from /wardrobe/wardrobe-stats');
+      const response = await this.makeAuthenticatedRequest('/wardrobe/wardrobe-stats', user, {
         method: 'GET'
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
@@ -244,8 +243,8 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history from /api/outfits');
-      const response = await this.makeAuthenticatedRequest('/api/outfits', user);
+      console.log('🔍 DEBUG: Fetching outfit history from /outfits');
+      const response = await this.makeAuthenticatedRequest('/outfits', user);
       console.log('🔍 DEBUG: Outfit history response:', response);
       return response || [];
     } catch (error) {
@@ -257,8 +256,8 @@ class DashboardService {
 
   private async getTrendingStyles(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching trending styles from /api/wardrobe/trending-styles');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/trending-styles', user, {
+      console.log('🔍 DEBUG: Fetching trending styles from /wardrobe/trending-styles');
+      const response = await this.makeAuthenticatedRequest('/wardrobe/trending-styles', user, {
         method: 'GET'
       });
       console.log('🔍 DEBUG: Trending styles response:', response);
@@ -276,10 +275,10 @@ class DashboardService {
 
   private async getTodaysOutfit(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /api/outfit-history/today');
+      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /outfit-history/today');
       console.log('🔍 DEBUG: User ID:', user.uid);
       console.log('🔍 DEBUG: User email:', user.email);
-      const response = await this.makeAuthenticatedRequest('/api/outfit-history/today', user);
+      const response = await this.makeAuthenticatedRequest('/outfit-history/today', user);
       console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
       console.log('🔍 DEBUG: Today\'s outfit suggestion response details:', JSON.stringify(response, null, 2));
       
@@ -313,8 +312,8 @@ class DashboardService {
 
   private async getTopWornItems(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching top worn items from /api/wardrobe/top-worn-items');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/top-worn-items?limit=5', user, {
+      console.log('🔍 DEBUG: Fetching top worn items from /wardrobe/top-worn-items');
+      const response = await this.makeAuthenticatedRequest('/wardrobe/top-worn-items?limit=5', user, {
         method: 'GET'
       });
       console.log('🔍 DEBUG: Top worn items response:', response);
@@ -334,7 +333,7 @@ class DashboardService {
   async markSuggestionAsWorn(user: User, suggestionId: string): Promise<boolean> {
     try {
       console.log('👕 DEBUG: Marking suggestion as worn:', suggestionId);
-      const response = await this.makeAuthenticatedRequest('/api/outfit-history/today-suggestion/wear', user, {
+      const response = await this.makeAuthenticatedRequest('/outfit-history/today-suggestion/wear', user, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -867,9 +866,9 @@ class DashboardService {
       
       console.log('🧪 TEST: Token obtained, length:', token.length);
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://closetgptrenew-backend-production.up.railway.app/api';
       
-      const testUrl = `${API_BASE_URL}/api/wardrobe/wardrobe-stats`;
+      const testUrl = `${API_BASE_URL}/wardrobe/wardrobe-stats`;
       console.log('🧪 TEST: Testing URL:', testUrl);
       
       const response = await fetch(testUrl, {
