@@ -3,7 +3,7 @@ import logging
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-from ..auth.auth_service import get_current_user_optional
+from ..auth.auth_service import get_current_user
 from ..custom_types.wardrobe import ClothingItem
 from ..services.item_analytics_service import ItemAnalyticsService
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
@@ -39,7 +39,7 @@ class ForgottenGemsResponse(BaseModel):
 async def get_forgotten_gems(
     days_threshold: int = 30,
     min_rediscovery_potential: float = 20.0,
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ) -> ForgottenGemsResponse:
     """
     Get forgotten gems - items that haven't been worn recently.
@@ -405,7 +405,7 @@ def _estimate_item_savings(item: ClothingItem, usage_count: int, days_since_worn
 @router.post("/forgotten-gems/rediscover")
 async def rediscover_item(
     item_id: str,
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Mark an item as rediscovered and update its usage data."""
     try:
@@ -430,7 +430,7 @@ async def rediscover_item(
 @router.post("/forgotten-gems/declutter")
 async def declutter_item(
     item_id: str,
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Mark an item for decluttering."""
     try:

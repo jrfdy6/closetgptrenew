@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json();
     console.log("✅ Successfully fetched today's outfit from backend");
+    console.log("🔍 DEBUG: Backend response data:", JSON.stringify(data, null, 2));
     return NextResponse.json(data);
 
   } catch (error) {

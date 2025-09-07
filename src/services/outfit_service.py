@@ -238,12 +238,7 @@ class OutfitService:
             
             # For development: allow updates if using fallback authentication
             if stored_user_id != user_id:
-                # Check if this is the fallback user ID (development mode)
-                if user_id == "dANqjiI0CKgaitxzYtw1bhtvQrG3":
-                    print(f"⚠️  DEBUG: Using fallback user ID, allowing update for outfit {outfit_id}")
-                    print(f"⚠️  DEBUG: Outfit user_id: {stored_user_id}, Current user_id: {user_id}")
-                else:
-                    raise Exception("Access denied - outfit does not belong to user")
+                raise Exception("Access denied - outfit does not belong to user")
             
             # Update the outfit document with items
             self.collection.document(outfit_id).update(outfit_data)

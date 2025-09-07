@@ -296,8 +296,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     question: "Which style elements do you gravitate towards?",
     options: ["Clean lines and minimal details", "Rich textures and patterns", "Classic and timeless pieces", "Bold and statement pieces"],
     category: "style"
-  },
-
+  }
 ];
 
 export default function Onboarding() {
@@ -320,27 +319,26 @@ export default function Onboarding() {
 
   // Filter questions based on gender
   const getFilteredQuestions = (): QuizQuestion[] => {
-    if (!userGender) return QUIZ_QUESTIONS;
-    
+    // Always show all questions initially, then filter based on gender selection
     return QUIZ_QUESTIONS.filter(question => {
       // Show cup size only for females
-      if (question.id === 'cup_size' && userGender !== 'female') {
+      if (question.id === 'cup_size' && userGender && userGender !== 'female') {
         return false;
       }
       
       // Show gender-specific body type questions
-      if (question.id === 'body_type_female' && userGender !== 'female') {
+      if (question.id === 'body_type_female' && userGender && userGender !== 'female') {
         return false;
       }
-      if (question.id === 'body_type_male' && userGender !== 'male') {
+      if (question.id === 'body_type_male' && userGender && userGender !== 'male') {
         return false;
       }
       
       // Show gender-specific style questions
-      if (question.id.startsWith('style_item_f_') && userGender !== 'female') {
+      if (question.id.startsWith('style_item_f_') && userGender && userGender !== 'female') {
         return false;
       }
-      if (question.id.startsWith('style_item_m_') && userGender !== 'male') {
+      if (question.id.startsWith('style_item_m_') && userGender && userGender !== 'male') {
         return false;
       }
       
@@ -350,7 +348,18 @@ export default function Onboarding() {
 
   const filteredQuestions = getFilteredQuestions();
 
+  // Debug logging
+  console.log('Quiz Debug:', {
+    currentStep,
+    totalQuestions: filteredQuestions.length,
+    userGender,
+    answers: answers.length,
+    authLoading,
+    user: !!user
+  });
+
   const handleAnswer = (questionId: string, selectedOption: string) => {
+    console.log('Answer selected:', { questionId, selectedOption });
     const newAnswers = answers.filter(a => a.question_id !== questionId);
     newAnswers.push({ question_id: questionId, selected_option: selectedOption });
     setAnswers(newAnswers);
@@ -362,12 +371,14 @@ export default function Onboarding() {
   };
 
   const nextStep = () => {
+    console.log('Next step clicked:', { currentStep, totalQuestions: filteredQuestions.length });
     if (currentStep < filteredQuestions.length) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
+    console.log('Previous step clicked:', { currentStep });
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
@@ -467,8 +478,25 @@ export default function Onboarding() {
   };
 
   const renderQuestion = () => {
-    if (filteredQuestions.length === 0) return null;
+    if (filteredQuestions.length === 0) {
+      console.error('No questions available for quiz');
+      return (
+        <div className="text-center p-8">
+          <p className="text-red-600 dark:text-red-400">No questions available. Please refresh the page.</p>
+        </div>
+      );
+    }
+    
     const question = filteredQuestions[currentStep - 1];
+    if (!question) {
+      console.error('No question found for current step:', currentStep);
+      return (
+        <div className="text-center p-8">
+          <p className="text-red-600 dark:text-red-400">Question not found. Please refresh the page.</p>
+        </div>
+      );
+    }
+    
     const currentAnswer = answers.find(a => a.question_id === question.id);
 
     return (
@@ -494,7 +522,10 @@ export default function Onboarding() {
                     ? "border-purple-600 ring-2 ring-purple-200 dark:ring-purple-800"
                     : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
                 }`}
-                onClick={() => handleAnswer(question.id, option)}
+                onClick={() => {
+                  console.log('Visual option clicked:', option);
+                  handleAnswer(question.id, option);
+                }}
               >
                 <div className="aspect-square relative">
                   <img
@@ -542,14 +573,20 @@ export default function Onboarding() {
                 <Button
                   variant={currentAnswer?.selected_option === "Yes" ? "default" : "outline"}
                   className="flex-1 h-12 text-lg"
-                  onClick={() => handleAnswer(question.id, "Yes")}
+                  onClick={() => {
+                    console.log('Yes button clicked');
+                    handleAnswer(question.id, "Yes");
+                  }}
                 >
                   👍 Yes
                 </Button>
                 <Button
                   variant={currentAnswer?.selected_option === "No" ? "default" : "outline"}
                   className="flex-1 h-12 text-lg"
-                  onClick={() => handleAnswer(question.id, "No")}
+                  onClick={() => {
+                    console.log('No button clicked');
+                    handleAnswer(question.id, "No");
+                  }}
                 >
                   👎 No
                 </Button>
@@ -605,7 +642,10 @@ export default function Onboarding() {
               key={option}
               variant={currentAnswer?.selected_option === option ? "default" : "outline"}
               className="w-full h-20 text-lg justify-start text-left px-6"
-              onClick={() => handleAnswer(question.id, option)}
+              onClick={() => {
+                console.log('Text option clicked:', option);
+                handleAnswer(question.id, option);
+              }}
             >
               {option}
             </Button>

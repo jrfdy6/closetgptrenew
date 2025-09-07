@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import time
 
-from ..auth.auth_service import get_current_user_optional
+from ..auth.auth_service import get_current_user
 from ..custom_types.profile import UserProfile
 from ..config.firebase import db
 from ..core.logging import get_logger
@@ -16,7 +16,7 @@ db = db
 
 @router.get("/")
 async def get_outfit_history(
-    current_user = Depends(get_current_user_optional),
+    current_user = Depends(get_current_user),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     outfit_id: Optional[str] = Query(None, description="Filter by specific outfit ID"),
@@ -96,7 +96,7 @@ async def get_outfit_history(
 @router.post("/mark-worn")
 async def mark_outfit_as_worn(
     data: Dict[str, Any],
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """
     Mark an outfit as worn on a specific date
@@ -214,7 +214,7 @@ async def mark_outfit_as_worn(
 async def update_outfit_history_entry(
     entry_id: str,
     updates: Dict[str, Any],
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """
     Update an outfit history entry
@@ -287,7 +287,7 @@ async def update_outfit_history_entry(
 @router.delete("/{entry_id}")
 async def delete_outfit_history_entry(
     entry_id: str,
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """
     Delete an outfit history entry
@@ -344,7 +344,7 @@ async def delete_outfit_history_entry(
 
 @router.get("/stats")
 async def get_outfit_history_stats(
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """
     Get outfit history statistics
@@ -429,7 +429,7 @@ async def get_outfit_history_stats(
         raise HTTPException(status_code=500, detail="Failed to get outfit history stats")
 @router.get("/today")
 async def get_todays_outfit(
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """
     Get today's outfit for the current user
@@ -521,12 +521,13 @@ async def get_todays_outfit(
 
 @router.get("/today-suggestion")
 async def get_todays_outfit_suggestion(
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """
     Get or generate today's outfit suggestion for the current user.
     This generates a new outfit suggestion once per day and caches it.
     """
+    print("⚡ HIT: today-suggestion from outfit_history.py")
     try:
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
@@ -742,7 +743,7 @@ async def get_todays_outfit_suggestion(
 @router.post("/today-suggestion/wear")
 async def mark_today_suggestion_as_worn(
     data: Dict[str, Any],
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """
     Mark today's outfit suggestion as worn.

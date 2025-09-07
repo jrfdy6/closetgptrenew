@@ -100,10 +100,13 @@ class DashboardService {
     if (!token) {
       throw new Error('Failed to get authentication token');
     }
+    
+    console.log('🔍 DEBUG: Firebase token obtained:', token.substring(0, 20) + '...');
+    console.log('🔍 DEBUG: Token length:', token.length);
 
-    // Use backend URL for API calls
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-    const fullUrl = endpoint.startsWith('http') ? endpoint : `${backendUrl}${endpoint}`;
+    // Use frontend API routes instead of calling backend directly
+    // This ensures proper authentication handling
+    const fullUrl = endpoint.startsWith('http') ? endpoint : endpoint;
 
     const response = await fetch(fullUrl, {
       headers: {
@@ -115,6 +118,9 @@ class DashboardService {
     });
 
     if (!response.ok) {
+      console.error('🔍 DEBUG: API request failed:', response.status, response.statusText);
+      const errorText = await response.text().catch(() => 'Unable to read error');
+      console.error('🔍 DEBUG: Error details:', errorText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -176,8 +182,8 @@ class DashboardService {
 
   private async getWardrobeStats(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching wardrobe stats from /api/wardrobe/');
-      const response = await this.makeAuthenticatedRequest('/api/wardrobe/', user);
+      console.log('🔍 DEBUG: Fetching wardrobe stats from /api/wardrobe/wardrobe-stats');
+      const response = await this.makeAuthenticatedRequest('/api/wardrobe/wardrobe-stats', user);
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       
       // Process the wardrobe items to create stats
@@ -251,9 +257,12 @@ class DashboardService {
 
   private async getTodaysOutfit(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /api/today-suggestion');
-      const response = await this.makeAuthenticatedRequest('/api/today-suggestion', user);
+      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /api/outfit-history/today');
+      console.log('🔍 DEBUG: User ID:', user.uid);
+      console.log('🔍 DEBUG: User email:', user.email);
+      const response = await this.makeAuthenticatedRequest('/api/outfit-history/today', user);
       console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
+      console.log('🔍 DEBUG: Today\'s outfit suggestion response details:', JSON.stringify(response, null, 2));
       
       // Handle new suggestion format
       if (response.suggestion) {

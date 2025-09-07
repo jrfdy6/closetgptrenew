@@ -1,14 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Dict, Any
 from ..services.wardrobe_analysis_service import WardrobeAnalysisService
-from ..auth.auth_service import get_current_user_optional
+from ..auth.auth_service import get_current_user
 from ..custom_types.profile import UserProfile
 from datetime import datetime
 
 router = APIRouter(tags=["wardrobe-analysis"])
 
 @router.get("/gaps")
-async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depends(get_current_user_optional)) -> Dict[str, Any]:
+async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get comprehensive wardrobe gap analysis for the current user.
     
@@ -75,7 +75,7 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
         )
 
 @router.get("/coverage")
-async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_user_optional)) -> Dict[str, Any]:
+async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get wardrobe coverage metrics for the current user.
     
@@ -111,7 +111,7 @@ async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_
         )
 
 @router.get("/recommendations")
-async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_current_user_optional)) -> Dict[str, Any]:
+async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get personalized wardrobe recommendations for the current user.
     
@@ -155,7 +155,7 @@ async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_c
         )
 
 @router.get("/validation-errors")
-async def get_validation_errors(current_user: UserProfile = Depends(get_current_user_optional)) -> Dict[str, Any]:
+async def get_validation_errors(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get validation errors and outfit generation failures for the current user.
     
@@ -194,7 +194,7 @@ async def get_validation_errors(current_user: UserProfile = Depends(get_current_
         )
 
 @router.get("/trending-styles")
-async def get_trending_styles(gender: str = None, current_user: UserProfile = Depends(get_current_user_optional)) -> Dict[str, Any]:
+async def get_trending_styles(gender: str = None, current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get current trending styles and fashion trends, optionally filtered by gender.
     
@@ -292,7 +292,7 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
         )
 
 @router.get("/wardrobe-stats")
-async def get_wardrobe_stats(current_user: UserProfile = Depends(get_current_user_optional)) -> Dict[str, Any]:
+async def get_wardrobe_stats(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get comprehensive wardrobe statistics for the current user.
     

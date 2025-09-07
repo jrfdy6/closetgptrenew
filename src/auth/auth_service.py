@@ -15,29 +15,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
         print(f"🔍 DEBUG: Full token: {credentials.credentials}")
         
-        # Accept test token for development
+        # Reject test token - require real authentication
         if credentials.credentials == "test":
-            print("🔍 DEBUG: Using test token")
-            mock_user = UserProfile(
-                id="dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Original default user ID
-                name="Test User",
-                email="test@example.com",
-                preferences={
-                    "style": ["Casual", "Business Casual"],
-                    "colors": ["Black", "White", "Blue"],
-                    "occasions": ["Casual", "Business"]
-                },
-                measurements={
-                    "height": 175,
-                    "weight": 70,
-                    "bodyType": "average"
-                },
-                stylePreferences=[],
-                bodyType="average",
-                createdAt=1234567890,
-                updatedAt=1234567890
+            print("🔍 DEBUG: Test token rejected - requiring real authentication")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Test token not allowed in production",
+                headers={"WWW-Authenticate": "Bearer"},
             )
-            return mock_user
         
         # Verify Firebase JWT token
         try:
@@ -145,29 +130,14 @@ async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = 
             print("🔍 DEBUG: No credentials provided to get_current_user_optional")
             return None
             
-        # If test token, return mock user
+        # Reject test token - require real authentication
         if credentials.credentials == "test":
-            print("🔍 DEBUG: Using test token in get_current_user_optional")
-            mock_user = UserProfile(
-                id="dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Original default user ID
-                name="Test User",
-                email="test@example.com",
-                preferences={
-                    "style": ["Casual", "Business Casual"],
-                    "colors": ["Black", "White", "Blue"],
-                    "occasions": ["Casual", "Business"]
-                },
-                measurements={
-                    "height": 175,
-                    "weight": 70,
-                    "bodyType": "average"
-                },
-                stylePreferences=[],
-                bodyType="average",
-                createdAt=1234567890,
-                updatedAt=1234567890
+            print("🔍 DEBUG: Test token rejected - requiring real authentication")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Test token not allowed in production",
+                headers={"WWW-Authenticate": "Bearer"},
             )
-            return mock_user
         
         # Try to authenticate real user
         print("🔍 DEBUG: Attempting to authenticate real user in get_current_user_optional")

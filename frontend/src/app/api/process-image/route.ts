@@ -24,8 +24,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // Skip token verification - pass token directly to backend
-    console.log('🔍 DEBUG: Skipping token verification, passing to backend - VERCEL DEPLOY TRIGGER');
+    // Extract token and get user ID
+    const token = authHeader.split(' ')[1];
+    console.log('🔍 DEBUG: Token extracted, length:', token.length);
+    
+    // Decode the Firebase token to get user ID
+    let userId: string;
+    try {
+      // Firebase tokens are JWT tokens, decode the payload
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      userId = payload.uid;
+      console.log('🔍 DEBUG: User ID extracted from token:', userId);
+    } catch (error) {
+      console.error('❌ Failed to decode token:', error);
+      return NextResponse.json(
+        { success: false, error: 'Invalid token format' },
+        { status: 401 }
+      );
+    }
 
     console.log('🔍 DEBUG: Parsing form data...');
     const formData = await request.formData();
@@ -33,9 +49,6 @@ export async function POST(request: Request) {
     
     const file = formData.get('file') as File;
     console.log('🔍 DEBUG: File extracted:', file ? { name: file.name, size: file.size, type: file.type } : 'null');
-    
-    // Use the same user ID as the backend for consistency
-    const userId = 'dANqjiI0CKgaitxzYtw1bhtvQrG3';
     
     if (!file) {
       console.log('❌ No file provided in form data');

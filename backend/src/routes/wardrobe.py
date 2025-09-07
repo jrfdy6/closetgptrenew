@@ -73,13 +73,13 @@ except ImportError as e:
         pass  # No-op fallback
 
 try:
-    from ..auth.auth_service import get_current_user_optional
+    from ..auth.auth_service import get_current_user
     AUTH_SERVICE_AVAILABLE = True
     logger.info("✅ Auth service imported successfully")
 except ImportError as e:
     logger.warning(f"⚠️ Auth service import failed: {e}")
     AUTH_SERVICE_AVAILABLE = False
-    def get_current_user_optional():
+    def get_current_user():
         return None
 
 # Remove prefix since app.py will mount it at /api/wardrobe
@@ -197,7 +197,7 @@ async def get_top_worn_items(
 
 @router.get("/most-worn-by-category")
 async def get_most_worn_by_category(
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Get the most worn items organized by category (tops, bottoms, shoes, etc.)."""
     try:
@@ -287,7 +287,7 @@ async def get_most_worn_by_category(
 
 @router.get("/trending-styles")
 async def get_trending_styles(
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Get trending styles based on user's wardrobe and preferences."""
     try:
@@ -395,7 +395,7 @@ async def get_trending_styles(
 @router.post("/add")
 async def add_wardrobe_item(
     item_data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Add a new wardrobe item for the current user.
@@ -598,7 +598,7 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
 
 @router.get("/")
 async def get_wardrobe_items_with_slash(
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
     try:
@@ -792,7 +792,7 @@ async def get_wardrobe_items_with_slash(
 @router.get("/{item_id}")
 async def get_wardrobe_item(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Get a specific wardrobe item by ID.
@@ -838,7 +838,7 @@ async def get_wardrobe_item(
 async def update_wardrobe_item(
     item_id: str,
     item_data: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Update a wardrobe item."""
     try:
@@ -891,7 +891,7 @@ async def update_wardrobe_item(
 @router.delete("/{item_id}")
 async def delete_wardrobe_item(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Delete a wardrobe item."""
     try:
@@ -937,7 +937,7 @@ async def delete_wardrobe_item(
 
 @router.post("/enhance-metadata")
 async def enhance_wardrobe_metadata(
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Enhance metadata for all user's wardrobe items."""
     try:
@@ -1005,7 +1005,7 @@ async def enhance_wardrobe_metadata(
 @router.post("/{item_id}/increment-wear")
 async def increment_wardrobe_item_wear_count(
     item_id: str,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """Increment the wear count for a specific wardrobe item."""
     try:

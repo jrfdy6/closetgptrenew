@@ -31,7 +31,7 @@ security = HTTPBearer()
 # Firebase imports with graceful fallback
 try:
     from ..config.firebase import db, firebase_initialized
-    from ..auth.auth_service import get_current_user_optional
+    from ..auth.auth_service import get_current_user
     from ..custom_types.profile import UserProfile
     from ..custom_types.outfit import OutfitGeneratedOutfit
     FIREBASE_AVAILABLE = True
@@ -41,8 +41,8 @@ except ImportError as e:
     FIREBASE_AVAILABLE = False
     db = None
     firebase_initialized = False
-    # Create a mock get_current_user_optional function
-    def get_current_user_optional():
+    # Create a mock get_current_user function
+    def get_current_user():
         return None
 else:
     try:
@@ -56,8 +56,8 @@ else:
         FIREBASE_AVAILABLE = False
         db = None
         firebase_initialized = False
-        # Create a mock get_current_user_optional function
-        def get_current_user_optional():
+        # Create a mock get_current_user function
+        def get_current_user():
             return None
 
 # Simplified mock data function for fallback
@@ -729,7 +729,7 @@ def analyze_material_combinations(materials: List[str]) -> Dict[str, Any]:
         "material_quality": "luxury" if luxury_count > 1 else "natural" if natural_count > synthetic_count else "mixed"
     }
 
-async def calculate_outfit_score(items: List[Dict], req: OutfitRequest, layering_validation: Dict, color_material_validation: Dict) -> Dict[str, Any]:
+async def calculate_outfit_score(items: List[Dict], req: OutfitRequest, layering_validation: Dict, color_material_validation: Dict, user_id: str) -> Dict[str, Any]:
     """Calculate comprehensive outfit score across multiple dimensions."""
     logger.info(f"🔍 DEBUG: Calculating outfit score for {len(items)} items")
     
@@ -762,7 +762,7 @@ async def calculate_outfit_score(items: List[Dict], req: OutfitRequest, layering
     logger.info(f"🔍 DEBUG: Style score: {style_score}")
     
     # 6. Wardrobe Intelligence Score (25% weight) - Favorites, wear history, diversity
-    wardrobe_score = await calculate_wardrobe_intelligence_score(items)
+    wardrobe_score = await calculate_wardrobe_intelligence_score(items, user_id)
     scores["wardrobe_intelligence_score"] = wardrobe_score
     logger.info(f"🔍 DEBUG: Wardrobe intelligence score: {wardrobe_score}")
     
@@ -991,12 +991,12 @@ def get_score_grade(score: float) -> str:
     else:
         return "D"
 
-async def calculate_wardrobe_intelligence_score(items: List[Dict]) -> float:
+async def calculate_wardrobe_intelligence_score(items: List[Dict], user_id: str) -> float:
     """Calculate score based on wardrobe intelligence: favorites, wear history, diversity."""
     logger.info(f"🔍 DEBUG: Calculating wardrobe intelligence score for {len(items)} items")
     
-    # Get current user ID from the hardcoded user (for now)
-    current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+    # Use the provided user ID
+    current_user_id = user_id
     
     total_score = 0.0
     item_scores = []
@@ -1758,7 +1758,7 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
             logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Full item data: {outfit_item}")
         
         # Calculate comprehensive outfit score
-        outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation)
+        outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation, user_id)
         logger.info(f"🔍 DEBUG: Calculated outfit score: {outfit_score}")
         
         return {
@@ -2174,7 +2174,7 @@ async def outfit_save_test():
             test_outfit_data = {
                 "id": test_outfit_id,
                 "name": "Test Outfit",
-                "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+                "user_id": current_user.id if current_user else "mock-user",
                 "createdAt": datetime.now().isoformat(),
                 "test": True,
                 "items": [{"type": "shirt", "name": "Test Shirt"}]
@@ -2418,7 +2418,7 @@ async def debug_specific_outfit(outfit_id: str):
 @router.post("/{outfit_id}/worn")
 async def mark_outfit_as_worn(
     outfit_id: str,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Mark an outfit as worn (simplified endpoint for frontend compatibility).
@@ -2531,7 +2531,7 @@ async def mark_outfit_as_worn(
 
 @router.get("/debug-user", response_model=dict)
 async def debug_user_outfits(
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """Debug endpoint to show user authentication and database contents."""
     logger.info("🔍 DEBUG: Debug user outfits endpoint called")
@@ -2616,7 +2616,9 @@ async def generate_outfit(
     """
     try:
         # Get real user ID from request context
-        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        current_user_id = current_user.id  # Your actual user ID
         logger.info(f"Using real user ID: {current_user_id}")
         
         # Log base item information
@@ -2675,7 +2677,9 @@ async def create_outfit(
         # Reduced logging to prevent rate limits
         
         # Use the same user ID pattern as the generate route
-        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        current_user_id = current_user.id  # Your actual user ID
         
         logger.info(f"🔍 Request data:")
         logger.info(f"  - name: {request.name}")
@@ -2737,7 +2741,9 @@ async def debug_outfits():
     Helps confirm backend state without guesswork.
     """
     try:
-        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Your actual user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        current_user_id = current_user.id  # Your actual user ID
         logger.info(f"🔍 DEBUG: Fetching last 5 outfits for debugging")
         
         # Fetch recent outfits with minimal processing
@@ -2777,7 +2783,9 @@ async def debug_outfits():
 async def debug_outfits_simple():
     """Quick debug: show last 5 outfits"""
     try:
-        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        current_user_id = current_user.id
         outfits = await get_user_outfits(current_user_id, 5, 0)
         
         return {
@@ -2797,7 +2805,7 @@ async def debug_outfits_simple():
 @router.post("/rate")
 async def rate_outfit(
     rating_data: dict,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Rate an outfit and update analytics for individual wardrobe items.
@@ -2806,7 +2814,9 @@ async def rate_outfit(
     try:
         logger.info(f"📊 Rating outfit request received")
         
-        current_user_id = current_user.id if current_user else "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        current_user_id = current_user.id
         outfit_id = rating_data.get('outfitId')
         rating = rating_data.get('rating')
         is_liked = rating_data.get('isLiked', False)
@@ -2976,7 +2986,9 @@ async def get_outfit(outfit_id: str):
     
     try:
         # Use the actual user ID from your database where the 1000+ outfits are stored
-        current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        current_user_id = current_user.id  # TEMPORARY: Your actual user ID
         logger.info(f"Using hardcoded user ID for testing: {current_user_id}")
         
         # Check Firebase availability
@@ -3011,7 +3023,7 @@ async def get_outfit(outfit_id: str):
 async def list_outfits_with_slash(
     limit: int = 50,
     offset: int = 0,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Fetch a user's outfit history from Firestore.
@@ -3019,17 +3031,12 @@ async def list_outfits_with_slash(
     logger.info("🎯 DEBUG: /api/outfits/ endpoint called (CORRECT ENDPOINT)")
     logger.info(f"🔍 DEBUG: Request params - limit: {limit}, offset: {offset}")
     try:
-        # TEMPORARY FIX: Use the actual user ID from your database
-        # TODO: Fix authentication to get real user ID
-        if current_user:
-            current_user_id = current_user.id
-            logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
-        else:
-            # Use the actual user ID from your database where the 1000+ outfits are stored
-            current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
-            logger.info(f"📚 No authenticated user, using hardcoded user ID: {current_user_id}")
+        # Require authentication - no fallback to hardcoded user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
         
-        logger.info(f"📚 Fetching outfits for user: {current_user_id}")
+        current_user_id = current_user.id
+        logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
         
         outfits = await get_user_outfits(current_user_id, limit, offset)
         
@@ -3053,23 +3060,18 @@ async def list_outfits_with_slash(
 async def list_outfits_no_slash(
     limit: int = 50,
     offset: int = 0,
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Fetch a user's outfit history from Firestore (no trailing slash).
     """
     try:
-        # TEMPORARY FIX: Use the actual user ID from your database
-        # TODO: Fix authentication to get real user ID
-        if current_user:
-            current_user_id = current_user.id
-            logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
-        else:
-            # Use the actual user ID from your database where the 1000+ outfits are stored
-            current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
-            logger.info(f"📚 No authenticated user, using hardcoded user ID: {current_user_id}")
+        # Require authentication - no fallback to hardcoded user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
         
-        logger.info(f"📚 Fetching outfits for user: {current_user_id}")
+        current_user_id = current_user.id
+        logger.info(f"📚 Fetching outfits for authenticated user: {current_user_id}")
         
         outfits = await get_user_outfits(current_user_id, limit, offset)
         
@@ -3092,21 +3094,18 @@ async def list_outfits_no_slash(
 # 📊 Get Outfit Statistics
 @router.get("/stats/summary")
 async def get_outfit_stats(
-    current_user: UserProfile = Depends(get_current_user_optional)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Get outfit statistics for user.
     """
     try:
-        # TEMPORARY FIX: Use the actual user ID from your database
-        # TODO: Fix authentication to get real user ID
-        if current_user:
-            current_user_id = current_user.id
-            logger.info(f"📊 Getting outfit stats for authenticated user {current_user_id}")
-        else:
-            # Use the actual user ID from your database where the 1000+ outfits are stored
-            current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Your actual user ID
-            logger.info(f"📊 No authenticated user, using hardcoded user ID: {current_user_id}")
+        # Require authentication - no fallback to hardcoded user ID
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        current_user_id = current_user.id
+        logger.info(f"📊 Getting outfit stats for authenticated user {current_user_id}")
         
         logger.info(f"📊 Getting outfit stats for user {current_user_id}")
         

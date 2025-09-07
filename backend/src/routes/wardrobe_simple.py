@@ -42,8 +42,8 @@ async def get_wardrobe_items() -> Dict[str, Any]:
         
         # Get wardrobe items from Firestore using flat collection structure
         wardrobe_ref = db.collection('wardrobe')
-        print(f"DEBUG: Querying wardrobe collection for userId: dANqjiI0CKgaitxzYtw1bhtvQrG3")
-        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
+        print(f"DEBUG: Querying wardrobe collection for userId: {current_user_id}")
+        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
         
         items = []
         errors = []
@@ -224,7 +224,7 @@ async def get_top_worn_items(limit: int = 5):
         
         # Get all wardrobe items for the user
         wardrobe_ref = db.collection('wardrobe')
-        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
+        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
         
         items = []
         for doc in docs:
@@ -275,7 +275,7 @@ async def get_wardrobe_stats():
         
         # Get all wardrobe items for the user
         wardrobe_ref = db.collection('wardrobe')
-        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
+        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
         
         items = []
         categories = {}
@@ -307,7 +307,7 @@ async def get_wardrobe_stats():
             "categories": categories,
             "colors": colors,
             "favorites": favorites,
-            "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+            "user_id": current_user_id,
             "message": "Wardrobe stats retrieved successfully"
         }
         

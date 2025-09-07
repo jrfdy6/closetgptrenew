@@ -21,6 +21,17 @@ import traceback
 from datetime import datetime
 from fastapi.routing import APIRouter
 
+# Import authentication
+try:
+    from src.auth.auth_service import get_current_user_id
+except ImportError:
+    # Fallback for when running as module
+    try:
+        from auth.auth_service import get_current_user_id
+    except ImportError:
+        def get_current_user_id():
+            return "fallback-user-id"
+
 # Create the app first
 app = FastAPI(
     title="ClosetGPT API",
@@ -557,7 +568,7 @@ async def test_wardrobe_direct():
     }
 
 @app.get("/api/wardrobe/")
-async def test_wardrobe_get():
+async def test_wardrobe_get(current_user_id: str = Depends(get_current_user_id)):
     """Test wardrobe GET endpoint directly in app.py."""
     try:
         from firebase_admin import firestore
@@ -566,9 +577,9 @@ async def test_wardrobe_get():
         if not db:
             return {"error": "Database not available"}
         
-        # Get wardrobe items from Firestore
+        # Get wardrobe items from Firestore for the authenticated user
         wardrobe_ref = db.collection('wardrobe')
-        docs = wardrobe_ref.where('userId', '==', 'dANqjiI0CKgaitxzYtw1bhtvQrG3').stream()
+        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
         
         items = []
         for doc in docs:
@@ -579,13 +590,13 @@ async def test_wardrobe_get():
             "success": True,
             "items": items,
             "count": len(items),
-            "user_id": "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+            "user_id": current_user_id
         }
     except Exception as e:
         return {"error": f"Failed to get wardrobe items: {str(e)}"}
 
 @app.post("/api/wardrobe/")
-async def test_wardrobe_post(request: dict):
+async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_current_user_id)):
     """Test wardrobe POST endpoint directly in app.py."""
     try:
         from firebase_admin import firestore
@@ -651,7 +662,7 @@ async def test_wardrobe_post(request: dict):
         # Prepare item data
         wardrobe_item = {
             "id": item_id,
-            "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",  # Use hardcoded user ID for now
+            "userId": current_user_id,  # Use authenticated user's ID
             "name": request["name"],
             "type": request["type"],
             "color": request["color"],
@@ -753,15 +764,16 @@ async def test_upload():
     return {"message": "Test upload endpoint is working", "status": "success"}
 
 @app.get("/api/today-suggestion")
-async def get_todays_outfit_suggestion():
+async def get_todays_outfit_suggestion(current_user_id: str = Depends(get_current_user_id)):
     """Generate today's outfit suggestion using existing outfit generation logic"""
+    print("⚡ HIT: today-suggestion from app.py")
     try:
         from firebase_admin import firestore
         from datetime import datetime, timezone
         import uuid
         
-        # Get user ID (hardcoded for now)
-        user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        # Use authenticated user's ID
+        user_id = current_user_id
         
         # Get today's date
         today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
@@ -810,6 +822,7 @@ async def get_todays_outfit_suggestion():
                 item_data = doc.to_dict()
                 wardrobe_items.append(item_data)
             
+            
             if not wardrobe_items:
                 return {
                     "success": True,
@@ -836,6 +849,7 @@ async def get_todays_outfit_suggestion():
                 selected_items.append(random.choice(shoes))
             if accessories and random.random() > 0.5:  # 50% chance of accessory
                 selected_items.append(random.choice(accessories))
+            
             
             if not selected_items:
                 return {

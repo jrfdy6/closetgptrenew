@@ -94,7 +94,7 @@ export async function GET(request: Request) {
           }
         ],
         count: 4,
-        user_id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+        user_id: 'mock-user',
         message: 'Backend not available, using mock data'
       };
       
@@ -161,7 +161,7 @@ export async function GET(request: Request) {
         }
       ],
       count: 4,
-      user_id: 'dANqjiI0CKgaitxzYtw1bhtvQrG3',
+      user_id: 'mock-user',
       message: 'Error occurred, using mock data'
     };
     

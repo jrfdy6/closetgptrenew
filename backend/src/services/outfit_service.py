@@ -219,7 +219,9 @@ class OutfitService:
             
             # Extract user_id from the user_profile if present
             user_profile = outfit_data.get('user_profile', {})
-            user_id = user_profile.get('id') if user_profile else "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+            user_id = user_profile.get('id')
+            if not user_id:
+                raise ValueError("User ID is required for creating custom outfits")
             
             # Create OutfitCreate object from the payload
             from ..custom_types.outfit import OutfitCreate, OutfitItem

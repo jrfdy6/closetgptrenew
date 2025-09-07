@@ -220,13 +220,13 @@ async def get_top_favorites_by_type_endpoint(
 @router.get("/test-favorites/{item_type}", response_model=FavoritesResponse)
 async def test_get_favorite_by_type_endpoint(
     item_type: str,
-    user_id: str = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # Hardcoded for testing
+    current_user_id: str = Depends(get_current_user_id)
 ):
-    """Test endpoint to get the user's favorite item of a specific type without authentication."""
+    """Test endpoint to get the user's favorite item of a specific type with authentication."""
     try:
-        logger.info(f"Test endpoint called for user {user_id}, type {item_type}")
+        logger.info(f"Test endpoint called for user {current_user_id}, type {item_type}")
         favorite = get_favorite_by_type(
-            user_id=user_id,
+            user_id=current_user_id,
             item_type=item_type
         )
         
