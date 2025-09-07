@@ -74,7 +74,7 @@ except ImportError as e:
         pass  # No-op fallback
 
 try:
-    from ..auth.auth_service import get_current_user, get_current_user_id
+    from ..auth.auth_service import get_current_user, get_current_user_id, get_current_user_optional
     AUTH_SERVICE_AVAILABLE = True
     logger.info("✅ Auth service imported successfully")
 except ImportError as e:
@@ -84,6 +84,8 @@ except ImportError as e:
         return None
     def get_current_user_id():
         return "fallback-user-id"
+    def get_current_user_optional():
+        return None
 
 # Remove prefix since app.py will mount it at /api/wardrobe
 router = APIRouter(tags=["wardrobe"])
