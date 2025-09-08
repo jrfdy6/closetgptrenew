@@ -470,89 +470,51 @@ export default function OutfitGenerationPage() {
   const handleWearOutfit = async () => {
     if (!generatedOutfit || !user) return;
     
-    // Validate minimum items before wearing/saving
+    // Validate minimum items before wearing
     if (!generatedOutfit.items || generatedOutfit.items.length < 3) {
-      setError('Need at least 3 items to save and wear an outfit');
+      setError('Need at least 3 items to wear an outfit');
       return;
     }
     
     try {
       const token = await user.getIdToken();
       
-      // First save the outfit to backend
-      const saveResponse = await fetch('/api/outfits', {
+      // The outfit is already saved by the generation endpoint, just mark it as worn
+      const wearResponse = await fetch('/api/outfit-history/mark-worn', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: generatedOutfit.name,
-          occasion: generatedOutfit.occasion || formData.occasion,
-          style: generatedOutfit.style,
-          description: generatedOutfit.reasoning,
-          items: generatedOutfit.items.map((item: any) => ({
-            ...item,
-            userId: user.uid,  // Required: inject from Firebase auth
-            subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
-            style: [generatedOutfit.style] || ["casual"],  // Required: List[str] from parent outfit
-            occasion: [generatedOutfit.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
-            imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
-            color: item.color || "unknown",  // Ensure color is provided
-            type: item.type || "item",  // Ensure type is provided
-            
-            // Required ClothingItem fields that were missing:
-            season: ["All"],                               // fallback if no season logic yet
-            tags: [],                                      // default empty array
-            dominantColors: [],                            // default empty array
-            matchingColors: [],                            // default empty array
-            createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
-            updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
-          })),
-          createdAt: Math.floor(Date.now() / 1000)
+          outfitId: generatedOutfit.id,
+          dateWorn: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
         }),
       });
       
-      if (saveResponse.ok) {
-        const savedOutfit = await saveResponse.json();
+      if (wearResponse.ok) {
+        // Show success message and navigate to outfits page
+        setError(null);
+        // Show success message briefly before navigating
+        setGeneratedOutfit(prev => prev ? {
+          ...prev,
+          isWorn: true,
+          lastWorn: new Date().toISOString()
+        } : null);
         
-        // Then mark it as worn
-        const wearResponse = await fetch('/api/outfit-history/mark-worn', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            outfitId: savedOutfit.id || savedOutfit.outfitId,
-            dateWorn: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
-          }),
-        });
-        
-        if (wearResponse.ok) {
-          // Show success message and navigate to outfits page
-          setError(null);
-          // Show success message briefly before navigating
-          setGeneratedOutfit(prev => prev ? {
-            ...prev,
-            isWorn: true,
-            lastWorn: new Date().toISOString()
-          } : null);
-          
-          // Navigate after a short delay to show success
-          setTimeout(() => {
-            // Add timestamp to force refresh of outfits page
-            const timestamp = Date.now();
-            console.log('🔄 [Generate] Navigating to outfits page with forced refresh');
-            router.push(`/outfits?refresh=${timestamp}`);
-          }, 1500);
-        } else {
-          setError('Outfit saved but failed to mark as worn');
-        }
+        // Navigate after a short delay to show success
+        setTimeout(() => {
+          // Add timestamp to force refresh of outfits page
+          const timestamp = Date.now();
+          console.log('🔄 [Generate] Navigating to outfits page with forced refresh');
+          router.push(`/outfits?refresh=${timestamp}`);
+        }, 1500);
       } else {
-        setError('Failed to save outfit');
+        const errorData = await wearResponse.json().catch(() => ({}));
+        setError(`Failed to mark outfit as worn: ${errorData.detail || errorData.error || 'Unknown error'}`);
       }
     } catch (err) {
+      console.error('Error wearing outfit:', err);
       setError('Failed to wear outfit');
     }
   };
