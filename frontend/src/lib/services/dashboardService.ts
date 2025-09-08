@@ -206,19 +206,21 @@ class DashboardService {
       console.log('🔍 DEBUG: response.items:', response.items);
       console.log('🔍 DEBUG: response.wardrobe_items:', response.wardrobe_items);
       
-      // Process the wardrobe items to create stats
-      const items = response.items || response.wardrobe_items || response || [];
-      console.log('🔍 DEBUG: Extracted items:', items);
-      console.log('🔍 DEBUG: Items type:', typeof items);
-      console.log('🔍 DEBUG: Items isArray:', Array.isArray(items));
-      const totalItems = Array.isArray(items) ? items.length : 0;
+      // Process the wardrobe items to create stats with null checks
+      const wardrobeItems = response?.data?.items || response?.items || response?.wardrobe_items || [];
+      const totalItems = response?.data?.total_items || response?.total_items || (Array.isArray(wardrobeItems) ? wardrobeItems.length : 0);
+      
+      console.log('🔍 DEBUG: Extracted wardrobeItems:', wardrobeItems);
+      console.log('🔍 DEBUG: WardrobeItems type:', typeof wardrobeItems);
+      console.log('🔍 DEBUG: WardrobeItems isArray:', Array.isArray(wardrobeItems));
+      console.log('🔍 DEBUG: Total items from response:', totalItems);
       
       // Calculate categories and colors from the actual items
       const categories: { [key: string]: number } = {};
       const colors: { [key: string]: number } = {};
       
-      if (Array.isArray(items)) {
-        items.forEach((item: any) => {
+      if (Array.isArray(wardrobeItems)) {
+        wardrobeItems.forEach((item: any) => {
           // Count categories
           const category = item.type || item.category || 'unknown';
           categories[category] = (categories[category] || 0) + 1;
@@ -234,7 +236,7 @@ class DashboardService {
         categories,
         colors,
         user_id: user.uid,
-        items: items // Include items for favorites calculation
+        items: wardrobeItems // Include items for favorites calculation
       };
     } catch (error) {
       console.error('Error fetching wardrobe stats:', error);

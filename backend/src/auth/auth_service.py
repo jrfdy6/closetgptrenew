@@ -222,6 +222,7 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
     """
     try:
         print(f"🔍 DEBUG: get_current_user_id called with credentials: {credentials.credentials[:20]}...")
+        print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
         
         # Reject test token - require real authentication
         if credentials.credentials == "test":
@@ -233,6 +234,7 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
             )
         
         print(f"🔍 DEBUG: Token received: {credentials.credentials[:20]}...")
+        print(f"🔍 DEBUG: Full token: {credentials.credentials}")
         
         # Verify Firebase JWT token
         try:
