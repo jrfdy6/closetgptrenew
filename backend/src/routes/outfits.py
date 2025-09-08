@@ -2696,8 +2696,18 @@ async def generate_outfit(
         # Get real user ID from request context
         if not current_user:
             raise HTTPException(status_code=401, detail="Authentication required")
+        
+        logger.info(f"🔍 DEBUG: current_user object: {current_user}")
+        logger.info(f"🔍 DEBUG: current_user type: {type(current_user)}")
+        logger.info(f"🔍 DEBUG: current_user.id: {current_user.id}")
+        logger.info(f"🔍 DEBUG: current_user.id type: {type(current_user.id)}")
+        
         current_user_id = current_user.id  # Your actual user ID
         logger.info(f"Using real user ID: {current_user_id}")
+        
+        if not current_user_id:
+            logger.error("❌ CRITICAL: current_user_id is None or empty!")
+            raise HTTPException(status_code=500, detail="User ID not found in authentication")
         
         # Log base item information
         logger.info(f"🔍 DEBUG: Received baseItemId: {req.baseItemId}")
