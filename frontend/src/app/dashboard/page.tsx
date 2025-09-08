@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,10 @@ export default function Dashboard() {
   useEffect(() => {
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
       console.log('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
-      fetchDashboardData();
+      // Call fetchDashboardData directly to avoid dependency issues
+      if (user) {
+        fetchDashboardData();
+      }
     };
 
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
@@ -75,9 +78,9 @@ export default function Dashboard() {
     return () => {
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     };
-  }, [fetchDashboardData]);
+  }, [user]); // Only depend on user, not fetchDashboardData
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -101,7 +104,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  };
 
   const handleMarkAsWorn = async () => {
     if (!user || !(dashboardData?.todaysOutfit as any)?.suggestionId) return;
