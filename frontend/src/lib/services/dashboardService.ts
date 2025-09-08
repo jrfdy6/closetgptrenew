@@ -281,7 +281,7 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history from /outfit-history');
+      console.log('🔍 DEBUG: Fetching outfit history from /outfit-history for analytics');
       const response = await this.makeAuthenticatedRequest('/outfit-history', user);
       console.log('🔍 DEBUG: Outfit history response:', response);
       console.log('🔍 DEBUG: Outfit history type:', Array.isArray(response) ? 'array' : typeof response);

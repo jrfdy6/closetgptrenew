@@ -405,6 +405,13 @@ export default function OutfitGenerationPage() {
           // Skip auto-save if outfit already has an ID (already saved by backend)
           if (data.id) {
             console.log('🔍 DEBUG: Skipping auto-save - outfit already has ID:', data.id);
+            
+            // Navigate to outfits page to show the new outfit
+            setTimeout(() => {
+              const timestamp = Date.now();
+              console.log('🔄 [Generate] Navigating to outfits page to show new outfit');
+              router.push(`/outfits?refresh=${timestamp}`);
+            }, 1000);
             return;
           }
           
@@ -456,6 +463,13 @@ export default function OutfitGenerationPage() {
               id: savedOutfit.id || savedOutfit.outfitId
             } : null);
             console.log('🔍 DEBUG: Outfit auto-saved with ID:', savedOutfit.id || savedOutfit.outfitId);
+            
+            // Navigate to outfits page to show the new outfit
+            setTimeout(() => {
+              const timestamp = Date.now();
+              console.log('🔄 [Generate] Navigating to outfits page to show new outfit');
+              router.push(`/outfits?refresh=${timestamp}`);
+            }, 1000);
           }
         } catch (err) {
           console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');
