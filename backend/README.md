@@ -48,3 +48,4 @@ This is the backend API for ClosetGPT, providing AI-powered clothing analysis an
 
 The backend is configured to deploy to Railway with the correct app entry point. # Clean deployment
 # Railway deployment trigger - Tue Aug 12 06:47:16 EDT 2025
+# Force deployment Mon Sep  8 06:28:18 EDT 2025
