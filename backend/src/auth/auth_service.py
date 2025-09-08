@@ -27,6 +27,9 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         # Verify Firebase JWT token
         try:
             print("🔍 DEBUG: Attempting Firebase token verification...")
+            print(f"🔍 DEBUG: Firebase auth module: {auth}")
+            print(f"🔍 DEBUG: Firebase auth type: {type(auth)}")
+            print(f"🔍 DEBUG: Token to verify: {credentials.credentials[:50]}...")
             # Try with default settings first
             decoded_token = auth.verify_id_token(credentials.credentials)
             user_id = decoded_token['uid']
@@ -111,11 +114,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     except Exception as e:
         print(f"🔍 DEBUG: Authentication error: {e}")
         print(f"🔍 DEBUG: Error type: {type(e)}")
+        print(f"🔍 DEBUG: Error str: {str(e)}")
+        print(f"🔍 DEBUG: Error repr: {repr(e)}")
         import traceback
         print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Authentication service error: {str(e)}"
+            detail=f"Authentication service error: {str(e) if str(e) else 'Unknown error'}"
         )
 
 # Alternative function that doesn't require authentication for testing
