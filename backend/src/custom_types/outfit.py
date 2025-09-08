@@ -140,7 +140,7 @@ class OutfitResponse(BaseModel):
     reasoning: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
-    userId: str
+    user_id: str
     isFavorite: Optional[bool] = False
     wearCount: Optional[int] = 0
     lastWorn: Optional[datetime] = None
