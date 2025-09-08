@@ -281,14 +281,14 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history from /outfits');
-      const response = await this.makeAuthenticatedRequest('/outfits', user);
+      console.log('🔍 DEBUG: Fetching outfit history from /outfit-history');
+      const response = await this.makeAuthenticatedRequest('/outfit-history', user);
       console.log('🔍 DEBUG: Outfit history response:', response);
       console.log('🔍 DEBUG: Outfit history type:', Array.isArray(response) ? 'array' : typeof response);
       console.log('🔍 DEBUG: Outfit history length:', Array.isArray(response) ? response.length : 'not an array');
       
       if (Array.isArray(response) && response.length > 0) {
-        console.log('🔍 DEBUG: First outfit sample:', JSON.stringify(response[0], null, 2));
+        console.log('🔍 DEBUG: First outfit history sample:', JSON.stringify(response[0], null, 2));
       }
       
       return response || [];
@@ -427,38 +427,42 @@ class DashboardService {
   }
 
   private calculateOutfitsThisWeek(outfitHistory: any[]): number {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    // Use UTC time to match backend storage
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
     
     console.log('🔍 DEBUG: Calculating outfits this week from:', outfitHistory);
     console.log('🔍 DEBUG: Outfit history length:', outfitHistory.length);
-    console.log('🔍 DEBUG: One week ago date:', oneWeekAgo);
+    console.log('🔍 DEBUG: Current UTC time:', now.toISOString());
+    console.log('🔍 DEBUG: One week ago UTC time:', oneWeekAgo.toISOString());
     
     if (!Array.isArray(outfitHistory) || outfitHistory.length === 0) {
       console.log('🔍 DEBUG: No outfit history data, returning 0');
       return 0;
     }
     
-    const thisWeekOutfits = outfitHistory.filter(outfit => {
-      // Use the createdAt field from the outfit data
-      const createdAt = outfit.createdAt || outfit.generated_at;
-      if (!createdAt) {
-        console.log('🔍 DEBUG: No createdAt field for outfit:', outfit);
+    const thisWeekOutfits = outfitHistory.filter(historyEntry => {
+      // Use the dateWorn field from the outfit history entry
+      const dateWorn = historyEntry.dateWorn;
+      if (!dateWorn) {
+        console.log('🔍 DEBUG: No dateWorn field for history entry:', historyEntry);
         return false;
       }
       
-      console.log('🔍 DEBUG: Checking outfit date:', createdAt, 'for outfit:', outfit);
+      console.log('🔍 DEBUG: Checking outfit history date:', dateWorn, 'for entry:', historyEntry);
       
       // Handle both timestamp and ISO string formats
       let outfitDate: Date;
-      if (typeof createdAt === 'number') {
-        outfitDate = new Date(createdAt);
+      if (typeof dateWorn === 'number') {
+        // If it's a timestamp, treat it as UTC
+        outfitDate = new Date(dateWorn);
       } else {
-        outfitDate = new Date(createdAt);
+        // If it's a string, parse it as UTC
+        outfitDate = new Date(dateWorn);
       }
       
       const isThisWeek = outfitDate >= oneWeekAgo;
-      console.log('🔍 DEBUG: Outfit date:', outfitDate, 'is this week:', isThisWeek);
+      console.log('🔍 DEBUG: Outfit history date:', outfitDate.toISOString(), 'is this week:', isThisWeek);
       
       return isThisWeek;
     });
