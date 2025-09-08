@@ -174,26 +174,26 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # For now, we'll continue but log the warning
                 # In the future, we could suggest alternatives or reject the request
         
-        # 3. Generate outfit using AI logic
-        logger.info(f"🔍 DEBUG: About to call generate_ai_outfit with {len(wardrobe_items)} items")
-        outfit = await generate_ai_outfit(wardrobe_items, user_profile, req)
+        # 3. Generate outfit using rule-based decision tree
+        logger.info(f"🔍 DEBUG: About to call generate_rule_based_outfit with {len(wardrobe_items)} items")
+        outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
         logger.info(f"✨ Generated outfit: {outfit['name']}")
         logger.info(f"🔍 DEBUG: Outfit items count: {len(outfit.get('items', []))}")
         
         # Check if outfit generation was successful
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
-            logger.warning(f"⚠️ AI generated outfit has no items, using fallback")
+            logger.warning(f"⚠️ Rule-based generation produced no items, using fallback")
             logger.warning(f"🔍 DEBUG: Outfit data: {outfit}")
             return await generate_fallback_outfit(req, user_id)
         
-        logger.info(f"✅ AI generation successful with {len(outfit['items'])} items")
-        logger.info(f"🔍 DEBUG: AI outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
+        logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
+        logger.info(f"🔍 DEBUG: Rule-based outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
         return outfit
         
     except Exception as e:
         logger.error(f"⚠️ Outfit generation failed with exception: {e}")
         logger.exception("Full traceback:")
-        # Fallback to basic generation if AI fails
+        # Fallback to basic generation if rule-based generation fails
         return await generate_fallback_outfit(req, user_id)
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
@@ -1496,15 +1496,14 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             }
         }
 
-async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
-    """Generate outfit using AI logic and user's wardrobe."""
+async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
+    """Generate outfit using rule-based decision tree and user's wardrobe."""
     try:
-        logger.info(f"🤖 Generating AI outfit with {len(wardrobe_items)} items")
+        logger.info(f"🎯 Generating rule-based outfit with {len(wardrobe_items)} items")
         logger.info(f"🔍 DEBUG: User profile: {user_profile}")
         logger.info(f"🔍 DEBUG: Request: {req}")
         
-        # For now, implement basic outfit selection logic
-        # TODO: Integrate with OpenAI GPT for more sophisticated generation
+        # Rule-based outfit selection using sophisticated decision tree
         
                 # ENHANCED: Sophisticated style preference filtering with scoring
         suitable_items = []
@@ -1798,14 +1797,14 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         }
         
     except Exception as e:
-        logger.error(f"❌ AI outfit generation failed: {e}")
-        logger.exception("Full AI generation traceback:")
+        logger.error(f"❌ Rule-based outfit generation failed: {e}")
+        logger.exception("Full rule-based generation traceback:")
         logger.warning(f"🔄 Falling back to basic generation for user: {user_profile.get('id', 'unknown') if user_profile else 'unknown'}")
         # Fall back to basic generation with proper user_id
         return await generate_fallback_outfit(req, user_profile.get('id', 'unknown') if user_profile else 'unknown')
 
 async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
-    """Generate basic fallback outfit when AI generation fails."""
+    """Generate basic fallback outfit when rule-based generation fails."""
     logger.info(f"🔄 Generating fallback outfit for {user_id}")
     
     outfit_name = f"{req.style.title()} {req.mood.title()} Look"
