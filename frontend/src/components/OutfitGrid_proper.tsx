@@ -471,15 +471,8 @@ export default function OutfitGrid({
   }, [outfits, searchResults, isSearching, sortBy]);
 
   // ===== EFFECTS =====
-  /**
-   * Refresh outfits when component mounts to catch newly generated outfits
-   */
-  useEffect(() => {
-    if (!loading && outfits.length === 0) {
-      console.log('🔄 [OutfitGrid] Component mounted with no outfits, triggering refresh');
-      refresh();
-    }
-  }, [refresh, loading, outfits.length]);
+  // Removed problematic useEffect that was causing infinite refresh loop
+  // The useOutfits hook already handles initial data fetching
 
   /**
    * Check for refresh parameter in URL and trigger refresh
