@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Simple test route to check what's happening with outfits
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   console.log("🔍 TEST: Outfits test route called");
   

@@ -27,34 +27,15 @@ export default function OutfitsPage() {
               </p>
             </div>
             
-            <div className="flex gap-2">
-              <button 
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/outfits/test');
-                    const data = await response.json();
-                    console.log('🧪 TEST RESULT:', data);
-                    alert(`Test Result: ${JSON.stringify(data, null, 2)}`);
-                  } catch (error) {
-                    console.error('🧪 TEST ERROR:', error);
-                    alert(`Test Error: ${error}`);
-                  }
-                }}
-                className="inline-flex items-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md text-sm"
-              >
-                🧪 Test Outfits
-              </button>
-              
-              <Link 
-                href="/outfits/generate"
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors duration-200 shadow-sm hover:shadow-md cursor-pointer"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Generate Outfit
-              </Link>
-            </div>
+            <Link 
+              href="/outfits/generate"
+              className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors duration-200 shadow-sm hover:shadow-md cursor-pointer"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Generate Outfit
+            </Link>
           </div>
         </div>
       </div>

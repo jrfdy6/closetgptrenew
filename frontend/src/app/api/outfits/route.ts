@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   console.log("🔍 DEBUG: Outfits GET route called - CONNECTING TO PRODUCTION BACKEND");
   
@@ -69,7 +71,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
