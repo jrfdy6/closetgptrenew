@@ -388,9 +388,28 @@ export default function OutfitGrid({
   const [searchResults, setSearchResults] = useState<Outfit[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [sortBy, setSortBy] = useState<'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least'>('date-newest');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Intersection observer for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  // Debounced refresh function to prevent multiple simultaneous refreshes
+  const debouncedRefresh = useCallback(() => {
+    if (isRefreshing) {
+      console.log('🔄 [OutfitGrid] Refresh already in progress, skipping...');
+      return;
+    }
+    
+    setIsRefreshing(true);
+    console.log('🔄 [OutfitGrid] Starting debounced refresh...');
+    
+    refresh().finally(() => {
+      setTimeout(() => {
+        setIsRefreshing(false);
+        console.log('✅ [OutfitGrid] Refresh completed');
+      }, 1000); // Small delay to prevent rapid successive refreshes
+    });
+  }, [refresh, isRefreshing]);
 
   // ===== COMPUTED VALUES =====
   const filteredOutfits = useMemo(() => {
@@ -487,12 +506,12 @@ export default function OutfitGrid({
     let debounceTimer: NodeJS.Timeout;
     
     const handleVisibilityChange = () => {
-      if (!document.hidden && outfits.length > 0) { // Only refresh if we have existing outfits
-        console.log('🔄 [OutfitGrid] Page became visible, debounced refresh in 2s');
+      if (!document.hidden && !isRefreshing) { // Only refresh if not already refreshing
+        console.log('🔄 [OutfitGrid] Page became visible, debounced refresh in 3s');
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          refresh();
-        }, 2000); // 2 second debounce
+          debouncedRefresh();
+        }, 3000); // 3 second debounce
       }
     };
 
@@ -501,7 +520,7 @@ export default function OutfitGrid({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearTimeout(debounceTimer);
     };
-  }, [refresh, outfits.length]);
+  }, [debouncedRefresh, isRefreshing]);
 
   /**
    * Refresh outfits when user navigates to this page (for new outfits from generation page)  
@@ -511,12 +530,12 @@ export default function OutfitGrid({
     let debounceTimer: NodeJS.Timeout;
     
     const handleFocus = () => {
-      if (outfits.length > 0) { // Only refresh if we have existing outfits
-        console.log('🔄 [OutfitGrid] Window focused, debounced refresh in 3s');
+      if (!isRefreshing) { // Only refresh if not already refreshing
+        console.log('🔄 [OutfitGrid] Window focused, debounced refresh in 5s');
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-          refresh();
-        }, 3000); // 3 second debounce
+          debouncedRefresh();
+        }, 5000); // 5 second debounce
       }
     };
 
@@ -525,7 +544,7 @@ export default function OutfitGrid({
       window.removeEventListener('focus', handleFocus);
       clearTimeout(debounceTimer);
     };
-  }, [refresh, outfits.length]);
+  }, [debouncedRefresh, isRefreshing]);
 
   /**
    * Listen for outfit marked as worn events to refresh outfit data
@@ -533,7 +552,7 @@ export default function OutfitGrid({
   useEffect(() => {
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
       console.log('🔄 [OutfitGrid] Outfit marked as worn, refreshing outfit data...', event.detail);
-      refresh();
+      debouncedRefresh();
     };
 
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
@@ -541,7 +560,7 @@ export default function OutfitGrid({
     return () => {
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     };
-  }, [refresh]);
+  }, [debouncedRefresh]);
 
   /**
    * Check for refresh parameter in URL (from outfit generation page)
@@ -550,16 +569,16 @@ export default function OutfitGrid({
     const urlParams = new URLSearchParams(window.location.search);
     const refreshParam = urlParams.get('refresh');
     
-    if (refreshParam && outfits.length > 0) {
+    if (refreshParam && !isRefreshing) {
       console.log('🔄 [OutfitGrid] Refresh parameter detected, refreshing outfits...');
-      refresh();
+      debouncedRefresh();
       
       // Clean up URL by removing the refresh parameter
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.delete('refresh');
       window.history.replaceState({}, '', newUrl.toString());
     }
-  }, [refresh, outfits.length]);
+  }, [debouncedRefresh, isRefreshing]);
 
   /**
    * Intersection observer for automatic infinite scroll
