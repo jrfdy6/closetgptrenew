@@ -90,6 +90,20 @@ export default function WardrobePage() {
     applyFilters(newFilters);
   }, [selectedType, selectedColor, selectedSeason, searchQuery, applyFilters]);
 
+  // Listen for outfit marked as worn events to refresh wardrobe data
+  useEffect(() => {
+    const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
+      console.log('🔄 Wardrobe: Outfit marked as worn, refreshing wardrobe data...', event.detail);
+      refetch();
+    };
+
+    window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+    
+    return () => {
+      window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+    };
+  }, [refetch]);
+
   // Get filtered items based on active tab
   const getCurrentItems = () => {
     const filtered = getFilteredItems();

@@ -305,8 +305,46 @@ export class OutfitService {
 
       await updateDoc(doc(db, this.COLLECTION_NAME, outfitId), updates);
       
-      // 2. Create outfit history entry for dashboard synchronization
-      const currentTimestamp = Timestamp.now();
+      // 2. Update individual wardrobe items wear counts
+      if (existingOutfit.items && Array.isArray(existingOutfit.items)) {
+        console.log(`🔍 [OutfitService] Updating wear counts for ${existingOutfit.items.length} wardrobe items`);
+        
+        const wardrobeUpdates = existingOutfit.items.map(async (item: any) => {
+          if (item.id) {
+            try {
+              const itemRef = doc(db, 'wardrobe', item.id);
+              const itemDoc = await getDoc(itemRef);
+              
+              if (itemDoc.exists()) {
+                const itemData = itemDoc.data();
+                // Verify ownership
+                if (itemData.userId === user.uid) {
+                  const currentWearCount = itemData.wearCount || 0;
+                  await updateDoc(itemRef, {
+                    wearCount: currentWearCount + 1,
+                    lastWorn: currentTimestamp,
+                    updatedAt: currentTimestamp
+                  });
+                  console.log(`✅ [OutfitService] Updated wear count for item: ${item.name || item.id}`);
+                } else {
+                  console.warn(`⚠️ [OutfitService] Skipping item ${item.id} - not owned by user`);
+                }
+              } else {
+                console.warn(`⚠️ [OutfitService] Item ${item.id} not found in wardrobe`);
+              }
+            } catch (itemError) {
+              console.error(`❌ [OutfitService] Error updating item ${item.id}:`, itemError);
+              // Don't fail the whole operation if one item fails
+            }
+          }
+        });
+        
+        // Wait for all wardrobe item updates to complete
+        await Promise.all(wardrobeUpdates);
+        console.log(`✅ [OutfitService] Completed wardrobe item wear count updates`);
+      }
+
+      // 3. Create outfit history entry for dashboard synchronization
       const historyEntry = {
         user_id: user.uid,
         outfit_id: outfitId,
@@ -325,12 +363,12 @@ export class OutfitService {
       // Add to outfit_history collection for dashboard sync
       await addDoc(collection(db, 'outfit_history'), historyEntry);
       
-      // 3. Trigger dashboard refresh event
+      // 4. Trigger dashboard refresh event
       window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { 
         detail: { outfitId, outfitName: existingOutfit.name } 
       }));
       
-      console.log(`✅ [OutfitService] Successfully marked outfit ${outfitId} as worn and synced with dashboard`);
+      console.log(`✅ [OutfitService] Successfully marked outfit ${outfitId} as worn and synced with dashboard and wardrobe items`);
 
     } catch (error) {
       console.error(`❌ [OutfitService] Error marking outfit ${outfitId} as worn:`, error);
