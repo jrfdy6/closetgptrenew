@@ -2667,6 +2667,7 @@ async def debug_user_outfits(
 @router.post("/generate", response_model=OutfitResponse)
 async def generate_outfit(
     req: OutfitRequest,
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Generate an outfit using decision logic, save it to Firestore,
