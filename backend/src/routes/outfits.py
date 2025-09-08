@@ -183,8 +183,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # Check if outfit generation was successful
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.warning(f"⚠️ AI generated outfit has no items, using fallback")
+            logger.warning(f"🔍 DEBUG: Outfit data: {outfit}")
             return await generate_fallback_outfit(req, user_id)
         
+        logger.info(f"✅ AI generation successful with {len(outfit['items'])} items")
+        logger.info(f"🔍 DEBUG: AI outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
         return outfit
         
     except Exception as e:
@@ -1797,6 +1800,7 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
     except Exception as e:
         logger.error(f"❌ AI outfit generation failed: {e}")
         logger.exception("Full AI generation traceback:")
+        logger.warning(f"🔄 Falling back to basic generation for user: {user_profile.get('id', 'unknown') if user_profile else 'unknown'}")
         # Fall back to basic generation with proper user_id
         return await generate_fallback_outfit(req, user_profile.get('id', 'unknown') if user_profile else 'unknown')
 
@@ -1826,15 +1830,21 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                 category_items = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals']]
             
             if category_items:
-                # Pick the first suitable item
-                selected_items.append(category_items[0])
-                logger.info(f"Selected {category_items[0].get('name', 'Unknown')} for {category}")
+                # Randomly pick an item from the category for variety
+                import random
+                random.seed(int(time.time() * 1000) % 1000000)  # Use timestamp for seed
+                selected_item = random.choice(category_items)
+                selected_items.append(selected_item)
+                logger.info(f"Selected {selected_item.get('name', 'Unknown')} for {category}")
         
         # Add a jacket/outerwear if available
         outerwear = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'outerwear', 'blazer', 'cardigan']]
         if outerwear:
-            selected_items.append(outerwear[0])
-            logger.info(f"Added outerwear: {outerwear[0].get('name', 'Unknown')}")
+            import random
+            random.seed(int(time.time() * 1000) % 1000000)  # Use timestamp for seed
+            selected_outerwear = random.choice(outerwear)
+            selected_items.append(selected_outerwear)
+            logger.info(f"Added outerwear: {selected_outerwear.get('name', 'Unknown')}")
         
         if selected_items:
             logger.info(f"Successfully created fallback outfit with {len(selected_items)} real wardrobe items")
