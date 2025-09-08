@@ -297,10 +297,11 @@ export class OutfitService {
       }
 
       // 1. Update the outfit document with wear count
+      const currentTimestamp = Timestamp.now(); // Declare once here
       const updates = {
         wearCount: (existingOutfit.wearCount || 0) + 1,
-        lastWorn: Timestamp.now(),
-        updatedAt: Timestamp.now(),
+        lastWorn: currentTimestamp,
+        updatedAt: currentTimestamp,
       };
 
       await updateDoc(doc(db, this.COLLECTION_NAME, outfitId), updates);
