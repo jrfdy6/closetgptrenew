@@ -409,7 +409,7 @@ export default function OutfitGrid({
         console.log('✅ [OutfitGrid] Refresh completed');
       }, 1000); // Small delay to prevent rapid successive refreshes
     });
-  }, [refresh, isRefreshing]);
+  }, [refresh]); // Removed isRefreshing from dependencies
 
   // ===== COMPUTED VALUES =====
   const filteredOutfits = useMemo(() => {
@@ -498,53 +498,8 @@ export default function OutfitGrid({
     }
   }, [refresh]);
 
-  /**
-   * Refresh outfits when page becomes visible (for new outfits from generation page)
-   * DEBOUNCED to prevent infinite refresh loops
-   */
-  useEffect(() => {
-    let debounceTimer: NodeJS.Timeout;
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden && !isRefreshing) { // Only refresh if not already refreshing
-        console.log('🔄 [OutfitGrid] Page became visible, debounced refresh in 3s');
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          debouncedRefresh();
-        }, 3000); // 3 second debounce
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearTimeout(debounceTimer);
-    };
-  }, [debouncedRefresh, isRefreshing]);
-
-  /**
-   * Refresh outfits when user navigates to this page (for new outfits from generation page)  
-   * DEBOUNCED to prevent infinite refresh loops
-   */
-  useEffect(() => {
-    let debounceTimer: NodeJS.Timeout;
-    
-    const handleFocus = () => {
-      if (!isRefreshing) { // Only refresh if not already refreshing
-        console.log('🔄 [OutfitGrid] Window focused, debounced refresh in 5s');
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          debouncedRefresh();
-        }, 5000); // 5 second debounce
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      clearTimeout(debounceTimer);
-    };
-  }, [debouncedRefresh, isRefreshing]);
+  // Removed window focus and page visibility refresh triggers to prevent loops
+  // Only keeping URL parameter and event-based refreshes
 
   /**
    * Listen for outfit marked as worn events to refresh outfit data
@@ -564,12 +519,13 @@ export default function OutfitGrid({
 
   /**
    * Check for refresh parameter in URL (from outfit generation page)
+   * Only run once on mount to prevent loops
    */
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refreshParam = urlParams.get('refresh');
     
-    if (refreshParam && !isRefreshing) {
+    if (refreshParam) {
       console.log('🔄 [OutfitGrid] Refresh parameter detected, refreshing outfits...');
       debouncedRefresh();
       
@@ -578,7 +534,7 @@ export default function OutfitGrid({
       newUrl.searchParams.delete('refresh');
       window.history.replaceState({}, '', newUrl.toString());
     }
-  }, [debouncedRefresh, isRefreshing]);
+  }, []); // Empty dependency array - only run once on mount
 
   /**
    * Intersection observer for automatic infinite scroll
