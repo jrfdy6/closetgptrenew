@@ -28,6 +28,26 @@ router = APIRouter(
 )
 security = HTTPBearer()
 
+def clean_for_firestore(obj):
+    """Convert Pydantic or nested objects into Firestore-safe dicts."""
+    if hasattr(obj, "dict"):  # Pydantic model
+        obj = obj.dict()
+    if isinstance(obj, dict):
+        safe = {}
+        for k, v in obj.items():
+            if isinstance(v, datetime):
+                safe[k] = v  # Firestore can store datetime directly
+            elif hasattr(v, "dict"):  # Nested Pydantic
+                safe[k] = clean_for_firestore(v.dict())
+            elif isinstance(v, dict):
+                safe[k] = clean_for_firestore(v)
+            elif isinstance(v, list):
+                safe[k] = [clean_for_firestore(i) for i in v]
+            else:
+                safe[k] = v
+        return safe
+    return obj
+
 # Firebase imports with graceful fallback
 try:
     from ..config.firebase import db, firebase_initialized
@@ -2580,11 +2600,16 @@ async def mark_outfit_as_worn(
                 'notes': '',
                 'tags': [],
                 'created_at': current_timestamp,
-                'updated_at': current_timestamp
+                'updated_at': current_timestamp,
+                'outfit_snapshot': clean_for_firestore(outfit_data)  # Clean outfit snapshot
             }
             
+            # Clean the history entry before saving
+            clean_history_entry = clean_for_firestore(history_entry)
+            logger.info(f"🧹 Cleaned history entry: {clean_history_entry}")
+            
             # Save to outfit_history collection for today's outfit tracking
-            doc_ref, doc_id = db.collection('outfit_history').add(history_entry)
+            doc_ref, doc_id = db.collection('outfit_history').add(clean_history_entry)
             logger.info(f"📅 Created outfit history entry for outfit {outfit_id}")
             
         except Exception as history_error:
@@ -2735,9 +2760,11 @@ async def generate_outfit(
             **outfit
         }
 
-        # 3. Save to Firestore
+        # 3. Clean and save to Firestore
         logger.info(f"🔄 About to save generated outfit {outfit_id}")
-        save_result = await save_outfit(current_user_id, outfit_id, outfit_record)
+        clean_outfit_record = clean_for_firestore(outfit_record)
+        logger.info(f"🧹 Cleaned outfit record: {clean_outfit_record}")
+        save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
         logger.info(f"💾 Save operation result: {save_result}")
 
         # 4. Return standardized outfit response
@@ -2806,9 +2833,11 @@ async def create_outfit(
             "userFeedback": None
         }
         
-        # Save using the same unified save_outfit function
+        # Clean and save using the same unified save_outfit function
         outfit_id = outfit_data["id"]
-        await save_outfit(current_user_id, outfit_id, outfit_data)
+        clean_outfit_data = clean_for_firestore(outfit_data)
+        logger.info(f"🧹 Cleaned custom outfit data: {clean_outfit_data}")
+        await save_outfit(current_user_id, outfit_id, clean_outfit_data)
         
         # Enhanced logging for debugging
         logger.info(f"✅ Outfit created: {outfit_id} for user {current_user_id}")
