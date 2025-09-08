@@ -528,6 +528,40 @@ export default function OutfitGrid({
   }, [refresh, outfits.length]);
 
   /**
+   * Listen for outfit marked as worn events to refresh outfit data
+   */
+  useEffect(() => {
+    const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
+      console.log('🔄 [OutfitGrid] Outfit marked as worn, refreshing outfit data...', event.detail);
+      refresh();
+    };
+
+    window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+    
+    return () => {
+      window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+    };
+  }, [refresh]);
+
+  /**
+   * Check for refresh parameter in URL (from outfit generation page)
+   */
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refreshParam = urlParams.get('refresh');
+    
+    if (refreshParam && outfits.length > 0) {
+      console.log('🔄 [OutfitGrid] Refresh parameter detected, refreshing outfits...');
+      refresh();
+      
+      // Clean up URL by removing the refresh parameter
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('refresh');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [refresh, outfits.length]);
+
+  /**
    * Intersection observer for automatic infinite scroll
    */
   useEffect(() => {
