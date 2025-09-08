@@ -22,6 +22,7 @@ import {
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
+import OutfitService from '@/lib/services/outfitService';
 
 interface OutfitGenerationForm {
   occasion: string;
@@ -477,47 +478,25 @@ export default function OutfitGenerationPage() {
     }
     
     try {
-      const token = await user.getIdToken();
+      // Use OutfitService to mark as worn - this updates both database and local state
+      await OutfitService.markOutfitAsWorn(user, generatedOutfit.id);
       
-      // The outfit is already saved by the generation endpoint, just mark it as worn
-      const wearResponse = await fetch('/api/outfit-history/mark-worn', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          outfitId: generatedOutfit.id,
-          dateWorn: new Date().toISOString().split('T')[0] // Today's date in YYYY-MM-DD format
-        }),
-      });
+      // Show success message and navigate to outfits page
+      setError(null);
+      // Show success message briefly before navigating
+      setGeneratedOutfit(prev => prev ? {
+        ...prev,
+        isWorn: true,
+        lastWorn: new Date().toISOString()
+      } : null);
       
-      if (wearResponse.ok) {
-        // Show success message and navigate to outfits page
-        setError(null);
-        // Show success message briefly before navigating
-        setGeneratedOutfit(prev => prev ? {
-          ...prev,
-          isWorn: true,
-          lastWorn: new Date().toISOString()
-        } : null);
-        
-        // Trigger dashboard refresh event
-        window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { 
-          detail: { outfitId: generatedOutfit.id, outfitName: generatedOutfit.name } 
-        }));
-        
-        // Navigate after a short delay to show success
-        setTimeout(() => {
-          // Add timestamp to force refresh of outfits page
-          const timestamp = Date.now();
-          console.log('🔄 [Generate] Navigating to outfits page with forced refresh');
-          router.push(`/outfits?refresh=${timestamp}`);
-        }, 1500);
-      } else {
-        const errorData = await wearResponse.json().catch(() => ({}));
-        setError(`Failed to mark outfit as worn: ${errorData.detail || errorData.error || 'Unknown error'}`);
-      }
+      // Navigate after a short delay to show success
+      setTimeout(() => {
+        // Add timestamp to force refresh of outfits page
+        const timestamp = Date.now();
+        console.log('🔄 [Generate] Navigating to outfits page with forced refresh');
+        router.push(`/outfits?refresh=${timestamp}`);
+      }, 1500);
     } catch (err) {
       console.error('Error wearing outfit:', err);
       setError('Failed to wear outfit');
