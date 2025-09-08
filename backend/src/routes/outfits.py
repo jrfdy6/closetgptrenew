@@ -2720,7 +2720,7 @@ async def generate_outfit(
         outfit_id = str(uuid4())
         outfit_record = {
             "id": outfit_id,
-            "user_id": current_user_id,
+            "userId": current_user_id,  # Use camelCase to match frontend expectations
             "generated_at": datetime.utcnow().isoformat(),
             **outfit
         }
@@ -2774,7 +2774,7 @@ async def create_outfit(
             "style": request.style,
             "description": request.description or "",
             "items": request.items,
-            "user_id": current_user_id,
+            "userId": current_user_id,  # Use camelCase to match frontend expectations
             "createdAt": request.createdAt or int(time.time()),
             "is_custom": True,  # Mark as custom outfit
             "confidence_score": 1.0,  # Custom outfits have full confidence
