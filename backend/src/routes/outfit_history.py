@@ -183,15 +183,20 @@ async def mark_outfit_as_worn(
         }
         
         # Save to Firestore
-        doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
-        
-        # Log analytics event
         try:
-            from ..models.analytics_event import AnalyticsEvent
-            analytics_event = AnalyticsEvent(
-                user_id=current_user.id,
-                event_type="outfit_worn",
-                metadata={
+            doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
+            logger.info(f"✅ Created outfit history entry with ID: {doc_id}")
+        except Exception as firestore_error:
+            logger.error(f"❌ Failed to save to Firestore: {firestore_error}")
+            raise HTTPException(status_code=500, detail="Failed to save outfit history entry")
+        
+        # Log analytics event (simplified to avoid serialization issues)
+        try:
+            # Create a simple dict instead of AnalyticsEvent object
+            analytics_data = {
+                "user_id": current_user.id,
+                "event_type": "outfit_worn",
+                "metadata": {
                     "outfit_id": outfit_id,
                     "date_worn": date_worn,
                     "occasion": occasion,
@@ -199,8 +204,8 @@ async def mark_outfit_as_worn(
                     "weather": weather,
                     "source": "outfit_history_api"
                 }
-            )
-            log_analytics_event(analytics_event)
+            }
+            log_analytics_event(analytics_data)
             logger.info(f"✅ Analytics event logged for outfit {outfit_id}")
         except Exception as analytics_error:
             logger.warning(f"⚠️ Failed to log analytics event: {analytics_error}")
@@ -211,7 +216,7 @@ async def mark_outfit_as_worn(
         return {
             "success": True,
             "message": "Outfit marked as worn successfully",
-            "entryId": doc_id
+            "entryId": str(doc_id)  # Ensure doc_id is serializable
         }
         
     except Exception as e:
