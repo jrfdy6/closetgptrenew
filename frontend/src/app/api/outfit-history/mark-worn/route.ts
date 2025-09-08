@@ -20,13 +20,17 @@ export async function POST(req: NextRequest) {
 
     // Get request body
     const body = await req.json();
+    console.log('🔍 DEBUG: Mark worn request body:', body);
 
     // Forward request to backend
     const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgpt-backend-production.up.railway.app';
-    const response = await fetch(`${baseUrl}/api/mark-worn`, {
+      'https://closetgptrenew-backend-production.up.railway.app';
+    
+    const backendUrl = `${baseUrl}/api/outfit-history/mark-worn`;
+    console.log('🔍 DEBUG: Calling backend URL:', backendUrl);
+    
+    const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
