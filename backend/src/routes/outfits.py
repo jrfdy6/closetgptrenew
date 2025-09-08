@@ -153,10 +153,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     
     try:
         # 1. Get user's wardrobe items from Firestore
+        logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
         wardrobe_items = await get_user_wardrobe(user_id)
         logger.info(f"📦 Found {len(wardrobe_items)} items in user's wardrobe")
         
+        if len(wardrobe_items) == 0:
+            logger.warning(f"⚠️ User {user_id} has no wardrobe items, using fallback")
+            return await generate_fallback_outfit(req, user_id)
+        
         # 2. Get user's style profile
+        logger.info(f"🔍 DEBUG: Getting user profile for user {user_id}")
         user_profile = await get_user_profile(user_id)
         logger.info(f"👤 Retrieved user profile for {user_id}")
         
@@ -174,10 +180,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.info(f"✨ Generated outfit: {outfit['name']}")
         logger.info(f"🔍 DEBUG: Outfit items count: {len(outfit.get('items', []))}")
         
+        # Check if outfit generation was successful
+        if not outfit.get('items') or len(outfit.get('items', [])) == 0:
+            logger.warning(f"⚠️ AI generated outfit has no items, using fallback")
+            return await generate_fallback_outfit(req, user_id)
+        
         return outfit
         
     except Exception as e:
-        logger.warning(f"⚠️ Outfit generation failed, using fallback: {e}")
+        logger.error(f"⚠️ Outfit generation failed with exception: {e}")
+        logger.exception("Full traceback:")
         # Fallback to basic generation if AI fails
         return await generate_fallback_outfit(req, user_id)
 
@@ -1783,19 +1795,65 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     logger.info(f"🔄 Generating fallback outfit for {user_id}")
     
     outfit_name = f"{req.style.title()} {req.mood.title()} Look"
+    selected_items = []
+    
+    try:
+        # Try to get real wardrobe items for fallback
+        wardrobe_items = await get_user_wardrobe(user_id)
+        logger.info(f"Retrieved {len(wardrobe_items)} wardrobe items for fallback")
+        
+        # Simple fallback logic: pick basic items
+        categories_needed = ['tops', 'bottoms', 'shoes']  # Basic outfit needs
+        
+        for category in categories_needed:
+            # Find items in this category (handle both singular and plural)
+            category_items = []
+            if category == 'tops':
+                category_items = [item for item in wardrobe_items if item.get('type', '').lower() in ['shirt', 'blouse', 't-shirt', 'top', 'tank', 'sweater']]
+            elif category == 'bottoms':
+                category_items = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'bottom']]
+            elif category == 'shoes':
+                category_items = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals']]
+            
+            if category_items:
+                # Pick the first suitable item
+                selected_items.append(category_items[0])
+                logger.info(f"Selected {category_items[0].get('name', 'Unknown')} for {category}")
+        
+        # Add a jacket/outerwear if available
+        outerwear = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'outerwear', 'blazer', 'cardigan']]
+        if outerwear:
+            selected_items.append(outerwear[0])
+            logger.info(f"Added outerwear: {outerwear[0].get('name', 'Unknown')}")
+        
+        if selected_items:
+            logger.info(f"Successfully created fallback outfit with {len(selected_items)} real wardrobe items")
+        else:
+            logger.warning("No wardrobe items found, using generic fallback")
+            # Ultimate fallback with generic items
+            selected_items = [
+                {"id": "fallback-1", "name": f"{req.style} Top", "type": "shirt", "imageUrl": None},
+                {"id": "fallback-2", "name": f"{req.mood} Pants", "type": "pants", "imageUrl": None},
+                {"id": "fallback-3", "name": f"{req.occasion} Shoes", "type": "shoes", "imageUrl": None}
+            ]
+    
+    except Exception as wardrobe_error:
+        logger.error(f"Failed to get wardrobe items for fallback: {wardrobe_error}")
+        # Ultimate fallback with generic items
+        selected_items = [
+            {"id": "fallback-1", "name": f"{req.style} Top", "type": "shirt", "imageUrl": None},
+            {"id": "fallback-2", "name": f"{req.mood} Pants", "type": "pants", "imageUrl": None},
+            {"id": "fallback-3", "name": f"{req.occasion} Shoes", "type": "shoes", "imageUrl": None}
+        ]
     
     return {
         "name": outfit_name,
         "style": req.style,
         "mood": req.mood,
-        "items": [
-            {"id": "fallback-1", "name": f"{req.style} Top", "type": "shirt", "imageUrl": None},
-            {"id": "fallback-2", "name": f"{req.mood} Pants", "type": "pants", "imageUrl": None},
-            {"id": "fallback-3", "name": f"{req.occasion} Shoes", "type": "shoes", "imageUrl": None}
-        ],
+        "items": selected_items,
         "occasion": req.occasion,
-        "confidence_score": 0.5,
-        "reasoning": f"Basic {req.style} outfit for {req.occasion} (fallback generation)",
+        "confidence_score": 0.7 if len([item for item in selected_items if not item.get('id', '').startswith('fallback')]) > 0 else 0.5,
+        "reasoning": f"Basic {req.style} outfit for {req.occasion} using {'real wardrobe items' if len([item for item in selected_items if not item.get('id', '').startswith('fallback')]) > 0 else 'generic items'} (fallback generation)",
         "createdAt": datetime.now().isoformat() + 'Z'
     }
 
