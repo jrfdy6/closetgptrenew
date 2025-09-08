@@ -105,7 +105,8 @@ async def mark_outfit_as_worn(
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
             
-        logger.info(f"Marking outfit as worn for user {current_user.id}")
+        logger.info(f"👕 Marking outfit as worn for user {current_user.id}")
+        logger.info(f"🔍 DEBUG: Received data: {data}")
         
         outfit_id = data.get('outfitId')
         date_worn = data.get('dateWorn')
@@ -114,6 +115,8 @@ async def mark_outfit_as_worn(
         weather = data.get('weather', {})
         notes = data.get('notes', '')
         tags = data.get('tags', [])
+        
+        logger.info(f"🔍 DEBUG: Parsed outfit_id: {outfit_id}, date_worn: {date_worn}")
         
         if not outfit_id or not date_worn:
             raise HTTPException(status_code=400, detail="outfitId and dateWorn are required")
@@ -183,20 +186,25 @@ async def mark_outfit_as_worn(
         doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
         
         # Log analytics event
-        from ..models.analytics_event import AnalyticsEvent
-        analytics_event = AnalyticsEvent(
-            user_id=current_user.id,
-            event_type="outfit_worn",
-            metadata={
-                "outfit_id": outfit_id,
-                "date_worn": date_worn,
-                "occasion": occasion,
-                "mood": mood,
-                "weather": weather,
-                "source": "outfit_history_api"
-            }
-        )
-        log_analytics_event(analytics_event)
+        try:
+            from ..models.analytics_event import AnalyticsEvent
+            analytics_event = AnalyticsEvent(
+                user_id=current_user.id,
+                event_type="outfit_worn",
+                metadata={
+                    "outfit_id": outfit_id,
+                    "date_worn": date_worn,
+                    "occasion": occasion,
+                    "mood": mood,
+                    "weather": weather,
+                    "source": "outfit_history_api"
+                }
+            )
+            log_analytics_event(analytics_event)
+            logger.info(f"✅ Analytics event logged for outfit {outfit_id}")
+        except Exception as analytics_error:
+            logger.warning(f"⚠️ Failed to log analytics event: {analytics_error}")
+            # Don't fail the whole request if analytics fails
         
         logger.info(f"Successfully marked outfit {outfit_id} as worn for user {current_user.id}")
         
