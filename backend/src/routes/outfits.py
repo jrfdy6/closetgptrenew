@@ -1497,6 +1497,8 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
     """Generate outfit using AI logic and user's wardrobe."""
     try:
         logger.info(f"🤖 Generating AI outfit with {len(wardrobe_items)} items")
+        logger.info(f"🔍 DEBUG: User profile: {user_profile}")
+        logger.info(f"🔍 DEBUG: Request: {req}")
         
         # For now, implement basic outfit selection logic
         # TODO: Integrate with OpenAI GPT for more sophisticated generation
@@ -1701,8 +1703,11 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         
         # If no suitable items, use any available items
         if not suitable_items:
-            logger.info(f"🔍 DEBUG: No suitable items found, using first 4 items")
+            logger.warning(f"⚠️ DEBUG: No suitable items found, using first 4 items")
+            logger.warning(f"⚠️ DEBUG: This means the AI filtering logic is too restrictive")
             suitable_items = wardrobe_items[:4]  # Take first 4 items
+        else:
+            logger.info(f"✅ DEBUG: Found {len(suitable_items)} suitable items")
         # Use timestamp as seed for different randomization each time
         random.seed(int(time.time() * 1000) % 1000000)
         random.shuffle(suitable_items)
@@ -1773,6 +1778,10 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation, user_id)
         logger.info(f"🔍 DEBUG: Calculated outfit score: {outfit_score}")
         
+        # Final debug logging
+        logger.info(f"🎯 DEBUG: Final outfit items: {[item.get('name', 'Unknown') for item in outfit_items]}")
+        logger.info(f"🎯 DEBUG: Final outfit item IDs: {[item.get('id', 'Unknown') for item in outfit_items]}")
+        
         return {
             "name": outfit_name,
             "style": req.style,
@@ -1787,8 +1796,9 @@ async def generate_ai_outfit(wardrobe_items: List[Dict], user_profile: Dict, req
         
     except Exception as e:
         logger.error(f"❌ AI outfit generation failed: {e}")
-        # Fall back to basic generation
-        return await generate_fallback_outfit(req, "unknown")
+        logger.exception("Full AI generation traceback:")
+        # Fall back to basic generation with proper user_id
+        return await generate_fallback_outfit(req, user_profile.get('id', 'unknown') if user_profile else 'unknown')
 
 async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Generate basic fallback outfit when AI generation fails."""
