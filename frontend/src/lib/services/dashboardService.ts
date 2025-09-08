@@ -201,9 +201,16 @@ class DashboardService {
         method: 'GET'
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
+      console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
+      console.log('🔍 DEBUG: Wardrobe stats response keys:', Object.keys(response || {}));
+      console.log('🔍 DEBUG: response.items:', response.items);
+      console.log('🔍 DEBUG: response.wardrobe_items:', response.wardrobe_items);
       
       // Process the wardrobe items to create stats
       const items = response.items || response.wardrobe_items || response || [];
+      console.log('🔍 DEBUG: Extracted items:', items);
+      console.log('🔍 DEBUG: Items type:', typeof items);
+      console.log('🔍 DEBUG: Items isArray:', Array.isArray(items));
       const totalItems = Array.isArray(items) ? items.length : 0;
       
       // Calculate categories and colors from the actual items
@@ -438,11 +445,29 @@ class DashboardService {
   }
 
   private buildStyleCollections(wardrobeStats: any, trendingStyles: any): StyleCollection[] {
+    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats:', wardrobeStats);
+    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats.items:', wardrobeStats.items);
+    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats type:', typeof wardrobeStats);
+    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats.items type:', typeof wardrobeStats.items);
+    
     const items = wardrobeStats.items || [];
+    console.log('🔍 DEBUG: buildStyleCollections - items after fallback:', items);
+    console.log('🔍 DEBUG: buildStyleCollections - items type:', typeof items);
+    console.log('🔍 DEBUG: buildStyleCollections - items isArray:', Array.isArray(items));
     
     // Count items by type from the actual items array
     const categories: { [key: string]: number } = {};
-    items.forEach((item: any) => {
+    
+    if (!Array.isArray(items)) {
+      console.error('❌ ERROR: items is not an array:', items);
+      console.error('❌ ERROR: items type:', typeof items);
+      console.error('❌ ERROR: items value:', JSON.stringify(items, null, 2));
+      return [];
+    }
+    
+    console.log('🔍 DEBUG: Processing items array with length:', items.length);
+    items.forEach((item: any, index: number) => {
+      console.log(`🔍 DEBUG: Processing item ${index}:`, item);
       const type = item.type || 'unknown';
       categories[type] = (categories[type] || 0) + 1;
     });
