@@ -426,22 +426,27 @@ class DashboardService {
     return Math.min(totalCategories, targetCategories);
   }
 
-  private calculateOutfitsThisWeek(outfitHistory: any[]): number {
+  private calculateOutfitsThisWeek(outfitHistory: any): number {
+    // Handle both array and object response formats
+    const historyArray = Array.isArray(outfitHistory) 
+      ? outfitHistory 
+      : outfitHistory?.outfitHistory || [];
+    
     // Use UTC time to match backend storage
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
     
     console.log('🔍 DEBUG: Calculating outfits this week from:', outfitHistory);
-    console.log('🔍 DEBUG: Outfit history length:', outfitHistory.length);
+    console.log('🔍 DEBUG: Outfit history length:', historyArray.length);
     console.log('🔍 DEBUG: Current UTC time:', now.toISOString());
     console.log('🔍 DEBUG: One week ago UTC time:', oneWeekAgo.toISOString());
     
-    if (!Array.isArray(outfitHistory) || outfitHistory.length === 0) {
+    if (!Array.isArray(historyArray) || historyArray.length === 0) {
       console.log('🔍 DEBUG: No outfit history data, returning 0');
       return 0;
     }
     
-    const thisWeekOutfits = outfitHistory.filter(historyEntry => {
+    const thisWeekOutfits = historyArray.filter(historyEntry => {
       // Use the dateWorn field from the outfit history entry
       const dateWorn = historyEntry.dateWorn;
       if (!dateWorn) {
