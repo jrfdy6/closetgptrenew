@@ -928,8 +928,13 @@ class DashboardService {
     }
   }
 
-  private buildRecentOutfits(outfitHistory: any[]): RecentOutfit[] {
-    return outfitHistory.slice(0,5).map(outfit => ({
+  private buildRecentOutfits(outfitHistory: any): RecentOutfit[] {
+    // Handle both array and object response formats
+    const historyArray = Array.isArray(outfitHistory) 
+      ? outfitHistory 
+      : outfitHistory?.outfitHistory || [];
+    
+    return historyArray.slice(0,5).map(outfit => ({
       id: outfit.id || outfit.outfitId || 'unknown',
       name: outfit.outfitName || 'Unnamed Outfit',
       occasion: outfit.occasion || 'casual',
