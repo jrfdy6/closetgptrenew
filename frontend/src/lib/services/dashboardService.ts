@@ -284,6 +284,13 @@ class DashboardService {
       console.log('🔍 DEBUG: Fetching outfit history from /outfits');
       const response = await this.makeAuthenticatedRequest('/outfits', user);
       console.log('🔍 DEBUG: Outfit history response:', response);
+      console.log('🔍 DEBUG: Outfit history type:', Array.isArray(response) ? 'array' : typeof response);
+      console.log('🔍 DEBUG: Outfit history length:', Array.isArray(response) ? response.length : 'not an array');
+      
+      if (Array.isArray(response) && response.length > 0) {
+        console.log('🔍 DEBUG: First outfit sample:', JSON.stringify(response[0], null, 2));
+      }
+      
       return response || [];
     } catch (error) {
       console.error('Error fetching outfit history:', error);
@@ -325,6 +332,10 @@ class DashboardService {
         const suggestion = response.suggestion;
         const outfitData = suggestion.outfitData || {};
         
+        console.log('🔍 DEBUG: Today\'s outfit suggestion data:', JSON.stringify(suggestion, null, 2));
+        console.log('🔍 DEBUG: Today\'s outfit items count:', Array.isArray(outfitData.items) ? outfitData.items.length : 'not an array');
+        console.log('🔍 DEBUG: Today\'s outfit name:', outfitData.name);
+        
         return {
           suggestionId: suggestion.id,
           outfitName: outfitData.name || 'Daily Suggestion',
@@ -339,6 +350,9 @@ class DashboardService {
           isSuggestion: true // Flag to distinguish from worn outfits
         };
       }
+      
+      // Handle case where no suggestion is returned
+      console.log('🔍 DEBUG: No suggestion found in response, response keys:', Object.keys(response));
       
       return null;
     } catch (error) {
