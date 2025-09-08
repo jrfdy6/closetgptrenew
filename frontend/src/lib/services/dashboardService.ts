@@ -313,10 +313,10 @@ class DashboardService {
 
   private async getTodaysOutfit(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /outfit-history/today');
+      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /outfit-history/today-suggestion');
       console.log('🔍 DEBUG: User ID:', user.uid);
       console.log('🔍 DEBUG: User email:', user.email);
-      const response = await this.makeAuthenticatedRequest('/outfit-history/today', user);
+      const response = await this.makeAuthenticatedRequest('/outfit-history/today-suggestion', user);
       console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
       console.log('🔍 DEBUG: Today\'s outfit suggestion response details:', JSON.stringify(response, null, 2));
       
@@ -417,11 +417,21 @@ class DashboardService {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     
     console.log('🔍 DEBUG: Calculating outfits this week from:', outfitHistory);
+    console.log('🔍 DEBUG: Outfit history length:', outfitHistory.length);
+    console.log('🔍 DEBUG: One week ago date:', oneWeekAgo);
     
-    return outfitHistory.filter(outfit => {
+    if (!Array.isArray(outfitHistory) || outfitHistory.length === 0) {
+      console.log('🔍 DEBUG: No outfit history data, returning 0');
+      return 0;
+    }
+    
+    const thisWeekOutfits = outfitHistory.filter(outfit => {
       // Use the createdAt field from the outfit data
       const createdAt = outfit.createdAt || outfit.generated_at;
-      if (!createdAt) return false;
+      if (!createdAt) {
+        console.log('🔍 DEBUG: No createdAt field for outfit:', outfit);
+        return false;
+      }
       
       console.log('🔍 DEBUG: Checking outfit date:', createdAt, 'for outfit:', outfit);
       
@@ -437,7 +447,10 @@ class DashboardService {
       console.log('🔍 DEBUG: Outfit date:', outfitDate, 'is this week:', isThisWeek);
       
       return isThisWeek;
-    }).length;
+    });
+    
+    console.log('🔍 DEBUG: Found', thisWeekOutfits.length, 'outfits this week');
+    return thisWeekOutfits.length;
   }
 
   private calculateOverallProgress(wardrobeStats: any, trendingStyles: any): number {
