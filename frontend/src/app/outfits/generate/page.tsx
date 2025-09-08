@@ -487,6 +487,17 @@ export default function OutfitGenerationPage() {
       // Use OutfitService to mark as worn - this updates both database and local state
       await OutfitService.markOutfitAsWorn(user, generatedOutfit.id);
       
+      // Dispatch event to notify dashboard of outfit being marked as worn
+      const event = new CustomEvent('outfitMarkedAsWorn', {
+        detail: {
+          outfitId: generatedOutfit.id,
+          outfitName: generatedOutfit.name,
+          timestamp: new Date().toISOString()
+        }
+      });
+      window.dispatchEvent(event);
+      console.log('🔄 [Generate] Dispatched outfitMarkedAsWorn event for dashboard refresh');
+      
       // Show success message and navigate to outfits page
       setError(null);
       // Show success message briefly before navigating

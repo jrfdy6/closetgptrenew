@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,9 +75,9 @@ export default function Dashboard() {
     return () => {
       window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
     };
-  }, []);
+  }, [fetchDashboardData]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -101,7 +101,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const handleMarkAsWorn = async () => {
     if (!user || !(dashboardData?.todaysOutfit as any)?.suggestionId) return;
