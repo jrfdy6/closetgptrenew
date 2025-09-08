@@ -1180,7 +1180,7 @@ async def calculate_outfit_performance_score(item_id: str, user_id: str) -> floa
     
     try:
         # Query outfits that contain this item
-        outfits_ref = db.collection('outfits').where('userId', '==', user_id)
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
         outfits_docs = outfits_ref.stream()
         
         total_score = 0.0
@@ -2091,11 +2091,11 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             logger.warning("⚠️ Firebase not available, returning empty outfits")
             return []
             
-        logger.info(f"📚 DEBUG: About to query Firestore collection('outfits') with userId == '{user_id}'")
+        logger.info(f"📚 DEBUG: About to query Firestore collection('outfits') with user_id == '{user_id}'")
         
-        # FIXED: Query main outfits collection with userId filter (camelCase)
-        # This matches where outfits are actually stored: outfits collection with userId field
-        outfits_ref = db.collection("outfits").where("userId", "==", user_id)
+        # FIXED: Query main outfits collection with user_id field (snake_case)
+        # This matches the Pydantic model and outfit creation code
+        outfits_ref = db.collection("outfits").where("user_id", "==", user_id)
         
         # CRITICAL FIX: Use proper Firestore ordering to get newest outfits first
         use_firestore_ordering = True
