@@ -124,7 +124,34 @@ export function useOutfits(): UseOutfitsReturn {
         throw new Error(`Failed to fetch outfits: ${response.status}`);
       }
       
-      const fetchedOutfits = await response.json();
+      const responseData = await response.json();
+      console.log('🔍 [useOutfits] Raw response data:', {
+        isArray: Array.isArray(responseData),
+        hasOutfits: !!(responseData.outfits),
+        hasData: !!(responseData.data),
+        keys: Object.keys(responseData),
+        length: Array.isArray(responseData) ? responseData.length : 'N/A'
+      });
+      
+      // Handle different response formats
+      let fetchedOutfits;
+      if (Array.isArray(responseData)) {
+        // Backend returns array directly
+        fetchedOutfits = responseData;
+        console.log('🔍 [useOutfits] Using array format, length:', fetchedOutfits.length);
+      } else if (responseData.outfits && Array.isArray(responseData.outfits)) {
+        // Backend returns object with outfits array
+        fetchedOutfits = responseData.outfits;
+        console.log('🔍 [useOutfits] Using outfits format, length:', fetchedOutfits.length);
+      } else if (responseData.data && Array.isArray(responseData.data)) {
+        // Backend returns object with data array
+        fetchedOutfits = responseData.data;
+        console.log('🔍 [useOutfits] Using data format, length:', fetchedOutfits.length);
+      } else {
+        console.warn('🔍 [useOutfits] Unexpected response format:', responseData);
+        fetchedOutfits = [];
+      }
+      
       setOutfits(fetchedOutfits);
       
       // Check if there are more to load
