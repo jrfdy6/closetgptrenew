@@ -90,11 +90,11 @@ export default function Dashboard() {
   };
 
   const handleMarkAsWorn = async () => {
-    if (!user || !dashboardData?.todaysOutfit?.suggestionId) return;
+    if (!user || !(dashboardData?.todaysOutfit as any)?.suggestionId) return;
     
     try {
       setMarkingAsWorn(true);
-      const success = await dashboardService.markSuggestionAsWorn(user, dashboardData.todaysOutfit.suggestionId);
+      const success = await dashboardService.markSuggestionAsWorn(user, (dashboardData.todaysOutfit as any).suggestionId);
       
       if (success) {
         // Refresh dashboard data to show updated state
@@ -107,6 +107,18 @@ export default function Dashboard() {
       setError('Failed to mark outfit as worn');
     } finally {
       setMarkingAsWorn(false);
+    }
+  };
+
+  const testWardrobeStatsDirect = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🧪 Testing wardrobe stats directly...');
+      const response = await dashboardService.testWardrobeStatsDirect(user);
+      console.log('🧪 Direct wardrobe stats response:', response);
+    } catch (err) {
+      console.error('🧪 Error testing wardrobe stats:', err);
     }
   };
 
@@ -200,6 +212,9 @@ export default function Dashboard() {
             </Button>
             <Button onClick={testProductionEndpoint} variant="outline" className="mr-4">
               🧪 Test Production
+            </Button>
+            <Button onClick={testWardrobeStatsDirect} variant="outline" className="mr-4">
+              🧪 Test Wardrobe Stats
             </Button>
             <Link href="/profile">
               <Button variant="outline">Go to Profile</Button>
@@ -366,7 +381,7 @@ export default function Dashboard() {
                       )}
                     </div>
                     <div className="text-right">
-                      {dashboardData.todaysOutfit.isSuggestion && !dashboardData.todaysOutfit.isWorn ? (
+                      {(dashboardData.todaysOutfit as any).isSuggestion && !(dashboardData.todaysOutfit as any).isWorn ? (
                         <Button 
                           onClick={handleMarkAsWorn}
                           disabled={markingAsWorn}
@@ -380,7 +395,7 @@ export default function Dashboard() {
                           )}
                           {markingAsWorn ? 'Marking...' : 'Wear This'}
                         </Button>
-                      ) : dashboardData.todaysOutfit.isWorn ? (
+                      ) : (dashboardData.todaysOutfit as any).isWorn ? (
                         <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Worn Today
@@ -395,11 +410,11 @@ export default function Dashboard() {
                   </div>
 
                   {/* Outfit Items */}
-                  {dashboardData.todaysOutfit.items && dashboardData.todaysOutfit.items.length > 0 && (
+                  {(dashboardData.todaysOutfit as any).items && (dashboardData.todaysOutfit as any).items.length > 0 && (
                     <div className="space-y-3">
                       <h5 className="font-medium text-gray-900 dark:text-white text-sm">Outfit Items:</h5>
                       <div className="grid gap-2">
-                        {dashboardData.todaysOutfit.items.map((item: any, index: number) => (
+                        {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
                           <div key={index} className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                             {item.imageUrl ? (
                               <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">

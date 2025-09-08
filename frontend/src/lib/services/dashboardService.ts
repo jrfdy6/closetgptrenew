@@ -162,18 +162,41 @@ class DashboardService {
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
 
-      // Process and combine the data
+      // Process and combine the data with proper backend response mapping
       console.log('🔍 DEBUG: Processing wardrobeStats:', wardrobeStats);
-      console.log('🔍 DEBUG: wardrobeStats.total_items:', wardrobeStats.total_items);
-      console.log('🔍 DEBUG: wardrobeStats type:', typeof wardrobeStats);
-      console.log('🔍 DEBUG: wardrobeStats keys:', Object.keys(wardrobeStats || {}));
+      console.log('🔍 DEBUG: Processing outfitHistory:', outfitHistory);
+      console.log('🔍 DEBUG: Processing trendingStyles:', trendingStyles);
+      console.log('🔍 DEBUG: Processing todaysOutfit:', todaysOutfit);
+      console.log('🔍 DEBUG: Processing topWornItems:', topWornItems);
+      
+      // Extract data from backend responses with proper fallbacks
+      // Now using /wardrobe/ endpoint which returns individual items
+      const wardrobeItems = (wardrobeStats as any)?.items || [];
+      const totalItems = (wardrobeStats as any)?.total_items || 0;
+      
+      const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
+      const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
+      const outfitsThisWeek = this.calculateOutfitsThisWeek(outfitHistory);
+      
+      console.log('🔍 DEBUG: Extracted data:');
+      console.log('🔍 DEBUG: - wardrobeItems:', wardrobeItems.length, 'items (empty - backend only returns stats)');
+      console.log('🔍 DEBUG: - totalItems:', totalItems);
+      console.log('🔍 DEBUG: - topWornItemsList:', topWornItemsList.length, 'items');
+      console.log('🔍 DEBUG: - trendingStylesList:', trendingStylesList.length, 'styles');
+      console.log('🔍 DEBUG: - outfitsThisWeek:', outfitsThisWeek);
+      console.log('🔍 DEBUG: - wardrobeStats structure:', {
+        total_items: (wardrobeStats as any)?.data?.total_items,
+        item_types: Object.keys((wardrobeStats as any)?.data?.item_types || {}).length,
+        colors: Object.keys((wardrobeStats as any)?.data?.colors || {}).length,
+        styles: Object.keys((wardrobeStats as any)?.data?.styles || {}).length
+      });
       
       const dashboardData: DashboardData = {
-        totalItems: wardrobeStats.total_items || 0,
+        totalItems: totalItems,
         favorites: this.calculateFavorites(wardrobeStats),
         styleGoalsCompleted: this.calculateStyleGoals(wardrobeStats, trendingStyles),
         totalStyleGoals: 5, // Default value, could be configurable
-        outfitsThisWeek: this.calculateOutfitsThisWeek(outfitHistory),
+        outfitsThisWeek: outfitsThisWeek,
         overallProgress: this.calculateOverallProgress(wardrobeStats, trendingStyles),
         styleCollections: this.buildStyleCollections(wardrobeStats, trendingStyles),
         styleExpansions: this.buildStyleExpansions(wardrobeStats, trendingStyles),
@@ -182,10 +205,15 @@ class DashboardService {
         wardrobeGaps: this.buildWardrobeGaps(wardrobeStats),
         topItems: this.buildTopItems(topWornItems),
         recentOutfits: this.buildRecentOutfits(outfitHistory),
-        todaysOutfit: todaysOutfit
+        todaysOutfit: (todaysOutfit as any)?.todaysOutfit || todaysOutfit || null
       };
 
       console.log('🔍 DEBUG: Dashboard data processed:', dashboardData);
+      console.log('🔍 DEBUG: Dashboard data totalItems:', dashboardData.totalItems);
+      console.log('🔍 DEBUG: Dashboard data styleCollections length:', dashboardData.styleCollections.length);
+      console.log('🔍 DEBUG: Dashboard data colorVariety:', dashboardData.colorVariety);
+      console.log('🔍 DEBUG: Dashboard data seasonalBalance:', dashboardData.seasonalBalance);
+      console.log('🔍 DEBUG: Dashboard data wardrobeGaps length:', dashboardData.wardrobeGaps.length);
       return dashboardData;
 
     } catch (error) {
@@ -196,8 +224,8 @@ class DashboardService {
 
   private async getWardrobeStats(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching wardrobe stats from /wardrobe/wardrobe-stats');
-      const response = await this.makeAuthenticatedRequest('/wardrobe/wardrobe-stats', user, {
+      console.log('🔍 DEBUG: Fetching wardrobe items from /wardrobe/ (not wardrobe-stats)');
+      const response = await this.makeAuthenticatedRequest('/wardrobe/', user, {
         method: 'GET'
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
@@ -207,8 +235,9 @@ class DashboardService {
       console.log('🔍 DEBUG: response.wardrobe_items:', response.wardrobe_items);
       
       // Process the wardrobe items to create stats with null checks
-      const wardrobeItems = response?.data?.items || response?.items || response?.wardrobe_items || [];
-      const totalItems = response?.data?.total_items || response?.total_items || (Array.isArray(wardrobeItems) ? wardrobeItems.length : 0);
+      // The /wardrobe/ endpoint returns: {"success": true, "items": [...], "count": N}
+      const wardrobeItems = response?.items || [];
+      const totalItems = response?.count || wardrobeItems.length;
       
       console.log('🔍 DEBUG: Extracted wardrobeItems:', wardrobeItems);
       console.log('🔍 DEBUG: WardrobeItems type:', typeof wardrobeItems);
@@ -449,30 +478,21 @@ class DashboardService {
   private buildStyleCollections(wardrobeStats: any, trendingStyles: any): StyleCollection[] {
     console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats:', wardrobeStats);
     console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats.items:', wardrobeStats.items);
-    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats type:', typeof wardrobeStats);
-    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats.items type:', typeof wardrobeStats.items);
     
-    const items = wardrobeStats.items || [];
-    console.log('🔍 DEBUG: buildStyleCollections - items after fallback:', items);
-    console.log('🔍 DEBUG: buildStyleCollections - items type:', typeof items);
-    console.log('🔍 DEBUG: buildStyleCollections - items isArray:', Array.isArray(items));
-    
-    // Count items by type from the actual items array
+    // Use individual items from /wardrobe/ endpoint
+    const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
     
-    if (!Array.isArray(items)) {
-      console.error('❌ ERROR: items is not an array:', items);
-      console.error('❌ ERROR: items type:', typeof items);
-      console.error('❌ ERROR: items value:', JSON.stringify(items, null, 2));
-      return [];
+    console.log('🔍 DEBUG: Using individual items array with length:', items.length);
+    if (Array.isArray(items) && items.length > 0) {
+      items.forEach((item: any, index: number) => {
+        console.log(`🔍 DEBUG: Processing item ${index}:`, item);
+        const type = item.type || 'unknown';
+        categories[type] = (categories[type] || 0) + 1;
+      });
+    } else {
+      console.log('🔍 DEBUG: No items available, using empty categories');
     }
-    
-    console.log('🔍 DEBUG: Processing items array with length:', items.length);
-    items.forEach((item: any, index: number) => {
-      console.log(`🔍 DEBUG: Processing item ${index}:`, item);
-      const type = item.type || 'unknown';
-      categories[type] = (categories[type] || 0) + 1;
-    });
     
     const collections: StyleCollection[] = [];
     
@@ -534,14 +554,16 @@ class DashboardService {
   }
 
   private buildSeasonalBalance(wardrobeStats: any): SeasonalBalance {
-    const items = wardrobeStats.items || [];
-    
-    // Count items by type from the actual items array
+    // Use individual items from /wardrobe/ endpoint
+    const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
-    items.forEach((item: any) => {
-      const type = item.type || 'unknown';
-      categories[type] = (categories[type] || 0) + 1;
-    });
+    
+    if (Array.isArray(items) && items.length > 0) {
+      items.forEach((item: any) => {
+        const type = item.type || 'unknown';
+        categories[type] = (categories[type] || 0) + 1;
+      });
+    }
     
     // Map items to seasons based on type
     const winterItems = (categories['sweater'] || 0) + (categories['jacket'] || 0);
@@ -627,18 +649,22 @@ class DashboardService {
 
   private buildWardrobeGaps(wardrobeStats: any): WardrobeGap[] {
     const gaps: WardrobeGap[] = [];
-    const items = wardrobeStats.items || [];
-    const totalItems = items.length;
     
-    // Count items by type from the actual items array
+    // Use individual items from /wardrobe/ endpoint
+    const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
-    items.forEach((item: any) => {
-      const type = item.type || 'unknown';
-      categories[type] = (categories[type] || 0) + 1;
-    });
     
-    console.log('🔍 DEBUG: Building wardrobe gaps from items:', items.length, 'items');
-    console.log('🔍 DEBUG: Categories counted from items:', categories);
+    if (Array.isArray(items) && items.length > 0) {
+      items.forEach((item: any) => {
+        const type = item.type || 'unknown';
+        categories[type] = (categories[type] || 0) + 1;
+      });
+    }
+    
+    const totalItems = wardrobeStats?.total_items || items.length;
+    
+    console.log('🔍 DEBUG: Building wardrobe gaps from data:', totalItems, 'total items');
+    console.log('🔍 DEBUG: Categories counted:', categories);
     
     // Essential wardrobe categories with minimum requirements
     // Updated to match actual item types in the wardrobe
