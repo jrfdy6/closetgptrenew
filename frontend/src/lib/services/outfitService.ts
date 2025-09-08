@@ -296,6 +296,7 @@ export class OutfitService {
         throw new Error('Outfit not found');
       }
 
+      // 1. Update the outfit document with wear count
       const updates = {
         wearCount: (existingOutfit.wearCount || 0) + 1,
         lastWorn: Timestamp.now(),
@@ -304,7 +305,32 @@ export class OutfitService {
 
       await updateDoc(doc(db, this.COLLECTION_NAME, outfitId), updates);
       
-      console.log(`✅ [OutfitService] Successfully marked outfit ${outfitId} as worn`);
+      // 2. Create outfit history entry for dashboard synchronization
+      const currentTimestamp = Timestamp.now();
+      const historyEntry = {
+        user_id: user.uid,
+        outfit_id: outfitId,
+        outfit_name: existingOutfit.name || 'Outfit',
+        outfit_image: existingOutfit.imageUrl || '',
+        date_worn: currentTimestamp,
+        occasion: existingOutfit.occasion || 'Casual',
+        mood: 'Comfortable', // Default mood
+        weather: {},
+        notes: '',
+        tags: [],
+        created_at: currentTimestamp,
+        updated_at: currentTimestamp
+      };
+
+      // Add to outfit_history collection for dashboard sync
+      await addDoc(collection(db, 'outfit_history'), historyEntry);
+      
+      // 3. Trigger dashboard refresh event
+      window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { 
+        detail: { outfitId, outfitName: existingOutfit.name } 
+      }));
+      
+      console.log(`✅ [OutfitService] Successfully marked outfit ${outfitId} as worn and synced with dashboard`);
 
     } catch (error) {
       console.error(`❌ [OutfitService] Error marking outfit ${outfitId} as worn:`, error);

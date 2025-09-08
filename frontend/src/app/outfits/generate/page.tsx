@@ -502,6 +502,11 @@ export default function OutfitGenerationPage() {
           lastWorn: new Date().toISOString()
         } : null);
         
+        // Trigger dashboard refresh event
+        window.dispatchEvent(new CustomEvent('outfitMarkedAsWorn', { 
+          detail: { outfitId: generatedOutfit.id, outfitName: generatedOutfit.name } 
+        }));
+        
         // Navigate after a short delay to show success
         setTimeout(() => {
           // Add timestamp to force refresh of outfits page

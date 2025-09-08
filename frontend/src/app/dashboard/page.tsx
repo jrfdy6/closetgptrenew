@@ -63,6 +63,20 @@ export default function Dashboard() {
     }
   }, [user, loading]);
 
+  // Listen for outfit marked as worn events to refresh dashboard
+  useEffect(() => {
+    const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
+      console.log('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
+      fetchDashboardData();
+    };
+
+    window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+    
+    return () => {
+      window.removeEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);
+    };
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
