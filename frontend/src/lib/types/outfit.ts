@@ -4,7 +4,7 @@
 export interface Outfit {
   id: string;
   name: string;
-  userId: string;
+  user_id: string; // Changed from userId to user_id to match backend
   items: string[]; // array of clothing item IDs
   style: string;
   season?: string;
@@ -20,7 +20,7 @@ export interface Outfit {
 }
 
 export interface OutfitCreate {
-  userId: string;
+  user_id: string; // Changed from userId to user_id to match backend
   items: string[];
   style: string;
   season?: string;

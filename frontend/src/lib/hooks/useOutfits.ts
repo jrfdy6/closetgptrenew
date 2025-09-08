@@ -109,7 +109,7 @@ export function useOutfits(): UseOutfitsReturn {
     }
   }, [user, clearError, handleError]);
 
-  const createOutfit = useCallback(async (outfitData: Omit<Outfit, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<Outfit | null> => {
+  const createOutfit = useCallback(async (outfitData: Omit<Outfit, 'id' | 'createdAt' | 'updatedAt' | 'user_id'>): Promise<Outfit | null> => {
     if (!user) {
       setError('User not authenticated');
       return null;

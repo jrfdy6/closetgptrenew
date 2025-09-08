@@ -10,7 +10,7 @@ export interface OutfitItem {
   style: string;
   color: string;
   imageUrl?: string;
-  userId: string;
+  user_id: string; // Changed from userId to user_id to match backend
 }
 
 export interface Outfit {
@@ -24,7 +24,7 @@ export interface Outfit {
   reasoning?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  userId: string;
+  user_id: string; // Changed from userId to user_id to match backend
   isFavorite?: boolean;
   wearCount?: number;
   lastWorn?: Timestamp;
@@ -143,9 +143,10 @@ export class OutfitService {
 
       const outfitData = outfitDoc.data();
       
-      // Verify ownership
-      if (outfitData.userId !== user.uid) {
-        console.warn(`🚫 [OutfitService] User ${user.uid} attempted to access outfit ${outfitId} owned by ${outfitData.userId}`);
+      // Verify ownership - check both userId and user_id for compatibility
+      const ownerId = outfitData.userId || outfitData.user_id;
+      if (ownerId !== user.uid) {
+        console.warn(`🚫 [OutfitService] User ${user.uid} attempted to access outfit ${outfitId} owned by ${ownerId}`);
         throw new Error('Access denied: Outfit does not belong to user');
       }
 
@@ -168,13 +169,13 @@ export class OutfitService {
   /**
    * Create a new outfit
    */
-  static async createOutfit(user: User, outfitData: Omit<Outfit, 'id' | 'createdAt' | 'updatedAt' | 'userId'>): Promise<Outfit> {
+  static async createOutfit(user: User, outfitData: Omit<Outfit, 'id' | 'createdAt' | 'updatedAt' | 'user_id'>): Promise<Outfit> {
     try {
       console.log('🔍 [OutfitService] Creating new outfit');
       
       const newOutfit = {
         ...outfitData,
-        userId: user.uid,
+        user_id: user.uid, // Changed from userId to user_id to match backend
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         wearCount: 0,
