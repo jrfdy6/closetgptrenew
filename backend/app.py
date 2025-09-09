@@ -23,7 +23,7 @@ from fastapi.routing import APIRouter
 
 # Import authentication
 try:
-    from src.auth.auth_service import get_current_user_id
+    from src.routes.auth_minimal import get_current_user_id
 except ImportError:
     # Fallback for when running as module
     try:

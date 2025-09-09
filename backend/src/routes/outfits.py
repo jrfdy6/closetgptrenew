@@ -153,6 +153,8 @@ class OutfitResponse(BaseModel):
     createdAt: Optional[datetime] = None
     user_id: Optional[str] = None
     generated_at: Optional[str] = None
+    wearCount: Optional[int] = 0
+    lastWorn: Optional[datetime] = None
 
     @field_validator("createdAt", mode="before")
     @classmethod

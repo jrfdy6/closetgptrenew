@@ -9,8 +9,10 @@ import logging
 import firebase_admin
 from firebase_admin import auth as firebase_auth
 import concurrent.futures
+import datetime
 
 from ..config.firebase import db
+from ..custom_types.profile import UserProfile
 
 # HTTP Bearer scheme for token extraction
 security = HTTPBearer()
@@ -60,6 +62,73 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
         
     except Exception as e:
         logger.error(f"🔍 DEBUG: Firebase token verification failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token verification failed"
+        )
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> UserProfile:
+    """Get current user as UserProfile object for compatibility with existing routes."""
+    try:
+        logger.info("🔍 DEBUG: ===== STARTING get_current_user PROCESS =====")
+        token = credentials.credentials
+        logger.info(f"🔍 DEBUG: Received token length: {len(token)}")
+        
+        # Handle test token for development
+        if token == "test":
+            logger.info("🔍 DEBUG: Using test token for get_current_user")
+            return UserProfile(
+                id="test-user-id",
+                name="Test User",
+                email="test@example.com",
+                gender=None,
+                bodyType="average",
+                createdAt=int(datetime.datetime.now().timestamp() * 1000),
+                updatedAt=int(datetime.datetime.now().timestamp() * 1000)
+            )
+        
+        # Verify Firebase JWT token
+        logger.info("🔍 DEBUG: Verifying Firebase token for get_current_user...")
+        
+        # Use a timeout for the Firebase verification
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(firebase_auth.verify_id_token, token)
+            try:
+                decoded_token = future.result(timeout=30.0)
+                logger.info("🔍 DEBUG: Firebase verification completed successfully for get_current_user!")
+            except concurrent.futures.TimeoutError:
+                logger.error("🔍 DEBUG: Firebase token verification timed out after 30 seconds")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token verification timed out"
+                )
+        
+        user_id: str = decoded_token.get("uid")
+        email: str = decoded_token.get("email", "")
+        name: str = decoded_token.get("name", email)
+        
+        if user_id is None:
+            logger.error("🔍 DEBUG: No user_id found in decoded token")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: no user ID found"
+            )
+        
+        logger.info(f"🔍 DEBUG: Token verification successful for get_current_user, user_id: {user_id}")
+        
+        # Create UserProfile object
+        return UserProfile(
+            id=user_id,
+            name=name,
+            email=email,
+            gender=None,
+            bodyType="average",
+            createdAt=int(datetime.datetime.now().timestamp() * 1000),
+            updatedAt=int(datetime.datetime.now().timestamp() * 1000)
+        )
+        
+    except Exception as e:
+        logger.error(f"🔍 DEBUG: Firebase token verification failed in get_current_user: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token verification failed"
