@@ -2160,6 +2160,8 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
                 
                 outfits.append(outfit_data)
                 logger.info(f"🔍 DEBUG: Found outfit: {outfit_data.get('name', 'unnamed')} (ID: {doc.id}, Created: {outfit_data.get('createdAt', 'Unknown')})")
+                logger.info(f"🔍 DEBUG: Outfit {doc.id} wearCount: {outfit_data.get('wearCount', 'NOT_FOUND')}, lastWorn: {outfit_data.get('lastWorn', 'NOT_FOUND')}")
+                logger.info(f"🔍 DEBUG: Outfit {doc.id} all fields: {list(outfit_data.keys())}")
             except Exception as e:
                 logger.error(f"🔥 Failed to process outfit {doc.id}: {e}", exc_info=True)
                 # Skip this outfit instead of crashing the whole request
