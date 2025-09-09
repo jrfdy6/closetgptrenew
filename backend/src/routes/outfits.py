@@ -2545,11 +2545,16 @@ async def mark_outfit_as_worn(
         current_wear_count = outfit_data.get('wearCount', 0)
         current_time = datetime.utcnow()
         
+        logger.info(f"🔍 DEBUG: Updating outfit {outfit_id} with wearCount: {current_wear_count} -> {current_wear_count + 1}")
+        logger.info(f"🔍 DEBUG: Setting lastWorn to: {current_time}")
+        
         outfit_ref.update({
             'wearCount': current_wear_count + 1,
             'lastWorn': current_time,
             'updatedAt': current_time
         })
+        
+        logger.info(f"✅ DEBUG: Successfully updated outfit {outfit_id} in Firestore")
         
         # Update individual wardrobe item wear counters
         if outfit_data.get('items'):
@@ -2575,6 +2580,9 @@ async def mark_outfit_as_worn(
             outfit_data = outfit_doc.to_dict()
             current_wear_count = outfit_data.get('wearCount', 0)
             last_worn = outfit_data.get('lastWorn')
+            
+            logger.info(f"🔍 DEBUG: Retrieved outfit data - wearCount: {current_wear_count}, lastWorn: {last_worn}")
+            logger.info(f"🔍 DEBUG: Full outfit data keys: {list(outfit_data.keys())}")
             
             # Format lastWorn for frontend
             if isinstance(last_worn, datetime):
@@ -3163,6 +3171,8 @@ async def list_outfits_with_slash(
             # Log the most recent outfit for debugging
             latest = outfits[0]
             logger.info(f"🔍 DEBUG: Latest outfit: '{latest.get('name', 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
+            logger.info(f"🔍 DEBUG: Latest outfit wearCount: {latest.get('wearCount', 'NOT_FOUND')}")
+            logger.info(f"🔍 DEBUG: Latest outfit lastWorn: {latest.get('lastWorn', 'NOT_FOUND')}")
         else:
             logger.info(f"⚠️ DEBUG: No outfits found for user {current_user_id}")
             
@@ -3198,6 +3208,8 @@ async def list_outfits_no_slash(
             # Log the most recent outfit for debugging
             latest = outfits[0]
             logger.info(f"🔍 DEBUG: Latest outfit: '{latest.get('name', 'Unknown')}' created at {latest.get('createdAt', 'Unknown')}")
+            logger.info(f"🔍 DEBUG: Latest outfit wearCount: {latest.get('wearCount', 'NOT_FOUND')}")
+            logger.info(f"🔍 DEBUG: Latest outfit lastWorn: {latest.get('lastWorn', 'NOT_FOUND')}")
         else:
             logger.info(f"⚠️ DEBUG: No outfits found for user {current_user_id}")
             
