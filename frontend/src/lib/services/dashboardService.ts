@@ -281,17 +281,26 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history from /outfit-history/ for analytics');
-      const response = await this.makeAuthenticatedRequest('/outfit-history/', user);
+      console.log('🔍 DEBUG: Fetching outfit history from backend /api/outfit-history/ for analytics');
+      const response = await this.makeAuthenticatedRequest('/api/outfit-history/', user);
       console.log('🔍 DEBUG: Outfit history response:', response);
       console.log('🔍 DEBUG: Outfit history type:', Array.isArray(response) ? 'array' : typeof response);
-      console.log('🔍 DEBUG: Outfit history length:', Array.isArray(response) ? response.length : 'not an array');
       
-      if (Array.isArray(response) && response.length > 0) {
-        console.log('🔍 DEBUG: First outfit history sample:', JSON.stringify(response[0], null, 2));
+      // Handle the backend response format
+      let outfitHistory = [];
+      if (response && response.outfitHistory) {
+        outfitHistory = response.outfitHistory;
+        console.log('🔍 DEBUG: Outfit history length:', outfitHistory.length);
+        
+        if (outfitHistory.length > 0) {
+          console.log('🔍 DEBUG: First outfit history sample:', JSON.stringify(outfitHistory[0], null, 2));
+        }
+      } else if (Array.isArray(response)) {
+        outfitHistory = response;
+        console.log('🔍 DEBUG: Outfit history length (direct array):', outfitHistory.length);
       }
       
-      return response || [];
+      return outfitHistory;
     } catch (error) {
       console.error('Error fetching outfit history:', error);
       // Return empty array for production when backend is not ready
