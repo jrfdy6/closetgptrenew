@@ -149,7 +149,15 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
             }</span>
           </div>
           {outfit.lastWorn && (
-            <span>Last: {outfit.lastWorn instanceof Date ? outfit.lastWorn.toLocaleDateString() : new Date(outfit.lastWorn.seconds * 1000).toLocaleDateString()}</span>
+            <span>Last: {
+              outfit.lastWorn instanceof Date ? 
+                outfit.lastWorn.toLocaleDateString() : 
+                typeof outfit.lastWorn === 'string' ? 
+                  new Date(outfit.lastWorn).toLocaleDateString() :
+                  outfit.lastWorn.seconds ? 
+                    new Date(outfit.lastWorn.seconds * 1000).toLocaleDateString() :
+                    'Invalid Date'
+            }</span>
           )}
         </div>
 
