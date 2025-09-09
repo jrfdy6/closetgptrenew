@@ -112,7 +112,7 @@ class DashboardService {
     console.log('🔍 DEBUG: Token length:', token.length);
 
     // Call FastAPI backend directly - don't use Next.js API routes
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://closetgptrenew-backend-production.up.railway.app/api';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
     
     // Use endpoint as-is (should already start with /)
     const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;

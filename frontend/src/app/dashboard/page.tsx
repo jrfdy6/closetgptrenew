@@ -195,54 +195,18 @@ export default function Dashboard() {
     );
   }
 
-  // Show authentication required if no user (but allow test user for testing)
+  // Show authentication required if no user
   if (!user) {
-    // For testing purposes, create a mock user
-    const testUser = {
-      uid: 'test-user-id',
-      email: 'test@example.com',
-      displayName: 'Test User',
-      getIdToken: async () => 'test'
-    } as any;
-    
-    // Use test user for dashboard testing
-    useEffect(() => {
-      const fetchTestData = async () => {
-        try {
-          console.log('🔍 DEBUG: Fetching dashboard data with test user...');
-          const data = await dashboardService.getDashboardData(testUser);
-          console.log('🔍 DEBUG: Test dashboard data:', data);
-          setDashboardData(data);
-          setError(null);
-        } catch (err: any) {
-          console.error('🔍 DEBUG: Test dashboard error:', err);
-          setError(err.message || 'Failed to load dashboard data');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      fetchTestData();
-    }, []);
-    
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Test Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">Using test user for demonstration purposes.</p>
-            {isLoading && (
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
-            )}
-            {error && (
-              <div className="text-red-600 mb-4">Error: {error}</div>
-            )}
-            {dashboardData && (
-              <div className="text-green-600 mb-4">
-                Dashboard loaded successfully! Outfits this week: {dashboardData.outfitsThisWeek}
-              </div>
-            )}
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Authentication Required</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">Please sign in to access your dashboard.</p>
+            <Link href="/signin">
+              <Button>Sign In</Button>
+            </Link>
           </div>
         </div>
       </div>

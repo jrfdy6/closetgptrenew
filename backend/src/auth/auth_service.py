@@ -15,17 +15,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
         print(f"🔍 DEBUG: Full token: {credentials.credentials}")
         
-        # Allow test token for testing purposes
+        # Reject test token in production - require real authentication
         if credentials.credentials == "test":
-            print("🔍 DEBUG: Using test token for testing")
-            return UserProfile(
-                id="test-user-id",
-                name="Test User",
-                email="test@example.com",
-                gender=None,
-                bodyType="average",
-                createdAt=1756293000000,
-                updatedAt=1756293000000
+            print("🔍 DEBUG: Test token rejected - requiring real authentication")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Test token not allowed in production",
+                headers={"WWW-Authenticate": "Bearer"},
             )
         
         # Verify Firebase JWT token
@@ -139,17 +135,13 @@ async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = 
             print("🔍 DEBUG: No credentials provided to get_current_user_optional")
             return None
             
-        # Allow test token for testing purposes
+        # Reject test token in production - require real authentication
         if credentials.credentials == "test":
-            print("🔍 DEBUG: Using test token for testing")
-            return UserProfile(
-                id="test-user-id",
-                name="Test User",
-                email="test@example.com",
-                gender=None,
-                bodyType="average",
-                createdAt=1756293000000,
-                updatedAt=1756293000000
+            print("🔍 DEBUG: Test token rejected - requiring real authentication")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Test token not allowed in production",
+                headers={"WWW-Authenticate": "Bearer"},
             )
         
         # Try to authenticate real user
@@ -237,10 +229,14 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
         print(f"🔍 DEBUG: get_current_user_id called with credentials: {credentials.credentials[:20]}...")
         print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
         
-        # Allow test token for testing purposes
+        # Reject test token in production - require real authentication
         if credentials.credentials == "test":
-            print("🔍 DEBUG: Using test token for testing")
-            return "test-user-id"
+            print("🔍 DEBUG: Test token rejected - requiring real authentication")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Test token not allowed in production",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
         print(f"🔍 DEBUG: Token received: {credentials.credentials[:20]}...")
         print(f"🔍 DEBUG: Full token: {credentials.credentials}")
