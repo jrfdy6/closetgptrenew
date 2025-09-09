@@ -176,7 +176,21 @@ class DashboardService {
       
       const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
       const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
-      const outfitsThisWeek = this.calculateOutfitsThisWeek(outfitHistory);
+      // Calculate outfits this week with fallback
+      let outfitsThisWeek = this.calculateOutfitsThisWeek(outfitHistory);
+      
+      // If outfit history is empty, try to get outfits from the outfits endpoint as fallback
+      if (outfitsThisWeek === 0) {
+        console.log('🔍 DEBUG: Outfit history is empty, trying fallback method...');
+        try {
+          const outfitsResponse = await this.makeAuthenticatedRequest('/api/outfits/', user);
+          const outfits = Array.isArray(outfitsResponse) ? outfitsResponse : [];
+          outfitsThisWeek = this.calculateOutfitsThisWeekFromOutfits(outfits);
+          console.log('🔍 DEBUG: Fallback calculation result:', outfitsThisWeek);
+        } catch (error) {
+          console.error('🔍 DEBUG: Fallback method also failed:', error);
+        }
+      }
       
       console.log('🔍 DEBUG: Extracted data:');
       console.log('🔍 DEBUG: - wardrobeItems:', wardrobeItems.length, 'items (empty - backend only returns stats)');
@@ -483,6 +497,43 @@ class DashboardService {
     
     console.log('🔍 DEBUG: Found', thisWeekOutfits.length, 'outfits this week');
     return thisWeekOutfits.length;
+  }
+
+  // Fallback method to calculate outfits this week from individual outfit wear counts
+  private calculateOutfitsThisWeekFromOutfits(outfits: any[]): number {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    
+    console.log('🔍 DEBUG: Fallback: Calculating outfits this week from individual outfit wear counts');
+    console.log('🔍 DEBUG: Total outfits:', outfits.length);
+    
+    let thisWeekCount = 0;
+    
+    outfits.forEach(outfit => {
+      if (outfit.lastWorn) {
+        let lastWornDate: Date;
+        
+        // Handle different date formats
+        if (typeof outfit.lastWorn === 'number') {
+          lastWornDate = new Date(outfit.lastWorn);
+        } else if (typeof outfit.lastWorn === 'string') {
+          lastWornDate = new Date(outfit.lastWorn);
+        } else if (outfit.lastWorn.toDate) {
+          // Firestore timestamp
+          lastWornDate = outfit.lastWorn.toDate();
+        } else {
+          return;
+        }
+        
+        if (lastWornDate >= oneWeekAgo) {
+          thisWeekCount += outfit.wearCount || 0;
+          console.log('🔍 DEBUG: Outfit', outfit.name, 'worn', outfit.wearCount, 'times this week');
+        }
+      }
+    });
+    
+    console.log('🔍 DEBUG: Fallback: Found', thisWeekCount, 'total wears this week');
+    return thisWeekCount;
   }
 
   private calculateOverallProgress(wardrobeStats: any, trendingStyles: any): number {
