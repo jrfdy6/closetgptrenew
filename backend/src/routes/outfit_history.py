@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import time
+from google.cloud import firestore
 
 from ..auth.auth_service import get_current_user
 from ..custom_types.profile import UserProfile
@@ -13,6 +14,24 @@ router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
 
 db = db
+
+def serialize_firestore_doc(doc):
+    """Serialize Firestore document, converting Timestamps to ISO strings"""
+    data = doc.to_dict()
+    
+    # Convert Firestore Timestamps to ISO strings
+    for key, value in data.items():
+        if isinstance(value, firestore.Timestamp):
+            data[key] = value.isoformat()
+        elif isinstance(value, dict) and 'seconds' in value and 'nanoseconds' in value:
+            # Handle Firestore Timestamp dict format
+            try:
+                timestamp = firestore.Timestamp(seconds=value['seconds'], nanoseconds=value['nanoseconds'])
+                data[key] = timestamp.isoformat()
+            except:
+                pass  # Keep original value if conversion fails
+    
+    return data
 
 @router.get("/")
 async def get_outfit_history(
@@ -397,18 +416,62 @@ async def get_outfit_history_stats(
         logger.info(f"🔍 DEBUG: Start date: {start_date.isoformat()}")
         logger.info(f"🔍 DEBUG: Start timestamp: {start_timestamp}")
         
-        # Query outfit history
-        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
-        docs = query.stream()
+        # Query outfit history with better error handling
+        try:
+            query = db.collection('outfit_history').where('user_id', '==', current_user.id)
+            docs = query.stream()
+            
+            entries = []
+            for doc in docs:
+                try:
+                    entry_data = serialize_firestore_doc(doc)
+                    entries.append(entry_data)
+                except Exception as e:
+                    logger.error(f"Error processing document {doc.id}: {e}")
+                    continue
+            
+            logger.info(f"🔍 DEBUG: Successfully retrieved {len(entries)} entries from Firestore")
+            
+        except Exception as e:
+            logger.error(f"Error querying outfit_history collection: {e}")
+            raise HTTPException(status_code=500, detail=f"Database query failed: {str(e)}")
         
-        entries = [doc.to_dict() for doc in docs]
-        
-        # Filter entries for the specified time period
+        # Filter entries for the specified time period with better error handling
         recent_entries = []
-        for entry in entries:
-            date_worn = entry.get('date_worn')
-            if date_worn and date_worn >= start_timestamp:
-                recent_entries.append(entry)
+        for i, entry in enumerate(entries):
+            try:
+                date_worn = entry.get('date_worn')
+                logger.debug(f"🔍 DEBUG: Entry {i}: date_worn={date_worn}, type={type(date_worn)}")
+                
+                if date_worn is not None:
+                    # Handle different date formats
+                    if isinstance(date_worn, (int, float)):
+                        # Already a timestamp (milliseconds)
+                        if date_worn >= start_timestamp:
+                            recent_entries.append(entry)
+                    elif isinstance(date_worn, str):
+                        # Convert ISO string to timestamp
+                        try:
+                            # Handle both ISO format and other string formats
+                            if 'T' in date_worn:
+                                date_obj = datetime.fromisoformat(date_worn.replace('Z', '+00:00'))
+                            else:
+                                # Try parsing as date string
+                                date_obj = datetime.strptime(date_worn, '%Y-%m-%d')
+                            
+                            date_timestamp = int(date_obj.timestamp() * 1000)
+                            if date_timestamp >= start_timestamp:
+                                recent_entries.append(entry)
+                        except Exception as e:
+                            logger.warning(f"Could not parse date_worn string '{date_worn}': {e}")
+                    else:
+                        logger.warning(f"Unexpected date_worn type: {type(date_worn)} for entry {i}")
+                else:
+                    logger.debug(f"Entry {i} has no date_worn field")
+                    
+            except Exception as e:
+                logger.error(f"Error processing entry {i}: {e}")
+                continue
         
         logger.info(f"🔍 DEBUG: Total entries: {len(entries)}")
         logger.info(f"🔍 DEBUG: Recent entries (last {days} days): {len(recent_entries)}")
@@ -480,8 +543,8 @@ async def get_outfit_history_stats(
         }
         
     except Exception as e:
-        logger.error(f"Error getting outfit history stats: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to get outfit history stats")
+        logger.error(f"Error getting outfit history stats: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to get outfit history stats: {str(e)}")
 @router.get("/today")
 async def get_todays_outfit(
     current_user = Depends(get_current_user)
