@@ -4,11 +4,13 @@ export async function GET(req: NextRequest) {
   console.log("✅ /api/outfit-history route HIT:", req.method);
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/outfit-history/${req.nextUrl.search}`;
-    console.log("🔍 DEBUG: Backend URL:", backendUrl);
+    // Use hardcoded Railway URL to ensure correct backend is called
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const fullBackendUrl = `${backendUrl}/api/outfit-history/${req.nextUrl.search}`;
+    console.log("🔍 DEBUG: Backend URL:", fullBackendUrl);
     console.log("🔍 DEBUG: Environment variable NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL);
 
-    const res = await fetch(backendUrl, {
+    const res = await fetch(fullBackendUrl, {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
