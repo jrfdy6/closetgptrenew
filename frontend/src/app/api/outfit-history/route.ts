@@ -8,7 +8,6 @@ export async function GET(req: NextRequest) {
     const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
     const fullBackendUrl = `${backendUrl}/api/outfit-history/${req.nextUrl.search}`;
     console.log("🔍 DEBUG: Backend URL:", fullBackendUrl);
-    console.log("🔍 DEBUG: Environment variable NEXT_PUBLIC_API_URL:", process.env.NEXT_PUBLIC_API_URL);
 
     const res = await fetch(fullBackendUrl, {
       method: req.method,
