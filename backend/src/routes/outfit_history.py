@@ -184,10 +184,28 @@ async def mark_outfit_as_worn(
         
         # Save to Firestore
         try:
+            logger.info(f"🔍 DEBUG: About to save outfit history entry to Firestore")
+            logger.info(f"🔍 DEBUG: Entry data: {entry_data}")
+            logger.info(f"🔍 DEBUG: User ID: {current_user.id}")
+            logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
+            logger.info(f"🔍 DEBUG: Date worn timestamp: {date_timestamp}")
+            
             doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
             logger.info(f"✅ Created outfit history entry with ID: {doc_id}")
+            logger.info(f"🔍 DEBUG: Document reference: {doc_ref}")
+            logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
+            
+            # Verify the entry was actually saved
+            saved_doc = doc_ref.get()
+            if saved_doc.exists:
+                saved_data = saved_doc.to_dict()
+                logger.info(f"✅ VERIFIED: Entry saved successfully with data: {saved_data}")
+            else:
+                logger.error(f"❌ VERIFICATION FAILED: Document {doc_id} does not exist after save")
+                
         except Exception as firestore_error:
             logger.error(f"❌ Failed to save to Firestore: {firestore_error}")
+            logger.error(f"❌ Firestore error details: {str(firestore_error)}")
             raise HTTPException(status_code=500, detail="Failed to save outfit history entry")
         
         # Log analytics event (simplified to avoid serialization issues)

@@ -2621,8 +2621,24 @@ async def mark_outfit_as_worn(
             logger.info(f"🧹 Cleaned history entry: {clean_history_entry}")
             
             # Save to outfit_history collection for today's outfit tracking
+            logger.info(f"🔍 DEBUG: About to save outfit history entry to Firestore")
+            logger.info(f"🔍 DEBUG: Clean history entry: {clean_history_entry}")
+            logger.info(f"🔍 DEBUG: User ID: {current_user.id}")
+            logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
+            logger.info(f"🔍 DEBUG: Current timestamp: {current_timestamp}")
+            
             doc_ref, doc_id = db.collection('outfit_history').add(clean_history_entry)
             logger.info(f"📅 Created outfit history entry for outfit {outfit_id}")
+            logger.info(f"🔍 DEBUG: Document reference: {doc_ref}")
+            logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
+            
+            # Verify the entry was actually saved
+            saved_doc = doc_ref.get()
+            if saved_doc.exists:
+                saved_data = saved_doc.to_dict()
+                logger.info(f"✅ VERIFIED: Entry saved successfully with data: {saved_data}")
+            else:
+                logger.error(f"❌ VERIFICATION FAILED: Document {doc_id} does not exist after save")
             
         except Exception as history_error:
             # Don't fail the whole request if history creation fails
