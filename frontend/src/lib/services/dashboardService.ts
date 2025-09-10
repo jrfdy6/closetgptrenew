@@ -91,14 +91,10 @@ export interface TodaysOutfit {
 }
 
 class DashboardService {
-  private async makeAuthenticatedRequest(endpoint: string, user: User, options: RequestInit = {}): Promise<any> {
-    if (!user) {
-      throw new Error('Authentication required');
-    }
-
+  private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
     // For testing purposes, use test token if user is not authenticated
     let token: string;
-    if (user.email === 'test@example.com' || !user.email) {
+    if (!user || user.email === 'test@example.com' || !user.email) {
       token = 'test';
       console.log('🔍 DEBUG: Using test token for dashboard testing');
     } else {
@@ -111,13 +107,18 @@ class DashboardService {
     console.log('🔍 DEBUG: Firebase token obtained:', token.substring(0, 20) + '...');
     console.log('🔍 DEBUG: Token length:', token.length);
 
-    // Call FastAPI backend directly - don't use Next.js API routes
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
+    // Use Next.js API routes as proxy to avoid Railway HTTPS redirect issues
+    console.log('🔍 DEBUG: Environment variables:', {
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+      NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+      NODE_ENV: process.env.NODE_ENV
+    });
     
-    // Use endpoint as-is (should already start with /)
-    const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+    // Use Next.js API route as proxy instead of calling backend directly
+    const fullUrl = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
     
-    console.log('🔍 DEBUG: Making request to FastAPI backend:', fullUrl);
+    console.log('🔍 DEBUG: Making request to Next.js API route:', fullUrl);
+    console.log('🔍 DEBUG: Making request to:', fullUrl);
 
     const response = await fetch(fullUrl, {
       method: 'GET', // Default to GET, can be overridden in options
@@ -148,7 +149,7 @@ class DashboardService {
     return response.json();
   }
 
-  async getDashboardData(user: User): Promise<DashboardData> {
+  async getDashboardData(user: User | null): Promise<DashboardData> {
     try {
       console.log('🔍 DEBUG: Fetching dashboard data...');
       
@@ -190,7 +191,7 @@ class DashboardService {
       if (outfitsThisWeek === 0) {
         console.log('🔍 DEBUG: Outfit history is empty, trying fallback method...');
         try {
-          const outfitsResponse = await this.makeAuthenticatedRequest('/api/outfits/', user);
+          const outfitsResponse = await this.makeAuthenticatedRequest('/outfits/', user);
           const outfits = Array.isArray(outfitsResponse) ? outfitsResponse : [];
           outfitsThisWeek = this.calculateOutfitsThisWeekFromOutfits(outfits);
           console.log('🔍 DEBUG: Fallback calculation result:', outfitsThisWeek);
@@ -302,8 +303,8 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history from backend /api/outfit-history/ for analytics');
-      const response = await this.makeAuthenticatedRequest('/api/outfit-history/', user);
+      console.log('🔍 DEBUG: Fetching outfit history from backend /outfit-history/ for analytics');
+      const response = await this.makeAuthenticatedRequest('/outfit-history/', user);
       console.log('🔍 DEBUG: Outfit history response:', response);
       console.log('🔍 DEBUG: Outfit history type:', Array.isArray(response) ? 'array' : typeof response);
       
@@ -1027,7 +1028,8 @@ class DashboardService {
       
       console.log('🧪 TEST: Token obtained, length:', token.length);
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://closetgptrenew-backend-production.up.railway.app/api';
+      // Use production URL as fallback since environment variables aren't loading
+      const API_BASE_URL = 'https://closetgptrenew-backend-production.up.railway.app/api';
       
       const testUrl = `${API_BASE_URL}/wardrobe/wardrobe-stats`;
       console.log('🧪 TEST: Testing URL:', testUrl);
