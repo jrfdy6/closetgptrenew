@@ -1,0 +1,39 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(req: NextRequest) {
+  console.log("✅ /api/outfit-history/today-suggestion route HIT:", req.method);
+  
+  try {
+    // Use hardcoded Railway URL to ensure correct backend is called
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const fullBackendUrl = `${backendUrl}/api/outfit-history/today-suggestion${req.nextUrl.search}`;
+    console.log("🔍 DEBUG: Backend URL:", fullBackendUrl);
+
+    const res = await fetch(fullBackendUrl, {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(req.headers.get('authorization') && {
+          Authorization: req.headers.get('authorization')!,
+        }),
+      },
+    });
+
+    console.log("🔍 DEBUG: Backend response status:", res.status);
+    console.log("🔍 DEBUG: Backend response ok:", res.ok);
+
+    // try to parse as JSON; fallback to text
+    const contentType = res.headers.get('content-type');
+    const data =
+      contentType && contentType.includes('application/json')
+        ? await res.json()
+        : await res.text();
+
+    console.log("🔍 DEBUG: Backend response data:", data);
+
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    console.error(`❌ Proxy ${req.method} /outfit-history/today-suggestion`, err);
+    return NextResponse.json({ error: 'Failed to fetch today\'s outfit suggestion' }, { status: 500 });
+  }
+}
