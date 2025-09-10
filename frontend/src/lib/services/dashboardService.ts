@@ -303,44 +303,15 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history stats from Railway backend');
+      console.log('🔍 DEBUG: Fetching outfit history stats via Next.js API route');
       
-      // Call Railway backend stats API for server-side filtering
-      const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
-      const fullUrl = `${backendUrl}/api/outfit-history/stats?days=7`;
+      // Use Next.js API route as proxy instead of calling backend directly
+      const response = await this.makeAuthenticatedRequest('/outfit-history/stats?days=7', user);
       
-      console.log('🔍 DEBUG: Stats API URL:', fullUrl);
-      
-      // Get token for authentication
-      let token: string;
-      if (!user || user.email === 'test@example.com' || !user.email) {
-        token = 'test';
-        console.log('🔍 DEBUG: Using test token for outfit history stats');
-      } else {
-        token = await user.getIdToken();
-        if (!token) {
-          throw new Error('Failed to get authentication token');
-        }
-      }
-      
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        console.error('🔍 DEBUG: Outfit history stats backend response not ok:', response.status);
-        throw new Error(`Backend request failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('🔍 DEBUG: Outfit history stats response:', data);
+      console.log('🔍 DEBUG: Outfit history stats response:', response);
       
       // Return the stats object with outfitsThisWeek count
-      return data;
+      return response;
     } catch (error) {
       console.error('Error fetching outfit history:', error);
       // Return empty array for production when backend is not ready

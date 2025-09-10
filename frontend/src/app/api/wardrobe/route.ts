@@ -7,6 +7,12 @@ export async function GET(request: Request) {
   try {
     console.log('🔍 DEBUG: Wardrobe API route called - CONNECTING TO BACKEND');
     
+    // Check if this is a request for outfit history (temporary workaround)
+    const url = new URL(request.url);
+    if (url.pathname.includes('outfit-history')) {
+      return handleOutfitHistory(request);
+    }
+    
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
@@ -288,5 +294,45 @@ export async function POST(request: Request) {
         isFavorite: false
       }
     });
+  }
+}
+
+// Temporary outfit history handler (workaround for Vercel deployment issue)
+async function handleOutfitHistory(request: Request) {
+  try {
+    console.log('🔍 DEBUG: Handling outfit history request via wardrobe route');
+    
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Authorization header required' }, { status: 401 });
+    }
+    
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const fullBackendUrl = `${backendUrl}/api/outfit-history/`;
+    console.log('🔍 DEBUG: Outfit history backend URL:', fullBackendUrl);
+    
+    const response = await fetch(fullBackendUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log('🔍 DEBUG: Outfit history backend response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('🔍 DEBUG: Outfit history backend response not ok:', response.status);
+      return NextResponse.json({ error: 'Backend request failed' }, { status: response.status });
+    }
+    
+    const data = await response.json();
+    console.log('🔍 DEBUG: Outfit history data received:', data);
+    
+    return NextResponse.json(data, { status: response.status });
+    
+  } catch (error) {
+    console.error('❌ Error in outfit history handler:', error);
+    return NextResponse.json({ error: 'Failed to fetch outfit history' }, { status: 500 });
   }
 }

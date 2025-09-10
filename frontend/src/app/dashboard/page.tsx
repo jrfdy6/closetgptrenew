@@ -58,7 +58,7 @@ export default function Dashboard() {
 
   // Fetch real dashboard data
   useEffect(() => {
-    if (user && !loading) {
+    if (!loading) {
       fetchDashboardData();
     }
   }, [user, loading]);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';

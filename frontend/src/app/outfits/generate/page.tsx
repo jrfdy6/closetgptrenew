@@ -144,7 +144,7 @@ export default function OutfitGenerationPage() {
   }, [user]);
   
   // Backend API base URL
-  const API_BASE = 'http://localhost:3001'; // Temporarily use local backend for testing
+  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
   const [formData, setFormData] = useState<OutfitGenerationForm>({
     occasion: '',
     style: '',
