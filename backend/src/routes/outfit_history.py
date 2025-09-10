@@ -375,10 +375,11 @@ async def delete_outfit_history_entry(
 
 @router.get("/stats")
 async def get_outfit_history_stats(
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    days: int = Query(7, description="Number of days to look back for weekly stats")
 ):
     """
-    Get outfit history statistics
+    Get outfit history statistics including weekly counts
     """
     try:
         if not current_user:
@@ -386,11 +387,31 @@ async def get_outfit_history_stats(
             
         logger.info(f"Getting outfit history stats for user {current_user.id}")
         
+        # Calculate date range for weekly stats
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        start_date = now - timedelta(days=days)
+        start_timestamp = int(start_date.timestamp() * 1000)
+        
+        logger.info(f"🔍 DEBUG: Calculating stats for last {days} days")
+        logger.info(f"🔍 DEBUG: Start date: {start_date.isoformat()}")
+        logger.info(f"🔍 DEBUG: Start timestamp: {start_timestamp}")
+        
         # Query outfit history
         query = db.collection('outfit_history').where('user_id', '==', current_user.id)
         docs = query.stream()
         
         entries = [doc.to_dict() for doc in docs]
+        
+        # Filter entries for the specified time period
+        recent_entries = []
+        for entry in entries:
+            date_worn = entry.get('date_worn')
+            if date_worn and date_worn >= start_timestamp:
+                recent_entries.append(entry)
+        
+        logger.info(f"🔍 DEBUG: Total entries: {len(entries)}")
+        logger.info(f"🔍 DEBUG: Recent entries (last {days} days): {len(recent_entries)}")
         
         if not entries:
             return {
@@ -398,6 +419,7 @@ async def get_outfit_history_stats(
                 "stats": {
                     "totalEntries": 0,
                     "uniqueOutfits": 0,
+                    "outfitsThisWeek": 0,
                     "mostWornOutfit": None,
                     "favoriteOccasion": None,
                     "favoriteMood": None,
@@ -408,6 +430,7 @@ async def get_outfit_history_stats(
         # Calculate statistics
         total_entries = len(entries)
         unique_outfits = len(set(entry.get('outfit_id') for entry in entries))
+        outfits_this_week = len(recent_entries)
         
         # Most worn outfit
         outfit_counts = {}
@@ -439,6 +462,7 @@ async def get_outfit_history_stats(
         stats = {
             "totalEntries": total_entries,
             "uniqueOutfits": unique_outfits,
+            "outfitsThisWeek": outfits_this_week,
             "mostWornOutfit": {
                 "outfitId": most_worn_outfit[0],
                 "count": most_worn_outfit[1]

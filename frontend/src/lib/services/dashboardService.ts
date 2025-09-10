@@ -303,26 +303,44 @@ class DashboardService {
 
   private async getOutfitHistory(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching outfit history from backend /outfit-history/ for analytics');
-      const response = await this.makeAuthenticatedRequest('/outfit-history/', user);
-      console.log('🔍 DEBUG: Outfit history response:', response);
-      console.log('🔍 DEBUG: Outfit history type:', Array.isArray(response) ? 'array' : typeof response);
+      console.log('🔍 DEBUG: Fetching outfit history stats from Railway backend');
       
-      // Handle the backend response format
-      let outfitHistory = [];
-      if (response && response.outfitHistory) {
-        outfitHistory = response.outfitHistory;
-        console.log('🔍 DEBUG: Outfit history length:', outfitHistory.length);
-        
-        if (outfitHistory.length > 0) {
-          console.log('🔍 DEBUG: First outfit history sample:', JSON.stringify(outfitHistory[0], null, 2));
+      // Call Railway backend stats API for server-side filtering
+      const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+      const fullUrl = `${backendUrl}/api/outfit-history/stats?days=7`;
+      
+      console.log('🔍 DEBUG: Stats API URL:', fullUrl);
+      
+      // Get token for authentication
+      let token: string;
+      if (!user || user.email === 'test@example.com' || !user.email) {
+        token = 'test';
+        console.log('🔍 DEBUG: Using test token for outfit history stats');
+      } else {
+        token = await user.getIdToken();
+        if (!token) {
+          throw new Error('Failed to get authentication token');
         }
-      } else if (Array.isArray(response)) {
-        outfitHistory = response;
-        console.log('🔍 DEBUG: Outfit history length (direct array):', outfitHistory.length);
       }
       
-      return outfitHistory;
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('🔍 DEBUG: Outfit history stats backend response not ok:', response.status);
+        throw new Error(`Backend request failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('🔍 DEBUG: Outfit history stats response:', data);
+      
+      // Return the stats object with outfitsThisWeek count
+      return data;
     } catch (error) {
       console.error('Error fetching outfit history:', error);
       // Return empty array for production when backend is not ready
@@ -457,54 +475,16 @@ class DashboardService {
     return Math.min(totalCategories, targetCategories);
   }
 
-  private calculateOutfitsThisWeek(outfitHistory: any): number {
-    // Handle both array and object response formats
-    const historyArray = Array.isArray(outfitHistory) 
-      ? outfitHistory 
-      : outfitHistory?.outfitHistory || [];
+  private calculateOutfitsThisWeek(outfitHistoryStats: any): number {
+    // Use server-side calculated stats instead of client-side filtering
+    console.log('🔍 DEBUG: Using server-side calculated outfits this week from stats API');
+    console.log('🔍 DEBUG: Outfit history stats:', outfitHistoryStats);
     
-    // Use UTC time to match backend storage
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    // Extract outfitsThisWeek from stats response
+    const outfitsThisWeek = outfitHistoryStats?.stats?.outfitsThisWeek || 0;
     
-    console.log('🔍 DEBUG: Calculating outfits this week from:', outfitHistory);
-    console.log('🔍 DEBUG: Outfit history length:', historyArray.length);
-    console.log('🔍 DEBUG: Current UTC time:', now.toISOString());
-    console.log('🔍 DEBUG: One week ago UTC time:', oneWeekAgo.toISOString());
-    
-    if (!Array.isArray(historyArray) || historyArray.length === 0) {
-      console.log('🔍 DEBUG: No outfit history data, returning 0');
-      return 0;
-    }
-    
-    const thisWeekOutfits = historyArray.filter(historyEntry => {
-      // Use the dateWorn field from the outfit history entry
-      const dateWorn = historyEntry.dateWorn;
-      if (!dateWorn) {
-        console.log('🔍 DEBUG: No dateWorn field for history entry:', historyEntry);
-        return false;
-      }
-      
-      console.log('🔍 DEBUG: Checking outfit history date:', dateWorn, 'for entry:', historyEntry);
-      
-      // Handle both timestamp and ISO string formats
-      let outfitDate: Date;
-      if (typeof dateWorn === 'number') {
-        // If it's a timestamp, treat it as UTC
-        outfitDate = new Date(dateWorn);
-      } else {
-        // If it's a string, parse it as UTC
-        outfitDate = new Date(dateWorn);
-      }
-      
-      const isThisWeek = outfitDate >= oneWeekAgo;
-      console.log('🔍 DEBUG: Outfit history date:', outfitDate.toISOString(), 'is this week:', isThisWeek);
-      
-      return isThisWeek;
-    });
-    
-    console.log('🔍 DEBUG: Found', thisWeekOutfits.length, 'outfits this week');
-    return thisWeekOutfits.length;
+    console.log('🔍 DEBUG: Server calculated outfits this week:', outfitsThisWeek);
+    return outfitsThisWeek;
   }
 
   // Fallback method to calculate outfits this week from individual outfit wear counts
