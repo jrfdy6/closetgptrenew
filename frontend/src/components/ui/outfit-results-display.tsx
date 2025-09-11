@@ -24,6 +24,7 @@ import {
   Eye,
   Share2
 } from 'lucide-react';
+import StyleEducationModule from './style-education-module';
 
 interface GeneratedOutfit {
   id: string;
@@ -391,6 +392,14 @@ export default function OutfitResultsDisplay({
           </div>
         </CardContent>
       </Card>
+
+      {/* Style Education Module */}
+      <StyleEducationModule 
+        outfitStyle={outfit.style}
+        outfitMood={outfit.mood}
+        outfitOccasion={outfit.occasion}
+        className="mt-8"
+      />
     </div>
   );
 }
