@@ -1,0 +1,23 @@
+{
+  "id": "test-outfit-123",
+  "name": "Test Outfit",
+  "occasion": "casual",
+  "style": "modern",
+  "mood": "comfortable",
+  "items": [
+    {
+      "id": "item-1",
+      "name": "Blue T-Shirt",
+      "category": "top",
+      "style": "casual",
+      "color": "blue",
+      "imageUrl": "https://example.com/tshirt.jpg",
+      "user_id": "test-user-1"
+    }
+  ],
+  "user_id": "test-user-1",
+  "isFavorite": false,
+  "wearCount": 0,
+  "createdAt": "2024-01-15T10:00:00Z",
+  "updatedAt": "2024-01-15T10:00:00Z"
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Outfit Edit Button</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Outfit Edit Button Debug Tool</h1>
+    
+    <div class="debug-section">
+        <h2>Step 1: Check if you have outfits</h2>
+        <p>Go to <a href="http://localhost:3000/outfits" target="_blank">http://localhost:3000/outfits</a></p>
+        <p>Do you see any outfit cards? If not, you need to generate some outfits first.</p>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 2: Test edit button functionality</h2>
+        <p>Click this test button to see if JavaScript is working:</p>
+        <button class="button" onclick="testClick()">Test Button Click</button>
+        <div id="test-result" class="log"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 3: Check browser console</h2>
+        <p>1. Open DevTools (F12)</p>
+        <p>2. Go to Console tab</p>
+        <p>3. Look for any red error messages</p>
+        <p>4. Try clicking the edit button on an outfit card</p>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Step 4: Inspect the edit button</h2>
+        <p>1. Right-click on the edit button (pencil icon)</p>
+        <p>2. Select "Inspect Element"</p>
+        <p>3. Check if the button has an onClick handler</p>
+        <p>4. Look for any CSS issues that might prevent clicking</p>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Common Issues & Solutions</h2>
+        <ul>
+            <li><strong>No outfits visible:</strong> Generate some outfits first</li>
+            <li><strong>Button not clickable:</strong> Check for CSS z-index issues</li>
+            <li><strong>JavaScript errors:</strong> Check console for error messages</li>
+            <li><strong>Modal not opening:</strong> Check if OutfitEditModal component is loaded</li>
+        </ul>
+    </div>
+    
+    <script>
+        function testClick() {
+            const result = document.getElementById('test-result');
+            result.innerHTML = '✅ JavaScript is working! Button click detected at ' + new Date().toLocaleTimeString();
+        }
+        
+        // Check if the page is loaded
+        window.addEventListener('load', function() {
+            console.log('🔍 Debug page loaded successfully');
+        });
+    </script>
+</body>
+</html>

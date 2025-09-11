@@ -4,10 +4,10 @@ import OutfitService from '@/lib/services/outfitService_proper';
 import { 
   Outfit, 
   OutfitFilters, 
-  OutfitCreate, 
+  OutfitCreate,
   OutfitUpdate, 
   OutfitStats 
-} from '@/lib/types/outfit';
+} from '@/lib/services/outfitService';
 
   // ===== HOOK RETURN INTERFACE =====
 interface UseOutfitsReturn {

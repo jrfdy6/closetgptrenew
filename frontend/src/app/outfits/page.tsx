@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
-import OutfitGrid from '@/components/OutfitGrid_proper';
+import OutfitGrid from '@/components/OutfitGrid';
 
 // ===== METADATA =====
 export const metadata: Metadata = {

@@ -22,12 +22,37 @@ export interface Outfit {
   items: OutfitItem[];
   confidenceScore?: number;
   reasoning?: string;
+  description?: string;
+  notes?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   user_id: string; // Changed from userId to user_id to match backend
   isFavorite?: boolean;
   wearCount?: number;
   lastWorn?: Timestamp;
+}
+
+export interface OutfitCreate {
+  name: string;
+  occasion: string;
+  style: string;
+  mood?: string;
+  items: OutfitItem[];
+  description?: string;
+  notes?: string;
+  user_id: string;
+}
+
+export interface OutfitUpdate {
+  name?: string;
+  occasion?: string;
+  style?: string;
+  mood?: string;
+  items?: OutfitItem[];
+  description?: string;
+  notes?: string;
+  isFavorite?: boolean;
+  updatedAt?: Timestamp;
 }
 
 export interface OutfitFilters {
