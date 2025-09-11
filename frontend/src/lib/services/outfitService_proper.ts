@@ -1,11 +1,11 @@
 import { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters } from '@/lib/types/outfit';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
 
 class OutfitService {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
-    // Use Next.js API routes instead of calling backend directly
-    const url = `/api${endpoint}`;
+    // Call backend directly instead of using Next.js API routes
+    const url = `${API_BASE_URL}/api${endpoint}`;
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
