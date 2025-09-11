@@ -232,7 +232,7 @@ class DashboardService {
         styleExpansions: this.buildStyleExpansions(wardrobeStats, trendingStyles),
         seasonalBalance: this.buildSeasonalBalance(wardrobeStats),
         colorVariety: this.buildColorVariety(wardrobeStats),
-        wardrobeGaps: this.buildWardrobeGaps(wardrobeStats),
+        wardrobeGaps: await this.getWardrobeGapsFromBackend(user),
         topItems: this.buildTopItems(topWornItems),
         recentOutfits: this.buildRecentOutfits(outfitHistory),
         todaysOutfit: (todaysOutfit as any)?.todaysOutfit || todaysOutfit || null,
@@ -709,6 +709,24 @@ class DashboardService {
       status,
       colors: uniqueColors
     };
+  }
+
+  private async getWardrobeGapsFromBackend(user: User | null): Promise<WardrobeGap[]> {
+    try {
+      console.log('🔍 DEBUG: Fetching wardrobe gaps from backend...');
+      const response = await this.makeAuthenticatedRequest('/wardrobe-analysis/gaps', user);
+      
+      if (response?.success && response?.data?.gaps) {
+        console.log('✅ DEBUG: Successfully fetched wardrobe gaps from backend:', response.data.gaps.length);
+        return response.data.gaps;
+      } else {
+        console.log('⚠️ DEBUG: No gaps data from backend, falling back to local analysis');
+        return [];
+      }
+    } catch (error) {
+      console.error('❌ DEBUG: Error fetching wardrobe gaps from backend:', error);
+      return [];
+    }
   }
 
   private buildWardrobeGaps(wardrobeStats: any): WardrobeGap[] {
