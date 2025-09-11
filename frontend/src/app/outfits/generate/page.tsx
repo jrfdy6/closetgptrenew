@@ -840,22 +840,15 @@ export default function OutfitGenerationPage() {
             ) : generating ? (
               <OutfitGenerating />
             ) : (
-              <>
-                <Card className="border-dashed">
-                  <CardContent className="p-12 text-center">
-                    <Sparkles className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Ready to Generate</h3>
-                    <p className="text-muted-foreground">
-                      Fill out the form and click "Generate Outfit" to create your AI-powered style combination
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                {/* Style Education Module - Always visible */}
-                <StyleEducationModule 
-                  className="mt-8"
-                />
-              </>
+              <Card className="border-dashed">
+                <CardContent className="p-12 text-center">
+                  <Sparkles className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Ready to Generate</h3>
+                  <p className="text-muted-foreground">
+                    Fill out the form and click "Generate Outfit" to create your AI-powered style combination
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </div>

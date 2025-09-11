@@ -398,6 +398,8 @@ export default function OutfitResultsDisplay({
         outfitStyle={outfit.style}
         outfitMood={outfit.mood}
         outfitOccasion={outfit.occasion}
+        outfitItems={outfit.items}
+        outfitReasoning={outfit.reasoning}
         className="mt-8"
       />
     </div>

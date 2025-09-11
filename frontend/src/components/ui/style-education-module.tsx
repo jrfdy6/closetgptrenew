@@ -26,6 +26,13 @@ interface StyleEducationModuleProps {
   outfitStyle?: string;
   outfitMood?: string;
   outfitOccasion?: string;
+  outfitItems?: Array<{
+    name: string;
+    type: string;
+    color: string;
+    reason?: string;
+  }>;
+  outfitReasoning?: string;
   className?: string;
 }
 
@@ -33,6 +40,8 @@ export default function StyleEducationModule({
   outfitStyle, 
   outfitMood, 
   outfitOccasion,
+  outfitItems = [],
+  outfitReasoning,
   className = "" 
 }: StyleEducationModuleProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -117,25 +126,25 @@ export default function StyleEducationModule({
     {
       step: 1,
       title: 'Style Analysis',
-      description: 'We analyze your wardrobe pieces, considering color, cut, and style',
+      description: 'Learn to evaluate pieces by color harmony, fit, and style compatibility',
       icon: Eye
     },
     {
       step: 2,
       title: 'Context Matching',
-      description: 'Your occasion, mood, and preferences guide the selection process',
+      description: 'Master the art of dressing appropriately for different occasions',
       icon: Target
     },
     {
       step: 3,
       title: 'Harmony Creation',
-      description: 'AI applies fashion principles to create cohesive, flattering combinations',
+      description: 'Discover how to create cohesive, flattering combinations',
       icon: Sparkles
     },
     {
       step: 4,
       title: 'Confidence Scoring',
-      description: 'Each outfit receives a confidence score based on style principles',
+      description: 'Understand what makes an outfit feel right and look great',
       icon: Star
     }
   ];
@@ -164,21 +173,94 @@ export default function StyleEducationModule({
             </div>
             <div>
               <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
-                Style Education
+                Learn from This Outfit
               </CardTitle>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Discover how our AI creates your perfect outfits
+                Understand why this outfit works and how to apply these principles yourself
               </p>
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* Outfit-Specific Analysis */}
+          {(outfitStyle || outfitMood || outfitOccasion || outfitItems.length > 0) && (
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                Why This Outfit Was Selected
+              </h3>
+              
+              {/* Style Context */}
+              <div className="mb-4">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Style Context</h4>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {outfitStyle && (
+                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                      {outfitStyle} Style
+                    </Badge>
+                  )}
+                  {outfitMood && (
+                    <Badge variant="secondary" className="bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300">
+                      {outfitMood} Mood
+                    </Badge>
+                  )}
+                  {outfitOccasion && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                      {outfitOccasion} Occasion
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  This combination was chosen to match your {outfitStyle?.toLowerCase()} style for a {outfitOccasion?.toLowerCase()} occasion, 
+                  creating a {outfitMood?.toLowerCase()} mood that's both appropriate and stylish.
+                </p>
+              </div>
+
+              {/* Item Analysis */}
+              {outfitItems.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Item Selection Logic</h4>
+                  <div className="space-y-2">
+                    {outfitItems.map((item, index) => (
+                      <div key={index} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-800 rounded-lg">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {item.type} in {item.color}
+                          </p>
+                          {item.reason && (
+                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                              {item.reason}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* AI Reasoning */}
+              {outfitReasoning && (
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">AI's Style Reasoning</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    {outfitReasoning}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* AI Process Overview */}
           <div>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Zap className="h-5 w-5 text-purple-600" />
-              How We Select Your Outfit
+              The Science Behind Great Style
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {aiProcessSteps.map((step, index) => (
@@ -308,32 +390,6 @@ export default function StyleEducationModule({
             )}
           </div>
 
-          {/* Current Outfit Context - Only show if we have outfit data */}
-          {(outfitStyle || outfitMood || outfitOccasion) && (
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                <Info className="h-4 w-4 text-blue-600" />
-                This Outfit's Style Context
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {outfitStyle && (
-                  <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-                    {outfitStyle} Style
-                  </Badge>
-                )}
-                {outfitMood && (
-                  <Badge variant="secondary" className="bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300">
-                    {outfitMood} Mood
-                  </Badge>
-                )}
-                {outfitOccasion && (
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                    {outfitOccasion} Occasion
-                  </Badge>
-                )}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
