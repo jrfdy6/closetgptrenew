@@ -88,7 +88,7 @@ class ShoppingService {
       if (budgetRange) params.append('budget_range', budgetRange);
       if (preferredStores) params.append('preferred_stores', preferredStores.join(','));
 
-      const endpoint = `/api/wardrobe/gaps${params.toString() ? `?${params.toString()}` : ''}`;
+      const endpoint = `/wardrobe/gaps${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await this.makeAuthenticatedRequest(endpoint, user);
       
       if (response?.success && response?.data?.shopping_recommendations) {
