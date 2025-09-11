@@ -24,6 +24,11 @@ import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 import OutfitService from '@/lib/services/outfitService';
 
+// Import new enhanced components
+import OutfitGenerationForm from '@/components/ui/outfit-generation-form';
+import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
+import { OutfitGenerating, WardrobeLoading } from '@/components/ui/outfit-loading';
+
 interface OutfitGenerationForm {
   occasion: string;
   style: string;
@@ -707,12 +712,7 @@ export default function OutfitGenerationPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <Navigation />
         <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Authenticating...</p>
-            </div>
-          </div>
+          <WardrobeLoading />
         </div>
       </div>
     );
@@ -800,360 +800,44 @@ export default function OutfitGenerationPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Generation Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Outfit Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Occasion *</label>
-                  <Select value={formData.occasion} onValueChange={(value) => handleInputChange('occasion', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select occasion" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {occasions.map((occasion) => (
-                        <SelectItem key={occasion} value={occasion}>
-                          {occasion.charAt(0).toUpperCase() + occasion.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* Enhanced Outfit Generation Form */}
+          <OutfitGenerationForm
+            formData={formData}
+            onFormChange={(field, value) => handleInputChange(field, value)}
+            onGenerate={handleGenerateOutfit}
+            generating={generating}
+            wardrobeLoading={wardrobeLoading}
+            occasions={occasions}
+            styles={filteredStyles.length > 0 ? filteredStyles : styles}
+            moods={moods}
+            weatherOptions={weatherOptions}
+            baseItem={baseItem}
+            onRemoveBaseItem={() => {
+              setBaseItem(null);
+              const url = new URL(window.location.href);
+              url.searchParams.delete('baseItem');
+              window.history.replaceState({}, '', url.toString());
+            }}
+          />
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Style *</label>
-                  <Select value={formData.style} onValueChange={(value) => handleInputChange('style', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(filteredStyles.length > 0 ? filteredStyles : styles).map((style) => (
-                        <SelectItem key={style} value={style}>
-                          {style.charAt(0).toUpperCase() + style.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {userProfile?.gender && filteredStyles.length < styles.length && (
-                    <p className="text-xs text-muted-foreground">
-                      Styles filtered for {userProfile.gender} users
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Mood *</label>
-                  <Select value={formData.mood} onValueChange={(value) => handleInputChange('mood', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select mood" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {moods.map((mood) => (
-                        <SelectItem key={mood} value={mood}>
-                          {mood.charAt(0).toUpperCase() + mood.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Weather</label>
-                  <Select value={formData.weather} onValueChange={(value) => handleInputChange('weather', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select weather" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {weatherOptions.map((weather) => (
-                        <SelectItem key={weather} value={weather}>
-                          {weather.charAt(0).toUpperCase() + weather.slice(1)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Additional Details</label>
-                <Textarea
-                  placeholder="Any specific preferences, colors, or details you'd like to include..."
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              )}
-
-              <Button 
-                onClick={handleGenerateOutfit} 
-                disabled={generating || wardrobeLoading || !formData.occasion || !formData.style || !formData.mood}
-                className="w-full"
-                size="lg"
-              >
-                {generating ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Generating Outfit...
-                  </>
-                ) : wardrobeLoading ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Loading Wardrobe...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate Outfit
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Generated Outfit Display */}
+          {/* Enhanced Generated Outfit Display */}
           <div className="space-y-6">
             {generatedOutfit ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Generated Outfit</span>
-                    <Badge variant="secondary" className="flex items-center gap-1">
-                      <Zap className="h-3 w-3" />
-                      {Math.round(generatedOutfit.confidence_score * 100)}% Match
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-semibold mb-2">{generatedOutfit.name}</h3>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <Badge variant="outline">{generatedOutfit.style}</Badge>
-                      <Badge variant="outline">{generatedOutfit.mood}</Badge>
-                      <Badge variant="outline">{generatedOutfit.occasion}</Badge>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium mb-2">Items ({generatedOutfit.items.length})</h4>
-                    <div className="space-y-2">
-                      {generatedOutfit.items.map((item, index) => (
-                        <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
-                          {/* Show actual item image if available, otherwise fallback icon */}
-                          {(item.imageUrl || item.image_url || item.image) ? (
-                            <img 
-                              src={item.imageUrl || item.image_url || item.image} 
-                              alt={item.name}
-                              className="w-12 h-12 object-cover rounded-md border border-gray-200"
-                              onError={(e) => {
-                                // Fallback to icon if image fails to load
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling.style.display = 'block';
-                              }}
-                            />
-                          ) : null}
-                          <Shirt 
-                            className={`h-12 w-12 text-gray-500 ${(item.imageUrl || item.image_url || item.image) ? 'hidden' : ''}`}
-                            style={{ display: (item.imageUrl || item.image_url || item.image) ? 'none' : 'block' }}
-                          />
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{item.name}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{item.type} • {item.color}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Score Breakdown */}
-                  {generatedOutfit.score_breakdown && (
-                    <div>
-                      <h4 className="font-medium mb-2">Outfit Score Breakdown</h4>
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-                          <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Score</div>
-                          <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
-                            {generatedOutfit.score_breakdown.total_score}
-                          </div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400">
-                            Grade: {generatedOutfit.score_breakdown.grade}
-                          </div>
-                        </div>
-                        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
-                          <div className="text-sm font-medium text-green-700 dark:text-green-300">Confidence</div>
-                          <div className="text-2xl font-bold text-green-800 dark:text-green-200">
-                            {Math.round(generatedOutfit.confidence_score * 100)}%
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Component Scores */}
-                      <div className="space-y-2">
-                        {Object.entries(generatedOutfit.score_breakdown).map(([key, value]) => {
-                          if (key === 'total_score' || key === 'grade' || key === 'score_interpretation') return null;
-                          return (
-                            <div key={key} className="flex justify-between items-center text-sm">
-                              <span className="capitalize">{key.replace(/_/g, ' ')}</span>
-                              <span className="font-medium">{value}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {generatedOutfit.reasoning && (
-                    <div>
-                      <h4 className="font-medium mb-2">AI Reasoning</h4>
-                      <p className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-                        {generatedOutfit.reasoning}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Outfit Rating Section */}
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-3">Rate This Outfit</h4>
-                    
-                    {/* Star Rating */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-sm text-muted-foreground">Rating:</span>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => handleRatingChange(star)}
-                            className={`text-2xl transition-colors ${
-                              star <= outfitRating.rating
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300 dark:text-gray-600'
-                            }`}
-                          >
-                            ★
-                          </button>
-                        ))}
-                      </div>
-                      {outfitRating.rating > 0 && (
-                        <span className="text-sm text-muted-foreground ml-2">
-                          {outfitRating.rating} star{outfitRating.rating !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Like/Dislike Buttons */}
-                    <div className="flex gap-3 mb-3">
-                      <Button
-                        variant={outfitRating.isLiked ? "default" : "outline"}
-                        size="sm"
-                        onClick={handleLikeToggle}
-                        className="flex items-center gap-2"
-                      >
-                        <Heart className={`h-4 w-4 ${outfitRating.isLiked ? 'fill-current' : ''}`} />
-                        {outfitRating.isLiked ? 'Liked' : 'Like'}
-                      </Button>
-                      <Button
-                        variant={outfitRating.isDisliked ? "destructive" : "outline"}
-                        size="sm"
-                        onClick={handleDislikeToggle}
-                        className="flex items-center gap-2"
-                      >
-                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.912c.163 0 .326.02.485.06L17 5a2 2 0 011 1.732v5.268A2 2 0 0117 14h-3.764a2 2 0 01-1.789-2.894l3.5-7A2 2 0 0013.264 3H8.348a2 2 0 00-1.789 2.894l3.5 7A2 2 0 005.236 14H10" />
-                        </svg>
-                        {outfitRating.isDisliked ? 'Disliked' : 'Dislike'}
-                      </Button>
-                    </div>
-
-                    {/* Feedback Text */}
-                    <div className="mb-3">
-                      <Textarea
-                        placeholder="Optional: Share what you think about this outfit..."
-                        value={outfitRating.feedback}
-                        onChange={(e) => handleFeedbackChange(e.target.value)}
-                        rows={2}
-                        className="text-sm"
-                      />
-                    </div>
-
-                    {/* Auto-submit info */}
-                    {outfitRating.rating > 0 && (
-                      <div className="text-xs text-muted-foreground text-center mb-3">
-                        ✓ Rating automatically submitted
-                      </div>
-                    )}
-
-                    {/* Rating Submitted Confirmation */}
-                    {ratingSubmitted && (
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-md mb-3">
-                        <p className="text-sm text-green-600 text-center">
-                          ✓ Rating submitted! This helps improve future outfit suggestions.
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Outfit Worn Confirmation */}
-                    {generatedOutfit?.isWorn && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-md mb-3">
-                        <p className="text-sm text-blue-600 text-center">
-                          ✓ Outfit marked as worn! Redirecting to outfits page...
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    {/* Show different buttons based on state */}
-                    {generatedOutfit?.isWorn ? (
-                      // After outfit is worn, show navigation button
-                      <Button 
-                        onClick={() => router.push(`/outfits?refresh=${Date.now()}`)} 
-                        className="flex-1"
-                      >
-                        <Shirt className="h-4 w-4 mr-2" />
-                        View My Outfits
-                      </Button>
-                    ) : ratingSubmitted ? (
-                      // After rating is submitted, show both options
-                      <>
-                        <Button onClick={handleWearOutfit} className="flex-1">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Wear Outfit
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => router.push(`/outfits?refresh=${Date.now()}`)}
-                        >
-                          <Shirt className="h-4 w-4 mr-2" />
-                          View Outfits
-                        </Button>
-                      </>
-                    ) : (
-                      // Default state: wear outfit and regenerate
-                      <>
-                        <Button onClick={handleWearOutfit} className="flex-1">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Wear Outfit
-                        </Button>
-                        <Button variant="outline" onClick={handleRegenerate}>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Regenerate
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <OutfitResultsDisplay
+                outfit={generatedOutfit}
+                rating={outfitRating}
+                onRatingChange={handleRatingChange}
+                onLikeToggle={handleLikeToggle}
+                onDislikeToggle={handleDislikeToggle}
+                onFeedbackChange={handleFeedbackChange}
+                onWearOutfit={handleWearOutfit}
+                onRegenerate={handleRegenerate}
+                onViewOutfits={() => router.push(`/outfits?refresh=${Date.now()}`)}
+                ratingSubmitted={ratingSubmitted}
+                isWorn={generatedOutfit?.isWorn}
+              />
+            ) : generating ? (
+              <OutfitGenerating />
             ) : (
               <Card className="border-dashed">
                 <CardContent className="p-12 text-center">
