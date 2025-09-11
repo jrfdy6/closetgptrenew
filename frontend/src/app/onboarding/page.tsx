@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
+import BodyPositiveMessage from "@/components/BodyPositiveMessage";
 
 interface QuizAnswer {
   question_id: string;
@@ -34,33 +35,39 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "body_type_female",
-    question: "Which body type best describes you?",
-    options: ["Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle"],
+    question: "Which body shape best describes you? (All bodies are beautiful!)",
+    options: ["Round/Apple", "Athletic", "Hourglass", "Pear", "Rectangle", "Inverted Triangle", "Plus Size", "Petite", "Tall"],
     category: "measurements",
     type: "visual",
     images: [
-      "/images/body-types/apple.png",
+      "/images/body-types/round-apple.png",
       "/images/body-types/athletic.png",
       "/images/body-types/hourglass.png",
       "/images/body-types/pear.png",
       "/images/body-types/rectangular.png",
-      "/images/body-types/inverted.png"
+      "/images/body-types/inverted.png",
+      "/images/body-types/plus-size.png",
+      "/images/body-types/petite.png",
+      "/images/body-types/tall.png"
     ],
     gender: "female"
   },
   {
     id: "body_type_male",
-    question: "Which body type best describes you?",
-    options: ["Apple", "Athletic", "Rectangle", "Inverted Triangle", "Pear", "Oval"],
+    question: "Which body shape best describes you? (All bodies are beautiful!)",
+    options: ["Round/Apple", "Athletic", "Rectangle", "Inverted Triangle", "Pear", "Oval", "Plus Size", "Slim", "Muscular"],
     category: "measurements",
     type: "visual",
     images: [
-      "/images/body-types/apple.png",
+      "/images/body-types/round-apple.png",
       "/images/body-types/athletic.png",
       "/images/body-types/rectangular.png",
       "/images/body-types/inverted.png",
       "/images/body-types/pear.png",
-      "/images/body-types/curvy.png"
+      "/images/body-types/oval.png",
+      "/images/body-types/plus-size.png",
+      "/images/body-types/slim.png",
+      "/images/body-types/muscular.png"
     ],
     gender: "male"
   },
@@ -79,32 +86,32 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: "weight",
-    question: "What is your weight range?",
-    options: ["Under 100 lbs", "100-120 lbs", "121-140 lbs", "141-160 lbs", "161-180 lbs", "181-200 lbs", "Over 200 lbs"],
+    question: "What is your weight range? (Optional - helps with fit recommendations)",
+    options: ["Under 100 lbs", "100-120 lbs", "121-140 lbs", "141-160 lbs", "161-180 lbs", "181-200 lbs", "201-250 lbs", "251-300 lbs", "Over 300 lbs", "Prefer not to specify"],
     category: "measurements"
   },
   {
     id: "top_size",
     question: "What is your top size?",
-    options: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL", "6XL", "Plus Size", "Custom/Other"],
     category: "sizes"
   },
   {
     id: "bottom_size",
     question: "What is your bottom size?",
-    options: ["XS", "S", "M", "L", "XL", "XXL", "XXXL"],
+    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL", "6XL", "Plus Size", "Custom/Other"],
     category: "sizes"
   },
   {
     id: "cup_size",
-    question: "What is your cup size?",
-    options: ["A", "B", "C", "D", "DD", "DDD", "Prefer not to say"],
+    question: "What is your cup size? (Optional)",
+    options: ["AA", "A", "B", "C", "D", "DD", "DDD", "E", "F", "FF", "G", "GG", "H", "HH", "I", "J", "K", "L", "M", "N", "O", "P", "Prefer not to say"],
     category: "sizes"
   },
   {
     id: "shoe_size",
     question: "What is your shoe size?",
-    options: ["5 or smaller", "6", "7", "8", "9", "10", "11", "12 or larger"],
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16 or larger", "Wide width", "Narrow width", "Custom/Other"],
     category: "sizes"
   },
   // Female style questions - using different numbered images for color variety
@@ -513,8 +520,12 @@ export default function Onboarding() {
         </div>
         
         {question.type === "visual" && question.images ? (
-          <div className="grid grid-cols-2 gap-4">
-            {question.options.map((option, index) => (
+          <div className="space-y-4">
+            {(question.id === "body_type_female" || question.id === "body_type_male") && (
+              <BodyPositiveMessage variant="profile" className="mb-4" />
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              {question.options.map((option, index) => (
               <div
                 key={option}
                 className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
@@ -546,6 +557,7 @@ export default function Onboarding() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         ) : question.type === "visual_yesno" && question.images ? (
           <div className="space-y-6">

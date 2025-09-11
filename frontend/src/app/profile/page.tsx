@@ -10,6 +10,7 @@ import { User, Save, Palette, Heart, Settings } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
+import InclusiveSizingGuide from '@/components/InclusiveSizingGuide';
 
 console.log('🔍 DEBUG: Profile page file loaded');
 
@@ -508,6 +509,9 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Inclusive Sizing Guide */}
+        <InclusiveSizingGuide />
 
         {/* Style Quiz Responses */}
         {profile.preferences?.style && profile.preferences.style.length > 0 && (

@@ -77,17 +77,79 @@ class WardrobeAnalysisService:
         wardrobe_stats = self._get_wardrobe_stats(wardrobe)
         print(f"DEBUG: Wardrobe stats: {wardrobe_stats}")
         
+        # Get shopping recommendations if there are gaps
+        shopping_recommendations = None
+        if gaps and len(gaps) > 0:
+            try:
+                from .shopping_recommendations_service import ShoppingRecommendationsService
+                shopping_service = ShoppingRecommendationsService()
+                
+                # Get user profile for personalized recommendations
+                user_profile = await self._get_user_profile(user_id)
+                
+                shopping_recommendations = await shopping_service.get_shopping_recommendations(
+                    user_id=user_id,
+                    gaps=gaps,
+                    user_profile=user_profile,
+                    budget_range=None,  # Will be determined by user preferences
+                    preferred_stores=None
+                )
+                print(f"DEBUG: Generated shopping recommendations: {shopping_recommendations.get('success', False)}")
+            except Exception as e:
+                print(f"DEBUG: Error generating shopping recommendations: {e}")
+                shopping_recommendations = None
+
         result = {
             "gaps": gaps,
             "coverage": coverage,
             "recommendations": recommendations,
             "trending_styles": trending_styles,
             "wardrobe_stats": wardrobe_stats,
+            "shopping_recommendations": shopping_recommendations,
             "analysis_timestamp": datetime.now().isoformat()
         }
         
         print(f"DEBUG: Returning result with {len(wardrobe)} wardrobe items")
         return result
+    
+    async def _get_user_profile(self, user_id: str) -> Dict[str, Any]:
+        """Get user profile for personalized recommendations."""
+        try:
+            user_ref = self.db.collection('users').document(user_id)
+            user_doc = user_ref.get()
+            
+            if user_doc.exists:
+                user_data = user_doc.to_dict()
+                return {
+                    'id': user_id,
+                    'gender': user_data.get('gender', 'unisex'),
+                    'bodyType': user_data.get('bodyType', 'average'),
+                    'stylePreferences': user_data.get('stylePreferences', []),
+                    'colorPreferences': user_data.get('colorPreferences', []),
+                    'age': user_data.get('age', 25),
+                    'name': user_data.get('name', 'User')
+                }
+            else:
+                return {
+                    'id': user_id,
+                    'gender': 'unisex',
+                    'bodyType': 'average',
+                    'stylePreferences': [],
+                    'colorPreferences': [],
+                    'age': 25,
+                    'name': 'User'
+                }
+        except Exception as e:
+            print(f"DEBUG: Error getting user profile: {e}")
+            return {
+                'id': user_id,
+                'gender': 'unisex',
+                'bodyType': 'average',
+                'stylePreferences': [],
+                'colorPreferences': [],
+                'age': 25,
+                'name': 'User'
+            }
     
     async def _get_user_wardrobe(self, user_id: str) -> List[ClothingItem]:
         """Get user's complete wardrobe from Firestore."""

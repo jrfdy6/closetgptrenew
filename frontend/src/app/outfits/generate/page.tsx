@@ -23,6 +23,7 @@ import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 import OutfitService from '@/lib/services/outfitService';
+import BodyPositiveMessage from '@/components/BodyPositiveMessage';
 
 // Import new enhanced components
 import OutfitGenerationForm from '@/components/ui/outfit-generation-form';
@@ -824,7 +825,9 @@ export default function OutfitGenerationPage() {
           {/* Enhanced Generated Outfit Display */}
           <div className="space-y-6">
             {generatedOutfit ? (
-              <OutfitResultsDisplay
+              <>
+                <BodyPositiveMessage variant="outfit" />
+                <OutfitResultsDisplay
                 outfit={generatedOutfit}
                 rating={outfitRating}
                 onRatingChange={handleRatingChange}
@@ -837,6 +840,7 @@ export default function OutfitGenerationPage() {
                 ratingSubmitted={ratingSubmitted}
                 isWorn={generatedOutfit?.isWorn}
               />
+              </>
             ) : generating ? (
               <OutfitGenerating />
             ) : (

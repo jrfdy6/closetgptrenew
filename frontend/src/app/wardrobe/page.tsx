@@ -28,6 +28,8 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useFirebase } from "@/lib/firebase-context";
+import BodyPositiveMessage from "@/components/BodyPositiveMessage";
+import DiverseStyleInspiration from "@/components/DiverseStyleInspiration";
 import { useWardrobe, type ClothingItem } from "@/lib/hooks/useWardrobe";
 import { formatLastWorn } from "@/lib/utils/dateUtils";
 import dynamic from 'next/dynamic';
@@ -280,6 +282,7 @@ export default function WardrobePage() {
               <p className="text-emerald-700 dark:text-emerald-300 mt-1">
                 {wardrobeItems.length} items • {getFavorites().length} favorites
               </p>
+              <BodyPositiveMessage variant="wardrobe" className="mt-4" />
             </div>
             
             <div className="flex gap-3">
@@ -491,6 +494,10 @@ export default function WardrobePage() {
             <TabsTrigger value="unworn">
               <TrendingUp className="w-4 h-4 mr-2" />
               Unworn
+            </TabsTrigger>
+            <TabsTrigger value="inspiration">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Style Inspiration
             </TabsTrigger>
           </TabsList>
 
@@ -922,6 +929,10 @@ export default function WardrobePage() {
                 )}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="inspiration" className="mt-6">
+            <DiverseStyleInspiration />
           </TabsContent>
         </Tabs>
       </main>

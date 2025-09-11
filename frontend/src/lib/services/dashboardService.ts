@@ -15,6 +15,14 @@ export interface DashboardData {
   topItems: TopItem[];
   recentOutfits: RecentOutfit[];
   todaysOutfit: TodaysOutfit | null;
+  shoppingRecommendations?: {
+    success: boolean;
+    recommendations: any[];
+    store_recommendations: any[];
+    shopping_strategy: any;
+    total_estimated_cost: number;
+    budget_range: string;
+  };
 }
 
 export interface StyleCollection {
@@ -227,7 +235,8 @@ class DashboardService {
         wardrobeGaps: this.buildWardrobeGaps(wardrobeStats),
         topItems: this.buildTopItems(topWornItems),
         recentOutfits: this.buildRecentOutfits(outfitHistory),
-        todaysOutfit: (todaysOutfit as any)?.todaysOutfit || todaysOutfit || null
+        todaysOutfit: (todaysOutfit as any)?.todaysOutfit || todaysOutfit || null,
+        shoppingRecommendations: null // Will be populated by the enhanced component
       };
 
       console.log('🔍 DEBUG: Dashboard data processed:', dashboardData);

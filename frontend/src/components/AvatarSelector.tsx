@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useStorage } from "@/lib/hooks/useStorage";
 import { generateAvatarUrl, HAIR_STYLES, HAIR_COLORS } from "@/lib/utils/avatar";
+import BodyPositiveMessage from "@/components/BodyPositiveMessage";
 
 interface AvatarSelectorProps {
   currentAvatar: string | null;
@@ -100,12 +101,15 @@ export default function AvatarSelector({ currentAvatar, onAvatarChange, initialG
         { value: "all", label: "All Body Types" },
         { value: "hourglass", label: "Hourglass" },
         { value: "pear", label: "Pear" },
-        { value: "apple", label: "Apple" },
+        { value: "apple", label: "Round/Apple" },
         { value: "rectangle", label: "Rectangle" },
         { value: "inverted-triangle", label: "Inverted Triangle" },
         { value: "petite", label: "Petite" },
         { value: "tall", label: "Tall" },
         { value: "plus-curvy", label: "Plus Size Curvy" },
+        { value: "plus-apple", label: "Plus Size Round" },
+        { value: "plus-hourglass", label: "Plus Size Hourglass" },
+        { value: "athletic", label: "Athletic" },
         { value: "lean-column", label: "Lean Column" },
       ]
     : [
@@ -119,6 +123,10 @@ export default function AvatarSelector({ currentAvatar, onAvatarChange, initialG
         { value: "stocky", label: "Stocky" },
         { value: "tall", label: "Tall" },
         { value: "short", label: "Short" },
+        { value: "plus-rectangle", label: "Plus Size Rectangle" },
+        { value: "plus-oval", label: "Plus Size Oval" },
+        { value: "athletic", label: "Athletic" },
+        { value: "muscular", label: "Muscular" },
       ];
 
   const getAvatarUrl = (avatar: typeof FEMALE_AVATARS[0]) => {
@@ -200,6 +208,8 @@ export default function AvatarSelector({ currentAvatar, onAvatarChange, initialG
           </button>
         </div>
       )}
+
+      <BodyPositiveMessage variant="profile" className="mb-4" />
 
       <div className="flex gap-4 justify-center">
         <button

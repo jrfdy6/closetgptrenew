@@ -30,13 +30,23 @@ SKIN_TONE_COLORS: Dict[str, List[str]] = {
     'neutral': ['navy', 'gray', 'white', 'black', 'beige', 'mauve']
 }
 
-# Body type fit recommendations
+# Body type fit recommendations - inclusive and positive
 BODY_TYPE_FITS: Dict[str, List[str]] = {
-    'hourglass': ['fitted', 'relaxed'],
-    'pear': ['fitted_top', 'relaxed_bottom'],
-    'apple': ['relaxed_top', 'fitted_bottom'],
-    'rectangle': ['fitted', 'oversized'],
-    'inverted_triangle': ['relaxed_top', 'fitted_bottom']
+    'hourglass': ['fitted', 'relaxed', 'wrap', 'belted'],
+    'pear': ['fitted_top', 'relaxed_bottom', 'a_line', 'bootcut'],
+    'apple': ['relaxed_top', 'fitted_bottom', 'empire_waist', 'v_neck'],
+    'rectangle': ['fitted', 'oversized', 'layered', 'belted'],
+    'inverted_triangle': ['relaxed_top', 'fitted_bottom', 'wide_leg', 'a_line'],
+    'round_apple': ['relaxed_top', 'fitted_bottom', 'empire_waist', 'v_neck'],
+    'plus_size': ['relaxed', 'fitted', 'wrap', 'a_line', 'empire_waist'],
+    'plus_curvy': ['fitted', 'wrap', 'belted', 'a_line'],
+    'plus_hourglass': ['fitted', 'wrap', 'belted', 'v_neck'],
+    'plus_apple': ['relaxed_top', 'empire_waist', 'v_neck', 'a_line'],
+    'athletic': ['fitted', 'relaxed', 'structured', 'tailored'],
+    'petite': ['fitted', 'high_waisted', 'vertical_lines', 'monochrome'],
+    'tall': ['long_lines', 'maxi', 'layered', 'statement'],
+    'slim': ['fitted', 'layered', 'textured', 'structured'],
+    'muscular': ['relaxed', 'fitted', 'stretchy', 'tailored']
 }
 
 def validate_material_compatibility(items: List[ClothingItem]) -> ValidationResult:

@@ -31,6 +31,7 @@ import Link from "next/link";
 import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
+import EnhancedWardrobeGapAnalysis from '@/components/ui/enhanced-wardrobe-gap-analysis';
 
 // Dynamically import components to avoid SSR issues
 const WardrobeStats = dynamic(() => import('@/components/WardrobeStats'), {
@@ -775,45 +776,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Wardrobe Gap Analysis */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Wardrobe Gap Analysis</CardTitle>
-            <CardDescription>Identify areas where your wardrobe could be improved</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {dashboardData?.wardrobeGaps && dashboardData.wardrobeGaps.length > 0 ? (
-              <div className="space-y-4">
-                {dashboardData.wardrobeGaps.map((gap, index) => (
-                  <div key={index} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900 dark:text-white">{gap.category}</h4>
-                      <Badge variant={gap.priority === 'high' ? 'destructive' : gap.priority === 'medium' ? 'secondary' : 'outline'}>
-                        {gap.priority} priority
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{gap.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {gap.suggestedItems.map((item, itemIndex) => (
-                        <Badge key={itemIndex} variant="outline">
-                          {item}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-500 mb-4">No wardrobe gaps found!</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Your wardrobe is well-balanced. Great job!
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Enhanced Wardrobe Gap Analysis with Shopping Recommendations */}
+        <EnhancedWardrobeGapAnalysis
+          gaps={dashboardData?.wardrobeGaps || []}
+          shoppingRecommendations={dashboardData?.shoppingRecommendations}
+          onRefresh={fetchDashboardData}
+          className="mb-8"
+        />
 
         {/* Forgotten Gems */}
         <Card className="mb-8">

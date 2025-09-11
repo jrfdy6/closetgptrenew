@@ -37,7 +37,11 @@ class UserProfile(BaseModel):
         "armLength": 0,
         "neckCircumference": 0,
         "thighCircumference": 0,
-        "calfCircumference": 0
+        "calfCircumference": 0,
+        "plusSize": False,
+        "adaptiveNeeds": [],
+        "mobilityConsiderations": [],
+        "sensoryPreferences": []
     })
     
     # Style preferences
