@@ -74,7 +74,7 @@ class OutfitGenerationService:
                 itemId=item.id,
                 name=item.name,
                 type=item.type,
-                reason="Selected for outfit",
+                reason=generate_piece_reasoning(item, occasion, style),
                 dominantColors=[color.name for color in (item.dominantColors or [])],
                 style=item.style or [],
                 occasion=item.occasion or [],
@@ -815,3 +815,59 @@ class OutfitGenerationService:
         except Exception as e:
             print(f"❌ Error fetching item from database: {e}")
             return None
+
+def generate_piece_reasoning(item: ClothingItem, occasion: str, style: str) -> str:
+    """Generate intelligent reasoning for why each piece was selected."""
+    try:
+        item_type = item.type.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+        item_name = item.name.lower()
+        
+        # Occasion-specific reasoning
+        if occasion.lower() == 'formal':
+            if 'blazer' in item_type or 'blazer' in item_name:
+                return "Essential for formal occasions - adds structure and professionalism"
+            elif 'dress' in item_type or 'dress' in item_name:
+                return "Perfect one-piece solution for formal events"
+            elif 'heels' in item_type or 'heels' in item_name:
+                return "Elevates the entire look for formal settings"
+        
+        elif occasion.lower() == 'casual':
+            if 'jean' in item_type or 'jean' in item_name:
+                return "Classic casual staple - comfortable and versatile"
+            elif 'sneaker' in item_type or 'sneaker' in item_name:
+                return "Perfect for casual comfort and everyday wear"
+            elif 't-shirt' in item_type or 't-shirt' in item_name:
+                return "Essential casual piece - relaxed and easy to wear"
+        
+        elif occasion.lower() == 'business':
+            if 'blazer' in item_type or 'blazer' in item_name:
+                return "Professional touch for business settings"
+            elif 'dress' in item_type or 'dress' in item_name:
+                return "Polished and professional for business occasions"
+            elif 'pants' in item_type or 'pants' in item_name:
+                return "Structured bottom for professional appearance"
+        
+        # Style-specific reasoning
+        if style and style.lower() == 'minimalist':
+            return "Clean, simple design that fits minimalist aesthetic"
+        elif style and style.lower() == 'bohemian':
+            return "Free-spirited piece that embodies boho style"
+        elif style and style.lower() == 'athletic':
+            return "Performance-focused design for active lifestyle"
+        
+        # General reasoning based on item type
+        if 'blazer' in item_type or 'blazer' in item_name:
+            return "Adds sophistication and structure to the outfit"
+        elif 'dress' in item_type or 'dress' in item_name:
+            return "Versatile one-piece that works for many occasions"
+        elif 'jean' in item_type or 'jean' in item_name:
+            return "Timeless denim piece - comfortable and stylish"
+        elif 'sneaker' in item_type or 'sneaker' in item_name:
+            return "Comfortable footwear for all-day wear"
+        elif 'heels' in item_type or 'heels' in item_name:
+            return "Elevates the look and adds elegance"
+        else:
+            return f"Selected to complete the {occasion} look"
+            
+    except Exception as e:
+        return f"Selected for {occasion} occasion"

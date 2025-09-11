@@ -80,11 +80,12 @@ class OutfitGenerationPipelineService:
             
             # Phase 5: Handle Validation Results
             if validation_result["is_valid"]:
-                # Pass - Return Outfit + Warnings
-                print(f"✅ Phase 4: Validation passed - {len(selected_items)} items")
+                # Use filtered items if available, otherwise use selected items
+                final_items = validation_result.get("filtered_items", selected_items)
+                print(f"✅ Phase 4: Validation passed - {len(final_items)} items")
                 return {
                     "success": True,
-                    "items": selected_items,
+                    "items": final_items,
                     "context": context,
                     "warnings": validation_result.get("warnings", [])
                 }

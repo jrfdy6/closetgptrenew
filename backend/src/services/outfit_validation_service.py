@@ -3,7 +3,7 @@ Outfit Validation Service
 Handles all validation logic for outfit generation including temperature comparison fixes.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.profile import UserProfile
 from ..custom_types.weather import WeatherData
@@ -45,6 +45,30 @@ class OutfitValidationService:
                 "reason": "Flip-flops/slides should not be worn with blazers or suits",
                 "remove_items": ["flip-flops", "flip flops", "slides", "sandals", "thongs"],
                 "keep_items": ["blazer", "suit", "suit jacket", "sport coat", "jacket"]
+            },
+            "blazer_flip_flops": {
+                "description": "Blazer + Flip Flops",
+                "reason": "Blazers are formal wear and should not be paired with flip flops",
+                "remove_items": ["flip-flops", "flip flops", "slides", "thongs"],
+                "keep_items": ["blazer", "suit jacket", "sport coat"]
+            },
+            "formal_shoes_shorts": {
+                "description": "Formal Shoes + Shorts",
+                "reason": "Formal shoes should not be worn with shorts",
+                "remove_items": ["shorts", "athletic shorts", "basketball shorts"],
+                "keep_items": ["oxford", "loafers", "dress shoes", "heels", "pumps"]
+            },
+            "blazer_cargos": {
+                "description": "Blazer + Cargo Pants",
+                "reason": "Cargo pants are casual/athletic wear and should not be paired with formal blazers",
+                "remove_items": ["cargo pants", "cargos", "cargo shorts", "cargo"],
+                "keep_items": ["blazer", "suit jacket", "sport coat", "jacket"]
+            },
+            "formal_casual_bottoms": {
+                "description": "Formal Wear + Casual Bottoms",
+                "reason": "Formal jackets require more formal bottoms than cargo pants",
+                "remove_items": ["cargo pants", "cargos", "cargo shorts", "cargo", "joggers", "sweatpants"],
+                "keep_items": ["blazer", "suit jacket", "sport coat", "jacket", "suit"]
             }
         }
     
@@ -53,8 +77,11 @@ class OutfitValidationService:
         items: List[ClothingItem],
         context: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Validate outfit using the validation orchestrator."""
+        """Validate outfit using the validation orchestrator and enforce inappropriate combinations."""
         from .validation_orchestrator import ValidationOrchestrator
+        
+        # First, enforce inappropriate combinations by removing problematic items
+        filtered_items, combination_errors = self._enforce_inappropriate_combinations(items)
         
         # Create a mock outfit service for validation
         class MockOutfitService:
@@ -79,14 +106,69 @@ class OutfitValidationService:
                 }
         
         orchestrator = ValidationOrchestrator(MockOutfitService())
-        result = await orchestrator.run_validation_pipeline(items, context)
+        result = await orchestrator.run_validation_pipeline(filtered_items, context)
+        
+        # Combine inappropriate combination errors with validation errors
+        all_errors = combination_errors + result["errors"]
         
         return {
-            "is_valid": result["is_valid"],
-            "errors": result["errors"],
+            "is_valid": len(all_errors) == 0,
+            "errors": all_errors,
             "warnings": result["warnings"],
-            "details": result.get("details", {})
+            "details": result.get("details", {}),
+            "filtered_items": filtered_items
         }
+    
+    def _enforce_inappropriate_combinations(self, items: List[ClothingItem]) -> Tuple[List[ClothingItem], List[str]]:
+        """Enforce inappropriate combinations by removing problematic items."""
+        if not items:
+            return items, []
+        
+        filtered_items = items.copy()
+        errors = []
+        
+        # Check each inappropriate combination rule
+        for rule_name, rule in self.inappropriate_combinations.items():
+            keep_items = rule.get("keep_items", [])
+            remove_items = rule.get("remove_items", [])
+            
+            # Find items that should be kept (formal items)
+            has_formal_items = False
+            for item in filtered_items:
+                item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+                item_name = item.name.lower()
+                
+                # Check if this item should be kept
+                should_keep = any(keep_type in item_type or keep_type in item_name for keep_type in keep_items)
+                if should_keep:
+                    has_formal_items = True
+                    break
+            
+            # If we have formal items that should be kept, remove casual items
+            if has_formal_items:
+                items_to_remove = []
+                for item in filtered_items:
+                    item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+                    item_name = item.name.lower()
+                    
+                    # Check if this item should be removed
+                    should_remove = any(remove_type in item_type or remove_type in item_name for remove_type in remove_items)
+                    
+                    # Additional checks for cargo pants variations
+                    if not should_remove and "cargo" in remove_items:
+                        cargo_variations = ["cargo", "cargos", "cargo pants", "cargo shorts", "cargo trousers"]
+                        should_remove = any(cargo_var in item_name for cargo_var in cargo_variations)
+                    
+                    if should_remove:
+                        items_to_remove.append(item)
+                        errors.append(f"Removed {item.name} - {rule['reason']}")
+                
+                # Remove the inappropriate items
+                for item in items_to_remove:
+                    if item in filtered_items:
+                        filtered_items.remove(item)
+        
+        return filtered_items, errors
     
     def validate_layering_compatibility(self, items: List[ClothingItem]) -> Dict[str, Any]:
         """Validate layering compatibility with temperature conversion."""

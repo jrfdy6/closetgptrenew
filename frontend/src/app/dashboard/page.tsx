@@ -479,6 +479,63 @@ export default function Dashboard() {
                       </div>
                     </div>
                   )}
+
+                  {/* No Items Message */}
+                  {(!(dashboardData.todaysOutfit as any).items || (dashboardData.todaysOutfit as any).items.length === 0) && (
+                    <div className="space-y-3">
+                      <div className="text-center py-6">
+                        <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                          <Shirt className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <h5 className="font-medium text-gray-900 dark:text-white text-sm mb-2">
+                          No Outfit Items Available
+                        </h5>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                          Add some items to your wardrobe to get personalized outfit suggestions!
+                        </p>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Scroll to upload section or trigger upload modal
+                              const uploadSection = document.getElementById('upload-section');
+                              if (uploadSection) {
+                                uploadSection.scrollIntoView({ behavior: 'smooth' });
+                              }
+                            }}
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Add Items to Wardrobe
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch('/api/outfit-history/today-suggestion/clear-cache', {
+                                  method: 'DELETE',
+                                  headers: {
+                                    'Authorization': `Bearer ${await user?.getIdToken()}`,
+                                    'Content-Type': 'application/json',
+                                  },
+                                });
+                                if (response.ok) {
+                                  // Refresh the dashboard data
+                                  fetchDashboardData();
+                                }
+                              } catch (error) {
+                                console.error('Error clearing cache:', error);
+                              }
+                            }}
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Refresh
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 {dashboardData.todaysOutfit.notes && (

@@ -174,18 +174,18 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
     
     try:
-        # 1. Get user's wardrobe items from Firestore
+        # 1. Get user's wardrobe items from Firestore (with caching)
         logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
-        wardrobe_items = await get_user_wardrobe(user_id)
+        wardrobe_items = await get_user_wardrobe_cached(user_id)
         logger.info(f"📦 Found {len(wardrobe_items)} items in user's wardrobe")
         
         if len(wardrobe_items) == 0:
             logger.warning(f"⚠️ User {user_id} has no wardrobe items, using fallback")
             return await generate_fallback_outfit(req, user_id)
         
-        # 2. Get user's style profile
+        # 2. Get user's style profile (with caching)
         logger.info(f"🔍 DEBUG: Getting user profile for user {user_id}")
-        user_profile = await get_user_profile(user_id)
+        user_profile = await get_user_profile_cached(user_id)
         logger.info(f"👤 Retrieved user profile for {user_id}")
         
         # ENHANCED: Validate style-gender compatibility
@@ -265,8 +265,86 @@ async def validate_style_gender_compatibility(style: str, user_gender: str) -> D
         }
 
 async def validate_outfit_composition(items: List[Dict], occasion: str, base_item: Optional[Dict] = None) -> List[Dict]:
-    """Validate and ensure outfit has required components."""
+    """Validate and ensure outfit has required components using enhanced validation."""
     logger.info(f"🔍 DEBUG: Validating outfit composition for {occasion} occasion")
+    
+    # Convert dict items to ClothingItem objects for validation
+    from ..custom_types.wardrobe import ClothingItem
+    from ..services.outfit_validation_service import OutfitValidationService
+    
+    clothing_items = []
+    for item_dict in items:
+        try:
+            # Create a basic ClothingItem from the dict
+            clothing_item = ClothingItem(
+                id=item_dict.get('id', ''),
+                name=item_dict.get('name', ''),
+                type=item_dict.get('type', 'item'),
+                color=item_dict.get('color', ''),
+                imageUrl=item_dict.get('imageUrl', ''),
+                style=item_dict.get('style', []),
+                occasion=item_dict.get('occasion', []),
+                brand=item_dict.get('brand', ''),
+                wearCount=item_dict.get('wearCount', 0),
+                favorite_score=item_dict.get('favorite_score', 0.0),
+                tags=item_dict.get('tags', []),
+                metadata=item_dict.get('metadata', {})
+            )
+            clothing_items.append(clothing_item)
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to convert item to ClothingItem: {e}")
+            continue
+    
+    # Use enhanced validation service
+    validation_service = OutfitValidationService()
+    
+    # Create context for validation
+    context = {
+        "occasion": occasion,
+        "weather": {"temperature": 70, "condition": "clear"},  # Default weather
+        "user_profile": {},
+        "style": "casual",
+        "mood": None,
+        "target_counts": {
+            "min_items": 2,
+            "max_items": 6,
+            "required_categories": ["top", "bottom"]
+        }
+    }
+    
+    # Run validation with inappropriate combination enforcement
+    validation_result = await validation_service.validate_outfit_with_orchestration(clothing_items, context)
+    
+    if validation_result.get("filtered_items"):
+        # Convert back to dict format
+        validated_outfit = []
+        for item in validation_result["filtered_items"]:
+            item_dict = {
+                "id": item.id,
+                "name": item.name,
+                "type": item.type,
+                "color": item.color,
+                "imageUrl": item.imageUrl,
+                "style": item.style,
+                "occasion": item.occasion,
+                "brand": item.brand,
+                "wearCount": item.wearCount,
+                "favorite_score": item.favorite_score,
+                "tags": item.tags,
+                "metadata": item.metadata
+            }
+            validated_outfit.append(item_dict)
+        
+        logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
+        if validation_result.get("errors"):
+            logger.info(f"🔍 Validation errors: {validation_result['errors']}")
+        if validation_result.get("warnings"):
+            logger.info(f"🔍 Validation warnings: {validation_result['warnings']}")
+        
+        return validated_outfit
+    
+    # Fallback to original validation if enhanced validation fails
+    logger.warning("⚠️ Enhanced validation failed, falling back to basic validation")
     
     # Define required categories for different occasions
     required_categories = {
@@ -1764,8 +1842,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         if color_material_validation.get('warnings'):
             logger.info(f"🔍 DEBUG: Color/material warnings: {color_material_validation['warnings']}")
         
-        # Create outfit
-        outfit_name = f"{req.style.title()} {req.mood.title()} Look"
+        # Create intelligent outfit name based on items and style
+        outfit_name = await generate_intelligent_outfit_name(validated_items, req.style, req.mood, req.occasion)
         
         # Ensure items have proper structure with imageUrl
         outfit_items = []
@@ -1806,6 +1884,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         logger.info(f"🎯 DEBUG: Final outfit items: {[item.get('name', 'Unknown') for item in outfit_items]}")
         logger.info(f"🎯 DEBUG: Final outfit item IDs: {[item.get('id', 'Unknown') for item in outfit_items]}")
         
+        # Generate intelligent reasoning
+        intelligent_reasoning = await generate_intelligent_reasoning(outfit_items, req, outfit_score, layering_validation, color_material_validation)
+        
         return {
             "name": outfit_name,
             "style": req.style,
@@ -1814,7 +1895,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             "occasion": req.occasion,
             "confidence_score": outfit_score["total_score"],
             "score_breakdown": outfit_score,
-            "reasoning": f"Generated {len(outfit_items)} items forming a complete {req.occasion} outfit with {req.style} style. Includes required categories: {', '.join(set([get_item_category(item.get('type', '')) for item in outfit_items]))}",
+            "reasoning": intelligent_reasoning,
             "createdAt": datetime.now().isoformat() + 'Z'
         }
         
@@ -1870,22 +1951,14 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         if selected_items:
             logger.info(f"Successfully created fallback outfit with {len(selected_items)} real wardrobe items")
         else:
-            logger.warning("No wardrobe items found, using generic fallback")
-            # Ultimate fallback with generic items
-            selected_items = [
-                {"id": "fallback-1", "name": f"{req.style} Top", "type": "shirt", "imageUrl": None},
-                {"id": "fallback-2", "name": f"{req.mood} Pants", "type": "pants", "imageUrl": None},
-                {"id": "fallback-3", "name": f"{req.occasion} Shoes", "type": "shoes", "imageUrl": None}
-            ]
+            logger.warning("No wardrobe items found, returning empty outfit")
+            # Return empty outfit when no wardrobe items exist
+            selected_items = []
     
     except Exception as wardrobe_error:
         logger.error(f"Failed to get wardrobe items for fallback: {wardrobe_error}")
-        # Ultimate fallback with generic items
-        selected_items = [
-            {"id": "fallback-1", "name": f"{req.style} Top", "type": "shirt", "imageUrl": None},
-            {"id": "fallback-2", "name": f"{req.mood} Pants", "type": "pants", "imageUrl": None},
-            {"id": "fallback-3", "name": f"{req.occasion} Shoes", "type": "shoes", "imageUrl": None}
-        ]
+        # Return empty outfit when wardrobe retrieval fails
+        selected_items = []
     
     return {
         "name": outfit_name,
@@ -3321,4 +3394,143 @@ async def debug_routes():
         "router_name": "outfits",
         "total_routes": len(routes),
         "routes": routes
-    } 
+    }
+
+# 🎨 Intelligent Outfit Naming and Reasoning Functions
+
+async def generate_intelligent_outfit_name(items: List[Dict], style: str, mood: str, occasion: str) -> str:
+    """Generate intelligent outfit names based on items and context."""
+    try:
+        # Analyze the items to create a descriptive name
+        item_types = [item.get('type', '').lower() for item in items]
+        item_names = [item.get('name', '').lower() for item in items]
+        
+        # Identify key pieces
+        has_blazer = any('blazer' in item_type or 'blazer' in name for item_type, name in zip(item_types, item_names))
+        has_dress = any('dress' in item_type or 'dress' in name for item_type, name in zip(item_types, item_names))
+        has_jeans = any('jean' in item_type or 'jean' in name for item_type, name in zip(item_types, item_names))
+        has_sneakers = any('sneaker' in item_type or 'sneaker' in name for item_type, name in zip(item_types, item_names))
+        has_heels = any('heel' in item_type or 'heel' in name for item_type, name in zip(item_types, item_names))
+        has_denim = any('denim' in item_type or 'denim' in name for item_type, name in zip(item_types, item_names))
+        
+        # Generate contextual names
+        if has_blazer and has_jeans:
+            return f"Smart Casual {occasion.title()}"
+        elif has_blazer and not has_jeans:
+            return f"Polished {occasion.title()}"
+        elif has_dress:
+            return f"Effortless {occasion.title()}"
+        elif has_jeans and has_sneakers:
+            return f"Relaxed {occasion.title()}"
+        elif has_heels and not has_jeans:
+            return f"Elegant {occasion.title()}"
+        elif style.lower() == 'minimalist':
+            return f"Minimal {occasion.title()}"
+        elif style.lower() == 'bohemian':
+            return f"Boho {occasion.title()}"
+        elif mood.lower() == 'confident':
+            return f"Power {occasion.title()}"
+        elif mood.lower() == 'relaxed':
+            return f"Easy {occasion.title()}"
+        else:
+            return f"{style.title()} {occasion.title()}"
+            
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to generate intelligent name: {e}")
+        return f"{style.title()} {occasion.title()}"
+
+async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, outfit_score: Dict, layering_validation: Dict, color_validation: Dict) -> str:
+    """Generate intelligent reasoning for outfit selection."""
+    try:
+        reasoning_parts = []
+        
+        # Basic outfit info
+        reasoning_parts.append(f"Curated {len(items)} pieces for a {req.style} {req.occasion} look")
+        
+        # Style and mood context
+        if req.mood and req.mood.lower() != 'neutral':
+            reasoning_parts.append(f"designed to feel {req.mood}")
+        
+        # Item-specific reasoning
+        item_types = [item.get('type', '') for item in items]
+        unique_types = list(set(item_types))
+        
+        if 'blazer' in str(item_types).lower():
+            reasoning_parts.append("featuring a structured blazer for sophistication")
+        if 'dress' in str(item_types).lower():
+            reasoning_parts.append("centered around a versatile dress")
+        if 'jean' in str(item_types).lower():
+            reasoning_parts.append("with denim for casual comfort")
+        
+        # Color harmony
+        if color_validation.get('warnings'):
+            reasoning_parts.append("with carefully coordinated colors")
+        else:
+            reasoning_parts.append("with harmonious color pairing")
+        
+        # Layering notes
+        if layering_validation.get('warnings'):
+            reasoning_parts.append("and thoughtful layering")
+        
+        # Confidence score context
+        confidence = outfit_score.get('total_score', 0)
+        if confidence > 0.8:
+            reasoning_parts.append("- this combination works perfectly together")
+        elif confidence > 0.6:
+            reasoning_parts.append("- a well-balanced ensemble")
+        else:
+            reasoning_parts.append("- a creative mix of styles")
+        
+        return " ".join(reasoning_parts) + "."
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to generate intelligent reasoning: {e}")
+        return f"Generated {len(items)} items forming a complete {req.occasion} outfit with {req.style} style."
+
+# 🚀 Performance Optimization Functions
+
+async def get_user_wardrobe_cached(user_id: str) -> List[Dict]:
+    """Get user wardrobe with basic caching to reduce database calls."""
+    # Simple in-memory cache (in production, use Redis or similar)
+    if not hasattr(get_user_wardrobe_cached, '_cache'):
+        get_user_wardrobe_cached._cache = {}
+    
+    cache_key = f"wardrobe_{user_id}"
+    cache_time = 300  # 5 minutes
+    
+    if cache_key in get_user_wardrobe_cached._cache:
+        cached_data, timestamp = get_user_wardrobe_cached._cache[cache_key]
+        if time.time() - timestamp < cache_time:
+            logger.info(f"📦 Using cached wardrobe for user {user_id}")
+            return cached_data
+    
+    # Fetch from database
+    wardrobe = await get_user_wardrobe(user_id)
+    
+    # Cache the result
+    get_user_wardrobe_cached._cache[cache_key] = (wardrobe, time.time())
+    
+    return wardrobe
+
+async def get_user_profile_cached(user_id: str) -> Dict:
+    """Get user profile with basic caching to reduce database calls."""
+    # Simple in-memory cache
+    if not hasattr(get_user_profile_cached, '_cache'):
+        get_user_profile_cached._cache = {}
+    
+    cache_key = f"profile_{user_id}"
+    cache_time = 600  # 10 minutes
+    
+    if cache_key in get_user_profile_cached._cache:
+        cached_data, timestamp = get_user_profile_cached._cache[cache_key]
+        if time.time() - timestamp < cache_time:
+            logger.info(f"👤 Using cached profile for user {user_id}")
+            return cached_data
+    
+    # Fetch from database
+    profile = await get_user_profile(user_id)
+    
+    # Cache the result
+    get_user_profile_cached._cache[cache_key] = (profile, time.time())
+    
+    return profile 
