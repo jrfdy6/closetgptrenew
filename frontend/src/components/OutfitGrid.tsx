@@ -425,6 +425,20 @@ export default function OutfitGrid({
     });
   }, [refresh]); // Removed isRefreshing from dependencies
 
+  // ===== HELPER FUNCTIONS =====
+  const safeToDate = (dateValue: any): Date => {
+    if (dateValue instanceof Date) {
+      return dateValue;
+    }
+    if (dateValue && typeof dateValue.toDate === 'function') {
+      return dateValue.toDate();
+    }
+    if (typeof dateValue === 'string' || typeof dateValue === 'number') {
+      return new Date(dateValue);
+    }
+    return new Date(); // Fallback to current date
+  };
+
   // ===== COMPUTED VALUES =====
   const filteredOutfits = useMemo(() => {
     let baseOutfits = outfits;
@@ -437,13 +451,13 @@ export default function OutfitGrid({
     const sorted = [...baseOutfits].sort((a, b) => {
       switch (sortBy) {
         case 'date-newest':
-          const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt.toDate());
-          const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt.toDate());
+          const dateA = safeToDate(a.createdAt);
+          const dateB = safeToDate(b.createdAt);
           return dateB.getTime() - dateA.getTime(); // Newest first
         
         case 'date-oldest':
-          const dateAOld = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt.toDate());
-          const dateBOld = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt.toDate());
+          const dateAOld = safeToDate(a.createdAt);
+          const dateBOld = safeToDate(b.createdAt);
           return dateAOld.getTime() - dateBOld.getTime(); // Oldest first
         
         case 'wear-most':
