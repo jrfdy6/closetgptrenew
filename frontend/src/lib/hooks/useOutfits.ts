@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFirebase } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import OutfitService, { Outfit, OutfitFilters } from '@/lib/services/outfitService';
 
 // ===== HOOK INTERFACE =====
@@ -35,7 +35,7 @@ interface UseOutfitsReturn {
 
 // ===== MAIN HOOK =====
 export function useOutfits(): UseOutfitsReturn {
-  const { user, loading: authLoading } = useFirebase();
+  const { user, loading: authLoading } = useAuthContext();
   
   // ===== STATE MANAGEMENT =====
   const [outfits, setOutfits] = useState<Outfit[]>([]);
