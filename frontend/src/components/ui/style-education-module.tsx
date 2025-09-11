@@ -47,116 +47,192 @@ export default function StyleEducationModule({
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [showAllTips, setShowAllTips] = useState(false);
 
-  const styleGuides = [
-    {
-      id: 'color-harmony',
-      title: 'Color Harmony',
-      icon: Palette,
-      description: 'How we create perfect color combinations',
-      tips: [
-        'Complementary colors create visual excitement',
-        'Analogous colors provide harmony and flow',
-        'Neutral colors anchor bold statement pieces',
-        'Color temperature affects mood and perception'
-      ],
-      principles: [
-        '60-30-10 rule: 60% dominant, 30% secondary, 10% accent',
-        'Warm colors advance, cool colors recede',
-        'Monochromatic schemes create sophisticated looks',
-        'Color blocking can define your silhouette'
-      ]
-    },
-    {
-      id: 'proportion-balance',
-      title: 'Proportion & Balance',
-      icon: Target,
-      description: 'Creating flattering silhouettes',
-      tips: [
-        'Balance loose with fitted pieces',
-        'High-waisted bottoms elongate legs',
-        'V-necks create the illusion of length',
-        'Belt placement defines your waistline'
-      ],
-      principles: [
-        'Rule of thirds for visual balance',
-        'Vertical lines create height',
-        'Horizontal lines add width',
-        'Asymmetrical balance creates interest'
-      ]
-    },
-    {
-      id: 'fabric-texture',
-      title: 'Fabric & Texture',
-      icon: Sparkles,
-      description: 'Mixing textures for depth and interest',
-      tips: [
-        'Smooth fabrics feel more formal',
-        'Textured fabrics add casual comfort',
-        'Layering different textures creates dimension',
-        'Fabric weight affects drape and movement'
-      ],
-      principles: [
-        'Contrast textures for visual interest',
-        'Heavy fabrics add structure',
-        'Light fabrics create flow',
-        'Texture can balance proportions'
-      ]
-    },
-    {
-      id: 'occasion-appropriateness',
-      title: 'Occasion Matching',
-      icon: CheckCircle,
-      description: 'Dressing for the right moment',
-      tips: [
-        'Formal events require structured pieces',
-        'Casual settings allow for more creativity',
-        'Work attire balances professionalism and style',
-        'Date night outfits should feel confident'
-      ],
-      principles: [
-        'Dress codes provide guidelines, not limits',
-        'Comfort enhances confidence',
-        'Accessories can transform any outfit',
-        'Weather-appropriate choices show consideration'
-      ]
-    }
-  ];
+  // Generate outfit-specific style guides
+  const getOutfitSpecificGuides = () => {
+    const colors = outfitItems.map(item => item.color).filter(Boolean);
+    const types = outfitItems.map(item => item.type).filter(Boolean);
+    const hasLayers = types.some(type => ['jacket', 'blazer', 'cardigan', 'sweater'].includes(type.toLowerCase()));
+    const hasFitted = types.some(type => ['shirt', 'blouse', 'dress'].includes(type.toLowerCase()));
+    const hasLoose = types.some(type => ['pants', 'shorts', 'skirt'].includes(type.toLowerCase()));
+    
+    return [
+      {
+        id: 'color-harmony',
+        title: 'Color Harmony',
+        icon: Palette,
+        description: colors.length > 0 ? `How your ${colors.join(', ')} combination works` : 'How we create perfect color combinations',
+        tips: colors.length > 0 ? [
+          `Your ${colors[0]} creates the foundation`,
+          colors[1] ? `${colors[1]} provides contrast and interest` : 'Neutral colors anchor the look',
+          'The color balance creates visual harmony',
+          'Each color serves a specific purpose in your outfit'
+        ] : [
+          'Complementary colors create visual excitement',
+          'Analogous colors provide harmony and flow',
+          'Neutral colors anchor bold statement pieces',
+          'Color temperature affects mood and perception'
+        ],
+        principles: [
+          '60-30-10 rule: 60% dominant, 30% secondary, 10% accent',
+          'Warm colors advance, cool colors recede',
+          'Monochromatic schemes create sophisticated looks',
+          'Color blocking can define your silhouette'
+        ]
+      },
+      {
+        id: 'proportion-balance',
+        title: 'Proportion & Balance',
+        icon: Target,
+        description: hasFitted && hasLoose ? 'How your fitted and loose pieces create balance' : 'Creating flattering silhouettes',
+        tips: hasFitted && hasLoose ? [
+          'Your fitted top balances the looser bottom',
+          'This creates an hourglass silhouette',
+          'The contrast defines your waistline',
+          'Proportional balance makes you look taller'
+        ] : [
+          'Balance loose with fitted pieces',
+          'High-waisted bottoms elongate legs',
+          'V-necks create the illusion of length',
+          'Belt placement defines your waistline'
+        ],
+        principles: [
+          'Rule of thirds for visual balance',
+          'Vertical lines create height',
+          'Horizontal lines add width',
+          'Asymmetrical balance creates interest'
+        ]
+      },
+      {
+        id: 'fabric-texture',
+        title: 'Fabric & Texture',
+        icon: Sparkles,
+        description: hasLayers ? 'How your layered pieces create texture and depth' : 'Mixing textures for depth and interest',
+        tips: hasLayers ? [
+          'Your layering creates visual depth',
+          'Different textures add dimension',
+          'The combination feels both structured and comfortable',
+          'Texture mixing makes the outfit more interesting'
+        ] : [
+          'Smooth fabrics feel more formal',
+          'Textured fabrics add casual comfort',
+          'Layering different textures creates dimension',
+          'Fabric weight affects drape and movement'
+        ],
+        principles: [
+          'Contrast textures for visual interest',
+          'Heavy fabrics add structure',
+          'Light fabrics create flow',
+          'Texture can balance proportions'
+        ]
+      },
+      {
+        id: 'occasion-appropriateness',
+        title: 'Occasion Matching',
+        icon: CheckCircle,
+        description: outfitOccasion ? `Why this works for ${outfitOccasion.toLowerCase()}` : 'Dressing for the right moment',
+        tips: outfitOccasion ? [
+          `This outfit is perfect for ${outfitOccasion.toLowerCase()}`,
+          'The style matches the occasion\'s requirements',
+          'It strikes the right balance of comfort and style',
+          'The pieces work together for this specific event'
+        ] : [
+          'Formal events require structured pieces',
+          'Casual settings allow for more creativity',
+          'Work attire balances professionalism and style',
+          'Date night outfits should feel confident'
+        ],
+        principles: [
+          'Dress codes provide guidelines, not limits',
+          'Comfort enhances confidence',
+          'Accessories can transform any outfit',
+          'Weather-appropriate choices show consideration'
+        ]
+      }
+    ];
+  };
 
-  const aiProcessSteps = [
-    {
-      step: 1,
-      title: 'Style Analysis',
-      description: 'Learn to evaluate pieces by color harmony, fit, and style compatibility',
-      icon: Eye
-    },
-    {
-      step: 2,
-      title: 'Context Matching',
-      description: 'Master the art of dressing appropriately for different occasions',
-      icon: Target
-    },
-    {
-      step: 3,
-      title: 'Harmony Creation',
-      description: 'Discover how to create cohesive, flattering combinations',
-      icon: Sparkles
-    },
-    {
-      step: 4,
-      title: 'Confidence Scoring',
-      description: 'Understand what makes an outfit feel right and look great',
-      icon: Star
-    }
-  ];
+  const styleGuides = getOutfitSpecificGuides();
 
-  const quickTips = [
-    'Color harmony follows the 60-30-10 rule',
-    'Proportion balance creates flattering silhouettes',
-    'Texture mixing adds visual depth',
-    'Accessories can make or break an outfit',
-    'Confidence is the best accessory',
-    'Fit matters more than following trends'
-  ];
+  // Generate outfit-specific process steps
+  const getOutfitSpecificSteps = () => {
+    const colors = outfitItems.map(item => item.color).filter(Boolean);
+    const hasMultipleColors = colors.length > 1;
+    
+    return [
+      {
+        step: 1,
+        title: 'Style Analysis',
+        description: hasMultipleColors 
+          ? `We analyzed your ${colors.join(' and ')} color combination for harmony`
+          : 'We evaluated each piece for color harmony, fit, and style compatibility',
+        icon: Eye
+      },
+      {
+        step: 2,
+        title: 'Context Matching',
+        description: outfitOccasion 
+          ? `We matched this outfit to your ${outfitOccasion.toLowerCase()} occasion`
+          : 'We ensured each piece works for your specific occasion and mood',
+        icon: Target
+      },
+      {
+        step: 3,
+        title: 'Harmony Creation',
+        description: outfitItems.length > 0
+          ? `We created cohesion between your ${outfitItems.length} pieces for a flattering look`
+          : 'We applied fashion principles to create a cohesive, flattering combination',
+        icon: Sparkles
+      },
+      {
+        step: 4,
+        title: 'Confidence Scoring',
+        description: outfitStyle
+          ? `We ensured this ${outfitStyle.toLowerCase()} look feels right and looks great`
+          : 'We verified this combination makes you feel confident and look amazing',
+        icon: Star
+      }
+    ];
+  };
+
+  const aiProcessSteps = getOutfitSpecificSteps();
+
+  // Generate outfit-specific quick tips
+  const getOutfitSpecificTips = () => {
+    const colors = outfitItems.map(item => item.color).filter(Boolean);
+    const types = outfitItems.map(item => item.type).filter(Boolean);
+    const hasLayers = types.some(type => ['jacket', 'blazer', 'cardigan', 'sweater'].includes(type.toLowerCase()));
+    
+    const baseTips = [
+      'Color harmony follows the 60-30-10 rule',
+      'Proportion balance creates flattering silhouettes',
+      'Texture mixing adds visual depth',
+      'Accessories can make or break an outfit',
+      'Confidence is the best accessory',
+      'Fit matters more than following trends'
+    ];
+
+    const outfitSpecificTips = [];
+    
+    if (colors.length > 0) {
+      outfitSpecificTips.push(`Your ${colors[0]} creates a strong foundation`);
+    }
+    
+    if (hasLayers) {
+      outfitSpecificTips.push('Layering adds dimension and sophistication');
+    }
+    
+    if (outfitStyle) {
+      outfitSpecificTips.push(`${outfitStyle} style emphasizes timeless elegance`);
+    }
+    
+    if (outfitOccasion) {
+      outfitSpecificTips.push(`Perfect for ${outfitOccasion.toLowerCase()} occasions`);
+    }
+
+    return [...outfitSpecificTips, ...baseTips].slice(0, 6);
+  };
+
+  const quickTips = getOutfitSpecificTips();
 
   const toggleSection = (sectionId: string) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
