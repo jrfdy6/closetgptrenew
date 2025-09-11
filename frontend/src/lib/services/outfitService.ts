@@ -110,7 +110,7 @@ export class OutfitService {
       // Build query
       let outfitsQuery = query(
         collection(db, this.COLLECTION_NAME),
-        where('userId', '==', user.uid)
+        where('user_id', '==', user.uid)
       );
 
       // Apply filters
@@ -345,7 +345,7 @@ export class OutfitService {
               if (itemDoc.exists()) {
                 const itemData = itemDoc.data();
                 // Verify ownership
-                if (itemData.userId === user.uid) {
+                if (itemData.user_id === user.uid) {
                   const currentWearCount = itemData.wearCount || 0;
                   await updateDoc(itemRef, {
                     wearCount: currentWearCount + 1,
@@ -440,7 +440,7 @@ export class OutfitService {
       // Start with basic user filter
       let outfitsQuery = query(
         collection(db, this.COLLECTION_NAME),
-        where('userId', '==', user.uid)
+        where('user_id', '==', user.uid)
       );
 
       // Apply filters
