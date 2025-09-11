@@ -4,7 +4,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 class OutfitService {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
-    const url = `${API_BASE_URL}/api${endpoint}`;
+    // Use Next.js API routes instead of calling backend directly
+    const url = `/api${endpoint}`;
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
