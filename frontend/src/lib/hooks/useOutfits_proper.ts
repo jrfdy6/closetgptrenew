@@ -595,7 +595,7 @@ export function useOutfits(): UseOutfitsReturn {
       fetchOutfits();
       fetchStats();
     }
-  }, [user, authLoading, fetchOutfits, fetchStats]);
+  }, [user?.uid, authLoading]); // Use user.uid instead of user object to prevent re-renders
 
   // ===== RETURN VALUE =====
   return {
