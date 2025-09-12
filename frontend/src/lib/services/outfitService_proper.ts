@@ -1,11 +1,13 @@
 import { Outfit, OutfitCreate, OutfitUpdate, OutfitFilters } from '@/lib/types/outfit';
+import { db } from '@/lib/firebase/config';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 class OutfitService {
   private async makeRequest(endpoint: string, options: RequestInit = {}) {
-    // Call backend directly instead of using Next.js API routes
-    const url = `${API_BASE_URL}/api${endpoint}`;
+    // Use Next.js API routes instead of calling backend directly
+    const url = `/api${endpoint}`;
     
     const defaultHeaders = {
       'Content-Type': 'application/json',
@@ -57,13 +59,39 @@ class OutfitService {
   }
 
   async updateOutfit(id: string, outfit: OutfitUpdate, token: string): Promise<Outfit> {
-    return this.makeRequest(`/outfits/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(outfit),
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      console.log(`🔍 [OutfitService] Updating outfit ${id} directly in Firestore`);
+      
+      // Get the current outfit to verify it exists
+      const outfitRef = doc(db, 'outfits', id);
+      const outfitDoc = await getDoc(outfitRef);
+      
+      if (!outfitDoc.exists()) {
+        throw new Error('Outfit not found');
+      }
+      
+      // Update the outfit in Firestore
+      const updateData = {
+        ...outfit,
+        updatedAt: new Date(),
+      };
+      
+      await updateDoc(outfitRef, updateData);
+      
+      // Get the updated outfit
+      const updatedDoc = await getDoc(outfitRef);
+      const updatedOutfit = {
+        id: updatedDoc.id,
+        ...updatedDoc.data(),
+      } as Outfit;
+      
+      console.log(`✅ [OutfitService] Successfully updated outfit ${id} in Firestore`);
+      return updatedOutfit;
+      
+    } catch (error) {
+      console.error(`❌ [OutfitService] Error updating outfit ${id}:`, error);
+      throw error;
+    }
   }
 
   async deleteOutfit(id: string, token: string): Promise<void> {
