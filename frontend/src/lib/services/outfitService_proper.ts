@@ -71,10 +71,13 @@ class OutfitService {
       }
       
       // Update the outfit in Firestore
-      const updateData = {
-        ...outfit,
-        updatedAt: new Date(),
-      };
+      // Filter out undefined values as Firestore doesn't accept them
+      const updateData = Object.fromEntries(
+        Object.entries({
+          ...outfit,
+          updatedAt: new Date(),
+        }).filter(([_, value]) => value !== undefined)
+      );
       
       await updateDoc(outfitRef, updateData);
       
