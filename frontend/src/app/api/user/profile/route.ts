@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',

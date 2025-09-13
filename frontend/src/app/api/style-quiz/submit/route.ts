@@ -49,10 +49,12 @@ export async function POST(req: NextRequest) {
       submission.colorPreferences || []
     );
 
-    // Save to user profile via backend API
+    console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
+
+    // Save to user profile via frontend API route (which handles backend communication)
     try {
-      const backendResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/users/${userId}/profile`, {
-        method: 'PUT',
+      const frontendResponse = await fetch('/api/user/profile', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${submission.token || ''}`
@@ -60,11 +62,15 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify(profileUpdate)
       });
 
-      if (!backendResponse.ok) {
-        console.warn('Failed to save to backend, using fallback');
+      if (!frontendResponse.ok) {
+        const errorText = await frontendResponse.text();
+        console.warn('Failed to save profile via frontend API:', frontendResponse.status, errorText);
+      } else {
+        const responseData = await frontendResponse.json();
+        console.log('✅ Successfully saved profile:', responseData);
       }
-    } catch (backendError) {
-      console.warn('Backend save failed, using fallback:', backendError);
+    } catch (apiError) {
+      console.warn('Frontend API save failed:', apiError);
     }
 
     console.log('Quiz submission processed:', {
