@@ -455,18 +455,24 @@ export default function Onboarding() {
     } catch (error) {
       console.error('Error submitting quiz:', error);
       setError('Failed to submit quiz. Please try again.');
-      // Use mock data as fallback
+      // Use actual user answers as fallback instead of mock data
       const colorAnalysis = analyzeColors();
+      const userAnswers = answers.reduce((acc, answer) => {
+        acc[answer.question_id] = answer.selected_option;
+        return acc;
+      }, {} as Record<string, string>);
+      
       setQuizCompleted(true);
       setQuizResults({
         hybridStyleName: "Personal Style",
         quizResults: {
           aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
-          color_season: "warm_spring",
-          body_type: "rectangle",
+          color_season: userAnswers.skin_tone || "warm_spring",
+          body_type: userAnswers.body_type_female || userAnswers.body_type_male || "rectangle",
           style_preferences: { "classic": 0.7, "minimalist": 0.3 }
         },
-        colorAnalysis: colorAnalysis
+        colorAnalysis: colorAnalysis,
+        userAnswers: userAnswers
       });
     } finally {
       setIsLoading(false);
@@ -705,20 +711,20 @@ export default function Onboarding() {
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <Palette className="h-5 w-5 text-purple-500" />
-                  <span><strong>Style:</strong> {quizResults.hybridStyleName}</span>
+                  <span><strong>Style:</strong> {quizResults.hybridStyleName || "Personal Style"}</span>
                 </div>
                 
-                {quizResults.quizResults?.color_season && (
+                {(quizResults.quizResults?.color_season || quizResults.userAnswers?.skin_tone) && (
                   <div className="flex items-center space-x-3">
                     <TrendingUp className="h-5 w-5 text-blue-500" />
-                    <span><strong>Color Season:</strong> {quizResults.quizResults.color_season.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                    <span><strong>Color Season:</strong> {(quizResults.quizResults?.color_season || quizResults.userAnswers?.skin_tone || "Warm Spring").replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                   </div>
                 )}
                 
-                {quizResults.quizResults?.body_type && (
+                {(quizResults.quizResults?.body_type || quizResults.userAnswers?.body_type_female || quizResults.userAnswers?.body_type_male) && (
                   <div className="flex items-center space-x-3">
                     <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span><strong>Body Type:</strong> {quizResults.quizResults.body_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                    <span><strong>Body Type:</strong> {(quizResults.quizResults?.body_type || quizResults.userAnswers?.body_type_female || quizResults.userAnswers?.body_type_male || "Rectangle").replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                   </div>
                 )}
                 
@@ -744,6 +750,20 @@ export default function Onboarding() {
                   <div className="flex items-center space-x-3">
                     <TrendingUp className="h-5 w-5 text-green-500" />
                     <span><strong>Liked Styles:</strong> {quizResults.colorAnalysis.likedStyles.join(', ')}</span>
+                  </div>
+                )}
+                
+                {/* Debug: Show actual user answers */}
+                {quizResults.userAnswers && (
+                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Your Quiz Responses:</h4>
+                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                      {Object.entries(quizResults.userAnswers).map(([key, value]) => (
+                        <div key={key}>
+                          <strong>{key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {value}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
