@@ -526,23 +526,29 @@ export default function Onboarding() {
                   handleAnswer(question.id, option);
                 }}
               >
-                <div className="aspect-square relative h-[140px] bg-gray-100 dark:bg-gray-800">
+                <div className="aspect-square relative h-[140px] bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 flex items-center justify-center">
                   <img
                     src={question.images[index]}
                     alt={option}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-t-lg"
                     loading="eager"
                     onLoad={(e) => {
+                      console.log('Image loaded successfully:', question.images[index]);
                       const target = e.target as HTMLImageElement;
                       target.style.opacity = '1';
                     }}
                     onError={(e) => {
+                      console.error('Image failed to load:', question.images[index]);
                       const target = e.target as HTMLImageElement;
-                      target.src = "/placeholder.png";
-                      target.style.opacity = '1';
+                      target.style.display = 'none';
                     }}
                     style={{ opacity: 0, transition: 'opacity 0.3s ease' }}
                   />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-4xl font-bold text-purple-600 dark:text-purple-400">
+                      {option.charAt(0)}
+                    </span>
+                  </div>
                   <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200" />
                 </div>
                 <div className="p-3 bg-white dark:bg-gray-800 h-[60px] flex items-center justify-center">
