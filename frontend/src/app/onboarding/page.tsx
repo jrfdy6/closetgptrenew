@@ -528,6 +528,82 @@ export default function Onboarding() {
     return traits.slice(0, 3);
   };
 
+  const generateStyleFingerprint = () => {
+    const userAnswers = answers.reduce((acc, answer) => {
+      acc[answer.question_id] = answer.selected_option;
+      return acc;
+    }, {} as Record<string, string>);
+
+    // Creative Expression: Restrained vs Expressive
+    let creativeScore = 50; // Start neutral
+    if (userAnswers.style_preference === 'Street Style' || userAnswers.style_preference === 'Bold') {
+      creativeScore += 30; // More expressive
+    }
+    if (userAnswers.style_preference === 'Classic' || userAnswers.style_preference === 'Minimalist') {
+      creativeScore -= 20; // More restrained
+    }
+    if (userAnswers.color_preference === 'Bold') {
+      creativeScore += 15;
+    }
+    if (userAnswers.color_preference === 'Neutral') {
+      creativeScore -= 15;
+    }
+    creativeScore = Math.max(10, Math.min(90, creativeScore)); // Keep between 10-90
+
+    // Trend Awareness: Timeless vs Trendsetting
+    let trendScore = 50; // Start neutral
+    if (userAnswers.style_preference === 'Contemporary' || userAnswers.style_preference === 'Street Style') {
+      trendScore += 25; // More trendsetting
+    }
+    if (userAnswers.style_preference === 'Classic' || userAnswers.style_preference === 'Vintage') {
+      trendScore -= 25; // More timeless
+    }
+    if (userAnswers.occasion_preference === 'Casual') {
+      trendScore += 10;
+    }
+    if (userAnswers.occasion_preference === 'Professional') {
+      trendScore -= 10;
+    }
+    trendScore = Math.max(10, Math.min(90, trendScore)); // Keep between 10-90
+
+    // Wardrobe Flexibility: Focused vs Versatile
+    let flexibilityScore = 50; // Start neutral
+    if (userAnswers.occasion_preference === 'Both') {
+      flexibilityScore += 30; // More versatile
+    }
+    if (userAnswers.color_preference === 'Both') {
+      flexibilityScore += 20;
+    }
+    if (userAnswers.color_preference === 'Neutral') {
+      flexibilityScore += 10; // Neutrals are versatile
+    }
+    if (userAnswers.style_preference === 'Contemporary') {
+      flexibilityScore += 15;
+    }
+    if (userAnswers.style_preference === 'Classic') {
+      flexibilityScore += 10; // Classics are versatile
+    }
+    if (userAnswers.occasion_preference === 'Professional') {
+      flexibilityScore -= 15; // More focused
+    }
+    flexibilityScore = Math.max(10, Math.min(90, flexibilityScore)); // Keep between 10-90
+
+    return {
+      creativeExpression: {
+        restrained: 100 - creativeScore,
+        expressive: creativeScore
+      },
+      trendAwareness: {
+        timeless: 100 - trendScore,
+        trendsetting: trendScore
+      },
+      wardrobeFlexibility: {
+        focused: 100 - flexibilityScore,
+        versatile: flexibilityScore
+      }
+    };
+  };
+
   const submitQuiz = async () => {
     if (!user) {
       setError('Please sign in to complete the quiz');
@@ -841,53 +917,60 @@ export default function Onboarding() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
               <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6">Your Style Fingerprint</h3>
               <div className="space-y-6">
-                {/* Creative Expression */}
-                <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
-                  <div className="text-white font-medium mb-3">Creative Expression</div>
-                  <div className="flex justify-between text-sm text-gray-300 mb-2">
-                    <span>Restrained</span>
-                    <span>Expressive</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-white mb-2">
-                    <span>45%</span>
-                    <span>55%</span>
-                  </div>
-                  <div className="w-full bg-gray-600 rounded-full h-2">
-                    <div className="bg-white h-2 rounded-full" style={{width: '55%'}}></div>
-                  </div>
-                </div>
+                {(() => {
+                  const fingerprint = generateStyleFingerprint();
+                  return (
+                    <>
+                      {/* Creative Expression */}
+                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
+                        <div className="text-white font-medium mb-3">Creative Expression</div>
+                        <div className="flex justify-between text-sm text-gray-300 mb-2">
+                          <span>Restrained</span>
+                          <span>Expressive</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-white mb-2">
+                          <span>{Math.round(fingerprint.creativeExpression.restrained)}%</span>
+                          <span>{Math.round(fingerprint.creativeExpression.expressive)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-2">
+                          <div className="bg-white h-2 rounded-full" style={{width: `${fingerprint.creativeExpression.expressive}%`}}></div>
+                        </div>
+                      </div>
 
-                {/* Trend Awareness */}
-                <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
-                  <div className="text-white font-medium mb-3">Trend Awareness</div>
-                  <div className="flex justify-between text-sm text-gray-300 mb-2">
-                    <span>Timeless</span>
-                    <span>Trendsetting</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-white mb-2">
-                    <span>50%</span>
-                    <span>50%</span>
-                  </div>
-                  <div className="w-full bg-gray-600 rounded-full h-2">
-                    <div className="bg-white h-2 rounded-full" style={{width: '50%'}}></div>
-                  </div>
-                </div>
+                      {/* Trend Awareness */}
+                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
+                        <div className="text-white font-medium mb-3">Trend Awareness</div>
+                        <div className="flex justify-between text-sm text-gray-300 mb-2">
+                          <span>Timeless</span>
+                          <span>Trendsetting</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-white mb-2">
+                          <span>{Math.round(fingerprint.trendAwareness.timeless)}%</span>
+                          <span>{Math.round(fingerprint.trendAwareness.trendsetting)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-2">
+                          <div className="bg-white h-2 rounded-full" style={{width: `${fingerprint.trendAwareness.trendsetting}%`}}></div>
+                        </div>
+                      </div>
 
-                {/* Wardrobe Flexibility */}
-                <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
-                  <div className="text-white font-medium mb-3">Wardrobe Flexibility</div>
-                  <div className="flex justify-between text-sm text-gray-300 mb-2">
-                    <span>Focused</span>
-                    <span>Versatile</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-white mb-2">
-                    <span>25%</span>
-                    <span>75%</span>
-                  </div>
-                  <div className="w-full bg-gray-600 rounded-full h-2">
-                    <div className="bg-white h-2 rounded-full" style={{width: '75%'}}></div>
-                  </div>
-                </div>
+                      {/* Wardrobe Flexibility */}
+                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
+                        <div className="text-white font-medium mb-3">Wardrobe Flexibility</div>
+                        <div className="flex justify-between text-sm text-gray-300 mb-2">
+                          <span>Focused</span>
+                          <span>Versatile</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-white mb-2">
+                          <span>{Math.round(fingerprint.wardrobeFlexibility.focused)}%</span>
+                          <span>{Math.round(fingerprint.wardrobeFlexibility.versatile)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-2">
+                          <div className="bg-white h-2 rounded-full" style={{width: `${fingerprint.wardrobeFlexibility.versatile}%`}}></div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
