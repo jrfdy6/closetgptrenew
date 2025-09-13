@@ -765,12 +765,6 @@ export default function Onboarding() {
                   <span><strong>Style:</strong> {quizResults.hybridStyleName || "Personal Style"}</span>
                 </div>
                 
-                {(quizResults.quizResults?.color_season || quizResults.userAnswers?.skin_tone) && (
-                  <div className="flex items-center space-x-3">
-                    <TrendingUp className="h-5 w-5 text-blue-500" />
-                    <span><strong>Color Season:</strong> {(quizResults.quizResults?.color_season || quizResults.userAnswers?.skin_tone || "Warm Spring").replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                  </div>
-                )}
                 
                 {(quizResults.quizResults?.body_type || quizResults.userAnswers?.body_type_female || quizResults.userAnswers?.body_type_male) && (
                   <div className="flex items-center space-x-3">
