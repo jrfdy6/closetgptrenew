@@ -12,6 +12,84 @@ interface QuizAnswer {
   selected_option: string;
 }
 
+interface StylePersona {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  styleMission: string;
+  examples: string[];
+  traits: string[];
+  cta: string;
+}
+
+const STYLE_PERSONAS: Record<string, StylePersona> = {
+  architect: {
+    id: "architect",
+    name: "The Architect",
+    tagline: "Clean fits. Simple choices. Always looks good.",
+    description: "You're that guy who always looks put together without trying too hard. Your style is built on solid foundations - quality basics, perfect fits, and a neutral palette that works everywhere. You believe in investing in pieces that last and building a wardrobe that makes getting dressed effortless.",
+    styleMission: "Your style journey is about adding layers to what you've already built. Start experimenting with textures, subtle patterns, and statement accessories while keeping your core aesthetic intact.",
+    examples: ["Michael B. Jordan", "Ryan Gosling", "John Cho", "Oscar Isaac", "Idris Elba"],
+    traits: [
+      "Minimal but fresh",
+      "Sticks to what works", 
+      "Neutral colors on lock",
+      "Details matter",
+      "Effortless vibes"
+    ],
+    cta: "See My Plan Options →"
+  },
+  strategist: {
+    id: "strategist", 
+    name: "The Strategist",
+    tagline: "Street style meets sophistication. Always ready for anything.",
+    description: "You know how to mix classic and bold. Your style adapts to any situation - from boardroom to bar - because you understand the power of versatile pieces and smart layering. You're not afraid to take risks, but they're always calculated ones.",
+    styleMission: "Keep building your flexible wardrobe. Every move is intentional. Focus on pieces that can transition between formal and casual, and don't be afraid to mix high and low.",
+    examples: ["Donald Glover", "Chris Paul", "John Legend", "Mahershala Ali", "Lakeith Stanfield"],
+    traits: [
+      "Calculated risks",
+      "Versatile pieces",
+      "Confident mixing",
+      "Adapts to any situation",
+      "Quality over quantity"
+    ],
+    cta: "See My Plan Options →"
+  },
+  innovator: {
+    id: "innovator",
+    name: "The Innovator", 
+    tagline: "Bold choices. Creative expression. Stand out from the crowd.",
+    description: "You're not afraid to be the most stylish person in the room. Your style is a form of self-expression and creativity. You experiment with trends, mix unexpected pieces, and aren't afraid to take fashion risks that pay off.",
+    styleMission: "Push boundaries while staying true to your vision. Focus on unique pieces that tell your story and don't be afraid to be the trendsetter in your circle.",
+    examples: ["Pharrell Williams", "Tyler, The Creator", "A$AP Rocky", "Jaden Smith", "Timothée Chalamet"],
+    traits: [
+      "Trendsetter",
+      "Creative expression",
+      "Bold choices",
+      "Unique pieces",
+      "Confident individuality"
+    ],
+    cta: "See My Plan Options →"
+  },
+  classic: {
+    id: "classic",
+    name: "The Classic",
+    tagline: "Timeless elegance. Sophisticated style. Never goes out of fashion.",
+    description: "You appreciate the finer things and believe in investing in quality pieces that will last decades. Your style is refined, sophisticated, and built on traditional menswear principles. You look polished without being flashy.",
+    styleMission: "Refine your existing foundation. Focus on perfect tailoring, quality fabrics, and subtle details that elevate your look without being obvious.",
+    examples: ["George Clooney", "David Beckham", "Henry Golding", "Regé-Jean Page", "Dev Patel"],
+    traits: [
+      "Timeless pieces",
+      "Quality investment",
+      "Sophisticated details",
+      "Refined taste",
+      "Elegant simplicity"
+    ],
+    cta: "See My Plan Options →"
+  }
+};
+
 interface QuizQuestion {
   id: string;
   question: string;
@@ -416,50 +494,78 @@ export default function Onboarding() {
     };
   };
 
-  const generateStyleName = () => {
+  const determineStylePersona = (): StylePersona => {
     const userAnswers = answers.reduce((acc, answer) => {
       acc[answer.question_id] = answer.selected_option;
       return acc;
     }, {} as Record<string, string>);
 
-    // Analyze style preferences from answers
-    const styleScores: Record<string, number> = {};
-    
-    // Count style preferences from visual questions
-    answers.forEach(answer => {
-      const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
-      if (question && question.type === 'visual_yesno' && answer.selected_option === 'Yes') {
-        // Extract style from question id or style_name
-        const styleName = question.style_name || question.id.replace('style_item_', '').replace(/_[fm]_\d+/, '');
-        if (styleName) {
-          styleScores[styleName] = (styleScores[styleName] || 0) + 1;
-        }
-      }
-    });
+    // Score each persona based on quiz answers
+    const personaScores: Record<string, number> = {
+      architect: 0,
+      strategist: 0,
+      innovator: 0,
+      classic: 0
+    };
 
-    // Get top 2 styles
-    const topStyles = Object.entries(styleScores)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 2)
-      .map(([style]) => style);
-
-    if (topStyles.length >= 2) {
-      return `${topStyles[0]} ${topStyles[1]}`;
-    } else if (topStyles.length === 1) {
-      return topStyles[0];
-    } else {
-      // Fallback based on other answers
-      const gender = userAnswers.gender;
-      const bodyType = userAnswers.body_type_female || userAnswers.body_type_male;
-      
-      if (bodyType === 'Athletic') return 'Athletic Chic';
-      if (bodyType === 'Hourglass') return 'Classic Elegant';
-      if (bodyType === 'Pear') return 'Sophisticated Style';
-      if (bodyType === 'Rectangle') return 'Modern Minimalist';
-      if (bodyType === 'Round/Apple') return 'Comfortable Classic';
-      
-      return 'Personal Style';
+    // Style preference scoring
+    if (userAnswers.style_preference === 'Contemporary' || userAnswers.style_preference === 'Minimalist') {
+      personaScores.architect += 3;
+      personaScores.strategist += 1;
     }
+    if (userAnswers.style_preference === 'Street Style' || userAnswers.style_preference === 'Bold') {
+      personaScores.strategist += 2;
+      personaScores.innovator += 3;
+    }
+    if (userAnswers.style_preference === 'Classic' || userAnswers.style_preference === 'Vintage') {
+      personaScores.classic += 3;
+      personaScores.architect += 1;
+    }
+
+    // Color preference scoring
+    if (userAnswers.color_preference === 'Neutral') {
+      personaScores.architect += 2;
+      personaScores.classic += 1;
+    }
+    if (userAnswers.color_preference === 'Bold') {
+      personaScores.innovator += 2;
+      personaScores.strategist += 1;
+    }
+    if (userAnswers.color_preference === 'Both') {
+      personaScores.strategist += 2;
+      personaScores.innovator += 1;
+    }
+
+    // Occasion preference scoring
+    if (userAnswers.occasion_preference === 'Professional') {
+      personaScores.classic += 2;
+      personaScores.architect += 1;
+    }
+    if (userAnswers.occasion_preference === 'Casual') {
+      personaScores.strategist += 2;
+      personaScores.innovator += 1;
+    }
+    if (userAnswers.occasion_preference === 'Both') {
+      personaScores.strategist += 3;
+      personaScores.architect += 1;
+    }
+
+    // Body type scoring
+    const bodyType = userAnswers.body_type_female || userAnswers.body_type_male;
+    if (bodyType === 'Rectangle' || bodyType === 'Athletic') {
+      personaScores.architect += 1;
+      personaScores.strategist += 1;
+    }
+    if (bodyType === 'Hourglass' || bodyType === 'Pear') {
+      personaScores.strategist += 1;
+      personaScores.innovator += 1;
+    }
+
+    // Find the highest scoring persona
+    const topPersona = Object.entries(personaScores)
+      .sort(([,a], [,b]) => b - a)[0][0];
+
+    return STYLE_PERSONAS[topPersona] || STYLE_PERSONAS.strategist;
   };
 
   const generateStyleTraits = () => {
@@ -883,33 +989,56 @@ export default function Onboarding() {
   }
 
   if (quizCompleted && quizResults) {
+    const persona = determineStylePersona();
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
         <div className="w-full max-w-4xl">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
-              Great choice — {quizResults.hybridStyleName?.toLowerCase()}, timeless confidence
+              {persona.tagline}
             </h1>
           </div>
           
           <div className="space-y-6">
-            {/* Main Style Card */}
+            {/* Main Persona Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
               <div className="text-center mb-6">
                 <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">YOU ARE</div>
-                <h2 className="text-3xl font-serif text-gray-900 dark:text-white mb-4">
-                  The {quizResults.hybridStyleName || "Personal Style"}
+                <h2 className="text-3xl font-serif text-gray-900 dark:text-white mb-6">
+                  {persona.name}
                 </h2>
-                <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  {generateStyleTraits().map((trait, index) => (
+                <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed mb-6">
+                  {persona.description}
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {persona.traits.map((trait, index) => (
                     <span key={index} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
                       {trait}
                     </span>
                   ))}
                 </div>
-                <p className="text-lg text-gray-600 dark:text-gray-400">
-                  You play the long game with your look.
-                </p>
+              </div>
+            </div>
+
+            {/* Style Mission Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-3">Your Style Mission</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                {persona.styleMission}
+              </p>
+            </div>
+
+            {/* Cultural Anchors Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-4">The {persona.name.split(' ')[1]}s You May Know</h3>
+              <div className="flex flex-wrap gap-3">
+                {persona.examples.map((example, index) => (
+                  <div key={index} className="flex items-center space-x-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                    <span className="text-gray-600 dark:text-gray-400">♪</span>
+                    <span className="text-gray-900 dark:text-white font-medium">{example}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -978,7 +1107,7 @@ export default function Onboarding() {
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg text-center">
               <Link href="/dashboard">
                 <button className="px-8 py-4 bg-gray-900 text-white rounded-lg text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-lg">
-                  See My Plan Options
+                  {persona.cta}
                   <ArrowRight className="ml-3 h-5 w-5 inline-block" />
                 </button>
               </Link>
