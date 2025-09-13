@@ -579,50 +579,24 @@ export default function Onboarding() {
             {(question.id === "body_type_female" || question.id === "body_type_male") && (
               <BodyPositiveMessage variant="profile" className="mb-4" />
             )}
-            <div className="grid grid-cols-2 gap-4 min-h-[400px]">
-              {question.options.map((option, index) => (
-              <div
-                key={option}
-                className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 h-[200px] ${
-                  currentAnswer?.selected_option === option
-                    ? "border-purple-600 ring-2 ring-purple-200 dark:ring-purple-800"
-                    : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
-                }`}
-                onClick={() => {
-                  handleAnswer(question.id, option);
-                }}
-              >
-                <div className="aspect-square relative h-[140px] bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 flex items-center justify-center rounded-t-lg">
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <div className="w-16 h-16 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center">
-                      <span className="text-2xl">
-                        {option === 'Round/Apple' ? '🍎' :
-                         option === 'Athletic' ? '💪' :
-                         option === 'Hourglass' ? '⏳' :
-                         option === 'Pear' ? '🍐' :
-                         option === 'Rectangle' ? '📐' :
-                         option === 'Inverted Triangle' ? '🔺' :
-                         option === 'Oval' ? '🥚' :
-                         option === 'Plus Size' ? '❤️' :
-                         option === 'Slim' ? '🌿' :
-                         option === 'Muscular' ? '🏋️' :
-                         option === 'Petite' ? '🌸' :
-                         option === 'Tall' ? '🌲' : '👤'}
-                      </span>
-                    </div>
-                    <span className="text-xs font-medium text-purple-700 dark:text-purple-300 text-center px-2">
-                      {option}
-                    </span>
+            <div className="space-y-3 max-w-2xl mx-auto">
+              {question.options.map((option) => (
+                <button
+                  key={option}
+                  className={`w-full py-5 px-6 rounded-full text-lg font-medium transition-all duration-300 ${
+                    currentAnswer?.selected_option === option
+                      ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-lg"
+                      : "bg-white text-gray-900 border border-gray-300 hover:border-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:border-gray-500"
+                  }`}
+                  onClick={() => {
+                    handleAnswer(question.id, option);
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="font-semibold">{option}</div>
                   </div>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200 rounded-t-lg" />
-                </div>
-                <div className="p-3 bg-white dark:bg-gray-800 h-[60px] flex items-center justify-center">
-                  <p className="text-center font-medium text-gray-900 dark:text-white text-sm">
-                    {option}
-                  </p>
-                </div>
-              </div>
-            ))}
+                </button>
+              ))}
             </div>
           </div>
         ) : question.type === "visual_yesno" && question.images ? (
