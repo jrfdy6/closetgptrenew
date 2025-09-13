@@ -28,7 +28,7 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
     id: "architect",
     name: "The Architect",
     tagline: "Clean fits. Simple choices. Always looks good.",
-    description: "You're that guy who always looks put together without trying too hard. Your style is built on solid foundations - quality basics, perfect fits, and a neutral palette that works everywhere. You believe in investing in pieces that last and building a wardrobe that makes getting dressed effortless.",
+    description: "You're that person who always looks put together without trying too hard. Your style is built on solid foundations - quality basics, perfect fits, and a neutral palette that works everywhere. You believe in investing in pieces that last and building a wardrobe that makes getting dressed effortless.",
     styleMission: "Your style journey is about adding layers to what you've already built. Start experimenting with textures, subtle patterns, and statement accessories while keeping your core aesthetic intact.",
     examples: ["Michael B. Jordan", "Ryan Gosling", "John Cho", "Oscar Isaac", "Idris Elba"],
     traits: [
@@ -85,6 +85,70 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
       "Sophisticated details",
       "Refined taste",
       "Elegant simplicity"
+    ],
+    cta: "See My Plan Options →"
+  },
+  wanderer: {
+    id: "wanderer",
+    name: "The Wanderer",
+    tagline: "Free spirit. Earthy vibes. Connected to nature.",
+    description: "Your style reflects your connection to the natural world and your free-spirited approach to life. You gravitate toward earthy tones, flowing fabrics, and pieces that tell a story. Your wardrobe is an extension of your values - sustainable, authentic, and effortlessly beautiful.",
+    styleMission: "Embrace your natural aesthetic while adding structure. Focus on quality natural fabrics and pieces that can transition from day to night, city to country.",
+    examples: ["Zendaya", "Florence Pugh", "Emma Stone", "Lupita Nyong'o", "Tessa Thompson"],
+    traits: [
+      "Earth tones",
+      "Natural fabrics",
+      "Free-spirited",
+      "Sustainable choices",
+      "Effortless beauty"
+    ],
+    cta: "See My Plan Options →"
+  },
+  rebel: {
+    id: "rebel",
+    name: "The Rebel",
+    tagline: "Street smart. Bold statements. Own the room.",
+    description: "You're not here to blend in - you're here to stand out. Your style is bold, confident, and unapologetically you. You mix streetwear with high fashion, aren't afraid of bright colors, and use fashion as a form of self-expression and rebellion against the ordinary.",
+    styleMission: "Keep pushing boundaries while building a cohesive wardrobe. Focus on statement pieces that reflect your personality and don't be afraid to mix unexpected elements.",
+    examples: ["Rihanna", "Billie Eilish", "Lil Nas X", "Bad Bunny", "Doja Cat"],
+    traits: [
+      "Bold statements",
+      "Street smart",
+      "Confident mixing",
+      "Trend forward",
+      "Unapologetic style"
+    ],
+    cta: "See My Plan Options →"
+  },
+  connoisseur: {
+    id: "connoisseur",
+    name: "The Connoisseur",
+    tagline: "Refined taste. Luxury details. Quiet confidence.",
+    description: "You have an eye for quality and appreciate the finer things in life. Your style is sophisticated, understated, and built on investment pieces that speak to your refined taste. You understand that true luxury is in the details, not the labels.",
+    styleMission: "Curate your collection with intention. Focus on exceptional pieces that will last decades and don't be afraid to invest in quality over quantity.",
+    examples: ["Meghan Markle", "Blake Lively", "Ryan Reynolds", "Henry Cavill", "Cate Blanchett"],
+    traits: [
+      "Refined taste",
+      "Quality over quantity",
+      "Luxury details",
+      "Quiet confidence",
+      "Investment pieces"
+    ],
+    cta: "See My Plan Options →"
+  },
+  modernist: {
+    id: "modernist",
+    name: "The Modernist",
+    tagline: "Clean lines. Contemporary edge. Future-focused.",
+    description: "You're drawn to clean, contemporary design and appreciate the intersection of fashion and function. Your style is modern, streamlined, and forward-thinking. You value versatility and pieces that work across different contexts while maintaining a sleek, contemporary aesthetic.",
+    styleMission: "Build a wardrobe that's both functional and fashionable. Focus on versatile pieces with clean lines and don't be afraid to experiment with modern silhouettes.",
+    examples: ["Hailey Bieber", "Kendall Jenner", "Timothée Chalamet", "Harry Styles", "Anya Taylor-Joy"],
+    traits: [
+      "Clean lines",
+      "Contemporary edge",
+      "Functional fashion",
+      "Versatile pieces",
+      "Future-focused"
     ],
     cta: "See My Plan Options →"
   }
@@ -505,49 +569,82 @@ export default function Onboarding() {
       architect: 0,
       strategist: 0,
       innovator: 0,
-      classic: 0
+      classic: 0,
+      wanderer: 0,
+      rebel: 0,
+      connoisseur: 0,
+      modernist: 0
     };
 
-    // Style preference scoring
-    if (userAnswers.style_preference === 'Contemporary' || userAnswers.style_preference === 'Minimalist') {
+    // Analyze visual style preferences from quiz answers
+    const stylePreferences: Record<string, number> = {};
+    answers.forEach(answer => {
+      const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+      if (question && question.type === 'visual_yesno' && answer.selected_option === 'Yes') {
+        const styleName = question.style_name;
+        if (styleName) {
+          stylePreferences[styleName] = (stylePreferences[styleName] || 0) + 1;
+        }
+      }
+    });
+
+    // Map style preferences to personas
+    if (stylePreferences['Minimalist'] || stylePreferences['Clean Minimal']) {
       personaScores.architect += 3;
+      personaScores.modernist += 2;
+    }
+    if (stylePreferences['Street Style'] || stylePreferences['Urban Street']) {
+      personaScores.rebel += 3;
+      personaScores.strategist += 2;
+    }
+    if (stylePreferences['Classic Elegant']) {
+      personaScores.classic += 3;
+      personaScores.connoisseur += 2;
+    }
+    if (stylePreferences['Old Money']) {
+      personaScores.connoisseur += 3;
+      personaScores.classic += 2;
+    }
+    if (stylePreferences['Cottagecore'] || stylePreferences['Natural Boho']) {
+      personaScores.wanderer += 3;
+    }
+
+    // Daily activities scoring
+    if (userAnswers.daily_activities === 'Office work and meetings') {
+      personaScores.classic += 2;
+      personaScores.architect += 1;
+      personaScores.connoisseur += 1;
+    }
+    if (userAnswers.daily_activities === 'Creative work and casual meetings') {
+      personaScores.strategist += 2;
+      personaScores.innovator += 1;
+      personaScores.modernist += 1;
+    }
+    if (userAnswers.daily_activities === 'Active lifestyle and sports') {
+      personaScores.rebel += 2;
       personaScores.strategist += 1;
     }
-    if (userAnswers.style_preference === 'Street Style' || userAnswers.style_preference === 'Bold') {
-      personaScores.strategist += 2;
-      personaScores.innovator += 3;
+    if (userAnswers.daily_activities === 'Mix of everything') {
+      personaScores.strategist += 3;
+      personaScores.modernist += 2;
     }
-    if (userAnswers.style_preference === 'Classic' || userAnswers.style_preference === 'Vintage') {
+
+    // Style elements scoring
+    if (userAnswers.style_elements === 'Clean lines and minimal details') {
+      personaScores.architect += 3;
+      personaScores.modernist += 2;
+    }
+    if (userAnswers.style_elements === 'Rich textures and patterns') {
+      personaScores.connoisseur += 3;
+      personaScores.wanderer += 2;
+    }
+    if (userAnswers.style_elements === 'Classic and timeless pieces') {
       personaScores.classic += 3;
       personaScores.architect += 1;
     }
-
-    // Color preference scoring
-    if (userAnswers.color_preference === 'Neutral') {
-      personaScores.architect += 2;
-      personaScores.classic += 1;
-    }
-    if (userAnswers.color_preference === 'Bold') {
+    if (userAnswers.style_elements === 'Bold and statement pieces') {
+      personaScores.rebel += 3;
       personaScores.innovator += 2;
-      personaScores.strategist += 1;
-    }
-    if (userAnswers.color_preference === 'Both') {
-      personaScores.strategist += 2;
-      personaScores.innovator += 1;
-    }
-
-    // Occasion preference scoring
-    if (userAnswers.occasion_preference === 'Professional') {
-      personaScores.classic += 2;
-      personaScores.architect += 1;
-    }
-    if (userAnswers.occasion_preference === 'Casual') {
-      personaScores.strategist += 2;
-      personaScores.innovator += 1;
-    }
-    if (userAnswers.occasion_preference === 'Both') {
-      personaScores.strategist += 3;
-      personaScores.architect += 1;
     }
 
     // Body type scoring
@@ -555,10 +652,15 @@ export default function Onboarding() {
     if (bodyType === 'Rectangle' || bodyType === 'Athletic') {
       personaScores.architect += 1;
       personaScores.strategist += 1;
+      personaScores.modernist += 1;
     }
     if (bodyType === 'Hourglass' || bodyType === 'Pear') {
       personaScores.strategist += 1;
-      personaScores.innovator += 1;
+      personaScores.wanderer += 1;
+    }
+    if (bodyType === 'Plus Size') {
+      personaScores.wanderer += 1;
+      personaScores.connoisseur += 1;
     }
 
     // Find the highest scoring persona
