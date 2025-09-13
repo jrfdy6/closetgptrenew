@@ -842,7 +842,7 @@ export default function Onboarding() {
         setQuizCompleted(true);
         setQuizResults({
           ...data,
-          hybridStyleName: generateStyleName(), // Override with generated style name
+          hybridStyleName: determineStylePersona().name, // Use persona name
           colorAnalysis: colorAnalysis,
           userAnswers: answers.reduce((acc, answer) => {
             acc[answer.question_id] = answer.selected_option;
@@ -864,7 +864,7 @@ export default function Onboarding() {
       
       setQuizCompleted(true);
       setQuizResults({
-        hybridStyleName: generateStyleName(),
+        hybridStyleName: determineStylePersona().name, // Use persona name
         quizResults: {
           aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
           color_season: userAnswers.skin_tone || "warm_spring",
