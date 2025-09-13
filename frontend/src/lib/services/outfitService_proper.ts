@@ -79,6 +79,18 @@ class OutfitService {
         }).filter(([_, value]) => value !== undefined)
       );
       
+      // Also filter undefined values from nested objects in items array
+      if (updateData.items && Array.isArray(updateData.items)) {
+        updateData.items = updateData.items.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            return Object.fromEntries(
+              Object.entries(item).filter(([_, value]) => value !== undefined)
+            );
+          }
+          return item;
+        });
+      }
+      
       console.log('🔍 [OutfitService] Filtered update data:', updateData);
       
       await updateDoc(outfitRef, updateData);
