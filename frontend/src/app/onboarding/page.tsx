@@ -554,15 +554,25 @@ export default function Onboarding() {
 
     return (
       <div className="space-y-12 animate-fade-in">
-        <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-6 leading-tight">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
             {question.question}
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            {question.type === "visual" ? "Click on the image that best represents your style" :
-             question.type === "rgb_slider" ? "Drag the slider to select your skin tone" :
-             "Choose the option that best describes you"}
-          </p>
+          {question.type === "visual" && (
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              Click on the image that best represents your style
+            </p>
+          )}
+          {question.type === "multiple_choice" && (
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              Choose the option that best describes you
+            </p>
+          )}
+          {question.type === "rgb_slider" && (
+            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              Drag the slider to select your skin tone
+            </p>
+          )}
         </div>
         
         {question.type === "visual" && question.images ? (
@@ -703,14 +713,14 @@ export default function Onboarding() {
             </div>
           </div>
         ) : (
-        <div className="space-y-4 max-w-2xl mx-auto">
+        <div className="space-y-3 max-w-2xl mx-auto">
           {question.options.map((option) => (
             <button
               key={option}
-              className={`w-full py-6 px-8 rounded-full text-lg font-medium transition-all duration-300 ${
+              className={`w-full py-5 px-6 rounded-full text-lg font-medium transition-all duration-300 ${
                 currentAnswer?.selected_option === option
                   ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-lg"
-                  : "bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:border-gray-600"
+                  : "bg-white text-gray-900 border border-gray-300 hover:border-gray-400 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:border-gray-500"
               }`}
               onClick={() => {
                 handleAnswer(question.id, option);
@@ -762,56 +772,64 @@ export default function Onboarding() {
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
         <div className="w-full max-w-4xl text-center">
           <div className="mb-16">
-            <h1 className="text-5xl md:text-6xl font-serif text-gray-900 dark:text-white mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
               Great choice — {quizResults.hybridStyleName?.toLowerCase()}, timeless confidence
             </h1>
-            <p className="text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
-              We've analyzed your preferences and created a personalized style profile that reflects your unique taste.
-            </p>
-          </div>
-          <div className="space-y-8 max-w-2xl mx-auto">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-serif text-gray-900 dark:text-white">
-                {quizResults.hybridStyleName || "Personal Style"}
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                {(quizResults.quizResults?.body_type || quizResults.userAnswers?.body_type_female || quizResults.userAnswers?.body_type_male || "Rectangle").replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} • 
-                {quizResults.colorAnalysis?.topColors?.slice(0, 3).map(color => 
-                  color.replace(/\b\w/g, l => l.toUpperCase())
-                ).join(', ') || 'Classic Colors'}
+            <div className="text-center mb-8">
+              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
+                {quizResults.hybridStyleName?.toUpperCase() || "PERSONAL STYLE"}
+              </div>
+              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
+                We've styled over 1 million outfits, and here's what we've learned: The #1 reason people stick around? The fit. When it fits right, it feels right. And when you feel right, you show up different.
               </p>
             </div>
-            
-            {quizResults.colorAnalysis?.likedStyles && (
-              <div className="text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Your preferred styles</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {quizResults.colorAnalysis.likedStyles.slice(0, 4).map((style, index) => (
-                    <span key={index} className="px-3 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-sm border border-gray-200 dark:border-gray-700">
-                      {style}
-                    </span>
-                  ))}
-                </div>
+          </div>
+          <div className="space-y-8 max-w-3xl mx-auto">
+            {/* Style traits */}
+            <div className="text-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Your style traits</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
+                  Calculated
+                </span>
+                <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
+                  Versatile
+                </span>
+                <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
+                  Confident
+                </span>
               </div>
-            )}
+            </div>
+
+            {/* Style description */}
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl font-serif text-gray-900 dark:text-white">
+                You play the long game with your look.
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                The {quizResults.hybridStyleName || "Personal Style"} style adapts to any situation. You're prepared, and your style reflects that confidence. When it fits right, it feels right.
+              </p>
+              <a href="#" className="text-sm text-gray-500 dark:text-gray-400 underline hover:text-gray-700 dark:hover:text-gray-300">
+                see more
+              </a>
+            </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="text-center">
               <Link href="/dashboard">
-                <button className="px-8 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
-                  Go to Dashboard
+                <button className="px-12 py-4 bg-gray-900 text-white rounded-lg text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-lg">
+                  See My Plan Options
                   <ArrowRight className="ml-3 h-5 w-5 inline-block" />
                 </button>
               </Link>
-              
-              <Link href="/wardrobe">
-                <button className="px-8 py-4 bg-white text-gray-900 border-2 border-gray-200 rounded-full text-lg font-medium hover:border-gray-300 transition-all duration-300 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:border-gray-600">
-                  View My Wardrobe
-                  <Camera className="ml-3 h-5 w-5 inline-block" />
-                </button>
-              </Link>
+              <div className="mt-4 flex items-center justify-center space-x-2">
+                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">4</span>
+                </div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">classic, bold, or both—so you're always ready</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -824,11 +842,11 @@ export default function Onboarding() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
-          <h1 className="text-5xl md:text-6xl font-serif text-gray-900 dark:text-white mb-6 leading-tight">
+          <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
             Your style is a signal
           </h1>
-          <p className="text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
-            We help you send the right signal. When it fits right, it feels right.
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed mb-12">
+            It doesn't just reflect who you are — it trains people how to treat you. We help you send the right signal, without the stress of figuring it out alone.
           </p>
           <div className="flex items-center justify-center space-x-2">
             {filteredQuestions.map((_, index) => (
