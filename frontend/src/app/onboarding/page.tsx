@@ -462,6 +462,72 @@ export default function Onboarding() {
     }
   };
 
+  const generateStyleTraits = () => {
+    const userAnswers = answers.reduce((acc, answer) => {
+      acc[answer.question_id] = answer.selected_option;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const traits: string[] = [];
+
+    // Analyze for "Calculated" trait
+    const calculatedIndicators = [
+      userAnswers.style_preference === 'Classic',
+      userAnswers.style_preference === 'Minimalist',
+      userAnswers.body_type_female === 'Rectangle' || userAnswers.body_type_male === 'Rectangle',
+      userAnswers.body_type_female === 'Athletic' || userAnswers.body_type_male === 'Athletic',
+      userAnswers.color_preference === 'Neutral',
+      userAnswers.occasion_preference === 'Professional'
+    ];
+    if (calculatedIndicators.filter(Boolean).length >= 2) {
+      traits.push('Calculated');
+    }
+
+    // Analyze for "Versatile" trait
+    const versatileIndicators = [
+      userAnswers.style_preference === 'Contemporary',
+      userAnswers.occasion_preference === 'Casual',
+      userAnswers.occasion_preference === 'Both',
+      userAnswers.color_preference === 'Both',
+      userAnswers.body_type_female === 'Hourglass' || userAnswers.body_type_male === 'Hourglass',
+      userAnswers.body_type_female === 'Pear' || userAnswers.body_type_male === 'Pear'
+    ];
+    if (versatileIndicators.filter(Boolean).length >= 2) {
+      traits.push('Versatile');
+    }
+
+    // Analyze for "Confident" trait
+    const confidentIndicators = [
+      userAnswers.style_preference === 'Street Style',
+      userAnswers.style_preference === 'Bold',
+      userAnswers.color_preference === 'Bold',
+      userAnswers.body_type_female === 'Athletic' || userAnswers.body_type_male === 'Athletic',
+      userAnswers.occasion_preference === 'Formal',
+      userAnswers.occasion_preference === 'Both'
+    ];
+    if (confidentIndicators.filter(Boolean).length >= 2) {
+      traits.push('Confident');
+    }
+
+    // Fallback traits if none match
+    if (traits.length === 0) {
+      traits.push('Calculated', 'Versatile', 'Confident');
+    }
+
+    // Ensure we have at least 3 traits
+    const fallbackTraits = ['Calculated', 'Versatile', 'Confident'];
+    while (traits.length < 3) {
+      const remainingTrait = fallbackTraits.find(trait => !traits.includes(trait));
+      if (remainingTrait) {
+        traits.push(remainingTrait);
+      } else {
+        break;
+      }
+    }
+
+    return traits.slice(0, 3);
+  };
+
   const submitQuiz = async () => {
     if (!user) {
       setError('Please sign in to complete the quiz');
@@ -759,15 +825,11 @@ export default function Onboarding() {
                   The {quizResults.hybridStyleName || "Personal Style"}
                 </h2>
                 <div className="flex flex-wrap justify-center gap-2 mb-4">
-                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
-                    Calculated
-                  </span>
-                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
-                    Versatile
-                  </span>
-                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
-                    Confident
-                  </span>
+                  {generateStyleTraits().map((trait, index) => (
+                    <span key={index} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
+                      {trait}
+                    </span>
+                  ))}
                 </div>
                 <p className="text-lg text-gray-600 dark:text-gray-400">
                   You play the long game with your look.
