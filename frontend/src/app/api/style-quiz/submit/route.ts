@@ -35,21 +35,28 @@ export async function POST(req: NextRequest) {
     const submission = await req.json();
     const userId = submission.userId || submission.user_id || 'demo-user';
 
+    // Extract user answers from submission
+    const userAnswers = submission.answers.reduce((acc: Record<string, string>, answer: any) => {
+      acc[answer.question_id] = answer.selected_option;
+      return acc;
+    }, {});
+
     // Mock successful submission (in production, this would save to Firestore)
     console.log('Mock quiz submission:', {
       userId,
       answers: submission.answers,
-      colorAnalysis: submission.colorAnalysis
+      colorAnalysis: submission.colorAnalysis,
+      userAnswers
     });
 
     return NextResponse.json({ 
       success: true,
       message: 'Style profile saved successfully (mock)',
-      hybridStyleName: "Personal Style",
+      hybridStyleName: "Personal Style", // Will be overridden by frontend
       quizResults: {
         aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
-        color_season: "warm_spring",
-        body_type: "rectangle",
+        color_season: userAnswers.skin_tone || "warm_spring",
+        body_type: userAnswers.body_type_female || userAnswers.body_type_male || "rectangle",
         style_preferences: { "classic": 0.7, "minimalist": 0.3 }
       },
       colorAnalysis: submission.colorAnalysis || null

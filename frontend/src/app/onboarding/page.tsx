@@ -494,7 +494,11 @@ export default function Onboarding() {
         setQuizResults({
           ...data,
           hybridStyleName: generateStyleName(), // Override with generated style name
-          colorAnalysis: colorAnalysis
+          colorAnalysis: colorAnalysis,
+          userAnswers: answers.reduce((acc, answer) => {
+            acc[answer.question_id] = answer.selected_option;
+            return acc;
+          }, {} as Record<string, string>)
         });
       } else {
         throw new Error('Failed to submit quiz');
