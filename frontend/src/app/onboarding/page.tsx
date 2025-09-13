@@ -553,7 +553,7 @@ export default function Onboarding() {
     const currentAnswer = answers.find(a => a.question_id === question.id);
 
     return (
-      <div className="space-y-12 animate-fade-in">
+      <div className="animate-fade-in">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
             {question.question}
@@ -728,17 +728,19 @@ export default function Onboarding() {
             >
               <div className="text-center">
                 <div className="font-semibold mb-1">{option}</div>
-                <div className="text-sm opacity-75">
-                  {option === 'Contemporary' ? 'minimalist, timeless pieces' :
-                   option === 'Classic' ? 'elegant, sophisticated style' :
-                   option === 'Street Style' ? 'urban, edgy fashion' :
-                   option === 'Bohemian' ? 'free-spirited, artistic vibe' :
-                   option === 'Preppy' ? 'clean, collegiate aesthetic' :
-                   option === 'Romantic' ? 'feminine, delicate details' :
-                   option === 'Athletic' ? 'sporty, functional wear' :
-                   option === 'Vintage' ? 'retro, nostalgic charm' :
-                   'sophisticated, refined look'}
-                </div>
+                {question.type === "multiple_choice" && (
+                  <div className="text-sm opacity-75">
+                    {option === 'Contemporary' ? 'minimalist, timeless pieces' :
+                     option === 'Classic' ? 'elegant, sophisticated style' :
+                     option === 'Street Style' ? 'urban, edgy fashion' :
+                     option === 'Bohemian' ? 'free-spirited, artistic vibe' :
+                     option === 'Preppy' ? 'clean, collegiate aesthetic' :
+                     option === 'Romantic' ? 'feminine, delicate details' :
+                     option === 'Athletic' ? 'sporty, functional wear' :
+                     option === 'Vintage' ? 'retro, nostalgic charm' :
+                     'sophisticated, refined look'}
+                  </div>
+                )}
               </div>
             </button>
           ))}
@@ -751,13 +753,11 @@ export default function Onboarding() {
   // Show loading state while authenticating
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl border-0 shadow-xl text-center">
-          <CardContent className="p-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Authenticating...</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Authenticating...</p>
+        </div>
       </div>
     );
   }
@@ -836,74 +836,59 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="text-center mb-16">
-          <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mb-8">
+      <div className="w-full max-w-4xl text-center">
+        <div className="mb-16">
+          <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mb-12">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
           <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
             Your style is a signal
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed mb-12">
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
             It doesn't just reflect who you are — it trains people how to treat you. We help you send the right signal, without the stress of figuring it out alone.
           </p>
-          <div className="flex items-center justify-center space-x-2">
-            {filteredQuestions.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index + 1 === currentStep
-                    ? "bg-gray-900 dark:bg-white"
-                    : index + 1 < currentStep
-                    ? "bg-gray-600 dark:bg-gray-400"
-                    : "bg-gray-300 dark:bg-gray-600"
-                }`}
-              />
-            ))}
-          </div>
         </div>
-        <CardContent>
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
-          
-          {renderQuestion()}
-          
-          <div className="flex justify-center mt-12">
-            {currentStep === filteredQuestions.length ? (
-              <button
-                onClick={submitQuiz}
-                disabled={!canProceed() || isLoading}
-                className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3 inline-block"></div>
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    Complete Quiz
-                    <ArrowRight className="h-5 w-5 ml-3 inline-block" />
-                  </>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={nextStep}
-                disabled={!canProceed()}
-                className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
-              >
-                Next
-                <ArrowRight className="h-5 w-5 ml-3 inline-block" />
-              </button>
-            )}
+        
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg max-w-2xl mx-auto">
+            <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
-        </CardContent>
-      </Card>
+        )}
+        
+        {renderQuestion()}
+        
+        <div className="flex justify-center mt-12">
+          {currentStep === filteredQuestions.length ? (
+            <button
+              onClick={submitQuiz}
+              disabled={!canProceed() || isLoading}
+              className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3 inline-block"></div>
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  Complete Quiz
+                  <ArrowRight className="h-5 w-5 ml-3 inline-block" />
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={nextStep}
+              disabled={!canProceed()}
+              className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+            >
+              Next
+              <ArrowRight className="h-5 w-5 ml-3 inline-block" />
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
