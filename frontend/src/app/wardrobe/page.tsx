@@ -528,10 +528,16 @@ export default function WardrobePage() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Showing {currentItems.length} of {wardrobeItems.length} items
                   </p>
-                  <Button variant="outline" size="sm">
-                    <Zap className="w-4 h-4 mr-2" />
-                    Generate Outfit
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => router.push('/outfits/generate')}>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Generate Outfit
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/outfits/create')}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Outfit
+                    </Button>
+                  </div>
                 </div>
                 
                 {viewMode === "grid" ? (
