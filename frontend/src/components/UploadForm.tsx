@@ -467,13 +467,6 @@ export default function UploadForm({ onUploadComplete, onCancel }: UploadFormPro
           <p className="text-xs text-green-700 dark:text-green-300">
             <strong>Edit mode:</strong> Review and edit AI-detected details before saving to your wardrobe.
           </p>
-          <button 
-            type="button" 
-            onClick={() => console.log('🧪 Test button clicked - component is working!')}
-            className="mt-1 text-xs text-blue-600 hover:text-blue-800 underline"
-          >
-            🧪 Test: Click to verify component is working
-          </button>
         </div>
         <Label htmlFor="image-upload" className="text-sm font-medium">
           Clothing Image *

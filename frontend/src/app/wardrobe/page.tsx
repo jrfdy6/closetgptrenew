@@ -95,7 +95,6 @@ export default function WardrobePage() {
   // Listen for outfit marked as worn events to refresh wardrobe data
   useEffect(() => {
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
-      console.log('🔄 Wardrobe: Outfit marked as worn, refreshing wardrobe data...', event.detail);
       refetch();
     };
 
@@ -160,19 +159,13 @@ export default function WardrobePage() {
   // Handle favorite toggle
   const handleToggleFavorite = async (itemId: string) => {
     try {
-      console.log(`🔍 [WardrobePage] Favorite button clicked for item ${itemId}`);
       await toggleFavorite(itemId);
-      console.log(`✅ [WardrobePage] Favorite toggle completed for item ${itemId}`);
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
     }
   };
 
   // Test button click
-  const handleTestClick = () => {
-    console.log('🔍 [WardrobePage] Test button clicked!');
-    alert('Test button works!');
-  };
 
   // Handle wear count increment
   const handleWearIncrement = async (itemId: string) => {
@@ -196,8 +189,6 @@ export default function WardrobePage() {
 
   // Handle outfit generation with base item - ID-based approach
   const handleGenerateOutfitWithBaseItem = (baseItem: any) => {
-    console.log('🎉 OUTFIT BUTTON CLICKED! 🎉');
-    console.log('🚀 Navigating to outfit generation with base item ID:', baseItem.id);
     
     // Pass only the ID - much cleaner and scalable
     router.push(`/outfits/generate?baseItemId=${baseItem.id}`);
@@ -310,12 +301,6 @@ export default function WardrobePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Test Button */}
-        <div className="mb-4">
-          <Button onClick={handleTestClick} variant="outline" className="bg-red-100 text-red-700">
-            🔍 TEST BUTTON - Click me to test if buttons work!
-          </Button>
-        </div>
         
         {/* Upload Forms */}
         {showUploadForm && (
@@ -336,12 +321,7 @@ export default function WardrobePage() {
             <CardContent>
               <UploadForm 
                 onUploadComplete={async (item) => {
-                  console.log('Single item uploaded:', item);
                   setShowUploadForm(false);
-                  
-                  // Item is already saved to database via the upload process
-                  // Just refetch to get the latest data
-                  console.log('✅ Item uploaded successfully');
                   refetch();
                 }}
                 onCancel={() => setShowUploadForm(false)}
@@ -368,16 +348,11 @@ export default function WardrobePage() {
             <CardContent>
               <BatchImageUpload 
                 onUploadComplete={async (items) => {
-                  console.log('Batch upload complete:', items);
                   setShowBatchUpload(false);
-                  
-                  // Items are already saved to database via the batch upload process
-                  // Just refetch to get the latest data
-                  console.log(`✅ ${items.length} items uploaded successfully`);
                   refetch();
                 }}
                 onError={(message) => {
-                  console.error('Batch upload error:', message);
+                  // Handle batch upload error silently
                 }}
                 userId={user?.uid || ''}
               />
@@ -528,23 +503,35 @@ export default function WardrobePage() {
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Showing {currentItems.length} of {wardrobeItems.length} items
                   </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => router.push('/outfits/generate')}>
-                      <Zap className="w-4 h-4 mr-2" />
-                      Generate Outfit
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => router.push('/outfits/create')}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Outfit
-                    </Button>
-                  </div>
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push('/outfits/generate')}
+            className="group hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all duration-200"
+          >
+            <Zap className="w-4 h-4 mr-2 group-hover:animate-pulse" />
+            Generate Outfit
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push('/outfits/create')}
+            className="group hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-all duration-200"
+          >
+            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+            Create Outfit
+          </Button>
+        </div>
                 </div>
                 
                 {viewMode === "grid" ? (
                   <WardrobeGrid 
                     items={currentItems}
                     loading={false}
-                    onItemClick={(item) => console.log('Item clicked:', item)}
+                    onItemClick={(item) => {
+                      // Handle item click
+                    }}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onToggleFavorite={handleToggleFavorite}
                     onDeleteItem={deleteItem}
@@ -653,7 +640,9 @@ export default function WardrobePage() {
                   <WardrobeGrid 
                     items={getFavorites()}
                     loading={false}
-                    onItemClick={(item) => console.log('Item clicked:', item)}
+                    onItemClick={(item) => {
+                      // Handle item click
+                    }}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onToggleFavorite={handleToggleFavorite}
                     onDeleteItem={deleteItem}
@@ -752,7 +741,9 @@ export default function WardrobePage() {
                   <WardrobeGrid 
                     items={getRecentlyWorn()}
                     loading={false}
-                    onItemClick={(item) => console.log('Item clicked:', item)}
+                    onItemClick={(item) => {
+                      // Handle item click
+                    }}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onToggleFavorite={handleToggleFavorite}
                     onDeleteItem={deleteItem}
@@ -859,7 +850,9 @@ export default function WardrobePage() {
                   <WardrobeGrid 
                     items={getUnwornItems()}
                     loading={false}
-                    onItemClick={(item) => console.log('Item clicked:', item)}
+                    onItemClick={(item) => {
+                      // Handle item click
+                    }}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onDeleteItem={deleteItem}
                     showActions={true}

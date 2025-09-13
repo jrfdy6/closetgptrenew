@@ -128,32 +128,6 @@ export default function Dashboard() {
     }
   };
 
-  const testWardrobeStatsDirect = async () => {
-    if (!user) return;
-    
-    try {
-      console.log('🧪 Testing wardrobe stats directly...');
-      const response = await dashboardService.testWardrobeStatsDirect(user);
-      console.log('🧪 Direct wardrobe stats response:', response);
-    } catch (err) {
-      console.error('🧪 Error testing wardrobe stats:', err);
-    }
-  };
-
-  // Test function for production backend
-  const testProductionEndpoint = async () => {
-    if (!user) return;
-    
-    try {
-      console.log('🧪 TEST: Starting production endpoint test...');
-      const result = await dashboardService.testWardrobeStatsDirect(user);
-      console.log('✅ TEST: Production test successful:', result);
-      alert('✅ Production test successful! Check console for details.');
-    } catch (error) {
-      console.error('❌ TEST: Production test failed:', error);
-      alert(`❌ Production test failed: ${error.message}`);
-    }
-  };
 
   const handleRetry = () => {
     if (user) {
@@ -161,22 +135,6 @@ export default function Dashboard() {
     }
   };
 
-  // Debug information
-  console.log("Dashboard render:", { user, loading, isLoading, dashboardData, error });
-  console.log("🔍 DEBUG: Dashboard data details:", {
-    totalItems: dashboardData?.totalItems,
-    hasData: !!dashboardData,
-    dataKeys: dashboardData ? Object.keys(dashboardData) : [],
-    fullData: dashboardData
-  });
-  
-  // Add useEffect to monitor state changes
-  useEffect(() => {
-    if (dashboardData) {
-      console.log("🔍 DEBUG: Dashboard state changed to:", dashboardData);
-      console.log("🔍 DEBUG: Total items in state:", dashboardData.totalItems);
-    }
-  }, [dashboardData]);
 
   // Show loading state while authentication is resolving
   if (loading || isLoading) {
@@ -227,12 +185,6 @@ export default function Dashboard() {
             <Button onClick={handleRetry} className="mr-4">
               <RefreshCw className="w-4 h-4 mr-2" />
               Retry
-            </Button>
-            <Button onClick={testProductionEndpoint} variant="outline" className="mr-4">
-              🧪 Test Production
-            </Button>
-            <Button onClick={testWardrobeStatsDirect} variant="outline" className="mr-4">
-              🧪 Test Wardrobe Stats
             </Button>
             <Link href="/profile">
               <Button variant="outline">Go to Profile</Button>

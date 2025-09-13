@@ -100,11 +100,10 @@ export interface TodaysOutfit {
 
 class DashboardService {
   private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
-    // For testing purposes, use test token if user is not authenticated
+    // Get authentication token
     let token: string;
     if (!user || user.email === 'test@example.com' || !user.email) {
       token = 'test';
-      console.log('🔍 DEBUG: Using test token for dashboard testing');
     } else {
       token = await user.getIdToken();
       if (!token) {
@@ -112,21 +111,8 @@ class DashboardService {
       }
     }
     
-    console.log('🔍 DEBUG: Firebase token obtained:', token.substring(0, 20) + '...');
-    console.log('🔍 DEBUG: Token length:', token.length);
-
-    // Use Next.js API routes as proxy to avoid Railway HTTPS redirect issues
-    console.log('🔍 DEBUG: Environment variables:', {
-      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-      NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
-      NODE_ENV: process.env.NODE_ENV
-    });
-    
     // Use Next.js API route as proxy instead of calling backend directly
     const fullUrl = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
-    
-    console.log('🔍 DEBUG: Making request to Next.js API route:', fullUrl);
-    console.log('🔍 DEBUG: Making request to:', fullUrl);
 
     const response = await fetch(fullUrl, {
       method: 'GET', // Default to GET, can be overridden in options
@@ -994,50 +980,6 @@ class DashboardService {
     }));
   }
 
-  // Test function to directly hit production backend
-  async testWardrobeStatsDirect(user: User) {
-    try {
-      console.log('🧪 TEST: Testing wardrobe-stats endpoint directly against production backend');
-      
-      const token = await user.getIdToken();
-      if (!token) {
-        throw new Error('Failed to get authentication token');
-      }
-      
-      console.log('🧪 TEST: Token obtained, length:', token.length);
-      
-      // Use production URL as fallback since environment variables aren't loading
-      const API_BASE_URL = 'https://closetgptrenew-backend-production.up.railway.app/api';
-      
-      const testUrl = `${API_BASE_URL}/wardrobe/wardrobe-stats`;
-      console.log('🧪 TEST: Testing URL:', testUrl);
-      
-      const response = await fetch(testUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      console.log('🧪 TEST: Response status:', response.status);
-      console.log('🧪 TEST: Response ok:', response.ok);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('🧪 TEST: Error response:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-      
-      const data = await response.json();
-      console.log('✅ TEST: Wardrobe stats response:', data);
-      return data;
-      
-    } catch (err) {
-      console.error('❌ TEST: Error fetching wardrobe stats:', err);
-      throw err;
-    }
-  }
 }
 
 export const dashboardService = new DashboardService();
