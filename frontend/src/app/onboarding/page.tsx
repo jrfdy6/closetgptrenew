@@ -664,8 +664,15 @@ export default function Onboarding() {
     }
 
     // Find the highest scoring persona
-    const topPersona = Object.entries(personaScores)
-      .sort(([,a], [,b]) => b - a)[0][0];
+    const sortedPersonas = Object.entries(personaScores)
+      .sort(([,a], [,b]) => b - a);
+    
+    const topPersona = sortedPersonas[0][0];
+    
+    // Debug logging
+    console.log('🎯 [Persona] Persona scores:', personaScores);
+    console.log('🎯 [Persona] Sorted personas:', sortedPersonas);
+    console.log('🎯 [Persona] Selected persona:', topPersona);
 
     return STYLE_PERSONAS[topPersona] || STYLE_PERSONAS.strategist;
   };
@@ -1092,6 +1099,10 @@ export default function Onboarding() {
 
   if (quizCompleted && quizResults) {
     const persona = determineStylePersona();
+    
+    // Debug logging
+    console.log('🎭 [Onboarding] Determined persona:', persona);
+    console.log('🎭 [Onboarding] User answers:', answers);
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
