@@ -743,38 +743,108 @@ export default function Onboarding() {
   if (quizCompleted && quizResults) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl text-center">
-          <div className="mb-16">
+        <div className="w-full max-w-4xl">
+          <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
               Great choice — {quizResults.hybridStyleName?.toLowerCase()}, timeless confidence
             </h1>
-            <div className="text-center mb-8">
-              <div className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
-                {quizResults.hybridStyleName?.toUpperCase() || "PERSONAL STYLE"}
-              </div>
-            </div>
           </div>
-          <div className="space-y-8 max-w-3xl mx-auto">
-            {/* Style traits */}
-            <div className="text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Your style traits</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
-                  Calculated
-                </span>
-                <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
-                  Versatile
-                </span>
-                <span className="px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
-                  Confident
-                </span>
+          
+          <div className="space-y-6">
+            {/* Main Style Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+              <div className="text-center mb-6">
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">YOU ARE</div>
+                <h2 className="text-3xl font-serif text-gray-900 dark:text-white mb-4">
+                  The {quizResults.hybridStyleName || "Personal Style"}
+                </h2>
+                <div className="flex flex-wrap justify-center gap-2 mb-4">
+                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
+                    Calculated
+                  </span>
+                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
+                    Versatile
+                  </span>
+                  <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
+                    Confident
+                  </span>
+                </div>
+                <p className="text-lg text-gray-600 dark:text-gray-400">
+                  You play the long game with your look.
+                </p>
               </div>
             </div>
 
-            
-            <div className="text-center">
+            {/* Style Mission Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-3">Your Style Mission</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Keep building your flexible wardrobe. Every move is intentional.
+              </p>
+            </div>
+
+            {/* StyleDNA Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6">Your StyleDNA</h3>
+              <div className="space-y-6">
+                {/* Creative Expression */}
+                <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="text-white font-medium mb-3">Creative Expression</div>
+                  <div className="flex justify-between text-sm text-gray-300 mb-2">
+                    <span>Restrained</span>
+                    <span>Expressive</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-white mb-2">
+                    <span>45%</span>
+                    <span>55%</span>
+                  </div>
+                  <div className="w-full bg-gray-600 rounded-full h-2">
+                    <div className="bg-white h-2 rounded-full" style={{width: '55%'}}></div>
+                  </div>
+                </div>
+
+                {/* Trend Awareness */}
+                <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="text-white font-medium mb-3">Trend Awareness</div>
+                  <div className="flex justify-between text-sm text-gray-300 mb-2">
+                    <span>Timeless</span>
+                    <span>Trendsetting</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-white mb-2">
+                    <span>50%</span>
+                    <span>50%</span>
+                  </div>
+                  <div className="w-full bg-gray-600 rounded-full h-2">
+                    <div className="bg-white h-2 rounded-full" style={{width: '50%'}}></div>
+                  </div>
+                </div>
+
+                {/* Wardrobe Flexibility */}
+                <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
+                  <div className="text-white font-medium mb-3">Wardrobe Flexibility</div>
+                  <div className="flex justify-between text-sm text-gray-300 mb-2">
+                    <span>Focused</span>
+                    <span>Versatile</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-white mb-2">
+                    <span>25%</span>
+                    <span>75%</span>
+                  </div>
+                  <div className="w-full bg-gray-600 rounded-full h-2">
+                    <div className="bg-white h-2 rounded-full" style={{width: '75%'}}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg text-center">
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-3">We've Got You Covered</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                ThreadBeast gives you the classic, bold, or both—so you're always ready.
+              </p>
               <Link href="/dashboard">
-                <button className="px-12 py-4 bg-gray-900 text-white rounded-lg text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-lg">
+                <button className="px-8 py-4 bg-gray-900 text-white rounded-lg text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-lg">
                   See My Plan Options
                   <ArrowRight className="ml-3 h-5 w-5 inline-block" />
                 </button>
