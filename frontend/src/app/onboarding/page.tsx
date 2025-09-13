@@ -837,17 +837,9 @@ export default function Onboarding() {
               </div>
             </div>
 
-            {/* Style Mission Card */}
+            {/* Style Fingerprint Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-3">Your Style Mission</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Keep building your flexible wardrobe. Every move is intentional.
-              </p>
-            </div>
-
-            {/* StyleDNA Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6">Your StyleDNA</h3>
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6">Your Style Fingerprint</h3>
               <div className="space-y-6">
                 {/* Creative Expression */}
                 <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
@@ -901,10 +893,6 @@ export default function Onboarding() {
 
             {/* CTA Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg text-center">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-3">We've Got You Covered</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                ThreadBeast gives you the classic, bold, or both—so you're always ready.
-              </p>
               <Link href="/dashboard">
                 <button className="px-8 py-4 bg-gray-900 text-white rounded-lg text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-lg">
                   See My Plan Options
