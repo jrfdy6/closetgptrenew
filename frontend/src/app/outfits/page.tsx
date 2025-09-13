@@ -23,7 +23,7 @@ export default function OutfitsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Outfits</h1>
               <p className="text-purple-700 dark:text-purple-300 mt-1">
-                View and manage your curated outfits. Each outfit is tailored to your style preferences and occasion needs.
+                View and manage your curated outfits. Each outfit is tailored to your style preferences and occasion needs. Create custom outfits or generate AI-powered combinations.
               </p>
             </div>
             
