@@ -261,36 +261,36 @@ export default function WardrobePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-100 to-blue-100 dark:from-emerald-900/20 dark:to-blue-900/20 border-b border-emerald-200 dark:border-emerald-700 px-4 py-6">
+      <div className="bg-stone-100 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-700 px-4 py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Wardrobe</h1>
-              <p className="text-emerald-700 dark:text-emerald-300 mt-1">
+              <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">My Wardrobe</h1>
+              <p className="text-stone-600 dark:text-stone-400 font-light text-lg">
                 {wardrobeItems.length} items • {getFavorites().length} favorites
               </p>
-              <BodyPositiveMessage variant="wardrobe" className="mt-4" />
+              <BodyPositiveMessage variant="wardrobe" className="mt-6" />
             </div>
             
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <Button 
                 onClick={() => setShowUploadForm(!showUploadForm)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
               >
-                <Upload className="w-4 h-4 mr-2" />
+                <Upload className="w-5 h-5 mr-3" />
                 Add Item
               </Button>
               
               <Button 
                 onClick={() => setShowBatchUpload(!showBatchUpload)}
                 variant="outline"
-                className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
               >
-                <Camera className="w-4 h-4 mr-2" />
+                <Camera className="w-5 h-5 mr-3" />
                 Batch Upload
               </Button>
             </div>
@@ -304,16 +304,17 @@ export default function WardrobePage() {
         
         {/* Upload Forms */}
         {showUploadForm && (
-          <Card className="mb-8">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-6">
               <div>
-                <CardTitle>Add Single Item with AI ✨</CardTitle>
-                <CardDescription>Upload one clothing item, review AI analysis, and edit before saving</CardDescription>
+                <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Add Single Item with AI ✨</CardTitle>
+                <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Upload one clothing item, review AI analysis, and edit before saving</CardDescription>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowUploadForm(false)}
+                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -331,16 +332,17 @@ export default function WardrobePage() {
         )}
 
         {showBatchUpload && (
-          <Card className="mb-8">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-6">
               <div>
-                <CardTitle>Batch Upload with AI ⚡</CardTitle>
-                <CardDescription>Upload multiple items - AI will automatically analyze and save each one</CardDescription>
+                <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Batch Upload with AI ⚡</CardTitle>
+                <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Upload multiple items - AI will automatically analyze and save each one</CardDescription>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowBatchUpload(false)}
+                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -361,8 +363,8 @@ export default function WardrobePage() {
         )}
 
         {/* Filters and Search */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
+        <Card className="mb-8 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardContent className="pt-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Search */}
               <div className="relative">

@@ -197,98 +197,106 @@ export default function Dashboard() {
 
   // Main dashboard - user is authenticated and data is loaded
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
       
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome back!
+        <div className="mb-12">
+          <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">
+            Welcome back
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-xl text-stone-600 dark:text-stone-400 font-light">
             Ready to explore your wardrobe and create amazing outfits.
           </p>
         </div>
 
         {/* Quick Actions */}
-        <div className="flex flex-wrap gap-4 mb-8">
+        <div className="flex flex-wrap gap-6 mb-12">
           <Button 
             onClick={() => setShowUploadForm(!showUploadForm)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-5 h-5 mr-3" />
             Add Item
           </Button>
           
           <Link href="/outfits">
-            <Button variant="outline">
-              <Palette className="w-4 h-4 mr-2" />
+            <Button variant="outline" className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105">
+              <Palette className="w-5 h-5 mr-3" />
               View All Outfits
             </Button>
           </Link>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Items</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Total Items</p>
+                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
                     {dashboardData?.totalItems || 0}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">In your wardrobe</p>
+                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">In your wardrobe</p>
                 </div>
-                <Shirt className="h-8 w-8 text-blue-600" />
+                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
+                  <Shirt className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
+          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Favorites</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Favorites</p>
+                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
                     {dashboardData?.favorites || 0}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">Loved items</p>
+                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">Loved items</p>
                 </div>
-                <Heart className="h-8 w-8 text-red-500" />
+                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
+                  <Heart className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
+          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Style Goals</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Style Goals</p>
+                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
                     {dashboardData?.styleGoalsCompleted || 0}/{dashboardData?.totalStyleGoals || 0}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">Completed</p>
+                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">Completed</p>
                 </div>
-                <Target className="h-8 w-8 text-green-600" />
+                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
+                  <Target className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-all duration-300">
-            <CardContent className="p-6">
+          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">This Week</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">This Week</p>
+                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
                     {dashboardData?.outfitsThisWeek || 0}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500">Outfits worn</p>
+                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">Outfits worn</p>
                 </div>
-                <Calendar className="h-8 w-8 text-purple-600" />
+                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
+                  <Calendar className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -315,10 +323,10 @@ export default function Dashboard() {
         )}
 
         {/* Today's Outfit Section */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Today's Outfit</CardTitle>
-            <CardDescription>Daily personalized outfit suggestion just for you</CardDescription>
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Outfit</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Daily personalized outfit suggestion just for you</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
@@ -531,10 +539,10 @@ export default function Dashboard() {
         </Card>
 
         {/* Wardrobe Insights */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">📊 Wardrobe Insights</CardTitle>
-            <CardDescription>Your top items will appear here based on:</CardDescription>
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Wardrobe Insights</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your top items will appear here based on:</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.topItems && dashboardData.topItems.length > 0 ? (
@@ -601,10 +609,10 @@ export default function Dashboard() {
         </Card>
 
         {/* Style Goals */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Style Goals</CardTitle>
-            <CardDescription>Personalized goals based on your style preferences • Enhanced with feedback insights</CardDescription>
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Style Goals</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Personalized goals based on your style preferences • Enhanced with feedback insights</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
@@ -641,10 +649,10 @@ export default function Dashboard() {
         </Card>
 
         {/* Style Expansion */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Style Expansion</CardTitle>
-            <CardDescription>Your clothing items will allow you to explore the following areas as well</CardDescription>
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Style Expansion</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your clothing items will allow you to explore the following areas as well</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.styleExpansions && dashboardData.styleExpansions.length > 0 ? (
@@ -670,10 +678,10 @@ export default function Dashboard() {
         </Card>
 
         {/* Seasonal Balance */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Seasonal Balance</CardTitle>
-            <CardDescription>Maintain balanced wardrobe across all seasons</CardDescription>
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Seasonal Balance</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Maintain balanced wardrobe across all seasons</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -695,10 +703,10 @@ export default function Dashboard() {
         </Card>
 
         {/* Color Variety */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Color Variety</CardTitle>
-            <CardDescription>Build a diverse color palette</CardDescription>
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Color Variety</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Build a diverse color palette</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -737,10 +745,10 @@ export default function Dashboard() {
         />
 
         {/* Forgotten Gems */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Forgotten Gems</CardTitle>
-            <CardDescription>Rediscover items you haven't worn in a while</CardDescription>
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Forgotten Gems</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Rediscover items you haven't worn in a while</CardDescription>
           </CardHeader>
           <CardContent>
             <ForgottenGems />
@@ -749,16 +757,17 @@ export default function Dashboard() {
 
         {/* Upload Form */}
         {showUploadForm && (
-          <Card className="mb-8">
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-6">
               <div>
-                <CardTitle>Add Single Item with AI ✨</CardTitle>
-                <CardDescription>Upload one clothing item, review AI analysis, and edit before saving</CardDescription>
+                <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Add Single Item with AI ✨</CardTitle>
+                <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Upload one clothing item, review AI analysis, and edit before saving</CardDescription>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowUploadForm(false)}
+                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
               >
                 <X className="w-4 h-4" />
               </Button>

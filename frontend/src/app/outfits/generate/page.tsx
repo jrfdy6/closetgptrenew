@@ -736,33 +736,33 @@ export default function OutfitGenerationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-6 mb-12">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => router.push('/outfits')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-3 border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-5 w-5" />
             Back to Outfits
           </Button>
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              <Sparkles className="h-8 w-8 text-emerald-500" />
+            <h1 className="text-4xl font-serif font-bold flex items-center gap-4 text-stone-900 dark:text-stone-100">
+              <Sparkles className="h-10 w-10 text-stone-600 dark:text-stone-400" />
               Generate New Outfit
             </h1>
-            <p className="text-muted-foreground">AI-powered outfit creation based on your preferences</p>
+            <p className="text-stone-600 dark:text-stone-400 font-light text-lg mt-2">AI-powered outfit creation based on your preferences</p>
           </div>
         </div>
 
         {/* Base Item Indicator */}
         {baseItem && (
-          <Card className="mb-6 border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20">
-            <CardContent className="p-4">
+          <Card className="mb-8 border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800/50 backdrop-blur-sm">
+            <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
                   <img

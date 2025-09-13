@@ -59,17 +59,17 @@ export default function SignUp() {
                      formData.password && formData.password === formData.confirmPassword;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-0 shadow-xl">
-        <CardHeader className="text-center space-y-2">
-          <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm shadow-2xl">
+        <CardHeader className="text-center space-y-4 pb-8">
+          <Link href="/" className="inline-flex items-center text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 mb-6 font-medium">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+          <CardTitle className="text-3xl font-serif font-bold text-stone-900 dark:text-stone-100">
             Create Account
           </CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-400">
+          <CardDescription className="text-stone-600 dark:text-stone-400 font-light text-lg">
             Join ClosetGPT and discover your perfect style
           </CardDescription>
         </CardHeader>
@@ -222,7 +222,7 @@ export default function SignUp() {
 
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="w-full bg-stone-900 hover:bg-stone-800 text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 shadow-lg"
               disabled={isLoading || !isFormValid}
             >
               {isLoading ? "Creating account..." : "Create Account"}

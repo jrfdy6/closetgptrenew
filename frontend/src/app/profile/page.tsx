@@ -325,25 +325,29 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
-      <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto p-8">
+      <div className="flex items-center justify-between mb-12">
         <div>
-          <h1 className="text-3xl font-bold">My Profile</h1>
-          <p className="text-muted-foreground">Manage your style preferences and personal information</p>
+          <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">My Profile</h1>
+          <p className="text-stone-600 dark:text-stone-400 font-light text-lg">Manage your style preferences and personal information</p>
         </div>
-        <Button onClick={() => setIsEditing(!isEditing)} variant={isEditing ? "outline" : "default"}>
+        <Button 
+          onClick={() => setIsEditing(!isEditing)} 
+          variant={isEditing ? "outline" : "default"}
+          className={isEditing ? "border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105" : "bg-stone-900 hover:bg-stone-800 text-white px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"}
+        >
           {isEditing ? "Cancel" : "Edit Profile"}
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Personal Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <User className="h-5 w-5 mr-2" />
+        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
+              <User className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
               Personal Information
             </CardTitle>
           </CardHeader>
@@ -368,10 +372,10 @@ export default function ProfilePage() {
         </Card>
 
         {/* Style Preferences */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Palette className="h-5 w-5 mr-2" />
+        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
+              <Palette className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
               Style Preferences
             </CardTitle>
           </CardHeader>
@@ -448,10 +452,10 @@ export default function ProfilePage() {
         </Card>
 
         {/* Measurements & Sizes */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Settings className="h-5 w-5 mr-2" />
+        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
+              <Settings className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
               Measurements & Sizes
             </CardTitle>
           </CardHeader>
@@ -511,10 +515,10 @@ export default function ProfilePage() {
 
         {/* Style Quiz Responses */}
         {profile.preferences?.style && profile.preferences.style.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Heart className="h-5 w-5 mr-2" />
+          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+            <CardHeader className="pb-6">
+              <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
+                <Heart className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
                 Style Quiz Responses
               </CardTitle>
             </CardHeader>
@@ -546,10 +550,10 @@ export default function ProfilePage() {
         )}
 
         {/* Account Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Settings className="h-5 w-5 mr-2" />
+        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
+              <Settings className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
               Account Status
             </CardTitle>
           </CardHeader>
@@ -574,10 +578,10 @@ export default function ProfilePage() {
         </Card>
 
         {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Heart className="h-5 w-5 mr-2" />
+        <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
+              <Heart className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
               Quick Actions
             </CardTitle>
           </CardHeader>
@@ -599,12 +603,19 @@ export default function ProfilePage() {
       </div>
 
       {isEditing && (
-        <div className="mt-6 flex justify-end space-x-3">
-          <Button variant="outline" onClick={() => setIsEditing(false)}>
+        <div className="mt-12 flex justify-end space-x-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsEditing(false)}
+            className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave}>
-            <Save className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={handleSave}
+            className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+          >
+            <Save className="h-5 w-5 mr-3" />
             Save Changes
           </Button>
         </div>

@@ -13,16 +13,16 @@ export const metadata: Metadata = {
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 border-b border-purple-200 dark:border-purple-700 px-4 py-6">
+      <div className="bg-stone-100 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-700 px-4 py-12">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Outfits</h1>
-              <p className="text-purple-700 dark:text-purple-300 mt-1">
+              <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">My Outfits</h1>
+              <p className="text-stone-600 dark:text-stone-400 font-light text-lg leading-relaxed max-w-2xl">
                 View and manage your curated outfits. Each outfit is tailored to your style preferences and occasion needs. Create custom outfits or generate AI-powered combinations.
               </p>
             </div>
@@ -30,9 +30,9 @@ export default function OutfitsPage() {
             <div className="flex gap-4">
               <Link 
                 href="/outfits/generate"
-                className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
+                className="group inline-flex items-center px-8 py-4 bg-stone-900 text-white font-medium rounded-full hover:bg-stone-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
               >
-                <svg className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 Generate Outfit
@@ -40,9 +40,9 @@ export default function OutfitsPage() {
               
               <Link 
                 href="/outfits/create"
-                className="group inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
+                className="group inline-flex items-center px-8 py-4 bg-stone-600 text-white font-medium rounded-full hover:bg-stone-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
               >
-                <svg className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 Create Outfit

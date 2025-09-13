@@ -160,30 +160,30 @@ export default function CreateOutfitPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900/20 dark:to-teal-900/20 border-b border-emerald-200 dark:border-emerald-700 px-4 py-6">
+      <div className="bg-stone-100 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-700 px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-6 mb-6">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => router.back()}
-              className="text-emerald-700 hover:text-emerald-800"
+              className="text-stone-700 hover:text-stone-900 dark:text-stone-300 dark:hover:text-stone-100 px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-5 w-5 mr-3" />
               Back
             </Button>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-600 rounded-lg">
-              <Plus className="h-6 w-6 text-white" />
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-stone-900 dark:bg-stone-100 rounded-full">
+              <Plus className="h-8 w-8 text-white dark:text-stone-900" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Create Outfit</h1>
-              <p className="text-emerald-700 dark:text-emerald-300 mt-1">
+              <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100">Create Outfit</h1>
+              <p className="text-stone-600 dark:text-stone-400 font-light text-lg mt-2">
                 Manually create a custom outfit by selecting items from your wardrobe
               </p>
             </div>
@@ -195,28 +195,29 @@ export default function CreateOutfitPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           {/* Outfit Details */}
-          <Card>
+          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-emerald-600" />
+              <CardTitle className="flex items-center gap-3 text-xl font-serif text-stone-900 dark:text-stone-100">
+                <Sparkles className="h-6 w-6 text-stone-600 dark:text-stone-400" />
                 Outfit Details
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Outfit Name *</Label>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label htmlFor="name" className="text-stone-700 dark:text-stone-300 font-medium">Outfit Name *</Label>
                   <Input
                     id="name"
                     placeholder="e.g., Summer Casual Look"
                     value={outfitName}
                     onChange={(e) => setOutfitName(e.target.value)}
+                    className="border-stone-300 dark:border-stone-600 focus:border-stone-500 focus:ring-stone-500 rounded-lg"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="occasion">Occasion</Label>
+                <div className="space-y-3">
+                  <Label htmlFor="occasion" className="text-stone-700 dark:text-stone-300 font-medium">Occasion</Label>
                   <Select value={occasion} onValueChange={setOccasion}>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-stone-300 dark:border-stone-600 focus:border-stone-500 focus:ring-stone-500 rounded-lg">
                       <SelectValue placeholder="Select occasion" />
                     </SelectTrigger>
                     <SelectContent>
@@ -228,10 +229,10 @@ export default function CreateOutfitPage() {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="style">Style</Label>
+              <div className="space-y-3">
+                <Label htmlFor="style" className="text-stone-700 dark:text-stone-300 font-medium">Style</Label>
                 <Select value={style} onValueChange={setStyle}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-stone-300 dark:border-stone-600 focus:border-stone-500 focus:ring-stone-500 rounded-lg">
                     <SelectValue placeholder="Select style" />
                   </SelectTrigger>
                   <SelectContent>
@@ -242,25 +243,27 @@ export default function CreateOutfitPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
+              <div className="space-y-3">
+                <Label htmlFor="description" className="text-stone-700 dark:text-stone-300 font-medium">Description (Optional)</Label>
                 <Textarea
                   id="description"
                   placeholder="Describe your outfit..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
+                  className="border-stone-300 dark:border-stone-600 focus:border-stone-500 focus:ring-stone-500 rounded-lg"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
+              <div className="space-y-3">
+                <Label htmlFor="notes" className="text-stone-700 dark:text-stone-300 font-medium">Notes (Optional)</Label>
                 <Textarea
                   id="notes"
                   placeholder="Add any notes about this outfit..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
+                  className="border-stone-300 dark:border-stone-600 focus:border-stone-500 focus:ring-stone-500 rounded-lg"
                 />
               </div>
             </CardContent>
@@ -268,42 +271,42 @@ export default function CreateOutfitPage() {
 
           {/* Selected Items */}
           {selectedItems.length > 0 && (
-            <Card>
+            <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shirt className="h-5 w-5 text-emerald-600" />
+                <CardTitle className="flex items-center gap-3 text-xl font-serif text-stone-900 dark:text-stone-100">
+                  <Shirt className="h-6 w-6 text-stone-600 dark:text-stone-400" />
                   Selected Items ({selectedItems.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {selectedItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border"
+                      className="flex items-center gap-4 p-4 bg-stone-50 dark:bg-stone-800/50 rounded-lg border border-stone-200 dark:border-stone-700"
                     >
                       <div className="flex-shrink-0">
                         {item.imageUrl ? (
                           <img
                             src={item.imageUrl}
                             alt={item.name}
-                            className="w-10 h-10 rounded object-cover"
+                            className="w-12 h-12 rounded-lg object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.style.display = 'none';
                             }}
                           />
                         ) : (
-                          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                          <div className="w-12 h-12 bg-stone-200 dark:bg-stone-700 rounded-lg flex items-center justify-center">
                             {getItemIcon(item.type)}
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
                           {item.name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-stone-500 dark:text-stone-400">
                           {item.type} • {item.color}
                         </p>
                       </div>
@@ -311,7 +314,7 @@ export default function CreateOutfitPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveItem(item.id)}
-                        className="text-gray-400 hover:text-red-600 h-8 w-8 p-0"
+                        className="text-stone-400 hover:text-red-600 h-8 w-8 p-0 rounded-full"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -323,10 +326,10 @@ export default function CreateOutfitPage() {
           )}
 
           {/* Item Selector */}
-          <Card>
+          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plus className="h-5 w-5 text-emerald-600" />
+              <CardTitle className="flex items-center gap-3 text-xl font-serif text-stone-900 dark:text-stone-100">
+                <Plus className="h-6 w-6 text-stone-600 dark:text-stone-400" />
                 Add Items from Wardrobe
               </CardTitle>
             </CardHeader>
@@ -342,18 +345,19 @@ export default function CreateOutfitPage() {
           </Card>
 
           {/* Save Button */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-4">
             <Button
               variant="outline"
               onClick={() => router.back()}
               disabled={saving}
+              className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving || !outfitName.trim() || selectedItems.length === 0}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+              className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
             >
               {saving ? (
                 <>
