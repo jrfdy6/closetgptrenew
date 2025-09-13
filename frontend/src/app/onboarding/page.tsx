@@ -752,9 +752,6 @@ export default function Onboarding() {
               <div className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
                 {quizResults.hybridStyleName?.toUpperCase() || "PERSONAL STYLE"}
               </div>
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                We've styled over 1 million outfits, and here's what we've learned: The #1 reason people stick around? The fit. When it fits right, it feels right. And when you feel right, you show up different.
-              </p>
             </div>
           </div>
           <div className="space-y-8 max-w-3xl mx-auto">
@@ -774,18 +771,6 @@ export default function Onboarding() {
               </div>
             </div>
 
-            {/* Style description */}
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-serif text-gray-900 dark:text-white">
-                You play the long game with your look.
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                The {quizResults.hybridStyleName || "Personal Style"} style adapts to any situation. You're prepared, and your style reflects that confidence. When it fits right, it feels right.
-              </p>
-              <a href="#" className="text-sm text-gray-500 dark:text-gray-400 underline hover:text-gray-700 dark:hover:text-gray-300">
-                see more
-              </a>
-            </div>
             
             <div className="text-center">
               <Link href="/dashboard">
@@ -794,12 +779,6 @@ export default function Onboarding() {
                   <ArrowRight className="ml-3 h-5 w-5 inline-block" />
                 </button>
               </Link>
-              <div className="mt-4 flex items-center justify-center space-x-2">
-                <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-400">4</span>
-                </div>
-                <span className="text-sm text-gray-500 dark:text-gray-400">classic, bold, or both—so you're always ready</span>
-              </div>
             </div>
           </div>
         </div>
