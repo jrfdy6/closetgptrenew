@@ -749,57 +749,75 @@ export default function Onboarding() {
       return acc;
     }, {} as Record<string, string>);
 
+    // Analyze visual style preferences from quiz answers
+    const stylePreferences: Record<string, number> = {};
+    answers.forEach(answer => {
+      const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+      if (question && question.type === 'visual_yesno' && answer.selected_option === 'Yes') {
+        const styleName = question.style_name;
+        if (styleName) {
+          stylePreferences[styleName] = (stylePreferences[styleName] || 0) + 1;
+        }
+      }
+    });
+
     // Creative Expression: Restrained vs Expressive
     let creativeScore = 50; // Start neutral
-    if (userAnswers.style_preference === 'Street Style' || userAnswers.style_preference === 'Bold') {
+    if (stylePreferences['Street Style'] || stylePreferences['Urban Street']) {
       creativeScore += 30; // More expressive
     }
-    if (userAnswers.style_preference === 'Classic' || userAnswers.style_preference === 'Minimalist') {
+    if (stylePreferences['Minimalist'] || stylePreferences['Clean Minimal']) {
       creativeScore -= 20; // More restrained
     }
-    if (userAnswers.color_preference === 'Bold') {
-      creativeScore += 15;
+    if (stylePreferences['Old Money'] || stylePreferences['Classic Elegant']) {
+      creativeScore -= 15; // More restrained
     }
-    if (userAnswers.color_preference === 'Neutral') {
-      creativeScore -= 15;
+    if (stylePreferences['Cottagecore'] || stylePreferences['Natural Boho']) {
+      creativeScore += 10; // Slightly more expressive
     }
     creativeScore = Math.max(10, Math.min(90, creativeScore)); // Keep between 10-90
 
     // Trend Awareness: Timeless vs Trendsetting
     let trendScore = 50; // Start neutral
-    if (userAnswers.style_preference === 'Contemporary' || userAnswers.style_preference === 'Street Style') {
+    if (stylePreferences['Street Style'] || stylePreferences['Urban Street']) {
       trendScore += 25; // More trendsetting
     }
-    if (userAnswers.style_preference === 'Classic' || userAnswers.style_preference === 'Vintage') {
+    if (stylePreferences['Classic Elegant'] || stylePreferences['Old Money']) {
       trendScore -= 25; // More timeless
     }
-    if (userAnswers.occasion_preference === 'Casual') {
+    if (stylePreferences['Minimalist'] || stylePreferences['Clean Minimal']) {
+      trendScore -= 10; // More timeless
+    }
+    if (userAnswers.daily_activities === 'Creative work and casual meetings') {
       trendScore += 10;
     }
-    if (userAnswers.occasion_preference === 'Professional') {
+    if (userAnswers.daily_activities === 'Office work and meetings') {
       trendScore -= 10;
     }
     trendScore = Math.max(10, Math.min(90, trendScore)); // Keep between 10-90
 
     // Wardrobe Flexibility: Focused vs Versatile
     let flexibilityScore = 50; // Start neutral
-    if (userAnswers.occasion_preference === 'Both') {
+    if (userAnswers.daily_activities === 'Mix of everything') {
       flexibilityScore += 30; // More versatile
     }
-    if (userAnswers.color_preference === 'Both') {
-      flexibilityScore += 20;
+    if (stylePreferences['Minimalist'] || stylePreferences['Clean Minimal']) {
+      flexibilityScore += 15; // Minimalist pieces are versatile
     }
-    if (userAnswers.color_preference === 'Neutral') {
-      flexibilityScore += 10; // Neutrals are versatile
-    }
-    if (userAnswers.style_preference === 'Contemporary') {
-      flexibilityScore += 15;
-    }
-    if (userAnswers.style_preference === 'Classic') {
+    if (stylePreferences['Classic Elegant']) {
       flexibilityScore += 10; // Classics are versatile
     }
-    if (userAnswers.occasion_preference === 'Professional') {
+    if (stylePreferences['Street Style'] || stylePreferences['Urban Street']) {
+      flexibilityScore += 5; // Street style can be versatile
+    }
+    if (userAnswers.daily_activities === 'Office work and meetings') {
       flexibilityScore -= 15; // More focused
+    }
+    if (userAnswers.style_elements === 'Clean lines and minimal details') {
+      flexibilityScore += 10; // Clean lines are versatile
+    }
+    if (userAnswers.style_elements === 'Bold and statement pieces') {
+      flexibilityScore -= 10; // Statement pieces are more focused
     }
     flexibilityScore = Math.max(10, Math.min(90, flexibilityScore)); // Keep between 10-90
 
