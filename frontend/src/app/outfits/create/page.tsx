@@ -25,7 +25,7 @@ import { useOutfits } from '@/lib/hooks/useOutfits_proper';
 import { ClothingItem } from '@/lib/services/outfitService';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import OutfitItemSelector from '@/components/OutfitItemSelector';
 
 const ITEM_TYPE_ICONS = {
@@ -71,6 +71,7 @@ export default function CreateOutfitPage() {
   const { user } = useAuthContext();
   const { items: wardrobeItems, loading: wardrobeLoading } = useWardrobe();
   const { createOutfit } = useOutfits();
+  const { toast } = useToast();
   
   const [outfitName, setOutfitName] = useState('');
   const [occasion, setOccasion] = useState('');
