@@ -849,6 +849,28 @@ export default function Onboarding() {
     try {
       const colorAnalysis = analyzeColors();
       const token = await user.getIdToken();
+      // Analyze style preferences from quiz answers
+      const stylePreferences: string[] = [];
+      const colorPreferences: string[] = [];
+      
+      answers.forEach(answer => {
+        const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+        if (question && question.type === 'visual_yesno' && answer.selected_option === 'Yes') {
+          const styleName = question.style_name;
+          if (styleName && !stylePreferences.includes(styleName)) {
+            stylePreferences.push(styleName);
+          }
+          // Extract colors from the question
+          if (question.colors) {
+            question.colors.forEach(color => {
+              if (!colorPreferences.includes(color)) {
+                colorPreferences.push(color);
+              }
+            });
+          }
+        }
+      });
+
       const response = await fetch('/api/style-quiz/submit', {
         method: 'POST',
         headers: {
@@ -857,8 +879,11 @@ export default function Onboarding() {
         },
         body: JSON.stringify({
           userId: user.uid,
+          token: token,
           answers: answers,
-          colorAnalysis: colorAnalysis
+          colorAnalysis: colorAnalysis,
+          stylePreferences: stylePreferences,
+          colorPreferences: colorPreferences
         })
       });
 
