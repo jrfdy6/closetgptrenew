@@ -41,12 +41,26 @@ export async function POST(req: NextRequest) {
       return acc;
     }, {});
 
+    // Get user info from token for proper name/email
+    let userName = 'Quiz User';
+    let userEmail = 'quiz@example.com';
+    
+    try {
+      const tokenPayload = JSON.parse(atob(submission.token.split('.')[1]));
+      userName = tokenPayload.name || tokenPayload.email?.split('@')[0] || 'Quiz User';
+      userEmail = tokenPayload.email || 'quiz@example.com';
+    } catch (e) {
+      console.warn('Could not decode token for user info:', e);
+    }
+
     // Map quiz answers to profile structure
     const profileUpdate = mapQuizAnswersToProfile(
       userAnswers, 
       submission.colorAnalysis, 
       submission.stylePreferences || [], 
-      submission.colorPreferences || []
+      submission.colorPreferences || [],
+      userName,
+      userEmail
     );
 
     console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
@@ -128,7 +142,9 @@ function mapQuizAnswersToProfile(
   userAnswers: Record<string, string>, 
   colorAnalysis: any, 
   stylePreferences: string[], 
-  colorPreferences: string[]
+  colorPreferences: string[],
+  userName: string = 'Quiz User',
+  userEmail: string = 'quiz@example.com'
 ) {
   // Calculate style personality scores based on preferences
   const stylePersonality = calculateStylePersonality(stylePreferences, userAnswers);
@@ -136,8 +152,8 @@ function mapQuizAnswersToProfile(
   // Map basic profile fields
   const profileUpdate: any = {
     // Required fields for backend
-    name: 'Quiz User', // Will be updated when we have user info
-    email: 'quiz@example.com', // Will be updated when we have user info
+    name: userName,
+    email: userEmail,
     
     // Quiz-specific fields
     gender: userAnswers.gender,
@@ -167,7 +183,8 @@ function mapQuizAnswersToProfile(
       neutral: ['black', 'white', 'gray', 'beige'],
       avoid: []
     },
-    updatedAt: Date.now()
+    createdAt: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
+    updatedAt: Math.floor(Date.now() / 1000) // Unix timestamp in seconds
   };
 
   return profileUpdate;
