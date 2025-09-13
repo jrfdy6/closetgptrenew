@@ -40,15 +40,15 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     category: "measurements",
     type: "visual",
     images: [
-      "/images/body-types/round-apple.png",
+      "/images/body-types/apple.png",
       "/images/body-types/athletic.png",
       "/images/body-types/hourglass.png",
       "/images/body-types/pear.png",
       "/images/body-types/rectangular.png",
       "/images/body-types/inverted.png",
-      "/images/body-types/plus-size.png",
-      "/images/body-types/petite.png",
-      "/images/body-types/tall.png"
+      "/images/body-types/curvy.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/athletic.png"
     ],
     gender: "female"
   },
@@ -59,15 +59,15 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
     category: "measurements",
     type: "visual",
     images: [
-      "/images/body-types/round-apple.png",
+      "/images/body-types/apple.png",
       "/images/body-types/athletic.png",
       "/images/body-types/rectangular.png",
       "/images/body-types/inverted.png",
       "/images/body-types/pear.png",
-      "/images/body-types/oval.png",
-      "/images/body-types/plus-size.png",
-      "/images/body-types/slim.png",
-      "/images/body-types/muscular.png"
+      "/images/body-types/curvy.png",
+      "/images/body-types/curvy.png",
+      "/images/body-types/athletic.png",
+      "/images/body-types/athletic.png"
     ],
     gender: "male"
   },
@@ -355,18 +355,8 @@ export default function Onboarding() {
 
   const filteredQuestions = getFilteredQuestions();
 
-  // Debug logging
-  console.log('Quiz Debug:', {
-    currentStep,
-    totalQuestions: filteredQuestions.length,
-    userGender,
-    answers: answers.length,
-    authLoading,
-    user: !!user
-  });
 
   const handleAnswer = (questionId: string, selectedOption: string) => {
-    console.log('Answer selected:', { questionId, selectedOption });
     const newAnswers = answers.filter(a => a.question_id !== questionId);
     newAnswers.push({ question_id: questionId, selected_option: selectedOption });
     setAnswers(newAnswers);
@@ -378,14 +368,12 @@ export default function Onboarding() {
   };
 
   const nextStep = () => {
-    console.log('Next step clicked:', { currentStep, totalQuestions: filteredQuestions.length });
     if (currentStep < filteredQuestions.length) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
-    console.log('Previous step clicked:', { currentStep });
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
@@ -534,7 +522,6 @@ export default function Onboarding() {
                     : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
                 }`}
                 onClick={() => {
-                  console.log('Visual option clicked:', option);
                   handleAnswer(question.id, option);
                 }}
               >
@@ -586,7 +573,6 @@ export default function Onboarding() {
                   variant={currentAnswer?.selected_option === "Yes" ? "default" : "outline"}
                   className="flex-1 h-12 text-lg"
                   onClick={() => {
-                    console.log('Yes button clicked');
                     handleAnswer(question.id, "Yes");
                   }}
                 >
@@ -596,7 +582,6 @@ export default function Onboarding() {
                   variant={currentAnswer?.selected_option === "No" ? "default" : "outline"}
                   className="flex-1 h-12 text-lg"
                   onClick={() => {
-                    console.log('No button clicked');
                     handleAnswer(question.id, "No");
                   }}
                 >
@@ -655,7 +640,6 @@ export default function Onboarding() {
               variant={currentAnswer?.selected_option === option ? "default" : "outline"}
               className="w-full h-20 text-lg justify-start text-left px-6"
               onClick={() => {
-                console.log('Text option clicked:', option);
                 handleAnswer(question.id, option);
               }}
             >
