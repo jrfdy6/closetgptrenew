@@ -67,7 +67,12 @@ export default function OutfitItemSelector({
       // Don't show items that are already selected
       const notSelected = !selectedItems.some(selected => selected.id === item.id);
       
-      return matchesSearch && matchesType && notSelected;
+      // Filter out items with broken image URLs
+      const hasValidImage = !item.imageUrl || 
+        (!item.imageUrl.includes('via.placeholder.com') && 
+         !(item.imageUrl.startsWith('data:image/') && item.imageUrl.length < 100));
+      
+      return matchesSearch && matchesType && notSelected && hasValidImage;
     });
   }, [wardrobeItems, searchQuery, selectedType, selectedItems]);
 
@@ -165,6 +170,10 @@ export default function OutfitItemSelector({
                           src={item.imageUrl}
                           alt={item.name}
                           className="w-8 h-8 rounded object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div className="w-8 h-8 bg-gray-200 rounded flex items-center justify-center">
@@ -309,6 +318,10 @@ export default function OutfitItemSelector({
                                     src={item.imageUrl}
                                     alt={item.name}
                                     className="w-6 h-6 rounded object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                    }}
                                   />
                                 ) : (
                                   <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
