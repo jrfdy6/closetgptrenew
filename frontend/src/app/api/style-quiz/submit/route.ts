@@ -51,10 +51,14 @@ export async function POST(req: NextRequest) {
 
     console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
 
-    // Save to user profile via frontend API route (which handles backend communication)
+    // Save to user profile via backend API directly
     try {
-      const frontendResponse = await fetch('/api/user/profile', {
-        method: 'POST',
+      console.log('🔍 [Quiz Submit] Attempting to save profile to backend...');
+      console.log('🔍 [Quiz Submit] Backend URL:', process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app');
+      console.log('🔍 [Quiz Submit] Token present:', !!submission.token);
+      
+      const backendResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/auth/profile`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${submission.token || ''}`
@@ -62,15 +66,30 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify(profileUpdate)
       });
 
-      if (!frontendResponse.ok) {
-        const errorText = await frontendResponse.text();
-        console.warn('Failed to save profile via frontend API:', frontendResponse.status, errorText);
+      console.log('🔍 [Quiz Submit] Backend response status:', backendResponse.status);
+      
+      if (!backendResponse.ok) {
+        const errorText = await backendResponse.text();
+        console.error('❌ Failed to save profile to backend:', backendResponse.status, errorText);
       } else {
-        const responseData = await frontendResponse.json();
-        console.log('✅ Successfully saved profile:', responseData);
+        const responseData = await backendResponse.json();
+        console.log('✅ Successfully saved profile to backend:', responseData);
       }
     } catch (apiError) {
-      console.warn('Frontend API save failed:', apiError);
+      console.error('❌ Backend save failed:', apiError);
+      
+      // Fallback: Try to save directly to Firestore
+      try {
+        console.log('🔄 [Quiz Submit] Attempting Firestore fallback...');
+        const { db } = await import('@/lib/firebase/config');
+        const { doc, setDoc } = await import('firebase/firestore');
+        
+        const userRef = doc(db, 'users', userId);
+        await setDoc(userRef, profileUpdate, { merge: true });
+        console.log('✅ Successfully saved profile to Firestore fallback');
+      } catch (firestoreError) {
+        console.error('❌ Firestore fallback also failed:', firestoreError);
+      }
     }
 
     console.log('Quiz submission processed:', {
@@ -116,6 +135,11 @@ function mapQuizAnswersToProfile(
   
   // Map basic profile fields
   const profileUpdate: any = {
+    // Required fields for backend
+    name: 'Quiz User', // Will be updated when we have user info
+    email: 'quiz@example.com', // Will be updated when we have user info
+    
+    // Quiz-specific fields
     gender: userAnswers.gender,
     bodyType: userAnswers.body_type_female || userAnswers.body_type_male || '',
     skinTone: userAnswers.skin_tone || null,
