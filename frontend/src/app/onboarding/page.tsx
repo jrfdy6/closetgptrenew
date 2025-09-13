@@ -553,12 +553,12 @@ export default function Onboarding() {
     const currentAnswer = answers.find(a => a.question_id === question.id);
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-12 animate-fade-in">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-6 leading-tight">
             {question.question}
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
             {question.type === "visual" ? "Click on the image that best represents your style" :
              question.type === "rgb_slider" ? "Drag the slider to select your skin tone" :
              "Choose the option that best describes you"}
@@ -703,18 +703,34 @@ export default function Onboarding() {
             </div>
           </div>
         ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 max-w-2xl mx-auto">
           {question.options.map((option) => (
-            <Button
+            <button
               key={option}
-              variant={currentAnswer?.selected_option === option ? "default" : "outline"}
-              className="w-full h-20 text-lg justify-start text-left px-6"
+              className={`w-full py-6 px-8 rounded-full text-lg font-medium transition-all duration-300 ${
+                currentAnswer?.selected_option === option
+                  ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-lg"
+                  : "bg-white text-gray-900 border-2 border-gray-200 hover:border-gray-300 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:border-gray-600"
+              }`}
               onClick={() => {
                 handleAnswer(question.id, option);
               }}
             >
-              {option}
-            </Button>
+              <div className="text-center">
+                <div className="font-semibold mb-1">{option}</div>
+                <div className="text-sm opacity-75">
+                  {option === 'Contemporary' ? 'minimalist, timeless pieces' :
+                   option === 'Classic' ? 'elegant, sophisticated style' :
+                   option === 'Street Style' ? 'urban, edgy fashion' :
+                   option === 'Bohemian' ? 'free-spirited, artistic vibe' :
+                   option === 'Preppy' ? 'clean, collegiate aesthetic' :
+                   option === 'Romantic' ? 'feminine, delicate details' :
+                   option === 'Athletic' ? 'sporty, functional wear' :
+                   option === 'Vintage' ? 'retro, nostalgic charm' :
+                   'sophisticated, refined look'}
+                </div>
+              </div>
+            </button>
           ))}
         </div>
         )}
@@ -743,90 +759,55 @@ export default function Onboarding() {
 
   if (quizCompleted && quizResults) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl border-0 shadow-xl text-center">
-          <CardHeader>
-            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-              <Sparkles className="h-8 w-8 text-green-600 dark:text-green-400" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-              Style Profile Complete!
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
-              We've analyzed your preferences and created a personalized style profile
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Your Style Profile</h3>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <Palette className="h-5 w-5 text-purple-500" />
-                  <span><strong>Style:</strong> {quizResults.hybridStyleName || "Personal Style"}</span>
-                </div>
-                
-                
-                {(quizResults.quizResults?.body_type || quizResults.userAnswers?.body_type_female || quizResults.userAnswers?.body_type_male) && (
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <span><strong>Body Type:</strong> {(quizResults.quizResults?.body_type || quizResults.userAnswers?.body_type_female || quizResults.userAnswers?.body_type_male || "Rectangle").replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
-                  </div>
-                )}
-                
-                {quizResults.quizResults?.style_preferences && (
-                  <div className="flex items-center space-x-3">
-                    <Heart className="h-5 w-5 text-red-500" />
-                    <span><strong>Top Styles:</strong> {Object.keys(quizResults.quizResults.style_preferences).slice(0, 3).map(style => 
-                      style.replace(/\b\w/g, l => l.toUpperCase())
-                    ).join(', ')}</span>
-                  </div>
-                )}
-                
-                {quizResults.colorAnalysis?.topColors && (
-                  <div className="flex items-center space-x-3">
-                    <Palette className="h-5 w-5 text-purple-500" />
-                    <span><strong>Your Colors:</strong> {quizResults.colorAnalysis.topColors.map(color => 
-                      color.replace(/\b\w/g, l => l.toUpperCase())
-                    ).join(', ')}</span>
-                  </div>
-                )}
-                
-                {quizResults.colorAnalysis?.likedStyles && (
-                  <div className="flex items-center space-x-3">
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    <span><strong>Liked Styles:</strong> {quizResults.colorAnalysis.likedStyles.join(', ')}</span>
-                  </div>
-                )}
-                
-                {/* Debug: Show actual user answers */}
-                {quizResults.userAnswers && (
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Your Quiz Responses:</h4>
-                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                      {Object.entries(quizResults.userAnswers).map(([key, value]) => (
-                        <div key={key}>
-                          <strong>{key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {value}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-4xl text-center">
+          <div className="mb-16">
+            <h1 className="text-5xl md:text-6xl font-serif text-gray-900 dark:text-white mb-6 leading-tight">
+              Great choice — {quizResults.hybridStyleName?.toLowerCase()}, timeless confidence
+            </h1>
+            <p className="text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
+              We've analyzed your preferences and created a personalized style profile that reflects your unique taste.
+            </p>
+          </div>
+          <div className="space-y-8 max-w-2xl mx-auto">
+            <div className="text-center space-y-4">
+              <h2 className="text-2xl font-serif text-gray-900 dark:text-white">
+                {quizResults.hybridStyleName || "Personal Style"}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                {(quizResults.quizResults?.body_type || quizResults.userAnswers?.body_type_female || quizResults.userAnswers?.body_type_male || "Rectangle").replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())} • 
+                {quizResults.colorAnalysis?.topColors?.slice(0, 3).map(color => 
+                  color.replace(/\b\w/g, l => l.toUpperCase())
+                ).join(', ') || 'Classic Colors'}
+              </p>
             </div>
             
-            <div className="space-y-3">
+            {quizResults.colorAnalysis?.likedStyles && (
+              <div className="text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Your preferred styles</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {quizResults.colorAnalysis.likedStyles.slice(0, 4).map((style, index) => (
+                    <span key={index} className="px-3 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-sm border border-gray-200 dark:border-gray-700">
+                      {style}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/dashboard">
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <button className="px-8 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100">
                   Go to Dashboard
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                  <ArrowRight className="ml-3 h-5 w-5 inline-block" />
+                </button>
               </Link>
               
               <Link href="/wardrobe">
-                <Button variant="outline" className="w-full">
+                <button className="px-8 py-4 bg-white text-gray-900 border-2 border-gray-200 rounded-full text-lg font-medium hover:border-gray-300 transition-all duration-300 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:border-gray-600">
                   View My Wardrobe
-                  <Camera className="ml-2 h-4 w-4" />
-                </Button>
+                  <Camera className="ml-3 h-5 w-5 inline-block" />
+                </button>
               </Link>
             </div>
           </CardContent>
@@ -836,35 +817,34 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl border-0 shadow-xl">
-        <CardHeader className="text-center">
-          <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
+        <div className="text-center mb-16">
+          <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mb-8">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Sparkles className="h-6 w-6 text-purple-600" />
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Style Discovery Quiz</h1>
-          </div>
+          <h1 className="text-5xl md:text-6xl font-serif text-gray-900 dark:text-white mb-6 leading-tight">
+            Your style is a signal
+          </h1>
+          <p className="text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8">
+            We help you send the right signal. When it fits right, it feels right.
+          </p>
           <div className="flex items-center justify-center space-x-2">
             {filteredQuestions.map((_, index) => (
               <div
                 key={index}
-                className={`w-3 h-3 rounded-full ${
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   index + 1 === currentStep
-                    ? "bg-purple-600"
+                    ? "bg-gray-900 dark:bg-white"
                     : index + 1 < currentStep
-                    ? "bg-green-500"
+                    ? "bg-gray-600 dark:bg-gray-400"
                     : "bg-gray-300 dark:bg-gray-600"
                 }`}
               />
             ))}
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Question {currentStep} of {filteredQuestions.length}
-          </p>
-        </CardHeader>
+        </div>
         <CardContent>
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
@@ -874,44 +854,34 @@ export default function Onboarding() {
           
           {renderQuestion()}
           
-          <div className="flex justify-between mt-8">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 1}
-              className="flex items-center"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-            
+          <div className="flex justify-center mt-12">
             {currentStep === filteredQuestions.length ? (
-              <Button
+              <button
                 onClick={submitQuiz}
                 disabled={!canProceed() || isLoading}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
               >
                 {isLoading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3 inline-block"></div>
                     Analyzing...
                   </>
                 ) : (
                   <>
                     Complete Quiz
-                    <Sparkles className="ml-2 h-4 w-4" />
+                    <ArrowRight className="h-5 w-5 ml-3 inline-block" />
                   </>
                 )}
-              </Button>
+              </button>
             ) : (
-              <Button
+              <button
                 onClick={nextStep}
                 disabled={!canProceed()}
-                className="flex items-center"
+                className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
               >
                 Next
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+                <ArrowRight className="h-5 w-5 ml-3 inline-block" />
+              </button>
             )}
           </div>
         </CardContent>
