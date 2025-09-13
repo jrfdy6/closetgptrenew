@@ -526,30 +526,29 @@ export default function Onboarding() {
                   handleAnswer(question.id, option);
                 }}
               >
-                <div className="aspect-square relative h-[140px] bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 flex items-center justify-center">
-                  <img
-                    src={question.images[index]}
-                    alt={option}
-                    className="w-full h-full object-cover rounded-t-lg"
-                    loading="eager"
-                    onLoad={(e) => {
-                      console.log('Image loaded successfully:', question.images[index]);
-                      const target = e.target as HTMLImageElement;
-                      target.style.opacity = '1';
-                    }}
-                    onError={(e) => {
-                      console.error('Image failed to load:', question.images[index]);
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
-                    style={{ opacity: 0, transition: 'opacity 0.3s ease' }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-4xl font-bold text-purple-600 dark:text-purple-400">
-                      {option.charAt(0)}
+                <div className="aspect-square relative h-[140px] bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 flex items-center justify-center rounded-t-lg">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <div className="w-16 h-16 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center">
+                      <span className="text-2xl">
+                        {option === 'Round/Apple' ? '🍎' :
+                         option === 'Athletic' ? '💪' :
+                         option === 'Hourglass' ? '⏳' :
+                         option === 'Pear' ? '🍐' :
+                         option === 'Rectangle' ? '📐' :
+                         option === 'Inverted Triangle' ? '🔺' :
+                         option === 'Oval' ? '🥚' :
+                         option === 'Plus Size' ? '❤️' :
+                         option === 'Slim' ? '🌿' :
+                         option === 'Muscular' ? '🏋️' :
+                         option === 'Petite' ? '🌸' :
+                         option === 'Tall' ? '🌲' : '👤'}
+                      </span>
+                    </div>
+                    <span className="text-xs font-medium text-purple-700 dark:text-purple-300 text-center px-2">
+                      {option}
                     </span>
                   </div>
-                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200" />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200 rounded-t-lg" />
                 </div>
                 <div className="p-3 bg-white dark:bg-gray-800 h-[60px] flex items-center justify-center">
                   <p className="text-center font-medium text-gray-900 dark:text-white text-sm">
