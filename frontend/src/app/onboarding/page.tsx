@@ -309,13 +309,21 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
 export default function Onboarding() {
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResults, setQuizResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { user, loading: authLoading } = useAuthContext();
+
+  // Set loading to false after component mounts to prevent layout shift
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -512,11 +520,23 @@ export default function Onboarding() {
             {(question.id === "body_type_female" || question.id === "body_type_male") && (
               <BodyPositiveMessage variant="profile" className="mb-4" />
             )}
-            <div className="grid grid-cols-2 gap-4">
-              {question.options.map((option, index) => (
+            {isLoading ? (
+              <div className="grid grid-cols-2 gap-4 min-h-[400px]">
+                {Array.from({ length: 9 }).map((_, index) => (
+                  <div key={index} className="h-[200px] bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse">
+                    <div className="h-[140px] bg-gray-300 dark:bg-gray-600 rounded-t-lg"></div>
+                    <div className="h-[60px] bg-gray-200 dark:bg-gray-700 rounded-b-lg flex items-center justify-center">
+                      <div className="h-4 w-20 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 min-h-[400px]">
+                {question.options.map((option, index) => (
               <div
                 key={option}
-                className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-300 h-[200px] ${
                   currentAnswer?.selected_option === option
                     ? "border-purple-600 ring-2 ring-purple-200 dark:ring-purple-800"
                     : "border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
@@ -525,11 +545,12 @@ export default function Onboarding() {
                   handleAnswer(question.id, option);
                 }}
               >
-                <div className="aspect-square relative">
+                <div className="aspect-square relative h-[140px]">
                   <img
                     src={question.images[index]}
                     alt={option}
                     className="w-full h-full object-cover"
+                    loading="eager"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.src = "/placeholder.png";
@@ -537,14 +558,15 @@ export default function Onboarding() {
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200" />
                 </div>
-                <div className="p-4 bg-white dark:bg-gray-800">
-                  <p className="text-center font-medium text-gray-900 dark:text-white">
+                <div className="p-3 bg-white dark:bg-gray-800 h-[60px] flex items-center justify-center">
+                  <p className="text-center font-medium text-gray-900 dark:text-white text-sm">
                     {option}
                   </p>
                 </div>
               </div>
             ))}
-            </div>
+              </div>
+            )}
           </div>
         ) : question.type === "visual_yesno" && question.images ? (
           <div className="space-y-6">
