@@ -417,6 +417,52 @@ export default function Onboarding() {
     };
   };
 
+  const generateStyleName = () => {
+    const userAnswers = answers.reduce((acc, answer) => {
+      acc[answer.question_id] = answer.selected_option;
+      return acc;
+    }, {} as Record<string, string>);
+
+    // Analyze style preferences from answers
+    const styleScores: Record<string, number> = {};
+    
+    // Count style preferences from visual questions
+    answers.forEach(answer => {
+      const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+      if (question && question.type === 'visual_yesno' && answer.selected_option === 'Yes') {
+        // Extract style from question id or style_name
+        const styleName = question.style_name || question.id.replace('style_item_', '').replace(/_[fm]_\d+/, '');
+        if (styleName) {
+          styleScores[styleName] = (styleScores[styleName] || 0) + 1;
+        }
+      }
+    });
+
+    // Get top 2 styles
+    const topStyles = Object.entries(styleScores)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 2)
+      .map(([style]) => style);
+
+    if (topStyles.length >= 2) {
+      return `${topStyles[0]} ${topStyles[1]}`;
+    } else if (topStyles.length === 1) {
+      return topStyles[0];
+    } else {
+      // Fallback based on other answers
+      const gender = userAnswers.gender;
+      const bodyType = userAnswers.body_type_female || userAnswers.body_type_male;
+      
+      if (bodyType === 'Athletic') return 'Athletic Chic';
+      if (bodyType === 'Hourglass') return 'Classic Elegant';
+      if (bodyType === 'Pear') return 'Sophisticated Style';
+      if (bodyType === 'Rectangle') return 'Modern Minimalist';
+      if (bodyType === 'Round/Apple') return 'Comfortable Classic';
+      
+      return 'Personal Style';
+    }
+  };
+
   const submitQuiz = async () => {
     if (!user) {
       setError('Please sign in to complete the quiz');
@@ -447,6 +493,7 @@ export default function Onboarding() {
         setQuizCompleted(true);
         setQuizResults({
           ...data,
+          hybridStyleName: generateStyleName(), // Override with generated style name
           colorAnalysis: colorAnalysis
         });
       } else {
@@ -464,7 +511,7 @@ export default function Onboarding() {
       
       setQuizCompleted(true);
       setQuizResults({
-        hybridStyleName: "Personal Style",
+        hybridStyleName: generateStyleName(),
         quizResults: {
           aesthetic_scores: { "classic": 0.6, "sophisticated": 0.4 },
           color_season: userAnswers.skin_tone || "warm_spring",
