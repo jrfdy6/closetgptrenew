@@ -79,6 +79,8 @@ class OutfitService {
         }).filter(([_, value]) => value !== undefined)
       );
       
+      console.log('🔍 [OutfitService] Filtered update data:', updateData);
+      
       await updateDoc(outfitRef, updateData);
       
       // Get the updated outfit
