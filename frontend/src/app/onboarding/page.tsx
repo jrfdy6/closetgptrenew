@@ -495,17 +495,17 @@ export default function Onboarding() {
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
       // Show cup size only for females
-      if (question.id === 'cup_size' && currentGender && currentGender.toLowerCase() !== 'female') {
+      if (question.id === 'cup_size' && currentGender && currentGender !== 'Female') {
         console.log('❌ [Filter] Filtering out cup_size for non-female');
         return false;
       }
       
       // Show gender-specific body type questions
-      if (question.id === 'body_type_female' && currentGender && currentGender.toLowerCase() !== 'female') {
+      if (question.id === 'body_type_female' && currentGender && currentGender !== 'Female') {
         console.log('❌ [Filter] Filtering out body_type_female for non-female');
         return false;
       }
-      if (question.id === 'body_type_male' && currentGender && currentGender.toLowerCase() !== 'male') {
+      if (question.id === 'body_type_male' && currentGender && currentGender !== 'Male') {
         console.log('❌ [Filter] Filtering out body_type_male for non-male');
         return false;
       }
@@ -513,16 +513,16 @@ export default function Onboarding() {
       // For non-binary and "prefer not to say" users, show BOTH male and female style questions
       // For specific gender users, show only their gender's style questions
       if (question.id.startsWith('style_item_f_') && currentGender && 
-          currentGender.toLowerCase() !== 'female' && 
-          currentGender.toLowerCase() !== 'non-binary' && 
-          currentGender.toLowerCase() !== 'prefer not to say') {
+          currentGender !== 'Female' && 
+          currentGender !== 'Non-binary' && 
+          currentGender !== 'Prefer not to say') {
         console.log('❌ [Filter] Filtering out', question.id, 'for non-female');
         return false;
       }
       if (question.id.startsWith('style_item_m_') && currentGender && 
-          currentGender.toLowerCase() !== 'male' && 
-          currentGender.toLowerCase() !== 'non-binary' && 
-          currentGender.toLowerCase() !== 'prefer not to say') {
+          currentGender !== 'Male' && 
+          currentGender !== 'Non-binary' && 
+          currentGender !== 'Prefer not to say') {
         console.log('❌ [Filter] Filtering out', question.id, 'for non-male');
         return false;
       }
