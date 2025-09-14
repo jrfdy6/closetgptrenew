@@ -587,8 +587,8 @@ export default function ProfilePage() {
                 {(() => {
                   // Prioritize created_at over createdAt since created_at is the newer field
                   const timestamp = profile.created_at || profile.createdAt || 0;
-                  // If timestamp is very large (Unix timestamp in seconds), multiply by 1000
-                  // If timestamp is already in milliseconds, use as is
+                  // created_at is always Unix timestamp in seconds, so multiply by 1000
+                  // createdAt might be in milliseconds, so check if it's very large
                   const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
                   return date.toLocaleDateString();
                 })()}
@@ -600,8 +600,8 @@ export default function ProfilePage() {
                 {(() => {
                   // Prioritize updated_at over updatedAt since updated_at is the newer field
                   const timestamp = profile.updated_at || profile.updatedAt || 0;
-                  // If timestamp is very large (Unix timestamp in seconds), multiply by 1000
-                  // If timestamp is already in milliseconds, use as is
+                  // updated_at is always Unix timestamp in seconds, so multiply by 1000
+                  // updatedAt might be in milliseconds, so check if it's very large
                   const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
                   return date.toLocaleDateString();
                 })()}
