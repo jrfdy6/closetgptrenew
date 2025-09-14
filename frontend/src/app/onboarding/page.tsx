@@ -454,7 +454,23 @@ export default function Onboarding() {
   const [isLoading, setIsLoading] = useState(false);
   const [userGender, setUserGender] = useState<string | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  
+  // Debug: Track when quizCompleted changes
+  useEffect(() => {
+    console.log('🎯 [Quiz State] quizCompleted changed to:', quizCompleted);
+    if (quizCompleted) {
+      console.log('🎯 [Quiz State] Quiz completed! Stack trace:', new Error().stack);
+    }
+  }, [quizCompleted]);
   const [quizResults, setQuizResults] = useState<any>(null);
+  
+  // Debug: Track when quizResults changes
+  useEffect(() => {
+    console.log('🎯 [Quiz State] quizResults changed to:', !!quizResults);
+    if (quizResults) {
+      console.log('🎯 [Quiz State] Quiz results set! Stack trace:', new Error().stack);
+    }
+  }, [quizResults]);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
