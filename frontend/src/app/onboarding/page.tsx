@@ -473,25 +473,32 @@ export default function Onboarding() {
   // Filter questions based on gender
   const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
     const currentGender = genderOverride || userGender;
+    console.log('🔍 [getFilteredQuestions] Called with genderOverride:', genderOverride, 'userGender:', userGender, 'currentGender:', currentGender);
+    
     const filtered = QUIZ_QUESTIONS.filter(question => {
       // Show cup size only for females
       if (question.id === 'cup_size' && currentGender && currentGender !== 'female') {
+        console.log('❌ [Filter] Filtering out cup_size for non-female');
         return false;
       }
       
       // Show gender-specific body type questions
       if (question.id === 'body_type_female' && currentGender && currentGender !== 'female') {
+        console.log('❌ [Filter] Filtering out body_type_female for non-female');
         return false;
       }
       if (question.id === 'body_type_male' && currentGender && currentGender !== 'male') {
+        console.log('❌ [Filter] Filtering out body_type_male for non-male');
         return false;
       }
       
       // Show gender-specific style questions
       if (question.id.startsWith('style_item_f_') && currentGender && currentGender !== 'female') {
+        console.log('❌ [Filter] Filtering out', question.id, 'for non-female');
         return false;
       }
       if (question.id.startsWith('style_item_m_') && currentGender && currentGender !== 'male') {
+        console.log('❌ [Filter] Filtering out', question.id, 'for non-male');
         return false;
       }
       
@@ -515,10 +522,12 @@ export default function Onboarding() {
 
   React.useEffect(() => {
     console.log('🔄 [useEffect] Recalculating questions with gender:', userGender);
+    console.log('🔄 [useEffect] userGender type:', typeof userGender, 'value:', userGender);
     const newQuestions = getFilteredQuestions(userGender);
     console.log('🔄 [useEffect] Result:', {
       totalQuestions: newQuestions.length,
-      visualYesNoCount: newQuestions.filter(q => q.type === 'visual_yesno').length
+      visualYesNoCount: newQuestions.filter(q => q.type === 'visual_yesno').length,
+      questionIds: newQuestions.map(q => q.id)
     });
     setQuestions(newQuestions);
   }, [userGender]);
