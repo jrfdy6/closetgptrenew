@@ -46,9 +46,11 @@ export async function POST(req: NextRequest) {
     let userEmail = 'quiz@example.com';
     
     try {
-      const tokenPayload = JSON.parse(atob(submission.token.split('.')[1]));
+      const tokenPayload = decodeFirebaseToken(submission.token);
+      console.log('🔍 [Quiz Submit] Token payload:', tokenPayload);
       userName = tokenPayload.name || tokenPayload.email?.split('@')[0] || 'Quiz User';
       userEmail = tokenPayload.email || 'quiz@example.com';
+      console.log('🔍 [Quiz Submit] Extracted user info:', { userName, userEmail });
     } catch (e) {
       console.warn('Could not decode token for user info:', e);
     }
@@ -67,6 +69,11 @@ export async function POST(req: NextRequest) {
     console.log('🔍 [Quiz Submit] User answers count:', Object.keys(userAnswers).length);
     console.log('🔍 [Quiz Submit] Style preferences:', submission.stylePreferences);
     console.log('🔍 [Quiz Submit] Color preferences:', submission.colorPreferences);
+    console.log('🔍 [Quiz Submit] User info being saved:', { 
+      name: profileUpdate.name, 
+      email: profileUpdate.email,
+      userId: profileUpdate.userId 
+    });
 
     // Save to user profile via backend API directly
     try {
