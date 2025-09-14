@@ -129,6 +129,8 @@ async def update_user_profile(
             update_data['budget'] = profile_data['budget']
         if 'avatar_url' in profile_data:
             update_data['avatar_url'] = profile_data['avatar_url']
+        if 'stylePersona' in profile_data:
+            update_data['stylePersona'] = profile_data['stylePersona']
         
         # Use set() instead of update() to create the document if it doesn't exist
         user_ref.set(update_data, merge=True)
