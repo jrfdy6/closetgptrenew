@@ -94,11 +94,17 @@ async def update_user_profile(
         current_time = int(time.time())
         final_updated_at = frontend_updated_at or current_time
         
+        # Also check for createdAt/created_at
+        frontend_created_at = profile_data.get('created_at') or profile_data.get('createdAt')
+        final_created_at = frontend_created_at or current_time
+        
         logger.info(f"🔍 DEBUG: Timestamp handling - frontend_updated_at: {frontend_updated_at}, current_time: {current_time}, final_updated_at: {final_updated_at}")
+        logger.info(f"🔍 DEBUG: Profile data keys: {list(profile_data.keys())}")
         
         update_data = {
             'name': profile_data.get('name'),
             'email': profile_data.get('email'),
+            'created_at': final_created_at,  # Use frontend timestamp if available
             'updated_at': final_updated_at  # Use frontend timestamp if available
         }
         
