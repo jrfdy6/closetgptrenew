@@ -805,6 +805,9 @@ export default function Onboarding() {
       ]
     };
     
+    console.log('🎨 [Style Examples] Available personas:', Object.keys(styleExamples));
+    console.log('🎨 [Style Examples] Selected examples:', styleExamples[personaId]);
+    
     return styleExamples[personaId] || [
       { url: "/images/style-examples/default/example-1.jpg", caption: "Style Example" },
       { url: "/images/style-examples/default/example-2.jpg", caption: "Style Example" },
@@ -1498,7 +1501,14 @@ export default function Onboarding() {
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-6">
-                  <div className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" style={{backgroundColor: `rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 2.55)})`}}></div>
+                  <div 
+                    className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" 
+                    style={{
+                      backgroundColor: `rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)})`,
+                      background: `linear-gradient(135deg, rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)}), rgb(${Math.round(skinTone * 2.2)}, ${Math.round(skinTone * 1.5)}, ${Math.round(skinTone * 1.0)}))`
+                    }}
+                    title={`Skin tone: ${skinTone} (RGB: ${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)})`}
+                  ></div>
                   <p className="text-lg text-gray-600 dark:text-gray-400">Your skin tone</p>
                 </div>
                 <input
