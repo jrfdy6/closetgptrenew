@@ -511,7 +511,17 @@ export default function Onboarding() {
     return filtered;
   };
 
-  const questions = React.useMemo(() => getFilteredQuestions(), [userGender]);
+  const [questions, setQuestions] = React.useState<QuizQuestion[]>(() => getFilteredQuestions());
+
+  React.useEffect(() => {
+    console.log('🔄 [useEffect] Recalculating questions with gender:', userGender);
+    const newQuestions = getFilteredQuestions();
+    console.log('🔄 [useEffect] Result:', {
+      totalQuestions: newQuestions.length,
+      visualYesNoCount: newQuestions.filter(q => q.type === 'visual_yesno').length
+    });
+    setQuestions(newQuestions);
+  }, [userGender]);
 
   const nextStep = () => {
     if (currentQuestionIndex < questions.length - 1) {
