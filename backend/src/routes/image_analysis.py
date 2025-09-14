@@ -726,4 +726,66 @@ async def analyze_batch_images_legacy(
         )
         log_analytics_event(analytics_event)
         
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate-image-hash")
+async def generate_image_hash(
+    image_url: str,
+    current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
+):
+    """
+    Generate image hash and metadata for duplicate detection
+    """
+    try:
+        if not image_url:
+            raise HTTPException(status_code=400, detail="Image URL is required")
+        
+        # Download image to temporary file
+        response = requests.get(image_url)
+        response.raise_for_status()
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            temp_file.write(response.content)
+            temp_path = temp_file.name
+        
+        try:
+            # Open image and get metadata
+            with Image.open(temp_path) as img:
+                # Generate a simple hash based on image data
+                img_data = img.getdata()
+                hash_value = ""
+                
+                # Sample pixels for performance (every 10th pixel)
+                for i in range(0, len(img_data), 10):
+                    pixel = img_data[i]
+                    if isinstance(pixel, tuple) and len(pixel) >= 3:
+                        r, g, b = pixel[:3]
+                        hash_value += f"{r:02x}{g:02x}{b:02x}"
+                    else:
+                        hash_value += f"{pixel:02x}"
+                
+                # Truncate hash to reasonable length
+                hash_value = hash_value[:64]
+                
+                # Get image metadata
+                metadata = {
+                    "width": img.width,
+                    "height": img.height,
+                    "aspectRatio": img.width / img.height,
+                    "fileSize": len(response.content),
+                    "format": img.format,
+                    "mode": img.mode
+                }
+                
+                return {
+                    "imageHash": hash_value,
+                    "metadata": metadata
+                }
+                
+        finally:
+            # Clean up temporary file
+            os.unlink(temp_path)
+            
+    except Exception as e:
+        print(f"❌ Error generating image hash: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

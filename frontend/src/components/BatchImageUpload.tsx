@@ -107,85 +107,206 @@ const uploadImageToFirebaseStorage = async (file: File, userId: string, user: an
   }
 };
 
-// Helper function to check for duplicate items
-const checkForDuplicates = async (file: File, existingItems: any[]): Promise<boolean> => {
-  // Simple duplicate detection based on file name and size
-  // In a more sophisticated implementation, you could use image hashing
+// Helper function to generate image hash and metadata using backend
+const generateImageHashAndMetadata = async (file: File, user: any): Promise<{
+  imageHash: string;
+  metadata: {
+    width: number;
+    height: number;
+    aspectRatio: number;
+    fileSize: number;
+    lastModified: number;
+    type: string;
+  };
+}> => {
+  try {
+    // First upload the file to get a URL
+    const imageUrl = await uploadImageToFirebaseStorage(file, user.uid, user);
+    
+    // Then call backend to generate hash and metadata
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const response = await fetch(`${backendUrl}/generate-image-hash`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${await user.getIdToken()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ image_url: imageUrl }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate image hash');
+    }
+
+    const result = await response.json();
+    
+    // Add client-side metadata
+    const clientMetadata = {
+      width: result.metadata.width,
+      height: result.metadata.height,
+      aspectRatio: result.metadata.aspectRatio,
+      fileSize: file.size,
+      lastModified: file.lastModified,
+      type: file.type
+    };
+
+    return {
+      imageHash: result.imageHash,
+      metadata: clientMetadata
+    };
+  } catch (error) {
+    console.error('Failed to generate image hash via backend, falling back to client-side:', error);
+    
+    // Fallback to client-side generation
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Create a small thumbnail for hashing
+        const size = 32;
+        canvas.width = size;
+        canvas.height = size;
+        
+        // Draw image to canvas
+        ctx?.drawImage(img, 0, 0, size, size);
+        
+        // Get image data
+        const imageData = ctx?.getImageData(0, 0, size, size);
+        if (!imageData) {
+          reject(new Error('Could not get image data'));
+          return;
+        }
+        
+        // Simple hash based on pixel data
+        let hash = '';
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          // Use only RGB values, skip alpha
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          // Create a simple hash from RGB values
+          hash += ((r + g + b) % 16).toString(16);
+        }
+        
+        resolve({
+          imageHash: hash,
+          metadata: {
+            width: img.width,
+            height: img.height,
+            aspectRatio: img.width / img.height,
+            fileSize: file.size,
+            lastModified: file.lastModified,
+            type: file.type
+          }
+        });
+      };
+      
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+};
+
+// Helper function to check for duplicate items using multiple methods
+const checkForDuplicates = async (file: File, existingItems: any[], user: any): Promise<boolean> => {
   const fileName = file.name.toLowerCase();
   const fileSize = file.size;
   
   console.log('🔍 Checking for duplicates:', {
     fileName,
     fileSize,
-    existingItemsCount: existingItems.length,
-    existingItems: existingItems.map(item => ({
-      id: item.id,
-      name: item.name,
-      imageUrl: item.imageUrl,
-      hasImageUrl: !!item.imageUrl
-    }))
+    existingItemsCount: existingItems.length
   });
   
-  // Extract base filename once outside the callback
-  const baseFileName = fileName.split('.')[0];
-  
-  const isDuplicate = existingItems.some(item => {
-    // Check if the item has an imageUrl (from Firebase Storage)
-    if (item.imageUrl) {
-      // Extract filename from Firebase Storage URL
-      const urlParts = item.imageUrl.split('/');
-      const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
-      
-      // Compare filenames (without extension) and file sizes
-      const baseExistingFileName = existingFileName.split('.')[0];
-      
-      // Check if the original filename is in the URL (Firebase might preserve it)
-      const urlContainsOriginalName = item.imageUrl.toLowerCase().includes(baseFileName);
-      
-      // More flexible name matching - check if the base filename is contained in the existing filename
-      const nameMatch = baseFileName === baseExistingFileName || 
+  try {
+    // Generate image hash and metadata for the new file using backend
+    const { imageHash, metadata } = await generateImageHashAndMetadata(file, user);
+    
+    console.log('🔍 Generated hash and metadata:', {
+      imageHash: imageHash.substring(0, 16) + '...',
+      metadata
+    });
+    
+    // Extract base filename
+    const baseFileName = fileName.split('.')[0];
+    
+    const isDuplicate = existingItems.some(item => {
+      // Method 1: Filename matching (existing logic)
+      let filenameMatch = false;
+      if (item.imageUrl) {
+        const urlParts = item.imageUrl.split('/');
+        const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
+        const baseExistingFileName = existingFileName.split('.')[0];
+        const urlContainsOriginalName = item.imageUrl.toLowerCase().includes(baseFileName);
+        
+        filenameMatch = baseFileName === baseExistingFileName || 
                        urlContainsOriginalName ||
                        baseExistingFileName.includes(baseFileName) ||
                        baseFileName.includes(baseExistingFileName);
+      } else if (item.name) {
+        filenameMatch = item.name.toLowerCase().includes(baseFileName) || 
+                       baseFileName.includes(item.name.toLowerCase());
+      }
       
-      // More flexible size matching - allow up to 5KB difference for compression
+      // Method 2: File size matching (with tolerance)
       const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 5000;
+      
+      // Method 3: Image metadata matching
+      let metadataMatch = false;
+      if (item.metadata) {
+        const existingMeta = item.metadata;
+        const widthMatch = Math.abs((existingMeta.width || 0) - metadata.width) < 10;
+        const heightMatch = Math.abs((existingMeta.height || 0) - metadata.height) < 10;
+        const aspectRatioMatch = Math.abs((existingMeta.aspectRatio || 0) - metadata.aspectRatio) < 0.01;
+        const typeMatch = existingMeta.type === metadata.type;
+        
+        metadataMatch = widthMatch && heightMatch && aspectRatioMatch && typeMatch;
+      }
+      
+      // Method 4: Image hash matching (most accurate)
+      let hashMatch = false;
+      if (item.imageHash) {
+        // Compare first 32 characters of hash for performance
+        hashMatch = item.imageHash.substring(0, 32) === imageHash.substring(0, 32);
+      }
       
       console.log('🔍 Comparing with existing item:', {
         itemName: item.name,
-        existingFileName,
-        baseFileName,
-        baseExistingFileName,
-        urlContainsOriginalName,
-        nameMatch,
+        filenameMatch,
         sizeMatch,
-        itemFileSize: item.fileSize,
-        newFileSize: fileSize,
-        imageUrl: item.imageUrl
+        metadataMatch,
+        hashMatch,
+        existingHash: item.imageHash ? item.imageHash.substring(0, 16) + '...' : 'none',
+        newHash: imageHash.substring(0, 16) + '...'
       });
       
-      return nameMatch && sizeMatch;
-    }
+      // Consider it a duplicate if any method matches
+      return filenameMatch || (sizeMatch && metadataMatch) || hashMatch;
+    });
     
-    // Fallback: check by item name if no imageUrl
-    if (item.name) {
-      const itemNameMatch = item.name.toLowerCase().includes(baseFileName) || 
-                           baseFileName.includes(item.name.toLowerCase());
-      
-      console.log('🔍 Fallback comparison by name:', {
-        itemName: item.name,
-        baseFileName,
-        itemNameMatch
-      });
-      
-      return itemNameMatch;
-    }
+    console.log('🔍 Duplicate check result:', isDuplicate);
+    return isDuplicate;
     
-    return false;
-  });
-  
-  console.log('🔍 Duplicate check result:', isDuplicate);
-  return isDuplicate;
+  } catch (error) {
+    console.error('🔍 Error during duplicate check:', error);
+    // Fallback to simple filename matching if hash generation fails
+    const baseFileName = fileName.split('.')[0];
+    return existingItems.some(item => {
+      if (item.imageUrl) {
+        const urlParts = item.imageUrl.split('/');
+        const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
+        const baseExistingFileName = existingFileName.split('.')[0];
+        return baseFileName === baseExistingFileName || 
+               item.imageUrl.toLowerCase().includes(baseFileName) ||
+               baseExistingFileName.includes(baseFileName) ||
+               baseFileName.includes(baseExistingFileName);
+      }
+      return false;
+    });
+  }
 };
 
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
@@ -229,6 +350,11 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
   }, [user]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (!user) {
+      console.error('User not authenticated for duplicate check');
+      return;
+    }
+
     // Fetch existing items if not already loaded
     let itemsToCheck = existingItems;
     if (existingItems.length === 0) {
@@ -256,7 +382,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
     const newItems: UploadItem[] = [];
     
     for (const file of acceptedFiles) {
-      const isDuplicate = await checkForDuplicates(file, itemsToCheck);
+      const isDuplicate = await checkForDuplicates(file, itemsToCheck, user);
       
       newItems.push({
         id: `${Date.now()}-${Math.random()}`,
@@ -392,6 +518,9 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
             const imageUrl = await uploadImageToFirebaseStorage(item.file, user.uid, user);
             console.log(`✅ Image uploaded to Firebase Storage: ${imageUrl}`);
 
+            // Generate hash and metadata for the uploaded item
+            const { imageHash, metadata } = await generateImageHashAndMetadata(item.file, user);
+            
             const clothingItem = {
               id: `item-${Date.now()}-${i}`,
               name: result.analysis.name || result.analysis.clothing_type || 'Analyzed Item',
@@ -401,6 +530,10 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               userId: user.uid,
               createdAt: new Date().toISOString(),
               analysis: result.analysis,
+              // Add duplicate detection fields
+              imageHash: imageHash,
+              metadata: metadata,
+              fileSize: item.file.size,
               // Add other required fields
               brand: result.analysis.brand || '',
               style: result.analysis.style || '',
