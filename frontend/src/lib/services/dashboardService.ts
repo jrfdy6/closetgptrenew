@@ -60,6 +60,9 @@ export interface WardrobeGap {
   description: string;
   priority: 'high' | 'medium' | 'low';
   suggestedItems: string[];
+  currentCount: number;
+  recommendedCount: number;
+  gapSize: number;
 }
 
 export interface TopItem {
@@ -781,7 +784,10 @@ class DashboardService {
           category: categoryName,
           description: `${config.description} (${count}/${config.minRequired} items, ${percentage}% of wardrobe)`,
           priority: config.priority as 'high' | 'medium' | 'low',
-          suggestedItems: config.items.slice(0, 3) // Suggest top 3 item types
+          suggestedItems: config.items.slice(0, 3), // Suggest top 3 item types
+          currentCount: count,
+          recommendedCount: config.minRequired,
+          gapSize: config.minRequired - count
         });
       }
     });
@@ -807,23 +813,31 @@ class DashboardService {
     
     // Winter items (warm clothing) - using actual item types
     const winterItems = (categories['sweater'] || 0) + (categories['jacket'] || 0);
-    if (winterItems < 5) { // Adjusted threshold based on actual counts (9 sweaters + 12 jackets = 21)
+    const winterTarget = 5;
+    if (winterItems < winterTarget) { // Adjusted threshold based on actual counts (9 sweaters + 12 jackets = 21)
       gaps.push({
         category: 'Seasonal Coverage',
         description: `Limited winter clothing (${winterItems} items) - consider sweaters or jackets`,
         priority: 'medium',
-        suggestedItems: ['sweater', 'jacket']
+        suggestedItems: ['sweater', 'jacket'],
+        currentCount: winterItems,
+        recommendedCount: winterTarget,
+        gapSize: winterTarget - winterItems
       });
     }
     
     // Summer items (light clothing) - using actual item types
     const summerItems = (categories['shorts'] || 0) + (categories['shirt'] || 0); // shirts can be summer wear
-    if (summerItems < 20) { // Adjusted threshold based on actual counts (6 shorts + 57 shirts = 63)
+    const summerTarget = 20;
+    if (summerItems < summerTarget) { // Adjusted threshold based on actual counts (6 shorts + 57 shirts = 63)
       gaps.push({
         category: 'Seasonal Coverage',
         description: `Limited summer clothing (${summerItems} items) - consider shorts or lightweight shirts`,
         priority: 'medium',
-        suggestedItems: ['shorts', 'shirt']
+        suggestedItems: ['shorts', 'shirt'],
+        currentCount: summerItems,
+        recommendedCount: summerTarget,
+        gapSize: summerTarget - summerItems
       });
     }
     
@@ -886,22 +900,30 @@ class DashboardService {
     console.log('🔍 DEBUG: Sample formal items found:', formalSample.map(item => ({name: item.name, style: item.style})));
     
     // Check for formal wear gaps
-    if (formalItems < 3) {
+    const formalTarget = 3;
+    if (formalItems < formalTarget) {
       gaps.push({
         category: 'Style Variety',
         description: `Limited formal wear (${formalItems} items) - consider blazers, dress pants, or dress shirts`,
         priority: 'low',
-        suggestedItems: ['blazer', 'dress_pants', 'dress_shirt']
+        suggestedItems: ['blazer', 'dress_pants', 'dress_shirt'],
+        currentCount: formalItems,
+        recommendedCount: formalTarget,
+        gapSize: formalTarget - formalItems
       });
     }
     
     // Check for casual wear gaps (adjusted threshold)
-    if (casualItems < 20) {
+    const casualTarget = 20;
+    if (casualItems < casualTarget) {
       gaps.push({
         category: 'Style Variety',
         description: `Limited casual wear (${casualItems} items) - consider more casual shirts, pants, or shoes`,
         priority: 'medium',
-        suggestedItems: ['shirt', 'pants', 'shoes']
+        suggestedItems: ['shirt', 'pants', 'shoes'],
+        currentCount: casualItems,
+        recommendedCount: casualTarget,
+        gapSize: casualTarget - casualItems
       });
     }
     
@@ -913,12 +935,16 @@ class DashboardService {
     const colors = wardrobeStats.colors || {};
     const uniqueColors = Object.keys(colors);
     
-    if (uniqueColors.length < 5) {
+    const colorTarget = 5;
+    if (uniqueColors.length < colorTarget) {
       gaps.push({
         category: 'Color Variety',
         description: `Limited color variety (${uniqueColors.length} colors) - consider adding more colorful pieces`,
         priority: 'low',
-        suggestedItems: ['Colorful tops', 'Patterned items', 'Accent pieces']
+        suggestedItems: ['Colorful tops', 'Patterned items', 'Accent pieces'],
+        currentCount: uniqueColors.length,
+        recommendedCount: colorTarget,
+        gapSize: colorTarget - uniqueColors.length
       });
     }
     
@@ -930,7 +956,10 @@ class DashboardService {
         category: 'Color Variety',
         description: 'Missing neutral base colors - consider black, white, gray, or navy pieces',
         priority: 'medium',
-        suggestedItems: ['Black basics', 'White shirts', 'Gray sweaters', 'Navy pants']
+        suggestedItems: ['Black basics', 'White shirts', 'Gray sweaters', 'Navy pants'],
+        currentCount: 0,
+        recommendedCount: 1,
+        gapSize: 1
       });
     }
     

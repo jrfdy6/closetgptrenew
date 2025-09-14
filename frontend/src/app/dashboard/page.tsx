@@ -21,7 +21,9 @@ import {
   ArrowRight,
   AlertCircle,
   Info,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  X
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -40,12 +42,18 @@ const ForgottenGems = dynamic(() => import('@/components/ForgottenGems'), {
   loading: () => <div className="animate-pulse space-y-4">Loading forgotten gems...</div>
 });
 
+const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse space-y-4">Loading upload component...</div>
+});
+
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
+  const [showBatchUpload, setShowBatchUpload] = useState(false);
   const { user, loading } = useAuthContext();
 
   // Fetch real dashboard data
@@ -206,12 +214,13 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-6 mb-12">
-          <Link href="/outfits">
-            <Button variant="outline" className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105">
-              <Palette className="w-5 h-5 mr-3" />
-              View All Outfits
-            </Button>
-          </Link>
+          <Button 
+            onClick={() => setShowBatchUpload(true)}
+            className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+          >
+            <Upload className="w-5 h-5 mr-3" />
+            Add Items with AI
+          </Button>
         </div>
 
         {/* Quick Stats */}
@@ -723,6 +732,35 @@ export default function Dashboard() {
             <ForgottenGems />
           </CardContent>
         </Card>
+
+        {/* Batch Upload Modal */}
+        {showBatchUpload && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-serif text-gray-900 dark:text-white">Add Items with AI</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowBatchUpload(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              <div className="p-6">
+                <BatchImageUpload 
+                  userId={user?.uid || ''}
+                  onUploadComplete={() => {
+                    setShowBatchUpload(false);
+                    // Refresh dashboard data to show new items
+                    fetchDashboardData();
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
