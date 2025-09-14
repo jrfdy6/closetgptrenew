@@ -444,7 +444,9 @@ export default function ProfilePage() {
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-sm text-muted-foreground capitalize">{profile.stylePreferences?.[0]}</p>
+                <p className="text-sm text-muted-foreground capitalize">
+                  {profile.stylePersona?.name || profile.stylePreferences?.[0] || 'Not specified'}
+                </p>
               )}
             </div>
             {profile.stylePreferences && profile.stylePreferences.length > 1 && (
@@ -523,44 +525,6 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Style Persona */}
-        {profile.stylePersona && (
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
-            <CardHeader className="pb-6">
-              <CardTitle className="flex items-center text-xl font-serif text-stone-900 dark:text-stone-100">
-                <Sparkles className="h-6 w-6 mr-3 text-stone-600 dark:text-stone-400" />
-                Your Style Persona
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center">
-                <h3 className="text-2xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-2">
-                  {profile.stylePersona.name}
-                </h3>
-                <p className="text-lg text-stone-600 dark:text-stone-400 italic mb-4">
-                  {profile.stylePersona.tagline}
-                </p>
-                <p className="text-stone-700 dark:text-stone-300 leading-relaxed mb-6">
-                  {profile.stylePersona.description}
-                </p>
-                
-                {profile.stylePersona.traits && profile.stylePersona.traits.length > 0 && (
-                  <div className="space-y-3">
-                    <Label className="text-base font-semibold">Your Style Traits</Label>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {profile.stylePersona.traits.map((trait, index) => (
-                        <span key={index} className="px-3 py-1 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 rounded-full text-sm font-medium">
-                          {trait}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Style Quiz Responses */}
         {profile.preferences?.style && profile.preferences.style.length > 0 && (
