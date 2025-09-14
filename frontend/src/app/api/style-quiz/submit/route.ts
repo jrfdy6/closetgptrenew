@@ -191,6 +191,9 @@ function mapQuizAnswersToProfile(
       shoeSize: userAnswers.shoe_size || '',
       braSize: userAnswers.cup_size || ''
     },
+    // Also store the raw range values for display
+    heightFeetInches: parseHeight(userAnswers.height),
+    weight: parseWeight(userAnswers.weight),
     stylePreferences: stylePreferences,
     preferences: {
       style: stylePreferences,
@@ -400,21 +403,14 @@ function calculateStylePersonality(stylePreferences: string[], userAnswers: Reco
 }
 
 // Helper functions to parse measurements
-function parseHeight(heightStr: string): number {
-  if (!heightStr) return 0;
-  // Convert height string to inches
-  const match = heightStr.match(/(\d+)'(\d+)"/);
-  if (match) {
-    const feet = parseInt(match[1]);
-    const inches = parseInt(match[2]);
-    return feet * 12 + inches;
-  }
-  return 0;
+function parseHeight(heightStr: string): string {
+  if (!heightStr) return '';
+  // Return the height range as-is since we're now using ranges
+  return heightStr;
 }
 
-function parseWeight(weightStr: string): number {
-  if (!weightStr) return 0;
-  // Extract number from weight range
-  const match = weightStr.match(/(\d+)/);
-  return match ? parseInt(match[1]) : 0;
+function parseWeight(weightStr: string): string {
+  if (!weightStr) return '';
+  // Return the weight range as-is since we're now using ranges
+  return weightStr;
 } 
