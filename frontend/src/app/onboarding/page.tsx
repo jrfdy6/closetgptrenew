@@ -473,8 +473,7 @@ export default function Onboarding() {
 
   // Filter questions based on gender
   const getFilteredQuestions = (): QuizQuestion[] => {
-    // Always show all questions initially, then filter based on gender selection
-    return QUIZ_QUESTIONS.filter(question => {
+    const filtered = QUIZ_QUESTIONS.filter(question => {
       // Show cup size only for females
       if (question.id === 'cup_size' && userGender && userGender !== 'female') {
         return false;
@@ -498,14 +497,21 @@ export default function Onboarding() {
       
       return true;
     });
+    
+    console.log('🔍 [Quiz] Filtered questions:', {
+      totalQuestions: QUIZ_QUESTIONS.length,
+      filteredQuestions: filtered.length,
+      userGender,
+      questionIds: filtered.map(q => q.id)
+    });
+    
+    return filtered;
   };
 
-  const filteredQuestions = getFilteredQuestions();
-
-
+  const questions = getFilteredQuestions();
 
   const nextStep = () => {
-    if (currentStep < filteredQuestions.length) {
+    if (currentStep < questions.length) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -517,8 +523,8 @@ export default function Onboarding() {
   };
 
   const canProceed = () => {
-    if (filteredQuestions.length === 0) return false;
-    const currentQuestion = filteredQuestions[currentStep - 1];
+    if (questions.length === 0) return false;
+    const currentQuestion = questions[currentStep - 1];
     return answers.some(a => a.question_id === currentQuestion.id);
   };
 
@@ -1017,7 +1023,7 @@ export default function Onboarding() {
   };
 
   const renderQuestion = () => {
-    if (filteredQuestions.length === 0) {
+    if (questions.length === 0) {
       console.error('No questions available for quiz');
       return (
         <div className="text-center p-8">
@@ -1026,7 +1032,7 @@ export default function Onboarding() {
       );
     }
     
-    const question = filteredQuestions[currentStep - 1];
+    const question = questions[currentStep - 1];
     if (!question) {
       console.error('No question found for current step:', currentStep);
       return (
@@ -1474,6 +1480,13 @@ export default function Onboarding() {
   // Quiz functions
   const handleAnswer = (questionId: string, answer: string) => {
     console.log('📝 [Answer] Saving answer:', { questionId, answer });
+    
+    // Set user gender when gender question is answered
+    if (questionId === 'gender') {
+      setUserGender(answer);
+      console.log('👤 [Gender] Set user gender:', answer);
+    }
+    
     setAnswers(prev => {
       const existing = prev.find(a => a.question_id === questionId);
       if (existing) {
@@ -1530,8 +1543,7 @@ export default function Onboarding() {
     }
   };
 
-  // Get filtered questions
-  const questions = getFilteredQuestions();
+  // Get current question
   const question = questions[currentQuestionIndex];
 
   // Show quiz questions
