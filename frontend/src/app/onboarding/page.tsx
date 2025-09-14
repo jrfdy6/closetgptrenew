@@ -1522,13 +1522,13 @@ export default function Onboarding() {
                     key={skinTone}
                     className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" 
                     style={{
-                      backgroundColor: `rgb(${Math.round(200 + skinTone * 0.55)}, ${Math.round(150 + skinTone * 0.8)}, ${Math.round(100 + skinTone * 1.2)})`
+                      backgroundColor: `rgb(${Math.round(255 - skinTone * 1.2)}, ${Math.round(220 - skinTone * 1.0)}, ${Math.round(180 - skinTone * 0.8)})`
                     }}
-                    title={`Skin tone: ${skinTone} (RGB: ${Math.round(200 + skinTone * 0.55)}, ${Math.round(150 + skinTone * 0.8)}, ${Math.round(100 + skinTone * 1.2)})`}
+                    title={`Skin tone: ${skinTone} (RGB: ${Math.round(255 - skinTone * 1.2)}, ${Math.round(220 - skinTone * 1.0)}, ${Math.round(180 - skinTone * 0.8)})`}
                   ></div>
                   <p className="text-lg text-gray-600 dark:text-gray-400">Your skin tone</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    Value: {skinTone} | RGB: ({Math.round(200 + skinTone * 0.55)}, {Math.round(150 + skinTone * 0.8)}, {Math.round(100 + skinTone * 1.2)})
+                    Value: {skinTone} | RGB: ({Math.round(255 - skinTone * 1.2)}, {Math.round(220 - skinTone * 1.0)}, {Math.round(180 - skinTone * 0.8)})
                   </p>
                 </div>
                 <input
@@ -1538,9 +1538,9 @@ export default function Onboarding() {
                   value={skinTone}
                   onChange={(e) => {
                     const newValue = parseInt(e.target.value);
-                    const r = Math.round(200 + newValue * 0.55);
-                    const g = Math.round(150 + newValue * 0.8);
-                    const b = Math.round(100 + newValue * 1.2);
+                    const r = Math.round(255 - newValue * 1.2);
+                    const g = Math.round(220 - newValue * 1.0);
+                    const b = Math.round(180 - newValue * 0.8);
                     console.log('🎨 Skin tone changed to:', newValue, `RGB: (${r}, ${g}, ${b})`);
                     setSkinTone(newValue);
                     handleAnswer('skin_tone', newValue.toString());
