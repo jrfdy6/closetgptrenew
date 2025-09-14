@@ -510,12 +510,19 @@ export default function Onboarding() {
         return false;
       }
       
-      // Show gender-specific style questions
-      if (question.id.startsWith('style_item_f_') && currentGender && currentGender.toLowerCase() !== 'female') {
+      // For non-binary and "prefer not to say" users, show BOTH male and female style questions
+      // For specific gender users, show only their gender's style questions
+      if (question.id.startsWith('style_item_f_') && currentGender && 
+          currentGender.toLowerCase() !== 'female' && 
+          currentGender.toLowerCase() !== 'non-binary' && 
+          currentGender.toLowerCase() !== 'prefer not to say') {
         console.log('❌ [Filter] Filtering out', question.id, 'for non-female');
         return false;
       }
-      if (question.id.startsWith('style_item_m_') && currentGender && currentGender.toLowerCase() !== 'male') {
+      if (question.id.startsWith('style_item_m_') && currentGender && 
+          currentGender.toLowerCase() !== 'male' && 
+          currentGender.toLowerCase() !== 'non-binary' && 
+          currentGender.toLowerCase() !== 'prefer not to say') {
         console.log('❌ [Filter] Filtering out', question.id, 'for non-male');
         return false;
       }
