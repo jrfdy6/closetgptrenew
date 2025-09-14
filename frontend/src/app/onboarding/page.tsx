@@ -1510,6 +1510,7 @@ export default function Onboarding() {
     
     // Set user gender when gender question is answered
     if (questionId === 'gender') {
+      console.log('👤 [Gender] About to set user gender from:', userGender, 'to:', answer);
       setUserGender(answer);
       console.log('👤 [Gender] Set user gender:', answer);
       
@@ -1521,6 +1522,10 @@ export default function Onboarding() {
         femaleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
         maleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
       });
+      
+      // Force update questions immediately
+      console.log('🔄 [Gender] Force updating questions immediately');
+      setQuestions(newFiltered);
     }
     
     setAnswers(prev => {
