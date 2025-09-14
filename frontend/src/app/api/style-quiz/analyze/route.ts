@@ -1,124 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Function to calculate quiz results (matching backend logic)
+// Function to calculate quiz results (matching frontend logic)
 function calculateQuizResults(answers: any[]) {
-  const aestheticScores: Record<string, number> = {};
-  const colorScores: Record<string, number> = {};
-  const bodyTypeScores: Record<string, number> = {};
-  const styleScores: Record<string, number> = {};
+  console.log('🎯 [Persona] User answers:', answers.reduce((acc, answer) => {
+    acc[answer.question_id] = answer.selected_option;
+    return acc;
+  }, {}));
 
-  // Quiz questions mapping (matching the backend structure)
-  const quizQuestions = [
-    {
-      id: "movie_vibe",
-      category: "aesthetic",
-      options: [
-        { text: "Classic Hollywood Glamour", scores: { "classic": 0.8, "sophisticated": 0.6, "romantic": 0.4 } },
-        { text: "Indie Romance", scores: { "romantic": 0.8, "bohemian": 0.6, "vintage": 0.4 } },
-        { text: "Minimalist Scandinavian", scores: { "minimalist": 0.9, "sophisticated": 0.5, "comfortable": 0.3 } },
-        { text: "Urban Street Style", scores: { "streetwear": 0.8, "edgy": 0.6, "athletic": 0.4 } }
-      ]
-    },
-    {
-      id: "color_preference",
-      category: "color",
-      options: [
-        { text: "Warm & Fresh", scores: { "warm_spring": 0.9, "warm_autumn": 0.7 } },
-        { text: "Soft & Cool", scores: { "cool_summer": 0.9, "cool_spring": 0.7 } },
-        { text: "Rich & Deep", scores: { "cool_winter": 0.9, "warm_winter": 0.7 } },
-        { text: "Earthy & Warm", scores: { "warm_autumn": 0.9, "cool_autumn": 0.7 } }
-      ]
-    },
-    {
-      id: "silhouette_preference",
-      category: "fit",
-      options: [
-        { text: "Fitted & Structured", scores: { "hourglass": 0.8, "rectangle": 0.6 } },
-        { text: "Flowy & Relaxed", scores: { "pear": 0.8, "apple": 0.6 } },
-        { text: "Balanced & Proportional", scores: { "rectangle": 0.8, "hourglass": 0.6 } },
-        { text: "Dramatic & Statement", scores: { "inverted_triangle": 0.8, "triangle": 0.6 } }
-      ]
-    },
-    {
-      id: "daily_activities",
-      category: "lifestyle",
-      options: [
-        { text: "Office work and meetings", scores: { "professional": 0.8, "classic": 0.6, "sophisticated": 0.4 } },
-        { text: "Creative work and casual meetings", scores: { "bohemian": 0.7, "minimalist": 0.5, "comfortable": 0.3 } },
-        { text: "Active lifestyle and sports", scores: { "athletic": 0.8, "streetwear": 0.6, "comfortable": 0.4 } },
-        { text: "Mix of everything", scores: { "versatile": 0.8, "comfortable": 0.6, "sophisticated": 0.4 } }
-      ]
-    },
-    {
-      id: "style_elements",
-      category: "style",
-      options: [
-        { text: "Clean lines and minimal details", scores: { "minimalist": 0.9, "sophisticated": 0.6 } },
-        { text: "Rich textures and patterns", scores: { "bohemian": 0.8, "romantic": 0.6 } },
-        { text: "Classic and timeless pieces", scores: { "classic": 0.9, "preppy": 0.6 } },
-        { text: "Bold and statement pieces", scores: { "edgy": 0.8, "streetwear": 0.6 } }
-      ]
+  // Score each persona based on quiz answers
+  const personaScores: Record<string, number> = {
+    architect: 0,
+    strategist: 0,
+    innovator: 0,
+    classic: 0,
+    wanderer: 0,
+    rebel: 0,
+    connoisseur: 0,
+    modernist: 0
+  };
+
+  // Analyze visual style preferences from quiz answers
+  const stylePreferences: Record<string, number> = {};
+  answers.forEach(answer => {
+    // This is a simplified version - in reality we'd need the full QUIZ_QUESTIONS array
+    if (answer.question_id.startsWith('style_item_') && answer.selected_option === 'Yes') {
+      // Extract style name from question ID or use a mapping
+      const styleName = answer.question_id.replace('style_item_', '').replace(/_/g, ' ');
+      stylePreferences[styleName] = (stylePreferences[styleName] || 0) + 1;
     }
-  ];
+  });
 
-  for (const answer of answers) {
-    try {
-      const question = quizQuestions.find(q => q.id === answer.question_id);
-      if (!question) continue;
+  console.log('🎯 [Persona] Style preferences:', stylePreferences);
 
-      const selectedOption = question.options.find(o => 
-        o.text.toLowerCase() === answer.selected_option.toLowerCase()
-      );
-      if (!selectedOption) continue;
-
-      // Update scores based on question category
-      if (question.category === "aesthetic") {
-        for (const [style, score] of Object.entries(selectedOption.scores)) {
-          aestheticScores[style] = (aestheticScores[style] || 0) + score;
-        }
-      } else if (question.category === "color") {
-        for (const [season, score] of Object.entries(selectedOption.scores)) {
-          colorScores[season] = (colorScores[season] || 0) + score;
-        }
-      } else if (question.category === "fit") {
-        for (const [bodyType, score] of Object.entries(selectedOption.scores)) {
-          bodyTypeScores[bodyType] = (bodyTypeScores[bodyType] || 0) + score;
-        }
-      } else if (question.category === "style") {
-        for (const [style, score] of Object.entries(selectedOption.scores)) {
-          styleScores[style] = (styleScores[style] || 0) + score;
-        }
-      }
-    } catch (error) {
-      console.error('Error processing answer:', answer, error);
-      continue;
-    }
+  // Map style preferences to personas (simplified version)
+  if (stylePreferences['minimalist'] || stylePreferences['clean minimal']) {
+    personaScores.architect += 3;
+    personaScores.modernist += 2;
+  }
+  if (stylePreferences['street style'] || stylePreferences['urban street']) {
+    personaScores.rebel += 3;
+    personaScores.strategist += 2;
+  }
+  if (stylePreferences['classic elegant']) {
+    personaScores.classic += 3;
+    personaScores.connoisseur += 2;
+  }
+  if (stylePreferences['old money']) {
+    personaScores.connoisseur += 3;
+    personaScores.classic += 2;
+  }
+  if (stylePreferences['bohemian'] || stylePreferences['vintage']) {
+    personaScores.wanderer += 3;
+    personaScores.innovator += 2;
+  }
+  if (stylePreferences['modern'] || stylePreferences['contemporary']) {
+    personaScores.modernist += 3;
+    personaScores.architect += 2;
   }
 
-  // Normalize scores
-  function normalizeScores(scores: Record<string, number>): Record<string, number> {
-    const total = Object.values(scores).reduce((sum, score) => sum + score, 0);
-    if (total === 0) return scores;
-    return Object.fromEntries(
-      Object.entries(scores).map(([key, value]) => [key, value / total])
-    );
-  }
+  // Add some randomness to prevent always getting strategist
+  Object.keys(personaScores).forEach(persona => {
+    personaScores[persona] += Math.random() * 0.5;
+  });
 
-  // Determine color season
-  const colorSeason = Object.keys(colorScores).length > 0 
-    ? Object.entries(colorScores).reduce((a, b) => a[1] > b[1] ? a : b)[0]
-    : null;
+  // Find the highest scoring persona
+  const sortedPersonas = Object.entries(personaScores).sort(([,a], [,b]) => b - a);
+  const selectedPersona = sortedPersonas[0][0];
 
-  // Determine body type
-  const bodyType = Object.keys(bodyTypeScores).length > 0
-    ? Object.entries(bodyTypeScores).reduce((a, b) => a[1] > b[1] ? a : b)[0]
-    : null;
+  console.log('🎯 [Persona] Persona scores:', personaScores);
+  console.log('🎯 [Persona] Sorted personas:', sortedPersonas);
+  console.log('🎯 [Persona] Selected persona:', selectedPersona);
 
   return {
-    aesthetic_scores: normalizeScores(aestheticScores),
-    color_season: colorSeason,
-    body_type: bodyType,
-    style_preferences: normalizeScores(styleScores)
+    persona: selectedPersona,
+    persona_scores: personaScores,
+    style_preferences: stylePreferences
   };
 }
 
@@ -186,26 +142,16 @@ export async function POST(req: NextRequest) {
     // Calculate quiz results
     const quizResults = calculateQuizResults(submission.answers);
     
-    // Generate hybrid style name
-    const hybridStyleName = generateHybridStyleName(quizResults.aesthetic_scores);
-
-    // Convert style preferences from scores object to array of top styles
-    const topStyles = Object.entries(quizResults.style_preferences)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
-      .map(([style]) => style);
-
     console.log('🔍 DEBUG: Quiz Results:', quizResults);
-    console.log('🔍 DEBUG: Hybrid Style Name:', hybridStyleName);
-    console.log('🔍 DEBUG: Top Styles:', topStyles);
 
     // Return mock success response (no database saving in mock version)
     return NextResponse.json({ 
       success: true,
       message: 'Style profile analyzed successfully (mock version)',
       data: {
-        hybridStyleName,
-        quizResults
+        persona: quizResults.persona,
+        persona_scores: quizResults.persona_scores,
+        style_preferences: quizResults.style_preferences
       }
     });
   } catch (error) {

@@ -1320,6 +1320,7 @@ export default function Onboarding() {
 
   // Quiz functions
   const handleAnswer = (questionId: string, answer: string) => {
+    console.log('📝 [Answer] Saving answer:', { questionId, answer });
     setAnswers(prev => {
       const existing = prev.find(a => a.question_id === questionId);
       if (existing) {
@@ -1515,6 +1516,7 @@ export default function Onboarding() {
                   value={skinTone}
                   onChange={(e) => {
                     const newValue = parseInt(e.target.value);
+                    console.log('🎨 Skin tone changed to:', newValue);
                     setSkinTone(newValue);
                     handleAnswer('skin_tone', newValue.toString());
                   }}
