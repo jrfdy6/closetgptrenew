@@ -461,11 +461,7 @@ export default function Onboarding() {
 
   const { user, loading: authLoading } = useAuthContext();
 
-  // Save skin tone when it changes
-  useEffect(() => {
-    console.log('Skin tone changed to:', skinTone);
-    handleAnswer('skin_tone', skinTone.toString());
-  }, [skinTone]);
+  // Save skin tone when it changes - moved to slider onChange
 
 
   // Redirect if not authenticated
@@ -1320,7 +1316,6 @@ export default function Onboarding() {
 
   // Quiz functions
   const handleAnswer = (questionId: string, answer: string) => {
-    console.log('handleAnswer called:', questionId, answer);
     setAnswers(prev => {
       const existing = prev.find(a => a.question_id === questionId);
       if (existing) {
@@ -1421,7 +1416,6 @@ export default function Onboarding() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {question.images.map((image, index) => {
                   const option = question.options[index];
-                  console.log('Rendering image:', image, 'with option:', option);
                   return (
                     <button
                       key={index}
@@ -1436,7 +1430,6 @@ export default function Onboarding() {
                         src={image} 
                         alt={option}
                         className="w-full h-80 object-cover"
-                        onError={(e) => console.error('Image failed to load:', image)}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
@@ -1497,7 +1490,11 @@ export default function Onboarding() {
                   min="0"
                   max="100"
                   value={skinTone}
-                  onChange={(e) => setSkinTone(parseInt(e.target.value))}
+                  onChange={(e) => {
+                    const newValue = parseInt(e.target.value);
+                    setSkinTone(newValue);
+                    handleAnswer('skin_tone', newValue.toString());
+                  }}
                   className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
                 />
                 <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-2">
