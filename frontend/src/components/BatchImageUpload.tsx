@@ -230,61 +230,104 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
       metadata
     });
     
-    // Extract base filename
-    const baseFileName = fileName.split('.')[0];
+    // Extract base filename (remove UUIDs and timestamps)
+    const baseFileName = fileName.split('.')[0]
+      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '') // Remove UUIDs
+      .replace(/[0-9]{13,}/g, '') // Remove timestamps
+      .replace(/[_-]/g, '') // Remove underscores and hyphens
+      .trim();
     
     const isDuplicate = existingItems.some(item => {
-      // Method 1: Filename matching (existing logic)
+      // Method 1: Enhanced filename matching
       let filenameMatch = false;
       if (item.imageUrl) {
         const urlParts = item.imageUrl.split('/');
         const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
-        const baseExistingFileName = existingFileName.split('.')[0];
-        const urlContainsOriginalName = item.imageUrl.toLowerCase().includes(baseFileName);
+        const baseExistingFileName = existingFileName.split('.')[0]
+          .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '') // Remove UUIDs
+          .replace(/[0-9]{13,}/g, '') // Remove timestamps
+          .replace(/[_-]/g, '') // Remove underscores and hyphens
+          .trim();
         
+        // More flexible filename matching
         filenameMatch = baseFileName === baseExistingFileName || 
-                       urlContainsOriginalName ||
+                       baseFileName.includes(baseExistingFileName) ||
                        baseExistingFileName.includes(baseFileName) ||
-                       baseFileName.includes(baseExistingFileName);
+                       (baseFileName.length > 3 && baseExistingFileName.length > 3 && 
+                        baseFileName.substring(0, 4) === baseExistingFileName.substring(0, 4));
       } else if (item.name) {
-        filenameMatch = item.name.toLowerCase().includes(baseFileName) || 
-                       baseFileName.includes(item.name.toLowerCase());
+        const itemName = item.name.toLowerCase()
+          .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
+          .replace(/[0-9]{13,}/g, '')
+          .replace(/[_-]/g, '')
+          .trim();
+        
+        filenameMatch = baseFileName === itemName || 
+                       baseFileName.includes(itemName) ||
+                       itemName.includes(baseFileName);
       }
       
-      // Method 2: File size matching (with tolerance)
-      const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 5000;
+      // Method 2: File size matching (more generous tolerance)
+      const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 10000; // Increased to 10KB
       
-      // Method 3: Image metadata matching
+      // Method 3: Image metadata matching (more flexible)
       let metadataMatch = false;
       if (item.metadata) {
         const existingMeta = item.metadata;
-        const widthMatch = Math.abs((existingMeta.width || 0) - metadata.width) < 10;
-        const heightMatch = Math.abs((existingMeta.height || 0) - metadata.height) < 10;
-        const aspectRatioMatch = Math.abs((existingMeta.aspectRatio || 0) - metadata.aspectRatio) < 0.01;
+        const widthMatch = Math.abs((existingMeta.width || 0) - metadata.width) < 50; // Increased tolerance
+        const heightMatch = Math.abs((existingMeta.height || 0) - metadata.height) < 50; // Increased tolerance
+        const aspectRatioMatch = Math.abs((existingMeta.aspectRatio || 0) - metadata.aspectRatio) < 0.05; // Increased tolerance
         const typeMatch = existingMeta.type === metadata.type;
         
-        metadataMatch = widthMatch && heightMatch && aspectRatioMatch && typeMatch;
+        // Require at least 3 out of 4 metadata matches
+        const matches = [widthMatch, heightMatch, aspectRatioMatch, typeMatch].filter(Boolean).length;
+        metadataMatch = matches >= 3;
       }
       
-      // Method 4: Image hash matching (most accurate)
+      // Method 4: Image hash matching (more comprehensive)
       let hashMatch = false;
       if (item.imageHash) {
-        // Compare first 32 characters of hash for performance
-        hashMatch = item.imageHash.substring(0, 32) === imageHash.substring(0, 32);
+        // Compare full hash for accuracy, but also check partial matches
+        const fullHashMatch = item.imageHash === imageHash;
+        const partialHashMatch = item.imageHash.substring(0, 48) === imageHash.substring(0, 48);
+        const shortHashMatch = item.imageHash.substring(0, 24) === imageHash.substring(0, 24);
+        
+        hashMatch = fullHashMatch || partialHashMatch || shortHashMatch;
+      }
+      
+      // Method 5: Content similarity (if both have analysis data)
+      let contentMatch = false;
+      if (item.analysis && item.analysis.name && metadata) {
+        // This would require the analysis data to be available, which might not be the case
+        // Skip for now but could be enhanced later
       }
       
       console.log('🔍 Comparing with existing item:', {
         itemName: item.name,
+        itemImageUrl: item.imageUrl ? item.imageUrl.substring(0, 50) + '...' : 'none',
         filenameMatch,
         sizeMatch,
         metadataMatch,
         hashMatch,
         existingHash: item.imageHash ? item.imageHash.substring(0, 16) + '...' : 'none',
-        newHash: imageHash.substring(0, 16) + '...'
+        newHash: imageHash.substring(0, 16) + '...',
+        baseFileName,
+        existingBaseFileName: item.imageUrl ? item.imageUrl.split('/').pop()?.split('.')[0] : 'none'
       });
       
-      // Consider it a duplicate if any method matches
-      return filenameMatch || (sizeMatch && metadataMatch) || hashMatch;
+      // Consider it a duplicate if any method matches with high confidence
+      const isDuplicate = filenameMatch || 
+                         (sizeMatch && metadataMatch) || 
+                         hashMatch;
+      
+      if (isDuplicate) {
+        console.log('🔍 DUPLICATE DETECTED:', {
+          method: filenameMatch ? 'filename' : (sizeMatch && metadataMatch) ? 'size+metadata' : 'hash',
+          itemName: item.name
+        });
+      }
+      
+      return isDuplicate;
     });
     
     console.log('🔍 Duplicate check result:', isDuplicate);
@@ -293,16 +336,25 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
   } catch (error) {
     console.error('🔍 Error during duplicate check:', error);
     // Fallback to simple filename matching if hash generation fails
-    const baseFileName = fileName.split('.')[0];
+    const baseFileName = fileName.split('.')[0]
+      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
+      .replace(/[0-9]{13,}/g, '')
+      .replace(/[_-]/g, '')
+      .trim();
+    
     return existingItems.some(item => {
       if (item.imageUrl) {
         const urlParts = item.imageUrl.split('/');
         const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
-        const baseExistingFileName = existingFileName.split('.')[0];
+        const baseExistingFileName = existingFileName.split('.')[0]
+          .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
+          .replace(/[0-9]{13,}/g, '')
+          .replace(/[_-]/g, '')
+          .trim();
+        
         return baseFileName === baseExistingFileName || 
-               item.imageUrl.toLowerCase().includes(baseFileName) ||
-               baseExistingFileName.includes(baseFileName) ||
-               baseFileName.includes(baseExistingFileName);
+               baseFileName.includes(baseExistingFileName) ||
+               baseExistingFileName.includes(baseFileName);
       }
       return false;
     });
@@ -373,6 +425,17 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           const data = await response.json();
           itemsToCheck = data.items || [];
           console.log('🔍 Fetched items directly for duplicate check:', itemsToCheck.length);
+          
+          // Debug: Log sample of existing items for analysis
+          console.log('🔍 Sample existing items for duplicate analysis:', 
+            itemsToCheck.slice(0, 3).map(item => ({
+              name: item.name,
+              imageUrl: item.imageUrl ? item.imageUrl.substring(0, 50) + '...' : 'none',
+              hasImageHash: !!item.imageHash,
+              hasMetadata: !!item.metadata,
+              fileSize: item.fileSize
+            }))
+          );
         }
       } catch (error) {
         console.error('Failed to fetch items for duplicate check:', error);
@@ -381,7 +444,10 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
 
     const newItems: UploadItem[] = [];
     
+    console.log(`🔍 Starting duplicate check for ${acceptedFiles.length} files against ${itemsToCheck.length} existing items`);
+    
     for (const file of acceptedFiles) {
+      console.log(`🔍 Checking file: ${file.name} (${file.size} bytes)`);
       const isDuplicate = await checkForDuplicates(file, itemsToCheck, user);
       
       newItems.push({
@@ -393,6 +459,9 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         isDuplicate
       });
     }
+
+    const duplicateCount = newItems.filter(item => item.isDuplicate).length;
+    console.log(`🔍 Duplicate check complete: ${duplicateCount}/${newItems.length} duplicates detected`);
 
     setUploadItems(prev => [...prev, ...newItems]);
   }, [existingItems, fetchExistingItems, user]);

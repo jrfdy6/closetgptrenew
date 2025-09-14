@@ -755,34 +755,45 @@ async def generate_image_hash(
         try:
             # Open image and get metadata
             with Image.open(temp_path) as img:
-                # Generate a simple hash based on image data
-                img_data = img.getdata()
+                # Convert to RGB for consistent hashing
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Resize to a standard size for consistent hashing
+                img_resized = img.resize((32, 32), Image.Resampling.LANCZOS)
+                
+                # Generate a more robust hash based on image data
+                img_data = img_resized.getdata()
                 hash_value = ""
                 
-                # Sample pixels for performance (every 10th pixel)
-                for i in range(0, len(img_data), 10):
+                # Sample pixels more systematically for better consistency
+                for i in range(0, len(img_data), 2):  # Every 2nd pixel for better coverage
                     pixel = img_data[i]
                     if isinstance(pixel, tuple) and len(pixel) >= 3:
                         r, g, b = pixel[:3]
+                        # Use a more robust hash function
                         hash_value += f"{r:02x}{g:02x}{b:02x}"
                     else:
                         hash_value += f"{pixel:02x}"
                 
-                # Truncate hash to reasonable length
-                hash_value = hash_value[:64]
+                # Create a more consistent hash by normalizing
+                import hashlib
+                hash_bytes = bytes.fromhex(hash_value)
+                normalized_hash = hashlib.sha256(hash_bytes).hexdigest()
                 
-                # Get image metadata
+                # Get image metadata with more precision
                 metadata = {
                     "width": img.width,
                     "height": img.height,
-                    "aspectRatio": img.width / img.height,
+                    "aspectRatio": round(img.width / img.height, 4),  # More precision
                     "fileSize": len(response.content),
                     "format": img.format,
-                    "mode": img.mode
+                    "mode": img.mode,
+                    "hasAlpha": img.mode in ('RGBA', 'LA', 'P')
                 }
                 
                 return {
-                    "imageHash": hash_value,
+                    "imageHash": normalized_hash,
                     "metadata": metadata
                 }
                 
