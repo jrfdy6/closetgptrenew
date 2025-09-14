@@ -32,7 +32,14 @@ function decodeFirebaseToken(token: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('🚀 [Quiz Submit API] Received quiz submission');
     const submission = await req.json();
+    console.log('🚀 [Quiz Submit API] Submission data:', {
+      userId: submission.userId,
+      hasToken: !!submission.token,
+      answersCount: submission.answers?.length,
+      hasStylePreferences: !!submission.stylePreferences
+    });
     const userId = submission.userId || submission.user_id || 'demo-user';
 
     // Extract user answers from submission
