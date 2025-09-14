@@ -7,15 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Plus, 
   TrendingUp, 
   Star, 
   Calendar, 
   Palette, 
   Shirt, 
-  Camera, 
   Sparkles, 
-  Upload, 
   Users, 
   Zap,
   Heart,
@@ -24,8 +21,7 @@ import {
   ArrowRight,
   AlertCircle,
   Info,
-  RefreshCw,
-  X
+  RefreshCw
 } from "lucide-react";
 import Link from "next/link";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -44,16 +40,11 @@ const ForgottenGems = dynamic(() => import('@/components/ForgottenGems'), {
   loading: () => <div className="animate-pulse space-y-4">Loading forgotten gems...</div>
 });
 
-const UploadForm = dynamic(() => import('@/components/UploadForm'), {
-  ssr: false,
-  loading: () => <div className="animate-pulse space-y-4">Loading upload form...</div>
-});
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showUploadForm, setShowUploadForm] = useState(false);
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const { user, loading } = useAuthContext();
 
@@ -215,14 +206,6 @@ export default function Dashboard() {
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-6 mb-12">
-          <Button 
-            onClick={() => setShowUploadForm(!showUploadForm)}
-            className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
-          >
-            <Plus className="w-5 h-5 mr-3" />
-            Add Item
-          </Button>
-          
           <Link href="/outfits">
             <Button variant="outline" className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105">
               <Palette className="w-5 h-5 mr-3" />
@@ -455,20 +438,6 @@ export default function Dashboard() {
                           Add some items to your wardrobe to get personalized outfit suggestions!
                         </p>
                         <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              // Scroll to upload section or trigger upload modal
-                              const uploadSection = document.getElementById('upload-section');
-                              if (uploadSection) {
-                                uploadSection.scrollIntoView({ behavior: 'smooth' });
-                              }
-                            }}
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Add Items to Wardrobe
-                          </Button>
                           <Button 
                             variant="outline" 
                             size="sm"
@@ -755,34 +724,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Upload Form */}
-        {showUploadForm && (
-          <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-6">
-              <div>
-                <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Add Single Item with AI ✨</CardTitle>
-                <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Upload one clothing item, review AI analysis, and edit before saving</CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowUploadForm(false)}
-                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <UploadForm 
-                onUploadComplete={(item) => {
-                  console.log('Item uploaded:', item);
-                  setShowUploadForm(false);
-                }}
-                onCancel={() => setShowUploadForm(false)}
-              />
-            </CardContent>
-          </Card>
-        )}
       </main>
     </div>
   );
