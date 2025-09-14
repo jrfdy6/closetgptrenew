@@ -32,6 +32,7 @@ import BodyPositiveMessage from "@/components/BodyPositiveMessage";
 import DiverseStyleInspiration from "@/components/DiverseStyleInspiration";
 import { useWardrobe, type ClothingItem } from "@/lib/hooks/useWardrobe";
 import { formatLastWorn } from "@/lib/utils/dateUtils";
+import WardrobeItemDetails from "@/components/WardrobeItemDetails";
 import dynamic from 'next/dynamic';
 
 // Dynamically import components to avoid SSR issues
@@ -80,6 +81,8 @@ export default function WardrobePage() {
   const [selectedSeason, setSelectedSeason] = useState<string>("all");
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
+  const [showItemDetails, setShowItemDetails] = useState(false);
 
   // Apply filters when they change
   useEffect(() => {
@@ -181,10 +184,31 @@ export default function WardrobePage() {
     if (confirm('Are you sure you want to delete this item?')) {
       try {
         await deleteItem(itemId);
+        setShowItemDetails(false);
+        setSelectedItem(null);
       } catch (error) {
         console.error('Failed to delete item:', error);
       }
     }
+  };
+
+  // Handle item update
+  const handleUpdateItem = async (itemId: string, updates: Partial<ClothingItem>) => {
+    try {
+      // This would need to be implemented in the useWardrobe hook
+      console.log('Updating item:', itemId, updates);
+      // For now, just refetch the data
+      refetch();
+    } catch (error) {
+      console.error('Failed to update item:', error);
+      throw error;
+    }
+  };
+
+  // Handle item click to show details
+  const handleItemClick = (item: ClothingItem) => {
+    setSelectedItem(item);
+    setShowItemDetails(true);
   };
 
   // Handle outfit generation with base item - ID-based approach
@@ -531,9 +555,7 @@ export default function WardrobePage() {
                   <WardrobeGrid 
                     items={currentItems}
                     loading={false}
-                    onItemClick={(item) => {
-                      // Handle item click
-                    }}
+                    onItemClick={handleItemClick}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onToggleFavorite={handleToggleFavorite}
                     onDeleteItem={deleteItem}
@@ -542,7 +564,7 @@ export default function WardrobePage() {
                 ) : (
                   <div className="space-y-3">
                     {currentItems.map((item) => (
-                      <Card key={item.id} className="hover:shadow-md transition-shadow">
+                      <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleItemClick(item)}>
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
@@ -642,9 +664,7 @@ export default function WardrobePage() {
                   <WardrobeGrid 
                     items={getFavorites()}
                     loading={false}
-                    onItemClick={(item) => {
-                      // Handle item click
-                    }}
+                    onItemClick={handleItemClick}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onToggleFavorite={handleToggleFavorite}
                     onDeleteItem={deleteItem}
@@ -653,7 +673,7 @@ export default function WardrobePage() {
                 ) : (
                   <div className="space-y-3">
                     {getFavorites().map((item) => (
-                      <Card key={item.id} className="hover:shadow-md transition-shadow">
+                      <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleItemClick(item)}>
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
@@ -743,9 +763,7 @@ export default function WardrobePage() {
                   <WardrobeGrid 
                     items={getRecentlyWorn()}
                     loading={false}
-                    onItemClick={(item) => {
-                      // Handle item click
-                    }}
+                    onItemClick={handleItemClick}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onToggleFavorite={handleToggleFavorite}
                     onDeleteItem={deleteItem}
@@ -754,7 +772,7 @@ export default function WardrobePage() {
                 ) : (
                   <div className="space-y-3">
                     {getRecentlyWorn().map((item) => (
-                      <Card key={item.id} className="hover:shadow-md transition-shadow">
+                      <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleItemClick(item)}>
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
@@ -852,9 +870,7 @@ export default function WardrobePage() {
                   <WardrobeGrid 
                     items={getUnwornItems()}
                     loading={false}
-                    onItemClick={(item) => {
-                      // Handle item click
-                    }}
+                    onItemClick={handleItemClick}
                     onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
                     onDeleteItem={deleteItem}
                     showActions={true}
@@ -862,7 +878,7 @@ export default function WardrobePage() {
                 ) : (
                   <div className="space-y-3">
                     {getUnwornItems().map((item) => (
-                      <Card key={item.id} className="hover:shadow-md transition-shadow">
+                      <Card key={item.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleItemClick(item)}>
                         <CardContent className="p-4">
                           <div className="flex items-center gap-4">
                             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
@@ -937,6 +953,21 @@ export default function WardrobePage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Item Details Modal */}
+      <WardrobeItemDetails
+        item={selectedItem}
+        isOpen={showItemDetails}
+        onClose={() => {
+          setShowItemDetails(false);
+          setSelectedItem(null);
+        }}
+        onUpdate={handleUpdateItem}
+        onDelete={handleDeleteItem}
+        onToggleFavorite={handleToggleFavorite}
+        onIncrementWear={handleWearIncrement}
+        onGenerateOutfit={handleGenerateOutfitWithBaseItem}
+      />
     </div>
   );
 }
