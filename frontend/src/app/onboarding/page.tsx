@@ -579,29 +579,37 @@ export default function Onboarding() {
         const styleName = question.style_name;
         if (styleName) {
           stylePreferences[styleName] = (stylePreferences[styleName] || 0) + 1;
+          console.log('🎨 [Style] Found style preference:', styleName, 'for question:', answer.question_id);
         }
       }
     });
+    
+    console.log('🎨 [Style] All style preferences:', stylePreferences);
 
     // Map style preferences to personas
     if (stylePreferences['Minimalist'] || stylePreferences['Clean Minimal']) {
       personaScores.architect += 3;
       personaScores.modernist += 2;
+      console.log('🎨 [Persona] Added points for Minimalist style');
     }
     if (stylePreferences['Street Style'] || stylePreferences['Urban Street']) {
       personaScores.rebel += 3;
       personaScores.strategist += 2;
+      console.log('🎨 [Persona] Added points for Street Style');
     }
     if (stylePreferences['Classic Elegant']) {
       personaScores.classic += 3;
       personaScores.connoisseur += 2;
+      console.log('🎨 [Persona] Added points for Classic Elegant');
     }
     if (stylePreferences['Old Money']) {
       personaScores.connoisseur += 3;
       personaScores.classic += 2;
+      console.log('🎨 [Persona] Added points for Old Money');
     }
     if (stylePreferences['Cottagecore'] || stylePreferences['Natural Boho']) {
       personaScores.wanderer += 3;
+      console.log('🎨 [Persona] Added points for Cottagecore/Boho');
     }
 
     // Daily activities scoring
@@ -670,6 +678,13 @@ export default function Onboarding() {
     console.log('🎯 [Persona] Persona scores:', personaScores);
     console.log('🎯 [Persona] Sorted personas:', sortedPersonas);
     console.log('🎯 [Persona] Selected persona:', topPersona);
+    
+    // Count total "Yes" answers for style questions
+    const styleYesAnswers = answers.filter(answer => {
+      const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+      return question && question.type === 'visual_yesno' && answer.selected_option === 'Yes';
+    }).length;
+    console.log('🎯 [Persona] Total style "Yes" answers:', styleYesAnswers);
 
     return STYLE_PERSONAS[topPersona] || STYLE_PERSONAS.strategist;
   };
