@@ -129,7 +129,6 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
-  const [showStylePersona, setShowStylePersona] = useState(false);
 
   useEffect(() => {
     console.log('🔍 DEBUG: useEffect triggered, user:', !!user, 'authLoading:', authLoading);
@@ -598,7 +597,7 @@ export default function ProfilePage() {
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => setShowStylePersona(true)}
+              onClick={() => router.push('/style-persona')}
             >
               <Sparkles className="h-4 w-4 mr-2" />
               Style Persona
@@ -634,166 +633,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Style Persona Modal */}
-      {showStylePersona && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-stone-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-stone-200 dark:border-stone-700">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-stone-900 dark:text-stone-100 flex items-center">
-                  <Sparkles className="h-6 w-6 mr-3 text-orange-500" />
-                  Your Style Persona
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowStylePersona(false)}
-                  className="text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
-                >
-                  ✕
-                </Button>
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Style Preferences */}
-              {profile?.stylePreferences && profile.stylePreferences.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-3">
-                    Style Preferences
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.stylePreferences.map((style, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded-full text-sm font-medium"
-                      >
-                        {style}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Color Preferences */}
-              {profile?.preferences?.colors && profile.preferences.colors.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-3">
-                    Color Palette
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.preferences.colors.map((color, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-stone-100 dark:bg-stone-800 text-stone-800 dark:text-stone-200 rounded-full text-sm font-medium capitalize"
-                      >
-                        {color}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Body Type & Measurements */}
-              {profile?.measurements && (
-                <div>
-                  <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-3">
-                    Body Profile
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    {profile.measurements.bodyType && (
-                      <div>
-                        <span className="text-stone-600 dark:text-stone-400">Body Type:</span>
-                        <span className="ml-2 font-medium text-stone-900 dark:text-stone-100">
-                          {profile.measurements.bodyType}
-                        </span>
-                      </div>
-                    )}
-                    {profile.measurements.heightFeetInches && (
-                      <div>
-                        <span className="text-stone-600 dark:text-stone-400">Height:</span>
-                        <span className="ml-2 font-medium text-stone-900 dark:text-stone-100">
-                          {profile.measurements.heightFeetInches}
-                        </span>
-                      </div>
-                    )}
-                    {profile.measurements.topSize && (
-                      <div>
-                        <span className="text-stone-600 dark:text-stone-400">Top Size:</span>
-                        <span className="ml-2 font-medium text-stone-900 dark:text-stone-100">
-                          {profile.measurements.topSize}
-                        </span>
-                      </div>
-                    )}
-                    {profile.measurements.bottomSize && (
-                      <div>
-                        <span className="text-stone-600 dark:text-stone-400">Bottom Size:</span>
-                        <span className="ml-2 font-medium text-stone-900 dark:text-stone-100">
-                          {profile.measurements.bottomSize}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Style Personality */}
-              {profile?.stylePersonality && (
-                <div>
-                  <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-3">
-                    Style Personality
-                  </h3>
-                  <div className="space-y-2">
-                    {Object.entries(profile.stylePersonality).map(([trait, score]) => (
-                      <div key={trait} className="flex items-center justify-between">
-                        <span className="text-stone-700 dark:text-stone-300 capitalize">
-                          {trait.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-24 bg-stone-200 dark:bg-stone-700 rounded-full h-2">
-                            <div
-                              className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(score as number) * 100}%` }}
-                            ></div>
-                          </div>
-                          <span className="text-sm text-stone-600 dark:text-stone-400 w-8">
-                            {Math.round((score as number) * 100)}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* No Style Data Message */}
-              {(!profile?.stylePreferences || profile.stylePreferences.length === 0) && 
-               (!profile?.preferences?.colors || profile.preferences.colors.length === 0) && 
-               (!profile?.stylePersonality) && (
-                <div className="text-center py-8">
-                  <Sparkles className="h-12 w-12 text-stone-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-2">
-                    No Style Data Yet
-                  </h3>
-                  <p className="text-stone-600 dark:text-stone-400 mb-4">
-                    Complete the style quiz to discover your unique style persona!
-                  </p>
-                  <Button
-                    onClick={() => {
-                      setShowStylePersona(false);
-                      router.push('/onboarding');
-                    }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    <Palette className="h-4 w-4 mr-2" />
-                    Take Style Quiz
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       </div>
     </div>
   );
