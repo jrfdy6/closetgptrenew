@@ -991,20 +991,30 @@ export default function Onboarding() {
         }
       });
 
+      const submissionData = {
+        userId: user.uid,
+        token: token,
+        answers: answers,
+        colorAnalysis: colorAnalysis,
+        stylePreferences: stylePreferences,
+        colorPreferences: colorPreferences
+      };
+
+      console.log('🔍 [Quiz Frontend] Submitting quiz data:', {
+        userId: user.uid,
+        answersCount: answers.length,
+        stylePreferences: stylePreferences,
+        colorPreferences: colorPreferences,
+        hasColorAnalysis: !!colorAnalysis
+      });
+
       const response = await fetch('/api/style-quiz/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          userId: user.uid,
-          token: token,
-          answers: answers,
-          colorAnalysis: colorAnalysis,
-          stylePreferences: stylePreferences,
-          colorPreferences: colorPreferences
-        })
+        body: JSON.stringify(submissionData)
       });
 
       if (response.ok) {

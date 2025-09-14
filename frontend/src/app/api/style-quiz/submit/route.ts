@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
     );
 
     console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
+    console.log('🔍 [Quiz Submit] User answers count:', Object.keys(userAnswers).length);
+    console.log('🔍 [Quiz Submit] Style preferences:', submission.stylePreferences);
+    console.log('🔍 [Quiz Submit] Color preferences:', submission.colorPreferences);
 
     // Save to user profile via backend API directly
     try {
@@ -85,9 +88,11 @@ export async function POST(req: NextRequest) {
       if (!backendResponse.ok) {
         const errorText = await backendResponse.text();
         console.error('❌ Failed to save profile to backend:', backendResponse.status, errorText);
+        throw new Error(`Backend profile update failed: ${backendResponse.status} - ${errorText}`);
       } else {
         const responseData = await backendResponse.json();
         console.log('✅ Successfully saved profile to backend:', responseData);
+        console.log('✅ Profile fields saved:', Object.keys(responseData));
       }
     } catch (apiError) {
       console.error('❌ Backend save failed:', apiError);
