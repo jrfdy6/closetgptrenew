@@ -1474,12 +1474,18 @@ export default function Onboarding() {
                 <div className="text-center mb-6">
                   <div className="text-sm text-gray-500 mb-2">
                     DEBUG: Rendering visual_yesno with image: {question.images?.[0]}
+                    <br />
+                    <a href={question.images?.[0]} target="_blank" className="text-blue-500 underline">
+                      Test image link
+                    </a>
                   </div>
                   <img 
                     src={question.images?.[0]} 
                     alt="Style example"
                     className="w-full max-w-md mx-auto h-64 object-cover rounded-lg shadow-lg"
+                    onLoad={() => console.log('✅ Image loaded successfully:', question.images?.[0])}
                     onError={(e) => {
+                      console.log('❌ Image failed to load:', question.images?.[0]);
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
@@ -1489,6 +1495,7 @@ export default function Onboarding() {
                             <div class="text-center text-gray-500 dark:text-gray-400">
                               <div class="text-4xl mb-2">📷</div>
                               <div class="text-sm">Style image unavailable</div>
+                              <div class="text-xs mt-2">Failed to load: ${question.images?.[0]}</div>
                             </div>
                           </div>
                         `;
