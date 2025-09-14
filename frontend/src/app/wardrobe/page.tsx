@@ -424,13 +424,6 @@ export default function WardrobePage() {
                       : "Try adjusting your filters or add some new items to your wardrobe"
                     }
                   </p>
-                  <Button 
-                    onClick={() => setShowUploadForm(true)}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {wardrobeItems.length === 0 ? 'Add First Item' : 'Add New Item'}
-                  </Button>
                 </CardContent>
               </Card>
             ) : (
@@ -448,15 +441,6 @@ export default function WardrobePage() {
           >
             <Zap className="w-4 h-4 mr-2 group-hover:animate-pulse" />
             Generate Outfit
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => router.push('/outfits/create')}
-            className="group hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 transition-all duration-200"
-          >
-            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
-            Create Outfit
           </Button>
         </div>
                 </div>
