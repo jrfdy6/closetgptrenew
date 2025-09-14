@@ -502,7 +502,9 @@ export default function Onboarding() {
       filteredQuestions: filtered.length,
       userGender,
       questionIds: filtered.map(q => q.id),
-      visualYesNoQuestions: filtered.filter(q => q.type === 'visual_yesno').map(q => q.id)
+      visualYesNoQuestions: filtered.filter(q => q.type === 'visual_yesno').map(q => q.id),
+      femaleStyleQuestions: filtered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
+      maleStyleQuestions: filtered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
     });
     
     return filtered;
@@ -1485,6 +1487,17 @@ export default function Onboarding() {
     if (questionId === 'gender') {
       setUserGender(answer);
       console.log('👤 [Gender] Set user gender:', answer);
+      
+      // Debug: Show what questions will be available after gender selection
+      setTimeout(() => {
+        const newFiltered = getFilteredQuestions();
+        console.log('🔄 [Gender] After gender selection, available questions:', {
+          totalQuestions: newFiltered.length,
+          visualYesNoQuestions: newFiltered.filter(q => q.type === 'visual_yesno').map(q => q.id),
+          femaleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
+          maleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
+        });
+      }, 100);
     }
     
     setAnswers(prev => {
