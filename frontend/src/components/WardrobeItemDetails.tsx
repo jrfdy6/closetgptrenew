@@ -254,7 +254,6 @@ export default function WardrobeItemDetails({
                     disabled={isSaving}
                     className="text-stone-700 hover:text-stone-900"
                   >
-                    <X className="w-4 h-4 mr-2" />
                     Cancel
                   </Button>
                   <Button
