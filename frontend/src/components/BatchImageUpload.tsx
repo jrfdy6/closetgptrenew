@@ -126,6 +126,9 @@ const checkForDuplicates = async (file: File, existingItems: any[]): Promise<boo
     }))
   });
   
+  // Extract base filename once outside the callback
+  const baseFileName = fileName.split('.')[0];
+  
   const isDuplicate = existingItems.some(item => {
     // Check if the item has an imageUrl (from Firebase Storage)
     if (item.imageUrl) {
@@ -134,7 +137,6 @@ const checkForDuplicates = async (file: File, existingItems: any[]): Promise<boo
       const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
       
       // Compare filenames (without extension) and file sizes
-      const baseFileName = fileName.split('.')[0];
       const baseExistingFileName = existingFileName.split('.')[0];
       
       // Also check if the original filename is in the URL (Firebase might preserve it)
