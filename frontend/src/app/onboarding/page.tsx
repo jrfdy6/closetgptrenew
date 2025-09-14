@@ -670,6 +670,8 @@ export default function Onboarding() {
     const topPersona = sortedPersonas[0][0];
     
     // Debug logging
+    console.log('🎯 [Persona] User answers:', userAnswers);
+    console.log('🎯 [Persona] Style preferences:', stylePreferences);
     console.log('🎯 [Persona] Persona scores:', personaScores);
     console.log('🎯 [Persona] Sorted personas:', sortedPersonas);
     console.log('🎯 [Persona] Selected persona:', topPersona);
@@ -741,6 +743,78 @@ export default function Onboarding() {
     }
 
     return traits.slice(0, 3);
+  };
+
+  // Hero images mapping for each persona
+  const getHeroImageForPersona = (personaId: string): string => {
+    console.log('🖼️ [Hero Image] Persona ID:', personaId);
+    const heroImages: Record<string, string> = {
+      strategist: "/images/style-heroes/strategist-conference-room.jpg",
+      innovator: "/images/style-heroes/innovator-art-gallery.jpg", 
+      classic: "/images/style-heroes/classic-afternoon-tea.jpg",
+      wanderer: "/images/style-heroes/wanderer-bohemian-nature.jpg",
+      rebel: "/images/style-heroes/rebel-graffiti-alley.jpg",
+      connoisseur: "/images/style-heroes/connoisseur-wine-tasting.jpg",
+      modernist: "/images/style-heroes/modernist-office-meeting.jpg",
+      architect: "/images/style-heroes/architect-blueprint-meeting.jpg"
+    };
+    
+    const imageUrl = heroImages[personaId] || "/images/style-heroes/default-hero.jpg";
+    console.log('🖼️ [Hero Image] Selected image:', imageUrl);
+    return imageUrl;
+  };
+
+  // Style examples mapping for each persona
+  const getStyleExamplesForPersona = (personaId: string): Array<{url: string, caption: string}> => {
+    console.log('🎨 [Style Examples] Persona ID:', personaId);
+    const styleExamples: Record<string, Array<{url: string, caption: string}>> = {
+      strategist: [
+        { url: "/images/style-examples/strategist/business-meeting.jpg", caption: "Strategic Planning Session" },
+        { url: "/images/style-examples/strategist/office-collaboration.jpg", caption: "Team Collaboration" },
+        { url: "/images/style-examples/strategist/presentation.jpg", caption: "Client Presentation" }
+      ],
+      innovator: [
+        { url: "/images/style-examples/innovator/art-studio.jpg", caption: "Creative Workshop" },
+        { url: "/images/style-examples/innovator/design-session.jpg", caption: "Design Innovation" },
+        { url: "/images/style-examples/innovator/experimental-art.jpg", caption: "Artistic Expression" }
+      ],
+      classic: [
+        { url: "/images/style-examples/classic/luxury-meeting.jpg", caption: "Refined Business" },
+        { url: "/images/style-examples/classic/cultural-discussion.jpg", caption: "Cultural Engagement" },
+        { url: "/images/style-examples/classic/sophisticated-gathering.jpg", caption: "Elegant Social" }
+      ],
+      wanderer: [
+        { url: "/images/style-examples/wanderer/nature-art.jpg", caption: "Natural Creativity" },
+        { url: "/images/style-examples/wanderer/community-project.jpg", caption: "Community Art" },
+        { url: "/images/style-examples/wanderer/bohemian-lifestyle.jpg", caption: "Free-Spirited Living" }
+      ],
+      rebel: [
+        { url: "/images/style-examples/rebel/street-art.png", caption: "Urban Expression" },
+        { url: "/images/style-examples/rebel/alternative-fashion.png", caption: "Bold Statements" },
+        { url: "/images/style-examples/rebel/underground-scene.png", caption: "Creative Rebellion" }
+      ],
+      connoisseur: [
+        { url: "/images/style-examples/connoisseur/wine-education.jpg", caption: "Wine Expertise" },
+        { url: "/images/style-examples/connoisseur/culinary-arts.jpg", caption: "Culinary Mastery" },
+        { url: "/images/style-examples/connoisseur/luxury-experience.jpg", caption: "Refined Tastes" }
+      ],
+      modernist: [
+        { url: "/images/style-examples/modernist/clean-design.png", caption: "Minimalist Aesthetic" },
+        { url: "/images/style-examples/modernist/tech-innovation.png", caption: "Tech Innovation" },
+        { url: "/images/style-examples/modernist/contemporary-space.png", caption: "Modern Living" }
+      ],
+      architect: [
+        { url: "/images/style-examples/architect/blueprint-review.jpg", caption: "Design Planning" },
+        { url: "/images/style-examples/architect/3d-modeling.jpg", caption: "3D Visualization" },
+        { url: "/images/style-examples/architect/construction-site.jpg", caption: "Project Management" }
+      ]
+    };
+    
+    return styleExamples[personaId] || [
+      { url: "/images/style-examples/default/example-1.jpg", caption: "Style Example" },
+      { url: "/images/style-examples/default/example-2.jpg", caption: "Style Example" },
+      { url: "/images/style-examples/default/example-3.jpg", caption: "Style Example" }
+    ];
   };
 
   const generateStyleFingerprint = () => {
@@ -962,11 +1036,6 @@ export default function Onboarding() {
               Click on the image that best represents your style
             </p>
           )}
-          {question.type === "multiple_choice" && (
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Choose the option that best describes you
-            </p>
-          )}
           {question.type === "rgb_slider" && (
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
               Drag the slider to select your skin tone
@@ -1101,19 +1170,6 @@ export default function Onboarding() {
             >
               <div className="text-center">
                 <div className="font-semibold mb-1">{option}</div>
-                {question.type === "multiple_choice" && (
-                  <div className="text-sm opacity-75">
-                    {option === 'Contemporary' ? 'minimalist, timeless pieces' :
-                     option === 'Classic' ? 'elegant, sophisticated style' :
-                     option === 'Street Style' ? 'urban, edgy fashion' :
-                     option === 'Bohemian' ? 'free-spirited, artistic vibe' :
-                     option === 'Preppy' ? 'clean, collegiate aesthetic' :
-                     option === 'Romantic' ? 'feminine, delicate details' :
-                     option === 'Athletic' ? 'sporty, functional wear' :
-                     option === 'Vintage' ? 'retro, nostalgic charm' :
-                     'sophisticated, refined look'}
-                  </div>
-                )}
               </div>
             </button>
           ))}
@@ -1140,11 +1196,13 @@ export default function Onboarding() {
     return null; // Will redirect via useEffect
   }
 
+  
   if (quizCompleted && quizResults) {
     const persona = determineStylePersona();
     
     // Debug logging
     console.log('🎭 [Onboarding] Determined persona:', persona);
+    console.log('🎭 [Onboarding] Persona ID:', persona.id);
     console.log('🎭 [Onboarding] User answers:', answers);
     
     return (
@@ -1157,14 +1215,30 @@ export default function Onboarding() {
           </div>
           
           <div className="space-y-6">
-            {/* Main Persona Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <div className="text-center mb-6">
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">YOU ARE</div>
-                <h2 className="text-3xl font-serif text-gray-900 dark:text-white mb-6">
-                  {persona.name}
-                </h2>
-                <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed mb-6">
+            {/* Main Persona Card with Hero Image */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg">
+              {/* Hero Image Section */}
+              <div className="relative h-96 overflow-hidden">
+                <img 
+                  src={getHeroImageForPersona(persona.id)}
+                  alt={`${persona.name} style example`}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <div className="text-sm mb-2">WELCOME BACK, {user?.displayName?.toUpperCase() || 'STYLIST'}!</div>
+                    <div className="text-sm mb-4">Want to refresh your style preferences?</div>
+                    <h2 className="text-4xl font-serif mb-6">
+                      You're a {persona.name.split(' ')[1] || persona.name}
+                    </h2>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Content Section */}
+              <div className="p-8">
+                <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed mb-6 text-center">
                   {persona.description}
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
@@ -1174,6 +1248,30 @@ export default function Onboarding() {
                     </span>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Style Examples Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6">Your Style in Action</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {getStyleExamplesForPersona(persona.id).map((image, index) => (
+                  <div key={index} className="relative group">
+                    <img 
+                      src={image.url} 
+                      alt={`${persona.name} style example ${index + 1}`}
+                      className="w-full h-64 object-cover rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                      <button className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-4 py-2 rounded-lg font-medium transition-all">
+                        View Details
+                      </button>
+                    </div>
+                    <div className="mt-2 text-center">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{image.caption}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1207,55 +1305,99 @@ export default function Onboarding() {
                   return (
                     <>
                       {/* Creative Expression */}
-                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
-                        <div className="text-white font-medium mb-3">Creative Expression</div>
+                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors cursor-pointer group">
+                        <div className="text-white font-medium mb-3 group-hover:text-blue-300 transition-colors">Creative Expression</div>
                         <div className="flex justify-between text-sm text-gray-300 mb-2">
-                          <span>Restrained</span>
-                          <span>Expressive</span>
+                          <span className="group-hover:text-gray-100 transition-colors">Restrained</span>
+                          <span className="group-hover:text-gray-100 transition-colors">Expressive</span>
                         </div>
                         <div className="flex justify-between text-sm text-white mb-2">
-                          <span>{Math.round(fingerprint.creativeExpression.restrained)}%</span>
-                          <span>{Math.round(fingerprint.creativeExpression.expressive)}%</span>
+                          <span className="group-hover:text-blue-200 transition-colors">{Math.round(fingerprint.creativeExpression.restrained)}%</span>
+                          <span className="group-hover:text-blue-200 transition-colors">{Math.round(fingerprint.creativeExpression.expressive)}%</span>
                         </div>
-                        <div className="w-full bg-gray-600 rounded-full h-2">
-                          <div className="bg-white h-2 rounded-full" style={{width: `${fingerprint.creativeExpression.expressive}%`}}></div>
+                        <div className="w-full bg-gray-600 rounded-full h-2 group-hover:bg-gray-500 transition-colors">
+                          <div 
+                            className="bg-gradient-to-r from-blue-400 to-blue-300 h-2 rounded-full transition-all duration-300 group-hover:from-blue-300 group-hover:to-blue-200" 
+                            style={{width: `${fingerprint.creativeExpression.expressive}%`}}
+                          ></div>
                         </div>
                       </div>
 
                       {/* Trend Awareness */}
-                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
-                        <div className="text-white font-medium mb-3">Trend Awareness</div>
+                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors cursor-pointer group">
+                        <div className="text-white font-medium mb-3 group-hover:text-green-300 transition-colors">Trend Awareness</div>
                         <div className="flex justify-between text-sm text-gray-300 mb-2">
-                          <span>Timeless</span>
-                          <span>Trendsetting</span>
+                          <span className="group-hover:text-gray-100 transition-colors">Timeless</span>
+                          <span className="group-hover:text-gray-100 transition-colors">Trendsetting</span>
                         </div>
                         <div className="flex justify-between text-sm text-white mb-2">
-                          <span>{Math.round(fingerprint.trendAwareness.timeless)}%</span>
-                          <span>{Math.round(fingerprint.trendAwareness.trendsetting)}%</span>
+                          <span className="group-hover:text-green-200 transition-colors">{Math.round(fingerprint.trendAwareness.timeless)}%</span>
+                          <span className="group-hover:text-green-200 transition-colors">{Math.round(fingerprint.trendAwareness.trendsetting)}%</span>
                         </div>
-                        <div className="w-full bg-gray-600 rounded-full h-2">
-                          <div className="bg-white h-2 rounded-full" style={{width: `${fingerprint.trendAwareness.trendsetting}%`}}></div>
+                        <div className="w-full bg-gray-600 rounded-full h-2 group-hover:bg-gray-500 transition-colors">
+                          <div 
+                            className="bg-gradient-to-r from-green-400 to-green-300 h-2 rounded-full transition-all duration-300 group-hover:from-green-300 group-hover:to-green-200" 
+                            style={{width: `${fingerprint.trendAwareness.trendsetting}%`}}
+                          ></div>
                         </div>
                       </div>
 
                       {/* Wardrobe Flexibility */}
-                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4">
-                        <div className="text-white font-medium mb-3">Wardrobe Flexibility</div>
+                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors cursor-pointer group">
+                        <div className="text-white font-medium mb-3 group-hover:text-purple-300 transition-colors">Wardrobe Flexibility</div>
                         <div className="flex justify-between text-sm text-gray-300 mb-2">
-                          <span>Focused</span>
-                          <span>Versatile</span>
+                          <span className="group-hover:text-gray-100 transition-colors">Focused</span>
+                          <span className="group-hover:text-gray-100 transition-colors">Versatile</span>
                         </div>
                         <div className="flex justify-between text-sm text-white mb-2">
-                          <span>{Math.round(fingerprint.wardrobeFlexibility.focused)}%</span>
-                          <span>{Math.round(fingerprint.wardrobeFlexibility.versatile)}%</span>
+                          <span className="group-hover:text-purple-200 transition-colors">{Math.round(fingerprint.wardrobeFlexibility.focused)}%</span>
+                          <span className="group-hover:text-purple-200 transition-colors">{Math.round(fingerprint.wardrobeFlexibility.versatile)}%</span>
                         </div>
-                        <div className="w-full bg-gray-600 rounded-full h-2">
-                          <div className="bg-white h-2 rounded-full" style={{width: `${fingerprint.wardrobeFlexibility.versatile}%`}}></div>
+                        <div className="w-full bg-gray-600 rounded-full h-2 group-hover:bg-gray-500 transition-colors">
+                          <div 
+                            className="bg-gradient-to-r from-purple-400 to-purple-300 h-2 rounded-full transition-all duration-300 group-hover:from-purple-300 group-hover:to-purple-200" 
+                            style={{width: `${fingerprint.wardrobeFlexibility.versatile}%`}}
+                          ></div>
                         </div>
                       </div>
                     </>
                   );
                 })()}
+              </div>
+            </div>
+
+            {/* User Feedback Card */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6 text-center">Does this sound like you?</h3>
+              <div className="flex flex-wrap justify-center gap-3 mb-6">
+                <button className="px-6 py-3 bg-green-100 text-green-800 rounded-lg font-medium hover:bg-green-200 transition-colors">
+                  Yes
+                </button>
+                <button className="px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg font-medium hover:bg-yellow-200 transition-colors">
+                  Mostly
+                </button>
+                <button className="px-6 py-3 bg-orange-100 text-orange-800 rounded-lg font-medium hover:bg-orange-200 transition-colors">
+                  A little
+                </button>
+                <button className="px-6 py-3 bg-red-100 text-red-800 rounded-lg font-medium hover:bg-red-200 transition-colors">
+                  No
+                </button>
+              </div>
+              
+              <div className="mb-6">
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">What's next? Introduce yourself to your Stylist</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  They'll use your results to create your personalized style recommendations
+                </p>
+                <textarea
+                  placeholder="Tell your stylist about specific requests, trends you want to try, or any style inspiration you have in mind..."
+                  className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  rows={4}
+                  maxLength={500}
+                />
+                <div className="text-right text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  500 characters remaining
+                </div>
               </div>
             </div>
 
