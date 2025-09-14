@@ -1758,9 +1758,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         logger.info(f"🔍 DEBUG: Found {len(suitable_items)} suitable items")
         
         # ENHANCED: Prioritize base item if provided
-        if req.baseItem:
-            base_item_id = req.baseItem.get('id')
-            logger.info(f"🎯 DEBUG: Base item provided: {req.baseItem.get('name', 'unnamed')} (ID: {base_item_id})")
+        if req.baseItemId:
+            base_item_id = req.baseItemId
+            logger.info(f"🎯 DEBUG: Base item ID provided: {base_item_id}")
             
             # Find the base item in the wardrobe
             base_item = None
@@ -1793,15 +1793,6 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             suitable_items.extend(additional_items[:10])
             logger.info(f"🔍 DEBUG: Extended suitable items to {len(suitable_items)} for variety")
         
-        # Handle base item - add it to suitable items if specified
-        if req.baseItemId:
-            base_item = next((item for item in wardrobe_items if item.get("id") == req.baseItemId), None)
-            if base_item:
-                logger.info(f"🎯 Adding base item to outfit: {base_item.get('name', 'Unknown')} ({base_item.get('type', 'Unknown')})")
-                # Add base item to the beginning of suitable items to prioritize it
-                suitable_items.insert(0, base_item)
-            else:
-                logger.warning(f"⚠️ Base item {req.baseItemId} not found in wardrobe")
         
         # If no suitable items, use any available items
         if not suitable_items:
@@ -1811,9 +1802,20 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         else:
             logger.info(f"✅ DEBUG: Found {len(suitable_items)} suitable items")
         # Use timestamp as seed for different randomization each time
-        random.seed(int(time.time() * 1000) % 1000000)
-        random.shuffle(suitable_items)
-        logger.info(f"🔍 DEBUG: Randomized suitable items order with seed")
+        # But preserve base item at the beginning if it exists
+        if req.baseItemId and suitable_items and suitable_items[0].get('id') == req.baseItemId:
+            # Base item is at the beginning, randomize the rest
+            base_item = suitable_items[0]
+            rest_items = suitable_items[1:]
+            random.seed(int(time.time() * 1000) % 1000000)
+            random.shuffle(rest_items)
+            suitable_items = [base_item] + rest_items
+            logger.info(f"🔍 DEBUG: Randomized items while preserving base item at beginning")
+        else:
+            # No base item or base item not at beginning, randomize all
+            random.seed(int(time.time() * 1000) % 1000000)
+            random.shuffle(suitable_items)
+            logger.info(f"🔍 DEBUG: Randomized all suitable items order with seed")
         
         # Find base item object if baseItemId is provided
         base_item_obj = None

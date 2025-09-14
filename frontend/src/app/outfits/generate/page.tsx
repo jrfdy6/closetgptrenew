@@ -759,47 +759,6 @@ export default function OutfitGenerationPage() {
           </div>
         </div>
 
-        {/* Base Item Indicator */}
-        {baseItem && (
-          <Card className="mb-8 border border-stone-200 dark:border-stone-700 bg-stone-100 dark:bg-stone-800/50 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
-                  <img
-                    src={baseItem.imageUrl || baseItem.image_url || '/placeholder.jpg'}
-                    alt={baseItem.name || 'Base item'}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder.jpg';
-                    }}
-                  />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    Generating outfit with: {baseItem.name || 'Unknown item'}
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    This item will be included as the base layer in your outfit
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setBaseItem(null);
-                    // Remove base item from URL
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete('baseItem');
-                    window.history.replaceState({}, '', url.toString());
-                  }}
-                >
-                  Remove
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Enhanced Outfit Generation Form */}
