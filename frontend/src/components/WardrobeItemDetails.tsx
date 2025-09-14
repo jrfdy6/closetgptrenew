@@ -622,112 +622,139 @@ export default function WardrobeItemDetails({
                   </Card>
                 </div>
 
-                {item.description && (
-                  <div>
-                    <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Description</h3>
-                    <p className="text-stone-600 dark:text-stone-400">{item.description}</p>
-                  </div>
-                )}
+                {/* Description */}
+                <div>
+                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Description</h3>
+                  <p className="text-stone-600 dark:text-stone-400">
+                    {item.description || <span className="text-stone-400 italic">No description provided</span>}
+                  </p>
+                </div>
 
-                {(item.size || item.material || item.sleeveLength || item.fit || item.neckline || item.length) && (
+                {/* All Physical Attributes */}
+                <div>
+                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">Physical Attributes</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    {item.size && (
-                      <div>
-                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Size</h3>
-                        <p className="text-stone-600 dark:text-stone-400">{item.size}</p>
-                      </div>
-                    )}
-                    {item.sleeveLength && (
-                      <div>
-                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Sleeve Length</h3>
-                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.sleeveLength.replace('-', ' ')}</p>
-                      </div>
-                    )}
-                    {item.fit && (
-                      <div>
-                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Fit</h3>
-                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.fit}</p>
-                      </div>
-                    )}
-                    {item.neckline && (
-                      <div>
-                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Neckline</h3>
-                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.neckline.replace('-', ' ')}</p>
-                      </div>
-                    )}
-                    {item.length && (
-                      <div>
-                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Length</h3>
-                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.length}</p>
-                      </div>
-                    )}
-                    {item.purchasePrice && item.purchasePrice > 0 && (
-                      <div>
-                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Purchase Price</h3>
-                        <p className="text-stone-600 dark:text-stone-400">${item.purchasePrice.toFixed(2)}</p>
-                      </div>
-                    )}
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Size</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.size || <span className="text-stone-400 italic">Not specified</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Sleeve Length</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.sleeveLength ? item.sleeveLength.replace('-', ' ').charAt(0).toUpperCase() + item.sleeveLength.replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Fit</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.fit ? item.fit.charAt(0).toUpperCase() + item.fit.slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Neckline</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.neckline ? item.neckline.replace('-', ' ').charAt(0).toUpperCase() + item.neckline.replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Length</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.length ? item.length.charAt(0).toUpperCase() + item.length.slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Purchase Price</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.purchasePrice && item.purchasePrice > 0 ? `$${item.purchasePrice.toFixed(2)}` : <span className="text-stone-400 italic">Not specified</span>}
+                      </p>
+                    </div>
                   </div>
-                )}
+                </div>
 
-                {item.material && item.material.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Materials</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {item.material.map((material, index) => (
+                {/* Materials */}
+                <div>
+                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Materials</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {item.material && item.material.length > 0 ? (
+                      item.material.map((material, index) => (
                         <Badge key={index} variant="outline">
                           {material}
                         </Badge>
-                      ))}
-                    </div>
+                      ))
+                    ) : (
+                      <span className="text-stone-400 italic">No materials specified</span>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {item.style && item.style.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Styles</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {item.style.map((style, index) => (
+                {/* Styles */}
+                <div>
+                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Styles</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {item.style && item.style.length > 0 ? (
+                      item.style.map((style, index) => (
                         <Badge key={index} variant="outline">
                           {style}
                         </Badge>
-                      ))}
-                    </div>
+                      ))
+                    ) : (
+                      <span className="text-stone-400 italic">No styles specified</span>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {item.season && item.season.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Seasons</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {item.season.map((season, index) => (
+                {/* Seasons */}
+                <div>
+                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Seasons</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {item.season && item.season.length > 0 ? (
+                      item.season.map((season, index) => (
                         <Badge key={index} variant="outline">
                           {season}
                         </Badge>
-                      ))}
-                    </div>
+                      ))
+                    ) : (
+                      <span className="text-stone-400 italic">No seasons specified</span>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {item.occasion && item.occasion.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Occasions</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {item.occasion.map((occasion, index) => (
+                {/* Occasions */}
+                <div>
+                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Occasions</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {item.occasion && item.occasion.length > 0 ? (
+                      item.occasion.map((occasion, index) => (
                         <Badge key={index} variant="outline">
                           {occasion}
                         </Badge>
-                      ))}
+                      ))
+                    ) : (
+                      <span className="text-stone-400 italic">No occasions specified</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Metadata */}
+                <div>
+                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">Metadata</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Last Worn</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.lastWorn ? formatLastWorn(item.lastWorn) : <span className="text-stone-400 italic">Never worn</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Purchase Date</h4>
+                      <p className="text-stone-600 dark:text-stone-400">
+                        {item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : <span className="text-stone-400 italic">Not specified</span>}
+                      </p>
                     </div>
                   </div>
-                )}
-
-                {item.lastWorn && (
-                  <div>
-                    <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Last Worn</h3>
-                    <p className="text-stone-600 dark:text-stone-400">{formatLastWorn(item.lastWorn)}</p>
-                  </div>
-                )}
+                </div>
               </div>
             )}
           </div>

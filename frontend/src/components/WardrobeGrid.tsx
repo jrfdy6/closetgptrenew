@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Sparkles, MoreVertical, Eye, Trash2 } from "lucide-react";
 import { safeSlice } from "@/lib/utils/arrayUtils";
-import InlineEditableBadge from "./InlineEditableBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +45,6 @@ interface WardrobeGridProps {
   onGenerateOutfit: (item: WardrobeItem) => void;
   onToggleFavorite?: (itemId: string) => void;
   onDeleteItem?: (itemId: string) => void;
-  onUpdateItem?: (itemId: string, updates: Partial<WardrobeItem>) => Promise<void>;
   showActions?: boolean;
 }
 
@@ -57,18 +55,11 @@ export default function WardrobeGrid({
   onGenerateOutfit, 
   onToggleFavorite,
   onDeleteItem,
-  onUpdateItem,
   showActions = true 
 }: WardrobeGridProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
-
-  // Options for inline editing
-  const COLORS = ['black', 'white', 'blue', 'red', 'green', 'yellow', 'purple', 'pink', 'brown', 'gray', 'beige', 'navy', 'burgundy', 'camel'];
-  const STYLES = ['classic', 'modern', 'vintage', 'bohemian', 'minimalist', 'edgy', 'romantic', 'athletic', 'preppy', 'artistic'];
-  const SEASONS = ['spring', 'summer', 'fall', 'winter'];
-  const OCCASIONS = ['casual', 'work', 'formal', 'party', 'date', 'gym', 'travel', 'home'];
 
   // Filter out items with broken image URLs (truncated base64 or broken placeholder)
   const validItems = items.filter(item => {
@@ -308,44 +299,41 @@ export default function WardrobeGrid({
 
               {/* Color and Style */}
               <div className="flex items-center justify-between">
-                <InlineEditableBadge
-                  value={item.color}
-                  onSave={(newColor) => onUpdateItem?.(item.id, { color: newColor as string })}
-                  type="single"
-                  options={COLORS}
-                  className={`${getColorBadge(item.color)}`}
-                  variant="default"
-                />
+                <Badge className={`text-xs ${getColorBadge(item.color)}`}>
+                  {item.color}
+                </Badge>
                 
-                <InlineEditableBadge
-                  value={item.style || []}
-                  onSave={(newStyles) => onUpdateItem?.(item.id, { style: newStyles as string[] })}
-                  type="multi"
-                  options={STYLES}
-                  placeholder="Add style"
-                  variant="outline"
-                />
+                {item.style && safeSlice(item.style, 0, 2).length > 0 && (
+                  <div className="flex gap-1">
+                    {safeSlice(item.style, 0, 2).map((style, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {style}
+                      </Badge>
+                    ))}
+                    {safeSlice(item.style, 0).length > 2 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{safeSlice(item.style, 0).length - 2}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Season and Occasion */}
-              <div className="flex flex-wrap gap-1">
-                <InlineEditableBadge
-                  value={item.season || []}
-                  onSave={(newSeasons) => onUpdateItem?.(item.id, { season: newSeasons as string[] })}
-                  type="multi"
-                  options={SEASONS}
-                  placeholder="Add season"
-                  variant="outline"
-                />
-                <InlineEditableBadge
-                  value={item.occasion || []}
-                  onSave={(newOccasions) => onUpdateItem?.(item.id, { occasion: newOccasions as string[] })}
-                  type="multi"
-                  options={OCCASIONS}
-                  placeholder="Add occasion"
-                  variant="outline"
-                />
-              </div>
+              {(item.season || item.occasion) && (
+                <div className="flex flex-wrap gap-1">
+                  {safeSlice(item.season, 0, 2).map((season, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {season}
+                    </Badge>
+                  ))}
+                  {safeSlice(item.occasion, 0, 1).map((occasion, index) => (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {occasion}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
