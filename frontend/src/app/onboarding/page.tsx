@@ -1465,13 +1465,30 @@ export default function Onboarding() {
                 ))}
               </div>
             </div>
-          ) : question.type === "visual_yesno" ? (
+          ) : question.type === "visual_yesno" && question.images ? (
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-6">
-                  <div className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
-                    Do you like this style?
-                  </div>
+                  <img 
+                    src={question.images[0]} 
+                    alt="Style example"
+                    className="w-full max-w-md mx-auto h-64 object-cover rounded-lg shadow-lg"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `
+                          <div class="w-full max-w-md mx-auto h-64 bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-lg">
+                            <div class="text-center text-gray-500 dark:text-gray-400">
+                              <div class="text-4xl mb-2">📷</div>
+                              <div class="text-sm">Style image unavailable</div>
+                            </div>
+                          </div>
+                        `;
+                      }
+                    }}
+                  />
                 </div>
                 <div className="flex justify-center space-x-4">
                   <button
