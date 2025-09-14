@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles, Palette, Camera, TrendingUp, Heart, ArrowRight, CheckCircle } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -448,6 +449,7 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
 ];
 
 export default function Onboarding() {
+  const router = useRouter();
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userGender, setUserGender] = useState<string | null>(null);
@@ -1617,34 +1619,13 @@ export default function Onboarding() {
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 [handleSubmit] Called - redirecting to submitQuiz');
     setIsSubmitting(true);
     try {
-      // Get the Firebase auth token
-      const token = await getIdToken();
-      
-      if (!token) {
-        throw new Error('No authentication token available');
-      }
-      
-      const response = await fetch('/api/style-quiz/analyze', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ answers })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const results = await response.json();
-      setQuizResults(results);
-      setQuizCompleted(true);
+      await submitQuiz();
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      setError('Failed to analyze your style. Please try again.');
+      setError('Failed to submit quiz. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
