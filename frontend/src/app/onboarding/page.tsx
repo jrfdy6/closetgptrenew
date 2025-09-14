@@ -459,7 +459,7 @@ export default function Onboarding() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [skinTone, setSkinTone] = useState(50);
 
-  const { user, loading: authLoading } = useAuthContext();
+  const { user, loading: authLoading, getIdToken } = useAuthContext();
 
   // Save skin tone when it changes - moved to slider onChange
 
@@ -1276,6 +1276,10 @@ export default function Onboarding() {
                       src={image.url} 
                       alt={`${persona.name} style example ${index + 1}`}
                       className="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/images/placeholder.jpg';
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
@@ -1342,7 +1346,11 @@ export default function Onboarding() {
     setIsSubmitting(true);
     try {
       // Get the Firebase auth token
-      const token = await user?.getIdToken();
+      const token = await getIdToken();
+      
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
       
       const response = await fetch('/api/style-quiz/analyze', {
         method: 'POST',
@@ -1441,6 +1449,10 @@ export default function Onboarding() {
                         src={image} 
                         alt={option}
                         className="w-full h-80 object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/images/placeholder.jpg';
+                        }}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
