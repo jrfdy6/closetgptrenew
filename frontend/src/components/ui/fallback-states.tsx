@@ -8,7 +8,6 @@ import {
   Image as ImageIcon, 
   Sparkles, 
   RefreshCw,
-  Plus,
   Filter,
   Heart,
   Share2,
