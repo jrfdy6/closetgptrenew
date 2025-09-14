@@ -251,6 +251,46 @@ function determineStylePersona(userAnswers: Record<string, string>, stylePrefere
       traits: ["Clean lines", "Bold vision", "Timeless design", "Quality construction", "Geometric precision"],
       cta: "See My Plan Options →"
     },
+    strategist: {
+      id: "strategist",
+      name: "The Strategist",
+      tagline: "Smart choices. Versatile pieces. Effortless style.",
+      description: "You approach fashion strategically, building a wardrobe that works hard for you. Your style is practical, versatile, and always appropriate. You value pieces that can be mixed and matched across different occasions and seasons.",
+      styleMission: "Build a strategic wardrobe with pieces that work together seamlessly. Focus on versatility and quality over quantity.",
+      examples: ["Amal Clooney", "Victoria Beckham", "Ryan Gosling", "Emma Stone", "Chris Evans"],
+      traits: ["Smart choices", "Versatile pieces", "Effortless style", "Strategic thinking", "Quality over quantity"],
+      cta: "See My Plan Options →"
+    },
+    innovator: {
+      id: "innovator",
+      name: "The Innovator",
+      tagline: "Forward-thinking. Experimental. Trend-setting.",
+      description: "You're always ahead of the curve, experimenting with new styles and pushing boundaries. Your fashion choices reflect your innovative spirit and willingness to take risks. You're not afraid to try new things and often set trends rather than follow them.",
+      styleMission: "Stay ahead of trends and don't be afraid to experiment. Focus on pieces that reflect your innovative spirit and forward-thinking approach.",
+      examples: ["Lady Gaga", "Pharrell Williams", "Rihanna", "Billy Porter", "Zendaya"],
+      traits: ["Forward-thinking", "Experimental", "Trend-setting", "Risk-taking", "Innovative spirit"],
+      cta: "See My Plan Options →"
+    },
+    classic: {
+      id: "classic",
+      name: "The Classic",
+      tagline: "Timeless elegance. Sophisticated style. Never goes out of fashion.",
+      description: "You appreciate the finer things and believe in investing in pieces that will last a lifetime. Your style is elegant, sophisticated, and built on timeless principles. You look polished without being flashy, and your wardrobe reflects your appreciation for quality and tradition.",
+      styleMission: "Refine your existing foundation. Focus on perfect tailoring, quality fabrics, and timeless silhouettes. Invest in pieces that will last decades.",
+      examples: ["Audrey Hepburn", "Grace Kelly", "Cary Grant", "Sophia Loren", "Paul Newman"],
+      traits: ["Timeless elegance", "Sophisticated style", "Quality investment", "Polished appearance", "Traditional values"],
+      cta: "See My Plan Options →"
+    },
+    wanderer: {
+      id: "wanderer",
+      name: "The Wanderer",
+      tagline: "Free-spirited. Bohemian soul. Adventure-ready.",
+      description: "You're drawn to pieces that tell a story and reflect your adventurous spirit. Your style is eclectic, free-spirited, and often inspired by your travels and experiences. You value comfort and self-expression over trends.",
+      styleMission: "Embrace your free spirit and don't be afraid to mix styles and cultures. Focus on pieces that reflect your adventures and personal journey.",
+      examples: ["Stevie Nicks", "Johnny Depp", "Kate Moss", "Lenny Kravitz", "Sienna Miller"],
+      traits: ["Free-spirited", "Bohemian soul", "Adventure-ready", "Eclectic style", "Story-telling pieces"],
+      cta: "See My Plan Options →"
+    },
     rebel: {
       id: "rebel",
       name: "The Rebel",
@@ -286,6 +326,10 @@ function determineStylePersona(userAnswers: Record<string, string>, stylePrefere
   // Score each persona based on quiz answers
   const personaScores: Record<string, number> = {
     architect: 0,
+    strategist: 0,
+    innovator: 0,
+    classic: 0,
+    wanderer: 0,
     rebel: 0,
     connoisseur: 0,
     modernist: 0
@@ -298,14 +342,18 @@ function determineStylePersona(userAnswers: Record<string, string>, stylePrefere
   }
   if (stylePreferences.includes('Street Style') || stylePreferences.includes('Urban Street')) {
     personaScores.rebel += 3;
+    personaScores.strategist += 1;
   }
   if (stylePreferences.includes('Classic Elegant')) {
+    personaScores.classic += 3;
     personaScores.connoisseur += 2;
   }
   if (stylePreferences.includes('Old Money')) {
+    personaScores.classic += 2;
     personaScores.connoisseur += 3;
   }
   if (stylePreferences.includes('Cottagecore') || stylePreferences.includes('Natural Boho')) {
+    personaScores.wanderer += 3;
     personaScores.rebel += 1;
   }
 
@@ -313,16 +361,20 @@ function determineStylePersona(userAnswers: Record<string, string>, stylePrefere
   if (userAnswers.daily_activities === 'Office work and meetings') {
     personaScores.connoisseur += 2;
     personaScores.architect += 1;
+    personaScores.classic += 1;
   }
   if (userAnswers.daily_activities === 'Creative work and casual meetings') {
     personaScores.modernist += 2;
     personaScores.rebel += 1;
+    personaScores.innovator += 1;
   }
   if (userAnswers.daily_activities === 'Active lifestyle and sports') {
     personaScores.rebel += 2;
+    personaScores.strategist += 1;
   }
   if (userAnswers.daily_activities === 'Mix of everything') {
     personaScores.modernist += 3;
+    personaScores.strategist += 2;
   }
 
   // Style elements scoring
@@ -332,13 +384,16 @@ function determineStylePersona(userAnswers: Record<string, string>, stylePrefere
   }
   if (userAnswers.style_elements === 'Rich textures and patterns') {
     personaScores.connoisseur += 3;
+    personaScores.classic += 1;
   }
   if (userAnswers.style_elements === 'Classic and timeless pieces') {
+    personaScores.classic += 3;
     personaScores.connoisseur += 2;
     personaScores.architect += 1;
   }
   if (userAnswers.style_elements === 'Bold and statement pieces') {
     personaScores.rebel += 3;
+    personaScores.innovator += 1;
   }
 
   // Find the highest scoring persona
