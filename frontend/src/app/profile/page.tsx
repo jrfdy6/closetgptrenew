@@ -585,7 +585,8 @@ export default function ProfilePage() {
               <span className="text-sm font-medium">Member Since</span>
               <span className="text-sm text-muted-foreground">
                 {(() => {
-                  const timestamp = profile.createdAt || profile.created_at || 0;
+                  // Prioritize created_at over createdAt since created_at is the newer field
+                  const timestamp = profile.created_at || profile.createdAt || 0;
                   // If timestamp is very large (Unix timestamp in seconds), multiply by 1000
                   // If timestamp is already in milliseconds, use as is
                   const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
@@ -597,7 +598,8 @@ export default function ProfilePage() {
               <span className="text-sm font-medium">Last Updated</span>
               <span className="text-sm text-muted-foreground">
                 {(() => {
-                  const timestamp = profile.updatedAt || profile.updated_at || 0;
+                  // Prioritize updated_at over updatedAt since updated_at is the newer field
+                  const timestamp = profile.updated_at || profile.updatedAt || 0;
                   // If timestamp is very large (Unix timestamp in seconds), multiply by 1000
                   // If timestamp is already in milliseconds, use as is
                   const date = timestamp > 1000000000000 ? new Date(timestamp) : new Date(timestamp * 1000);
