@@ -1403,6 +1403,50 @@ export default function Onboarding() {
               </div>
             </div>
 
+            {/* Style Mission Section */}
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-8 text-white shadow-xl mb-8">
+              <div className="text-center">
+                <h2 className="text-3xl font-serif font-bold mb-4">Your Style Mission</h2>
+                <p className="text-xl text-purple-100 max-w-4xl mx-auto leading-relaxed">
+                  {persona.styleMission}
+                </p>
+              </div>
+            </div>
+
+            {/* The Rebels You May Know Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-serif font-bold text-gray-900 dark:text-white mb-4">
+                  The {persona.name.split(' ')[1]}s You May Know
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  Celebrities and icons who embody the {persona.name.toLowerCase()} style
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {persona.examples?.map((celebrity, index) => (
+                  <div key={index} className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-2xl hover:shadow-lg transition-shadow">
+                    <div className="text-4xl mb-3">♪</div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {celebrity}
+                    </h3>
+                  </div>
+                )) || (
+                  // Fallback for personas without celebrities defined
+                  <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-2xl">
+                    <div className="text-4xl mb-3">♪</div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Style Icons
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                      Discover your style inspirations
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
           {/* Call-to-Action Section */}
             <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-3xl p-12 text-center text-white shadow-xl">
               <h2 className="text-4xl font-serif font-bold mb-4">We've Got You Covered</h2>
