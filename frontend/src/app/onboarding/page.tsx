@@ -1569,6 +1569,19 @@ export default function Onboarding() {
     isVisualYesNo: question?.type === 'visual_yesno',
     styleName: question?.style_name
   });
+  
+  // Debug: Show visual breakdown of all questions
+  console.log('📋 [Quiz Overview]', {
+    allQuestions: questions.map((q, index) => ({
+      index,
+      id: q.id,
+      type: q.type,
+      isVisualYesNo: q.type === 'visual_yesno',
+      gender: q.gender
+    })),
+    visualYesNoCount: questions.filter(q => q.type === 'visual_yesno').length,
+    currentlyAt: `${currentQuestionIndex + 1}/${questions.length}`
+  });
 
   // Show quiz questions
   return (
