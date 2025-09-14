@@ -93,7 +93,7 @@ async def update_user_profile(
         update_data = {
             'name': profile_data.get('name'),
             'email': profile_data.get('email'),
-            'updated_at': int(time.time())  # Use timestamp like wardrobe.py
+            'updated_at': profile_data.get('updated_at') or profile_data.get('updatedAt') or int(time.time())  # Use frontend timestamp if available
         }
         
         # Add all the detailed profile fields if they exist
