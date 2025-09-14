@@ -296,6 +296,7 @@ async def upload_image_inline():
 @app.post("/analyze-image")
 async def analyze_image_real(request: dict):
     """Real AI-powered image analysis endpoint using GPT-4 Vision"""
+    temp_file_path = None
     try:
         if not request.get("image") or not request["image"].get("url"):
             return {"error": "No image provided"}
@@ -395,7 +396,7 @@ async def analyze_image_real(request: dict):
             
         finally:
             # Clean up the temporary file
-            if os.path.exists(temp_file_path):
+            if temp_file_path and os.path.exists(temp_file_path):
                 os.unlink(temp_file_path)
         
     except Exception as e:
