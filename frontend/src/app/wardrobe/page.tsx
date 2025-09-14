@@ -14,6 +14,8 @@ import {
   Filter, 
   Grid3X3, 
   List, 
+  Upload,
+  X,
   Shirt,
   Sparkles,
   TrendingUp,
@@ -35,6 +37,11 @@ import dynamic from 'next/dynamic';
 const WardrobeGrid = dynamic(() => import('@/components/WardrobeGrid'), {
   ssr: false,
   loading: () => <div className="animate-pulse space-y-4">Loading wardrobe...</div>
+});
+
+const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse space-y-4">Loading batch upload...</div>
 });
 
 
@@ -68,6 +75,7 @@ export default function WardrobePage() {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedColor, setSelectedColor] = useState<string>("all");
   const [selectedSeason, setSelectedSeason] = useState<string>("all");
+  const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [showItemDetails, setShowItemDetails] = useState(false);
 
@@ -287,6 +295,15 @@ export default function WardrobePage() {
               <BodyPositiveMessage variant="wardrobe" className="mt-6" />
             </div>
             
+            <div className="flex gap-4">
+              <Button 
+                onClick={() => setShowBatchUpload(!showBatchUpload)}
+                className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+              >
+                <Upload className="w-5 h-5 mr-3" />
+                Add Items with AI
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -294,6 +311,37 @@ export default function WardrobePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
+        {/* Upload Forms */}
+        {showBatchUpload && (
+          <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-6">
+              <div>
+                <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Add Items with AI ⚡</CardTitle>
+                <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Upload one or multiple items - AI will automatically analyze and save each one</CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowBatchUpload(false)}
+                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <BatchImageUpload 
+                onUploadComplete={async (items) => {
+                  setShowBatchUpload(false);
+                  refetch();
+                }}
+                onError={(message) => {
+                  // Handle batch upload error silently
+                }}
+                userId={user?.uid || ''}
+              />
+            </CardContent>
+          </Card>
+        )}
         
 
         {/* Filters and Search */}
