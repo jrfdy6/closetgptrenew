@@ -958,11 +958,17 @@ export default function Onboarding() {
   };
 
   const submitQuiz = async () => {
+    console.log('🚀 [submitQuiz] Function called!');
+    console.log('🚀 [submitQuiz] User:', !!user);
+    console.log('🚀 [submitQuiz] Answers:', answers.length);
+    
     if (!user) {
+      console.log('❌ [submitQuiz] No user, setting error');
       setError('Please sign in to complete the quiz');
       return;
     }
 
+    console.log('🚀 [submitQuiz] Starting submission...');
     setIsLoading(true);
     setError(null);
 
@@ -1008,6 +1014,7 @@ export default function Onboarding() {
         hasColorAnalysis: !!colorAnalysis
       });
 
+      console.log('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit');
       const response = await fetch('/api/style-quiz/submit', {
         method: 'POST',
         headers: {
@@ -1016,6 +1023,8 @@ export default function Onboarding() {
         },
         body: JSON.stringify(submissionData)
       });
+      
+      console.log('🌐 [Quiz Frontend] API response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
@@ -1585,7 +1594,8 @@ export default function Onboarding() {
     console.log('🔄 [Navigation] Next clicked:', {
       currentQuestionIndex,
       totalQuestions: questions.length,
-      canGoNext: currentQuestionIndex < questions.length - 1
+      canGoNext: currentQuestionIndex < questions.length - 1,
+      isLastQuestion: currentQuestionIndex === questions.length - 1
     });
     
     if (currentQuestionIndex < questions.length - 1) {
@@ -1593,6 +1603,9 @@ export default function Onboarding() {
     } else {
       // If this is the last question, submit the quiz
       console.log('🎯 [Quiz] Last question reached, submitting quiz...');
+      console.log('🎯 [Quiz] submitQuiz function available:', typeof submitQuiz);
+      console.log('🎯 [Quiz] User available:', !!user);
+      console.log('🎯 [Quiz] Answers count:', answers.length);
       submitQuiz();
     }
   };
