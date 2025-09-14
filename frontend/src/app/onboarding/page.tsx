@@ -513,19 +513,15 @@ export default function Onboarding() {
 
   const [questions, setQuestions] = React.useState<QuizQuestion[]>(() => getFilteredQuestions());
 
-  const updateQuestions = React.useCallback(() => {
-    console.log('🔄 [useCallback] Recalculating questions with gender:', userGender);
-    const newQuestions = getFilteredQuestions();
-    console.log('🔄 [useCallback] Result:', {
+  React.useEffect(() => {
+    console.log('🔄 [useEffect] Recalculating questions with gender:', userGender);
+    const newQuestions = getFilteredQuestions(userGender);
+    console.log('🔄 [useEffect] Result:', {
       totalQuestions: newQuestions.length,
       visualYesNoCount: newQuestions.filter(q => q.type === 'visual_yesno').length
     });
     setQuestions(newQuestions);
   }, [userGender]);
-
-  React.useEffect(() => {
-    updateQuestions();
-  }, [updateQuestions]);
 
   // Debug: Log when userGender changes
   React.useEffect(() => {
