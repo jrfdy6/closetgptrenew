@@ -1502,14 +1502,17 @@ export default function Onboarding() {
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-6">
                   <div 
+                    key={skinTone}
                     className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" 
                     style={{
-                      backgroundColor: `rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)})`,
-                      background: `linear-gradient(135deg, rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)}), rgb(${Math.round(skinTone * 2.2)}, ${Math.round(skinTone * 1.5)}, ${Math.round(skinTone * 1.0)}))`
+                      backgroundColor: `rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)})`
                     }}
                     title={`Skin tone: ${skinTone} (RGB: ${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)})`}
                   ></div>
                   <p className="text-lg text-gray-600 dark:text-gray-400">Your skin tone</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    Value: {skinTone} | RGB: ({Math.round(skinTone * 2.55)}, {Math.round(skinTone * 1.8)}, {Math.round(skinTone * 1.2)})
+                  </p>
                 </div>
                 <input
                   type="range"
@@ -1518,7 +1521,10 @@ export default function Onboarding() {
                   value={skinTone}
                   onChange={(e) => {
                     const newValue = parseInt(e.target.value);
-                    console.log('🎨 Skin tone changed to:', newValue);
+                    const r = Math.round(newValue * 2.55);
+                    const g = Math.round(newValue * 1.8);
+                    const b = Math.round(newValue * 1.2);
+                    console.log('🎨 Skin tone changed to:', newValue, `RGB: (${r}, ${g}, ${b})`);
                     setSkinTone(newValue);
                     handleAnswer('skin_tone', newValue.toString());
                   }}
