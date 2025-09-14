@@ -1215,11 +1215,13 @@ export default function Onboarding() {
 
   if (quizCompleted && quizResults) {
     const persona = determineStylePersona();
+    const styleFingerprint = generateStyleFingerprint();
     
     // Debug logging
     console.log('🎭 [Onboarding] Determined persona:', persona);
     console.log('🎭 [Onboarding] Persona ID:', persona.id);
     console.log('🎭 [Onboarding] User answers:', answers);
+    console.log('🎭 [Onboarding] Style fingerprint:', styleFingerprint);
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900">
@@ -1325,6 +1327,81 @@ export default function Onboarding() {
               ))}
                         </div>
                       </div>
+
+            {/* Style Fingerprint Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-serif font-bold text-gray-900 dark:text-white mb-4">Your Style Fingerprint</h2>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                  A detailed breakdown of your unique style characteristics
+                </p>
+              </div>
+              
+              <div className="space-y-8">
+                {/* Creative Expression */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Creative Expression</h3>
+                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <span>Restrained</span>
+                    <span>Expressive</span>
+                  </div>
+                  <div className="relative">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-1000"
+                        style={{ width: `${styleFingerprint.creativeExpression.expressive}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
+                      <span>{styleFingerprint.creativeExpression.restrained}%</span>
+                      <span>{styleFingerprint.creativeExpression.expressive}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trend Awareness */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Trend Awareness</h3>
+                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <span>Timeless</span>
+                    <span>Trendsetting</span>
+                  </div>
+                  <div className="relative">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-green-500 to-pink-500 h-3 rounded-full transition-all duration-1000"
+                        style={{ width: `${styleFingerprint.trendAwareness.trendsetting}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
+                      <span>{styleFingerprint.trendAwareness.timeless}%</span>
+                      <span>{styleFingerprint.trendAwareness.trendsetting}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Wardrobe Flexibility */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Wardrobe Flexibility</h3>
+                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <span>Focused</span>
+                    <span>Versatile</span>
+                  </div>
+                  <div className="relative">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-orange-500 to-teal-500 h-3 rounded-full transition-all duration-1000"
+                        style={{ width: `${styleFingerprint.wardrobeFlexibility.versatile}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
+                      <span>{styleFingerprint.wardrobeFlexibility.focused}%</span>
+                      <span>{styleFingerprint.wardrobeFlexibility.versatile}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
           {/* Call-to-Action Section */}
             <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-3xl p-12 text-center text-white shadow-xl">
