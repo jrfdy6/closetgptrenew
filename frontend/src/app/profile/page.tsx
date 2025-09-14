@@ -477,13 +477,13 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <Label>Height</Label>
                 <p className="text-sm text-muted-foreground">
-                  {profile.measurements?.heightFeetInches || 'Not specified'}
+                  {profile.height || profile.measurements?.height || profile.measurements?.heightFeetInches || 'Not specified'}
                 </p>
               </div>
               <div className="space-y-2">
                 <Label>Weight</Label>
                 <p className="text-sm text-muted-foreground">
-                  {profile.measurements?.weight ? `${profile.measurements.weight} lbs` : 'Not specified'}
+                  {profile.weight || profile.measurements?.weight || 'Not specified'}
                 </p>
               </div>
               <div className="space-y-2">
