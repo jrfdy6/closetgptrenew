@@ -1316,50 +1316,50 @@ export default function Onboarding() {
             </div>
 
           {/* Style Examples Section */}
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-serif font-bold text-gray-900 dark:text-white mb-4">Your Style in Action</h2>
-              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          <div className="relative mb-8">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-6">Your Style in Action</h2>
+              <p className="text-lg text-stone-600 dark:text-stone-400 max-w-3xl mx-auto leading-relaxed">
                 See how your {persona.name.toLowerCase()} style translates into real outfits and situations
               </p>
-                        </div>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {getStyleExamplesForPersona(persona.id).map((image, index) => (
                 <div key={index} className="group cursor-pointer">
-                  <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-2xl transition-all duration-500 transform group-hover:-translate-y-2">
+                  <div className="relative overflow-hidden rounded-xl shadow-lg group-hover:shadow-2xl transition-all duration-700 transform group-hover:-translate-y-3 group-hover:scale-[1.02]">
                     <img 
                       src={image.url} 
                       alt={`${persona.name} style example ${index + 1}`}
-                      className="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="w-full h-80 object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
                         const parent = target.parentElement;
                         if (parent) {
                           parent.innerHTML = `
-                            <div class="w-full h-80 bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-2xl">
-                              <div class="text-center text-gray-500 dark:text-gray-400">
+                            <div class="w-full h-80 bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-700 flex items-center justify-center rounded-xl">
+                              <div class="text-center text-stone-500 dark:text-stone-400">
                                 <div class="text-4xl mb-2">📷</div>
-                                <div class="text-sm">Style example unavailable</div>
-                        </div>
-                        </div>
+                                <div class="text-sm font-medium">Style example unavailable</div>
+                              </div>
+                            </div>
                           `;
                         }
                       }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                      <h4 className="font-semibold text-lg mb-2">{image.caption}</h4>
-                      <p className="text-sm text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
+                      <h4 className="font-bold text-xl mb-3 group-hover:text-orange-300 transition-colors duration-300">{image.caption}</h4>
+                      <p className="text-sm text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-500 font-medium">
                         Click to explore this look
                       </p>
-                      </div>
-                        </div>
+                    </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
+          </div>
 
             {/* Style Fingerprint Section */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
