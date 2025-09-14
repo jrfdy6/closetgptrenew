@@ -502,7 +502,8 @@ export default function Onboarding() {
       totalQuestions: QUIZ_QUESTIONS.length,
       filteredQuestions: filtered.length,
       userGender,
-      questionIds: filtered.map(q => q.id)
+      questionIds: filtered.map(q => q.id),
+      visualYesNoQuestions: filtered.filter(q => q.type === 'visual_yesno').map(q => q.id)
     });
     
     return filtered;
@@ -1045,11 +1046,11 @@ export default function Onboarding() {
     const currentAnswer = answers.find(a => a.question_id === question.id);
 
     return (
-        <div className="animate-fade-in">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
-              {question.question}
-            </h2>
+      <div className="animate-fade-in">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
+            {question.question}
+          </h2>
             <div className="text-sm text-gray-500 mb-4">
               DEBUG: Question type = {question.type} | Has images = {question.images ? 'Yes' : 'No'} | Question ID = {question.id}
             </div>
@@ -1329,10 +1330,10 @@ export default function Onboarding() {
                       </p>
                       </div>
                         </div>
-                        </div>
-              ))}
-                        </div>
-                      </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Style Fingerprint Section */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
@@ -1344,67 +1345,67 @@ export default function Onboarding() {
               </div>
               
               <div className="space-y-8">
-                {/* Creative Expression */}
+                      {/* Creative Expression */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Creative Expression</h3>
                   <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    <span>Restrained</span>
-                    <span>Expressive</span>
-                  </div>
+                          <span>Restrained</span>
+                          <span>Expressive</span>
+                        </div>
                   <div className="relative">
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div 
                         className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-1000"
                         style={{ width: `${styleFingerprint.creativeExpression.expressive}%` }}
                       ></div>
-                    </div>
+                        </div>
                     <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
                       <span>{styleFingerprint.creativeExpression.restrained}%</span>
                       <span>{styleFingerprint.creativeExpression.expressive}%</span>
                     </div>
-                  </div>
-                </div>
+                        </div>
+                      </div>
 
-                {/* Trend Awareness */}
+                      {/* Trend Awareness */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Trend Awareness</h3>
                   <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    <span>Timeless</span>
-                    <span>Trendsetting</span>
-                  </div>
+                          <span>Timeless</span>
+                          <span>Trendsetting</span>
+                        </div>
                   <div className="relative">
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div 
                         className="bg-gradient-to-r from-green-500 to-pink-500 h-3 rounded-full transition-all duration-1000"
                         style={{ width: `${styleFingerprint.trendAwareness.trendsetting}%` }}
                       ></div>
-                    </div>
+                        </div>
                     <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
                       <span>{styleFingerprint.trendAwareness.timeless}%</span>
                       <span>{styleFingerprint.trendAwareness.trendsetting}%</span>
                     </div>
-                  </div>
-                </div>
+                        </div>
+                      </div>
 
-                {/* Wardrobe Flexibility */}
+                      {/* Wardrobe Flexibility */}
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Wardrobe Flexibility</h3>
                   <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    <span>Focused</span>
-                    <span>Versatile</span>
-                  </div>
+                          <span>Focused</span>
+                          <span>Versatile</span>
+                        </div>
                   <div className="relative">
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                       <div 
                         className="bg-gradient-to-r from-orange-500 to-teal-500 h-3 rounded-full transition-all duration-1000"
                         style={{ width: `${styleFingerprint.wardrobeFlexibility.versatile}%` }}
                       ></div>
-                    </div>
+                        </div>
                     <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
                       <span>{styleFingerprint.wardrobeFlexibility.focused}%</span>
                       <span>{styleFingerprint.wardrobeFlexibility.versatile}%</span>
-                    </div>
-                  </div>
+                        </div>
+                      </div>
                 </div>
               </div>
             </div>
@@ -1466,9 +1467,9 @@ export default function Onboarding() {
                 <div className="flex items-center space-x-2 text-red-100">
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-sm font-bold">4</span>
-                  </div>
+            </div>
                   <span className="text-sm">Steps to perfect style</span>
-                </div>
+          </div>
               </div>
             </div>
 
@@ -1498,6 +1499,12 @@ export default function Onboarding() {
   };
 
   const handleNext = () => {
+    console.log('🔄 [Navigation] Next clicked:', {
+      currentQuestionIndex,
+      totalQuestions: questions.length,
+      canGoNext: currentQuestionIndex < questions.length - 1
+    });
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     }
