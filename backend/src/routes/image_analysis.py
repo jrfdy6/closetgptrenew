@@ -282,6 +282,7 @@ async def analyze_single_image(
         print(f"🔍 Image URL type: {'data URL' if image_url.startswith('data:') else 'regular URL'}")
         
         # Handle both data URLs and regular URLs
+        response = None  # Initialize response variable
         if image_url.startswith('data:'):
             # Handle base64 data URL
             print("Processing base64 data URL")
@@ -379,13 +380,14 @@ async def analyze_single_image(
             print(f"🔍 Mapped analysis for wardrobe: {normalized_analysis}")
             
             # Log analytics event
+            file_size = len(response.content) if response else 0
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
                     "analysis_type": "gpt4_vision_direct",
                     "image_url": image_url,
-                    "file_size": len(response.content),
+                    "file_size": file_size,
                     "has_clothing_detected": bool(analysis.get("type")),
                     "confidence_score": 0.85
                 }
