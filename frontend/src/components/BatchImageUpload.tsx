@@ -222,14 +222,33 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     // Fetch existing items if not already loaded
+    let itemsToCheck = existingItems;
     if (existingItems.length === 0) {
+      console.log('🔍 No existing items in state, fetching...');
       await fetchExistingItems();
+      // Wait a bit for state to update, then fetch again
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Try to get the items directly from the API
+      try {
+        const response = await fetch('/api/wardrobe', {
+          headers: {
+            'Authorization': `Bearer ${await user?.getIdToken()}`,
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          itemsToCheck = data.items || [];
+          console.log('🔍 Fetched items directly for duplicate check:', itemsToCheck.length);
+        }
+      } catch (error) {
+        console.error('Failed to fetch items for duplicate check:', error);
+      }
     }
 
     const newItems: UploadItem[] = [];
     
     for (const file of acceptedFiles) {
-      const isDuplicate = await checkForDuplicates(file, existingItems);
+      const isDuplicate = await checkForDuplicates(file, itemsToCheck);
       
       newItems.push({
         id: `${Date.now()}-${Math.random()}`,
@@ -242,7 +261,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
     }
 
     setUploadItems(prev => [...prev, ...newItems]);
-  }, [existingItems, fetchExistingItems]);
+  }, [existingItems, fetchExistingItems, user]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
