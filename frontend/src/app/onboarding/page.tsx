@@ -471,26 +471,27 @@ export default function Onboarding() {
   }, [user, authLoading]);
 
   // Filter questions based on gender
-  const getFilteredQuestions = (): QuizQuestion[] => {
+  const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
+    const currentGender = genderOverride || userGender;
     const filtered = QUIZ_QUESTIONS.filter(question => {
       // Show cup size only for females
-      if (question.id === 'cup_size' && userGender && userGender !== 'female') {
+      if (question.id === 'cup_size' && currentGender && currentGender !== 'female') {
         return false;
       }
       
       // Show gender-specific body type questions
-      if (question.id === 'body_type_female' && userGender && userGender !== 'female') {
+      if (question.id === 'body_type_female' && currentGender && currentGender !== 'female') {
         return false;
       }
-      if (question.id === 'body_type_male' && userGender && userGender !== 'male') {
+      if (question.id === 'body_type_male' && currentGender && currentGender !== 'male') {
         return false;
       }
       
       // Show gender-specific style questions
-      if (question.id.startsWith('style_item_f_') && userGender && userGender !== 'female') {
+      if (question.id.startsWith('style_item_f_') && currentGender && currentGender !== 'female') {
         return false;
       }
-      if (question.id.startsWith('style_item_m_') && userGender && userGender !== 'male') {
+      if (question.id.startsWith('style_item_m_') && currentGender && currentGender !== 'male') {
         return false;
       }
       
@@ -500,7 +501,7 @@ export default function Onboarding() {
     console.log('🔍 [Quiz] Filtered questions:', {
       totalQuestions: QUIZ_QUESTIONS.length,
       filteredQuestions: filtered.length,
-      userGender,
+      currentGender,
       questionIds: filtered.map(q => q.id),
       visualYesNoQuestions: filtered.filter(q => q.type === 'visual_yesno').map(q => q.id),
       femaleStyleQuestions: filtered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
@@ -510,7 +511,7 @@ export default function Onboarding() {
     return filtered;
   };
 
-  const questions = getFilteredQuestions();
+  const questions = React.useMemo(() => getFilteredQuestions(), [userGender]);
 
   const nextStep = () => {
     if (currentQuestionIndex < questions.length - 1) {
@@ -1489,15 +1490,13 @@ export default function Onboarding() {
       console.log('👤 [Gender] Set user gender:', answer);
       
       // Debug: Show what questions will be available after gender selection
-      setTimeout(() => {
-        const newFiltered = getFilteredQuestions();
-        console.log('🔄 [Gender] After gender selection, available questions:', {
-          totalQuestions: newFiltered.length,
-          visualYesNoQuestions: newFiltered.filter(q => q.type === 'visual_yesno').map(q => q.id),
-          femaleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
-          maleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
-        });
-      }, 100);
+      const newFiltered = getFilteredQuestions(answer);
+      console.log('🔄 [Gender] After gender selection, available questions:', {
+        totalQuestions: newFiltered.length,
+        visualYesNoQuestions: newFiltered.filter(q => q.type === 'visual_yesno').map(q => q.id),
+        femaleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
+        maleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
+      });
     }
     
     setAnswers(prev => {
