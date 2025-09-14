@@ -1495,6 +1495,14 @@ export default function Onboarding() {
         return [...prev, { question_id: questionId, selected_option: answer }];
       }
     });
+    
+    // Debug: Log current state after answering
+    console.log('🔍 [Quiz State] After answering:', {
+      currentQuestionIndex,
+      totalQuestions: questions.length,
+      isLastQuestion: currentQuestionIndex === questions.length - 1,
+      answersCount: answers.length + 1
+    });
   };
 
   const handleNext = () => {
@@ -1551,6 +1559,16 @@ export default function Onboarding() {
 
   // Get current question
   const question = questions[currentQuestionIndex];
+  
+  // Debug: Log current question details
+  console.log('🎯 [Current Question]', {
+    currentQuestionIndex,
+    totalQuestions: questions.length,
+    questionId: question?.id,
+    questionType: question?.type,
+    isVisualYesNo: question?.type === 'visual_yesno',
+    styleName: question?.style_name
+  });
 
   // Show quiz questions
   return (
