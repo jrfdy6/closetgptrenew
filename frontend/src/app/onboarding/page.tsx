@@ -1028,7 +1028,7 @@ export default function Onboarding() {
           </h2>
           {question.type === "visual" && (
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              Click on the image that best represents your style
+              Select the option that best represents your style
             </p>
           )}
           {question.type === "rgb_slider" && (
@@ -1278,7 +1278,18 @@ export default function Onboarding() {
                       className="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = '/images/placeholder.jpg';
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `
+                            <div class="w-full h-80 bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-2xl">
+                              <div class="text-center text-gray-500 dark:text-gray-400">
+                                <div class="text-4xl mb-2">📷</div>
+                                <div class="text-sm">Style example unavailable</div>
+                              </div>
+                            </div>
+                          `;
+                        }
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -1418,7 +1429,7 @@ export default function Onboarding() {
             </h2>
             {question.type === "visual" && (
               <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                Click on the image that best represents your style
+                Select the option that best represents your style
               </p>
             )}
             {question.type === "rgb_slider" && (
@@ -1428,55 +1439,36 @@ export default function Onboarding() {
             )}
           </div>
           
-          {question.type === "visual" && question.images ? (
+          {question.type === "visual" ? (
             <div className="space-y-4">
               {(question.id === "body_type_female" || question.id === "body_type_male") && (
                 <BodyPositiveMessage variant="profile" className="mb-4" />
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {question.images.map((image, index) => {
-                  const option = question.options[index];
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleAnswer(question.id, option)}
-                      className={`relative group rounded-2xl overflow-hidden transition-all duration-300 transform hover:scale-105 ${
-                        answers.find(a => a.question_id === question.id)?.selected_option === option
-                          ? 'ring-4 ring-amber-500 shadow-2xl'
-                          : 'hover:shadow-xl'
-                      }`}
-                    >
-                      <img 
-                        src={image} 
-                        alt={option}
-                        className="w-full h-80 object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/images/placeholder.jpg';
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-                          {option}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                        <p className="text-white font-medium text-lg">{option}</p>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {question.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(question.id, option)}
+                    className={`p-6 rounded-2xl text-left transition-all duration-300 transform hover:scale-105 ${
+                      answers.find(a => a.question_id === question.id)?.selected_option === option
+                        ? 'bg-amber-500 text-white shadow-lg'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="font-semibold text-lg">{option}</div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
-          ) : question.type === "visual_yesno" && question.images ? (
+          ) : question.type === "visual_yesno" ? (
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-6">
-                  <img 
-                    src={question.images[0]} 
-                    alt="Style example"
-                    className="w-full max-w-md mx-auto h-64 object-cover rounded-lg shadow-lg"
-                  />
+                  <div className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-4">
+                    Do you like this style?
+                  </div>
                 </div>
                 <div className="flex justify-center space-x-4">
                   <button
