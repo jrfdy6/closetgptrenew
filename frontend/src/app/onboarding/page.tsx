@@ -455,6 +455,9 @@ export default function Onboarding() {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResults, setQuizResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [skinTone, setSkinTone] = useState(50);
 
   const { user, loading: authLoading } = useAuthContext();
 
@@ -498,16 +501,6 @@ export default function Onboarding() {
   const filteredQuestions = getFilteredQuestions();
 
 
-  const handleAnswer = (questionId: string, selectedOption: string) => {
-    const newAnswers = answers.filter(a => a.question_id !== questionId);
-    newAnswers.push({ question_id: questionId, selected_option: selectedOption });
-    setAnswers(newAnswers);
-
-    // Track gender selection
-    if (questionId === 'gender') {
-      setUserGender(selectedOption.toLowerCase());
-    }
-  };
 
   const nextStep = () => {
     if (currentStep < filteredQuestions.length) {
@@ -1206,258 +1199,355 @@ export default function Onboarding() {
     console.log('🎭 [Onboarding] User answers:', answers);
     
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
-              {persona.tagline}
-            </h1>
-          </div>
-          
-          <div className="space-y-6">
-            {/* Main Persona Card with Hero Image */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg">
-              {/* Hero Image Section */}
-              <div className="relative h-96 overflow-hidden">
-                <img 
-                  src={getHeroImageForPersona(persona.id)}
-                  alt={`${persona.name} style example`}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-white">
-                    <div className="text-sm mb-2">WELCOME BACK, {user?.displayName?.toUpperCase() || 'STYLIST'}!</div>
-                    <div className="text-sm mb-4">Want to refresh your style preferences?</div>
-                    <h2 className="text-4xl font-serif mb-6">
-                      You're a {persona.name.split(' ')[1] || persona.name}
-                    </h2>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900">
+        <div className="max-w-6xl mx-auto px-4 py-12">
+          {/* Hero Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl mb-8">
+            {/* Hero Image */}
+            <div className="relative h-[600px] overflow-hidden">
+              <img 
+                src={getHeroImageForPersona(persona.id)}
+                alt={`${persona.name} style example`}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/60"></div>
+              
+              {/* Hero Content - Left Side */}
+              <div className="absolute inset-0 flex items-center">
+                <div className="max-w-2xl p-8 text-white">
+                  <div className="text-sm font-medium text-gray-300 mb-3 tracking-wider">YOU ARE</div>
+                  <h1 className="text-6xl md:text-7xl font-serif font-bold mb-6 leading-tight">
+                    {persona.name}
+                  </h1>
+                  <p className="text-2xl text-gray-100 mb-8 leading-relaxed font-light">
+                    {persona.tagline}
+                  </p>
+                  
+                  {/* Style Traits - Inline with hero */}
+                  <div className="flex flex-wrap gap-3">
+                    {persona.traits.map((trait, index) => (
+                      <span 
+                        key={index}
+                        className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30"
+                      >
+                        {trait}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
+            </div>
               
-              {/* Content Section */}
-              <div className="p-8">
-                <p className="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed mb-6 text-center">
+            {/* Content Section */}
+            <div className="p-8">
+              {/* Description */}
+              <div className="text-center max-w-4xl mx-auto">
+                <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed mb-8">
                   {persona.description}
                 </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {persona.traits.map((trait, index) => (
-                    <span key={index} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium dark:bg-red-900 dark:text-red-200">
-                      {trait}
-                    </span>
-                  ))}
+                
+                {/* Style Mission */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl p-8">
+                  <h3 className="text-2xl font-serif font-semibold text-gray-900 dark:text-white mb-4">Your Style Mission</h3>
+                  <p className="text-lg text-gray-600 dark:text-gray-400 italic leading-relaxed">
+                    {persona.styleMission}
+                  </p>
                 </div>
               </div>
             </div>
+            </div>
 
-            {/* Style Examples Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6">Your Style in Action</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {getStyleExamplesForPersona(persona.id).map((image, index) => (
-                  <div key={index} className="relative group">
+          {/* Style Examples Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-serif font-bold text-gray-900 dark:text-white mb-4">Your Style in Action</h2>
+              <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                See how your {persona.name.toLowerCase()} style translates into real outfits and situations
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {getStyleExamplesForPersona(persona.id).map((image, index) => (
+                <div key={index} className="group cursor-pointer">
+                  <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-2xl transition-all duration-500 transform group-hover:-translate-y-2">
                     <img 
                       src={image.url} 
                       alt={`${persona.name} style example ${index + 1}`}
-                      className="w-full h-64 object-cover rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300"
+                      className="w-full h-80 object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
-                      <button className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-4 py-2 rounded-lg font-medium transition-all">
-                        View Details
-                      </button>
-                    </div>
-                    <div className="mt-2 text-center">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{image.caption}</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                      <h4 className="font-semibold text-lg mb-2">{image.caption}</h4>
+                      <p className="text-sm text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        Click to explore this look
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Style Mission Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-3">Your Style Mission</h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                {persona.styleMission}
-              </p>
-            </div>
-
-            {/* Cultural Anchors Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-4">The {persona.name.split(' ')[1]}s You May Know</h3>
-              <div className="flex flex-wrap gap-3">
-                {persona.examples.map((example, index) => (
-                  <div key={index} className="flex items-center space-x-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                    <span className="text-gray-600 dark:text-gray-400">♪</span>
-                    <span className="text-gray-900 dark:text-white font-medium">{example}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Style Fingerprint Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6">Your Style Fingerprint</h3>
-              <div className="space-y-6">
-                {(() => {
-                  const fingerprint = generateStyleFingerprint();
-                  return (
-                    <>
-                      {/* Creative Expression */}
-                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors cursor-pointer group">
-                        <div className="text-white font-medium mb-3 group-hover:text-blue-300 transition-colors">Creative Expression</div>
-                        <div className="flex justify-between text-sm text-gray-300 mb-2">
-                          <span className="group-hover:text-gray-100 transition-colors">Restrained</span>
-                          <span className="group-hover:text-gray-100 transition-colors">Expressive</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-white mb-2">
-                          <span className="group-hover:text-blue-200 transition-colors">{Math.round(fingerprint.creativeExpression.restrained)}%</span>
-                          <span className="group-hover:text-blue-200 transition-colors">{Math.round(fingerprint.creativeExpression.expressive)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-600 rounded-full h-2 group-hover:bg-gray-500 transition-colors">
-                          <div 
-                            className="bg-gradient-to-r from-blue-400 to-blue-300 h-2 rounded-full transition-all duration-300 group-hover:from-blue-300 group-hover:to-blue-200" 
-                            style={{width: `${fingerprint.creativeExpression.expressive}%`}}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Trend Awareness */}
-                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors cursor-pointer group">
-                        <div className="text-white font-medium mb-3 group-hover:text-green-300 transition-colors">Trend Awareness</div>
-                        <div className="flex justify-between text-sm text-gray-300 mb-2">
-                          <span className="group-hover:text-gray-100 transition-colors">Timeless</span>
-                          <span className="group-hover:text-gray-100 transition-colors">Trendsetting</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-white mb-2">
-                          <span className="group-hover:text-green-200 transition-colors">{Math.round(fingerprint.trendAwareness.timeless)}%</span>
-                          <span className="group-hover:text-green-200 transition-colors">{Math.round(fingerprint.trendAwareness.trendsetting)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-600 rounded-full h-2 group-hover:bg-gray-500 transition-colors">
-                          <div 
-                            className="bg-gradient-to-r from-green-400 to-green-300 h-2 rounded-full transition-all duration-300 group-hover:from-green-300 group-hover:to-green-200" 
-                            style={{width: `${fingerprint.trendAwareness.trendsetting}%`}}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Wardrobe Flexibility */}
-                      <div className="bg-gray-900 dark:bg-gray-700 rounded-lg p-4 hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors cursor-pointer group">
-                        <div className="text-white font-medium mb-3 group-hover:text-purple-300 transition-colors">Wardrobe Flexibility</div>
-                        <div className="flex justify-between text-sm text-gray-300 mb-2">
-                          <span className="group-hover:text-gray-100 transition-colors">Focused</span>
-                          <span className="group-hover:text-gray-100 transition-colors">Versatile</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-white mb-2">
-                          <span className="group-hover:text-purple-200 transition-colors">{Math.round(fingerprint.wardrobeFlexibility.focused)}%</span>
-                          <span className="group-hover:text-purple-200 transition-colors">{Math.round(fingerprint.wardrobeFlexibility.versatile)}%</span>
-                        </div>
-                        <div className="w-full bg-gray-600 rounded-full h-2 group-hover:bg-gray-500 transition-colors">
-                          <div 
-                            className="bg-gradient-to-r from-purple-400 to-purple-300 h-2 rounded-full transition-all duration-300 group-hover:from-purple-300 group-hover:to-purple-200" 
-                            style={{width: `${fingerprint.wardrobeFlexibility.versatile}%`}}
-                          ></div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* User Feedback Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-              <h3 className="text-xl font-serif text-gray-900 dark:text-white mb-6 text-center">Does this sound like you?</h3>
-              <div className="flex flex-wrap justify-center gap-3 mb-6">
-                <button className="px-6 py-3 bg-green-100 text-green-800 rounded-lg font-medium hover:bg-green-200 transition-colors">
-                  Yes
-                </button>
-                <button className="px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg font-medium hover:bg-yellow-200 transition-colors">
-                  Mostly
-                </button>
-                <button className="px-6 py-3 bg-orange-100 text-orange-800 rounded-lg font-medium hover:bg-orange-200 transition-colors">
-                  A little
-                </button>
-                <button className="px-6 py-3 bg-red-100 text-red-800 rounded-lg font-medium hover:bg-red-200 transition-colors">
-                  No
-                </button>
-              </div>
-              
-              <div className="mb-6">
-                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-3">What's next? Introduce yourself to your Stylist</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  They'll use your results to create your personalized style recommendations
-                </p>
-                <textarea
-                  placeholder="Tell your stylist about specific requests, trends you want to try, or any style inspiration you have in mind..."
-                  className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  rows={4}
-                  maxLength={500}
-                />
-                <div className="text-right text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  500 characters remaining
                 </div>
-              </div>
-            </div>
-
-            {/* CTA Card */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg text-center">
-              <Link href="/dashboard">
-                <button className="px-8 py-4 bg-gray-900 text-white rounded-lg text-lg font-medium hover:bg-gray-800 transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 shadow-lg">
-                  {persona.cta}
-                  <ArrowRight className="ml-3 h-5 w-5 inline-block" />
-                </button>
-              </Link>
+              ))}
             </div>
           </div>
+
+          {/* Call-to-Action Section */}
+          <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-3xl p-12 text-center text-white shadow-xl">
+            <h2 className="text-4xl font-serif font-bold mb-4">We've Got You Covered</h2>
+            <p className="text-xl text-red-100 mb-8 max-w-2xl mx-auto leading-relaxed">
+              Your {persona.name.toLowerCase()} style is ready to shine. Let's build the perfect wardrobe that matches your bold personality.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button className="bg-white text-red-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg">
+                See My Style Plan →
+              </button>
+              <div className="flex items-center space-x-2 text-red-100">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-bold">4</span>
+                </div>
+                <span className="text-sm">Steps to perfect style</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     );
   }
 
+  // Quiz functions
+  const handleAnswer = (questionId: string, answer: string) => {
+    setAnswers(prev => {
+      const existing = prev.find(a => a.question_id === questionId);
+      if (existing) {
+        return prev.map(a => a.question_id === questionId ? { ...a, selected_option: answer } : a);
+      } else {
+        return [...prev, { question_id: questionId, selected_option: answer }];
+      }
+    });
+  };
+
+  const handleNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/style-quiz/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers })
+      });
+      const results = await response.json();
+      setQuizResults(results);
+      setQuizCompleted(true);
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+      setError('Failed to analyze your style. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Get filtered questions
+  const questions = getFilteredQuestions();
+  const question = questions[currentQuestionIndex];
+
+  // Show quiz questions
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl text-center">
-        <div className="mb-8">
-          <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mb-8">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </Link>
+      <div className="w-full max-w-4xl">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
+            Let's Discover Your Style
+          </h1>
+          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            Answer a few questions to unlock your unique style personality and get personalized recommendations
+          </p>
         </div>
-        
-        {error && (
-          <div className="mb-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg max-w-2xl mx-auto">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
+
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Question {currentQuestionIndex + 1} of {questions.length}
+              </span>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mx-4">
+                <div 
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
+                  style={{width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`}}
+                ></div>
+              </div>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
+              </span>
+            </div>
           </div>
-        )}
-        
-        {renderQuestion()}
-        
-        <div className="flex justify-center mt-12">
-          {currentStep === filteredQuestions.length ? (
+
+          <div className="mb-8">
+            <h2 className="text-2xl md:text-3xl font-serif text-gray-900 dark:text-white mb-6 text-center">
+              {question.question}
+            </h2>
+            {question.type === "visual" && (
+              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Click on the image that best represents your style
+              </p>
+            )}
+            {question.type === "rgb_slider" && (
+              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                Drag the slider to select your skin tone
+              </p>
+            )}
+          </div>
+          
+          {question.type === "visual" && question.images ? (
+            <div className="space-y-4">
+              {(question.id === "body_type_female" || question.id === "body_type_male") && (
+                <BodyPositiveMessage variant="profile" className="mb-4" />
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {question.images.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(question.id, question.options[index])}
+                    className={`relative group rounded-2xl overflow-hidden transition-all duration-300 transform hover:scale-105 ${
+                      answers.find(a => a.question_id === question.id)?.selected_option === question.options[index]
+                        ? 'ring-4 ring-amber-500 shadow-2xl'
+                        : 'hover:shadow-xl'
+                    }`}
+                  >
+                    <img 
+                      src={image} 
+                      alt={question.options[index]}
+                      className="w-full h-80 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
+                        {question.options[index]}
+                      </div>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                      <p className="text-white font-medium text-lg">{question.options[index]}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : question.type === "visual_yesno" && question.images ? (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+                <div className="text-center mb-6">
+                  <img 
+                    src={question.images[0]} 
+                    alt="Style example"
+                    className="w-full max-w-md mx-auto h-64 object-cover rounded-lg shadow-lg"
+                  />
+                </div>
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => handleAnswer(question.id, "Yes")}
+                    className={`px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 ${
+                      answers.find(a => a.question_id === question.id)?.selected_option === "Yes"
+                        ? 'bg-green-500 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700'
+                    }`}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => handleAnswer(question.id, "No")}
+                    className={`px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 ${
+                      answers.find(a => a.question_id === question.id)?.selected_option === "No"
+                        ? 'bg-red-500 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700'
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : question.type === "rgb_slider" ? (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+                <div className="text-center mb-6">
+                  <div className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" style={{backgroundColor: `rgb(${skinTone}, ${skinTone}, ${skinTone})`}}></div>
+                  <p className="text-lg text-gray-600 dark:text-gray-400">Your skin tone</p>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={skinTone}
+                  onChange={(e) => setSkinTone(parseInt(e.target.value))}
+                  className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  <span>Light</span>
+                  <span>Dark</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {question.options.map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleAnswer(question.id, option)}
+                  className={`p-6 rounded-2xl text-left transition-all duration-300 transform hover:scale-105 ${
+                    answers.find(a => a.question_id === question.id)?.selected_option === option
+                      ? 'bg-amber-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="font-semibold mb-1">{option}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center mt-8">
+          <button
+            onClick={handlePrevious}
+            disabled={currentQuestionIndex === 0}
+            className="flex items-center px-6 py-3 rounded-full font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+          >
+            <ArrowLeft className="h-5 w-5 mr-3 inline-block" />
+            Previous
+          </button>
+
+          {currentQuestionIndex === questions.length - 1 ? (
             <button
-              onClick={submitQuiz}
-              disabled={!canProceed() || isLoading}
-              className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex items-center px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-              {isLoading ? (
+              {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3 inline-block"></div>
-                  Analyzing...
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  Analyzing Your Style...
                 </>
               ) : (
                 <>
-                  Complete Quiz
+                  Discover My Style
                   <ArrowRight className="h-5 w-5 ml-3 inline-block" />
                 </>
               )}
             </button>
           ) : (
             <button
-              onClick={nextStep}
-              disabled={!canProceed()}
-              className="px-12 py-4 bg-gray-900 text-white rounded-full text-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+              onClick={handleNext}
+              disabled={!answers.find(a => a.question_id === question.id)}
+              className="flex items-center px-6 py-3 rounded-full font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:scale-105"
             >
               Next
               <ArrowRight className="h-5 w-5 ml-3 inline-block" />
