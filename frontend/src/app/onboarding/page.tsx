@@ -1496,16 +1496,41 @@ export default function Onboarding() {
               <p className="text-xl text-red-100 mb-8 max-w-2xl mx-auto leading-relaxed">
                 Your {persona.name.toLowerCase()} style is ready to shine. Let's build the perfect wardrobe that matches your bold personality.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <button className="bg-white text-red-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                <button 
+                  onClick={() => router.push('/outfits')}
+                  className="bg-white text-red-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg"
+                >
                   See My Style Plan →
                 </button>
                 <div className="flex items-center space-x-2 text-red-100">
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-sm font-bold">4</span>
-            </div>
+                  </div>
                   <span className="text-sm">Steps to perfect style</span>
-          </div>
+                </div>
+              </div>
+              
+              {/* Navigation Links */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button 
+                  onClick={() => router.push('/')}
+                  className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+                >
+                  🏠 Dashboard
+                </button>
+                <button 
+                  onClick={() => router.push('/profile')}
+                  className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+                >
+                  👤 My Profile
+                </button>
+                <button 
+                  onClick={() => router.push('/style-persona')}
+                  className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+                >
+                  ✨ Style Persona
+                </button>
               </div>
             </div>
 
@@ -1565,6 +1590,10 @@ export default function Onboarding() {
     
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      // If this is the last question, submit the quiz
+      console.log('🎯 [Quiz] Last question reached, submitting quiz...');
+      submitQuiz();
     }
   };
 

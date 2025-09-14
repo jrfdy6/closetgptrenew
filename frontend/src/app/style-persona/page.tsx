@@ -531,7 +531,7 @@ export default function StylePersonaPage() {
           <p className="text-xl text-red-100 mb-8 max-w-2xl mx-auto leading-relaxed">
             Your {persona.name.toLowerCase()} style is ready to shine. Let's build the perfect wardrobe that matches your bold personality.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <button 
               onClick={() => router.push('/outfits')}
               className="bg-white text-red-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg"
@@ -544,6 +544,28 @@ export default function StylePersonaPage() {
               </div>
               <span className="text-sm">Personalized recommendations</span>
             </div>
+          </div>
+          
+          {/* Navigation Links */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <button 
+              onClick={() => router.push('/')}
+              className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+            >
+              🏠 Dashboard
+            </button>
+            <button 
+              onClick={() => router.push('/profile')}
+              className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+            >
+              👤 My Profile
+            </button>
+            <button 
+              onClick={() => router.push('/onboarding')}
+              className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+            >
+              🔄 Retake Quiz
+            </button>
           </div>
         </div>
       </div>
