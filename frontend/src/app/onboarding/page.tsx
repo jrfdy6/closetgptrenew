@@ -494,9 +494,12 @@ export default function Onboarding() {
     console.log('🔍 [getFilteredQuestions] Called with genderOverride:', genderOverride, 'userGender:', userGender, 'currentGender:', currentGender);
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
-      // Show cup size only for females
-      if (question.id === 'cup_size' && currentGender && currentGender !== 'Female') {
-        console.log('❌ [Filter] Filtering out cup_size for non-female');
+      // Show cup size for females, non-binary, and prefer not to say users
+      if (question.id === 'cup_size' && currentGender && 
+          currentGender !== 'Female' && 
+          currentGender !== 'Non-binary' && 
+          currentGender !== 'Prefer not to say') {
+        console.log('❌ [Filter] Filtering out cup_size for non-female/non-binary/prefer not to say');
         return false;
       }
       
