@@ -297,8 +297,8 @@ export default function WardrobePage() {
             
             <div className="flex gap-4">
               <Button 
-                onClick={() => setShowBatchUpload(!showBatchUpload)}
-                className="bg-stone-900 hover:bg-stone-800 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                onClick={() => setShowBatchUpload(true)}
+                className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
               >
                 <Upload className="w-5 h-5 mr-3" />
                 Add Items with AI
@@ -311,37 +311,6 @@ export default function WardrobePage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {/* Upload Forms */}
-        {showBatchUpload && (
-          <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-6">
-              <div>
-                <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Add Items with AI ⚡</CardTitle>
-                <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Upload one or multiple items - AI will automatically analyze and save each one</CardDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowBatchUpload(false)}
-                className="text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <BatchImageUpload 
-                onUploadComplete={async (items) => {
-                  setShowBatchUpload(false);
-                  refetch();
-                }}
-                onError={(message) => {
-                  // Handle batch upload error silently
-                }}
-                userId={user?.uid || ''}
-              />
-            </CardContent>
-          </Card>
-        )}
         
 
         {/* Filters and Search */}
@@ -910,6 +879,37 @@ export default function WardrobePage() {
         onIncrementWear={handleWearIncrement}
         onGenerateOutfit={handleGenerateOutfitWithBaseItem}
       />
+
+      {/* Batch Upload Modal */}
+      {showBatchUpload && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-2xl font-serif text-gray-900 dark:text-white">Add Items with AI</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowBatchUpload(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="p-6">
+              <BatchImageUpload 
+                onUploadComplete={async (items) => {
+                  setShowBatchUpload(false);
+                  refetch();
+                }}
+                onError={(message) => {
+                  // Handle batch upload error silently
+                }}
+                userId={user?.uid || ''}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
