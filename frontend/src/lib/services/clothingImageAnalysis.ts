@@ -4,10 +4,21 @@ export const analyzeClothingImage = async (imageUrl: string) => {
     console.log('🔍 analyzeClothingImage called with URL length:', imageUrl.length);
     console.log('🔍 Image URL starts with:', imageUrl.substring(0, 50) + '...');
     
+    // Get the current user's ID token for authentication
+    const { auth } = await import('@/lib/firebase/config');
+    const user = auth.currentUser;
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const token = await user.getIdToken();
+    
     const response = await fetch('/api/analyze-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({ image: imageUrl }),
     });
