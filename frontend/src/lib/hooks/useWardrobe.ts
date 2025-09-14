@@ -18,6 +18,17 @@ export interface ClothingItem {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+  // Additional fields for comprehensive item details
+  description?: string;
+  brand?: string;
+  size?: string;
+  material?: string[];
+  sleeveLength?: string;
+  fit?: string;
+  neckline?: string;
+  length?: string;
+  purchaseDate?: Date;
+  purchasePrice?: number;
 }
 
 export interface WardrobeFilters {

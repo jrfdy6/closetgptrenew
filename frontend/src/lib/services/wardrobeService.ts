@@ -158,6 +158,18 @@ export class WardrobeService {
       if (updates.favorite !== undefined) backendUpdates.favorite = updates.favorite;
       if (updates.lastWorn !== undefined) backendUpdates.last_worn = updates.lastWorn?.toISOString();
       
+      // Additional fields that were missing
+      if (updates.brand !== undefined) backendUpdates.brand = updates.brand;
+      if (updates.size !== undefined) backendUpdates.size = updates.size;
+      if (updates.material !== undefined) backendUpdates.material = updates.material;
+      if (updates.sleeveLength !== undefined) backendUpdates.sleeve_length = updates.sleeveLength;
+      if (updates.fit !== undefined) backendUpdates.fit = updates.fit;
+      if (updates.neckline !== undefined) backendUpdates.neckline = updates.neckline;
+      if (updates.length !== undefined) backendUpdates.length = updates.length;
+      if (updates.purchasePrice !== undefined) backendUpdates.purchase_price = updates.purchasePrice;
+      if (updates.purchaseDate !== undefined) backendUpdates.purchase_date = updates.purchaseDate?.toISOString();
+      if (updates.description !== undefined) backendUpdates.description = updates.description;
+      
       const response = await fetch(`${API_BASE_URL}/api/wardrobe/${id}`, {
         method: 'PUT',
         headers,

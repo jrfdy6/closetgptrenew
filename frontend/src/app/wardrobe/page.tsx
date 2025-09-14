@@ -70,6 +70,7 @@ export default function WardrobePage() {
     incrementWearCount,
     deleteItem,
     addItem,
+    updateItem,
     refetch
   } = useWardrobe();
 
@@ -195,10 +196,9 @@ export default function WardrobePage() {
   // Handle item update
   const handleUpdateItem = async (itemId: string, updates: Partial<ClothingItem>) => {
     try {
-      // This would need to be implemented in the useWardrobe hook
       console.log('Updating item:', itemId, updates);
-      // For now, just refetch the data
-      refetch();
+      await updateItem(itemId, updates);
+      console.log('Item updated successfully');
     } catch (error) {
       console.error('Failed to update item:', error);
       throw error;
