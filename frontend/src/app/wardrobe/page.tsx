@@ -207,6 +207,7 @@ export default function WardrobePage() {
 
   // Handle item click to show details
   const handleItemClick = (item: ClothingItem) => {
+    console.log('🔍 [WardrobePage] Item clicked:', item);
     setSelectedItem(item);
     setShowItemDetails(true);
   };

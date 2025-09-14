@@ -84,6 +84,9 @@ export default function WardrobeItemDetails({
   const [editedItem, setEditedItem] = useState<Partial<WardrobeItem>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  // Debug logging
+  console.log('🔍 [WardrobeItemDetails] Component rendered with:', { item, isOpen });
+
   useEffect(() => {
     if (item) {
       setEditedItem({
