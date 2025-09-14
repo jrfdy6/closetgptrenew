@@ -461,6 +461,12 @@ export default function Onboarding() {
 
   const { user, loading: authLoading } = useAuthContext();
 
+  // Save skin tone when it changes
+  useEffect(() => {
+    console.log('Skin tone changed to:', skinTone);
+    handleAnswer('skin_tone', skinTone.toString());
+  }, [skinTone]);
+
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -1314,6 +1320,7 @@ export default function Onboarding() {
 
   // Quiz functions
   const handleAnswer = (questionId: string, answer: string) => {
+    console.log('handleAnswer called:', questionId, answer);
     setAnswers(prev => {
       const existing = prev.find(a => a.question_id === questionId);
       if (existing) {
@@ -1412,31 +1419,36 @@ export default function Onboarding() {
                 <BodyPositiveMessage variant="profile" className="mb-4" />
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {question.images.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(question.id, question.options[index])}
-                    className={`relative group rounded-2xl overflow-hidden transition-all duration-300 transform hover:scale-105 ${
-                      answers.find(a => a.question_id === question.id)?.selected_option === question.options[index]
-                        ? 'ring-4 ring-amber-500 shadow-2xl'
-                        : 'hover:shadow-xl'
-                    }`}
-                  >
-                    <img 
-                      src={image} 
-                      alt={question.options[index]}
-                      className="w-full h-80 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-                        {question.options[index]}
+                {question.images.map((image, index) => {
+                  const option = question.options[index];
+                  console.log('Rendering image:', image, 'with option:', option);
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => handleAnswer(question.id, option)}
+                      className={`relative group rounded-2xl overflow-hidden transition-all duration-300 transform hover:scale-105 ${
+                        answers.find(a => a.question_id === question.id)?.selected_option === option
+                          ? 'ring-4 ring-amber-500 shadow-2xl'
+                          : 'hover:shadow-xl'
+                      }`}
+                    >
+                      <img 
+                        src={image} 
+                        alt={option}
+                        className="w-full h-80 object-cover"
+                        onError={(e) => console.error('Image failed to load:', image)}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 bg-white text-gray-900 px-6 py-3 rounded-full font-medium transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
+                          {option}
+                        </div>
                       </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                      <p className="text-white font-medium text-lg">{question.options[index]}</p>
-                    </div>
-                  </button>
-                ))}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                        <p className="text-white font-medium text-lg">{option}</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ) : question.type === "visual_yesno" && question.images ? (
