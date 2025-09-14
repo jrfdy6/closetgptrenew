@@ -219,6 +219,12 @@ export default function ProfilePage() {
       console.log('🔍 DEBUG: Profile data being set:', profileData);
       console.log('🔍 DEBUG: Profile measurements:', profileData?.measurements);
       console.log('🔍 DEBUG: Profile stylePreferences:', profileData?.stylePreferences);
+      console.log('🔍 DEBUG: Timestamp values:', {
+        createdAt: profileData.createdAt,
+        created_at: profileData.created_at,
+        updatedAt: profileData.updatedAt,
+        updated_at: profileData.updated_at
+      });
       
       setProfile(profileData);
       setFormData(profileData);
