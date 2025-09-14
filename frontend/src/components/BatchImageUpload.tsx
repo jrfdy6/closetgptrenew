@@ -308,6 +308,11 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
     setOverallProgress(0);
 
     const totalItems = uploadItems.length;
+    const nonDuplicateItems = uploadItems.filter(item => !item.isDuplicate);
+    const duplicateCount = uploadItems.filter(item => item.isDuplicate).length;
+    
+    console.log(`🚀 Starting batch upload of ${totalItems} items (${duplicateCount} duplicates will be skipped)`);
+    
     let completedItems = 0;
     const successfulItems: any[] = [];
 
@@ -332,7 +337,6 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         ));
 
         try {
-          console.log(`🚀 Starting batch upload of ${totalItems} items`);
           console.log(`📤 Uploading item ${i + 1}/${totalItems}: ${item.file.name}`);
 
           // 1️⃣ Upload file to Firebase Storage first
@@ -481,9 +485,12 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
       setOverallProgress(100);
       
       if (successfulItems.length > 0) {
+        const duplicateCount = uploadItems.filter(item => item.isDuplicate).length;
+        const totalProcessed = successfulItems.length + duplicateCount;
+        
         toast({
           title: "Batch upload completed! ✨",
-          description: `Successfully uploaded ${successfulItems.length} items with AI analysis`,
+          description: `Successfully uploaded ${successfulItems.length} items with AI analysis${duplicateCount > 0 ? ` (${duplicateCount} duplicates skipped)` : ''}`,
         });
 
         if (onUploadComplete) {
@@ -491,10 +498,11 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         }
       }
 
-      if (successfulItems.length < totalItems) {
+      const expectedNonDuplicates = uploadItems.filter(item => !item.isDuplicate).length;
+      if (successfulItems.length < expectedNonDuplicates) {
         toast({
           title: "Some uploads failed",
-          description: `${totalItems - successfulItems.length} items failed to upload`,
+          description: `${expectedNonDuplicates - successfulItems.length} items failed to upload`,
           variant: "destructive",
         });
       }
