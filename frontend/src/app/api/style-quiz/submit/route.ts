@@ -154,6 +154,9 @@ function mapQuizAnswersToProfile(
   // Calculate style personality scores based on preferences
   const stylePersonality = calculateStylePersonality(stylePreferences, userAnswers);
   
+  // Determine the style persona based on quiz answers
+  const determinedPersona = determineStylePersona(userAnswers, stylePreferences);
+  
   // Map basic profile fields
   const profileUpdate: any = {
     // Required fields for backend
@@ -188,11 +191,136 @@ function mapQuizAnswersToProfile(
       neutral: ['black', 'white', 'gray', 'beige'],
       avoid: []
     },
+    // Add persona data
+    stylePersona: {
+      id: determinedPersona.id,
+      name: determinedPersona.name,
+      tagline: determinedPersona.tagline,
+      description: determinedPersona.description,
+      styleMission: determinedPersona.styleMission,
+      traits: determinedPersona.traits,
+      examples: determinedPersona.examples
+    },
     createdAt: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
     updatedAt: Math.floor(Date.now() / 1000) // Unix timestamp in seconds
   };
 
   return profileUpdate;
+}
+
+// Determine style persona based on quiz answers (copied from onboarding)
+function determineStylePersona(userAnswers: Record<string, string>, stylePreferences: string[]): any {
+  const STYLE_PERSONAS: Record<string, any> = {
+    architect: {
+      id: "architect",
+      name: "The Architect",
+      tagline: "Clean lines. Bold vision. Timeless design.",
+      description: "You approach fashion like an architect approaches buildings - with precision, intention, and a focus on form following function. Your style is structured, sophisticated, and built to last. You appreciate quality construction and aren't afraid to make a statement with clean, geometric lines.",
+      styleMission: "Build your wardrobe like you'd design a building - with a strong foundation, thoughtful details, and pieces that stand the test of time.",
+      examples: ["Zaha Hadid", "Tadao Ando", "Frank Gehry", "Norman Foster", "Rem Koolhaas"],
+      traits: ["Clean lines", "Bold vision", "Timeless design", "Quality construction", "Geometric precision"],
+      cta: "See My Plan Options →"
+    },
+    rebel: {
+      id: "rebel",
+      name: "The Rebel",
+      tagline: "Bold statements. Unconventional choices. Authentic expression.",
+      description: "You don't follow trends - you create them. Your style is bold, unconventional, and authentically you. You're not afraid to mix unexpected pieces, experiment with color, or wear something that makes people look twice. Your fashion choices are a form of self-expression and rebellion against the ordinary.",
+      styleMission: "Break the rules, set your own trends, and wear what makes you feel most like yourself. Don't be afraid to stand out.",
+      examples: ["David Bowie", "Grace Jones", "Prince", "Frida Kahlo", "Alexander McQueen"],
+      traits: ["Bold statements", "Unconventional choices", "Authentic expression", "Rule breaking", "Trend setting"],
+      cta: "See My Plan Options →"
+    },
+    connoisseur: {
+      id: "connoisseur",
+      name: "The Connoisseur",
+      tagline: "Refined taste. Luxury details. Quiet confidence.",
+      description: "You have an eye for quality and appreciate the finer things in life. Your style is sophisticated, understated, and built on investment pieces that speak to your refined taste. You understand that true luxury is in the details, not the labels.",
+      styleMission: "Curate your collection with intention. Focus on exceptional pieces that will last decades and don't be afraid to invest in quality over quantity.",
+      examples: ["Meghan Markle", "Blake Lively", "Ryan Reynolds", "Henry Cavill", "Cate Blanchett"],
+      traits: ["Refined taste", "Quality over quantity", "Luxury details", "Quiet confidence", "Investment pieces"],
+      cta: "See My Plan Options →"
+    },
+    modernist: {
+      id: "modernist",
+      name: "The Modernist",
+      tagline: "Clean lines. Contemporary edge. Future-focused.",
+      description: "You're drawn to clean, contemporary design and appreciate the intersection of fashion and function. Your style is modern, streamlined, and forward-thinking. You value versatility and pieces that work across different contexts while maintaining a sleek, contemporary aesthetic.",
+      styleMission: "Build a wardrobe that's both functional and fashionable. Focus on versatile pieces with clean lines and don't be afraid to experiment with modern silhouettes.",
+      examples: ["Hailey Bieber", "Kendall Jenner", "Timothée Chalamet", "Harry Styles", "Anya Taylor-Joy"],
+      traits: ["Clean lines", "Contemporary edge", "Functional fashion", "Versatile pieces", "Future-focused"],
+      cta: "See My Plan Options →"
+    }
+  };
+
+  // Score each persona based on quiz answers
+  const personaScores: Record<string, number> = {
+    architect: 0,
+    rebel: 0,
+    connoisseur: 0,
+    modernist: 0
+  };
+
+  // Map style preferences to personas
+  if (stylePreferences.includes('Minimalist') || stylePreferences.includes('Clean Minimal')) {
+    personaScores.architect += 3;
+    personaScores.modernist += 2;
+  }
+  if (stylePreferences.includes('Street Style') || stylePreferences.includes('Urban Street')) {
+    personaScores.rebel += 3;
+  }
+  if (stylePreferences.includes('Classic Elegant')) {
+    personaScores.connoisseur += 2;
+  }
+  if (stylePreferences.includes('Old Money')) {
+    personaScores.connoisseur += 3;
+  }
+  if (stylePreferences.includes('Cottagecore') || stylePreferences.includes('Natural Boho')) {
+    personaScores.rebel += 1;
+  }
+
+  // Daily activities scoring
+  if (userAnswers.daily_activities === 'Office work and meetings') {
+    personaScores.connoisseur += 2;
+    personaScores.architect += 1;
+  }
+  if (userAnswers.daily_activities === 'Creative work and casual meetings') {
+    personaScores.modernist += 2;
+    personaScores.rebel += 1;
+  }
+  if (userAnswers.daily_activities === 'Active lifestyle and sports') {
+    personaScores.rebel += 2;
+  }
+  if (userAnswers.daily_activities === 'Mix of everything') {
+    personaScores.modernist += 3;
+  }
+
+  // Style elements scoring
+  if (userAnswers.style_elements === 'Clean lines and minimal details') {
+    personaScores.architect += 3;
+    personaScores.modernist += 2;
+  }
+  if (userAnswers.style_elements === 'Rich textures and patterns') {
+    personaScores.connoisseur += 3;
+  }
+  if (userAnswers.style_elements === 'Classic and timeless pieces') {
+    personaScores.connoisseur += 2;
+    personaScores.architect += 1;
+  }
+  if (userAnswers.style_elements === 'Bold and statement pieces') {
+    personaScores.rebel += 3;
+  }
+
+  // Find the highest scoring persona
+  const sortedPersonas = Object.entries(personaScores)
+    .sort(([,a], [,b]) => b - a);
+  
+  const topPersona = sortedPersonas[0][0];
+  
+  console.log('🎯 [Quiz Submit] Persona scores:', personaScores);
+  console.log('🎯 [Quiz Submit] Selected persona:', topPersona);
+  
+  return STYLE_PERSONAS[topPersona] || STYLE_PERSONAS.rebel;
 }
 
 // Calculate style personality scores based on quiz answers

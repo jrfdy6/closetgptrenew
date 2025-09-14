@@ -56,6 +56,15 @@ interface UserProfile {
     neutral: string[];
     avoid: string[];
   };
+  stylePersona?: {
+    id: string;
+    name: string;
+    tagline: string;
+    description: string;
+    styleMission: string;
+    traits: string[];
+    examples: string[];
+  };
   onboardingCompleted?: boolean;
 }
 
@@ -203,6 +212,13 @@ export default function StylePersonaPage() {
   };
 
   const determineStylePersona = (): StylePersona => {
+    // First, try to use the stored persona from the profile
+    if (profile?.stylePersona) {
+      console.log('🎭 [Style Persona] Using stored persona:', profile.stylePersona);
+      return profile.stylePersona as StylePersona;
+    }
+
+    // Fallback: determine persona based on style preferences
     if (!profile?.stylePreferences || profile.stylePreferences.length === 0) {
       return STYLE_PERSONAS.rebel; // Default fallback
     }
