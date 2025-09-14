@@ -131,6 +131,12 @@ async def update_user_profile(
             update_data['avatar_url'] = profile_data['avatar_url']
         if 'stylePersona' in profile_data:
             update_data['stylePersona'] = profile_data['stylePersona']
+        if 'height' in profile_data:
+            update_data['height'] = profile_data['height']
+        if 'weight' in profile_data:
+            update_data['weight'] = profile_data['weight']
+        if 'heightFeetInches' in profile_data:
+            update_data['heightFeetInches'] = profile_data['heightFeetInches']
         
         # Use set() instead of update() to create the document if it doesn't exist
         user_ref.set(update_data, merge=True)

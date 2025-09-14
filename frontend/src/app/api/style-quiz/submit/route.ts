@@ -196,6 +196,9 @@ function mapQuizAnswersToProfile(
     // Also store the raw range values for display
     heightFeetInches: parseHeight(userAnswers.height),
     weight: parseWeight(userAnswers.weight),
+    // Store height and weight at top level for easy access
+    height: parseHeight(userAnswers.height),
+    weight: parseWeight(userAnswers.weight),
     stylePreferences: stylePreferences,
     preferences: {
       style: stylePreferences,
@@ -220,8 +223,10 @@ function mapQuizAnswersToProfile(
       traits: determinedPersona.traits,
       examples: determinedPersona.examples
     },
-    createdAt: new Date().toISOString(), // ISO string format
-    updatedAt: new Date().toISOString() // ISO string format
+    createdAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
+    updatedAt: Math.floor(Date.now() / 1000), // Unix timestamp like backend
+    created_at: Math.floor(Date.now() / 1000), // Also add with underscore for backend compatibility
+    updated_at: Math.floor(Date.now() / 1000) // Also add with underscore for backend compatibility
   };
 
   return profileUpdate;
