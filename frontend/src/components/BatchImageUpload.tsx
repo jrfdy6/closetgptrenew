@@ -139,11 +139,17 @@ const checkForDuplicates = async (file: File, existingItems: any[]): Promise<boo
       // Compare filenames (without extension) and file sizes
       const baseExistingFileName = existingFileName.split('.')[0];
       
-      // Also check if the original filename is in the URL (Firebase might preserve it)
+      // Check if the original filename is in the URL (Firebase might preserve it)
       const urlContainsOriginalName = item.imageUrl.toLowerCase().includes(baseFileName);
       
-      const nameMatch = baseFileName === baseExistingFileName || urlContainsOriginalName;
-      const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 1000; // Allow 1KB difference for compression
+      // More flexible name matching - check if the base filename is contained in the existing filename
+      const nameMatch = baseFileName === baseExistingFileName || 
+                       urlContainsOriginalName ||
+                       baseExistingFileName.includes(baseFileName) ||
+                       baseFileName.includes(baseExistingFileName);
+      
+      // More flexible size matching - allow up to 5KB difference for compression
+      const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 5000;
       
       console.log('🔍 Comparing with existing item:', {
         itemName: item.name,
