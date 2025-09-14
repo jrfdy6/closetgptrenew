@@ -728,15 +728,19 @@ async def analyze_batch_images_legacy(
         
         raise HTTPException(status_code=500, detail=str(e))
 
+class ImageHashRequest(BaseModel):
+    image_url: str
+
 @router.post("/generate-image-hash")
 async def generate_image_hash(
-    image_url: str,
+    request: ImageHashRequest,
     current_user_id: str = Depends(get_current_user_id) if AUTH_AVAILABLE else "anonymous"
 ):
     """
     Generate image hash and metadata for duplicate detection
     """
     try:
+        image_url = request.image_url
         if not image_url:
             raise HTTPException(status_code=400, detail="Image URL is required")
         
