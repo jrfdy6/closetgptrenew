@@ -114,7 +114,19 @@ const checkForDuplicates = async (file: File, existingItems: any[]): Promise<boo
   const fileName = file.name.toLowerCase();
   const fileSize = file.size;
   
-  return existingItems.some(item => {
+  console.log('🔍 Checking for duplicates:', {
+    fileName,
+    fileSize,
+    existingItemsCount: existingItems.length,
+    existingItems: existingItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      imageUrl: item.imageUrl,
+      hasImageUrl: !!item.imageUrl
+    }))
+  });
+  
+  const isDuplicate = existingItems.some(item => {
     // Check if the item has an imageUrl (from Firebase Storage)
     if (item.imageUrl) {
       // Extract filename from Firebase Storage URL
@@ -125,11 +137,47 @@ const checkForDuplicates = async (file: File, existingItems: any[]): Promise<boo
       const baseFileName = fileName.split('.')[0];
       const baseExistingFileName = existingFileName.split('.')[0];
       
-      return baseFileName === baseExistingFileName && 
-             Math.abs((item.fileSize || 0) - fileSize) < 1000; // Allow 1KB difference for compression
+      // Also check if the original filename is in the URL (Firebase might preserve it)
+      const urlContainsOriginalName = item.imageUrl.toLowerCase().includes(baseFileName);
+      
+      const nameMatch = baseFileName === baseExistingFileName || urlContainsOriginalName;
+      const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 1000; // Allow 1KB difference for compression
+      
+      console.log('🔍 Comparing with existing item:', {
+        itemName: item.name,
+        existingFileName,
+        baseFileName,
+        baseExistingFileName,
+        urlContainsOriginalName,
+        nameMatch,
+        sizeMatch,
+        itemFileSize: item.fileSize,
+        newFileSize: fileSize,
+        imageUrl: item.imageUrl
+      });
+      
+      return nameMatch && sizeMatch;
     }
+    
+    // Fallback: check by item name if no imageUrl
+    if (item.name) {
+      const itemNameMatch = item.name.toLowerCase().includes(baseFileName) || 
+                           baseFileName.includes(item.name.toLowerCase());
+      
+      console.log('🔍 Fallback comparison by name:', {
+        itemName: item.name,
+        baseFileName,
+        itemNameMatch
+      });
+      
+      return itemNameMatch;
+    }
+    
     return false;
   });
+  
+  console.log('🔍 Duplicate check result:', isDuplicate);
+  return isDuplicate;
 };
 
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
@@ -143,6 +191,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
   // Fetch existing wardrobe items for duplicate detection
   const fetchExistingItems = useCallback(async () => {
     try {
+      console.log('🔍 Fetching existing items for duplicate detection...');
       const response = await fetch('/api/wardrobe', {
         headers: {
           'Authorization': `Bearer ${await user?.getIdToken()}`,
@@ -151,7 +200,20 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
       
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 Fetched existing items:', {
+          success: data.success,
+          count: data.count,
+          itemsCount: data.items?.length,
+          sampleItems: data.items?.slice(0, 3).map(item => ({
+            id: item.id,
+            name: item.name,
+            imageUrl: item.imageUrl,
+            hasImageUrl: !!item.imageUrl
+          }))
+        });
         setExistingItems(data.items || []);
+      } else {
+        console.error('🔍 Failed to fetch existing items:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch existing items:', error);
