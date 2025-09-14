@@ -1194,7 +1194,7 @@ export default function Onboarding() {
     return null; // Will redirect via useEffect
   }
 
-  
+
   if (quizCompleted && quizResults) {
     const persona = determineStylePersona();
     
@@ -1222,7 +1222,7 @@ export default function Onboarding() {
                 <div className="max-w-2xl p-8 text-white">
                   <div className="text-sm font-medium text-gray-300 mb-3 tracking-wider">YOU ARE</div>
                   <h1 className="text-6xl md:text-7xl font-serif font-bold mb-6 leading-tight">
-                    {persona.name}
+                  {persona.name}
                   </h1>
                   <p className="text-2xl text-gray-100 mb-8 leading-relaxed font-light">
                     {persona.tagline}
@@ -1230,19 +1230,19 @@ export default function Onboarding() {
                   
                   {/* Style Traits - Inline with hero */}
                   <div className="flex flex-wrap gap-3">
-                    {persona.traits.map((trait, index) => (
+                  {persona.traits.map((trait, index) => (
                       <span 
                         key={index}
                         className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full text-sm font-medium border border-white/30"
                       >
-                        {trait}
-                      </span>
-                    ))}
+                      {trait}
+                    </span>
+                  ))}
                   </div>
                 </div>
               </div>
             </div>
-              
+
             {/* Content Section */}
             <div className="p-8">
               {/* Description */}
@@ -1255,11 +1255,11 @@ export default function Onboarding() {
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl p-8">
                   <h3 className="text-2xl font-serif font-semibold text-gray-900 dark:text-white mb-4">Your Style Mission</h3>
                   <p className="text-lg text-gray-600 dark:text-gray-400 italic leading-relaxed">
-                    {persona.styleMission}
-                  </p>
-                </div>
-              </div>
+                {persona.styleMission}
+              </p>
             </div>
+                  </div>
+              </div>
             </div>
 
           {/* Style Examples Section */}
@@ -1269,7 +1269,7 @@ export default function Onboarding() {
               <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 See how your {persona.name.toLowerCase()} style translates into real outfits and situations
               </p>
-            </div>
+                        </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {getStyleExamplesForPersona(persona.id).map((image, index) => (
@@ -1289,8 +1289,8 @@ export default function Onboarding() {
                               <div class="text-center text-gray-500 dark:text-gray-400">
                                 <div class="text-4xl mb-2">📷</div>
                                 <div class="text-sm">Style example unavailable</div>
-                              </div>
-                            </div>
+                        </div>
+                        </div>
                           `;
                         }
                       }}
@@ -1301,12 +1301,12 @@ export default function Onboarding() {
                       <p className="text-sm text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         Click to explore this look
                       </p>
-                    </div>
-                  </div>
-                </div>
+                      </div>
+                        </div>
+                        </div>
               ))}
-            </div>
-          </div>
+                        </div>
+                      </div>
 
           {/* Call-to-Action Section */}
           <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-3xl p-12 text-center text-white shadow-xl">
@@ -1321,11 +1321,11 @@ export default function Onboarding() {
               <div className="flex items-center space-x-2 text-red-100">
                 <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                   <span className="text-sm font-bold">4</span>
-                </div>
+                        </div>
                 <span className="text-sm">Steps to perfect style</span>
+                        </div>
               </div>
             </div>
-          </div>
 
         </div>
       </div>
@@ -1409,7 +1409,7 @@ export default function Onboarding() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-          <div className="mb-8">
+        <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Question {currentQuestionIndex + 1} of {questions.length}
@@ -1424,8 +1424,8 @@ export default function Onboarding() {
                 {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
               </span>
             </div>
-          </div>
-
+        </div>
+        
           <div className="mb-8">
             <h2 className="text-2xl md:text-3xl font-serif text-gray-900 dark:text-white mb-6 text-center">
               {question.question}
@@ -1505,13 +1505,13 @@ export default function Onboarding() {
                     key={skinTone}
                     className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" 
                     style={{
-                      backgroundColor: `rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)})`
+                      backgroundColor: `rgb(${Math.round(200 + skinTone * 0.55)}, ${Math.round(150 + skinTone * 0.8)}, ${Math.round(100 + skinTone * 1.2)})`
                     }}
-                    title={`Skin tone: ${skinTone} (RGB: ${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 1.8)}, ${Math.round(skinTone * 1.2)})`}
+                    title={`Skin tone: ${skinTone} (RGB: ${Math.round(200 + skinTone * 0.55)}, ${Math.round(150 + skinTone * 0.8)}, ${Math.round(100 + skinTone * 1.2)})`}
                   ></div>
                   <p className="text-lg text-gray-600 dark:text-gray-400">Your skin tone</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    Value: {skinTone} | RGB: ({Math.round(skinTone * 2.55)}, {Math.round(skinTone * 1.8)}, {Math.round(skinTone * 1.2)})
+                    Value: {skinTone} | RGB: ({Math.round(200 + skinTone * 0.55)}, {Math.round(150 + skinTone * 0.8)}, {Math.round(100 + skinTone * 1.2)})
                   </p>
                 </div>
                 <input
@@ -1521,9 +1521,9 @@ export default function Onboarding() {
                   value={skinTone}
                   onChange={(e) => {
                     const newValue = parseInt(e.target.value);
-                    const r = Math.round(newValue * 2.55);
-                    const g = Math.round(newValue * 1.8);
-                    const b = Math.round(newValue * 1.2);
+                    const r = Math.round(200 + newValue * 0.55);
+                    const g = Math.round(150 + newValue * 0.8);
+                    const b = Math.round(100 + newValue * 1.2);
                     console.log('🎨 Skin tone changed to:', newValue, `RGB: (${r}, ${g}, ${b})`);
                     setSkinTone(newValue);
                     handleAnswer('skin_tone', newValue.toString());
