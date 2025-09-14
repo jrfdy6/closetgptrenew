@@ -38,7 +38,11 @@ interface WardrobeItem {
   description?: string;
   brand?: string;
   size?: string;
-  material?: string;
+  material?: string[];
+  sleeveLength?: string;
+  fit?: string;
+  neckline?: string;
+  length?: string;
   purchaseDate?: Date;
   purchasePrice?: number;
 }
@@ -55,7 +59,7 @@ interface WardrobeItemDetailsProps {
 }
 
 const ITEM_TYPES = [
-  'shirt', 'pants', 'dress', 'jacket', 'shoes', 'accessory', 'underwear', 'socks', 'hat', 'bag'
+  'shirt', 't-shirt', 'blouse', 'tank-top', 'polo', 'sweater', 'hoodie', 'pants', 'jeans', 'shorts', 'skirt', 'dress', 'jacket', 'blazer', 'coat', 'shoes', 'sneakers', 'boots', 'sandals', 'heels', 'accessory', 'underwear', 'socks', 'hat', 'bag', 'belt', 'scarf', 'jewelry'
 ];
 
 const COLORS = [
@@ -68,6 +72,26 @@ const OCCASIONS = ['casual', 'work', 'formal', 'party', 'date', 'gym', 'travel',
 
 const STYLES = [
   'classic', 'modern', 'vintage', 'bohemian', 'minimalist', 'edgy', 'romantic', 'athletic', 'preppy', 'artistic'
+];
+
+const SLEEVE_LENGTHS = [
+  'sleeveless', 'short-sleeve', 'long-sleeve', 'three-quarter-sleeve', 'cap-sleeve', 'off-shoulder'
+];
+
+const MATERIALS = [
+  'cotton', 'polyester', 'wool', 'silk', 'linen', 'denim', 'leather', 'suede', 'cashmere', 'spandex', 'rayon', 'viscose', 'nylon', 'acrylic', 'bamboo', 'hemp', 'modal', 'elastane', 'lycra'
+];
+
+const FITS = [
+  'slim', 'regular', 'loose', 'oversized', 'fitted', 'relaxed', 'tapered', 'straight', 'skinny', 'wide-leg'
+];
+
+const NECKLINES = [
+  'crew-neck', 'v-neck', 'scoop-neck', 'boat-neck', 'off-shoulder', 'halter', 'turtleneck', 'cowl-neck', 'sweetheart', 'square-neck'
+];
+
+const LENGTHS = [
+  'mini', 'midi', 'maxi', 'knee-length', 'ankle-length', 'crop', 'regular', 'long', 'short'
 ];
 
 export default function WardrobeItemDetails({
@@ -99,7 +123,11 @@ export default function WardrobeItemDetails({
         description: item.description || '',
         brand: item.brand || '',
         size: item.size || '',
-        material: item.material || '',
+        material: item.material || [],
+        sleeveLength: item.sleeveLength || '',
+        fit: item.fit || '',
+        neckline: item.neckline || '',
+        length: item.length || '',
         purchasePrice: item.purchasePrice || 0
       });
     }
@@ -364,13 +392,115 @@ export default function WardrobeItemDetails({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="material" className="text-stone-700 dark:text-stone-300 font-medium">Material</Label>
+                    <Label htmlFor="sleeveLength" className="text-stone-700 dark:text-stone-300 font-medium">Sleeve Length</Label>
+                    <Select
+                      value={editedItem.sleeveLength || ''}
+                      onValueChange={(value) => setEditedItem({ ...editedItem, sleeveLength: value })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select sleeve length" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SLEEVE_LENGTHS.map(length => (
+                          <SelectItem key={length} value={length}>
+                            {length.charAt(0).toUpperCase() + length.slice(1).replace('-', ' ')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="fit" className="text-stone-700 dark:text-stone-300 font-medium">Fit</Label>
+                    <Select
+                      value={editedItem.fit || ''}
+                      onValueChange={(value) => setEditedItem({ ...editedItem, fit: value })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select fit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FITS.map(fit => (
+                          <SelectItem key={fit} value={fit}>
+                            {fit.charAt(0).toUpperCase() + fit.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="neckline" className="text-stone-700 dark:text-stone-300 font-medium">Neckline</Label>
+                    <Select
+                      value={editedItem.neckline || ''}
+                      onValueChange={(value) => setEditedItem({ ...editedItem, neckline: value })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select neckline" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NECKLINES.map(neckline => (
+                          <SelectItem key={neckline} value={neckline}>
+                            {neckline.charAt(0).toUpperCase() + neckline.slice(1).replace('-', ' ')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="length" className="text-stone-700 dark:text-stone-300 font-medium">Length</Label>
+                    <Select
+                      value={editedItem.length || ''}
+                      onValueChange={(value) => setEditedItem({ ...editedItem, length: value })}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select length" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LENGTHS.map(length => (
+                          <SelectItem key={length} value={length}>
+                            {length.charAt(0).toUpperCase() + length.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="purchasePrice" className="text-stone-700 dark:text-stone-300 font-medium">Purchase Price</Label>
                     <Input
-                      id="material"
-                      value={editedItem.material || ''}
-                      onChange={(e) => setEditedItem({ ...editedItem, material: e.target.value })}
+                      id="purchasePrice"
+                      type="number"
+                      value={editedItem.purchasePrice || ''}
+                      onChange={(e) => setEditedItem({ ...editedItem, purchasePrice: parseFloat(e.target.value) || 0 })}
                       className="mt-1"
+                      placeholder="0.00"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-stone-700 dark:text-stone-300 font-medium">Materials</Label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {MATERIALS.map(material => (
+                      <Badge
+                        key={material}
+                        variant={editedItem.material?.includes(material) ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => {
+                          const currentMaterials = editedItem.material || [];
+                          const newMaterials = currentMaterials.includes(material)
+                            ? currentMaterials.filter(m => m !== material)
+                            : [...currentMaterials, material];
+                          setEditedItem({ ...editedItem, material: newMaterials });
+                        }}
+                      >
+                        {material}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
 
@@ -499,7 +629,7 @@ export default function WardrobeItemDetails({
                   </div>
                 )}
 
-                {(item.size || item.material) && (
+                {(item.size || item.material || item.sleeveLength || item.fit || item.neckline || item.length) && (
                   <div className="grid grid-cols-2 gap-4">
                     {item.size && (
                       <div>
@@ -507,12 +637,49 @@ export default function WardrobeItemDetails({
                         <p className="text-stone-600 dark:text-stone-400">{item.size}</p>
                       </div>
                     )}
-                    {item.material && (
+                    {item.sleeveLength && (
                       <div>
-                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Material</h3>
-                        <p className="text-stone-600 dark:text-stone-400">{item.material}</p>
+                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Sleeve Length</h3>
+                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.sleeveLength.replace('-', ' ')}</p>
                       </div>
                     )}
+                    {item.fit && (
+                      <div>
+                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Fit</h3>
+                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.fit}</p>
+                      </div>
+                    )}
+                    {item.neckline && (
+                      <div>
+                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Neckline</h3>
+                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.neckline.replace('-', ' ')}</p>
+                      </div>
+                    )}
+                    {item.length && (
+                      <div>
+                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Length</h3>
+                        <p className="text-stone-600 dark:text-stone-400 capitalize">{item.length}</p>
+                      </div>
+                    )}
+                    {item.purchasePrice && item.purchasePrice > 0 && (
+                      <div>
+                        <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-1">Purchase Price</h3>
+                        <p className="text-stone-600 dark:text-stone-400">${item.purchasePrice.toFixed(2)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {item.material && item.material.length > 0 && (
+                  <div>
+                    <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Materials</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {item.material.map((material, index) => (
+                        <Badge key={index} variant="outline">
+                          {material}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
                 )}
 
