@@ -76,6 +76,8 @@ export async function POST(req: NextRequest) {
     console.log('🔍 [Quiz Submit] User answers count:', Object.keys(userAnswers).length);
     console.log('🔍 [Quiz Submit] Style preferences:', submission.stylePreferences);
     console.log('🔍 [Quiz Submit] Color preferences:', submission.colorPreferences);
+    console.log('🔍 [Quiz Submit] Final stylePreferences in profile:', profileUpdate.stylePreferences);
+    console.log('🔍 [Quiz Submit] Final preferences.style in profile:', profileUpdate.preferences?.style);
     console.log('🔍 [Quiz Submit] User info being saved:', { 
       name: profileUpdate.name, 
       email: profileUpdate.email,
@@ -218,8 +220,8 @@ function mapQuizAnswersToProfile(
       traits: determinedPersona.traits,
       examples: determinedPersona.examples
     },
-    createdAt: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
-    updatedAt: Math.floor(Date.now() / 1000) // Unix timestamp in seconds
+    createdAt: new Date().toISOString(), // ISO string format
+    updatedAt: new Date().toISOString() // ISO string format
   };
 
   return profileUpdate;
