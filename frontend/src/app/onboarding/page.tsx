@@ -448,7 +448,6 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
 ];
 
 export default function Onboarding() {
-  const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [userGender, setUserGender] = useState<string | null>(null);
@@ -512,20 +511,20 @@ export default function Onboarding() {
   const questions = getFilteredQuestions();
 
   const nextStep = () => {
-    if (currentStep < questions.length) {
-      setCurrentStep(currentStep + 1);
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
     }
   };
 
   const canProceed = () => {
     if (questions.length === 0) return false;
-    const currentQuestion = questions[currentStep - 1];
+    const currentQuestion = questions[currentQuestionIndex];
     return answers.some(a => a.question_id === currentQuestion.id);
   };
 
@@ -1033,9 +1032,9 @@ export default function Onboarding() {
       );
     }
     
-    const question = questions[currentStep - 1];
+    const question = questions[currentQuestionIndex];
     if (!question) {
-      console.error('No question found for current step:', currentStep);
+      console.error('No question found for current question index:', currentQuestionIndex);
       return (
         <div className="text-center p-8">
           <p className="text-red-600 dark:text-red-400">Question not found. Please refresh the page.</p>
