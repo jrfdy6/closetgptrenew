@@ -1024,11 +1024,14 @@ export default function Onboarding() {
     const currentAnswer = answers.find(a => a.question_id === question.id);
 
     return (
-      <div className="animate-fade-in">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
-            {question.question}
-          </h2>
+        <div className="animate-fade-in">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
+              {question.question}
+            </h2>
+            <div className="text-sm text-gray-500 mb-4">
+              DEBUG: Question type = {question.type} | Has images = {question.images ? 'Yes' : 'No'} | Question ID = {question.id}
+            </div>
           {question.type === "visual" && (
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
               Select the option that best represents your style
@@ -1465,12 +1468,15 @@ export default function Onboarding() {
                 ))}
               </div>
             </div>
-          ) : question.type === "visual_yesno" && question.images ? (
+          ) : question.type === "visual_yesno" ? (
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-6">
+                  <div className="text-sm text-gray-500 mb-2">
+                    DEBUG: Rendering visual_yesno with image: {question.images?.[0]}
+                  </div>
                   <img 
-                    src={question.images[0]} 
+                    src={question.images?.[0]} 
                     alt="Style example"
                     className="w-full max-w-md mx-auto h-64 object-cover rounded-lg shadow-lg"
                     onError={(e) => {
