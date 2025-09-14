@@ -1341,11 +1341,22 @@ export default function Onboarding() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
+      // Get the Firebase auth token
+      const token = await user?.getIdToken();
+      
       const response = await fetch('/api/style-quiz/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ answers })
       });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const results = await response.json();
       setQuizResults(results);
       setQuizCompleted(true);
@@ -1482,7 +1493,7 @@ export default function Onboarding() {
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-6">
-                  <div className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" style={{backgroundColor: `rgb(${skinTone}, ${skinTone}, ${skinTone})`}}></div>
+                  <div className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" style={{backgroundColor: `rgb(${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 2.55)}, ${Math.round(skinTone * 2.55)})`}}></div>
                   <p className="text-lg text-gray-600 dark:text-gray-400">Your skin tone</p>
                 </div>
                 <input
