@@ -31,10 +31,11 @@ interface UploadItem {
   id: string;
   file: File;
   preview: string;
-  status: 'pending' | 'analyzing' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'analyzing' | 'uploading' | 'success' | 'error' | 'duplicate';
   progress: number;
   error?: string;
   analysisResult?: any;
+  isDuplicate?: boolean;
 }
 
 // Helper function to convert file to base64
@@ -106,24 +107,80 @@ const uploadImageToFirebaseStorage = async (file: File, userId: string, user: an
   }
 };
 
+// Helper function to check for duplicate items
+const checkForDuplicates = async (file: File, existingItems: any[]): Promise<boolean> => {
+  // Simple duplicate detection based on file name and size
+  // In a more sophisticated implementation, you could use image hashing
+  const fileName = file.name.toLowerCase();
+  const fileSize = file.size;
+  
+  return existingItems.some(item => {
+    // Check if the item has an imageUrl (from Firebase Storage)
+    if (item.imageUrl) {
+      // Extract filename from Firebase Storage URL
+      const urlParts = item.imageUrl.split('/');
+      const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
+      
+      // Compare filenames (without extension) and file sizes
+      const baseFileName = fileName.split('.')[0];
+      const baseExistingFileName = existingFileName.split('.')[0];
+      
+      return baseFileName === baseExistingFileName && 
+             Math.abs((item.fileSize || 0) - fileSize) < 1000; // Allow 1KB difference for compression
+    }
+    return false;
+  });
+};
+
 export default function BatchImageUpload({ onUploadComplete, onError, userId }: BatchImageUploadProps) {
   const { toast } = useToast();
   const { user } = useFirebase();
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [existingItems, setExistingItems] = useState<any[]>([]);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newItems: UploadItem[] = acceptedFiles.map(file => ({
-      id: `${Date.now()}-${Math.random()}`,
-      file,
-      preview: URL.createObjectURL(file),
-      status: 'pending',
-      progress: 0
-    }));
+  // Fetch existing wardrobe items for duplicate detection
+  const fetchExistingItems = useCallback(async () => {
+    try {
+      const response = await fetch('/api/wardrobe', {
+        headers: {
+          'Authorization': `Bearer ${await user?.getIdToken()}`,
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setExistingItems(data.items || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch existing items:', error);
+    }
+  }, [user]);
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    // Fetch existing items if not already loaded
+    if (existingItems.length === 0) {
+      await fetchExistingItems();
+    }
+
+    const newItems: UploadItem[] = [];
+    
+    for (const file of acceptedFiles) {
+      const isDuplicate = await checkForDuplicates(file, existingItems);
+      
+      newItems.push({
+        id: `${Date.now()}-${Math.random()}`,
+        file,
+        preview: URL.createObjectURL(file),
+        status: isDuplicate ? 'duplicate' : 'pending',
+        progress: 0,
+        isDuplicate
+      });
+    }
 
     setUploadItems(prev => [...prev, ...newItems]);
-  }, []);
+  }, [existingItems, fetchExistingItems]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -175,6 +232,14 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
       // Process each item sequentially to avoid overwhelming the server
       for (let i = 0; i < uploadItems.length; i++) {
         const item = uploadItems[i];
+        
+        // Skip duplicate items
+        if (item.isDuplicate) {
+          console.log(`⏭️ Skipping duplicate item: ${item.file.name}`);
+          completedItems++;
+          setOverallProgress((completedItems / totalItems) * 100);
+          continue;
+        }
         
         // Update status to uploading
         setUploadItems(prev => prev.map(prevItem => 
@@ -381,6 +446,8 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'error':
         return <AlertCircle className="w-4 h-4 text-red-500" />;
+      case 'duplicate':
+        return <AlertCircle className="w-4 h-4 text-orange-500" />;
       default:
         return <ImageIcon className="w-4 h-4 text-gray-400" />;
     }
@@ -398,6 +465,8 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'error':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'duplicate':
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
@@ -548,6 +617,13 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
                     </div>
                   )}
 
+                  {/* Duplicate Message */}
+                  {item.status === 'duplicate' && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-orange-500 text-white text-xs p-1 text-center">
+                      Already exists
+                    </div>
+                  )}
+
                   {/* File Info */}
                   <div className="p-2 bg-white dark:bg-gray-900">
                     <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
@@ -566,7 +642,14 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="flex items-center justify-between text-sm">
                   <span>Ready to upload:</span>
-                  <span className="font-medium">{uploadItems.length} items</span>
+                  <span className="font-medium">
+                    {uploadItems.filter(item => !item.isDuplicate).length} items
+                    {uploadItems.filter(item => item.isDuplicate).length > 0 && (
+                      <span className="text-orange-600 ml-2">
+                        ({uploadItems.filter(item => item.isDuplicate).length} duplicates skipped)
+                      </span>
+                    )}
+                  </span>
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Total size: {(uploadItems.reduce((acc, item) => acc + item.file.size, 0) / 1024 / 1024).toFixed(1)} MB
