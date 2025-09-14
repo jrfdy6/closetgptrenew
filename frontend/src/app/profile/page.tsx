@@ -578,13 +578,13 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Member Since</span>
               <span className="text-sm text-muted-foreground">
-                {new Date(profile.createdAt || profile.created_at || '').toLocaleDateString()}
+                {new Date((profile.createdAt || profile.created_at || 0) * 1000).toLocaleDateString()}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Last Updated</span>
               <span className="text-sm text-muted-foreground">
-                {new Date(profile.updatedAt || profile.updated_at || '').toLocaleDateString()}
+                {new Date((profile.updatedAt || profile.updated_at || 0) * 1000).toLocaleDateString()}
               </span>
             </div>
           </CardContent>
