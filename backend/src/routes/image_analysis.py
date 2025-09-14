@@ -449,13 +449,14 @@ async def analyze_single_image_legacy(
             analysis = await analyze_image_with_gpt4(temp_path)
             
             # Log analytics event
+            file_size = len(response.content) if response else 0
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
                     "analysis_type": "legacy",
                     "image_url": image_url,
-                    "file_size": len(response.content),
+                    "file_size": file_size,
                     "has_clothing_detected": bool(analysis.get("clothing_type")),
                     "confidence_score": analysis.get("confidence_score", 0)
                 }
@@ -509,13 +510,14 @@ async def analyze_single_image_clip_only(
             analysis = await simple_analyzer.analyze_clothing_item(temp_path)
             
             # Log analytics event
+            file_size = len(response.content) if response else 0
             analytics_event = AnalyticsEvent(
                 user_id=current_user_id,
                 event_type="single_image_analyzed",
                 metadata={
                     "analysis_type": "gpt4_vision_only",
                     "image_url": image_url,
-                    "file_size": len(response.content),
+                    "file_size": file_size,
                     "confidence_score": analysis.get("metadata", {}).get("confidence", 0)
                 }
             )
