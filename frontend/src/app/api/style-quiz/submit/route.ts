@@ -83,6 +83,12 @@ export async function POST(req: NextRequest) {
       email: profileUpdate.email,
       userId: profileUpdate.userId 
     });
+    console.log('🔍 [Quiz Submit] Timestamp values being sent:', {
+      createdAt: profileUpdate.createdAt,
+      updatedAt: profileUpdate.updatedAt,
+      created_at: profileUpdate.created_at,
+      updated_at: profileUpdate.updated_at
+    });
 
     // Save to user profile via backend API directly
     try {

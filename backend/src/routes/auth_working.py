@@ -90,10 +90,16 @@ async def update_user_profile(
         user_ref = db.collection('users').document(current_user.id)
         
         # Prepare update data with all profile fields
+        frontend_updated_at = profile_data.get('updated_at') or profile_data.get('updatedAt')
+        current_time = int(time.time())
+        final_updated_at = frontend_updated_at or current_time
+        
+        logger.info(f"🔍 DEBUG: Timestamp handling - frontend_updated_at: {frontend_updated_at}, current_time: {current_time}, final_updated_at: {final_updated_at}")
+        
         update_data = {
             'name': profile_data.get('name'),
             'email': profile_data.get('email'),
-            'updated_at': profile_data.get('updated_at') or profile_data.get('updatedAt') or int(time.time())  # Use frontend timestamp if available
+            'updated_at': final_updated_at  # Use frontend timestamp if available
         }
         
         # Add all the detailed profile fields if they exist
