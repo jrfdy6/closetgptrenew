@@ -2378,7 +2378,7 @@ async def debug_base_item_fix():
     return {
         "status": "base_item_fix_deployed",
         "timestamp": datetime.utcnow().isoformat(),
-        "fix_version": "v3.0",
+        "fix_version": "v3.1",
         "description": "Base item is added BEFORE filtering to ensure it's never excluded"
     }
 
