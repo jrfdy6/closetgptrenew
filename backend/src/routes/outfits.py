@@ -2354,6 +2354,16 @@ async def outfits_debug():
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False
     }
 
+@router.get("/debug/base-item-fix")
+async def debug_base_item_fix():
+    """Debug endpoint to check if base item fix is deployed"""
+    return {
+        "status": "base_item_fix_deployed",
+        "timestamp": datetime.utcnow().isoformat(),
+        "fix_version": "v3.0",
+        "description": "Base item is added BEFORE filtering to ensure it's never excluded"
+    }
+
 @router.get("/outfit-save-test", response_model=dict)
 async def outfit_save_test():
     """Test saving to the outfits collection specifically."""
