@@ -403,36 +403,19 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     # Build validated outfit with required categories
     validated_outfit = []
     
-    # ENHANCED: Ensure base item is included if provided
+    # BYPASS FILTERING FOR BASE ITEM (strong guarantee)
     if base_item:
         base_item_id = base_item.get('id')
-        logger.info(f"🎯 DEBUG: Ensuring base item is included: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
+        logger.info(f"🛡️ BYPASS: Forcing base item into outfit: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
         
         # SURGICAL DEBUG: Log base item details before processing
         import json
         logger.info(f"🧪 BASE ITEM DETAILS: {json.dumps(base_item, indent=2, default=str)}")
         logger.info(f"🧪 VALIDATION INPUT: validated_outfit (pre-validation): {[item.get('id') for item in validated_outfit]}")
         
-        # First, try to find the base item in the categorized items
-        base_item_found = False
-        for category, category_items in categorized_items.items():
-            for item in category_items:
-                if item.get('id') == base_item_id:
-                    # Remove the base item from its category to avoid duplication
-                    category_items.remove(item)
-                    # Add the base item to the beginning of validated_outfit
-                    validated_outfit.insert(0, item)
-                    logger.info(f"🎯 DEBUG: Added base item to validated outfit: {item.get('name', 'unnamed')}")
-                    base_item_found = True
-                    break
-            if base_item_found:
-                break
-        
-        # If not found in categorized items, add it directly from the base_item parameter
-        if not base_item_found:
-            logger.warning(f"⚠️ DEBUG: Base item not found in categorized items, adding directly")
-            validated_outfit.insert(0, base_item)
-            logger.info(f"🎯 DEBUG: Added base item directly to validated outfit: {base_item.get('name', 'unnamed')}")
+        # Force skip filtering/scoring - ALWAYS include base item
+        validated_outfit.insert(0, base_item)
+        logger.info(f"🛡️ Forced base item into outfit: {base_item.get('name')}")
         
         # SURGICAL DEBUG: Log validation result after base item insertion
         logger.info(f"🧪 VALIDATION RESULT: {[item.get('id') for item in validated_outfit]}")
@@ -443,9 +426,13 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
             # Check if we already have an item from this category (e.g., from base item)
             existing_categories = [get_item_category(item.get('type', '')) for item in validated_outfit]
             if category not in existing_categories:
-                # Take the first item from this category
-                validated_outfit.append(categorized_items[category][0])
-                logger.info(f"🔍 DEBUG: Added {category} item: {categorized_items[category][0].get('name', 'unnamed')}")
+                # Take the first item from this category (skip if it's the base item)
+                candidate_item = categorized_items[category][0]
+                if not (base_item and candidate_item.get('id') == base_item.get('id')):
+                    validated_outfit.append(candidate_item)
+                    logger.info(f"🔍 DEBUG: Added {category} item: {candidate_item.get('name', 'unnamed')}")
+                else:
+                    logger.info(f"🔍 DEBUG: Skipping {category} - base item already covers this category")
             else:
                 logger.info(f"🔍 DEBUG: Skipping {category} - already have item from this category")
     
