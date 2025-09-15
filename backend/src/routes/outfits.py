@@ -1826,9 +1826,14 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             base_item_in_suitable = any(item.get('id') == req.baseItemId for item in suitable_items)
             logger.info(f"🎯 DEBUG: Base item in suitable_items: {base_item_in_suitable}")
             if base_item_in_suitable:
-                logger.info(f"🎯 DEBUG: Base item found in suitable_items at position: {next(i for i, item in enumerate(suitable_items) if item.get('id') == req.baseItemId)}")
+                base_item_position = next(i for i, item in enumerate(suitable_items) if item.get('id') == req.baseItemId)
+                logger.info(f"🎯 DEBUG: Base item found in suitable_items at position: {base_item_position}")
+                logger.info(f"🎯 DEBUG: Base item details: {suitable_items[base_item_position].get('name', 'Unknown')}")
             else:
-                logger.warning(f"⚠️ DEBUG: Base item NOT in suitable_items - this is the problem!")
+                logger.error(f"❌ DEBUG: Base item NOT in suitable_items - this is the problem!")
+                logger.error(f"❌ DEBUG: Suitable items count: {len(suitable_items)}")
+                logger.error(f"❌ DEBUG: Looking for base item ID: {req.baseItemId}")
+                logger.error(f"❌ DEBUG: First few suitable item IDs: {[item.get('id') for item in suitable_items[:5]]}")
         
         # Validate and ensure complete outfit composition
         validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
@@ -1841,8 +1846,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             if base_item_in_final:
                 base_item_position = next(i for i, item in enumerate(validated_items) if item.get('id') == req.baseItemId)
                 logger.info(f"🎯 DEBUG: Base item found in final outfit at position: {base_item_position}")
+                logger.info(f"🎯 DEBUG: Final outfit base item: {validated_items[base_item_position].get('name', 'Unknown')}")
             else:
                 logger.error(f"❌ DEBUG: Base item NOT in final validated_items - validation failed!")
+                logger.error(f"❌ DEBUG: Final outfit items: {[item.get('name', 'Unknown') for item in validated_items]}")
+                logger.error(f"❌ DEBUG: Final outfit item IDs: {[item.get('id') for item in validated_items]}")
         
         # Apply layering validation rules
         layering_validation = await validate_layering_rules(validated_items, req.occasion)
