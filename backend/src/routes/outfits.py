@@ -381,8 +381,13 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         if category not in categorized_items:
             categorized_items[category] = []
         categorized_items[category].append(item)
+        
+        # SURGICAL DEBUG: Log base item categorization
+        if base_item and item.get('id') == base_item.get('id'):
+            logger.info(f"🧪 BASE ITEM CATEGORIZATION: {item.get('name', 'Unknown')} -> type: {item_type} -> category: {category}")
     
     logger.info(f"🔍 DEBUG: Categorized items: {list(categorized_items.keys())}")
+    logger.info(f"🧪 CATEGORIZED ITEMS DETAILS: {[(cat, [item.get('id') for item in items]) for cat, items in categorized_items.items()]}")
     
     # Check if we have required categories
     missing_categories = []
@@ -402,6 +407,11 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     if base_item:
         base_item_id = base_item.get('id')
         logger.info(f"🎯 DEBUG: Ensuring base item is included: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
+        
+        # SURGICAL DEBUG: Log base item details before processing
+        import json
+        logger.info(f"🧪 BASE ITEM DETAILS: {json.dumps(base_item, indent=2, default=str)}")
+        logger.info(f"🧪 VALIDATION INPUT: validated_outfit (pre-validation): {[item.get('id') for item in validated_outfit]}")
         
         # First, try to find the base item in the categorized items
         base_item_found = False
@@ -423,6 +433,9 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
             logger.warning(f"⚠️ DEBUG: Base item not found in categorized items, adding directly")
             validated_outfit.insert(0, base_item)
             logger.info(f"🎯 DEBUG: Added base item directly to validated outfit: {base_item.get('name', 'unnamed')}")
+        
+        # SURGICAL DEBUG: Log validation result after base item insertion
+        logger.info(f"🧪 VALIDATION RESULT: {[item.get('id') for item in validated_outfit]}")
     
     # ENHANCED: Smart initial selection to ensure category diversity
     for category in required:
