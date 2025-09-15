@@ -1612,10 +1612,25 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         suitable_items = []
         item_scores = {}  # Track scores for each item
         
+        # CRITICAL: Add base item FIRST before any filtering
+        if req.baseItemId:
+            base_item = next((item for item in wardrobe_items if item.get("id") == req.baseItemId), None)
+            if base_item:
+                logger.info(f"🎯 DEBUG: Adding base item BEFORE filtering: {base_item.get('name', 'Unknown')}")
+                suitable_items.append(base_item)
+                item_scores[base_item.get('id', 'unknown')] = 1000  # Give base item highest score
+            else:
+                logger.warning(f"⚠️ DEBUG: Base item {req.baseItemId} not found in wardrobe")
+        
         logger.info(f"🔍 DEBUG: Filtering {len(wardrobe_items)} items for style: {req.style}, occasion: {req.occasion}")
         logger.info(f"🔍 DEBUG: User profile style preferences: {user_profile.get('stylePreferences', []) if user_profile else 'None'}")
         
         for item in wardrobe_items:
+            # Skip base item since it's already been added
+            if req.baseItemId and item.get('id') == req.baseItemId:
+                logger.info(f"🎯 DEBUG: Skipping base item in filtering loop: {item.get('name', 'Unknown')}")
+                continue
+                
             item_style = item.get('style', '') or ''
             item_occasion = item.get('occasion', '') or ''
             item_color = item.get('color', '') or ''
@@ -1760,29 +1775,6 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         logger.info(f"🔍 DEBUG: Found {len(suitable_items)} suitable items")
         
-        # ENHANCED: Prioritize base item if provided
-        if req.baseItemId:
-            base_item_id = req.baseItemId
-            logger.info(f"🎯 DEBUG: Base item ID provided: {base_item_id}")
-            
-            # Find the base item in the wardrobe
-            base_item = None
-            for item in wardrobe_items:
-                if item.get('id') == base_item_id:
-                    base_item = item
-                    break
-            
-            if base_item:
-                logger.info(f"🎯 DEBUG: Found base item in wardrobe: {base_item.get('name', 'unnamed')}")
-                # Remove base item from suitable_items if it's there to avoid duplication
-                suitable_items = [item for item in suitable_items if item.get('id') != base_item_id]
-                # Add base item to the beginning of suitable_items
-                suitable_items.insert(0, base_item)
-                logger.info(f"🎯 DEBUG: Prioritized base item in selection")
-            else:
-                logger.warning(f"⚠️ DEBUG: Base item not found in wardrobe")
-        else:
-            logger.info(f"🔍 DEBUG: No base item provided")
         
         # ENHANCED: Add randomization to prevent same outfit generation
         import random
