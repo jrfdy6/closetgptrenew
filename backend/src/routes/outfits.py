@@ -403,19 +403,36 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     # Build validated outfit with required categories
     validated_outfit = []
     
-    # BYPASS FILTERING FOR BASE ITEM (strong guarantee)
+    # ENHANCED: Ensure base item is included if provided
     if base_item:
         base_item_id = base_item.get('id')
-        logger.info(f"🛡️ BYPASS: Forcing base item into outfit: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
+        logger.info(f"🎯 DEBUG: Ensuring base item is included: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
         
         # SURGICAL DEBUG: Log base item details before processing
         import json
         logger.info(f"🧪 BASE ITEM DETAILS: {json.dumps(base_item, indent=2, default=str)}")
         logger.info(f"🧪 VALIDATION INPUT: validated_outfit (pre-validation): {[item.get('id') for item in validated_outfit]}")
         
-        # Force skip filtering/scoring - ALWAYS include base item
-        validated_outfit.insert(0, base_item)
-        logger.info(f"🛡️ Forced base item into outfit: {base_item.get('name')}")
+        # First, try to find the base item in the categorized items
+        base_item_found = False
+        for category, category_items in categorized_items.items():
+            for item in category_items:
+                if item.get('id') == base_item_id:
+                    # Remove the base item from its category to avoid duplication
+                    category_items.remove(item)
+                    # Add the base item to the beginning of validated_outfit
+                    validated_outfit.insert(0, item)
+                    logger.info(f"🎯 DEBUG: Added base item to validated outfit: {item.get('name', 'unnamed')}")
+                    base_item_found = True
+                    break
+            if base_item_found:
+                break
+        
+        # If not found in categorized items, add it directly from the base_item parameter
+        if not base_item_found:
+            logger.warning(f"⚠️ DEBUG: Base item not found in categorized items, adding directly")
+            validated_outfit.insert(0, base_item)
+            logger.info(f"🎯 DEBUG: Added base item directly to validated outfit: {base_item.get('name', 'unnamed')}")
         
         # SURGICAL DEBUG: Log validation result after base item insertion
         logger.info(f"🧪 VALIDATION RESULT: {[item.get('id') for item in validated_outfit]}")
@@ -1678,12 +1695,19 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             is_suitable = False
             
             # 1. Core Style Matching (Primary filter - must pass)
+            # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
             if (req.style.lower() in item_style or 
                 req.occasion.lower() in item_occasion or
-                'versatile' in item_style):
+                'versatile' in item_style or
+                (req.baseItemId and item.get('id') == req.baseItemId)):
                 
                 is_suitable = True
                 item_score += 50  # Base score for passing core criteria
+                
+                # Special handling for base item that failed core criteria
+                if req.baseItemId and item.get('id') == req.baseItemId and not (req.style.lower() in item_style or req.occasion.lower() in item_occasion or 'versatile' in item_style):
+                    logger.info(f"🛡️ Allowing base item despite failing criteria: {item.get('name', 'Unknown')}")
+                    item_score += 1000  # Give base item highest priority
                 
                 # 2. Style Preference Enhancement (User's stored preferences)
                 if user_profile and user_profile.get('stylePreferences'):
@@ -1757,22 +1781,30 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                     item_gender = item.get('gender', '').lower()
                     
                     # Gender-specific style filtering with scoring
+                    # SOFTEN VALIDATION: Allow base item to pass gender filtering
                     if user_gender == 'male':
                         feminine_styles = ['french girl', 'romantic', 'pinup', 'boho', 'cottagecore']
-                        if req.style.lower() in feminine_styles:
+                        if req.style.lower() in feminine_styles and not (req.baseItemId and item.get('id') == req.baseItemId):
                             logger.info(f"🔍 DEBUG: Skipping feminine style '{req.style}' for male user: {item.get('name', 'unnamed')}")
                             continue
+                        elif req.baseItemId and item.get('id') == req.baseItemId:
+                            logger.info(f"🛡️ Allowing base item despite feminine style: {item.get('name', 'Unknown')}")
                     
                     elif user_gender == 'female':
                         masculine_styles = ['techwear', 'grunge', 'streetwear']
-                        if req.style.lower() in masculine_styles:
+                        if req.style.lower() in masculine_styles and not (req.baseItemId and item.get('id') == req.baseItemId):
                             logger.info(f"🔍 DEBUG: Skipping masculine style '{req.style}' for female user: {item.get('name', 'unnamed')}")
                             continue
+                        elif req.baseItemId and item.get('id') == req.baseItemId:
+                            logger.info(f"🛡️ Allowing base item despite masculine style: {item.get('name', 'Unknown')}")
                     
                     # Item gender compatibility with scoring
-                    if item_gender and item_gender not in ['unisex', user_gender]:
+                    # SOFTEN VALIDATION: Allow base item to pass gender compatibility check
+                    if item_gender and item_gender not in ['unisex', user_gender] and not (req.baseItemId and item.get('id') == req.baseItemId):
                         logger.info(f"🔍 DEBUG: Skipping gender-incompatible item: {item.get('name', 'unnamed')} (item: {item_gender}, user: {user_gender})")
                         continue
+                    elif req.baseItemId and item.get('id') == req.baseItemId and item_gender and item_gender not in ['unisex', user_gender]:
+                        logger.info(f"🛡️ Allowing base item despite gender mismatch: {item.get('name', 'Unknown')} (item: {item_gender}, user: {user_gender})")
                     
                     # Gender preference bonus
                     if item_gender == user_gender:
