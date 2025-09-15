@@ -129,7 +129,31 @@ export default function OutfitGenerationPage() {
                 imageUrl: fullItem.imageUrl || fullItem.image_url,
                 type: fullItem.type
               });
-              setBaseItem(fullItem);
+              
+              // METADATA REPAIR: Inject defaults for missing metadata to pass validation
+              const repairedBaseItem = {
+                ...fullItem,
+                material: fullItem.material ?? "unspecified",
+                texture: fullItem.texture ?? "unspecified", 
+                dominantColors: fullItem.dominantColors ?? [],
+                matchingColors: fullItem.matchingColors ?? [],
+                season: fullItem.season ?? ["all"],
+                userId: fullItem.userId ?? user?.uid ?? "unknown",
+                createdAt: fullItem.createdAt ?? Date.now(),
+                updatedAt: fullItem.updatedAt ?? Date.now()
+              };
+              
+              console.log('🔧 METADATA REPAIR: Added defaults for base item:', {
+                material: repairedBaseItem.material,
+                texture: repairedBaseItem.texture,
+                dominantColors: repairedBaseItem.dominantColors.length,
+                matchingColors: repairedBaseItem.matchingColors.length,
+                season: repairedBaseItem.season,
+                userId: repairedBaseItem.userId ? 'present' : 'missing',
+                timestamps: { createdAt: repairedBaseItem.createdAt, updatedAt: repairedBaseItem.updatedAt }
+              });
+              
+              setBaseItem(repairedBaseItem);
             } else {
               console.warn('🔍 Base item not found in wardrobe:', baseItemId);
               setBaseItem(null);
