@@ -198,14 +198,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # 3. Generate outfit using rule-based decision tree
         logger.info(f"🔍 DEBUG: About to call generate_rule_based_outfit with {len(wardrobe_items)} items")
+        logger.info(f"🔍 DEBUG: Base item ID in request: {req.baseItemId}")
         outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
         logger.info(f"✨ Generated outfit: {outfit['name']}")
         logger.info(f"🔍 DEBUG: Outfit items count: {len(outfit.get('items', []))}")
+        logger.info(f"🔍 DEBUG: Outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
         
         # Check if outfit generation was successful
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
-            logger.warning(f"⚠️ Rule-based generation produced no items, using fallback")
-            logger.warning(f"🔍 DEBUG: Outfit data: {outfit}")
+            logger.error(f"❌ Rule-based generation produced no items, using fallback")
+            logger.error(f"🔍 DEBUG: Outfit data: {outfit}")
             return await generate_fallback_outfit(req, user_id)
         
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
