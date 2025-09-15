@@ -1829,9 +1829,28 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             else:
                 logger.warning(f"⚠️ DEBUG: Base item object not found for validation")
         
+        # Debug: Check if base item is in suitable_items
+        if req.baseItemId:
+            base_item_in_suitable = any(item.get('id') == req.baseItemId for item in suitable_items)
+            logger.info(f"🎯 DEBUG: Base item in suitable_items: {base_item_in_suitable}")
+            if base_item_in_suitable:
+                logger.info(f"🎯 DEBUG: Base item found in suitable_items at position: {next(i for i, item in enumerate(suitable_items) if item.get('id') == req.baseItemId)}")
+            else:
+                logger.warning(f"⚠️ DEBUG: Base item NOT in suitable_items - this is the problem!")
+        
         # Validate and ensure complete outfit composition
         validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
         logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
+        
+        # Debug: Check if base item is in final validated items
+        if req.baseItemId:
+            base_item_in_final = any(item.get('id') == req.baseItemId for item in validated_items)
+            logger.info(f"🎯 DEBUG: Base item in final validated_items: {base_item_in_final}")
+            if base_item_in_final:
+                base_item_position = next(i for i, item in enumerate(validated_items) if item.get('id') == req.baseItemId)
+                logger.info(f"🎯 DEBUG: Base item found in final outfit at position: {base_item_position}")
+            else:
+                logger.error(f"❌ DEBUG: Base item NOT in final validated_items - validation failed!")
         
         # Apply layering validation rules
         layering_validation = await validate_layering_rules(validated_items, req.occasion)
