@@ -1614,6 +1614,22 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         suitable_items = []
         item_scores = {}  # Track scores for each item
         
+        # ENHANCED: Ensure all wardrobe items have required fields for ClothingItem validation
+        for item in wardrobe_items:
+            # Add missing required fields with default values
+            if 'season' not in item:
+                item['season'] = ['all']
+            if 'userId' not in item:
+                item['userId'] = user_id
+            if 'dominantColors' not in item:
+                item['dominantColors'] = []
+            if 'matchingColors' not in item:
+                item['matchingColors'] = []
+            if 'createdAt' not in item:
+                item['createdAt'] = int(time.time() * 1000)
+            if 'updatedAt' not in item:
+                item['updatedAt'] = int(time.time() * 1000)
+
         # CRITICAL: Add base item FIRST before any filtering
         if req.baseItemId:
             base_item = next((item for item in wardrobe_items if item.get("id") == req.baseItemId), None)
