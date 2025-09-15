@@ -395,7 +395,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         base_item_id = base_item.get('id')
         logger.info(f"🎯 DEBUG: Ensuring base item is included: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
         
-        # Find the base item in the categorized items
+        # First, try to find the base item in the categorized items
         base_item_found = False
         for category, category_items in categorized_items.items():
             for item in category_items:
@@ -410,8 +410,11 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
             if base_item_found:
                 break
         
+        # If not found in categorized items, add it directly from the base_item parameter
         if not base_item_found:
-            logger.warning(f"⚠️ DEBUG: Base item not found in categorized items")
+            logger.warning(f"⚠️ DEBUG: Base item not found in categorized items, adding directly")
+            validated_outfit.insert(0, base_item)
+            logger.info(f"🎯 DEBUG: Added base item directly to validated outfit: {base_item.get('name', 'unnamed')}")
     
     # ENHANCED: Smart initial selection to ensure category diversity
     for category in required:
