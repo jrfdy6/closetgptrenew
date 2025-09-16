@@ -1952,9 +1952,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 "imageUrl": image_url
             }
             outfit_items.append(outfit_item)
-            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Original URL: {raw_image_url}")
-            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Converted URL: {image_url}")
-            logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - Full item data: {outfit_item}")
+            # Reduced logging to avoid Railway rate limits
+            if len(outfit_items) <= 3:  # Only log first few items
+                logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - URL: {image_url[:50]}...")
         
         # Calculate comprehensive outfit score
         outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation, user_id)
@@ -2416,8 +2416,8 @@ async def debug_base_item_fix():
     return {
         "status": "base_item_fix_deployed",
         "timestamp": datetime.utcnow().isoformat(),
-        "fix_version": "v4.1",
-        "description": "Base item is added BEFORE filtering to ensure it's never excluded"
+        "fix_version": "v4.2",
+        "description": "Base item is guaranteed in final outfit - added first in validation"
     }
 
 @router.get("/outfit-save-test", response_model=dict)
