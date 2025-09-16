@@ -2,11 +2,11 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import time
-from google.cloud import firestore
-
-from ..auth.auth_service import get_current_user
-from ..custom_types.profile import UserProfile
-from ..config.firebase import db
+# Firebase imports moved inside functions to prevent import-time crashes
+# from google.cloud import firestore
+# from ..auth.auth_service import get_current_user
+# from ..custom_types.profile import UserProfile
+# from ..config.firebase import db
 from ..core.logging import get_logger
 from ..services.analytics_service import log_analytics_event
 
@@ -35,7 +35,7 @@ def serialize_firestore_doc(doc):
 
 @router.get("/")
 async def get_outfit_history(
-    current_user = Depends(get_current_user),
+    current_user = None,  # Will be set by dependency injection
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     outfit_id: Optional[str] = Query(None, description="Filter by specific outfit ID"),
@@ -44,6 +44,17 @@ async def get_outfit_history(
     """
     Get user's outfit history entries
     """
+    # Import Firebase inside function to prevent import-time crashes
+    try:
+        from google.cloud import firestore
+        from ..auth.auth_service import get_current_user
+        from ..custom_types.profile import UserProfile
+        from ..config.firebase import db
+        # Set current_user from dependency
+        current_user = get_current_user()
+    except ImportError as e:
+        logger.warning(f"⚠️ Firebase import failed: {e}")
+        raise HTTPException(status_code=500, detail="Database service unavailable")
     try:
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
