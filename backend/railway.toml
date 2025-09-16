@@ -9,5 +9,5 @@ restartPolicyMaxRetries = 3
 
 [build.env]
 NODE_ENV = "production"
-NIXPACKS_PYTHON_VERSION = "3.11"
-NIXPACKS_PIP_VERSION = "23.3.1"
+NIXPACKS_PYTHON_VERSION = "3.11.12"
+NIXPACKS_PIP_VERSION = "25.2"
