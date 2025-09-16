@@ -91,7 +91,7 @@ async def submit_outfit_feedback(
     Submit feedback for an outfit
     """
     logger.info(f"=== FEEDBACK SUBMISSION START ===")
-    logger.info(f"Received feedback request: {feedback}")
+    logger.info(f"Received feedback request: outfit_id={feedback.outfit_id}, rating={feedback.rating}, comment_length={len(feedback.comment) if feedback.comment else 0}")
     logger.info(f"Current user: {current_user}")
     
     try:
@@ -152,7 +152,7 @@ async def submit_outfit_feedback(
             }
         }
         
-        logger.info(f"Feedback data created: {feedback_data}")
+        logger.info(f"Feedback data created: user_id={feedback_data.get('user_id')}, outfit_id={feedback_data.get('outfit_id')}, rating={feedback_data.get('rating')}")
         
         # Store in feedback collection
         logger.info("Attempting to save to outfit_feedback collection...")
