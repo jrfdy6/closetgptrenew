@@ -10,6 +10,7 @@ coloredlogs==15.0.1
 cryptography==46.0.0
 distro==1.9.0
 fastapi==0.104.1
+gunicorn==21.2.0
 firebase-admin==6.2.0
 flatbuffers==25.2.10
 google-api-core==2.25.1
