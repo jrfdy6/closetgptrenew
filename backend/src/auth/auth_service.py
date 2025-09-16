@@ -1,7 +1,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
-from firebase_admin import auth
+# Firebase imports moved inside function to prevent import-time crashes
+# from firebase_admin import auth
 from ..custom_types.profile import UserProfile
 
 security = HTTPBearer()
@@ -10,6 +11,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     """
     Authenticate user using Firebase JWT token.
     """
+    # Import Firebase inside function to prevent import-time crashes
+    try:
+        from firebase_admin import auth
+    except ImportError as e:
+        print(f"⚠️ Firebase import failed: {e}")
+        raise HTTPException(status_code=500, detail="Authentication service unavailable")
+    
     try:
         print(f"🔍 DEBUG: Auth service called with credentials: {credentials.credentials[:20]}...")
         print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
