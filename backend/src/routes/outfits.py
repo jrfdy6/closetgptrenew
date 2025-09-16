@@ -2434,8 +2434,8 @@ async def debug_base_item_fix():
     return {
         "status": "base_item_fix_deployed",
         "timestamp": datetime.utcnow().isoformat(),
-        "fix_version": "v4.2",
-        "description": "Base item is guaranteed in final outfit - added first in validation"
+        "fix_version": "v4.3",
+        "description": "Base item is guaranteed in final outfit - added first in validation + reduced logging"
     }
 
 @router.get("/outfit-save-test", response_model=dict)
