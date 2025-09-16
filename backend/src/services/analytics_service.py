@@ -1,7 +1,8 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import math
-from ..config.firebase import db
+# Firebase imports moved inside functions to prevent import-time crashes
+# from ..config.firebase import db
 from ..models.analytics_event import AnalyticsEvent, ItemInteractionType
 from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.profile import UserProfile
@@ -14,6 +15,13 @@ FAVORITE_SCORES_COLLECTION = "item_favorite_scores"
 
 def log_analytics_event(event: AnalyticsEvent) -> str:
     """Log an analytics event to the data lake."""
+    # Import Firebase inside function to prevent import-time crashes
+    try:
+        from ..config.firebase import db
+    except ImportError as e:
+        logger.warning(f"⚠️ Firebase import failed: {e}")
+        return "mock-event-id"
+    
     doc_ref = db.collection(ANALYTICS_COLLECTION).document()
     doc_ref.set(event.dict())
     return doc_ref.id
