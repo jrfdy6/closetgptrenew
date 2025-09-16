@@ -107,14 +107,6 @@ async def add_wardrobe_item(
             if field not in item_data:
                 raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
         
-        # Validate image URL format - must be HTTPS URL
-        image_url = item_data.get("imageUrl", "")
-        if image_url and not image_url.startswith("https://"):
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid image URL format. Expected HTTPS URL, got: {image_url[:50]}..."
-            )
-        
         # Create item ID
         item_id = str(uuid.uuid4())
         current_time = int(time.time())
