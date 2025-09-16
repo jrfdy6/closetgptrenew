@@ -125,19 +125,18 @@ print("🔍 DEBUG: Backend restart - checking if this fixes the timeout issue...
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
-    # Temporarily disable all other routers to isolate the import-time crash issue
-    # ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
-    # ("src.routes.wardrobe_analysis", "/api/wardrobe"), # Router mounted at /api/wardrobe - ENABLED for wardrobe-stats
-    # ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
-    # ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router
-    # ("src.routes.image_analysis", ""),   # Full image analysis router with debug logging
-    # ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
+    ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
+    ("src.routes.wardrobe_analysis", "/api/wardrobe"), # Router mounted at /api/wardrobe - ENABLED for wardrobe-stats
+    ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
+    ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router
+    ("src.routes.image_analysis", ""),   # Full image analysis router with debug logging
+    ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
     # ("src.routes.weather", ""),          # Router already has /api/weather prefix
-    # ("src.routes.forgotten_gems", "/api/wardrobe-insights"),  # Forgotten gems router - mounted at /api/wardrobe-insights to avoid conflict
+    ("src.routes.forgotten_gems", "/api/wardrobe-insights"),  # Forgotten gems router - mounted at /api/wardrobe-insights to avoid conflict
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
-    # ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
-    # ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
+    ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
+    ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
     # ("src.routes.test_debug", ""),       # Router already has /api/test prefix
     # ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
     # ("src.routes.analytics", ""),        # Main analytics router
