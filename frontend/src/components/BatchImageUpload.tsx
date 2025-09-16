@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFirebase } from "@/lib/firebase-context";
+import { normalizeWardrobeItemImages } from "@/lib/utils/image-normalization";
 
 interface BatchImageUploadProps {
   onUploadComplete?: (items: any[]) => void;
@@ -616,18 +617,22 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               wearCount: 0,
               lastWorn: null
             };
+
+            // Normalize images to ensure they're Firebase Storage URLs
+            const normalizedItem = await normalizeWardrobeItemImages(clothingItem, user.uid);
+            console.log('✅ Image normalized:', normalizedItem.imageUrl);
             
             // Save to database via the wardrobe API
             try {
               console.log(`💾 Saving item ${i + 1} to database...`);
-              console.log('🔍 DEBUG: Clothing item being saved:', clothingItem);
+              console.log('🔍 DEBUG: Normalized clothing item being saved:', normalizedItem);
               console.log('🔍 DEBUG: About to call /api/wardrobe with:', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${await user.getIdToken()}`,
                 },
-                body: JSON.stringify(clothingItem)
+                body: JSON.stringify(normalizedItem)
               });
               
               const saveResponse = await fetch('/api/wardrobe', {
@@ -636,7 +641,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${await user.getIdToken()}`,
                 },
-                body: JSON.stringify(clothingItem),
+                body: JSON.stringify(normalizedItem),
               });
               
               console.log('🔍 DEBUG: Save response status:', saveResponse.status);

@@ -559,6 +559,16 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     # ENHANCED: Final duplicate check and removal
     final_outfit = []
     seen_items = set()
+    
+    # CRITICAL: Ensure base item is ALWAYS included first
+    if base_item:
+        base_item_id = base_item.get('id')
+        logger.info(f"🎯 DEBUG: Ensuring base item is in final outfit: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
+        final_outfit.append(base_item)
+        seen_items.add(base_item_id)
+        logger.info(f"🎯 DEBUG: Added base item to final outfit: {base_item.get('name', 'unnamed')}")
+    
+    # Add other items, skipping the base item if it appears again
     for item in validated_outfit:
         item_id = item.get('id', '')
         if item_id not in seen_items:
@@ -569,6 +579,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
             logger.warning(f"⚠️ Removed duplicate item: {item.get('name', 'unnamed')}")
     
     logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items (duplicates removed)")
+    logger.info(f"🎯 DEBUG: Final outfit includes base item: {base_item.get('name', 'unnamed') if base_item else 'None'}")
     
     # ENHANCED: Prevent shirt-on-shirt combinations
     shirt_types = ['t-shirt', 'polo', 'shirt', 'blouse', 'dress shirt', 'button up', 'button-up', 'oxford', 'dress-shirt']
@@ -2416,8 +2427,8 @@ async def debug_base_item_fix():
     return {
         "status": "base_item_fix_deployed",
         "timestamp": datetime.utcnow().isoformat(),
-        "fix_version": "v4.1",
-        "description": "Base item is added BEFORE filtering to ensure it's never excluded"
+        "fix_version": "v4.2",
+        "description": "Base item is guaranteed in final outfit - added first in validation"
     }
 
 @router.get("/outfit-save-test", response_model=dict)
