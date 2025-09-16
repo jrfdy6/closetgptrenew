@@ -722,7 +722,7 @@ async def get_todays_outfit_suggestion(
                 description="Daily outfit suggestion"
             )
             
-            logger.info(f"About to generate outfit with request: {daily_request}")
+            logger.info(f"About to generate outfit with request: style={daily_request.style}, occasion={daily_request.occasion}, items_count={len(daily_request.wardrobe) if daily_request.wardrobe else 0}")
             
             # Generate outfit using existing logic with timeout
             import asyncio
