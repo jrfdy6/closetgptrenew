@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Configure logging to see what's happening during startup
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 logger.info("=== Starting FastAPI application ===")
@@ -114,12 +114,8 @@ except Exception as e:
     # Continue without middleware setup
     pass
 
-# Try to import Firebase config
-try:
-    from src.config import firebase
-except Exception as e:
-    # Continue without Firebase config
-    pass
+# Firebase config will be imported when needed, not at startup
+# This prevents import-time crashes
 
 print("🔍 DEBUG: Core modules import section completed successfully!")
 print("🔍 DEBUG: About to start router loading section...")
