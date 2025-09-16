@@ -410,7 +410,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         
         # SURGICAL DEBUG: Log base item details before processing
         import json
-        logger.info(f"🧪 BASE ITEM DETAILS: {json.dumps(base_item, indent=2, default=str)}")
+        logger.info(f"🧪 BASE ITEM DETAILS: name={base_item.get('name', 'unnamed')}, type={base_item.get('type', 'unknown')}, id={base_item.get('id', 'unknown')}")
         logger.info(f"🧪 VALIDATION INPUT: validated_outfit (pre-validation): {[item.get('id') for item in validated_outfit]}")
         
         # First, try to find the base item in the categorized items
