@@ -7,11 +7,10 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 import time
-from firebase_admin import auth
-from firebase_admin import firestore
-
-# Use the same import pattern as working routers
-from ..config.firebase import db, firebase_initialized
+# Firebase imports moved inside functions to prevent import-time crashes
+# from firebase_admin import auth
+# from firebase_admin import firestore
+# from ..config.firebase import db, firebase_initialized
 from ..auth.auth_service import get_current_user
 from ..custom_types.profile import UserProfile
 
@@ -39,6 +38,9 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
                 "created_at": current_user.createdAt,
                 "updated_at": current_user.updatedAt
             }
+        
+        # Import Firebase inside function to prevent import-time crashes
+        from ..config.firebase import db, firebase_initialized
         
         # Query Firestore for real user data (same pattern as wardrobe.py)
         user_doc = db.collection('users').document(current_user.id).get()
@@ -86,6 +88,9 @@ async def update_user_profile(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Firebase service not available"
             )
+        
+        # Import Firebase inside function to prevent import-time crashes
+        from ..config.firebase import db, firebase_initialized
         
         user_ref = db.collection('users').document(current_user.id)
         
