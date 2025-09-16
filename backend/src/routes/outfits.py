@@ -556,7 +556,17 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     
     validated_outfit.extend(additional_items)
     
-    # ENHANCED: Final duplicate check and removal
+    # NUCLEAR OPTION: Extract base item before any validation
+    base_item_final = None
+    if base_item:
+        base_item_id = base_item.get('id')
+        logger.info(f"🚀 NUCLEAR: Extracting base item before validation: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
+        base_item_final = base_item.copy()
+        # Remove base item from validated_outfit to avoid duplication
+        validated_outfit = [item for item in validated_outfit if item.get('id') != base_item_id]
+        logger.info(f"🚀 NUCLEAR: Base item extracted, {len(validated_outfit)} items remain for validation")
+
+    # ENHANCED: Final duplicate check and removal (excluding base item)
     final_outfit = []
     seen_items = set()
     for item in validated_outfit:
@@ -564,11 +574,18 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         if item_id not in seen_items:
             final_outfit.append(item)
             seen_items.add(item_id)
-            logger.info(f"🔍 DEBUG: Final outfit item: {item.get('name', 'unnamed')} ({item.get('type', 'unknown')})")
+            # Reduced logging to prevent Railway rate limits
+            if len(final_outfit) <= 5:  # Only log first 5 items
+                logger.info(f"🔍 DEBUG: Final outfit item: {item.get('name', 'unnamed')} ({item.get('type', 'unknown')})")
         else:
             logger.warning(f"⚠️ Removed duplicate item: {item.get('name', 'unnamed')}")
     
-    logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items (duplicates removed)")
+    # NUCLEAR OPTION: Always add base item back at the beginning
+    if base_item_final:
+        final_outfit.insert(0, base_item_final)
+        logger.info(f"🚀 NUCLEAR: Base item FORCED into final outfit: {base_item_final.get('name', 'unnamed')}")
+    
+    logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items (base item guaranteed)")
     
     # ENHANCED: Prevent shirt-on-shirt combinations
     shirt_types = ['t-shirt', 'polo', 'shirt', 'blouse', 'dress shirt', 'button up', 'button-up', 'oxford', 'dress-shirt']
@@ -1628,8 +1645,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
     """Generate outfit using rule-based decision tree and user's wardrobe."""
     try:
         logger.info(f"🎯 Generating rule-based outfit with {len(wardrobe_items)} items")
-        logger.info(f"🔍 DEBUG: User profile: {user_profile}")
-        logger.info(f"🔍 DEBUG: Request: {req}")
+        # Reduced logging to prevent Railway rate limits
+        logger.info(f"🔍 DEBUG: User profile keys: {list(user_profile.keys()) if user_profile else 'None'}")
+        logger.info(f"🔍 DEBUG: Request: style={req.style}, occasion={req.occasion}, baseItemId={req.baseItemId}")
         
         # Rule-based outfit selection using sophisticated decision tree
         
@@ -1663,8 +1681,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             else:
                 logger.warning(f"⚠️ DEBUG: Base item {req.baseItemId} not found in wardrobe")
         
-        logger.info(f"🔍 DEBUG: Filtering {len(wardrobe_items)} items for style: {req.style}, occasion: {req.occasion}")
-        logger.info(f"🔍 DEBUG: User profile style preferences: {user_profile.get('stylePreferences', []) if user_profile else 'None'}")
+        # Reduced logging to prevent Railway rate limits
+        logger.info(f"🔍 DEBUG: Filtering {len(wardrobe_items)} items for {req.style}/{req.occasion}")
         
         for item in wardrobe_items:
             # Skip base item since it's already been added
@@ -2913,10 +2931,8 @@ async def generate_outfit(
         if not current_user:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        logger.info(f"🔍 DEBUG: current_user object: {current_user}")
-        logger.info(f"🔍 DEBUG: current_user type: {type(current_user)}")
-        logger.info(f"🔍 DEBUG: current_user.id: {current_user.id}")
-        logger.info(f"🔍 DEBUG: current_user.id type: {type(current_user.id)}")
+        # Reduced logging to prevent Railway rate limits
+        logger.info(f"🔍 DEBUG: current_user: {current_user.id if current_user else 'None'}")
         
         current_user_id = current_user.id  # Your actual user ID
         logger.info(f"Using real user ID: {current_user_id}")
