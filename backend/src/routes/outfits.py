@@ -48,37 +48,17 @@ def clean_for_firestore(obj):
         return safe
     return obj
 
-# Firebase imports with graceful fallback
-try:
-    from ..config.firebase import db, firebase_initialized
-    from ..auth.auth_service import get_current_user
-    from ..custom_types.profile import UserProfile
-    from ..custom_types.outfit import OutfitGeneratedOutfit
-    FIREBASE_AVAILABLE = True
-    logger.info("✅ Firebase modules imported successfully")
-except ImportError as e:
-    logger.warning(f"⚠️ Firebase import failed: {e}")
-    FIREBASE_AVAILABLE = False
-    db = None
-    firebase_initialized = False
-    # Create a mock get_current_user function
-    def get_current_user():
-        return None
-else:
-    try:
-        from firebase_admin import firestore
-        db = firestore.client()
-        firebase_initialized = True
-        FIREBASE_AVAILABLE = True
-        logger.info("✅ Firebase successfully imported and initialized")
-    except Exception as e:
-        logger.error(f"❌ Firebase import error: {e}")
-        FIREBASE_AVAILABLE = False
-        db = None
-        firebase_initialized = False
-        # Create a mock get_current_user function
-        def get_current_user():
-            return None
+# Firebase imports moved inside functions to prevent import-time crashes
+# from ..config.firebase import db, firebase_initialized
+# from ..auth.auth_service import get_current_user
+# from ..custom_types.profile import UserProfile
+# from ..custom_types.outfit import OutfitGeneratedOutfit
+FIREBASE_AVAILABLE = False
+db = None
+firebase_initialized = False
+get_current_user = None
+UserProfile = None
+OutfitGeneratedOutfit = None
 
 # Simplified mock data function for fallback
 # async def get_mock_outfits() -> List[Dict[str, Any]]:
@@ -171,6 +151,22 @@ class OutfitResponse(BaseModel):
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Real outfit generation logic using user's wardrobe and AI recommendations."""
+    # Import Firebase inside function to prevent import-time crashes
+    try:
+        from ..config.firebase import db, firebase_initialized
+        from ..auth.auth_service import get_current_user
+        from ..custom_types.profile import UserProfile
+        from ..custom_types.outfit import OutfitGeneratedOutfit
+        FIREBASE_AVAILABLE = True
+    except ImportError as e:
+        logger.warning(f"⚠️ Firebase import failed: {e}")
+        FIREBASE_AVAILABLE = False
+        db = None
+        firebase_initialized = False
+        get_current_user = None
+        UserProfile = None
+        OutfitGeneratedOutfit = None
+    
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
     
     try:
