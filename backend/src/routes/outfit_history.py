@@ -204,7 +204,7 @@ async def mark_outfit_as_worn(
         # Save to Firestore
         try:
             logger.info(f"🔍 DEBUG: About to save outfit history entry to Firestore")
-            logger.info(f"🔍 DEBUG: Entry data: {entry_data}")
+            logger.info(f"🔍 DEBUG: Entry data: user_id={entry_data.get('user_id')}, date={entry_data.get('date')}, outfit_id={entry_data.get('outfit_id')}")
             logger.info(f"🔍 DEBUG: User ID: {current_user.id}")
             logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
             logger.info(f"🔍 DEBUG: Date worn timestamp: {date_timestamp}")

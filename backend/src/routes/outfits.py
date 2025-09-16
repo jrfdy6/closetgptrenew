@@ -3043,7 +3043,7 @@ async def create_outfit(
         # Clean and save using the same unified save_outfit function
         outfit_id = outfit_data["id"]
         clean_outfit_data = clean_for_firestore(outfit_data)
-        logger.info(f"🧹 Cleaned custom outfit data: {clean_outfit_data}")
+        logger.info(f"🧹 Cleaned custom outfit data: name='{clean_outfit_data.get('name', 'unnamed')}', items_count={len(clean_outfit_data.get('items', []))}")
         await save_outfit(current_user_id, outfit_id, clean_outfit_data)
         
         # Enhanced logging for debugging

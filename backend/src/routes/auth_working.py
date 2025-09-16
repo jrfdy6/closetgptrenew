@@ -56,7 +56,7 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
             }
         
         user_data = user_doc.to_dict()
-        logger.info(f"🔍 DEBUG: Profile data retrieved from Firestore: {user_data}")
+        logger.info(f"🔍 DEBUG: Profile data retrieved from Firestore: user_id={current_user.id}, fields_count={len(user_data.keys()) if user_data else 0}")
         
         # Return the full user profile data instead of just basic fields
         # This includes measurements, style preferences, and all other profile data
@@ -77,7 +77,7 @@ async def update_user_profile(
     """Update current user's profile."""
     try:
         logger.info(f"🔍 DEBUG: Updating profile for user: {current_user.id}")
-        logger.info(f"🔍 DEBUG: Profile data received: {profile_data}")
+        logger.info(f"🔍 DEBUG: Profile data received: fields_count={len(profile_data.keys()) if profile_data else 0}, user_id={current_user.id}")
         
         # Check if Firebase is available
         if not firebase_initialized:
@@ -154,7 +154,7 @@ async def update_user_profile(
         user_ref.set(update_data, merge=True)
         
         logger.info(f"User profile updated successfully: {current_user.id}")
-        logger.info(f"🔍 DEBUG: Updated profile data: {update_data}")
+        logger.info(f"🔍 DEBUG: Updated profile data: user_id={current_user.id}, fields_updated={len(update_data.keys()) if update_data else 0}")
         
         # Return the updated profile data
         return update_data
