@@ -2018,8 +2018,24 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 logger.error(f"❌ DEBUG: Looking for base item ID: {req.baseItemId}")
                 logger.error(f"❌ DEBUG: First few suitable item IDs: {[item.get('id') for item in suitable_items[:5]]}")
         
+        # DEBUG COUNTS - Key stages before rule engine decides failure/fallback
+        logger.info(f"📊 COUNTS - suitable_items (global pool): {len(suitable_items)}")
+        
+        # Count categorized items
+        categorized_counts = {}
+        for item in suitable_items:
+            item_type = item.get('type', '').lower()
+            category = get_item_category(item_type)  # This function should exist in validation
+            categorized_counts[category] = categorized_counts.get(category, 0) + 1
+        logger.info(f"📊 COUNTS - categorized_items: {categorized_counts}")
+        
+        # Count item scores (assuming suitable_items have scores)
+        item_scores_count = len([item for item in suitable_items if item.get('score') is not None])
+        logger.info(f"📊 COUNTS - item_scores: {item_scores_count}")
+
         # Validate and ensure complete outfit composition
         validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
+        logger.info(f"📊 COUNTS - validated_outfit: {len(validated_items)}")
         logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
         
         # Debug: Check if base item is in final validated items
