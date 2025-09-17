@@ -171,6 +171,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
         # HOTFIX: Handle both wardrobe formats to prevent schema mismatch
         request_wardrobe = req.dict().get("wardrobe") or req.dict().get("wardrobeItems") or []
+        logger.info(f"🔧 HOTFIX: request_wardrobe length: {len(request_wardrobe)}")
         
         if request_wardrobe and len(request_wardrobe) > 0:
             logger.info(f"📦 Using wardrobe from request: {len(request_wardrobe)} items")
@@ -189,6 +190,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         if len(wardrobe_items) == 0:
             logger.warning(f"⚠️ User {user_id} has no wardrobe items, using fallback")
+            logger.warning(f"🚨 SCHEMA MISMATCH DETECTED: Wardrobe appears empty despite request data")
             # 🚀 FINAL NUCLEAR OPTION EVEN IN FALLBACK
             fallback_outfit = await generate_fallback_outfit(req, user_id)
             if req.baseItemId:
