@@ -49,13 +49,23 @@ export async function GET(req: NextRequest) {
     
     const outfitsData = await response.json();
     console.log('🔍 DEBUG: Backend outfits data received:', {
-      success: outfitsData.success,
-      count: outfitsData.outfits?.length || 0,
-      total: outfitsData.total,
-      hasOutfits: !!outfitsData.outfits
+      isArray: Array.isArray(outfitsData),
+      count: Array.isArray(outfitsData) ? outfitsData.length : (outfitsData.outfits?.length || 0),
+      hasOutfits: Array.isArray(outfitsData) ? outfitsData.length > 0 : !!outfitsData.outfits
     });
     
-    const response_obj = NextResponse.json(outfitsData);
+    // Handle both array response (from backend) and structured response
+    const normalizedResponse = Array.isArray(outfitsData) 
+      ? {
+          success: true,
+          outfits: outfitsData,
+          total: outfitsData.length,
+          limit: parseInt(limit),
+          offset: parseInt(offset)
+        }
+      : outfitsData;
+    
+    const response_obj = NextResponse.json(normalizedResponse);
     response_obj.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     response_obj.headers.set('Pragma', 'no-cache');
     response_obj.headers.set('Expires', '0');
