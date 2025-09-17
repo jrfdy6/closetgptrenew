@@ -151,6 +151,76 @@ class OutfitResponse(BaseModel):
                 v = v.replace("Z", "+00:00")
         return v
 
+def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[str, Any]]:
+    """Filter wardrobe items to only include those appropriate for the given style."""
+    if not items or not style:
+        return items
+    
+    style_lower = style.lower()
+    
+    # Define style-appropriate keywords for different styles
+    style_filters = {
+        'athleisure': {
+            'include_keywords': ['athletic', 'sport', 'gym', 'track', 'jogger', 'sweat', 'hoodie', 'sneaker', 'running', 'workout', 'yoga', 'legging', 'active', 'performance'],
+            'exclude_keywords': ['dress', 'formal', 'suit', 'blazer', 'business', 'oxford', 'heel', 'dress shirt', 'tie', 'formal pants'],
+            'preferred_types': ['t-shirt', 'tank', 'hoodie', 'sweatshirt', 'joggers', 'leggings', 'sweatpants', 'sneakers', 'athletic shoes', 'track jacket']
+        },
+        'casual': {
+            'include_keywords': ['casual', 'everyday', 'comfortable', 'relaxed'],
+            'exclude_keywords': ['formal', 'business', 'dressy', 'cocktail'],
+            'preferred_types': ['t-shirt', 'jeans', 'shorts', 'sneakers', 'casual shoes']
+        },
+        'formal': {
+            'include_keywords': ['formal', 'dress', 'business', 'professional', 'suit', 'blazer'],
+            'exclude_keywords': ['casual', 'athletic', 'sport', 'gym', 'sweat'],
+            'preferred_types': ['dress shirt', 'blazer', 'suit', 'dress pants', 'dress shoes', 'heels']
+        },
+        'business': {
+            'include_keywords': ['business', 'professional', 'work', 'office', 'formal'],
+            'exclude_keywords': ['casual', 'athletic', 'sport', 'gym', 'sweat'],
+            'preferred_types': ['dress shirt', 'blazer', 'dress pants', 'dress shoes', 'blouse']
+        }
+    }
+    
+    # Get filter criteria for this style (default to casual if style not found)
+    filter_criteria = style_filters.get(style_lower, style_filters['casual'])
+    
+    filtered_items = []
+    for item in items:
+        item_name = item.get('name', '').lower()
+        item_type = item.get('type', '').lower()
+        item_description = item.get('description', '').lower()
+        
+        # Combine all text fields for keyword matching
+        all_text = f"{item_name} {item_type} {item_description}"
+        
+        # Check if item should be excluded
+        should_exclude = any(exclude_word in all_text for exclude_word in filter_criteria['exclude_keywords'])
+        if should_exclude:
+            logger.info(f"🚫 Excluding {item.get('name', 'unnamed')} from {style} style (contains excluded keywords)")
+            continue
+        
+        # Check if item should be included (preferred types or include keywords)
+        should_include = (
+            item_type in filter_criteria['preferred_types'] or
+            any(include_word in all_text for include_word in filter_criteria['include_keywords'])
+        )
+        
+        if should_include:
+            filtered_items.append(item)
+            logger.info(f"✅ Including {item.get('name', 'unnamed')} for {style} style")
+        else:
+            # For athleisure, be more restrictive - only include items that explicitly match
+            if style_lower == 'athleisure':
+                logger.info(f"⚠️ Skipping {item.get('name', 'unnamed')} for athleisure (not explicitly athletic)")
+            else:
+                # For other styles, include items that don't explicitly conflict
+                filtered_items.append(item)
+                logger.info(f"➕ Including {item.get('name', 'unnamed')} for {style} style (no conflicts)")
+    
+    logger.info(f"🎯 Style filtering for {style}: {len(filtered_items)}/{len(items)} items kept")
+    return filtered_items
+
 def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str], wardrobe_items: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Ensure base item is included in the outfit if specified."""
     if not base_item_id:
@@ -2057,35 +2127,41 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             wardrobe_items = await get_user_wardrobe(user_id)
         logger.info(f"Retrieved {len(wardrobe_items)} wardrobe items for fallback")
         
-        # Simple fallback logic: pick basic items
+        # Style-aware fallback logic: pick appropriate items for the style
         categories_needed = ['tops', 'bottoms', 'shoes']  # Basic outfit needs
         
         for category in categories_needed:
-            # Find items in this category (handle both singular and plural)
+            # Find items in this category with style-appropriate filtering
             category_items = []
             if category == 'tops':
-                category_items = [item for item in wardrobe_items if item.get('type', '').lower() in ['shirt', 'blouse', 't-shirt', 'top', 'tank', 'sweater']]
+                all_tops = [item for item in wardrobe_items if item.get('type', '').lower() in ['shirt', 'blouse', 't-shirt', 'top', 'tank', 'sweater', 'hoodie', 'sweatshirt']]
+                category_items = filter_items_by_style(all_tops, req.style)
             elif category == 'bottoms':
-                category_items = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'bottom']]
+                all_bottoms = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'bottom', 'leggings', 'joggers', 'sweatpants']]
+                category_items = filter_items_by_style(all_bottoms, req.style)
             elif category == 'shoes':
-                category_items = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals']]
+                all_shoes = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals', 'athletic shoes']]
+                category_items = filter_items_by_style(all_shoes, req.style)
             
             if category_items:
-                # Randomly pick an item from the category for variety
+                # Randomly pick an item from the style-appropriate category
                 import random
                 random.seed(int(time.time() * 1000) % 1000000)  # Use timestamp for seed
                 selected_item = random.choice(category_items)
                 selected_items.append(selected_item)
-                logger.info(f"Selected {selected_item.get('name', 'Unknown')} for {category}")
+                logger.info(f"Selected style-appropriate {selected_item.get('name', 'Unknown')} for {category} ({req.style} style)")
+            else:
+                logger.warning(f"No style-appropriate {category} items found for {req.style} style")
         
-        # Add a jacket/outerwear if available
-        outerwear = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'outerwear', 'blazer', 'cardigan']]
-        if outerwear:
+        # Add style-appropriate outerwear if available
+        all_outerwear = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'outerwear', 'blazer', 'cardigan', 'hoodie', 'zip-up', 'track jacket']]
+        style_appropriate_outerwear = filter_items_by_style(all_outerwear, req.style)
+        if style_appropriate_outerwear:
             import random
             random.seed(int(time.time() * 1000) % 1000000)  # Use timestamp for seed
-            selected_outerwear = random.choice(outerwear)
+            selected_outerwear = random.choice(style_appropriate_outerwear)
             selected_items.append(selected_outerwear)
-            logger.info(f"Added outerwear: {selected_outerwear.get('name', 'Unknown')}")
+            logger.info(f"Added style-appropriate outerwear: {selected_outerwear.get('name', 'Unknown')} for {req.style} style")
         
         if selected_items:
             logger.info(f"Successfully created fallback outfit with {len(selected_items)} real wardrobe items")
