@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 import time
 # Firebase imports moved inside functions to prevent import-time crashes
 # from google.cloud import firestore
-# from ..auth.auth_service import get_current_user
-# from ..custom_types.profile import UserProfile
 # from ..config.firebase import db
+from ..auth.auth_service import get_current_user  # Keep this for dependency injection
+from ..custom_types.profile import UserProfile   # Keep this for type hints
 from ..core.logging import get_logger
 from ..services.analytics_service import log_analytics_event
 
@@ -15,6 +15,15 @@ logger = get_logger(__name__)
 
 # Firebase will be imported inside functions to prevent import-time crashes
 db = None
+
+def get_db():
+    """Get Firebase database client, importing it when needed"""
+    try:
+        from ..config.firebase import db
+        return db
+    except ImportError as e:
+        logger.warning(f"⚠️ Firebase import failed: {e}")
+        raise HTTPException(status_code=500, detail="Database service unavailable")
 
 def serialize_firestore_doc(doc):
     """Serialize Firestore document, converting Timestamps to ISO strings"""
@@ -36,7 +45,7 @@ def serialize_firestore_doc(doc):
 
 @router.get("/")
 async def get_outfit_history(
-    current_user = None,  # Will be set by dependency injection
+    current_user: UserProfile = Depends(get_current_user),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     outfit_id: Optional[str] = Query(None, description="Filter by specific outfit ID"),
@@ -48,11 +57,7 @@ async def get_outfit_history(
     # Import Firebase inside function to prevent import-time crashes
     try:
         from google.cloud import firestore
-        from ..auth.auth_service import get_current_user
-        from ..custom_types.profile import UserProfile
         from ..config.firebase import db
-        # Set current_user from dependency
-        current_user = get_current_user()
     except ImportError as e:
         logger.warning(f"⚠️ Firebase import failed: {e}")
         raise HTTPException(status_code=500, detail="Database service unavailable")
@@ -63,6 +68,7 @@ async def get_outfit_history(
         logger.info(f"Fetching outfit history for user {current_user.id}")
         
         # Query outfit_history collection
+        db = get_db()
         query = db.collection('outfit_history').where('user_id', '==', current_user.id)
         
         # Add outfit_id filter if provided
@@ -84,7 +90,7 @@ async def get_outfit_history(
         
         # Order by date worn (newest first) - only if we have documents
         try:
-            query = query.order_by('date_worn', direction=db.Query.DESCENDING)
+            query = query.order_by('date_worn', direction=get_db().Query.DESCENDING)
         except Exception as e:
             logger.warning(f"Could not order by date_worn: {e}")
         
@@ -127,7 +133,7 @@ async def get_outfit_history(
 @router.post("/mark-worn")
 async def mark_outfit_as_worn(
     data: Dict[str, Any],
-    current_user = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Mark an outfit as worn on a specific date
@@ -152,6 +158,9 @@ async def mark_outfit_as_worn(
         if not outfit_id or not date_worn:
             raise HTTPException(status_code=400, detail="outfitId and dateWorn are required")
         
+        # Get Firebase database client
+        db = get_db()
+        
         # Convert date string to timestamp
         if isinstance(date_worn, str):
             date_obj = datetime.strptime(date_worn, '%Y-%m-%d')
@@ -160,7 +169,7 @@ async def mark_outfit_as_worn(
             date_timestamp = date_worn
         
         # Get outfit details from outfits collection
-        outfit_doc = db.collection('outfits').document(outfit_id).get()
+        outfit_doc = get_db().collection('outfits').document(outfit_id).get()
         outfit_data = outfit_doc.to_dict() if outfit_doc.exists else {}
         
         # Extract item IDs from the outfit
@@ -175,8 +184,8 @@ async def mark_outfit_as_worn(
         # Increment wear count for all items in the outfit
         current_timestamp = int(datetime.utcnow().timestamp() * 1000)
         if item_ids:
-            batch = db.batch()
-            wardrobe_ref = db.collection('wardrobe')
+            batch = get_db().batch()
+            wardrobe_ref = get_db().collection('wardrobe')
             
             for item_id in item_ids:
                 item_ref = wardrobe_ref.document(item_id)
@@ -221,7 +230,7 @@ async def mark_outfit_as_worn(
             logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
             logger.info(f"🔍 DEBUG: Date worn timestamp: {date_timestamp}")
             
-            doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
+            doc_ref, doc_id = get_db().collection('outfit_history').add(entry_data)
             logger.info(f"✅ Created outfit history entry with ID: {doc_id}")
             logger.info(f"🔍 DEBUG: Document reference: {doc_ref}")
             logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
@@ -276,7 +285,7 @@ async def mark_outfit_as_worn(
 async def update_outfit_history_entry(
     entry_id: str,
     updates: Dict[str, Any],
-    current_user = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Update an outfit history entry
@@ -288,7 +297,7 @@ async def update_outfit_history_entry(
         logger.info(f"Updating outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
-        doc_ref = db.collection('outfit_history').document(entry_id)
+        doc_ref = get_db().collection('outfit_history').document(entry_id)
         doc = doc_ref.get()
         
         if not doc.exists:
@@ -349,7 +358,7 @@ async def update_outfit_history_entry(
 @router.delete("/{entry_id}")
 async def delete_outfit_history_entry(
     entry_id: str,
-    current_user = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Delete an outfit history entry
@@ -361,7 +370,7 @@ async def delete_outfit_history_entry(
         logger.info(f"Deleting outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
-        doc_ref = db.collection('outfit_history').document(entry_id)
+        doc_ref = get_db().collection('outfit_history').document(entry_id)
         doc = doc_ref.get()
         
         if not doc.exists:
@@ -406,7 +415,7 @@ async def delete_outfit_history_entry(
 
 @router.get("/stats")
 async def get_outfit_history_stats(
-    current_user = Depends(get_current_user),
+    current_user: UserProfile = Depends(get_current_user),
     days: int = Query(7, description="Number of days to look back for weekly stats")
 ):
     """
@@ -430,7 +439,7 @@ async def get_outfit_history_stats(
         
         # Query outfit history with better error handling
         try:
-            query = db.collection('outfit_history').where('user_id', '==', current_user.id)
+            query = get_db().collection('outfit_history').where('user_id', '==', current_user.id)
             docs = query.stream()
             
             entries = []
@@ -559,7 +568,7 @@ async def get_outfit_history_stats(
         raise HTTPException(status_code=500, detail=f"Failed to get outfit history stats: {str(e)}")
 @router.get("/today")
 async def get_todays_outfit(
-    current_user = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Get today's outfit for the current user
@@ -593,7 +602,7 @@ async def get_todays_outfit(
             }
         
         # Query outfit history for today
-        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
+        query = get_db().collection('outfit_history').where('user_id', '==', current_user.id)
         query = query.where('date_worn', '>=', start_timestamp)
         query = query.where('date_worn', '<=', end_timestamp)
         
@@ -651,7 +660,7 @@ async def get_todays_outfit(
 
 @router.get("/today-suggestion")
 async def get_todays_outfit_suggestion(
-    current_user = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Get or generate today's outfit suggestion for the current user.
@@ -679,7 +688,7 @@ async def get_todays_outfit_suggestion(
             }
         
         # Look for existing suggestion for today
-        suggestions_ref = db.collection('daily_outfit_suggestions')
+        suggestions_ref = get_db().collection('daily_outfit_suggestions')
         query = suggestions_ref.where('user_id', '==', current_user.id).where('date', '==', today_str)
         existing_docs = list(query.stream())
         
@@ -765,7 +774,7 @@ async def get_todays_outfit_suggestion(
             }
             
             # Save to Firestore
-            doc_ref = db.collection('daily_outfit_suggestions').add(suggestion_doc)
+            doc_ref = get_db().collection('daily_outfit_suggestions').add(suggestion_doc)
             suggestion_id = doc_ref[1].id
             
             logger.info(f"Generated and saved new outfit suggestion {suggestion_id}")
@@ -855,7 +864,7 @@ async def get_todays_outfit_suggestion(
                     'is_fallback': True  # Mark as fallback
                 }
                 
-                doc_ref = db.collection('daily_outfit_suggestions').add(fallback_doc)
+                doc_ref = get_db().collection('daily_outfit_suggestions').add(fallback_doc)
                 suggestion_id = doc_ref[1].id
                 
                 logger.info(f"Created fallback outfit suggestion {suggestion_id}")
@@ -888,7 +897,7 @@ async def get_todays_outfit_suggestion(
 
 @router.delete("/today-suggestion/clear-cache")
 async def clear_todays_suggestion_cache(
-    current_user = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """Clear today's outfit suggestion cache for the current user."""
     try:
@@ -909,7 +918,7 @@ async def clear_todays_suggestion_cache(
             }
         
         # Delete all suggestions for today
-        suggestions_ref = db.collection('daily_outfit_suggestions')
+        suggestions_ref = get_db().collection('daily_outfit_suggestions')
         query = suggestions_ref.where('user_id', '==', current_user.id).where('date', '==', today_str)
         existing_docs = list(query.stream())
         
@@ -933,7 +942,7 @@ async def clear_todays_suggestion_cache(
 @router.post("/today-suggestion/wear")
 async def mark_today_suggestion_as_worn(
     data: Dict[str, Any],
-    current_user = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Mark today's outfit suggestion as worn.
@@ -954,7 +963,7 @@ async def mark_today_suggestion_as_worn(
             raise HTTPException(status_code=503, detail="Service temporarily unavailable")
         
         # Get the suggestion document
-        suggestion_ref = db.collection('daily_outfit_suggestions').document(suggestion_id)
+        suggestion_ref = get_db().collection('daily_outfit_suggestions').document(suggestion_id)
         suggestion_doc = suggestion_ref.get()
         
         if not suggestion_doc.exists:
@@ -1001,7 +1010,7 @@ async def mark_today_suggestion_as_worn(
         }
         
         # Save to outfit history
-        db.collection('outfit_history').add(history_entry)
+        get_db().collection('outfit_history').add(history_entry)
         
         # Log analytics event
         try:
