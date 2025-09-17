@@ -42,15 +42,25 @@ except ImportError as e:
         name: str
         email: str
 
+# Metadata service will be instantiated inside functions to prevent import-time crashes
 try:
     from ..services.metadata_enhancement_service import MetadataEnhancementService
-    metadata_service = MetadataEnhancementService()
     METADATA_SERVICE_AVAILABLE = True
     logger.info("✅ Metadata enhancement service imported successfully")
 except ImportError as e:
     logger.warning(f"⚠️ Metadata enhancement service import failed: {e}")
-    metadata_service = None
     METADATA_SERVICE_AVAILABLE = False
+    MetadataEnhancementService = None
+
+def get_metadata_service():
+    """Get metadata service instance, creating it when needed"""
+    if METADATA_SERVICE_AVAILABLE and MetadataEnhancementService:
+        try:
+            return MetadataEnhancementService()
+        except Exception as e:
+            logger.warning(f"Failed to create metadata service: {e}")
+            return None
+    return None
 
 try:
     from ..core.logging import get_logger
@@ -968,6 +978,11 @@ async def enhance_wardrobe_metadata(
         
         # Enhance metadata for each item
         enhanced_count = 0
+        metadata_service = get_metadata_service()
+        if not metadata_service:
+            logger.warning("Metadata service not available, skipping enhancement")
+            return {"enhanced": 0, "message": "Metadata service not available"}
+        
         for item in items:
             try:
                 enhanced_metadata = await metadata_service.enhance_item_metadata(item)
