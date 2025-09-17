@@ -2091,8 +2091,10 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     selected_items = []
     
     try:
-        # Try to get real wardrobe items for fallback
-        wardrobe_items = await get_user_wardrobe(user_id)
+        # Try to get real wardrobe items for fallback (prefer request data)
+        wardrobe_items = req.resolved_wardrobe
+        if not wardrobe_items or len(wardrobe_items) == 0:
+            wardrobe_items = await get_user_wardrobe(user_id)
         logger.info(f"Retrieved {len(wardrobe_items)} wardrobe items for fallback")
         
         # Simple fallback logic: pick basic items
