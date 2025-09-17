@@ -27,6 +27,20 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
     try:
         logger.info(f"🔍 DEBUG: Getting profile for user: {current_user.id}")
         
+        # Import Firebase inside function to prevent import-time crashes
+        try:
+            from ..config.firebase import db, firebase_initialized
+        except ImportError as e:
+            logger.warning(f"Firebase import failed: {e}")
+            return {
+                "user_id": current_user.id,
+                "email": current_user.email,
+                "name": current_user.name,
+                "avatar_url": None,
+                "created_at": current_user.createdAt,
+                "updated_at": current_user.updatedAt
+            }
+        
         # Check if Firebase is available (same pattern as outfits.py)
         if not firebase_initialized:
             logger.warning("Firebase not available, returning user profile from token")
@@ -38,9 +52,6 @@ async def get_user_profile(current_user: UserProfile = Depends(get_current_user)
                 "created_at": current_user.createdAt,
                 "updated_at": current_user.updatedAt
             }
-        
-        # Import Firebase inside function to prevent import-time crashes
-        from ..config.firebase import db, firebase_initialized
         
         # Query Firestore for real user data (same pattern as wardrobe.py)
         user_doc = db.collection('users').document(current_user.id).get()

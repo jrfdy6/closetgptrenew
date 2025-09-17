@@ -13,7 +13,8 @@ from ..services.analytics_service import log_analytics_event
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
 
-db = db
+# Firebase will be imported inside functions to prevent import-time crashes
+db = None
 
 def serialize_firestore_doc(doc):
     """Serialize Firestore document, converting Timestamps to ISO strings"""
