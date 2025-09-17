@@ -1750,23 +1750,35 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             }
         }
 
+debug_data = []  # Global debug data collector
+
 def debug_rule_engine(stage: str, wardrobe_items=None, suitable=None, categorized=None, scores=None, validated=None):
     try:
-        print("🔎 RULE ENGINE DEBUG:", {
+        debug_info = {
             "stage": stage,
             "wardrobe_count": len(wardrobe_items) if wardrobe_items is not None else None,
             "suitable_count": len(suitable) if suitable is not None else None,
             "categorized_keys": list(categorized.keys()) if categorized else None,
             "scores_count": len(scores) if scores is not None else None,
             "validated_count": len(validated) if validated is not None else None,
-        })
+        }
+        debug_data.append(debug_info)
+        print("🔎 RULE ENGINE DEBUG:", debug_info)
+        logger.info(f"🔎 RULE ENGINE DEBUG: {debug_info}")
     except Exception as e:
+        error_info = {"stage": stage, "error": str(e)}
+        debug_data.append(error_info)
         print("⚠️ DEBUG ERROR:", e)
+        logger.error(f"⚠️ DEBUG ERROR: {e}")
 
 async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
     """Generate outfit using rule-based decision tree and user's wardrobe."""
     try:
         logger.info(f"🎯 Generating rule-based outfit with {len(wardrobe_items)} items")
+        
+        # Clear previous debug data
+        global debug_data
+        debug_data = []
         
         # DEBUG: Start stage
         debug_rule_engine("start", wardrobe_items=wardrobe_items)
@@ -2606,6 +2618,16 @@ async def debug_base_item_fix():
         "timestamp": datetime.utcnow().isoformat(),
         "fix_version": "v6.0",
         "description": "CLEAN ARCHITECTURE: Base item handling consolidated into ensure_base_item_included() helper function"
+    }
+
+@router.get("/debug/rule-engine")
+async def debug_rule_engine_data():
+    """Debug endpoint to check rule engine debug data"""
+    global debug_data
+    return {
+        "debug_data": debug_data,
+        "timestamp": datetime.utcnow().isoformat(),
+        "data_count": len(debug_data)
     }
 
 @router.get("/outfit-save-test", response_model=dict)
