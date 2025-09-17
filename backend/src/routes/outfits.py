@@ -2273,6 +2273,14 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
     logger.info(f"🔍 DEBUG: Fetching outfits for user {user_id} (limit={limit}, offset={offset})")
     
     try:
+        # Import Firebase inside function to prevent import-time crashes
+        try:
+            from ..config.firebase import db, firebase_initialized
+            FIREBASE_AVAILABLE = True
+        except ImportError as e:
+            logger.warning(f"⚠️ Firebase import failed: {e}")
+            return []
+        
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, returning empty outfits")
             return []
