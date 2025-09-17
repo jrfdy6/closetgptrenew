@@ -151,6 +151,33 @@ class OutfitResponse(BaseModel):
                 v = v.replace("Z", "+00:00")
         return v
 
+def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str], wardrobe_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Ensure base item is included in the outfit if specified."""
+    if not base_item_id:
+        return outfit
+    
+    logger.info(f"🎯 Ensuring base item {base_item_id} is included in outfit")
+    
+    # Find base item in wardrobe
+    base_item = next((item for item in wardrobe_items if item.get('id') == base_item_id), None)
+    
+    if not base_item:
+        logger.warning(f"⚠️ Base item {base_item_id} not found in wardrobe")
+        return outfit
+    
+    # Ensure items array exists
+    if 'items' not in outfit:
+        outfit['items'] = []
+    
+    # Remove any existing base item to prevent duplicates
+    outfit['items'] = [item for item in outfit['items'] if item.get('id') != base_item_id]
+    
+    # Insert base item at the beginning
+    outfit['items'].insert(0, base_item)
+    
+    logger.info(f"✅ Base item {base_item.get('name', 'unnamed')} guaranteed in outfit")
+    return outfit
+
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Real outfit generation logic using user's wardrobe and AI recommendations."""
@@ -173,48 +200,18 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
     
     try:
-        # 1. Get user's wardrobe items (prefer request data over database)
-        logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
-        # Use resolved_wardrobe property to handle schema mismatch
+        # 1. Get wardrobe items (prefer request data, fallback to database)
         wardrobe_items = req.resolved_wardrobe
-        logger.info(f"🔧 RESOLVED: wardrobe length: {len(wardrobe_items)}")
-        
-        if wardrobe_items and len(wardrobe_items) > 0:
-            logger.info(f"📦 Using wardrobe from request: {len(wardrobe_items)} items")
-            logger.info(f"🔍 DEBUG: First wardrobe item: {wardrobe_items[0].get('name', 'Unknown')} (ID: {wardrobe_items[0].get('id', 'no-id')})")
-        else:
-            logger.info(f"📦 Fetching wardrobe from database for user {user_id}")
+        if not wardrobe_items:
+            logger.info(f"📦 No wardrobe in request, fetching from database for user {user_id}")
             wardrobe_items = await get_user_wardrobe_cached(user_id)
-        logger.info(f"📦 Found {len(wardrobe_items)} items in user's wardrobe")
         
-        # DIAGNOSTIC: Check request payload structure
-        logger.info(f"🔍 DEBUG: Wardrobe from request: {req.dict().get('wardrobe')}")
-        logger.info(f"🔍 DEBUG: Keys in request body: {list(req.dict().keys())}")
-        logger.info(f"🔍 DEBUG: req.wardrobe type: {type(req.wardrobe)}")
-        logger.info(f"🔍 DEBUG: req.wardrobe length: {len(req.wardrobe) if req.wardrobe else 'None'}")
+        logger.info(f"📦 Using {len(wardrobe_items)} wardrobe items for generation")
         
-        if len(wardrobe_items) == 0:
-            logger.warning(f"⚠️ User {user_id} has no wardrobe items, using fallback")
-            logger.warning(f"🚨 SCHEMA MISMATCH DETECTED: Wardrobe appears empty despite request data")
-            # 🚀 FINAL NUCLEAR OPTION EVEN IN FALLBACK
-            fallback_outfit = await generate_fallback_outfit(req, user_id)
-            if req.baseItemId:
-                logger.info(f"🚀 FALLBACK NUCLEAR: Adding base item to fallback outfit")
-                # Create a basic base item if we have the ID
-                base_item_fallback = {
-                    "id": req.baseItemId,
-                    "name": f"Base Item {req.baseItemId}",
-                    "type": "shirt",  # Default type
-                    "imageUrl": "",
-                    "material": "unspecified",
-                    "texture": "unspecified",
-                    "dominantColors": [],
-                    "matchingColors": [],
-                    "season": ["all"]
-                }
-                fallback_outfit['items'] = [base_item_fallback]
-                logger.info(f"🚀 FALLBACK NUCLEAR: Base item GUARANTEED in fallback outfit")
-            return fallback_outfit
+        # Handle empty wardrobe case
+        if not wardrobe_items:
+            logger.warning(f"⚠️ No wardrobe items available, using fallback generation")
+            return await generate_fallback_outfit(req, user_id)
         
         # 2. Get user's style profile (with caching)
         logger.info(f"🔍 DEBUG: Getting user profile for user {user_id}")
@@ -246,33 +243,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
         logger.info(f"🔍 DEBUG: Rule-based outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
         
-        # DIAGNOSTIC DEBUG PRINTS
-        logger.info(f"💥 Raw GPT response: N/A (using rule-based generation)")
-        logger.info(f"🧩 Parsed items: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
-        logger.info(f"🔗 Base item requested: {req.baseItemId}")
+        # Apply final base item guarantee
+        outfit = ensure_base_item_included(outfit, req.baseItemId, wardrobe_items)
         
-        # 🚀 FINAL NUCLEAR OPTION: Force include base item at the very end
-        if req.baseItemId:
-            logger.info(f"🚀 FINAL NUCLEAR: Forcing base item {req.baseItemId} into final outfit")
-            
-            # Find base item in wardrobe
-            base_item = None
-            for item in wardrobe_items:
-                if item.get('id') == req.baseItemId:
-                    base_item = item
-                    break
-            
-            if base_item:
-                # Remove any existing base item to prevent duplicates
-                outfit['items'] = [item for item in outfit.get('items', []) if item.get('id') != req.baseItemId]
-                
-                # Force insert at beginning
-                outfit['items'].insert(0, base_item)
-                logger.info(f"🚀 FINAL NUCLEAR: Base item FORCED into outfit: {base_item.get('name', 'unnamed')}")
-            else:
-                logger.error(f"❌ FINAL NUCLEAR: Base item {req.baseItemId} not found in wardrobe")
-        
-        logger.info(f"🛠️ Items after FINAL nuclear option: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
+        logger.info(f"✅ Final outfit: {len(outfit.get('items', []))} items")
+        logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
         
         return outfit
         
