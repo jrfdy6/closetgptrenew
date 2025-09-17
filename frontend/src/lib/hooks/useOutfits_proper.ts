@@ -227,7 +227,10 @@ export function useOutfits(): UseOutfitsReturn {
         throw new Error(`Failed to load more outfits: ${response.status}`);
       }
       
-      const moreOutfits = await response.json();
+      const responseData = await response.json();
+      
+      // Handle structured response format
+      const moreOutfits = responseData.outfits || responseData;
       
       // Append to existing outfits
       setOutfits(prev => [...prev, ...moreOutfits]);
