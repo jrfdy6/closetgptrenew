@@ -2664,6 +2664,28 @@ async def debug_rule_engine_data():
         "data_count": len(debug_data)
     }
 
+@router.post("/generate")
+async def generate_outfits_endpoint(
+    req: OutfitRequest,
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """Generate outfit using rule-based logic - the missing endpoint that frontend actually calls!"""
+    print(f"🎯 CORRECT ENDPOINT CALLED: /api/outfits/generate")
+    print(f"🎯 User: {current_user.id}, Style: {req.style}, Mood: {req.mood}, Occasion: {req.occasion}")
+    
+    try:
+        # Call the actual rule-based generation logic
+        outfit = await generate_outfit_logic(req, current_user.id)
+        
+        print(f"🎯 RULE-BASED SUCCESS: Generated outfit with {len(outfit.get('items', []))} items")
+        return outfit
+        
+    except Exception as e:
+        print(f"🚨 RULE-BASED FAILED: {e}")
+        logger.error(f"Rule-based generation failed: {e}")
+        # Still have fallback as safety net
+        return await generate_fallback_outfit(req, current_user.id)
+
 @router.get("/outfit-save-test", response_model=dict)
 async def outfit_save_test():
     """Test saving to the outfits collection specifically."""
