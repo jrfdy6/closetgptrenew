@@ -104,9 +104,15 @@ class OutfitRequest(BaseModel):
     baseItem: Optional[Dict[str, Any]] = None
     baseItemId: Optional[str] = None  # Add baseItemId field to track user-selected base item
     wardrobe: Optional[List[Dict[str, Any]]] = []  # Add wardrobe field
+    wardrobeItems: Optional[List[Dict[str, Any]]] = []  # Alternative wardrobe field name
     wardrobeCount: Optional[int] = 0  # Add wardrobeCount field
     wardrobeType: Optional[str] = "object"  # Add wardrobeType field
     weather: Optional[Dict[str, Any]] = None  # Add weather field
+    
+    @property
+    def resolved_wardrobe(self) -> List[Dict[str, Any]]:
+        """Get wardrobe items, handling both wardrobe and wardrobeItems formats"""
+        return self.wardrobe or self.wardrobeItems or []
 
 class CreateOutfitRequest(BaseModel):
     """Request model for outfit creation."""
@@ -169,9 +175,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     try:
         # 1. Get user's wardrobe items (prefer request data over database)
         logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
-        # HOTFIX: Handle both wardrobe formats to prevent schema mismatch
-        request_wardrobe = req.dict().get("wardrobe") or req.dict().get("wardrobeItems") or []
-        logger.info(f"🔧 HOTFIX: request_wardrobe length: {len(request_wardrobe)}")
+        # Use resolved_wardrobe property to handle schema mismatch
+        request_wardrobe = req.resolved_wardrobe
+        logger.info(f"🔧 RESOLVED: wardrobe length: {len(request_wardrobe)}")
         
         if request_wardrobe and len(request_wardrobe) > 0:
             logger.info(f"📦 Using wardrobe from request: {len(request_wardrobe)} items")
@@ -208,7 +214,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     "season": ["all"]
                 }
                 fallback_outfit['items'] = [base_item_fallback]
-                logger.info(f"🚀 FALLBACK NUCLEAR: Base item added to fallback outfit")
+                logger.info(f"🚀 FALLBACK NUCLEAR: Base item GUARANTEED in fallback outfit")
             return fallback_outfit
         
         # 2. Get user's style profile (with caching)
