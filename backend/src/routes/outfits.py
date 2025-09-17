@@ -176,12 +176,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # 1. Get user's wardrobe items (prefer request data over database)
         logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
         # Use resolved_wardrobe property to handle schema mismatch
-        request_wardrobe = req.resolved_wardrobe
-        logger.info(f"🔧 RESOLVED: wardrobe length: {len(request_wardrobe)}")
+        wardrobe_items = req.resolved_wardrobe
+        logger.info(f"🔧 RESOLVED: wardrobe length: {len(wardrobe_items)}")
         
-        if request_wardrobe and len(request_wardrobe) > 0:
-            logger.info(f"📦 Using wardrobe from request: {len(request_wardrobe)} items")
-            wardrobe_items = request_wardrobe
+        if wardrobe_items and len(wardrobe_items) > 0:
+            logger.info(f"📦 Using wardrobe from request: {len(wardrobe_items)} items")
             logger.info(f"🔍 DEBUG: First wardrobe item: {wardrobe_items[0].get('name', 'Unknown')} (ID: {wardrobe_items[0].get('id', 'no-id')})")
         else:
             logger.info(f"📦 Fetching wardrobe from database for user {user_id}")
