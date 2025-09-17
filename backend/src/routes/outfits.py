@@ -215,7 +215,29 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.info(f"💥 Raw GPT response: N/A (using rule-based generation)")
         logger.info(f"🧩 Parsed items: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
         logger.info(f"🔗 Base item requested: {req.baseItemId}")
-        logger.info(f"🛠️ Items after nuclear option: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
+        
+        # 🚀 FINAL NUCLEAR OPTION: Force include base item at the very end
+        if req.baseItemId:
+            logger.info(f"🚀 FINAL NUCLEAR: Forcing base item {req.baseItemId} into final outfit")
+            
+            # Find base item in wardrobe
+            base_item = None
+            for item in wardrobe_items:
+                if item.get('id') == req.baseItemId:
+                    base_item = item
+                    break
+            
+            if base_item:
+                # Remove any existing base item to prevent duplicates
+                outfit['items'] = [item for item in outfit.get('items', []) if item.get('id') != req.baseItemId]
+                
+                # Force insert at beginning
+                outfit['items'].insert(0, base_item)
+                logger.info(f"🚀 FINAL NUCLEAR: Base item FORCED into outfit: {base_item.get('name', 'unnamed')}")
+            else:
+                logger.error(f"❌ FINAL NUCLEAR: Base item {req.baseItemId} not found in wardrobe")
+        
+        logger.info(f"🛠️ Items after FINAL nuclear option: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
         
         return outfit
         
