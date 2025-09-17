@@ -2465,8 +2465,8 @@ async def debug_base_item_fix():
     return {
         "status": "base_item_fix_deployed",
         "timestamp": datetime.utcnow().isoformat(),
-        "fix_version": "v4.4",
-        "description": "Base item is guaranteed in final outfit + fixed massive logging that caused Railway rate limits"
+        "fix_version": "v4.5",
+        "description": "Base item guaranteed + using wardrobe from request instead of database"
     }
 
 @router.get("/outfit-save-test", response_model=dict)
