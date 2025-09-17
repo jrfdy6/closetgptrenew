@@ -1560,6 +1560,15 @@ async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
 async def get_user_profile(user_id: str) -> Dict[str, Any]:
     """Get user's style profile from Firestore."""
     try:
+        # Import Firebase inside function to prevent import-time crashes
+        try:
+            from ..config.firebase import db, firebase_initialized
+            FIREBASE_AVAILABLE = True
+        except ImportError as e:
+            logger.warning(f"⚠️ Firebase import failed: {e}")
+            FIREBASE_AVAILABLE = False
+            firebase_initialized = False
+        
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, using default profile")
             # Return default profile instead of throwing error
