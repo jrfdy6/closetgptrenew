@@ -2083,6 +2083,14 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
 async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any]) -> bool:
     """Save outfit to Firestore."""
     try:
+        # Import Firebase inside function to prevent import-time crashes
+        try:
+            from ..config.firebase import db, firebase_initialized
+            FIREBASE_AVAILABLE = True
+        except ImportError as e:
+            logger.warning(f"⚠️ Firebase import failed: {e}")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, skipping save")
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
