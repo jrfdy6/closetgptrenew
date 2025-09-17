@@ -1831,6 +1831,19 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Reduced logging to prevent Railway rate limits
         logger.info(f"🔍 DEBUG: Filtering {len(wardrobe_items)} items for {req.style}/{req.occasion}")
         
+        # DEBUG: Before scoring loop
+        def debug_scores(stage: str, items):
+            try:
+                print("🎯 SCORING DEBUG:", {
+                    "stage": stage,
+                    "input_items": [i.get("id") for i in items] if items else None,
+                    "input_count": len(items) if items else 0,
+                })
+            except Exception as e:
+                print("⚠️ SCORE DEBUG ERROR:", e)
+        
+        debug_scores("before_scoring_loop", wardrobe_items)
+        
         for item in wardrobe_items:
             # Skip base item since it's already been added
             if req.baseItemId and item.get('id') == req.baseItemId:
@@ -1980,11 +1993,18 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                         logger.info(f"🔍 DEBUG: Unisex item: +5 points")
                 
                 # Store item with its score
-                item_scores[item.get('id', item.get('name', 'unknown'))] = item_score
+                item_id = item.get('id', item.get('name', 'unknown'))
+                item_scores[item_id] = item_score
                 suitable_items.append(item)
+                print(f"✅ SCORED: {item.get('name', 'unnamed')} (ID: {item_id}) = {item_score} points")
                 logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} is suitable with score: {item_score}")
             else:
+                print(f"❌ REJECTED: {item.get('name', 'unnamed')} failed core style/occasion criteria")
                 logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} failed core style/occasion criteria")
+        
+        # DEBUG: After scoring loop
+        debug_scores("after_scoring_loop", suitable_items)
+        print(f"🎯 Final item_scores: {item_scores}")
         
         # ENHANCED: Sort items by preference score for better selection
         if suitable_items and item_scores:
