@@ -167,9 +167,14 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
     
     try:
-        # 1. Get user's wardrobe items from Firestore (with caching)
+        # 1. Get user's wardrobe items (prefer request data over database)
         logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
-        wardrobe_items = await get_user_wardrobe_cached(user_id)
+        if req.wardrobe and len(req.wardrobe) > 0:
+            logger.info(f"📦 Using wardrobe from request: {len(req.wardrobe)} items")
+            wardrobe_items = req.wardrobe
+        else:
+            logger.info(f"📦 Fetching wardrobe from database for user {user_id}")
+            wardrobe_items = await get_user_wardrobe_cached(user_id)
         logger.info(f"📦 Found {len(wardrobe_items)} items in user's wardrobe")
         
         if len(wardrobe_items) == 0:
