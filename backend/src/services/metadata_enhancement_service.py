@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Optional
-from firebase_admin import firestore
+# Firebase imports moved inside methods to prevent import-time crashes
+# from firebase_admin import firestore
 from ..custom_types.wardrobe import ClothingItem, Metadata
 from ..utils.style_analysis import analyze_item_style
 import time
@@ -9,14 +10,29 @@ logger = logging.getLogger(__name__)
 
 class MetadataEnhancementService:
     def __init__(self):
-        self.db = firestore.client()
-        self.wardrobe_collection = self.db.collection('wardrobe')
+        # Firebase will be initialized when methods are called
+        self.db = None
+        self.wardrobe_collection = None
+    
+    def _ensure_firebase_connection(self):
+        """Ensure Firebase connection is established"""
+        if self.db is None:
+            try:
+                from firebase_admin import firestore
+                self.db = firestore.client()
+                self.wardrobe_collection = self.db.collection('wardrobe')
+            except Exception as e:
+                logger.warning(f"Failed to initialize Firebase in MetadataEnhancementService: {e}")
+                raise
     
     async def ensure_metadata_consistency(self, user_id: str = None) -> Dict[str, Any]:
         """
         Ensure all wardrobe items have consistent and complete metadata.
         """
         try:
+            # Ensure Firebase connection is established
+            self._ensure_firebase_connection()
+            
             # Get all wardrobe items
             query = self.wardrobe_collection
             if user_id:

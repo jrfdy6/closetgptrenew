@@ -50,15 +50,12 @@ def clean_for_firestore(obj):
 
 # Firebase imports moved inside functions to prevent import-time crashes
 # from ..config.firebase import db, firebase_initialized
-# from ..auth.auth_service import get_current_user
-# from ..custom_types.profile import UserProfile
-# from ..custom_types.outfit import OutfitGeneratedOutfit
+from ..auth.auth_service import get_current_user  # Keep this for dependency injection
+from ..custom_types.profile import UserProfile   # Keep this for type hints
+from ..custom_types.outfit import OutfitGeneratedOutfit  # Keep this for type hints
 FIREBASE_AVAILABLE = False
 db = None
 firebase_initialized = False
-get_current_user = None
-UserProfile = None
-OutfitGeneratedOutfit = None
 
 # Simplified mock data function for fallback
 # async def get_mock_outfits() -> List[Dict[str, Any]]:
