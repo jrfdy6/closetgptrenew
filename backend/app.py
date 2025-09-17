@@ -198,24 +198,23 @@ async def startup_event():
     """Startup event handler - re-enabled now that Uvicorn startup is stable"""
     print("🚀 Startup event triggered - Uvicorn startup issue resolved!")
     
-    # Initialize Firebase
+    # Initialize Firebase with proper credentials
     try:
-        from firebase_admin import initialize_app, credentials
-        from firebase_admin import firestore, storage
-        
-        # Initialize Firebase if not already initialized
-        try:
-            initialize_app()
-            print("🔥 Firebase initialized successfully")
-        except ValueError:
-            print("🔥 Firebase already initialized")
+        from ..config.firebase import firebase_initialized, db
+        if firebase_initialized:
+            print("🔥 Firebase already initialized via config")
+        else:
+            print("⚠️ Firebase not initialized via config - this may cause auth issues")
             
-        # Test database connection
-        db = firestore.client()
-        print("🔥 Firebase database connected")
+        # Test database connection if available
+        if db:
+            print("🔥 Firebase database connected")
+        else:
+            print("⚠️ Firebase database not available")
         
         # Test storage connection (optional)
         try:
+            from firebase_admin import storage
             bucket = storage.bucket()
             print("🔥 Firebase storage connected")
         except ValueError as e:
