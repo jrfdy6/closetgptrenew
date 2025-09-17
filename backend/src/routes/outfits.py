@@ -251,6 +251,9 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Real outfit generation logic using user's wardrobe and AI recommendations."""
+    print(f"🔎 MAIN LOGIC ENTRY: Starting generation for user {user_id}")
+    print(f"🔎 MAIN LOGIC ENTRY: Request - style: {req.style}, mood: {req.mood}, occasion: {req.occasion}")
+    
     # Import Firebase inside function to prevent import-time crashes
     try:
         from ..config.firebase import db, firebase_initialized
@@ -258,8 +261,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         from ..custom_types.profile import UserProfile
         from ..custom_types.outfit import OutfitGeneratedOutfit
         FIREBASE_AVAILABLE = True
+        print(f"🔎 MAIN LOGIC: Firebase imports successful")
     except ImportError as e:
         logger.warning(f"⚠️ Firebase import failed: {e}")
+        print(f"🚨 MAIN LOGIC: Firebase import FAILED: {e}")
         FIREBASE_AVAILABLE = False
         db = None
         firebase_initialized = False
@@ -331,6 +336,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     except Exception as e:
         logger.error(f"⚠️ Outfit generation failed with exception: {e}")
         logger.exception("Full traceback:")
+        print(f"🚨 EXCEPTION IN MAIN LOGIC: {e}")
+        print(f"🚨 Exception type: {type(e).__name__}")
         # Fallback to basic generation if rule-based generation fails
         return await generate_fallback_outfit(req, user_id)
 
