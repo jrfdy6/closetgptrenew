@@ -169,14 +169,23 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     try:
         # 1. Get user's wardrobe items (prefer request data over database)
         logger.info(f"🔍 DEBUG: Getting wardrobe items for user {user_id}")
-        if req.wardrobe and len(req.wardrobe) > 0:
-            logger.info(f"📦 Using wardrobe from request: {len(req.wardrobe)} items")
-            wardrobe_items = req.wardrobe
+        # HOTFIX: Handle both wardrobe formats to prevent schema mismatch
+        request_wardrobe = req.dict().get("wardrobe") or req.dict().get("wardrobeItems") or []
+        
+        if request_wardrobe and len(request_wardrobe) > 0:
+            logger.info(f"📦 Using wardrobe from request: {len(request_wardrobe)} items")
+            wardrobe_items = request_wardrobe
             logger.info(f"🔍 DEBUG: First wardrobe item: {wardrobe_items[0].get('name', 'Unknown')} (ID: {wardrobe_items[0].get('id', 'no-id')})")
         else:
             logger.info(f"📦 Fetching wardrobe from database for user {user_id}")
             wardrobe_items = await get_user_wardrobe_cached(user_id)
         logger.info(f"📦 Found {len(wardrobe_items)} items in user's wardrobe")
+        
+        # DIAGNOSTIC: Check request payload structure
+        logger.info(f"🔍 DEBUG: Wardrobe from request: {req.dict().get('wardrobe')}")
+        logger.info(f"🔍 DEBUG: Keys in request body: {list(req.dict().keys())}")
+        logger.info(f"🔍 DEBUG: req.wardrobe type: {type(req.wardrobe)}")
+        logger.info(f"🔍 DEBUG: req.wardrobe length: {len(req.wardrobe) if req.wardrobe else 'None'}")
         
         if len(wardrobe_items) == 0:
             logger.warning(f"⚠️ User {user_id} has no wardrobe items, using fallback")
