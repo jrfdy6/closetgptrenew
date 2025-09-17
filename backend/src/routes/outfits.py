@@ -593,17 +593,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     
     validated_outfit.extend(additional_items)
     
-    # NUCLEAR OPTION: Extract base item before any validation
-    base_item_final = None
-    if base_item:
-        base_item_id = base_item.get('id')
-        logger.info(f"🚀 NUCLEAR: Extracting base item before validation: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
-        base_item_final = base_item.copy()
-        # Remove base item from validated_outfit to avoid duplication
-        validated_outfit = [item for item in validated_outfit if item.get('id') != base_item_id]
-        logger.info(f"🚀 NUCLEAR: Base item extracted, {len(validated_outfit)} items remain for validation")
-
-    # ENHANCED: Final duplicate check and removal (excluding base item)
+    # ENHANCED: Final duplicate check and removal
     final_outfit = []
     seen_items = set()
     for item in validated_outfit:
@@ -617,12 +607,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         else:
             logger.warning(f"⚠️ Removed duplicate item: {item.get('name', 'unnamed')}")
     
-    # NUCLEAR OPTION: Always add base item back at the beginning
-    if base_item_final:
-        final_outfit.insert(0, base_item_final)
-        logger.info(f"🚀 NUCLEAR: Base item FORCED into final outfit: {base_item_final.get('name', 'unnamed')}")
-    
-    logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items (base item guaranteed)")
+    logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items")
     
     # ENHANCED: Prevent shirt-on-shirt combinations
     shirt_types = ['t-shirt', 'polo', 'shirt', 'blouse', 'dress shirt', 'button up', 'button-up', 'oxford', 'dress-shirt']
@@ -2506,8 +2491,8 @@ async def debug_base_item_fix():
     return {
         "status": "base_item_fix_deployed",
         "timestamp": datetime.utcnow().isoformat(),
-        "fix_version": "v5.0",
-        "description": "FINAL NUCLEAR OPTION: Base item forced at the very end, cannot be bypassed"
+        "fix_version": "v6.0",
+        "description": "CLEAN ARCHITECTURE: Base item handling consolidated into ensure_base_item_included() helper function"
     }
 
 @router.get("/outfit-save-test", response_model=dict)
