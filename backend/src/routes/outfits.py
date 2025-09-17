@@ -1526,6 +1526,14 @@ def get_item_category(item_type: str) -> str:
 async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
     """Get user's wardrobe items from Firestore."""
     try:
+        # Import Firebase inside function to prevent import-time crashes
+        try:
+            from ..config.firebase import db, firebase_initialized
+            FIREBASE_AVAILABLE = True
+        except ImportError as e:
+            logger.warning(f"⚠️ Firebase import failed: {e}")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
         if not FIREBASE_AVAILABLE or not firebase_initialized:
             logger.warning("⚠️ Firebase not available, returning empty wardrobe")
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
