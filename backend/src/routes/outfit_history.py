@@ -90,7 +90,7 @@ async def get_outfit_history(
         
         # Order by date worn (newest first) - only if we have documents
         try:
-            query = query.order_by('date_worn', direction=get_db().Query.DESCENDING)
+            query = query.order_by('date_worn', direction=db.Query.DESCENDING)
         except Exception as e:
             logger.warning(f"Could not order by date_worn: {e}")
         
@@ -169,7 +169,8 @@ async def mark_outfit_as_worn(
             date_timestamp = date_worn
         
         # Get outfit details from outfits collection
-        outfit_doc = get_db().collection('outfits').document(outfit_id).get()
+        db = get_db()
+        outfit_doc = db.collection('outfits').document(outfit_id).get()
         outfit_data = outfit_doc.to_dict() if outfit_doc.exists else {}
         
         # Extract item IDs from the outfit
@@ -184,8 +185,8 @@ async def mark_outfit_as_worn(
         # Increment wear count for all items in the outfit
         current_timestamp = int(datetime.utcnow().timestamp() * 1000)
         if item_ids:
-            batch = get_db().batch()
-            wardrobe_ref = get_db().collection('wardrobe')
+            batch = db.batch()
+            wardrobe_ref = db.collection('wardrobe')
             
             for item_id in item_ids:
                 item_ref = wardrobe_ref.document(item_id)
@@ -230,7 +231,7 @@ async def mark_outfit_as_worn(
             logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
             logger.info(f"🔍 DEBUG: Date worn timestamp: {date_timestamp}")
             
-            doc_ref, doc_id = get_db().collection('outfit_history').add(entry_data)
+            doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
             logger.info(f"✅ Created outfit history entry with ID: {doc_id}")
             logger.info(f"🔍 DEBUG: Document reference: {doc_ref}")
             logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
@@ -297,7 +298,8 @@ async def update_outfit_history_entry(
         logger.info(f"Updating outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
-        doc_ref = get_db().collection('outfit_history').document(entry_id)
+        db = get_db()
+        doc_ref = db.collection('outfit_history').document(entry_id)
         doc = doc_ref.get()
         
         if not doc.exists:
@@ -370,7 +372,7 @@ async def delete_outfit_history_entry(
         logger.info(f"Deleting outfit history entry {entry_id} for user {current_user.id}")
         
         # Get the entry
-        doc_ref = get_db().collection('outfit_history').document(entry_id)
+        doc_ref = db.collection('outfit_history').document(entry_id)
         doc = doc_ref.get()
         
         if not doc.exists:
@@ -439,7 +441,7 @@ async def get_outfit_history_stats(
         
         # Query outfit history with better error handling
         try:
-            query = get_db().collection('outfit_history').where('user_id', '==', current_user.id)
+            query = db.collection('outfit_history').where('user_id', '==', current_user.id)
             docs = query.stream()
             
             entries = []
@@ -602,7 +604,7 @@ async def get_todays_outfit(
             }
         
         # Query outfit history for today
-        query = get_db().collection('outfit_history').where('user_id', '==', current_user.id)
+        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
         query = query.where('date_worn', '>=', start_timestamp)
         query = query.where('date_worn', '<=', end_timestamp)
         
@@ -688,7 +690,7 @@ async def get_todays_outfit_suggestion(
             }
         
         # Look for existing suggestion for today
-        suggestions_ref = get_db().collection('daily_outfit_suggestions')
+        suggestions_ref = db.collection('daily_outfit_suggestions')
         query = suggestions_ref.where('user_id', '==', current_user.id).where('date', '==', today_str)
         existing_docs = list(query.stream())
         
@@ -774,7 +776,7 @@ async def get_todays_outfit_suggestion(
             }
             
             # Save to Firestore
-            doc_ref = get_db().collection('daily_outfit_suggestions').add(suggestion_doc)
+            doc_ref = db.collection('daily_outfit_suggestions').add(suggestion_doc)
             suggestion_id = doc_ref[1].id
             
             logger.info(f"Generated and saved new outfit suggestion {suggestion_id}")
@@ -864,7 +866,7 @@ async def get_todays_outfit_suggestion(
                     'is_fallback': True  # Mark as fallback
                 }
                 
-                doc_ref = get_db().collection('daily_outfit_suggestions').add(fallback_doc)
+                doc_ref = db.collection('daily_outfit_suggestions').add(fallback_doc)
                 suggestion_id = doc_ref[1].id
                 
                 logger.info(f"Created fallback outfit suggestion {suggestion_id}")
@@ -918,7 +920,7 @@ async def clear_todays_suggestion_cache(
             }
         
         # Delete all suggestions for today
-        suggestions_ref = get_db().collection('daily_outfit_suggestions')
+        suggestions_ref = db.collection('daily_outfit_suggestions')
         query = suggestions_ref.where('user_id', '==', current_user.id).where('date', '==', today_str)
         existing_docs = list(query.stream())
         
@@ -963,7 +965,7 @@ async def mark_today_suggestion_as_worn(
             raise HTTPException(status_code=503, detail="Service temporarily unavailable")
         
         # Get the suggestion document
-        suggestion_ref = get_db().collection('daily_outfit_suggestions').document(suggestion_id)
+        suggestion_ref = db.collection('daily_outfit_suggestions').document(suggestion_id)
         suggestion_doc = suggestion_ref.get()
         
         if not suggestion_doc.exists:
@@ -1010,7 +1012,7 @@ async def mark_today_suggestion_as_worn(
         }
         
         # Save to outfit history
-        get_db().collection('outfit_history').add(history_entry)
+        db.collection('outfit_history').add(history_entry)
         
         # Log analytics event
         try:
