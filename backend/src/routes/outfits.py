@@ -1750,10 +1750,26 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             }
         }
 
+def debug_rule_engine(stage: str, wardrobe_items=None, suitable=None, categorized=None, scores=None, validated=None):
+    try:
+        print("🔎 RULE ENGINE DEBUG:", {
+            "stage": stage,
+            "wardrobe_count": len(wardrobe_items) if wardrobe_items is not None else None,
+            "suitable_count": len(suitable) if suitable is not None else None,
+            "categorized_keys": list(categorized.keys()) if categorized else None,
+            "scores_count": len(scores) if scores is not None else None,
+            "validated_count": len(validated) if validated is not None else None,
+        })
+    except Exception as e:
+        print("⚠️ DEBUG ERROR:", e)
+
 async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
     """Generate outfit using rule-based decision tree and user's wardrobe."""
     try:
         logger.info(f"🎯 Generating rule-based outfit with {len(wardrobe_items)} items")
+        
+        # DEBUG: Start stage
+        debug_rule_engine("start", wardrobe_items=wardrobe_items)
         # Reduced logging to prevent Railway rate limits
         logger.info(f"🔍 DEBUG: User profile keys: {list(user_profile.keys()) if user_profile else 'None'}")
         logger.info(f"🔍 DEBUG: Request: style={req.style}, occasion={req.occasion}, baseItemId={req.baseItemId}")
@@ -1763,6 +1779,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 # ENHANCED: Sophisticated style preference filtering with scoring
         suitable_items = []
         item_scores = {}  # Track scores for each item
+        
+        # DEBUG: After initialization
+        debug_rule_engine("after_init", suitable=suitable_items, scores=item_scores)
         
         # ENHANCED: Ensure all wardrobe items have required fields for ClothingItem validation
         for item in wardrobe_items:
@@ -1979,6 +1998,10 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             suitable_items = wardrobe_items[:4]  # Take first 4 items
         else:
             logger.info(f"✅ DEBUG: Found {len(suitable_items)} suitable items")
+        
+        # DEBUG: After filtering
+        debug_rule_engine("after_filtering", suitable=suitable_items, scores=item_scores)
+        
         # Use timestamp as seed for different randomization each time
         # But preserve base item at the beginning if it exists
         if req.baseItemId and suitable_items and suitable_items[0].get('id') == req.baseItemId:
@@ -2018,24 +2041,22 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 logger.error(f"❌ DEBUG: Looking for base item ID: {req.baseItemId}")
                 logger.error(f"❌ DEBUG: First few suitable item IDs: {[item.get('id') for item in suitable_items[:5]]}")
         
-        # DEBUG COUNTS - Key stages before rule engine decides failure/fallback
-        logger.info(f"📊 COUNTS - suitable_items (global pool): {len(suitable_items)}")
-        
-        # Count categorized items
+        # Count categorized items for debug
         categorized_counts = {}
         for item in suitable_items:
             item_type = item.get('type', '').lower()
-            category = get_item_category(item_type)  # This function should exist in validation
+            category = get_item_category(item_type)
             categorized_counts[category] = categorized_counts.get(category, 0) + 1
-        logger.info(f"📊 COUNTS - categorized_items: {categorized_counts}")
         
-        # Count item scores (assuming suitable_items have scores)
-        item_scores_count = len([item for item in suitable_items if item.get('score') is not None])
-        logger.info(f"📊 COUNTS - item_scores: {item_scores_count}")
+        # DEBUG: Before validation
+        debug_rule_engine("before_validation", suitable=suitable_items, categorized=categorized_counts, scores=item_scores)
 
         # Validate and ensure complete outfit composition
         validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
-        logger.info(f"📊 COUNTS - validated_outfit: {len(validated_items)}")
+        
+        # DEBUG: After validation
+        debug_rule_engine("after_validation", validated=validated_items)
+        
         logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
         
         # Debug: Check if base item is in final validated items
