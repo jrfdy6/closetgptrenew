@@ -172,6 +172,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         if req.wardrobe and len(req.wardrobe) > 0:
             logger.info(f"📦 Using wardrobe from request: {len(req.wardrobe)} items")
             wardrobe_items = req.wardrobe
+            logger.info(f"🔍 DEBUG: First wardrobe item: {wardrobe_items[0].get('name', 'Unknown')} (ID: {wardrobe_items[0].get('id', 'no-id')})")
         else:
             logger.info(f"📦 Fetching wardrobe from database for user {user_id}")
             wardrobe_items = await get_user_wardrobe_cached(user_id)
@@ -179,7 +180,25 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         if len(wardrobe_items) == 0:
             logger.warning(f"⚠️ User {user_id} has no wardrobe items, using fallback")
-            return await generate_fallback_outfit(req, user_id)
+            # 🚀 FINAL NUCLEAR OPTION EVEN IN FALLBACK
+            fallback_outfit = await generate_fallback_outfit(req, user_id)
+            if req.baseItemId:
+                logger.info(f"🚀 FALLBACK NUCLEAR: Adding base item to fallback outfit")
+                # Create a basic base item if we have the ID
+                base_item_fallback = {
+                    "id": req.baseItemId,
+                    "name": f"Base Item {req.baseItemId}",
+                    "type": "shirt",  # Default type
+                    "imageUrl": "",
+                    "material": "unspecified",
+                    "texture": "unspecified",
+                    "dominantColors": [],
+                    "matchingColors": [],
+                    "season": ["all"]
+                }
+                fallback_outfit['items'] = [base_item_fallback]
+                logger.info(f"🚀 FALLBACK NUCLEAR: Base item added to fallback outfit")
+            return fallback_outfit
         
         # 2. Get user's style profile (with caching)
         logger.info(f"🔍 DEBUG: Getting user profile for user {user_id}")
@@ -2494,8 +2513,8 @@ async def debug_base_item_fix():
     return {
         "status": "base_item_fix_deployed",
         "timestamp": datetime.utcnow().isoformat(),
-        "fix_version": "v4.5",
-        "description": "Base item guaranteed + using wardrobe from request instead of database"
+        "fix_version": "v5.0",
+        "description": "FINAL NUCLEAR OPTION: Base item forced at the very end, cannot be bypassed"
     }
 
 @router.get("/outfit-save-test", response_model=dict)
