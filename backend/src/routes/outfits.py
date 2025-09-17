@@ -210,6 +210,13 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
         logger.info(f"🔍 DEBUG: Rule-based outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
+        
+        # DIAGNOSTIC DEBUG PRINTS
+        logger.info(f"💥 Raw GPT response: N/A (using rule-based generation)")
+        logger.info(f"🧩 Parsed items: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
+        logger.info(f"🔗 Base item requested: {req.baseItemId}")
+        logger.info(f"🛠️ Items after nuclear option: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
+        
         return outfit
         
     except Exception as e:
