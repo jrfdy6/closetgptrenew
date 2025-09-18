@@ -2009,10 +2009,17 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
             hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
             print(f"🔍 EXCLUSION CHECK: {item.get('name', 'unnamed')} for {req.style} - result: {hard_exclusions}")
+            print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
+            print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={item.get('id')}, isBaseItem={req.baseItemId and item.get('id') == req.baseItemId}")
+            
             if hard_exclusions and not (req.baseItemId and item.get('id') == req.baseItemId):
                 print(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 logger.info(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 continue
+            elif hard_exclusions:
+                print(f"🛡️ EXCLUSION BYPASSED: {item.get('name', 'unnamed')} is base item, allowing despite exclusion")
+            else:
+                print(f"✅ EXCLUSION PASSED: {item.get('name', 'unnamed')} has no exclusions for {req.style}")
             
             # 1. Core Style Matching (Primary filter - must pass)
             # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
