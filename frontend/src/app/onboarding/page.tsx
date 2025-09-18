@@ -515,8 +515,15 @@ export default function Onboarding() {
     return filtered;
   };
 
-  const [questions, setQuestions] = React.useState<QuizQuestion[]>(() => getFilteredQuestions());
+  const [questions, setQuestions] = React.useState<QuizQuestion[]>([]);
 
+  // Initialize questions on component mount
+  React.useEffect(() => {
+    const initialQuestions = getFilteredQuestions();
+    setQuestions(initialQuestions);
+  }, []);
+
+  // Update questions when gender changes
   React.useEffect(() => {
     const newQuestions = getFilteredQuestions(userGender);
     setQuestions(newQuestions);
@@ -537,6 +544,7 @@ export default function Onboarding() {
   const canProceed = () => {
     if (questions.length === 0) return false;
     const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) return false;
     return answers.some(a => a.question_id === currentQuestion.id);
   };
 
@@ -1525,8 +1533,28 @@ export default function Onboarding() {
     }
   };
 
-  // Get current question
+  // Get current question - return loading if not ready
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
   const question = questions[currentQuestionIndex];
+  if (!question) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400">Question not found. Please refresh the page.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Show quiz questions
   return (
@@ -1550,11 +1578,11 @@ export default function Onboarding() {
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mx-4">
                 <div 
                   className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`}}
+                  style={{width: `${questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0}%`}}
                 ></div>
               </div>
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
+                {questions.length > 0 ? Math.round(((currentQuestionIndex + 1) / questions.length) * 100) : 0}%
               </span>
             </div>
         </div>
