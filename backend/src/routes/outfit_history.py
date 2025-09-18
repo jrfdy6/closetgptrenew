@@ -1046,4 +1046,99 @@ async def mark_today_suggestion_as_worn(
         logger.error(f"Error marking suggestion as worn: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to mark suggestion as worn")
 
+@router.get("/stats")
+async def get_outfit_history_stats(
+    current_user: UserProfile = Depends(get_current_user),
+    days: int = Query(7, description="Number of days to look back for stats")
+):
+    """Get outfit history statistics for the dashboard."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+        
+        logger.info(f"Getting outfit history stats for user {current_user.id} (last {days} days)")
+        
+        # Get database client
+        db = get_db()
+        
+        # Calculate date range
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        start_timestamp = int(start_date.timestamp() * 1000)
+        end_timestamp = int(end_date.timestamp() * 1000)
+        
+        # Query outfit history for the date range
+        history_ref = db.collection('outfit_history').where('user_id', '==', current_user.id)
+        
+        # Filter by date range if we have timestamp fields
+        try:
+            history_ref = history_ref.where('date_worn', '>=', start_timestamp)
+            history_ref = history_ref.where('date_worn', '<=', end_timestamp)
+        except Exception as date_filter_error:
+            logger.warning(f"Date filtering failed, getting all history: {date_filter_error}")
+        
+        docs = history_ref.stream()
+        
+        # Process history entries
+        total_outfits = 0
+        outfits_this_week = 0
+        recent_outfits = []
+        
+        for doc in docs:
+            try:
+                history_data = doc.to_dict()
+                total_outfits += 1
+                
+                # Check if it's within the requested time range
+                date_worn = history_data.get('date_worn', 0)
+                if isinstance(date_worn, str):
+                    try:
+                        date_worn = int(datetime.fromisoformat(date_worn.replace('Z', '+00:00')).timestamp() * 1000)
+                    except:
+                        date_worn = 0
+                
+                if date_worn >= start_timestamp:
+                    outfits_this_week += 1
+                    
+                    # Add to recent outfits list
+                    recent_outfits.append({
+                        "id": doc.id,
+                        "outfit_name": history_data.get('outfit_name', 'Unknown Outfit'),
+                        "date_worn": date_worn,
+                        "occasion": history_data.get('occasion', 'Unknown'),
+                        "mood": history_data.get('mood', 'Unknown')
+                    })
+                    
+            except Exception as doc_error:
+                logger.warning(f"Error processing history doc: {doc_error}")
+                continue
+        
+        # Sort recent outfits by date
+        recent_outfits.sort(key=lambda x: x['date_worn'], reverse=True)
+        
+        stats = {
+            "total_outfits": total_outfits,
+            "outfits_this_week": outfits_this_week,
+            "days_queried": days,
+            "recent_outfits": recent_outfits[:10],  # Return up to 10 recent outfits
+            "date_range": {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat()
+            }
+        }
+        
+        logger.info(f"Outfit history stats for user {current_user.id}: {outfits_this_week} outfits in last {days} days")
+        
+        return {
+            "success": True,
+            "data": stats,
+            "message": f"Outfit history stats for last {days} days"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get outfit history stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get outfit history stats: {str(e)}")
+
 # Force redeploy Sun Aug 17 07:23:59 EDT 2025
