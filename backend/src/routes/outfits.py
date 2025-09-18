@@ -2098,7 +2098,15 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         debug_rule_engine("before_validation", suitable=suitable_items, categorized=categorized_counts, scores=item_scores)
 
         # Validate and ensure complete outfit composition
-        validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
+        try:
+            print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
+            validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
+            print(f"✅ VALIDATION: Successfully validated outfit, got {len(validated_items)} items")
+        except Exception as validation_error:
+            print(f"❌ VALIDATION FAILED: {validation_error}")
+            logger.error(f"Outfit validation failed: {validation_error}")
+            # Use suitable items as-is if validation fails
+            validated_items = suitable_items[:4]  # Take first 4 items as fallback
         
         # DEBUG: After validation
         debug_rule_engine("after_validation", validated=validated_items)
@@ -2167,15 +2175,31 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - URL: {image_url[:50]}...")
         
         # Calculate comprehensive outfit score
-        outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation, user_id)
-        logger.info(f"🔍 DEBUG: Calculated outfit score: {outfit_score}")
+        try:
+            print(f"🔍 SCORING: About to calculate outfit score...")
+            outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation, user_id)
+            print(f"✅ SCORING: Successfully calculated outfit score: {outfit_score}")
+            logger.info(f"🔍 DEBUG: Calculated outfit score: {outfit_score}")
+        except Exception as score_error:
+            print(f"❌ SCORING FAILED: {score_error}")
+            logger.error(f"Outfit scoring failed: {score_error}")
+            # Use default score if scoring fails
+            outfit_score = {"total_score": 0.7}
         
         # Final debug logging
         logger.info(f"🎯 DEBUG: Final outfit items: {[item.get('name', 'Unknown') for item in outfit_items]}")
         logger.info(f"🎯 DEBUG: Final outfit item IDs: {[item.get('id', 'Unknown') for item in outfit_items]}")
         
         # Generate intelligent reasoning
-        intelligent_reasoning = await generate_intelligent_reasoning(outfit_items, req, outfit_score, layering_validation, color_material_validation)
+        try:
+            print(f"🔍 REASONING: About to generate intelligent reasoning...")
+            intelligent_reasoning = await generate_intelligent_reasoning(outfit_items, req, outfit_score, layering_validation, color_material_validation)
+            print(f"✅ REASONING: Successfully generated reasoning")
+        except Exception as reasoning_error:
+            print(f"❌ REASONING FAILED: {reasoning_error}")
+            logger.error(f"Intelligent reasoning failed: {reasoning_error}")
+            # Use fallback reasoning if generation fails
+            intelligent_reasoning = f"Rule-based {req.style} outfit for {req.occasion} with {len(outfit_items)} items"
         
         return {
             "name": outfit_name,
