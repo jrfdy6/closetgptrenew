@@ -2187,11 +2187,21 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         # ENHANCED: Ensure we have enough diverse items for outfit generation
         if len(suitable_items) < 10:
-            # Add more items to ensure variety
-            additional_items = [item for item in wardrobe_items if item not in suitable_items]
+            # Add more items to ensure variety, but RESPECT EXCLUSION FILTER
+            additional_items = []
+            for item in wardrobe_items:
+                if item not in suitable_items:
+                    # Apply same exclusion filter to additional items
+                    hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
+                    if not hard_exclusions or (req.baseItemId and item.get('id') == req.baseItemId):
+                        additional_items.append(item)
+                        print(f"➕ ADDITIONAL: {item.get('name', 'unnamed')} passes exclusion filter")
+                    else:
+                        print(f"🚫 ADDITIONAL EXCLUDED: {item.get('name', 'unnamed')} - {hard_exclusions}")
+            
             random.shuffle(additional_items)
             suitable_items.extend(additional_items[:10])
-            logger.info(f"🔍 DEBUG: Extended suitable items to {len(suitable_items)} for variety")
+            logger.info(f"🔍 DEBUG: Extended suitable items to {len(suitable_items)} for variety (exclusion-filtered)")
         
         
         # If no suitable items, use any available items
