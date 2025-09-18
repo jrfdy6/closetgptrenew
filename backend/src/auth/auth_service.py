@@ -48,23 +48,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             )
             return user
         
-        # Verify Firebase JWT token with timeout
+        # Verify Firebase JWT token
         try:
             print("🔍 DEBUG: Attempting Firebase token verification...")
-            
-            # Add timeout to prevent hanging
-            import asyncio
-            import functools
-            
-            # Wrap the sync Firebase call in an async timeout
-            loop = asyncio.get_event_loop()
-            verify_task = loop.run_in_executor(
-                None, 
-                functools.partial(auth.verify_id_token, credentials.credentials)
-            )
-            
-            # Wait up to 10 seconds for token verification
-            decoded_token = await asyncio.wait_for(verify_task, timeout=10.0)
+            print(f"🔍 DEBUG: Firebase auth module: {auth}")
+            print(f"🔍 DEBUG: Firebase auth type: {type(auth)}")
+            print(f"🔍 DEBUG: Token to verify: {credentials.credentials[:50]}...")
+            # Try with default settings first
+            decoded_token = auth.verify_id_token(credentials.credentials)
             user_id = decoded_token['uid']
             email = decoded_token.get('email', '')
             name = decoded_token.get('name', 'User')
@@ -93,12 +84,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             print(f"🔍 DEBUG: User profile created successfully for: {user_id}")
             return user
             
-        except asyncio.TimeoutError:
-            print("🔍 DEBUG: Firebase token verification timed out after 10 seconds")
-            raise HTTPException(
-                status_code=status.HTTP_408_REQUEST_TIMEOUT,
-                detail="Authentication token verification timed out"
-            )
         except Exception as e:
             print(f"🔍 DEBUG: Firebase token verification failed: {e}")
             # If it's a clock issue, try with more lenient settings

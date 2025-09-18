@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -455,7 +455,22 @@ export default function Onboarding() {
   const [userGender, setUserGender] = useState<string | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   
+  // Debug: Track when quizCompleted changes
+  useEffect(() => {
+    console.log('🎯 [Quiz State] quizCompleted changed to:', quizCompleted);
+    if (quizCompleted) {
+      console.log('🎯 [Quiz State] Quiz completed! Stack trace:', new Error().stack);
+    }
+  }, [quizCompleted]);
   const [quizResults, setQuizResults] = useState<any>(null);
+  
+  // Debug: Track when quizResults changes
+  useEffect(() => {
+    console.log('🎯 [Quiz State] quizResults changed to:', !!quizResults);
+    if (quizResults) {
+      console.log('🎯 [Quiz State] Quiz results set! Stack trace:', new Error().stack);
+    }
+  }, [quizResults]);
   const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -474,8 +489,9 @@ export default function Onboarding() {
   }, [user, authLoading]);
 
   // Filter questions based on gender
-  const getFilteredQuestions = useCallback((genderOverride?: string): QuizQuestion[] => {
+  const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
     const currentGender = genderOverride || userGender;
+    console.log('🔍 [getFilteredQuestions] Called with genderOverride:', genderOverride, 'userGender:', userGender, 'currentGender:', currentGender);
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
       // Show cup size for females, non-binary, and prefer not to say users
@@ -483,14 +499,17 @@ export default function Onboarding() {
           currentGender !== 'Female' && 
           currentGender !== 'Non-binary' && 
           currentGender !== 'Prefer not to say') {
+        console.log('❌ [Filter] Filtering out cup_size for non-female/non-binary/prefer not to say');
         return false;
       }
       
       // Show gender-specific body type questions
       if (question.id === 'body_type_female' && currentGender && currentGender !== 'Female') {
+        console.log('❌ [Filter] Filtering out body_type_female for non-female');
         return false;
       }
       if (question.id === 'body_type_male' && currentGender && currentGender !== 'Male') {
+        console.log('❌ [Filter] Filtering out body_type_male for non-male');
         return false;
       }
       
@@ -500,34 +519,51 @@ export default function Onboarding() {
           currentGender !== 'Female' && 
           currentGender !== 'Non-binary' && 
           currentGender !== 'Prefer not to say') {
+        console.log('❌ [Filter] Filtering out', question.id, 'for non-female');
         return false;
       }
       if (question.id.startsWith('style_item_m_') && currentGender && 
           currentGender !== 'Male' && 
           currentGender !== 'Non-binary' && 
           currentGender !== 'Prefer not to say') {
+        console.log('❌ [Filter] Filtering out', question.id, 'for non-male');
         return false;
       }
       
       return true;
     });
     
+    console.log('🔍 [Quiz] Filtered questions:', {
+      totalQuestions: QUIZ_QUESTIONS.length,
+      filteredQuestions: filtered.length,
+      currentGender,
+      questionIds: filtered.map(q => q.id),
+      visualYesNoQuestions: filtered.filter(q => q.type === 'visual_yesno').map(q => q.id),
+      femaleStyleQuestions: filtered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
+      maleStyleQuestions: filtered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
+    });
+    
     return filtered;
+  };
+
+  const [questions, setQuestions] = React.useState<QuizQuestion[]>(() => getFilteredQuestions());
+
+  React.useEffect(() => {
+    console.log('🔄 [useEffect] Recalculating questions with gender:', userGender);
+    console.log('🔄 [useEffect] userGender type:', typeof userGender, 'value:', userGender);
+    const newQuestions = getFilteredQuestions(userGender);
+    console.log('🔄 [useEffect] Result:', {
+      totalQuestions: newQuestions.length,
+      visualYesNoCount: newQuestions.filter(q => q.type === 'visual_yesno').length,
+      questionIds: newQuestions.map(q => q.id)
+    });
+    setQuestions(newQuestions);
   }, [userGender]);
 
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-
-  // Initialize questions on component mount
-  useEffect(() => {
-    const initialQuestions = getFilteredQuestions();
-    setQuestions(initialQuestions);
-  }, [getFilteredQuestions]);
-
-  // Update questions when gender changes  
-  useEffect(() => {
-    const newQuestions = getFilteredQuestions(userGender);
-    setQuestions(newQuestions);
-  }, [userGender, getFilteredQuestions]);
+  // Debug: Log when userGender changes
+  React.useEffect(() => {
+    console.log('👤 [Gender Change] userGender changed to:', userGender);
+  }, [userGender]);
 
   const nextStep = () => {
     if (currentQuestionIndex < questions.length - 1) {
@@ -544,7 +580,6 @@ export default function Onboarding() {
   const canProceed = () => {
     if (questions.length === 0) return false;
     const currentQuestion = questions[currentQuestionIndex];
-    if (!currentQuestion) return false;
     return answers.some(a => a.question_id === currentQuestion.id);
   };
 
@@ -605,29 +640,37 @@ export default function Onboarding() {
         const styleName = question.style_name;
         if (styleName) {
           stylePreferences[styleName] = (stylePreferences[styleName] || 0) + 1;
+          console.log('🎨 [Style] Found style preference:', styleName, 'for question:', answer.question_id);
         }
       }
     });
+    
+    console.log('🎨 [Style] All style preferences:', stylePreferences);
 
     // Map style preferences to personas
     if (stylePreferences['Minimalist'] || stylePreferences['Clean Minimal']) {
       personaScores.architect += 3;
       personaScores.modernist += 2;
+      console.log('🎨 [Persona] Added points for Minimalist style');
     }
     if (stylePreferences['Street Style'] || stylePreferences['Urban Street']) {
       personaScores.rebel += 3;
       personaScores.strategist += 2;
+      console.log('🎨 [Persona] Added points for Street Style');
     }
     if (stylePreferences['Classic Elegant']) {
       personaScores.classic += 3;
       personaScores.connoisseur += 2;
+      console.log('🎨 [Persona] Added points for Classic Elegant');
     }
     if (stylePreferences['Old Money']) {
       personaScores.connoisseur += 3;
       personaScores.classic += 2;
+      console.log('🎨 [Persona] Added points for Old Money');
     }
     if (stylePreferences['Cottagecore'] || stylePreferences['Natural Boho']) {
       personaScores.wanderer += 3;
+      console.log('🎨 [Persona] Added points for Cottagecore/Boho');
     }
 
     // Daily activities scoring
@@ -689,6 +732,20 @@ export default function Onboarding() {
       .sort(([,a], [,b]) => b - a);
     
     const topPersona = sortedPersonas[0][0];
+    
+    // Debug logging
+    console.log('🎯 [Persona] User answers:', userAnswers);
+    console.log('🎯 [Persona] Style preferences:', stylePreferences);
+    console.log('🎯 [Persona] Persona scores:', personaScores);
+    console.log('🎯 [Persona] Sorted personas:', sortedPersonas);
+    console.log('🎯 [Persona] Selected persona:', topPersona);
+    
+    // Count total "Yes" answers for style questions
+    const styleYesAnswers = answers.filter(answer => {
+      const question = QUIZ_QUESTIONS.find(q => q.id === answer.question_id);
+      return question && question.type === 'visual_yesno' && answer.selected_option === 'Yes';
+    }).length;
+    console.log('🎯 [Persona] Total style "Yes" answers:', styleYesAnswers);
 
     return STYLE_PERSONAS[topPersona] || STYLE_PERSONAS.strategist;
   };
@@ -761,6 +818,7 @@ export default function Onboarding() {
 
   // Hero images mapping for each persona
   const getHeroImageForPersona = (personaId: string): string => {
+    console.log('🖼️ [Hero Image] Persona ID:', personaId);
     const heroImages: Record<string, string> = {
       strategist: "/images/style-heroes/strategist-conference-room.jpg",
       innovator: "/images/style-heroes/innovator-art-gallery.jpg", 
@@ -772,7 +830,9 @@ export default function Onboarding() {
       architect: "/images/style-heroes/architect-blueprint-meeting.jpg"
     };
     
-    return heroImages[personaId] || "/images/style-heroes/default-hero.jpg";
+    const imageUrl = heroImages[personaId] || "/images/style-heroes/default-hero.jpg";
+    console.log('🖼️ [Hero Image] Selected image:', imageUrl);
+    return imageUrl;
   };
 
   // Style examples mapping for each persona
@@ -790,9 +850,9 @@ export default function Onboarding() {
         { url: "/images/style-examples/innovator/experimental-art.jpg", caption: "Artistic Expression" }
       ],
       classic: [
-        { url: "/images/style-examples/strategist/business-meeting.jpg", caption: "Refined Business" },
-        { url: "/images/style-examples/strategist/office-collaboration.jpg", caption: "Cultural Engagement" },
-        { url: "/images/style-examples/strategist/presentation.jpg", caption: "Elegant Social" }
+        { url: "/images/style-examples/classic/luxury-meeting.jpg", caption: "Refined Business" },
+        { url: "/images/style-examples/classic/cultural-discussion.jpg", caption: "Cultural Engagement" },
+        { url: "/images/style-examples/classic/sophisticated-gathering.jpg", caption: "Elegant Social" }
       ],
       wanderer: [
         { url: "/images/style-examples/wanderer/nature-art.jpg", caption: "Natural Creativity" },
@@ -820,6 +880,9 @@ export default function Onboarding() {
         { url: "/images/style-examples/architect/construction-site.jpg", caption: "Project Management" }
       ]
     };
+    
+    console.log('🎨 [Style Examples] Available personas:', Object.keys(styleExamples));
+    console.log('🎨 [Style Examples] Selected examples:', styleExamples[personaId]);
     
     return styleExamples[personaId] || [
       { url: "/images/style-examples/default/example-1.jpg", caption: "Style Example" },
@@ -923,11 +986,17 @@ export default function Onboarding() {
   };
 
   const submitQuiz = async () => {
+    console.log('🚀 [submitQuiz] Function called!');
+    console.log('🚀 [submitQuiz] User:', !!user);
+    console.log('🚀 [submitQuiz] Answers:', answers.length);
+    
     if (!user) {
+      console.log('❌ [submitQuiz] No user, setting error');
       setError('Please sign in to complete the quiz');
       return;
     }
 
+    console.log('🚀 [submitQuiz] Starting submission...');
     setIsLoading(true);
     setError(null);
 
@@ -957,14 +1026,23 @@ export default function Onboarding() {
       });
 
       const submissionData = {
-        userId: user.uid,
-        token: token,
-        answers: answers,
-        colorAnalysis: colorAnalysis,
-        stylePreferences: stylePreferences,
-        colorPreferences: colorPreferences
+          userId: user.uid,
+          token: token,
+          answers: answers,
+          colorAnalysis: colorAnalysis,
+          stylePreferences: stylePreferences,
+          colorPreferences: colorPreferences
       };
 
+      console.log('🔍 [Quiz Frontend] Submitting quiz data:', {
+        userId: user.uid,
+        answersCount: answers.length,
+        stylePreferences: stylePreferences,
+        colorPreferences: colorPreferences,
+        hasColorAnalysis: !!colorAnalysis
+      });
+
+      console.log('🌐 [Quiz Frontend] Making API call to /api/style-quiz/submit');
       const response = await fetch('/api/style-quiz/submit', {
         method: 'POST',
         headers: {
@@ -973,6 +1051,8 @@ export default function Onboarding() {
         },
         body: JSON.stringify(submissionData)
       });
+      
+      console.log('🌐 [Quiz Frontend] API response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
@@ -1018,6 +1098,7 @@ export default function Onboarding() {
 
   const renderQuestion = () => {
     if (questions.length === 0) {
+      console.error('No questions available for quiz');
       return (
         <div className="text-center p-8">
           <p className="text-red-600 dark:text-red-400">No questions available. Please refresh the page.</p>
@@ -1027,6 +1108,7 @@ export default function Onboarding() {
     
     const question = questions[currentQuestionIndex];
     if (!question) {
+      console.error('No question found for current question index:', currentQuestionIndex);
       return (
         <div className="text-center p-8">
           <p className="text-red-600 dark:text-red-400">Question not found. Please refresh the page.</p>
@@ -1042,6 +1124,9 @@ export default function Onboarding() {
           <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
             {question.question}
           </h2>
+            <div className="text-sm text-gray-500 mb-4">
+              DEBUG: Question type = {question.type} | Has images = {question.images ? 'Yes' : 'No'} | Question ID = {question.id}
+            </div>
           {question.type === "visual" && (
             <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
               Select the option that best represents your style
@@ -1212,6 +1297,12 @@ export default function Onboarding() {
     const persona = determineStylePersona();
     const styleFingerprint = generateStyleFingerprint();
     
+    // Debug logging
+    console.log('🎭 [Onboarding] Determined persona:', persona);
+    console.log('🎭 [Onboarding] Persona ID:', persona.id);
+    console.log('🎭 [Onboarding] User answers:', answers);
+    console.log('🎭 [Onboarding] Style fingerprint:', styleFingerprint);
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900">
         <div className="max-w-6xl mx-auto px-4 py-12">
@@ -1312,10 +1403,10 @@ export default function Onboarding() {
                       </p>
                     </div>
                   </div>
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
             {/* Style Fingerprint Section */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
@@ -1452,9 +1543,9 @@ export default function Onboarding() {
                 <div className="flex items-center space-x-2 text-red-100">
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <span className="text-sm font-bold">4</span>
-                  </div>
+            </div>
                   <span className="text-sm">Steps to perfect style</span>
-                </div>
+          </div>
               </div>
               
               {/* Navigation Links */}
@@ -1487,12 +1578,25 @@ export default function Onboarding() {
 
   // Quiz functions
   const handleAnswer = (questionId: string, answer: string) => {
+    console.log('📝 [Answer] Saving answer:', { questionId, answer });
+    
     // Set user gender when gender question is answered
     if (questionId === 'gender') {
+      console.log('👤 [Gender] About to set user gender from:', userGender, 'to:', answer);
       setUserGender(answer);
+      console.log('👤 [Gender] Set user gender:', answer);
+      
+      // Debug: Show what questions will be available after gender selection
+      const newFiltered = getFilteredQuestions(answer);
+      console.log('🔄 [Gender] After gender selection, available questions:', {
+        totalQuestions: newFiltered.length,
+        visualYesNoQuestions: newFiltered.filter(q => q.type === 'visual_yesno').map(q => q.id),
+        femaleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_f_')).map(q => q.id),
+        maleStyleQuestions: newFiltered.filter(q => q.id.startsWith('style_item_m_')).map(q => q.id)
+      });
       
       // Force update questions immediately
-      const newFiltered = getFilteredQuestions(answer);
+      console.log('🔄 [Gender] Force updating questions immediately');
       setQuestions(newFiltered);
     }
     
@@ -1504,13 +1608,32 @@ export default function Onboarding() {
         return [...prev, { question_id: questionId, selected_option: answer }];
       }
     });
+    
+    // Debug: Log current state after answering
+    console.log('🔍 [Quiz State] After answering:', {
+      currentQuestionIndex,
+      totalQuestions: questions.length,
+      isLastQuestion: currentQuestionIndex === questions.length - 1,
+      answersCount: answers.length + 1
+    });
   };
 
   const handleNext = () => {
+    console.log('🔄 [Navigation] Next clicked:', {
+      currentQuestionIndex,
+      totalQuestions: questions.length,
+      canGoNext: currentQuestionIndex < questions.length - 1,
+      isLastQuestion: currentQuestionIndex === questions.length - 1
+    });
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
       // If this is the last question, submit the quiz
+      console.log('🎯 [Quiz] Last question reached, submitting quiz...');
+      console.log('🎯 [Quiz] submitQuiz function available:', typeof submitQuiz);
+      console.log('🎯 [Quiz] User available:', !!user);
+      console.log('🎯 [Quiz] Answers count:', answers.length);
       submitQuiz();
     }
   };
@@ -1522,6 +1645,7 @@ export default function Onboarding() {
   };
 
   const handleSubmit = async () => {
+    console.log('🚀 [handleSubmit] Called - redirecting to submitQuiz');
     setIsSubmitting(true);
     try {
       await submitQuiz();
@@ -1533,28 +1657,31 @@ export default function Onboarding() {
     }
   };
 
-  // Get current question - return loading if not ready
-  if (questions.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading your style quiz...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Get current question
   const question = questions[currentQuestionIndex];
-  if (!question) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
-        <div className="text-center">
-          <p className="text-red-600 dark:text-red-400">Question not found. Please refresh the page.</p>
-        </div>
-      </div>
-    );
-  }
+  
+  // Debug: Log current question details
+  console.log('🎯 [Current Question]', {
+    currentQuestionIndex,
+    totalQuestions: questions.length,
+    questionId: question?.id,
+    questionType: question?.type,
+    isVisualYesNo: question?.type === 'visual_yesno',
+    styleName: question?.style_name
+  });
+  
+  // Debug: Show visual breakdown of all questions
+  console.log('📋 [Quiz Overview]', {
+    allQuestions: questions.map((q, index) => ({
+      index,
+      id: q.id,
+      type: q.type,
+      isVisualYesNo: q.type === 'visual_yesno',
+      gender: q.gender
+    })),
+    visualYesNoCount: questions.filter(q => q.type === 'visual_yesno').length,
+    currentlyAt: `${currentQuestionIndex + 1}/${questions.length}`
+  });
 
   // Show quiz questions
   return (
@@ -1578,11 +1705,11 @@ export default function Onboarding() {
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mx-4">
                 <div 
                   className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
-                  style={{width: `${questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0}%`}}
+                  style={{width: `${((currentQuestionIndex + 1) / questions.length) * 100}%`}}
                 ></div>
               </div>
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                {questions.length > 0 ? Math.round(((currentQuestionIndex + 1) / questions.length) * 100) : 0}%
+                {Math.round(((currentQuestionIndex + 1) / questions.length) * 100)}%
               </span>
             </div>
         </div>
@@ -1630,20 +1757,30 @@ export default function Onboarding() {
             <div className="space-y-6">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
                 <div className="text-center mb-6">
+                  <div className="text-sm text-gray-500 mb-2">
+                    DEBUG: Rendering visual_yesno with image: {question.images?.[0]}
+                    <br />
+                    <a href={question.images?.[0]} target="_blank" className="text-blue-500 underline">
+                      Test image link
+                    </a>
+                  </div>
                   <img 
                     src={question.images?.[0]} 
                     alt="Style example"
-                    className="w-full max-w-lg mx-auto h-80 object-cover rounded-lg shadow-lg"
+                    className="w-full max-w-md mx-auto h-64 object-cover rounded-lg shadow-lg"
+                    onLoad={() => console.log('✅ Image loaded successfully:', question.images?.[0])}
                     onError={(e) => {
+                      console.log('❌ Image failed to load:', question.images?.[0]);
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
                       if (parent) {
                         parent.innerHTML = `
-                          <div class="w-full max-w-lg mx-auto h-80 bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-lg">
+                          <div class="w-full max-w-md mx-auto h-64 bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-lg">
                             <div class="text-center text-gray-500 dark:text-gray-400">
                               <div class="text-4xl mb-2">📷</div>
                               <div class="text-sm">Style image unavailable</div>
+                              <div class="text-xs mt-2">Failed to load: ${question.images?.[0]}</div>
                             </div>
                           </div>
                         `;
@@ -1702,6 +1839,7 @@ export default function Onboarding() {
                     const r = Math.round(255 - newValue * 1.2);
                     const g = Math.round(220 - newValue * 1.0);
                     const b = Math.round(180 - newValue * 0.8);
+                    console.log('🎨 Skin tone changed to:', newValue, `RGB: (${r}, ${g}, ${b})`);
                     setSkinTone(newValue);
                     handleAnswer('skin_tone', newValue.toString());
                   }}
