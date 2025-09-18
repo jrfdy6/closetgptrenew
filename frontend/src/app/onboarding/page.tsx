@@ -850,9 +850,9 @@ export default function Onboarding() {
         { url: "/images/style-examples/innovator/experimental-art.jpg", caption: "Artistic Expression" }
       ],
       classic: [
-        { url: "/images/style-examples/classic/luxury-meeting.jpg", caption: "Refined Business" },
-        { url: "/images/style-examples/classic/cultural-discussion.jpg", caption: "Cultural Engagement" },
-        { url: "/images/style-examples/classic/sophisticated-gathering.jpg", caption: "Elegant Social" }
+        { url: "/images/style-examples/strategist/business-meeting.jpg", caption: "Refined Business" },
+        { url: "/images/style-examples/strategist/office-collaboration.jpg", caption: "Cultural Engagement" },
+        { url: "/images/style-examples/strategist/presentation.jpg", caption: "Elegant Social" }
       ],
       wanderer: [
         { url: "/images/style-examples/wanderer/nature-art.jpg", caption: "Natural Creativity" },
