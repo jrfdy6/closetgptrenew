@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -474,7 +474,7 @@ export default function Onboarding() {
   }, [user, authLoading]);
 
   // Filter questions based on gender
-  const getFilteredQuestions = (genderOverride?: string): QuizQuestion[] => {
+  const getFilteredQuestions = useCallback((genderOverride?: string): QuizQuestion[] => {
     const currentGender = genderOverride || userGender;
     
     const filtered = QUIZ_QUESTIONS.filter(question => {
@@ -513,21 +513,21 @@ export default function Onboarding() {
     });
     
     return filtered;
-  };
+  }, [userGender]);
 
-  const [questions, setQuestions] = React.useState<QuizQuestion[]>([]);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
 
   // Initialize questions on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     const initialQuestions = getFilteredQuestions();
     setQuestions(initialQuestions);
-  }, []);
+  }, [getFilteredQuestions]);
 
-  // Update questions when gender changes
-  React.useEffect(() => {
+  // Update questions when gender changes  
+  useEffect(() => {
     const newQuestions = getFilteredQuestions(userGender);
     setQuestions(newQuestions);
-  }, [userGender]);
+  }, [userGender, getFilteredQuestions]);
 
   const nextStep = () => {
     if (currentQuestionIndex < questions.length - 1) {
