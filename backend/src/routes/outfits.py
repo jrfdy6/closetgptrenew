@@ -231,10 +231,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     # Combine all text for analysis
     item_text = f"{item_name} {item_type} {item_description} {item_material}"
     
-    global exclusion_debug
-    
-    print(f"🔍 EXCLUSION DEBUG: Checking {item.get('name', 'unnamed')} for {style}")
-    print(f"🔍 EXCLUSION DEBUG: item_text = '{item_text}'")
+    # Style exclusion logic
     
     # Define hard exclusions for specific styles
     exclusion_rules = {
@@ -261,29 +258,10 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     rules = exclusion_rules[style]
     
     # Check for exclusion indicators
-    exclusion_debug.append({
-        "item_name": item.get('name', 'unnamed'),
-        "style": style,
-        "item_text": item_text,
-        "checking_indicators": list(rules.values())
-    })
-    
     for category, indicators in rules.items():
         for indicator in indicators:
             if indicator in item_text:
-                exclusion_debug.append({
-                    "item_name": item.get('name', 'unnamed'),
-                    "exclusion_reason": f"{indicator} inappropriate for {style}",
-                    "matched_indicator": indicator,
-                    "category": category
-                })
-                print(f"🚫 EXCLUSION MATCH: {indicator} found in {item_text}")
                 return f"{indicator} inappropriate for {style}"
-    
-    exclusion_debug.append({
-        "item_name": item.get('name', 'unnamed'),
-        "result": "no exclusion - item passes hard filter"
-    })
     
     return None
 
@@ -376,9 +354,6 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Real outfit generation logic using user's wardrobe and AI recommendations."""
-    print(f"🔎 MAIN LOGIC ENTRY: Starting generation for user {user_id}")
-    print(f"🔎 MAIN LOGIC ENTRY: Request - style: {req.style}, mood: {req.mood}, occasion: {req.occasion}")
-    
     # Import Firebase inside function to prevent import-time crashes
     try:
         from ..config.firebase import db, firebase_initialized
@@ -386,10 +361,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         from ..custom_types.profile import UserProfile
         from ..custom_types.outfit import OutfitGeneratedOutfit
         FIREBASE_AVAILABLE = True
-        print(f"🔎 MAIN LOGIC: Firebase imports successful")
     except ImportError as e:
         logger.warning(f"⚠️ Firebase import failed: {e}")
-        print(f"🚨 MAIN LOGIC: Firebase import FAILED: {e}")
         FIREBASE_AVAILABLE = False
         db = None
         firebase_initialized = False
@@ -427,19 +400,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # In the future, we could suggest alternatives or reject the request
         
         # 3. Generate outfit using rule-based decision tree
-        logger.info(f"🔍 DEBUG: About to call generate_rule_based_outfit with {len(wardrobe_items)} items")
-        logger.info(f"🔍 DEBUG: Base item ID in request: {req.baseItemId}")
-        print(f"🔎 MAIN LOGIC: About to call rule-based generation")
+        logger.info(f"🔍 Calling rule-based generation with {len(wardrobe_items)} items")
+        
         try:
             outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
-            print(f"🔎 MAIN LOGIC: Rule-based generation succeeded")
+            logger.info(f"✅ Rule-based generation completed: {outfit.get('name', 'Unknown')}")
         except Exception as rule_exception:
-            print(f"🔎 MAIN LOGIC: Rule-based generation FAILED with exception: {rule_exception}")
-            logger.error(f"🔎 MAIN LOGIC: Rule-based generation FAILED: {rule_exception}")
+            logger.error(f"❌ Rule-based generation failed: {rule_exception}")
+            logger.exception("Rule-based exception:")
             raise rule_exception
-        logger.info(f"✨ Generated outfit: {outfit['name']}")
-        logger.info(f"🔍 DEBUG: Outfit items count: {len(outfit.get('items', []))}")
-        logger.info(f"🔍 DEBUG: Outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
         
         # Check if outfit generation was successful
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
@@ -461,8 +430,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     except Exception as e:
         logger.error(f"⚠️ Outfit generation failed with exception: {e}")
         logger.exception("Full traceback:")
-        print(f"🚨 EXCEPTION IN MAIN LOGIC: {e}")
-        print(f"🚨 Exception type: {type(e).__name__}")
+        # Exception logged above
         # Fallback to basic generation if rule-based generation fails
         return await generate_fallback_outfit(req, user_id)
 
@@ -1889,52 +1857,21 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             }
         }
 
-debug_data = []  # Global debug data collector
-exclusion_debug = []  # Global exclusion debug data
-
-def debug_rule_engine(stage: str, wardrobe_items=None, suitable=None, categorized=None, scores=None, validated=None):
-    try:
-        debug_info = {
-            "stage": stage,
-            "wardrobe_count": len(wardrobe_items) if wardrobe_items is not None else None,
-            "suitable_count": len(suitable) if suitable is not None else None,
-            "categorized_keys": list(categorized.keys()) if categorized else None,
-            "scores_count": len(scores) if scores is not None else None,
-            "validated_count": len(validated) if validated is not None else None,
-        }
-        debug_data.append(debug_info)
-        print("🔎 RULE ENGINE DEBUG:", debug_info)
-        logger.info(f"🔎 RULE ENGINE DEBUG: {debug_info}")
-    except Exception as e:
-        error_info = {"stage": stage, "error": str(e)}
-        debug_data.append(error_info)
-        print("⚠️ DEBUG ERROR:", e)
-        logger.error(f"⚠️ DEBUG ERROR: {e}")
+# Clean rule-based generation without debug overhead
 
 async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
     """Generate outfit using rule-based decision tree and user's wardrobe."""
     try:
         logger.info(f"🎯 Generating rule-based outfit with {len(wardrobe_items)} items")
         
-        # Clear previous debug data
-        global debug_data, exclusion_debug
-        debug_data = []
-        exclusion_debug = []
-        
-        # DEBUG: Start stage
-        debug_rule_engine("start", wardrobe_items=wardrobe_items)
-        # Reduced logging to prevent Railway rate limits
-        logger.info(f"🔍 DEBUG: User profile keys: {list(user_profile.keys()) if user_profile else 'None'}")
-        logger.info(f"🔍 DEBUG: Request: style={req.style}, occasion={req.occasion}, baseItemId={req.baseItemId}")
+        # Extract user_id for processing
+        user_id = user_profile.get('id', 'unknown') if user_profile else 'unknown'
         
         # Rule-based outfit selection using sophisticated decision tree
         
                 # ENHANCED: Sophisticated style preference filtering with scoring
         suitable_items = []
         item_scores = {}  # Track scores for each item
-        
-        # DEBUG: After initialization
-        debug_rule_engine("after_init", suitable=suitable_items, scores=item_scores)
         
         # ENHANCED: Ensure all wardrobe items have required fields for ClothingItem validation
         for item in wardrobe_items:
@@ -1965,18 +1902,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Reduced logging to prevent Railway rate limits
         logger.info(f"🔍 DEBUG: Filtering {len(wardrobe_items)} items for {req.style}/{req.occasion}")
         
-        # DEBUG: Before scoring loop
-        def debug_scores(stage: str, items):
-            try:
-                print("🎯 SCORING DEBUG:", {
-                    "stage": stage,
-                    "input_items": [i.get("id") for i in items] if items else None,
-                    "input_count": len(items) if items else 0,
-                })
-            except Exception as e:
-                print("⚠️ SCORE DEBUG ERROR:", e)
-        
-        debug_scores("before_scoring_loop", wardrobe_items)
+        # Process wardrobe items for scoring
         
         for item in wardrobe_items:
             # Skip base item since it's already been added
@@ -2008,26 +1934,12 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             
             # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
             hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
-            print(f"🔍 EXCLUSION CHECK: {item.get('name', 'unnamed')} for {req.style} - result: {hard_exclusions}")
-            print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
-            print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={item.get('id')}, isBaseItem={req.baseItemId and item.get('id') == req.baseItemId}")
-            
-            # Check exclusion condition explicitly
+            # Check exclusion condition
             is_base_item = req.baseItemId and item.get('id') == req.baseItemId
-            should_exclude = hard_exclusions is not None and not is_base_item
             
-            print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
-            
-            if should_exclude:
-                print(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
-                print(f"🚫 EXECUTING CONTINUE: About to skip {item.get('name', 'unnamed')} - this item should NOT appear in final outfit")
-                logger.info(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
+            if hard_exclusions and not is_base_item:
+                logger.info(f"🚫 Excluded: {item.get('name', 'unnamed')} - {hard_exclusions}")
                 continue
-                print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
-            elif hard_exclusions:
-                print(f"🛡️ EXCLUSION BYPASSED: {item.get('name', 'unnamed')} is base item, allowing despite exclusion")
-            else:
-                print(f"✅ EXCLUSION PASSED: {item.get('name', 'unnamed')} has no exclusions for {req.style}")
             
             # 1. Core Style Matching (Primary filter - must pass)
             # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
@@ -2159,16 +2071,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 item_id = item.get('id', item.get('name', 'unknown'))
                 item_scores[item_id] = item_score
                 suitable_items.append(item)
-                print(f"✅ SCORED: {item.get('name', 'unnamed')} (ID: {item_id}) = {item_score} points")
-                print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
-                logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} is suitable with score: {item_score}")
+                logger.info(f"✅ Item scored: {item.get('name', 'unnamed')} = {item_score} points")
             else:
-                print(f"❌ REJECTED: {item.get('name', 'unnamed')} failed core style/occasion criteria")
-                logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} failed core style/occasion criteria")
+                logger.info(f"❌ Item rejected: {item.get('name', 'unnamed')} (failed style/occasion criteria)")
         
-        # DEBUG: After scoring loop
-        debug_scores("after_scoring_loop", suitable_items)
-        print(f"🎯 Final item_scores: {item_scores}")
+        # Scoring complete
         
         # ENHANCED: Sort items by preference score for better selection
         if suitable_items and item_scores:
@@ -2195,9 +2102,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                     hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
                     if not hard_exclusions or (req.baseItemId and item.get('id') == req.baseItemId):
                         additional_items.append(item)
-                        print(f"➕ ADDITIONAL: {item.get('name', 'unnamed')} passes exclusion filter")
+                        logger.info(f"➕ Additional item: {item.get('name', 'unnamed')}")
                     else:
-                        print(f"🚫 ADDITIONAL EXCLUDED: {item.get('name', 'unnamed')} - {hard_exclusions}")
+                        logger.info(f"🚫 Additional excluded: {item.get('name', 'unnamed')}")
             
             random.shuffle(additional_items)
             suitable_items.extend(additional_items[:10])
@@ -2215,9 +2122,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
                 if not hard_exclusions or (req.baseItemId and item.get('id') == req.baseItemId):
                     emergency_items.append(item)
-                    print(f"🆘 EMERGENCY: {item.get('name', 'unnamed')} passes exclusion for emergency use")
+                    logger.info(f"🆘 Emergency item: {item.get('name', 'unnamed')}")
                 else:
-                    print(f"🚫 EMERGENCY EXCLUDED: {item.get('name', 'unnamed')} - {hard_exclusions}")
+                    logger.info(f"🚫 Emergency excluded: {item.get('name', 'unnamed')}")
             
             suitable_items = emergency_items[:4]  # Take first 4 exclusion-filtered items
             logger.warning(f"⚠️ DEBUG: Using {len(suitable_items)} emergency items (exclusion-filtered)")
@@ -2266,29 +2173,16 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 logger.error(f"❌ DEBUG: Looking for base item ID: {req.baseItemId}")
                 logger.error(f"❌ DEBUG: First few suitable item IDs: {[item.get('id') for item in suitable_items[:5]]}")
         
-        # Count categorized items for debug
-        categorized_counts = {}
-        for item in suitable_items:
-            item_type = item.get('type', '').lower()
-            category = get_item_category(item_type)
-            categorized_counts[category] = categorized_counts.get(category, 0) + 1
-        
-        # DEBUG: Before validation
-        debug_rule_engine("before_validation", suitable=suitable_items, categorized=categorized_counts, scores=item_scores)
+        # Prepare for validation
 
         # Validate and ensure complete outfit composition
         try:
-            print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
             validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
-            print(f"✅ VALIDATION: Successfully validated outfit, got {len(validated_items)} items")
+            logger.info(f"✅ Validation successful: {len(validated_items)} items")
         except Exception as validation_error:
-            print(f"❌ VALIDATION FAILED: {validation_error}")
             logger.error(f"Outfit validation failed: {validation_error}")
             # Use suitable items as-is if validation fails
-            validated_items = suitable_items[:4]  # Take first 4 items as fallback
-        
-        # DEBUG: After validation
-        debug_rule_engine("after_validation", validated=validated_items)
+            validated_items = suitable_items[:4]
         
         logger.info(f"🔍 DEBUG: After validation: {len(validated_items)} items")
         
@@ -2353,31 +2247,21 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             if len(outfit_items) <= 3:  # Only log first few items
                 logger.info(f"🔍 DEBUG: Item {outfit_item['name']} - URL: {image_url[:50]}...")
         
-        # Calculate comprehensive outfit score
+        # Calculate outfit score
         try:
-            print(f"🔍 SCORING: About to calculate outfit score...")
             outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation, user_id)
-            print(f"✅ SCORING: Successfully calculated outfit score: {outfit_score}")
-            logger.info(f"🔍 DEBUG: Calculated outfit score: {outfit_score}")
+            logger.info(f"✅ Calculated outfit score: {outfit_score.get('total_score', 'N/A')}")
         except Exception as score_error:
-            print(f"❌ SCORING FAILED: {score_error}")
             logger.error(f"Outfit scoring failed: {score_error}")
-            # Use default score if scoring fails
             outfit_score = {"total_score": 0.7}
         
-        # Final debug logging
-        logger.info(f"🎯 DEBUG: Final outfit items: {[item.get('name', 'Unknown') for item in outfit_items]}")
-        logger.info(f"🎯 DEBUG: Final outfit item IDs: {[item.get('id', 'Unknown') for item in outfit_items]}")
+        # Generate outfit name and reasoning
+        outfit_name = await generate_intelligent_outfit_name(outfit_items, req.style, req.mood, req.occasion)
         
-        # Generate intelligent reasoning
         try:
-            print(f"🔍 REASONING: About to generate intelligent reasoning...")
             intelligent_reasoning = await generate_intelligent_reasoning(outfit_items, req, outfit_score, layering_validation, color_material_validation)
-            print(f"✅ REASONING: Successfully generated reasoning")
         except Exception as reasoning_error:
-            print(f"❌ REASONING FAILED: {reasoning_error}")
             logger.error(f"Intelligent reasoning failed: {reasoning_error}")
-            # Use fallback reasoning if generation fails
             intelligent_reasoning = f"Rule-based {req.style} outfit for {req.occasion} with {len(outfit_items)} items"
         
         return {
@@ -2390,8 +2274,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             "score_breakdown": outfit_score,
             "reasoning": intelligent_reasoning,
             "createdAt": datetime.now().isoformat() + 'Z',
-            "debug_exclusions": exclusion_debug.copy() if exclusion_debug else [],  # Include exclusion debug data
-            "debug_rule_engine": debug_data.copy() if debug_data else []  # Include rule engine debug data
+            # Debug data removed for production
         }
         
     except Exception as e:
@@ -2859,42 +2742,25 @@ async def debug_base_item_fix():
         "description": "CLEAN ARCHITECTURE: Base item handling consolidated into ensure_base_item_included() helper function"
     }
 
-@router.get("/debug/rule-engine")
-async def debug_rule_engine_data():
-    """Debug endpoint to check rule engine debug data"""
-    global debug_data
-    return {
-        "debug_data": debug_data,
-        "timestamp": datetime.utcnow().isoformat(),
-        "data_count": len(debug_data)
-    }
+# Debug endpoint removed for production
 
 @router.post("/generate")
 async def generate_outfits_endpoint(
     req: OutfitRequest,
     current_user: UserProfile = Depends(get_current_user)
 ):
-    """Generate outfit using rule-based logic - the missing endpoint that frontend actually calls!"""
-    print(f"🎯 ENDPOINT ENTRY: /api/outfits/generate called successfully!")
-    print(f"🎯 User: {current_user.id}, Style: {req.style}, Mood: {req.mood}, Occasion: {req.occasion}")
-    print(f"🎯 Wardrobe items count: {len(req.resolved_wardrobe)}")
+    """Generate outfit using rule-based logic."""
+    logger.info(f"Generating outfit for user {current_user.id}: {req.style} {req.mood} {req.occasion}")
     
     try:
-        print(f"🎯 CALLING generate_outfit_logic...")
-        # Call the actual rule-based generation logic
+        # Call the rule-based generation logic
         outfit = await generate_outfit_logic(req, current_user.id)
-        
-        print(f"🎯 RULE-BASED SUCCESS: Generated outfit with {len(outfit.get('items', []))} items")
-        print(f"🎯 Reasoning: {outfit.get('reasoning', 'No reasoning')[:50]}...")
+        logger.info(f"✅ Generated outfit: {outfit.get('name', 'Unknown')} with {len(outfit.get('items', []))} items")
         return outfit
         
     except Exception as e:
-        print(f"🚨 ENDPOINT EXCEPTION: {e}")
-        print(f"🚨 Exception type: {type(e).__name__}")
         logger.error(f"Rule-based generation failed: {e}")
-        logger.exception("Full endpoint exception traceback:")
-        # Still have fallback as safety net
-        print(f"🚨 FALLING BACK to generate_fallback_outfit...")
+        logger.exception("Generation exception:")
         return await generate_fallback_outfit(req, current_user.id)
 
 @router.get("/outfit-save-test", response_model=dict)
