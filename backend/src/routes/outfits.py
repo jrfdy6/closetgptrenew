@@ -2020,8 +2020,10 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             
             if should_exclude:
                 print(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
+                print(f"🚫 EXECUTING CONTINUE: About to skip {item.get('name', 'unnamed')} - this item should NOT appear in final outfit")
                 logger.info(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 continue
+                print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
             elif hard_exclusions:
                 print(f"🛡️ EXCLUSION BYPASSED: {item.get('name', 'unnamed')} is base item, allowing despite exclusion")
             else:
@@ -2158,6 +2160,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 item_scores[item_id] = item_score
                 suitable_items.append(item)
                 print(f"✅ SCORED: {item.get('name', 'unnamed')} (ID: {item_id}) = {item_score} points")
+                print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
                 logger.info(f"🔍 DEBUG: Item {item.get('name', 'unnamed')} is suitable with score: {item_score}")
             else:
                 print(f"❌ REJECTED: {item.get('name', 'unnamed')} failed core style/occasion criteria")
