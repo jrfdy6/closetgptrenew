@@ -2012,7 +2012,13 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
             print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={item.get('id')}, isBaseItem={req.baseItemId and item.get('id') == req.baseItemId}")
             
-            if hard_exclusions and not (req.baseItemId and item.get('id') == req.baseItemId):
+            # Check exclusion condition explicitly
+            is_base_item = req.baseItemId and item.get('id') == req.baseItemId
+            should_exclude = hard_exclusions is not None and not is_base_item
+            
+            print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
+            
+            if should_exclude:
                 print(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 logger.info(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 continue
