@@ -132,7 +132,6 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  console.log('🔍 DEBUG: ProfilePage component rendered');
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -142,19 +141,14 @@ export default function ProfilePage() {
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
 
   useEffect(() => {
-    console.log('🔍 DEBUG: useEffect triggered, user:', !!user, 'authLoading:', authLoading);
     if (user && !authLoading) {
-      console.log('🔍 DEBUG: Calling fetchProfile');
       fetchProfile();
     }
   }, [user, authLoading]);
 
   const fetchProfile = async () => {
     try {
-      console.log('🔍 DEBUG: fetchProfile called, user:', !!user);
-      
       if (!user) {
-        console.log('🔍 DEBUG: No user, setting error');
         setError('Please sign in to view your profile');
         setLoading(false);
         return;
@@ -164,40 +158,13 @@ export default function ProfilePage() {
       setError(null);
       
       // Get Firebase ID token for authentication
-      console.log('🔍 DEBUG: Getting Firebase token...');
       const token = await user.getIdToken();
-      console.log('🔍 DEBUG: Got token, length:', token.length);
-      console.log('🔍 DEBUG: Token starts with:', token.substring(0, 20) + '...');
-      
-      // Decode token on client side to see what's in it
-      try {
-        const tokenParts = token.split('.');
-        console.log('🔍 DEBUG: Client - Token parts count:', tokenParts.length);
-        if (tokenParts.length === 3) {
-          // Firebase tokens use URL-safe base64, so we need to convert it
-          const base64Payload = tokenParts[1].replace(/-/g, '+').replace(/_/g, '/');
-          // Add padding if needed
-          const paddedPayload = base64Payload + '='.repeat((4 - base64Payload.length % 4) % 4);
-          const payload = JSON.parse(atob(paddedPayload));
-          console.log('🔍 DEBUG: Client - Token payload:', payload);
-          console.log('🔍 DEBUG: Client - Available payload keys:', Object.keys(payload));
-          console.log('🔍 DEBUG: Client - Email from token:', payload.email);
-          console.log('🔍 DEBUG: Client - User ID from token:', payload.user_id || payload.sub);
-        }
-      } catch (tokenError) {
-        console.log('🔍 DEBUG: Client - Could not decode token:', tokenError);
-      }
-      
-      console.log('🔍 DEBUG: Making fetch request to /api/user/profile');
       const response = await fetch('/api/user/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-      
-      console.log('🔍 DEBUG: Response status:', response.status);
-      console.log('🔍 DEBUG: Response ok:', response.ok);
       
       if (!response.ok) {
         if (response.status === 401) {
@@ -212,19 +179,9 @@ export default function ProfilePage() {
       }
       
       const data = await response.json();
-      console.log('🔍 DEBUG: Response data:', data);
       
       // Handle different response structures - backend returns data directly or nested under 'profile'
       const profileData = data.profile || data;
-      console.log('🔍 DEBUG: Profile data being set:', profileData);
-      console.log('🔍 DEBUG: Profile measurements:', profileData?.measurements);
-      console.log('🔍 DEBUG: Profile stylePreferences:', profileData?.stylePreferences);
-      console.log('🔍 DEBUG: Timestamp values:', {
-        createdAt: profileData.createdAt,
-        created_at: profileData.created_at,
-        updatedAt: profileData.updatedAt,
-        updated_at: profileData.updated_at
-      });
       
       setProfile(profileData);
       setFormData(profileData);
