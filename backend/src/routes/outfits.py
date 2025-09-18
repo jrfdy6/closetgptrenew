@@ -231,6 +231,8 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     # Combine all text for analysis
     item_text = f"{item_name} {item_type} {item_description} {item_material}"
     
+    global exclusion_debug
+    
     print(f"🔍 EXCLUSION DEBUG: Checking {item.get('name', 'unnamed')} for {style}")
     print(f"🔍 EXCLUSION DEBUG: item_text = '{item_text}'")
     
@@ -259,10 +261,29 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     rules = exclusion_rules[style]
     
     # Check for exclusion indicators
+    exclusion_debug.append({
+        "item_name": item.get('name', 'unnamed'),
+        "style": style,
+        "item_text": item_text,
+        "checking_indicators": list(rules.values())
+    })
+    
     for category, indicators in rules.items():
         for indicator in indicators:
             if indicator in item_text:
+                exclusion_debug.append({
+                    "item_name": item.get('name', 'unnamed'),
+                    "exclusion_reason": f"{indicator} inappropriate for {style}",
+                    "matched_indicator": indicator,
+                    "category": category
+                })
+                print(f"🚫 EXCLUSION MATCH: {indicator} found in {item_text}")
                 return f"{indicator} inappropriate for {style}"
+    
+    exclusion_debug.append({
+        "item_name": item.get('name', 'unnamed'),
+        "result": "no exclusion - item passes hard filter"
+    })
     
     return None
 
@@ -1869,6 +1890,7 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
         }
 
 debug_data = []  # Global debug data collector
+exclusion_debug = []  # Global exclusion debug data
 
 def debug_rule_engine(stage: str, wardrobe_items=None, suitable=None, categorized=None, scores=None, validated=None):
     try:
@@ -1895,8 +1917,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         logger.info(f"🎯 Generating rule-based outfit with {len(wardrobe_items)} items")
         
         # Clear previous debug data
-        global debug_data
+        global debug_data, exclusion_debug
         debug_data = []
+        exclusion_debug = []
         
         # DEBUG: Start stage
         debug_rule_engine("start", wardrobe_items=wardrobe_items)
@@ -2328,7 +2351,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             "confidence_score": outfit_score["total_score"],
             "score_breakdown": outfit_score,
             "reasoning": intelligent_reasoning,
-            "createdAt": datetime.now().isoformat() + 'Z'
+            "createdAt": datetime.now().isoformat() + 'Z',
+            "debug_exclusions": exclusion_debug.copy() if exclusion_debug else [],  # Include exclusion debug data
+            "debug_rule_engine": debug_data.copy() if debug_data else []  # Include rule engine debug data
         }
         
     except Exception as e:
