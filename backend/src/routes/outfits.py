@@ -2694,20 +2694,26 @@ async def generate_outfits_endpoint(
     current_user: UserProfile = Depends(get_current_user)
 ):
     """Generate outfit using rule-based logic - the missing endpoint that frontend actually calls!"""
-    print(f"🎯 CORRECT ENDPOINT CALLED: /api/outfits/generate")
+    print(f"🎯 ENDPOINT ENTRY: /api/outfits/generate called successfully!")
     print(f"🎯 User: {current_user.id}, Style: {req.style}, Mood: {req.mood}, Occasion: {req.occasion}")
+    print(f"🎯 Wardrobe items count: {len(req.resolved_wardrobe)}")
     
     try:
+        print(f"🎯 CALLING generate_outfit_logic...")
         # Call the actual rule-based generation logic
         outfit = await generate_outfit_logic(req, current_user.id)
         
         print(f"🎯 RULE-BASED SUCCESS: Generated outfit with {len(outfit.get('items', []))} items")
+        print(f"🎯 Reasoning: {outfit.get('reasoning', 'No reasoning')[:50]}...")
         return outfit
         
     except Exception as e:
-        print(f"🚨 RULE-BASED FAILED: {e}")
+        print(f"🚨 ENDPOINT EXCEPTION: {e}")
+        print(f"🚨 Exception type: {type(e).__name__}")
         logger.error(f"Rule-based generation failed: {e}")
+        logger.exception("Full endpoint exception traceback:")
         # Still have fallback as safety net
+        print(f"🚨 FALLING BACK to generate_fallback_outfit...")
         return await generate_fallback_outfit(req, current_user.id)
 
 @router.get("/outfit-save-test", response_model=dict)
