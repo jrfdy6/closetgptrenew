@@ -30,16 +30,21 @@ def serialize_firestore_doc(doc):
     data = doc.to_dict()
     
     # Convert Firestore Timestamps to ISO strings
-    for key, value in data.items():
-        if isinstance(value, firestore.Timestamp):
-            data[key] = value.isoformat()
-        elif isinstance(value, dict) and 'seconds' in value and 'nanoseconds' in value:
-            # Handle Firestore Timestamp dict format
-            try:
-                timestamp = firestore.Timestamp(seconds=value['seconds'], nanoseconds=value['nanoseconds'])
-                data[key] = timestamp.isoformat()
-            except:
-                pass  # Keep original value if conversion fails
+    try:
+        from firebase_admin import firestore
+        for key, value in data.items():
+            if isinstance(value, firestore.Timestamp):
+                data[key] = value.isoformat()
+            elif isinstance(value, dict) and 'seconds' in value and 'nanoseconds' in value:
+                # Handle Firestore Timestamp dict format
+                try:
+                    timestamp = firestore.Timestamp(seconds=value['seconds'], nanoseconds=value['nanoseconds'])
+                    data[key] = timestamp.isoformat()
+                except:
+                    pass  # Keep original value if conversion fails
+    except ImportError:
+        # If firestore import fails, just return the data as-is
+        pass
     
     return data
 
