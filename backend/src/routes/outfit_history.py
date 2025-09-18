@@ -1144,6 +1144,9 @@ async def get_outfit_history_stats(
         raise
     except Exception as e:
         logger.error(f"Failed to get outfit history stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get outfit history stats: {str(e)}")
+        logger.exception("Full stats exception traceback:")
+        # Return a more detailed error
+        error_msg = str(e) if str(e) else "Unknown error in outfit history stats"
+        raise HTTPException(status_code=500, detail=f"Failed to get outfit history stats: {error_msg}")
 
 # Force redeploy Sun Aug 17 07:23:59 EDT 2025
