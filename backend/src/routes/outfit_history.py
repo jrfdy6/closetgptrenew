@@ -1056,86 +1056,91 @@ async def get_outfit_history_stats(
     current_user: UserProfile = Depends(get_current_user),
     days: int = Query(7, description="Number of days to look back for stats")
 ):
-    """Get outfit history statistics for the dashboard."""
+    """Get outfit statistics from the outfits collection for the dashboard."""
     try:
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
         
-        logger.info(f"Getting outfit history stats for user {current_user.id} (last {days} days)")
+        logger.info(f"Getting outfit stats for user {current_user.id} (last {days} days)")
         
-        # Simple stats response for now - avoid complex database queries that might fail
+        # Get database client
+        db = get_db()
+        
+        # Calculate date range for the query
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        start_date = now - timedelta(days=days)
+        
+        # Query outfits created within the specified time range
+        outfits_ref = db.collection("outfits") \
+            .where("userId", "==", current_user.id) \
+            .where("createdAt", ">=", start_date)
+        
+        docs = list(outfits_ref.stream())
+        outfits = []
+        
+        for doc in docs:
+            try:
+                outfit_data = doc.to_dict()
+                outfit_data['id'] = doc.id  # Add document ID
+                outfits.append(outfit_data)
+            except Exception as doc_error:
+                logger.warning(f"Error processing outfit doc {doc.id}: {doc_error}")
+                continue
+        
+        # Also get total outfit count (all time)
+        total_outfits_ref = db.collection("outfits").where("userId", "==", current_user.id)
+        total_docs = list(total_outfits_ref.stream())
+        total_count = len(total_docs)
+        
         stats = {
-            "total_outfits": 0,
-            "outfits_this_week": 0,
+            "total_outfits": total_count,
+            "outfits_this_week": len(outfits),
+            "totalThisWeek": len(outfits),  # Frontend compatibility
             "days_queried": days,
-            "recent_outfits": [],
+            "recent_outfits": outfits[:10],  # Return up to 10 recent outfits
+            "outfits": outfits,  # Full list for debugging
             "date_range": {
-                "start": (datetime.now() - timedelta(days=days)).isoformat(),
-                "end": datetime.now().isoformat()
+                "start": start_date.isoformat(),
+                "end": now.isoformat()
             }
         }
         
-        # Try to get real data, but don't fail if it doesn't work
-        try:
-            db = get_db()
-            history_ref = db.collection('outfit_history').where('user_id', '==', current_user.id)
-            docs = list(history_ref.stream())
-            
-            stats["total_outfits"] = len(docs)
-            
-            # Count recent outfits
-            start_timestamp = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
-            recent_count = 0
-            
-            for doc in docs:
-                try:
-                    history_data = doc.to_dict()
-                    date_worn = history_data.get('date_worn', 0)
-                    
-                    if isinstance(date_worn, str):
-                        try:
-                            date_worn = int(datetime.fromisoformat(date_worn.replace('Z', '+00:00')).timestamp() * 1000)
-                        except:
-                            continue
-                    
-                    if date_worn >= start_timestamp:
-                        recent_count += 1
-                        
-                except Exception:
-                    continue
-            
-            stats["outfits_this_week"] = recent_count
-            logger.info(f"Successfully calculated stats: {recent_count} outfits in last {days} days")
-            
-        except Exception as db_error:
-            logger.warning(f"Database query failed, using default stats: {db_error}")
+        logger.info(f"Successfully calculated outfit stats: {len(outfits)} outfits in last {days} days, {total_count} total")
         
         return {
             "success": True,
             "data": stats,
-            "message": f"Outfit history stats for last {days} days"
+            "message": f"Outfit stats for last {days} days",
+            **stats  # Also return stats at root level for compatibility
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get outfit history stats: {str(e)}")
-        logger.exception("Full stats exception traceback:")
-        # Return a working response even if there's an error
+        logger.error(f"Failed to get outfit stats: {str(e)}")
+        logger.exception("Full outfit stats exception traceback:")
+        
+        # Return a working fallback response
         return {
             "success": False,
             "data": {
                 "total_outfits": 0,
                 "outfits_this_week": 0,
+                "totalThisWeek": 0,
                 "days_queried": days,
                 "recent_outfits": [],
+                "outfits": [],
                 "date_range": {
-                    "start": (datetime.now() - timedelta(days=days)).isoformat(),
-                    "end": datetime.now().isoformat()
+                    "start": (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),
+                    "end": datetime.now(timezone.utc).isoformat()
                 }
             },
             "error": f"Stats calculation failed: {str(e)}",
-            "message": "Using fallback stats due to error"
+            "message": "Using fallback stats due to error",
+            "total_outfits": 0,
+            "outfits_this_week": 0,
+            "totalThisWeek": 0
         }
 
-# Force redeploy Wed Sep 18 14:45:00 EDT 2025 - Dashboard stats fix
+# Force redeploy Wed Sep 18 15:00:00 EDT 2025 - Proper outfits collection stats
