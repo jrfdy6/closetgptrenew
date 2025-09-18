@@ -2204,11 +2204,23 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             logger.info(f"🔍 DEBUG: Extended suitable items to {len(suitable_items)} for variety (exclusion-filtered)")
         
         
-        # If no suitable items, use any available items
+        # If no suitable items, use available items that pass exclusion filter
         if not suitable_items:
-            logger.warning(f"⚠️ DEBUG: No suitable items found, using first 4 items")
-            logger.warning(f"⚠️ DEBUG: This means the AI filtering logic is too restrictive")
-            suitable_items = wardrobe_items[:4]  # Take first 4 items
+            logger.warning(f"⚠️ DEBUG: No suitable items found after filtering")
+            logger.warning(f"⚠️ DEBUG: Trying to find ANY items that pass exclusion filter...")
+            
+            # Apply exclusion filter to emergency fallback items too
+            emergency_items = []
+            for item in wardrobe_items:
+                hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
+                if not hard_exclusions or (req.baseItemId and item.get('id') == req.baseItemId):
+                    emergency_items.append(item)
+                    print(f"🆘 EMERGENCY: {item.get('name', 'unnamed')} passes exclusion for emergency use")
+                else:
+                    print(f"🚫 EMERGENCY EXCLUDED: {item.get('name', 'unnamed')} - {hard_exclusions}")
+            
+            suitable_items = emergency_items[:4]  # Take first 4 exclusion-filtered items
+            logger.warning(f"⚠️ DEBUG: Using {len(suitable_items)} emergency items (exclusion-filtered)")
         else:
             logger.info(f"✅ DEBUG: Found {len(suitable_items)} suitable items")
         
