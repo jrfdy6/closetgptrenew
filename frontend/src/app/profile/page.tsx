@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,6 @@ import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 
-console.log('🔍 DEBUG: Profile page file loaded');
 
 interface UserProfile {
   id?: string;
@@ -144,9 +143,9 @@ export default function ProfilePage() {
     if (user && !authLoading) {
       fetchProfile();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, fetchProfile]);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       if (!user) {
         setError('Please sign in to view your profile');
@@ -183,14 +182,19 @@ export default function ProfilePage() {
       // Handle different response structures - backend returns data directly or nested under 'profile'
       const profileData = data.profile || data;
       
-      setProfile(profileData);
-      setFormData(profileData);
+      // Ensure we have valid profile data before setting state
+      if (profileData && typeof profileData === 'object') {
+        setProfile(profileData);
+        setFormData(profileData);
+      } else {
+        throw new Error('Invalid profile data received from server');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch profile');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const handleSave = async () => {
     try {
