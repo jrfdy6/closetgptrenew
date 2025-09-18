@@ -560,9 +560,9 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         "style": "casual",
         "mood": None,
         "target_counts": {
-            "min_items": 2,
+            "min_items": 3,
             "max_items": 6,
-            "required_categories": ["top", "bottom"]
+            "required_categories": ["top", "bottom", "shoes"]
         }
     }
     
@@ -600,11 +600,12 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     # Fallback to original validation if enhanced validation fails
     logger.warning("⚠️ Enhanced validation failed, falling back to basic validation")
     
-    # Define required categories for different occasions
+    # Define required categories for different occasions - ensure complete outfits
     required_categories = {
-        "casual": ["top", "bottom"],
+        "casual": ["top", "bottom", "shoes"],
         "business": ["top", "bottom", "shoes"],
         "formal": ["top", "bottom", "shoes"],
+        "interview": ["top", "bottom", "shoes"],
         "athletic": ["top", "bottom", "shoes"],
         "beach": ["top", "bottom"],
         "party": ["top", "bottom", "shoes"],
@@ -612,8 +613,8 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         "travel": ["top", "bottom", "shoes"]
     }
     
-    # Get default requirements
-    default_required = ["top", "bottom"]
+    # Get default requirements - ensure complete outfits
+    default_required = ["top", "bottom", "shoes"]
     required = required_categories.get(occasion.lower(), default_required)
     
     logger.info(f"🔍 DEBUG: Required categories for {occasion}: {required}")
