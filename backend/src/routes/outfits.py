@@ -231,6 +231,9 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     # Combine all text for analysis
     item_text = f"{item_name} {item_type} {item_description} {item_material}"
     
+    print(f"🔍 EXCLUSION DEBUG: Checking {item.get('name', 'unnamed')} for {style}")
+    print(f"🔍 EXCLUSION DEBUG: item_text = '{item_text}'")
+    
     # Define hard exclusions for specific styles
     exclusion_rules = {
         'athleisure': {
@@ -1982,7 +1985,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             
             # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
             hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
+            print(f"🔍 EXCLUSION CHECK: {item.get('name', 'unnamed')} for {req.style} - result: {hard_exclusions}")
             if hard_exclusions and not (req.baseItemId and item.get('id') == req.baseItemId):
+                print(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 logger.info(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 continue
             
