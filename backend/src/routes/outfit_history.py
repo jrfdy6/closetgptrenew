@@ -1138,4 +1138,4 @@ async def get_outfit_history_stats(
             "message": "Using fallback stats due to error"
         }
 
-# Force redeploy Sun Aug 17 07:23:59 EDT 2025
+# Force redeploy Wed Sep 18 14:45:00 EDT 2025 - Dashboard stats fix
