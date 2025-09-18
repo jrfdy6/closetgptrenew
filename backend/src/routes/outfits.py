@@ -221,6 +221,107 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
     logger.info(f"🎯 Style filtering for {style}: {len(filtered_items)}/{len(items)} items kept")
     return filtered_items
 
+def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]:
+    """Check if an item should be hard-excluded from a specific style."""
+    item_name = item.get('name', '').lower()
+    item_type = item.get('type', '').lower()
+    item_description = item.get('description', '').lower()
+    item_material = item.get('material', '').lower()
+    
+    # Combine all text for analysis
+    item_text = f"{item_name} {item_type} {item_description} {item_material}"
+    
+    # Define hard exclusions for specific styles
+    exclusion_rules = {
+        'athleisure': {
+            'formal_indicators': ['formal', 'business', 'dress pants', 'suit', 'blazer', 'dress shirt', 'tie', 'oxford', 'dress shoes', 'heels'],
+            'formal_materials': ['wool suit', 'silk tie', 'dress wool'],
+            'formal_types': ['dress shirt', 'dress pants', 'suit jacket', 'blazer', 'tie', 'dress shoes']
+        },
+        'formal': {
+            'casual_indicators': ['athletic', 'sport', 'gym', 'workout', 'jogger', 'sweat', 'hoodie', 'sneaker'],
+            'casual_materials': ['jersey', 'fleece', 'athletic'],
+            'casual_types': ['hoodie', 'sweatshirt', 'joggers', 'sweatpants', 'sneakers', 'athletic shoes']
+        },
+        'business': {
+            'casual_indicators': ['athletic', 'sport', 'gym', 'workout', 'casual', 'distressed'],
+            'casual_materials': ['jersey', 'fleece', 'athletic'],
+            'casual_types': ['hoodie', 'sweatshirt', 'joggers', 'sneakers', 't-shirt']
+        }
+    }
+    
+    if style not in exclusion_rules:
+        return None
+    
+    rules = exclusion_rules[style]
+    
+    # Check for exclusion indicators
+    for category, indicators in rules.items():
+        for indicator in indicators:
+            if indicator in item_text:
+                return f"{indicator} inappropriate for {style}"
+    
+    return None
+
+def calculate_style_appropriateness_score(style: str, item: Dict[str, Any]) -> int:
+    """Calculate style appropriateness score with heavy penalties for mismatches."""
+    item_name = item.get('name', '').lower()
+    item_type = item.get('type', '').lower()
+    item_description = item.get('description', '').lower()
+    item_material = item.get('material', '').lower()
+    
+    item_text = f"{item_name} {item_type} {item_description} {item_material}"
+    
+    # Define style-specific scoring
+    style_scoring = {
+        'athleisure': {
+            'highly_appropriate': ['athletic', 'sport', 'performance', 'moisture-wicking', 'breathable', 'activewear', 'gym', 'workout', 'running', 'yoga'],
+            'appropriate': ['comfortable', 'stretchy', 'casual', 'relaxed', 'cotton', 'polyester'],
+            'inappropriate': ['formal', 'business', 'dressy', 'structured'],
+            'highly_inappropriate': ['suit', 'blazer', 'dress pants', 'dress shirt', 'tie', 'oxford', 'formal pants', 'dress shoes', 'heels']
+        },
+        'formal': {
+            'highly_appropriate': ['formal', 'business', 'professional', 'structured', 'tailored', 'dress', 'suit', 'blazer'],
+            'appropriate': ['classic', 'elegant', 'refined', 'polished'],
+            'inappropriate': ['casual', 'relaxed', 'distressed'],
+            'highly_inappropriate': ['athletic', 'sport', 'gym', 'workout', 'hoodie', 'sweatshirt', 'joggers', 'sneakers']
+        },
+        'casual': {
+            'highly_appropriate': ['casual', 'comfortable', 'relaxed', 'everyday', 'versatile'],
+            'appropriate': ['cotton', 'denim', 'jersey', 'soft'],
+            'inappropriate': ['formal', 'business', 'dressy'],
+            'highly_inappropriate': ['suit', 'tie', 'dress pants', 'very formal']
+        }
+    }
+    
+    if style not in style_scoring:
+        return 0  # Neutral score for unknown styles
+    
+    scoring = style_scoring[style]
+    total_score = 0
+    
+    # Check for highly appropriate indicators (+30 points)
+    for indicator in scoring.get('highly_appropriate', []):
+        if indicator in item_text:
+            total_score += 30
+            
+    # Check for appropriate indicators (+15 points)
+    for indicator in scoring.get('appropriate', []):
+        if indicator in item_text:
+            total_score += 15
+            
+    # Check for inappropriate indicators (-25 points)
+    for indicator in scoring.get('inappropriate', []):
+        if indicator in item_text:
+            total_score -= 25
+            
+    # Check for highly inappropriate indicators (-50 points)
+    for indicator in scoring.get('highly_inappropriate', []):
+        if indicator in item_text:
+            total_score -= 50
+    
+    return total_score
+
 def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str], wardrobe_items: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Ensure base item is included in the outfit if specified."""
     if not base_item_id:
@@ -1879,6 +1980,12 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             item_score = 0
             is_suitable = False
             
+            # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
+            hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
+            if hard_exclusions and not (req.baseItemId and item.get('id') == req.baseItemId):
+                logger.info(f"🚫 HARD EXCLUSION: {item.get('name', 'unnamed')} excluded from {req.style} - {hard_exclusions}")
+                continue
+            
             # 1. Core Style Matching (Primary filter - must pass)
             # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
             if (req.style.lower() in item_style or 
@@ -1888,6 +1995,12 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 
                 is_suitable = True
                 item_score += 50  # Base score for passing core criteria
+                
+                # STYLE APPROPRIATENESS WEIGHTING: Heavy penalties for style mismatches
+                style_appropriateness_score = calculate_style_appropriateness_score(req.style.lower(), item)
+                item_score += style_appropriateness_score
+                if style_appropriateness_score < 0:
+                    logger.info(f"🎯 STYLE PENALTY: {item.get('name', 'unnamed')} gets {style_appropriateness_score} points for {req.style} mismatch")
                 
                 # Special handling for base item that failed core criteria
                 if req.baseItemId and item.get('id') == req.baseItemId and not (req.style.lower() in item_style or req.occasion.lower() in item_occasion or 'versatile' in item_style):
