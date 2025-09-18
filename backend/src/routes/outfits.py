@@ -3448,7 +3448,8 @@ async def generate_outfit(
 
 @router.post("", response_model=OutfitGeneratedOutfit)
 async def create_outfit(
-    request: CreateOutfitRequest
+    request: CreateOutfitRequest,
+    current_user: UserProfile = Depends(get_current_user)
 ):
     """
     Create a custom outfit by manually selecting items from the user's wardrobe.
@@ -3458,10 +3459,10 @@ async def create_outfit(
         logger.info(f"🎨 Creating custom outfit: {request.name}")
         # Reduced logging to prevent rate limits
         
-        # Use the same user ID pattern as the generate route
+        # Use authenticated user
         if not current_user:
             raise HTTPException(status_code=401, detail="Authentication required")
-        current_user_id = current_user.id  # Your actual user ID
+        current_user_id = current_user.id
         
         logger.info(f"🔍 Request data:")
         logger.info(f"  - name: {request.name}")
