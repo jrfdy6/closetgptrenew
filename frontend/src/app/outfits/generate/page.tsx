@@ -461,24 +461,14 @@ export default function OutfitGenerationPage() {
               style: data.style,
               description: data.reasoning,
               items: data.items.map((item: any) => ({
-                ...item,
-                userId: user.uid,  // Required: inject from Firebase auth
-                subType: item.subType || item.category || item.type || "item",  // Required: fallback chain
-                style: [data.style] || ["casual"],  // Required: List[str] from parent outfit
-                occasion: [data.occasion || formData.occasion] || ["casual"],  // Required: List[str] from parent
-                imageUrl: item.imageUrl || item.image_url || item.image || "",  // Normalize image field
-                color: item.color || "unknown",  // Ensure color is provided
-                type: item.type || "item",  // Ensure type is provided
-                
-                // Required ClothingItem fields that were missing:
-                season: ["All"],                               // fallback if no season logic yet
-                tags: [],                                      // default empty array
-                dominantColors: [],                            // default empty array
-                matchingColors: [],                            // default empty array
-                createdAt: new Date().toISOString(),      // ISO timestamp for consistency
-                updatedAt: new Date().toISOString(),      // ISO timestamp for consistency
+                id: item.id,
+                name: item.name,
+                category: item.category || item.type,
+                color: item.color,
+                imageUrl: item.imageUrl || "",
+                user_id: user.uid
               })),
-              createdAt: new Date().toISOString()
+              createdAt: Math.floor(Date.now() / 1000)  // Unix timestamp as integer
             }),
           });
           
