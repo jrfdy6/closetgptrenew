@@ -920,7 +920,7 @@ async def get_outfit_history_stats(
         
         # Query outfits created within the specified time range
         outfits_ref = db.collection("outfits") \
-            .where("userId", "==", current_user.id) \
+            .where("user_id", "==", current_user.id) \
             .where("createdAt", ">=", start_date)
         
         docs = list(outfits_ref.stream())
@@ -936,7 +936,7 @@ async def get_outfit_history_stats(
                 continue
         
         # Also get total outfit count (all time)
-        total_outfits_ref = db.collection("outfits").where("userId", "==", current_user.id)
+        total_outfits_ref = db.collection("outfits").where("user_id", "==", current_user.id)
         total_docs = list(total_outfits_ref.stream())
         total_count = len(total_docs)
         
