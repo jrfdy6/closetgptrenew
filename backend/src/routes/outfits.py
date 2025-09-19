@@ -3437,6 +3437,13 @@ async def generate_outfit(
         logger.info(f"🧹 Cleaned outfit record: {clean_outfit_record}")
         save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
         logger.info(f"💾 Save operation result: {save_result}")
+        
+        # Update user stats (async, don't fail if it errors)
+        try:
+            from ..services.user_stats_service import user_stats_service
+            await user_stats_service.update_outfit_stats(current_user_id, "created", clean_outfit_record)
+        except Exception as stats_error:
+            logger.warning(f"Stats update failed: {stats_error}")
 
         # 4. Return standardized outfit response
         logger.info(f"✅ Successfully generated and saved outfit {outfit_id}")
@@ -3517,6 +3524,13 @@ async def create_outfit(
             if db:
                 db.collection('outfits').document(outfit_id).set(clean_outfit_data)
                 logger.info(f"✅ Saved outfit {outfit_id} to Firestore")
+                
+                # Update user stats (async, don't fail if it errors)
+                try:
+                    from ..services.user_stats_service import user_stats_service
+                    await user_stats_service.update_outfit_stats(current_user_id, "created", clean_outfit_data)
+                except Exception as stats_error:
+                    logger.warning(f"Stats update failed: {stats_error}")
             else:
                 logger.warning("⚠️ Firebase not available, outfit not saved to database")
         except Exception as save_error:
