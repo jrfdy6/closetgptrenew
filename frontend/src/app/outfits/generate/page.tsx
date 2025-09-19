@@ -470,7 +470,7 @@ export default function OutfitGenerationPage() {
                 imageUrl: item.imageUrl || "",
                 user_id: user.uid
               })),
-              createdAt: new Date().toISOString()  // ISO timestamp to match existing outfits
+              // createdAt: Math.floor(Date.now() / 1000)  // Let backend handle timestamp
             }),
           });
           
