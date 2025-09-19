@@ -3649,6 +3649,11 @@ async def rate_outfit(
             raise HTTPException(status_code=400, detail="At least one form of feedback is required (rating, like, dislike, or comment)")
         
         # Update outfit with rating data
+        try:
+            from ..config.firebase import db
+        except ImportError:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+            
         outfit_ref = db.collection('outfits').document(outfit_id)
         outfit_doc = outfit_ref.get()
         
