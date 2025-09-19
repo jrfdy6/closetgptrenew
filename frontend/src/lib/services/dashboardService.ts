@@ -150,20 +150,27 @@ class DashboardService {
     try {
       console.log('🔍 DEBUG: Fetching dashboard data...');
       
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Dashboard data fetch timeout')), 15000)
+      );
+      
       // Fetch data from multiple endpoints in parallel using frontend API routes
-      const [
-        wardrobeStats,
-        outfitHistory,
-        trendingStyles,
-        todaysOutfit,
-        topWornItems
-      ] = await Promise.all([
+      const dataPromise = Promise.all([
         this.getWardrobeStats(user),
         this.getOutfitHistory(user),
         this.getTrendingStyles(user),
         this.getTodaysOutfit(user),
         this.getTopWornItems(user)
       ]);
+      
+      const [
+        wardrobeStats,
+        outfitHistory,
+        trendingStyles,
+        todaysOutfit,
+        topWornItems
+      ] = await Promise.race([dataPromise, timeoutPromise]) as any[];
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
 
@@ -308,12 +315,38 @@ class DashboardService {
       
       console.log('🔍 DEBUG: Outfit history stats response:', response);
       
+      // Check if the response is successful, if not return fallback data
+      if (response && response.success === false) {
+        console.warn('⚠️ DEBUG: Outfit history stats failed, using fallback data');
+        return {
+          success: true,
+          data: {
+            total_outfits: response.total_outfits || 0,
+            outfits_this_week: response.outfits_this_week || 0,
+            totalThisWeek: response.totalThisWeek || 0
+          },
+          total_outfits: response.total_outfits || 0,
+          outfits_this_week: response.outfits_this_week || 0,
+          totalThisWeek: response.totalThisWeek || 0
+        };
+      }
+      
       // Return the stats object with outfitsThisWeek count
       return response;
     } catch (error) {
       console.error('Error fetching outfit history:', error);
-      // Return empty array for production when backend is not ready
-      return [];
+      // Return fallback data with zero counts
+      return {
+        success: true,
+        data: {
+          total_outfits: 0,
+          outfits_this_week: 0,
+          totalThisWeek: 0
+        },
+        total_outfits: 0,
+        outfits_this_week: 0,
+        totalThisWeek: 0
+      };
     }
   }
 
