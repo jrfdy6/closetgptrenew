@@ -107,7 +107,7 @@ export class OutfitService {
     try {
       console.log('🔍 [OutfitService] Getting user outfits directly from Firestore');
       
-      // Build query
+      // Build query - check both possible user ID field names
       let outfitsQuery = query(
         collection(db, this.COLLECTION_NAME),
         where('user_id', '==', user.uid)
@@ -344,8 +344,8 @@ export class OutfitService {
               
               if (itemDoc.exists()) {
                 const itemData = itemDoc.data();
-                // Verify ownership
-                if (itemData.user_id === user.uid) {
+                // Verify ownership - check both possible field names
+                if (itemData.user_id === user.uid || itemData.userId === user.uid) {
                   const currentWearCount = itemData.wearCount || 0;
                   await updateDoc(itemRef, {
                     wearCount: currentWearCount + 1,
