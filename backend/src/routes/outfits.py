@@ -3467,7 +3467,7 @@ async def test_outfit_creation(
     except Exception as e:
         return {"error": str(e), "success": False}
 
-@router.post("", response_model=OutfitGeneratedOutfit)
+@router.post("")
 async def create_outfit(
     request: CreateOutfitRequest,
     current_user: UserProfile = Depends(get_current_user)
@@ -3545,7 +3545,17 @@ async def create_outfit(
         logger.info(f"🔍 DEBUG: Created outfit name='{outfit_data['name']}' style='{outfit_data['style']}' occasion='{outfit_data['occasion']}'")
         logger.info(f"📊 DEBUG: Outfit contains {len(outfit_data['items'])} items")
         
-        return outfit_data
+        # Return simplified response
+        return {
+            "success": True,
+            "id": outfit_data["id"],
+            "name": outfit_data["name"],
+            "items": outfit_data["items"],
+            "style": outfit_data["style"],
+            "occasion": outfit_data["occasion"],
+            "description": outfit_data.get("description", ""),
+            "createdAt": outfit_data["createdAt"]
+        }
         
     except Exception as e:
         logger.error(f"❌ Error creating custom outfit: {str(e)}", exc_info=True)

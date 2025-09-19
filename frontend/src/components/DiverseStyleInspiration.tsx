@@ -314,3 +314,4 @@ export default function DiverseStyleInspiration({ className = '' }: DiverseStyle
     </div>
   );
 }
+

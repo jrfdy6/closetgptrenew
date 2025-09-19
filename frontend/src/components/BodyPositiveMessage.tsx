@@ -66,3 +66,4 @@ export function useBodyPositiveMessage(variant: keyof typeof BODY_POSITIVE_MESSA
   const messages = BODY_POSITIVE_MESSAGES[variant];
   return messages[Math.floor(Math.random() * messages.length)];
 }
+
