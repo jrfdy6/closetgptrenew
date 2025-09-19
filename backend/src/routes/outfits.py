@@ -3450,23 +3450,6 @@ async def generate_outfit(
         raise HTTPException(status_code=500, detail=f"Failed to generate outfit: {str(e)}")
 
 
-@router.post("/test-creation")
-async def test_outfit_creation(
-    request: CreateOutfitRequest,
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """Test outfit creation endpoint for debugging."""
-    try:
-        return {
-            "success": True,
-            "message": "Test endpoint working",
-            "user_id": current_user.id if current_user else "no_user",
-            "request_name": request.name,
-            "request_items_count": len(request.items)
-        }
-    except Exception as e:
-        return {"error": str(e), "success": False}
-
 @router.post("")
 async def create_outfit(
     request: CreateOutfitRequest,
