@@ -3484,7 +3484,7 @@ async def create_outfit(
             "description": request.description or "",
             "items": request.items,
             "user_id": current_user_id,  # Use snake_case to match database schema
-            "createdAt": request.createdAt or int(time.time()),
+            "createdAt": request.createdAt or datetime.utcnow().isoformat() + "Z",
             "is_custom": True,  # Mark as custom outfit
             "confidence_score": 1.0,  # Custom outfits have full confidence
             "reasoning": f"Custom outfit created by user: {request.description or 'No description provided'}",
