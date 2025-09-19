@@ -3505,11 +3505,23 @@ async def create_outfit(
             "userFeedback": None
         }
         
-        # Clean and save using the same unified save_outfit function
+        # Save outfit to Firestore
         outfit_id = outfit_data["id"]
-        clean_outfit_data = clean_for_firestore(outfit_data)
-        logger.info(f"🧹 Cleaned custom outfit data: name='{clean_outfit_data.get('name', 'unnamed')}', items_count={len(clean_outfit_data.get('items', []))}")
-        await save_outfit(current_user_id, outfit_id, clean_outfit_data)
+        # Simple data cleaning - remove any problematic fields
+        clean_outfit_data = {k: v for k, v in outfit_data.items() if v is not None}
+        logger.info(f"🧹 Prepared outfit data: name='{clean_outfit_data.get('name', 'unnamed')}', items_count={len(clean_outfit_data.get('items', []))}")
+        
+        # Save to Firestore directly
+        try:
+            from ..config.firebase import db
+            if db:
+                db.collection('outfits').document(outfit_id).set(clean_outfit_data)
+                logger.info(f"✅ Saved outfit {outfit_id} to Firestore")
+            else:
+                logger.warning("⚠️ Firebase not available, outfit not saved to database")
+        except Exception as save_error:
+            logger.error(f"❌ Failed to save outfit to Firestore: {save_error}")
+            # Don't fail the request, just log the error
         
         # Enhanced logging for debugging
         logger.info(f"✅ Outfit created: {outfit_id} for user {current_user_id}")
