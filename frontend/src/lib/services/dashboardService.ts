@@ -568,22 +568,15 @@ class DashboardService {
   }
 
   private buildStyleCollections(wardrobeStats: any, trendingStyles: any): StyleCollection[] {
-    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats:', wardrobeStats);
-    console.log('🔍 DEBUG: buildStyleCollections - wardrobeStats.items:', wardrobeStats.items);
-    
     // Use individual items from /wardrobe/ endpoint
     const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
     
-    console.log('🔍 DEBUG: Using individual items array with length:', items.length);
     if (Array.isArray(items) && items.length > 0) {
       items.forEach((item: any, index: number) => {
-        console.log(`🔍 DEBUG: Processing item ${index}:`, item);
         const type = item.type || 'unknown';
         categories[type] = (categories[type] || 0) + 1;
       });
-    } else {
-      console.log('🔍 DEBUG: No items available, using empty categories');
     }
     
     const collections: StyleCollection[] = [];
