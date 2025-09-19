@@ -449,7 +449,9 @@ export default function OutfitGenerationPage() {
           }
           
           const token = await user.getIdToken();
-          const saveResponse = await fetch('/api/outfits', {
+          
+          // Call the backend creation endpoint directly to ensure proper saving
+          const saveResponse = await fetch('https://closetgptrenew-backend-production.up.railway.app/api/outfits', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
