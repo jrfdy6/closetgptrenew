@@ -4,7 +4,7 @@ export async function GET(req: NextRequest) {
   console.log("🔍 [API] /api/outfits/stats GET route called");
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfits/stats/summary`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfit-history/stats`;
     const authHeader = req.headers.get('authorization');
     console.log("🔍 [API] Proxying to backend URL:", backendUrl);
     console.log("🔍 [API] Authorization header:", authHeader ? `Present (${authHeader.substring(0, 20)}...)` : 'Missing');
