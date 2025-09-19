@@ -150,27 +150,33 @@ class DashboardService {
     try {
       console.log('🔍 DEBUG: Fetching dashboard data...');
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Dashboard data fetch timeout')), 15000)
-      );
-      
-      // Fetch data from multiple endpoints in parallel using frontend API routes
-      const dataPromise = Promise.all([
-        this.getWardrobeStats(user),
-        this.getOutfitHistory(user),
-        this.getTrendingStyles(user),
-        this.getTodaysOutfit(user),
-        this.getTopWornItems(user)
-      ]);
-      
+      // Fetch data with individual timeouts to prevent one slow API from blocking everything
+      const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number, fallback: any) => {
+        try {
+          return await Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Individual timeout')), timeoutMs))
+          ]);
+        } catch (error) {
+          console.warn('API call failed, using fallback:', error);
+          return fallback;
+        }
+      };
+
+      // Fetch data from multiple endpoints with individual timeouts
       const [
         wardrobeStats,
         outfitHistory,
         trendingStyles,
         todaysOutfit,
         topWornItems
-      ] = await Promise.race([dataPromise, timeoutPromise]) as any[];
+      ] = await Promise.all([
+        fetchWithTimeout(this.getWardrobeStats(user), 8000, { items: [], total_items: 0 }),
+        fetchWithTimeout(this.getOutfitHistory(user), 8000, { success: true, total_outfits: 0, outfits_this_week: 0, totalThisWeek: 0 }),
+        fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }),
+        fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }),
+        fetchWithTimeout(this.getTopWornItems(user), 8000, { success: true, data: { items: [] } })
+      ]);
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
 
