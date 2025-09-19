@@ -474,15 +474,24 @@ export default function OutfitGenerationPage() {
           
           if (saveResponse.ok) {
             const savedOutfit = await saveResponse.json();
-            // Update the outfit with the new ID
-            setGeneratedOutfit(prev => prev ? {
-              ...prev,
-              id: savedOutfit.id || savedOutfit.outfitId
-            } : null);
-            console.log('🔍 DEBUG: Outfit auto-saved with ID:', savedOutfit.id || savedOutfit.outfitId);
+            console.log('🔍 DEBUG: Save response data:', savedOutfit);
             
-            // Outfit saved successfully - user can now interact with it
-            // No auto-navigation - let user decide when to go to outfits page
+            // Check if the save actually succeeded
+            if (savedOutfit.success !== false && (savedOutfit.id || savedOutfit.outfitId)) {
+              // Update the outfit with the new ID
+              setGeneratedOutfit(prev => prev ? {
+                ...prev,
+                id: savedOutfit.id || savedOutfit.outfitId
+              } : null);
+              console.log('✅ DEBUG: Outfit auto-saved successfully with ID:', savedOutfit.id || savedOutfit.outfitId);
+            } else {
+              console.error('❌ DEBUG: Save response was OK but save failed:', savedOutfit);
+              throw new Error(savedOutfit.error || 'Save failed despite OK response');
+            }
+          } else {
+            const errorData = await saveResponse.json().catch(() => ({}));
+            console.error('❌ DEBUG: Save response not OK:', saveResponse.status, errorData);
+            throw new Error(`Save failed with status ${saveResponse.status}`);
           }
         } catch (err) {
           console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');
