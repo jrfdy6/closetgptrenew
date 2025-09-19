@@ -470,7 +470,7 @@ export default function OutfitGenerationPage() {
                 imageUrl: item.imageUrl || "",
                 user_id: user.uid
               })),
-              createdAt: Math.floor(Date.now() / 1000)  // Unix timestamp as integer
+              createdAt: new Date().toISOString()  // ISO timestamp to match existing outfits
             }),
           });
           
