@@ -55,7 +55,7 @@ export function useOutfits(): UseOutfitsReturn {
   const [error, setError] = useState<string | null>(null);
 
   // Pagination constants
-  const INITIAL_PAGE_SIZE = 20; // Load 20 outfits initially
+  const INITIAL_PAGE_SIZE = 50; // Load 20 outfits initially
   const PAGE_SIZE = 12; // Load 12 more each time
 
   // ===== ERROR HANDLING =====
