@@ -1,7 +1,39 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
+
+def parse_last_worn(ts):
+    """
+    Safely parse lastWorn timestamps into timezone-aware UTC datetimes.
+    Handles both:
+    - Offset-aware ISO strings (with Z or +hh:mm)
+    - Offset-naive ISO strings (assume UTC)
+    Returns None if parsing fails.
+    """
+    if not ts:
+        return None
+    try:
+        if isinstance(ts, str):
+            if ts.endswith("Z"):
+                return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(ts)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        elif hasattr(ts, 'timestamp'):
+            # Firestore timestamp - already timezone aware
+            return ts
+        elif isinstance(ts, datetime):
+            # Already a datetime - ensure timezone aware
+            if ts.tzinfo is None:
+                return ts.replace(tzinfo=timezone.utc)
+            return ts
+        else:
+            return None
+    except Exception as e:
+        logger.warning(f"Failed to parse lastWorn timestamp '{ts}': {e}")
+        return None
 # Firebase imports moved inside functions to prevent import-time crashes
 # from google.cloud import firestore
 # from ..config.firebase import db
@@ -14,14 +46,17 @@ router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
 
 async def calculate_worn_outfits_this_week(user_id: str) -> int:
-    """Calculate how many outfits were worn this week."""
+    """
+    Calculate how many outfits were worn this week.
+    Uses timezone-safe datetime parsing to avoid comparison errors.
+    """
     try:
         from ..config.firebase import db
         if not db:
             return 0
         
-        # Get start of current week (Monday)
-        now = datetime.now()
+        # Get start of current week (Monday) - timezone aware
+        now = datetime.now(timezone.utc)
         week_start = now - timedelta(days=now.weekday())
         week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
         
@@ -32,38 +67,18 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
         docs = outfits_ref.stream()
         for doc in docs:
             data = doc.to_dict()
-            last_worn = data.get('lastWorn')
+            last_worn_raw = data.get('lastWorn')
             
-            if last_worn:
-                # Handle different date formats
-                try:
-                    if hasattr(last_worn, 'timestamp'):
-                        # Firestore timestamp
-                        last_worn_dt = last_worn
-                    elif isinstance(last_worn, str):
-                        # ISO string - handle both Z and +00:00 formats
-                        if last_worn.endswith('Z'):
-                            last_worn_dt = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
-                        else:
-                            last_worn_dt = datetime.fromisoformat(last_worn)
-                    elif isinstance(last_worn, datetime):
-                        # Already a datetime
-                        last_worn_dt = last_worn
-                    else:
-                        continue
-                    
-                    # Ensure timezone aware
-                    if last_worn_dt.tzinfo is None:
-                        from datetime import timezone
-                        last_worn_dt = last_worn_dt.replace(tzinfo=timezone.utc)
-                    
-                    # Count if worn this week
-                    if last_worn_dt >= week_start:
-                        worn_count += 1  # Count each outfit worn, not total wear count
-                        
-                except Exception as date_error:
-                    logger.warning(f"Could not parse lastWorn date for outfit {doc.id}: {date_error}")
-                    continue
+            # Use the safe parser
+            last_worn_dt = parse_last_worn(last_worn_raw)
+            
+            if not last_worn_dt:
+                continue
+            
+            # Safe comparison - both datetimes are now timezone-aware
+            if last_worn_dt >= week_start:
+                worn_count += 1
+                logger.debug(f"Outfit {doc.id} worn this week: {last_worn_dt}")
         
         logger.info(f"Found {worn_count} outfits worn this week for user {user_id}")
         return worn_count
