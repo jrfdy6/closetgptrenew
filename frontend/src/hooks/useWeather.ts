@@ -29,7 +29,7 @@ const FALLBACK_WEATHER: WeatherData = {
 };
 
 export function useWeather(options: UseWeatherOptions = {}): UseWeatherReturn {
-  const { location, autoFetch = false, fallbackLocation = "New York, NY" } = options;
+  const { location, autoFetch = false, fallbackLocation = "Unknown Location" } = options;
   
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -182,7 +182,7 @@ export function useAutoWeather(): UseWeatherReturn & {
       await weatherHook.fetchWeather(`${latitude},${longitude}`);
     } catch (err) {
       console.warn("Could not get location, using fallback:", err);
-      await weatherHook.fetchWeather("New York, NY");
+      await weatherHook.fetchWeather("Unknown Location");
     }
   }, [weatherHook.fetchWeather]);
 

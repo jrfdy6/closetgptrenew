@@ -526,7 +526,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Log weather data for outfit generation
         if req.weather:
-            logger.info(f"🌤️ Weather data for outfit generation: {req.weather.temperature}°F, {req.weather.condition}")
+            try:
+                # Handle both dict and object weather data
+                if isinstance(req.weather, dict):
+                    temp = req.weather.get('temperature', 'unknown')
+                    condition = req.weather.get('condition', 'unknown')
+                else:
+                    temp = getattr(req.weather, 'temperature', 'unknown')
+                    condition = getattr(req.weather, 'condition', 'unknown')
+                logger.info(f"🌤️ Weather data for outfit generation: {temp}°F, {condition}")
+            except Exception as e:
+                logger.warning(f"⚠️ Error accessing weather data: {e}")
         else:
             logger.warning(f"⚠️ No weather data provided for outfit generation")
         
@@ -536,13 +546,33 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             
             # Add weather data to outfit for base item validation
             if req.weather:
-                outfit['weather_data'] = {
-                    'temperature': req.weather.temperature,
-                    'condition': req.weather.condition,
-                    'humidity': req.weather.humidity,
-                    'wind_speed': req.weather.wind_speed,
-                    'precipitation': req.weather.precipitation
-                }
+                try:
+                    # Handle both dict and object weather data
+                    if isinstance(req.weather, dict):
+                        outfit['weather_data'] = {
+                            'temperature': req.weather.get('temperature', 70),
+                            'condition': req.weather.get('condition', 'clear'),
+                            'humidity': req.weather.get('humidity', 65),
+                            'wind_speed': req.weather.get('wind_speed', 5),
+                            'precipitation': req.weather.get('precipitation', 0)
+                        }
+                    else:
+                        outfit['weather_data'] = {
+                            'temperature': getattr(req.weather, 'temperature', 70),
+                            'condition': getattr(req.weather, 'condition', 'clear'),
+                            'humidity': getattr(req.weather, 'humidity', 65),
+                            'wind_speed': getattr(req.weather, 'wind_speed', 5),
+                            'precipitation': getattr(req.weather, 'precipitation', 0)
+                        }
+                except Exception as e:
+                    logger.warning(f"⚠️ Error setting weather data: {e}")
+                    outfit['weather_data'] = {
+                        'temperature': 70,
+                        'condition': 'clear',
+                        'humidity': 65,
+                        'wind_speed': 5,
+                        'precipitation': 0
+                    }
             
             print(f"🔎 MAIN LOGIC: Rule-based generation succeeded")
         except Exception as rule_exception:
