@@ -24,6 +24,8 @@ import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 import OutfitService from '@/lib/services/outfitService';
 import BodyPositiveMessage from '@/components/BodyPositiveMessage';
+import { useAutoWeather } from '@/hooks/useWeather';
+import type { WeatherData } from '@/types/weather';
 
 // Import new enhanced components
 import OutfitGenerationForm from '@/components/ui/outfit-generation-form';
@@ -68,6 +70,7 @@ interface OutfitRating {
 export default function OutfitGenerationPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
+  const { weather, loading: weatherLoading, fetchWeatherByLocation } = useAutoWeather();
   const [baseItem, setBaseItem] = useState<any>(null);
   const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
   const [wardrobeLoading, setWardrobeLoading] = useState(false);
@@ -359,16 +362,43 @@ export default function OutfitGenerationPage() {
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
       
+      // Get real weather data or use fallback
+      let weatherData: WeatherData;
+      if (weather && !weather.fallback) {
+        weatherData = weather;
+      } else {
+        // Try to fetch fresh weather data if we don't have it or it's fallback
+        try {
+          await fetchWeatherByLocation();
+          weatherData = weather || {
+            temperature: 72,
+            condition: formData.weather || "Clear",
+            humidity: 65,
+            wind_speed: 5,
+            location: "Default Location",
+            precipitation: 0,
+            fallback: true
+          };
+        } catch (err) {
+          console.warn("Could not fetch weather, using fallback:", err);
+          weatherData = {
+            temperature: 72,
+            condition: formData.weather || "Clear", 
+            humidity: 65,
+            wind_speed: 5,
+            location: "Default Location",
+            precipitation: 0,
+            fallback: true
+          };
+        }
+      }
+
       // Prepare request data with all required fields
       const requestData = {
         occasion: formData.occasion,
         style: formData.style,
         mood: formData.mood,
-        weather: {
-          temperature: 20, // Default temperature
-          condition: formData.weather || "Sunny",
-          location: "Default"
-        },
+        weather: weatherData,
         wardrobe: Array.isArray(wardrobeItems) ? wardrobeItems : (wardrobeItems as any)?.items || [],
         user_profile: {
           id: user.uid,

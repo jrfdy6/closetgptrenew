@@ -17,8 +17,12 @@ import {
   ArrowRight,
   Wand2,
   Target,
-  Smile
+  Smile,
+  Cloud,
+  AlertCircle
 } from 'lucide-react';
+import { useAutoWeather } from '@/hooks/useWeather';
+import { formatWeatherForDisplay } from '@/lib/weather';
 
 interface OutfitGenerationFormProps {
   formData: {
@@ -54,11 +58,13 @@ export default function OutfitGenerationForm({
   onRemoveBaseItem
 }: OutfitGenerationFormProps) {
   const [activeStep, setActiveStep] = useState(0);
+  const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError } = useAutoWeather();
+  
   const steps = [
     { id: 'occasion', label: 'Occasion', icon: Calendar },
     { id: 'style', label: 'Style', icon: Palette },
     { id: 'mood', label: 'Mood', icon: Smile },
-    { id: 'weather', label: 'Weather', icon: MapPin }
+    { id: 'weather', label: 'Weather', icon: Cloud }
   ];
 
   const isFormValid = formData.occasion && formData.style && formData.mood;
@@ -228,24 +234,93 @@ export default function OutfitGenerationForm({
             </Select>
           </div>
 
-          {/* Weather Selection */}
+          {/* Current Weather Display */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              Weather
+              <Cloud className="h-4 w-4" />
+              Current Weather
             </label>
-            <Select value={formData.weather} onValueChange={(value) => onFormChange('weather', value)}>
-              <SelectTrigger className="h-12">
-                <SelectValue placeholder="What's the weather like?" />
-              </SelectTrigger>
-              <SelectContent>
-                {weatherOptions.map((weather) => (
-                  <SelectItem key={weather} value={weather}>
-                    {weather}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            
+            {weatherLoading ? (
+              <div className="h-12 bg-gray-50 dark:bg-gray-800 rounded-lg border flex items-center justify-center">
+                <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
+                <span className="text-sm text-gray-500">Loading weather...</span>
+              </div>
+            ) : weather ? (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {formatWeatherForDisplay(weather).temperature}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {formatWeatherForDisplay(weather).condition}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      {weather.location}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                      {formatWeatherForDisplay(weather).details.slice(0, 2).map((detail, index) => (
+                        <p key={index}>{detail}</p>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={fetchWeatherByLocation}
+                      disabled={weatherLoading}
+                      className="mt-1 h-6 px-2"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${weatherLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                  </div>
+                </div>
+                {weather.fallback && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Using fallback weather data
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="h-12 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-center">
+                <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
+                <span className="text-sm text-red-600 dark:text-red-400">Weather unavailable</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchWeatherByLocation}
+                  className="ml-2 h-6 px-2"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            
+            {/* Manual Weather Override (Optional) */}
+            <details className="group">
+              <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                Override weather manually (optional)
+              </summary>
+              <div className="mt-2">
+                <Select value={formData.weather} onValueChange={(value) => onFormChange('weather', value)}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Override current weather..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {weatherOptions.map((weather) => (
+                      <SelectItem key={weather} value={weather}>
+                        {weather}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </details>
           </div>
 
           {/* Selected Preferences Display */}

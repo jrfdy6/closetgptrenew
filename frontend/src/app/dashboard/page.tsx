@@ -30,6 +30,8 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
 import EnhancedWardrobeGapAnalysis from '@/components/ui/enhanced-wardrobe-gap-analysis';
+import { WeatherDisplay } from "@/components/WeatherDisplay";
+import LocationSettings from "@/components/LocationSettings";
 
 // Dynamically import components to avoid SSR issues
 const WardrobeStats = dynamic(() => import('@/components/WardrobeStats'), {
@@ -306,6 +308,16 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Weather & Location Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+          <div className="lg:col-span-2">
+            <WeatherDisplay />
+          </div>
+          <div>
+            <LocationSettings />
+          </div>
         </div>
 
         {/* Backend Status Message */}
