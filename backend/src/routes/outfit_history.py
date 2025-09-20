@@ -45,7 +45,7 @@ from ..core.logging import get_logger
 
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
-# Force Railway redeploy - outfit history routes should work
+# Force Railway redeploy - outfit history routes should work - v2
 
 async def calculate_worn_outfits_this_week(user_id: str) -> int:
     """
