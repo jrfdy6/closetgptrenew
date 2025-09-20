@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+
+// Force dynamic rendering since we use request.headers
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Unauthorized',
+          details: 'No authorization token provided'
+        },
+        { status: 401 }
+      );
+    }
+
     // Get the backend URL with fallbacks
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
                       process.env.NEXT_PUBLIC_BACKEND_URL || 
                       'https://closetgptrenew-backend-production.up.railway.app';
-    
-    // Get authentication token from cookies
-    const cookieStore = cookies();
-    const authToken = cookieStore.get('auth_token')?.value;
-    
-    if (!authToken) {
-      return NextResponse.json(
-        { success: false, error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
 
     // Forward request to backend with timeout
     const controller = new AbortController();
@@ -27,8 +31,8 @@ export async function POST(request: NextRequest) {
       const backendResponse = await fetch(`${backendUrl}/api/outfit-history/initialize-stats`, {
         method: 'POST',
         headers: {
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
         },
         signal: controller.signal,
       });
