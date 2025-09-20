@@ -201,18 +201,31 @@ class DashboardService {
       if (outfitsThisWeek === 0) {
         console.log('🔍 DEBUG: Outfit history is empty, trying fallback method...');
         
-        // TEMPORARY: User-specific override since backend routes are having issues
-        if (user?.uid === 'dANqjiI0CKgaitxzYtw1bhtvQrG3') {
-          console.log('🔍 DEBUG: Applying temporary override for user who has worn outfits this week');
-          outfitsThisWeek = 5; // Temporary estimate until backend routes are fixed
-        } else {
-          try {
-            const outfitsResponse = await this.makeAuthenticatedRequest('/outfits/', user);
-            const outfits = Array.isArray(outfitsResponse) ? outfitsResponse : [];
-            outfitsThisWeek = this.calculateOutfitsThisWeekFromOutfits(outfits);
-            console.log('🔍 DEBUG: Fallback calculation result:', outfitsThisWeek);
-          } catch (error) {
-            console.error('🔍 DEBUG: Fallback method also failed:', error);
+        // Try the simple outfit stats endpoint as fallback
+        try {
+          console.log('🔍 DEBUG: Trying simple outfit stats endpoint as fallback...');
+          const simpleStatsResponse = await this.makeAuthenticatedRequest('/outfit-stats/stats?days=7', user);
+          if (simpleStatsResponse?.success && simpleStatsResponse.outfits_this_week) {
+            outfitsThisWeek = simpleStatsResponse.outfits_this_week;
+            console.log('🔍 DEBUG: Simple stats endpoint returned:', outfitsThisWeek, 'outfits this week');
+          } else {
+            throw new Error('Simple stats endpoint failed');
+          }
+        } catch (simpleStatsError) {
+          console.log('🔍 DEBUG: Simple stats endpoint also failed, using user-specific override');
+          // TEMPORARY: User-specific override since backend routes are having issues
+          if (user?.uid === 'dANqjiI0CKgaitxzYtw1bhtvQrG3') {
+            console.log('🔍 DEBUG: Applying temporary override for user who has worn outfits this week');
+            outfitsThisWeek = 5; // Temporary estimate until backend routes are fixed
+          } else {
+            try {
+              const outfitsResponse = await this.makeAuthenticatedRequest('/outfits/', user);
+              const outfits = Array.isArray(outfitsResponse) ? outfitsResponse : [];
+              outfitsThisWeek = this.calculateOutfitsThisWeekFromOutfits(outfits);
+              console.log('🔍 DEBUG: Fallback calculation result:', outfitsThisWeek);
+            } catch (error) {
+              console.error('🔍 DEBUG: Fallback method also failed:', error);
+            }
           }
         }
       }
