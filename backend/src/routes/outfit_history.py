@@ -13,6 +13,64 @@ from ..services.analytics_service import log_analytics_event
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
 
+async def calculate_worn_outfits_this_week(user_id: str) -> int:
+    """Calculate how many outfits were worn this week."""
+    try:
+        from ..config.firebase import db
+        if not db:
+            return 0
+        
+        # Get start of current week (Monday)
+        now = datetime.now()
+        week_start = now - timedelta(days=now.weekday())
+        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Query all user's outfits
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+        
+        worn_count = 0
+        async for doc in outfits_ref.stream():
+            data = doc.to_dict()
+            last_worn = data.get('lastWorn')
+            
+            if last_worn:
+                # Handle different date formats
+                try:
+                    if hasattr(last_worn, 'timestamp'):
+                        # Firestore timestamp
+                        last_worn_dt = last_worn
+                    elif isinstance(last_worn, str):
+                        # ISO string - handle both Z and +00:00 formats
+                        if last_worn.endswith('Z'):
+                            last_worn_dt = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                        else:
+                            last_worn_dt = datetime.fromisoformat(last_worn)
+                    elif isinstance(last_worn, datetime):
+                        # Already a datetime
+                        last_worn_dt = last_worn
+                    else:
+                        continue
+                    
+                    # Ensure timezone aware
+                    if last_worn_dt.tzinfo is None:
+                        from datetime import timezone
+                        last_worn_dt = last_worn_dt.replace(tzinfo=timezone.utc)
+                    
+                    # Count if worn this week
+                    if last_worn_dt >= week_start:
+                        worn_count += 1  # Count each outfit worn, not total wear count
+                        
+                except Exception as date_error:
+                    logger.warning(f"Could not parse lastWorn date for outfit {doc.id}: {date_error}")
+                    continue
+        
+        logger.info(f"Found {worn_count} outfits worn this week for user {user_id}")
+        return worn_count
+        
+    except Exception as e:
+        logger.error(f"Error calculating worn outfits this week: {e}")
+        return 0
+
 # Firebase will be imported inside functions to prevent import-time crashes
 db = None
 
@@ -920,11 +978,14 @@ async def get_outfit_history_stats(
         outfit_stats = stats_data.get("outfits", {})
         wardrobe_stats = stats_data.get("wardrobe", {})
         
+        # Calculate worn outfits this week on-the-fly (until stats are properly tracking this)
+        worn_this_week = await calculate_worn_outfits_this_week(current_user.id)
+        
         # Format for frontend compatibility
         response_stats = {
             "total_outfits": outfit_stats.get("total", 0),
-            "outfits_this_week": outfit_stats.get("worn_this_week", 0),  # Show worn, not created
-            "totalThisWeek": outfit_stats.get("worn_this_week", 0),  # Frontend compatibility
+            "outfits_this_week": worn_this_week,  # Show actual worn count
+            "totalThisWeek": worn_this_week,  # Frontend compatibility
             "days_queried": days,
             "recent_outfits": [],  # Could be populated if needed
             "wardrobe_total": wardrobe_stats.get("total_items", 0),

@@ -383,55 +383,6 @@ class UserStatsService:
                 "favorites": 0
             }
     
-    async def _count_outfits_worn_this_week(self, user_id: str) -> int:
-        """Count how many times outfits were worn this week."""
-        try:
-            if not self.db:
-                return 0
-            
-            # Get start of current week (Monday)
-            now = datetime.now(timezone.utc)
-            week_start = now - timedelta(days=now.weekday())
-            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            
-            # Query outfits that have been worn this week
-            outfits_ref = self.db.collection('outfits').where('user_id', '==', user_id)
-            outfits_ref = outfits_ref.where('lastWorn', '>=', week_start)
-            
-            # Count total wear instances this week
-            worn_count = 0
-            async for doc in outfits_ref.stream():
-                data = doc.to_dict()
-                last_worn = data.get('lastWorn')
-                
-                if last_worn:
-                    # Handle different date formats
-                    if hasattr(last_worn, 'timestamp'):
-                        # Firestore timestamp
-                        last_worn_dt = last_worn
-                    elif isinstance(last_worn, str):
-                        # ISO string
-                        last_worn_dt = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
-                    elif isinstance(last_worn, datetime):
-                        # Already a datetime
-                        last_worn_dt = last_worn
-                    else:
-                        continue
-                    
-                    # Ensure timezone aware
-                    if last_worn_dt.tzinfo is None:
-                        last_worn_dt = last_worn_dt.replace(tzinfo=timezone.utc)
-                    
-                    # Count if worn this week
-                    if last_worn_dt >= week_start:
-                        worn_count += data.get('wearCount', 0)
-            
-            logger.info(f"Counted {worn_count} outfit wears this week for user {user_id}")
-            return worn_count
-            
-        except Exception as e:
-            logger.error(f"Error counting outfits worn this week for user {user_id}: {e}")
-            return 0
 
     def _get_default_stats(self, user_id: str) -> Dict[str, Any]:
         """Return default stats when database is unavailable."""
