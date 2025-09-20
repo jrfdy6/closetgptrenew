@@ -3308,7 +3308,15 @@ async def mark_outfit_as_worn(
             # Don't fail the whole request if history creation fails
             logger.warning(f"⚠️ Failed to create outfit history entry: {history_error}")
         
-        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (updated outfit + wardrobe items + history)")
+        # Update user stats for dashboard counter
+        try:
+            from ..services.user_stats_service import user_stats_service
+            asyncio.create_task(user_stats_service.update_outfit_worn_stats(current_user.id, outfit_id))
+            logger.info(f"📊 Triggered user stats update for dashboard counter")
+        except Exception as stats_error:
+            logger.error(f"❌ Failed to update user stats: {stats_error}")
+        
+        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (updated outfit + wardrobe items + history + stats)")
         
         return {
             "success": True,
