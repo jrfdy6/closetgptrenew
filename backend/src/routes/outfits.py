@@ -4215,26 +4215,43 @@ async def get_outfits_worn_this_week_simple(
             last_worn = outfit_data.get('lastWorn')
             
             if last_worn:
-                # Parse lastWorn date safely
+                # Parse lastWorn date safely - handle multiple formats
                 try:
+                    worn_date = None
+                    
                     if isinstance(last_worn, str):
+                        # Handle ISO string formats
                         worn_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
                     elif hasattr(last_worn, 'timestamp'):
-                        worn_date = last_worn.replace(tzinfo=timezone.utc) if last_worn.tzinfo is None else last_worn
+                        # Firestore Timestamp object - convert to datetime
+                        if hasattr(last_worn, 'timestamp'):
+                            worn_date = datetime.fromtimestamp(last_worn.timestamp(), tz=timezone.utc)
+                        else:
+                            worn_date = last_worn
+                    elif isinstance(last_worn, datetime):
+                        # Already a datetime object
+                        worn_date = last_worn
+                    elif isinstance(last_worn, (int, float)):
+                        # Unix timestamp (seconds or milliseconds)
+                        if last_worn > 1e12:  # Likely milliseconds
+                            worn_date = datetime.fromtimestamp(last_worn / 1000.0, tz=timezone.utc)
+                        else:
+                            worn_date = datetime.fromtimestamp(last_worn, tz=timezone.utc)
                     else:
+                        logger.warning(f"Unknown lastWorn type: {type(last_worn)} - {last_worn}")
                         continue
                     
                     # Ensure timezone aware
-                    if worn_date.tzinfo is None:
+                    if worn_date and worn_date.tzinfo is None:
                         worn_date = worn_date.replace(tzinfo=timezone.utc)
                     
                     # Count if worn this week
-                    if worn_date >= week_start:
+                    if worn_date and worn_date >= week_start:
                         worn_count += 1
                         logger.info(f"📊 Found worn outfit: {outfit_data.get('name', 'Unknown')} worn at {worn_date}")
                         
                 except Exception as parse_error:
-                    logger.warning(f"Could not parse lastWorn date {last_worn}: {parse_error}")
+                    logger.warning(f"Could not parse lastWorn date {last_worn} (type: {type(last_worn)}): {parse_error}")
                     continue
         
         logger.info(f"✅ Found {worn_count} outfits worn this week for user {current_user.id}")

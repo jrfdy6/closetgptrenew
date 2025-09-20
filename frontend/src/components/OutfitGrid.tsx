@@ -631,6 +631,19 @@ export default function OutfitGrid({
   const handleWear = async (id: string) => {
     try {
       await markAsWorn(id);
+      
+      // Dispatch event to notify dashboard of outfit being marked as worn
+      const outfit = outfits.find(o => o.id === id);
+      const event = new CustomEvent('outfitMarkedAsWorn', {
+        detail: {
+          outfitId: id,
+          outfitName: outfit?.name || 'Unknown Outfit',
+          timestamp: new Date().toISOString()
+        }
+      });
+      window.dispatchEvent(event);
+      console.log('🔄 [OutfitGrid] Dispatched outfitMarkedAsWorn event for dashboard refresh');
+      
     } catch (error) {
       console.error('Failed to mark as worn:', error);
     }
