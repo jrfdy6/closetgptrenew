@@ -306,7 +306,7 @@ class DashboardService {
 
   private async getSimpleAnalytics(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching worn outfits from /outfits/analytics/worn-this-week');
+      console.log('🔍 DEBUG: [FIXED] Fetching outfit analytics from /outfits/analytics/worn-this-week');
       const response = await this.makeAuthenticatedRequest('/outfits/analytics/worn-this-week', user, {
         method: 'GET'
       });
