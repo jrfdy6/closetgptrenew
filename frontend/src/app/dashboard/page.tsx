@@ -30,8 +30,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
 import EnhancedWardrobeGapAnalysis from '@/components/ui/enhanced-wardrobe-gap-analysis';
-import { WeatherDisplay } from "@/components/WeatherDisplay";
-import LocationSettings from "@/components/LocationSettings";
+import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 
 // Dynamically import components to avoid SSR issues
 const WardrobeStats = dynamic(() => import('@/components/WardrobeStats'), {
@@ -310,14 +309,14 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Weather & Location Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-          <div className="lg:col-span-2">
-            <WeatherDisplay />
-          </div>
-          <div>
-            <LocationSettings />
-          </div>
+        {/* Smart Weather Outfit Generator */}
+        <div className="mb-12">
+          <SmartWeatherOutfitGenerator 
+            onOutfitGenerated={(outfit) => {
+              console.log('🎯 Smart weather outfit generated:', outfit);
+              // Could trigger dashboard refresh or show success message
+            }}
+          />
         </div>
 
         {/* Backend Status Message */}
@@ -340,11 +339,11 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Today's Outfit Section */}
+        {/* Today's Outfit Section - Now integrated above with Smart Weather Generator */}
         <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Outfit</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Daily personalized outfit suggestion just for you</CardDescription>
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Weather-Perfect Outfit</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your smart outfit generator above creates perfect weather-based recommendations</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
@@ -516,27 +515,23 @@ export default function Dashboard() {
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
-                <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-blue-100 dark:from-emerald-900 dark:to-blue-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </div>
                 <p className="text-gray-500 dark:text-gray-500 mb-2 font-medium">
-                  Daily Outfit Suggestion
+                  Smart Weather-Perfect Outfits
                 </p>
                 <p className="text-sm text-gray-400 dark:text-gray-600 mb-6 max-w-md mx-auto">
-                  We'll generate a personalized outfit suggestion for you once a day. If you like it, you can mark it as worn!
+                  Use the Smart Weather Outfit Generator above to get instant, location-based outfit recommendations that are perfect for today's weather!
                 </p>
-                <Button 
-                  onClick={fetchDashboardData}
-                  disabled={isLoading}
-                  className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
-                >
-                  {isLoading ? (
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  {isLoading ? 'Generating...' : 'Generate Today\'s Outfit'}
-                </Button>
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Automatic location detection</span>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full ml-3"></div>
+                  <span>Real weather data</span>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full ml-3"></div>
+                  <span>Perfect outfit matching</span>
+                </div>
               </div>
             )}
           </CardContent>

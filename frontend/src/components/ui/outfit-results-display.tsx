@@ -190,25 +190,18 @@ export default function OutfitResultsDisplay({
             </div>
           </div>
 
-          {/* AI Reasoning */}
+          {/* Weather-Informed Advisory Text - Always Visible */}
           {outfit.reasoning && (
-            <div>
-              <Button
-                variant="ghost"
-                onClick={() => setShowReasoning(!showReasoning)}
-                className="flex items-center gap-2 p-0 h-auto text-left"
-              >
-                <Info className="h-4 w-4" />
-                <span className="font-medium">AI Reasoning</span>
-                <ArrowRight className={`h-4 w-4 transition-transform ${showReasoning ? 'rotate-90' : ''}`} />
-              </Button>
-              {showReasoning && (
-                <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Outfit Advisory</h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
                     {outfit.reasoning}
                   </p>
                 </div>
-              )}
+              </div>
             </div>
           )}
 

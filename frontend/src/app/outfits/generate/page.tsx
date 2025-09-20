@@ -362,36 +362,55 @@ export default function OutfitGenerationPage() {
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
       
-      // Get real weather data or use fallback
+      // Enhanced weather data fetching with better error handling
       let weatherData: WeatherData;
-      if (weather && !weather.fallback) {
+      
+      console.log('🌤️ Starting weather data preparation for outfit generation');
+      
+      // Check if we have recent, real weather data
+      if (weather && !weather.fallback && weather.location !== "Default Location") {
+        console.log('🌤️ Using existing real weather data:', weather);
         weatherData = weather;
       } else {
-        // Try to fetch fresh weather data if we don't have it or it's fallback
+        // Try to fetch fresh weather data
+        console.log('🌤️ Fetching fresh weather data for outfit generation...');
         try {
           await fetchWeatherByLocation();
-          weatherData = weather || {
-            temperature: 72,
-            condition: formData.weather || "Clear",
-            humidity: 65,
-            wind_speed: 5,
-            location: "Default Location",
-            precipitation: 0,
-            fallback: true
-          };
+          
+          // Give a moment for the weather hook to update
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          if (weather && !weather.fallback) {
+            console.log('✅ Fresh weather data fetched successfully:', weather);
+            weatherData = weather;
+          } else {
+            throw new Error('Weather fetch returned fallback data');
+          }
         } catch (err) {
-          console.warn("Could not fetch weather, using fallback:", err);
+          console.warn("Could not fetch weather, using enhanced fallback:", err);
+          
+          // Enhanced fallback that considers manual weather override
           weatherData = {
-            temperature: 72,
-            condition: formData.weather || "Clear", 
-            humidity: 65,
-            wind_speed: 5,
-            location: "Default Location",
-            precipitation: 0,
+            temperature: formData.weather === "Hot" ? 85 : 
+                        formData.weather === "Cold" ? 35 :
+                        formData.weather === "Rainy" ? 60 : 72,
+            condition: formData.weather || "Clear",
+            humidity: formData.weather === "Rainy" ? 90 : 65,
+            wind_speed: formData.weather === "Windy" ? 15 : 5,
+            location: "User Location",
+            precipitation: formData.weather === "Rainy" ? 80 : 0,
             fallback: true
           };
         }
       }
+
+      // Log weather data being used for outfit generation
+      console.log('🎯 Final weather data for outfit generation:', {
+        temperature: weatherData.temperature,
+        condition: weatherData.condition,
+        location: weatherData.location,
+        fallback: weatherData.fallback
+      });
 
       // Prepare request data with all required fields
       const requestData = {

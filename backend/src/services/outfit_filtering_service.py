@@ -92,7 +92,7 @@ class OutfitFilteringService:
         return filtered_items
     
     def _is_weather_appropriate(self, item: ClothingItem, weather: WeatherData, temperature: float) -> bool:
-        """Check if item is appropriate for current weather with proper temperature handling."""
+        """Enhanced weather appropriateness check with comprehensive temperature and condition logic."""
         # Ensure temperature is a float
         if isinstance(temperature, str):
             try:
@@ -102,30 +102,77 @@ class OutfitFilteringService:
         elif temperature is None:
             temperature = 70.0
         
-        # Get material from metadata if available
+        # Get item attributes
+        item_type = item.type.lower()
+        item_name = item.name.lower()
         material = ""
         if item.metadata and item.metadata.visualAttributes and item.metadata.visualAttributes.material:
             material = item.metadata.visualAttributes.material.lower() if item.metadata.visualAttributes.material else ""
         
-        # Hot weather filtering
-        if temperature >= 80:  # Hot weather - only remove obvious winter items
-            winter_materials = ['wool', 'fleece', 'thick', 'heavy', 'winter']
-            winter_types = ['coat', 'heavy jacket', 'sweater', 'thermal']
+        # Enhanced temperature-based filtering
+        if temperature >= 85:  # Very hot weather (85°F+)
+            # Exclude heavy/warm items
+            exclude_materials = ['wool', 'fleece', 'thick', 'heavy', 'winter', 'cashmere', 'fur']
+            exclude_types = ['coat', 'jacket', 'sweater', 'hoodie', 'thermal', 'long pants', 'jeans']
+            exclude_keywords = ['warm', 'insulated', 'padded', 'quilted']
             
-            if material and any(mat in material for mat in winter_materials):
+            if material and any(mat in material for mat in exclude_materials):
                 return False
-            if any(item_type in item.type.lower() for item_type in winter_types):
+            if any(item_type_check in item_type for item_type_check in exclude_types):
+                return False
+            if any(keyword in item_name for keyword in exclude_keywords):
+                return False
+                
+        elif temperature >= 75:  # Warm weather (75-84°F)
+            # Exclude winter items but allow light layers
+            exclude_materials = ['wool', 'fleece', 'heavy', 'winter', 'thermal']
+            exclude_types = ['coat', 'heavy jacket', 'winter sweater', 'thermal']
+            
+            if material and any(mat in material for mat in exclude_materials):
+                return False
+            if any(item_type_check in item_type for item_type_check in exclude_types):
+                return False
+                
+        elif temperature <= 40:  # Very cold weather (40°F and below)
+            # Exclude summer items and prefer warm items
+            exclude_materials = ['linen', 'light cotton', 'mesh', 'silk']
+            exclude_types = ['tank top', 'sleeveless', 'shorts', 'sandals', 'flip flops']
+            exclude_keywords = ['summer', 'beach', 'swimwear']
+            
+            if material and any(mat in material for mat in exclude_materials):
+                return False
+            if any(item_type_check in item_type for item_type_check in exclude_types):
+                return False
+            if any(keyword in item_name for keyword in exclude_keywords):
+                return False
+                
+        elif temperature <= 55:  # Cool weather (41-55°F)
+            # Exclude obvious summer items
+            exclude_materials = ['linen', 'light cotton', 'mesh']
+            exclude_types = ['tank top', 'sleeveless', 'shorts', 'sandals']
+            
+            if material and any(mat in material for mat in exclude_materials):
+                return False
+            if any(item_type_check in item_type for item_type_check in exclude_types):
                 return False
         
-        # Cold weather filtering
-        elif temperature < 50:  # Cold weather - remove obvious summer items
-            summer_materials = ['linen', 'light cotton', 'mesh']
-            summer_types = ['tank top', 'sleeveless', 'shorts']
-            
-            if material and any(mat in material for mat in summer_materials):
+        # Weather condition-based filtering
+        condition = weather.condition.lower()
+        
+        # Rainy weather considerations
+        if 'rain' in condition or weather.precipitation > 50:
+            # Prefer water-resistant materials and avoid delicate fabrics
+            delicate_materials = ['silk', 'suede', 'velvet', 'linen']
+            if material and any(mat in material for mat in delicate_materials):
                 return False
-            if any(item_type in item.type.lower() for item_type in summer_types):
-                return False
+                
+        # Windy weather considerations
+        if 'wind' in condition or weather.wind_speed > 15:
+            # Avoid items that might be problematic in wind
+            avoid_types = ['skirt', 'dress', 'loose', 'flowing']
+            if any(avoid_type in item_type or avoid_type in item_name for avoid_type in avoid_types):
+                # Still allow but with lower priority (handled in scoring)
+                pass
         
         return True
     

@@ -352,7 +352,7 @@ def calculate_style_appropriateness_score(style: str, item: Dict[str, Any]) -> i
     return total_score
 
 def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str], wardrobe_items: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Ensure base item is included in the outfit if specified."""
+    """Ensure base item is included in the outfit if specified, with weather appropriateness check."""
     if not base_item_id:
         return outfit
     
@@ -364,6 +364,45 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
     if not base_item:
         logger.warning(f"⚠️ Base item {base_item_id} not found in wardrobe")
         return outfit
+    
+    # Check weather appropriateness of base item
+    weather_data = outfit.get('weather_data')
+    if weather_data:
+        is_weather_appropriate = check_item_weather_appropriateness(base_item, weather_data)
+        if not is_weather_appropriate:
+            logger.warning(f"⚠️ Base item {base_item.get('name', 'unnamed')} may not be weather-appropriate")
+            # Add weather warning to outfit reasoning
+            current_reasoning = outfit.get('reasoning', '')
+            
+            # Generate specific warning based on weather conditions
+            temp = weather_data.get('temperature', 70)
+            condition = weather_data.get('condition', '').lower()
+            item_name = base_item.get('name', 'item')
+            
+            # Get item details for specific warnings
+            item_type = base_item.get('type', '').lower()
+            metadata = base_item.get('metadata', {})
+            material = ""
+            color = ""
+            if isinstance(metadata, dict):
+                visual_attrs = metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    material = visual_attrs.get('material', '').lower()
+                    color = visual_attrs.get('color', '').lower()
+            
+            # Generate specific warning
+            if temp >= 85 and any(mat in material for mat in ['wool', 'fleece', 'down', 'heavy']):
+                weather_warning = f"\n\nNote: Your selected {item_name} may cause overheating in {temp}°F {condition} weather, but we've included it as requested."
+            elif temp <= 40 and any(type_check in item_type for type_check in ['swimwear', 'tank', 'shorts']):
+                weather_warning = f"\n\nNote: Your selected {item_name} may not provide adequate warmth for {temp}°F {condition} conditions, but we've included it as requested."
+            elif ('rain' in condition or 'storm' in condition) and any(mat in material for mat in ['silk', 'suede', 'velvet']):
+                weather_warning = f"\n\nNote: Your selected {item_name} may be damaged by {condition} conditions, but we've included it as requested."
+            elif ('rain' in condition or 'storm' in condition) and 'white' in color:
+                weather_warning = f"\n\nNote: Your selected {item_name} may be prone to staining in {condition} conditions - consider care when wearing, but we've included it as requested."
+            else:
+                weather_warning = f"\n\nNote: Your selected {item_name} may not be ideal for current weather conditions ({temp}°F, {condition}), but we've included it as requested."
+            
+            outfit['reasoning'] = current_reasoning + weather_warning
     
     # Ensure items array exists
     if 'items' not in outfit:
@@ -377,6 +416,56 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
     
     logger.info(f"✅ Base item {base_item.get('name', 'unnamed')} guaranteed in outfit")
     return outfit
+
+def check_item_weather_appropriateness(item: Dict[str, Any], weather_data: Dict[str, Any]) -> bool:
+    """Check if an item is appropriate for the current weather conditions."""
+    try:
+        temperature = float(weather_data.get('temperature', 70))
+        condition = weather_data.get('condition', '').lower()
+        
+        item_type = item.get('type', '').lower()
+        item_name = item.get('name', '').lower()
+        
+        # Get material from metadata if available
+        material = ""
+        metadata = item.get('metadata', {})
+        if isinstance(metadata, dict):
+            visual_attrs = metadata.get('visualAttributes', {})
+            if isinstance(visual_attrs, dict):
+                material = visual_attrs.get('material', '').lower()
+        
+        # Hot weather checks (85°F+)
+        if temperature >= 85:
+            exclude_materials = ['wool', 'fleece', 'thick', 'heavy', 'winter', 'cashmere']
+            exclude_types = ['coat', 'jacket', 'sweater', 'hoodie', 'thermal']
+            
+            if material and any(mat in material for mat in exclude_materials):
+                return False
+            if any(item_type_check in item_type for item_type_check in exclude_types):
+                return False
+        
+        # Cold weather checks (40°F and below)
+        elif temperature <= 40:
+            exclude_materials = ['linen', 'light cotton', 'mesh', 'silk']
+            exclude_types = ['tank top', 'sleeveless', 'shorts', 'sandals']
+            
+            if material and any(mat in material for mat in exclude_materials):
+                return False
+            if any(item_type_check in item_type for item_type_check in exclude_types):
+                return False
+        
+        # Rain/storm checks
+        if ('rain' in condition or 'storm' in condition or 'thunderstorm' in condition or 
+            weather_data.get('precipitation', 0) > 50):
+            delicate_materials = ['silk', 'suede', 'velvet', 'linen']
+            if material and any(mat in material for mat in delicate_materials):
+                return False
+        
+        return True
+        
+    except Exception as e:
+        logger.warning(f"Error checking weather appropriateness: {e}")
+        return True  # Default to appropriate if check fails
 
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
@@ -434,9 +523,27 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # 3. Generate outfit using rule-based decision tree
         logger.info(f"🔍 DEBUG: About to call generate_rule_based_outfit with {len(wardrobe_items)} items")
         logger.info(f"🔍 DEBUG: Base item ID in request: {req.baseItemId}")
+        
+        # Log weather data for outfit generation
+        if req.weather:
+            logger.info(f"🌤️ Weather data for outfit generation: {req.weather.temperature}°F, {req.weather.condition}")
+        else:
+            logger.warning(f"⚠️ No weather data provided for outfit generation")
+        
         print(f"🔎 MAIN LOGIC: About to call rule-based generation")
         try:
             outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
+            
+            # Add weather data to outfit for base item validation
+            if req.weather:
+                outfit['weather_data'] = {
+                    'temperature': req.weather.temperature,
+                    'condition': req.weather.condition,
+                    'humidity': req.weather.humidity,
+                    'wind_speed': req.weather.wind_speed,
+                    'precipitation': req.weather.precipitation
+                }
+            
             print(f"🔎 MAIN LOGIC: Rule-based generation succeeded")
         except Exception as rule_exception:
             print(f"🔎 MAIN LOGIC: Rule-based generation FAILED with exception: {rule_exception}")
@@ -4123,52 +4230,78 @@ async def generate_intelligent_outfit_name(items: List[Dict], style: str, mood: 
         return f"{style.title()} {occasion.title()}"
 
 async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, outfit_score: Dict, layering_validation: Dict, color_validation: Dict) -> str:
-    """Generate intelligent reasoning for outfit selection."""
+    """Generate intelligent reasoning for outfit selection with weather context."""
     try:
-        reasoning_parts = []
+        # Always generate exactly 3 sentences for consistency
+        sentences = []
         
-        # Basic outfit info
-        reasoning_parts.append(f"Curated {len(items)} pieces for a {req.style} {req.occasion} look")
-        
-        # Style and mood context
-        if req.mood and req.mood.lower() != 'neutral':
-            reasoning_parts.append(f"designed to feel {req.mood}")
-        
-        # Item-specific reasoning
-        item_types = [item.get('type', '') for item in items]
-        unique_types = list(set(item_types))
-        
-        if 'blazer' in str(item_types).lower():
-            reasoning_parts.append("featuring a structured blazer for sophistication")
-        if 'dress' in str(item_types).lower():
-            reasoning_parts.append("centered around a versatile dress")
-        if 'jean' in str(item_types).lower():
-            reasoning_parts.append("with denim for casual comfort")
-        
-        # Color harmony
-        if color_validation.get('warnings'):
-            reasoning_parts.append("with carefully coordinated colors")
+        # Sentence 1: Weather context and outfit purpose
+        weather_context = ""
+        if req.weather:
+            temp = req.weather.temperature
+            condition = req.weather.condition.lower()
+            
+            if temp >= 85:
+                weather_context = f"perfect for the {temp}°F {condition} weather with breathable fabrics and minimal layers"
+            elif temp >= 75:
+                weather_context = f"ideal for {temp}°F {condition} conditions with comfortable, versatile pieces"
+            elif temp <= 40:
+                weather_context = f"designed for {temp}°F {condition} weather with warm, insulating layers"
+            elif temp <= 55:
+                weather_context = f"suitable for cool {temp}°F {condition} conditions with thoughtful layering"
+            else:
+                weather_context = f"perfectly matched to {temp}°F {condition} weather"
+                
+            if 'rain' in condition:
+                weather_context += " and water-resistant materials"
+            elif 'wind' in condition or req.weather.wind_speed > 15:
+                weather_context += " with secure, fitted silhouettes"
         else:
-            reasoning_parts.append("with harmonious color pairing")
+            weather_context = "designed for comfortable all-day wear"
+            
+        sentences.append(f"This {req.style} {req.occasion} outfit is {weather_context}.")
         
-        # Layering notes
-        if layering_validation.get('warnings'):
-            reasoning_parts.append("and thoughtful layering")
+        # Sentence 2: Item composition and style rationale
+        item_types = [item.get('type', '').lower() for item in items]
+        key_pieces = []
         
-        # Confidence score context
-        confidence = outfit_score.get('total_score', 0)
+        if any('dress' in t for t in item_types):
+            key_pieces.append("a versatile dress as the centerpiece")
+        if any('blazer' in t or 'jacket' in t for t in item_types):
+            key_pieces.append("structured outerwear for sophistication")
+        if any('jean' in t or 'denim' in t for t in item_types):
+            key_pieces.append("denim for effortless style")
+        if any('sweater' in t or 'cardigan' in t for t in item_types):
+            key_pieces.append("cozy knits for comfort")
+        if any('blouse' in t or 'shirt' in t for t in item_types):
+            key_pieces.append("polished tops for versatility")
+            
+        if key_pieces:
+            pieces_text = ", ".join(key_pieces[:2])  # Limit to 2 key pieces for readability
+            sentences.append(f"The combination features {pieces_text} to achieve the desired {req.mood} mood.")
+        else:
+            sentences.append(f"Each of the {len(items)} carefully selected pieces contributes to the overall {req.mood} aesthetic.")
+        
+        # Sentence 3: Cohesion and confidence assessment
+        confidence = outfit_score.get('total_score', 0.7)
         if confidence > 0.8:
-            reasoning_parts.append("- this combination works perfectly together")
+            cohesion_text = "The harmonious color palette and complementary silhouettes create a polished, confident look that works seamlessly together."
         elif confidence > 0.6:
-            reasoning_parts.append("- a well-balanced ensemble")
+            cohesion_text = "The thoughtful color coordination and balanced proportions ensure a well-composed ensemble that feels intentional and stylish."
         else:
-            reasoning_parts.append("- a creative mix of styles")
+            cohesion_text = "The creative mix of textures and tones creates an interesting, individualistic outfit that expresses personal style."
+            
+        sentences.append(cohesion_text)
         
-        return " ".join(reasoning_parts) + "."
+        return " ".join(sentences)
         
     except Exception as e:
         logger.warning(f"⚠️ Failed to generate intelligent reasoning: {e}")
-        return f"Generated {len(items)} items forming a complete {req.occasion} outfit with {req.style} style."
+        # Fallback with weather context if available
+        weather_note = ""
+        if req.weather:
+            weather_note = f" for {req.weather.temperature}°F {req.weather.condition.lower()} weather"
+        return f"This {req.style} {req.occasion} outfit{weather_note} combines {len(items)} carefully selected pieces. The ensemble balances comfort and style for your desired {req.mood} mood. Each item works harmoniously to create a cohesive, weather-appropriate look."
 
 # 🚀 Performance Optimization Functions
 
