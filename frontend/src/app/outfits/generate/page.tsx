@@ -516,8 +516,22 @@ export default function OutfitGenerationPage() {
     }
     
     try {
-      // Use OutfitService to mark as worn - this updates both database and local state
-      await OutfitService.markOutfitAsWorn(user, generatedOutfit.id);
+      // Use API route to mark as worn - this updates backend stats for dashboard counter
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/outfits/${generatedOutfit.id}/worn`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to mark outfit as worn: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ [Generate] Successfully marked outfit as worn via API:`, result);
       
       // Dispatch event to notify dashboard of outfit being marked as worn
       const event = new CustomEvent('outfitMarkedAsWorn', {
