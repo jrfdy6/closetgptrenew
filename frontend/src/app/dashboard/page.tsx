@@ -63,11 +63,14 @@ export default function Dashboard() {
 
   // Automatic location prompt when dashboard loads
   useEffect(() => {
+    console.log('🔍 Dashboard location prompt check:', { user: !!user, weather: weather?.location, hasAsked: sessionStorage.getItem('has-asked-for-location') });
+    
     if (user && weather && (weather.location === "Unknown Location" || weather.location === "Default Location")) {
       // Check if we've already asked for location in this session
       const hasAskedForLocation = sessionStorage.getItem('has-asked-for-location');
       
       if (!hasAskedForLocation) {
+        console.log('🌤️ Showing location prompt');
         // Show a simple browser prompt for location
         const shouldGetLocation = confirm(
           "🌤️ Get accurate weather data for better outfit recommendations?\n\n" +
@@ -79,8 +82,13 @@ export default function Dashboard() {
         sessionStorage.setItem('has-asked-for-location', 'true');
         
         if (shouldGetLocation) {
+          console.log('🌤️ User accepted location prompt, fetching location...');
           fetchWeatherByLocation();
+        } else {
+          console.log('🌤️ User declined location prompt');
         }
+      } else {
+        console.log('🌤️ Already asked for location in this session');
       }
     }
   }, [user, weather, fetchWeatherByLocation]);

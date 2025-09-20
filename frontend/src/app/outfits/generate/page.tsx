@@ -374,27 +374,18 @@ export default function OutfitGenerationPage() {
         console.log('🌤️ Using existing real weather data:', weather);
         weatherData = weather;
       } else {
-        // Try to fetch fresh weather data
+        // Try to fetch fresh weather data using the hook's method
         console.log('🌤️ Fetching fresh weather data for outfit generation...');
         try {
-          // Fetch weather directly instead of relying on hook state
-          const response = await fetch('/api/weather', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ location: "current" } as any),
-          });
-
-          if (!response.ok) {
-            throw new Error(`Weather API error: ${response.status}`);
-          }
-
-          const freshWeatherData = await response.json();
-          console.log('✅ Fresh weather data fetched successfully:', freshWeatherData);
+          await fetchWeatherByLocation();
           
-          if (!freshWeatherData.fallback && freshWeatherData.location !== "Unknown Location") {
-            weatherData = freshWeatherData;
+          // Wait a bit for the hook to update
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Check if we have real weather data now
+          if (weather && !weather.fallback && weather.location !== "Unknown Location" && weather.location !== "Default Location") {
+            console.log('✅ Fresh weather data fetched successfully:', weather);
+            weatherData = weather;
           } else {
             throw new Error('Weather fetch returned fallback data');
           }
