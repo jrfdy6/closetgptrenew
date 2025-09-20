@@ -31,6 +31,7 @@ import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
 import EnhancedWardrobeGapAnalysis from '@/components/ui/enhanced-wardrobe-gap-analysis';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
+import { useAutoWeather } from '@/hooks/useWeather';
 
 // Dynamically import components to avoid SSR issues
 const WardrobeStats = dynamic(() => import('@/components/WardrobeStats'), {
@@ -56,6 +57,25 @@ export default function Dashboard() {
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const { user, loading } = useAuthContext();
+  
+  // Weather hook for automatic location detection
+  const { weather, fetchWeatherByLocation } = useAutoWeather();
+
+  // Automatic location prompt when dashboard loads
+  useEffect(() => {
+    if (user && weather && (weather.location === "Unknown Location" || weather.location === "Default Location")) {
+      // Show a simple browser prompt for location
+      const shouldGetLocation = confirm(
+        "🌤️ Get accurate weather data for better outfit recommendations?\n\n" +
+        "We need your location to provide weather-perfect outfit suggestions.\n" +
+        "Click OK to use your current location, or Cancel to skip."
+      );
+      
+      if (shouldGetLocation) {
+        fetchWeatherByLocation();
+      }
+    }
+  }, [user, weather, fetchWeatherByLocation]);
 
   // Fetch real dashboard data
   useEffect(() => {

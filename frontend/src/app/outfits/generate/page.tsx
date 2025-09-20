@@ -32,7 +32,6 @@ import OutfitGenerationForm from '@/components/ui/outfit-generation-form';
 import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
 import { OutfitGenerating, WardrobeLoading } from '@/components/ui/outfit-loading';
 import StyleEducationModule from '@/components/ui/style-education-module';
-import { LocationUpdatePrompt } from '@/components/LocationUpdatePrompt';
 
 interface OutfitGenerationForm {
   occasion: string;
@@ -75,7 +74,6 @@ export default function OutfitGenerationPage() {
   const [baseItem, setBaseItem] = useState<any>(null);
   const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
   const [wardrobeLoading, setWardrobeLoading] = useState(false);
-  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   
   // Extract base item ID from URL parameters
   useEffect(() => {
@@ -339,12 +337,6 @@ export default function OutfitGenerationPage() {
     fetchUserProfile();
   }, [user]);
 
-  // Check if location needs to be updated
-  useEffect(() => {
-    if (weather && (weather.location === "Unknown Location" || weather.location === "Default Location")) {
-      setShowLocationPrompt(true);
-    }
-  }, [weather]);
 
   const handleInputChange = (field: keyof OutfitGenerationForm, value: string) => {
     setFormData(prev => ({
@@ -353,14 +345,6 @@ export default function OutfitGenerationPage() {
     }));
   };
 
-  const handleLocationUpdate = async (newLocation: string) => {
-    setShowLocationPrompt(false);
-    await fetchWeatherByLocation();
-  };
-
-  const handleLocationPromptDismiss = () => {
-    setShowLocationPrompt(false);
-  };
 
   const handleGenerateOutfit = async () => {
     if (!user) {
@@ -865,16 +849,6 @@ export default function OutfitGenerationPage() {
           </div>
         </div>
 
-        {/* Location Update Prompt */}
-        {showLocationPrompt && (
-          <div className="mb-8">
-            <LocationUpdatePrompt
-              onLocationUpdate={handleLocationUpdate}
-              onDismiss={handleLocationPromptDismiss}
-              currentLocation={weather?.location}
-            />
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Enhanced Outfit Generation Form */}
