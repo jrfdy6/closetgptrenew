@@ -75,7 +75,8 @@ class UserStatsService:
             # Count existing outfits
             outfit_count = await self._count_user_outfits(user_id)
             outfits_created_this_week = await self._count_outfits_this_week(user_id)
-            outfits_worn_this_week = await self._count_outfits_worn_this_week(user_id)
+            # For now, use 0 for worn this week - will be updated when outfits are marked as worn
+            outfits_worn_this_week = 0
             
             # Count existing wardrobe items
             wardrobe_stats = await self._count_wardrobe_items(user_id)
