@@ -32,7 +32,8 @@ def parse_last_worn(ts):
         else:
             return None
     except Exception as e:
-        logger.warning(f"Failed to parse lastWorn timestamp '{ts}': {e}")
+        # Use print instead of logger since logger isn't defined yet
+        print(f"Failed to parse lastWorn timestamp '{ts}': {e}")
         return None
 # Firebase imports moved inside functions to prevent import-time crashes
 # from google.cloud import firestore
