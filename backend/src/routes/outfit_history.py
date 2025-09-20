@@ -48,6 +48,7 @@ logger = get_logger(__name__)
 async def calculate_worn_outfits_this_week(user_id: str) -> int:
     """
     Calculate how many outfits were worn this week.
+    Checks both 'outfits' and 'outfit_history' collections.
     Uses timezone-safe datetime parsing to avoid comparison errors.
     """
     try:
@@ -55,15 +56,18 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
         if not db:
             return 0
         
-        # Get start of current week (Monday) - timezone aware
+        # Get start and end of current week (Monday to Sunday) - timezone aware
         now = datetime.now(timezone.utc)
         week_start = now - timedelta(days=now.weekday())
         week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_end = week_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
         
-        # Query all user's outfits
+        logger.info(f"🗓️ Checking outfits worn between {week_start} and {week_end}")
+        
+        # 1️⃣ Check outfits collection for lastWorn
         outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+        outfits_worn_count = 0
         
-        worn_count = 0
         docs = outfits_ref.stream()
         for doc in docs:
             data = doc.to_dict()
@@ -72,19 +76,38 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
             # Use the safe parser
             last_worn_dt = parse_last_worn(last_worn_raw)
             
-            if not last_worn_dt:
-                continue
-            
-            # Safe comparison - both datetimes are now timezone-aware
-            if last_worn_dt >= week_start:
-                worn_count += 1
-                logger.debug(f"Outfit {doc.id} worn this week: {last_worn_dt}")
+            if last_worn_dt and week_start <= last_worn_dt <= week_end:
+                outfits_worn_count += 1
+                logger.info(f"👕 Outfit {doc.id} worn this week: {last_worn_dt}")
         
-        logger.info(f"Found {worn_count} outfits worn this week for user {user_id}")
-        return worn_count
+        # 2️⃣ Check outfit_history collection for date_worn
+        history_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        unique_outfits_from_history = set()
+        
+        history_docs = history_ref.stream()
+        for doc in history_docs:
+            data = doc.to_dict()
+            date_worn_raw = data.get('date_worn')
+            outfit_id = data.get('outfit_id')
+            
+            # Use the safe parser for date_worn
+            date_worn_dt = parse_last_worn(date_worn_raw)
+            
+            if date_worn_dt and week_start <= date_worn_dt <= week_end and outfit_id:
+                unique_outfits_from_history.add(outfit_id)
+                logger.info(f"📅 Outfit {outfit_id} worn this week (from history): {date_worn_dt}")
+        
+        history_worn_count = len(unique_outfits_from_history)
+        
+        # 3️⃣ Combine results (prioritize history if both exist)
+        total_worn = max(outfits_worn_count, history_worn_count)
+        
+        logger.info(f"📊 Worn outfits this week - Outfits collection: {outfits_worn_count}, History collection: {history_worn_count}, Total: {total_worn}")
+        
+        return total_worn
         
     except Exception as e:
-        logger.error(f"Error calculating worn outfits this week: {e}")
+        logger.error(f"❌ Error calculating worn outfits this week: {e}")
         return 0
 
 # Firebase will be imported inside functions to prevent import-time crashes
