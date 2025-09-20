@@ -129,16 +129,16 @@ def serialize_firestore_doc(doc):
     # Convert Firestore Timestamps to ISO strings
     try:
         from firebase_admin import firestore
-        for key, value in data.items():
-            if isinstance(value, firestore.Timestamp):
-                data[key] = value.isoformat()
-            elif isinstance(value, dict) and 'seconds' in value and 'nanoseconds' in value:
-                # Handle Firestore Timestamp dict format
-                try:
-                    timestamp = firestore.Timestamp(seconds=value['seconds'], nanoseconds=value['nanoseconds'])
-                    data[key] = timestamp.isoformat()
-                except:
-                    pass  # Keep original value if conversion fails
+    for key, value in data.items():
+        if isinstance(value, firestore.Timestamp):
+            data[key] = value.isoformat()
+        elif isinstance(value, dict) and 'seconds' in value and 'nanoseconds' in value:
+            # Handle Firestore Timestamp dict format
+            try:
+                timestamp = firestore.Timestamp(seconds=value['seconds'], nanoseconds=value['nanoseconds'])
+                data[key] = timestamp.isoformat()
+            except:
+                pass  # Keep original value if conversion fails
     except ImportError:
         # If firestore import fails, just return the data as-is
         pass
@@ -1143,6 +1143,185 @@ async def debug_user_outfit_history(
     except Exception as e:
         logger.error(f"❌ Error in debug endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to debug outfit docs: {e}")
+
+@router.post("/seed-test-data")
+async def seed_test_worn_data(
+    user_id: str = Query(..., description="User ID to seed data for"),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    DEVELOPMENT ONLY: Seed test worn outfit data for verification.
+    Creates test entries in both outfits and outfit_history collections.
+    """
+    try:
+        from ..config.firebase import db
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        # Get current week boundaries
+        now = datetime.now(timezone.utc)
+        week_start = now - timedelta(days=now.weekday())
+        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        logger.info(f"🌱 Seeding test data for user {user_id}, week starting {week_start}")
+        
+        # Create test outfit entries with lastWorn this week
+        test_outfits = []
+        for i in range(3):  # Create 3 test worn outfits
+            outfit_id = f"test_outfit_{i+1}_{int(now.timestamp())}"
+            worn_date = week_start + timedelta(days=i+1, hours=10)  # Different days this week
+            
+            outfit_data = {
+                "id": outfit_id,
+                "user_id": user_id,
+                "name": f"Test Outfit {i+1}",
+                "style": "casual",
+                "occasion": "daily",
+                "items": [],
+                "lastWorn": worn_date,
+                "wearCount": 1,
+                "createdAt": worn_date - timedelta(days=7),
+                "updatedAt": worn_date
+            }
+            
+            # Save to outfits collection
+            db.collection('outfits').document(outfit_id).set(outfit_data)
+            test_outfits.append(outfit_id)
+            logger.info(f"✅ Created test outfit {outfit_id} with lastWorn: {worn_date}")
+        
+        # Create test outfit_history entries
+        test_history = []
+        for i, outfit_id in enumerate(test_outfits):
+            history_id = f"history_{outfit_id}"
+            worn_date = week_start + timedelta(days=i+2, hours=14)  # Different times
+            
+            history_data = {
+                "user_id": user_id,
+                "outfit_id": outfit_id,
+                "date_worn": worn_date,
+                "occasion": "daily",
+                "mood": "confident",
+                "weather": {},
+                "notes": f"Test wear entry {i+1}",
+                "tags": [],
+                "outfit_name": f"Test Outfit {i+1}",
+                "outfit_thumbnail": "",
+                "created_at": int(worn_date.timestamp() * 1000)
+            }
+            
+            # Save to outfit_history collection
+            db.collection('outfit_history').document(history_id).set(history_data)
+            test_history.append(history_id)
+            logger.info(f"✅ Created test history entry {history_id} with date_worn: {worn_date}")
+        
+        # Now test our calculation with the seeded data
+        logger.info(f"🧮 Testing calculation with seeded data...")
+        worn_count = await calculate_worn_outfits_this_week(user_id)
+        
+        return {
+            "success": True,
+            "message": "Test data seeded successfully",
+            "user_id": user_id,
+            "test_outfits_created": len(test_outfits),
+            "test_history_entries": len(test_history),
+            "calculated_worn_this_week": worn_count,
+            "week_start": week_start.isoformat(),
+            "test_outfit_ids": test_outfits,
+            "test_history_ids": test_history
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error seeding test data: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to seed test data: {e}")
+
+@router.post("/verify-calculation")
+async def verify_worn_calculation(
+    user_id: str = Query(..., description="User ID to verify calculation for"),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    Verify the worn outfit calculation by manually counting and comparing.
+    """
+    try:
+        from ..config.firebase import db
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        # Get current week boundaries
+        now = datetime.now(timezone.utc)
+        week_start = now - timedelta(days=now.weekday())
+        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_end = week_start + timedelta(days=6, hours=23, minutes=59, seconds=59)
+        
+        logger.info(f"🔍 Verifying calculation for user {user_id}")
+        logger.info(f"📅 Week range: {week_start} to {week_end}")
+        
+        # Manual count from outfits collection
+        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+        outfits_count = 0
+        outfits_found = []
+        
+        for doc in outfits_ref.stream():
+            data = doc.to_dict()
+            last_worn_raw = data.get('lastWorn')
+            last_worn_dt = parse_last_worn(last_worn_raw)
+            
+            if last_worn_dt and week_start <= last_worn_dt <= week_end:
+                outfits_count += 1
+                outfits_found.append({
+                    "id": doc.id,
+                    "name": data.get("name"),
+                    "lastWorn": last_worn_dt.isoformat(),
+                    "parsed_type": str(type(last_worn_raw))
+                })
+        
+        # Manual count from outfit_history collection
+        history_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        history_count = 0
+        history_found = []
+        unique_outfits = set()
+        
+        for doc in history_ref.stream():
+            data = doc.to_dict()
+            date_worn_raw = data.get('date_worn')
+            date_worn_dt = parse_last_worn(date_worn_raw)
+            outfit_id = data.get('outfit_id')
+            
+            if date_worn_dt and week_start <= date_worn_dt <= week_end:
+                history_count += 1
+                if outfit_id:
+                    unique_outfits.add(outfit_id)
+                history_found.append({
+                    "id": doc.id,
+                    "outfit_id": outfit_id,
+                    "date_worn": date_worn_dt.isoformat(),
+                    "parsed_type": str(type(date_worn_raw))
+                })
+        
+        # Test our function
+        function_result = await calculate_worn_outfits_this_week(user_id)
+        
+        return {
+            "success": True,
+            "user_id": user_id,
+            "week_range": {
+                "start": week_start.isoformat(),
+                "end": week_end.isoformat()
+            },
+            "manual_counts": {
+                "outfits_collection": outfits_count,
+                "history_collection": history_count,
+                "unique_from_history": len(unique_outfits)
+            },
+            "function_result": function_result,
+            "matches_expected": function_result == max(outfits_count, len(unique_outfits)),
+            "outfits_found": outfits_found,
+            "history_found": history_found
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error verifying calculation: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to verify calculation: {e}")
 
 @router.post("/initialize-stats")
 async def initialize_user_stats_endpoint(
