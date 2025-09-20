@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
-router = APIRouter()
+router = APIRouter(prefix="/api", tags=["weather"])
 
 # Weather API models
 class WeatherRequest(BaseModel):
