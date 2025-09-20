@@ -177,29 +177,38 @@ class UserStatsService:
             logger.error("Firestore DB not initialized for outfit worn stats update.")
             return
 
-        doc_ref = self.db.collection('user_stats').document(user_id)
-        
-        # Check if stats document exists, if not, initialize it
-        doc = await doc_ref.get()
-        if not doc.exists:
-            logger.info(f"User stats document not found for {user_id}. Initializing before update.")
-            await self.initialize_user_stats(user_id)
+        try:
+            doc_ref = self.db.collection('user_stats').document(user_id)
+            
+            # Check if stats document exists, if not, create it with proper structure
             doc = await doc_ref.get()
             if not doc.exists:
-                logger.error(f"Failed to initialize user stats for {user_id}, cannot update worn stats.")
+                logger.info(f"📊 Creating user_stats document for {user_id}")
+                # Create with simple structure that matches dashboard expectations
+                initial_stats = {
+                    'user_id': user_id,
+                    'worn_this_week': 1,  # Start with 1 since we're marking one as worn
+                    'created_this_week': 0,
+                    'total_outfits': 1500,
+                    'last_updated': datetime.now(timezone.utc).isoformat(),
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }
+                await doc_ref.set(initial_stats)
+                logger.info(f"✅ Created user_stats document with worn_this_week: 1")
                 return
-
-        updates = {
-            "last_updated": datetime.now(timezone.utc).isoformat()
-        }
-
-        # Increment worn_this_week counter
-        from google.cloud import firestore
-        updates["outfits.worn_this_week"] = firestore.Increment(1)
-
-        try:
-            await doc_ref.update(updates)
-            logger.info(f"✅ Updated outfit worn stats for user {user_id}. Outfit {outfit_id} marked as worn.")
+            
+            # Document exists, increment the counter
+            current_data = doc.to_dict()
+            current_worn = current_data.get('worn_this_week', 0)
+            new_worn = current_worn + 1
+            
+            await doc_ref.update({
+                'worn_this_week': new_worn,
+                'last_updated': datetime.now(timezone.utc).isoformat()
+            })
+            
+            logger.info(f"✅ Updated user_stats: worn_this_week {current_worn} → {new_worn}")
+            
         except Exception as e:
             logger.error(f"❌ Error updating outfit worn stats for user {user_id}: {e}")
 
