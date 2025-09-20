@@ -60,6 +60,8 @@ export default function Dashboard() {
   
   // Weather hook for automatic location detection
   const { weather, fetchWeatherByLocation } = useAutoWeather();
+  
+  console.log('🔍 Dashboard mounted, weather state:', weather?.location);
 
   // Automatic location prompt when dashboard loads
   useEffect(() => {

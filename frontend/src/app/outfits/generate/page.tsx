@@ -377,15 +377,49 @@ export default function OutfitGenerationPage() {
         // Try to fetch fresh weather data using the hook's method
         console.log('🌤️ Fetching fresh weather data for outfit generation...');
         try {
-          await fetchWeatherByLocation();
+          // First try to get saved location from localStorage
+          const savedLocation = localStorage.getItem('user-location');
+          let locationToUse = "Unknown Location";
           
-          // Wait a bit for the hook to update
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (savedLocation) {
+            locationToUse = savedLocation;
+            console.log('🌤️ Using saved location:', savedLocation);
+          } else {
+            // Try geolocation
+            try {
+              const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                  timeout: 10000,
+                  maximumAge: 5 * 60 * 1000,
+                  enableHighAccuracy: false
+                });
+              });
+              const { latitude, longitude } = position.coords;
+              locationToUse = `${latitude},${longitude}`;
+              console.log('🌤️ Using GPS coordinates:', locationToUse);
+            } catch (geoError) {
+              console.warn('🌤️ Geolocation failed:', geoError);
+            }
+          }
           
-          // Check if we have real weather data now
-          if (weather && !weather.fallback && weather.location !== "Unknown Location" && weather.location !== "Default Location") {
-            console.log('✅ Fresh weather data fetched successfully:', weather);
-            weatherData = weather;
+          // Fetch weather with the determined location
+          const response = await fetch('/api/weather', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ location: locationToUse }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Weather API error: ${response.status}`);
+          }
+
+          const freshWeatherData = await response.json();
+          console.log('✅ Fresh weather data fetched successfully:', freshWeatherData);
+          
+          if (!freshWeatherData.fallback && freshWeatherData.location !== "Unknown Location" && freshWeatherData.location !== "Default Location") {
+            weatherData = freshWeatherData;
           } else {
             throw new Error('Weather fetch returned fallback data');
           }
