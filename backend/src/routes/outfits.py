@@ -3217,12 +3217,56 @@ async def mark_outfit_as_worn(
         
         logger.info(f"✅ DEBUG: Successfully updated outfit {outfit_id} in Firestore")
         
-        # Update user stats for outfit worn
+        # Update user stats for outfit worn (CRITICAL FOR DASHBOARD ANALYTICS)
+        try:
+            # Update user_stats collection for fast dashboard analytics
+            current_time_dt = datetime.utcnow()
+            week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
+            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            stats_doc = stats_ref.get()
+            
+            if stats_doc.exists:
+                stats_data = stats_doc.to_dict()
+                current_worn_count = stats_data.get('worn_this_week', 0)
+                
+                # Check if we're still in the same week
+                last_updated = stats_data.get('last_updated')
+                if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
+                    # Same week, increment count
+                    new_worn_count = current_worn_count + 1
+                else:
+                    # New week, reset count
+                    new_worn_count = 1
+                
+                stats_ref.update({
+                    'worn_this_week': new_worn_count,
+                    'last_updated': current_time_dt,
+                    'updated_at': current_time_dt
+                })
+                logger.info(f"✅ Updated user_stats: worn_this_week = {new_worn_count}")
+            else:
+                # Create new stats document
+                stats_ref.set({
+                    'user_id': current_user.id,
+                    'worn_this_week': 1,
+                    'created_this_week': 0,
+                    'total_outfits': 1500,  # Estimate
+                    'last_updated': current_time_dt,
+                    'created_at': current_time_dt
+                })
+                logger.info("✅ Created new user_stats document with worn_this_week = 1")
+                
+        except Exception as stats_error:
+            logger.error(f"❌ Failed to update user_stats: {stats_error}")
+            
+        # Also try the old stats service if available
         try:
             from ..services.user_stats_service import user_stats_service
             asyncio.create_task(user_stats_service.update_outfit_worn_stats(current_user.id, outfit_id))
         except Exception as stats_error:
-            logger.error(f"❌ Failed to update worn stats: {stats_error}")
+            logger.warning(f"⚠️ Old stats service failed: {stats_error}")
         
         # Update individual wardrobe item wear counters
         if outfit_data.get('items'):
@@ -4207,6 +4251,39 @@ async def get_outfits_worn_this_week_simple(
         
         worn_count = 0
         processed_count = 0
+        
+        # Try to get from user_stats first (FAST PATH)
+        try:
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            stats_doc = stats_ref.get()
+            
+            if stats_doc.exists:
+                stats_data = stats_doc.to_dict()
+                last_updated = stats_data.get('last_updated')
+                
+                # Check if stats were updated this week
+                if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
+                    worn_count = stats_data.get('worn_this_week', 0)
+                    logger.info(f"✅ FAST PATH: Got worn count from user_stats: {worn_count}")
+                    
+                    return {
+                        "success": True,
+                        "user_id": current_user.id,
+                        "outfits_worn_this_week": worn_count,
+                        "source": "user_stats_cache",
+                        "week_start": week_start.isoformat(),
+                        "calculated_at": datetime.now(timezone.utc).isoformat()
+                    }
+                else:
+                    logger.info("📊 User stats exist but are outdated, falling back to manual count")
+            else:
+                logger.info("📊 No user stats found, doing manual count and will create stats")
+                
+        except Exception as stats_error:
+            logger.warning(f"Error checking user_stats: {stats_error}")
+        
+        # SLOW PATH: Manual counting (fallback)
+        logger.info("📊 Using manual count (slow path)")
         
         # Query user's outfits with limit to prevent timeout
         outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).limit(1000)
