@@ -2,7 +2,9 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
-import OutfitGrid from '@/components/OutfitGrid';
+import OutfitGridFast from '@/components/OutfitGridFast';
+import { Button } from '@/components/ui/button';
+import { Zap } from 'lucide-react';
 
 // ===== METADATA =====
 export const metadata: Metadata = {
@@ -55,18 +57,18 @@ export default function OutfitsPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* 
-          OutfitGrid Component: Handles UI rendering and user interactions
-          This follows the established wardrobe service architecture pattern:
+          OutfitGridFast Component: Lightning-fast outfit loading with pre-aggregated stats
+          This replaces slow pagination with instant loading:
           - Routes: This page handles routing and basic layout
-          - Components: OutfitGrid handles UI rendering and user interactions
-          - Hooks: useOutfits_proper provides data and actions
-          - Services: outfitService_proper handles API calls
-          - Types: Proper TypeScript interfaces for data contracts
+          - Components: OutfitGridFast handles UI rendering with virtual scrolling
+          - Hooks: useOutfitsFast provides lightning-fast data loading
+          - Services: outfitServiceFast handles optimized API calls
+          - Backend: Uses pre-aggregated stats instead of querying 1,500+ documents
         */}
-        <OutfitGrid 
+        <OutfitGridFast 
           showFilters={true}
           showSearch={true}
-          maxOutfits={1000}
+          showSummary={true}
         />
       </main>
     </div>
