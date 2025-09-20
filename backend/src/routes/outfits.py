@@ -6,6 +6,7 @@ All outfits are generated and saved through the same pipeline.
 import logging
 import time
 import urllib.parse
+import asyncio
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
@@ -3204,6 +3205,13 @@ async def mark_outfit_as_worn(
         })
         
         logger.info(f"✅ DEBUG: Successfully updated outfit {outfit_id} in Firestore")
+        
+        # Update user stats for outfit worn
+        try:
+            from ..services.user_stats_service import user_stats_service
+            asyncio.create_task(user_stats_service.update_outfit_worn_stats(current_user.id, outfit_id))
+        except Exception as stats_error:
+            logger.error(f"❌ Failed to update worn stats: {stats_error}")
         
         # Update individual wardrobe item wear counters
         if outfit_data.get('items'):

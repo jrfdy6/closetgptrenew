@@ -923,8 +923,8 @@ async def get_outfit_history_stats(
         # Format for frontend compatibility
         response_stats = {
             "total_outfits": outfit_stats.get("total", 0),
-            "outfits_this_week": outfit_stats.get("this_week", 0),
-            "totalThisWeek": outfit_stats.get("this_week", 0),  # Frontend compatibility
+            "outfits_this_week": outfit_stats.get("worn_this_week", 0),  # Show worn, not created
+            "totalThisWeek": outfit_stats.get("worn_this_week", 0),  # Frontend compatibility
             "days_queried": days,
             "recent_outfits": [],  # Could be populated if needed
             "wardrobe_total": wardrobe_stats.get("total_items", 0),
