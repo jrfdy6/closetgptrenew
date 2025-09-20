@@ -1050,6 +1050,77 @@ async def get_outfit_history_stats(
             "totalThisWeek": 0
         }
 
+@router.get("/debug-user-docs")
+async def debug_user_outfit_history(
+    user_id: str = Query(..., description="User ID to debug"),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    DEBUG endpoint:
+    Fetches all outfit-related documents for a given user and logs details.
+    Useful to verify data, timestamps, and collection/field structure.
+    """
+    try:
+        from ..config.firebase import db
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        # Check both collections that might contain worn outfit data
+        collections_to_check = ["outfits", "outfit_history"]
+        all_results = {}
+        
+        for collection_name in collections_to_check:
+            logger.info(f"🔍 Checking collection: {collection_name}")
+            collection_ref = db.collection(collection_name)
+            query = collection_ref.where("user_id", "==", user_id)
+            docs = query.stream()
+
+            collection_docs = []
+            for doc in docs:
+                doc_data = doc.to_dict()
+                logger.info(f"📄 {collection_name} doc ID: {doc.id}")
+                logger.info(f"📄 {collection_name} doc data: {doc_data}")
+                
+                # Special attention to timestamp fields
+                timestamp_fields = ["lastWorn", "date_worn", "createdAt", "updatedAt"]
+                for field in timestamp_fields:
+                    if field in doc_data:
+                        value = doc_data[field]
+                        logger.info(f"🕐 Timestamp field '{field}': {value} (type: {type(value)})")
+                
+                collection_docs.append({"id": doc.id, "data": doc_data})
+
+            all_results[collection_name] = {
+                "count": len(collection_docs),
+                "documents": collection_docs
+            }
+            
+            if not collection_docs:
+                logger.info(f"❌ No documents found in {collection_name} for user_id={user_id}")
+            else:
+                logger.info(f"✅ Found {len(collection_docs)} documents in {collection_name}")
+
+        # Now let's test our worn calculation logic with the actual data
+        logger.info(f"🧮 Testing worn outfit calculation for user {user_id}")
+        worn_count = await calculate_worn_outfits_this_week(user_id)
+        logger.info(f"🧮 calculate_worn_outfits_this_week returned: {worn_count}")
+
+        return {
+            "success": True,
+            "user_id": user_id,
+            "collections_checked": collections_to_check,
+            "results": all_results,
+            "worn_this_week_calculation": worn_count,
+            "debug_info": {
+                "current_week_start": datetime.now(timezone.utc) - timedelta(days=datetime.now(timezone.utc).weekday()),
+                "current_time": datetime.now(timezone.utc).isoformat()
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Error in debug endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to debug outfit docs: {e}")
+
 @router.post("/initialize-stats")
 async def initialize_user_stats_endpoint(
     current_user: UserProfile = Depends(get_current_user)
