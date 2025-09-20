@@ -206,8 +206,24 @@ export function useOutfits(): UseOutfitsReturn {
     try {
       clearError();
       
-      console.log(`🔍 [useOutfits] Marking outfit ${id} as worn`);
-      await OutfitService.markOutfitAsWorn(user, id);
+      console.log(`👕 [useOutfits] Marking outfit ${id} as worn`);
+      
+      // Use API route to mark as worn - this updates backend stats for dashboard counter
+      const token = await user.getIdToken();
+      const response = await fetch(`/api/outfits/${id}/worn`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to mark outfit as worn: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log(`✅ [useOutfits] Successfully marked outfit as worn via API:`, result);
       
       // Update local state
       setOutfits(prev => prev.map(o => 
