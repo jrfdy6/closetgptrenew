@@ -146,8 +146,8 @@ class OutfitFilteringService:
             if any(keyword in item_name for keyword in exclude_keywords):
                 return False
                 
-        elif temperature <= 55:  # Cool weather (41-55°F)
-            # Exclude obvious summer items
+        elif temperature <= 65:  # Cool weather (41-65°F) - Extended range to catch 67°F scenario
+            # Exclude obvious summer items that are inappropriate for cool weather
             exclude_materials = ['linen', 'light cotton', 'mesh']
             exclude_types = ['tank top', 'sleeveless', 'shorts', 'sandals']
             

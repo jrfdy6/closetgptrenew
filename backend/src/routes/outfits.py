@@ -565,6 +565,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # Apply final base item guarantee
         outfit = ensure_base_item_included(outfit, req.baseItemId, wardrobe_items)
         
+        # ENHANCED: Add weather combination validation
+        if req.weather:
+            outfit = validate_weather_outfit_combinations(outfit, req.weather)
+        
         logger.info(f"✅ Final outfit: {len(outfit.get('items', []))} items")
         logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
         
@@ -2515,8 +2519,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         return await generate_fallback_outfit(req, user_profile.get('id', 'unknown') if user_profile else 'unknown')
 
 async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
-    """Generate basic fallback outfit when rule-based generation fails."""
-    logger.info(f"🔄 Generating fallback outfit for {user_id}")
+    """Generate weather-aware fallback outfit when rule-based generation fails."""
+    logger.info(f"🔄 Generating weather-aware fallback outfit for {user_id}")
     
     outfit_name = f"{req.style.title()} {req.mood.title()} Look"
     selected_items = []
@@ -2527,6 +2531,20 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         if not wardrobe_items or len(wardrobe_items) == 0:
             wardrobe_items = await get_user_wardrobe(user_id)
         logger.info(f"Retrieved {len(wardrobe_items)} wardrobe items for fallback")
+        
+        # ENHANCED: Apply weather filtering to fallback generation
+        if req.weather and wardrobe_items:
+            logger.info(f"🌤️ Applying weather filtering to fallback generation: {req.weather.temperature}°F, {req.weather.condition}")
+            weather_filtered_items = []
+            for item in wardrobe_items:
+                if check_item_weather_appropriateness(item, {
+                    'temperature': req.weather.temperature,
+                    'condition': req.weather.condition,
+                    'precipitation': req.weather.precipitation
+                }):
+                    weather_filtered_items.append(item)
+            logger.info(f"After weather filtering: {len(weather_filtered_items)}/{len(wardrobe_items)} items remain")
+            wardrobe_items = weather_filtered_items if weather_filtered_items else wardrobe_items  # Use filtered if available
         
         # Style-aware fallback logic: pick appropriate items for the style
         categories_needed = ['tops', 'bottoms', 'shoes']  # Basic outfit needs
@@ -2583,9 +2601,110 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         "items": selected_items,
         "occasion": req.occasion,
         "confidence_score": 0.7 if len([item for item in selected_items if not item.get('id', '').startswith('fallback')]) > 0 else 0.5,
-        "reasoning": f"Basic {req.style} outfit for {req.occasion} using {'real wardrobe items' if len([item for item in selected_items if not item.get('id', '').startswith('fallback')]) > 0 else 'generic items'} (fallback generation)",
+        "reasoning": generate_weather_aware_fallback_reasoning(req, selected_items),
         "createdAt": datetime.now().isoformat() + 'Z'
     }
+
+def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items: List[Dict]) -> str:
+    """Generate weather-aware reasoning for fallback outfits."""
+    try:
+        # Always generate exactly 3 sentences for consistency
+        sentences = []
+        
+        # Sentence 1: Weather context and fallback explanation
+        weather_context = ""
+        if req.weather:
+            temp = req.weather.temperature
+            condition = req.weather.condition.lower()
+            
+            if temp >= 75:
+                weather_context = f"suitable for {temp}°F {condition} weather with comfortable pieces"
+            elif temp <= 55:
+                weather_context = f"appropriate for cool {temp}°F {condition} conditions with thoughtful layering"
+            else:
+                weather_context = f"matched to {temp}°F {condition} weather"
+                
+            if 'rain' in condition:
+                weather_context += " and weather-resistant selections"
+        else:
+            weather_context = "designed for comfortable all-day wear"
+            
+        sentences.append(f"This {req.style} {req.occasion} outfit is {weather_context} using your available wardrobe pieces.")
+        
+        # Sentence 2: Item selection rationale
+        if selected_items:
+            item_count = len(selected_items)
+            if item_count >= 3:
+                sentences.append(f"The {item_count} selected pieces balance style preferences with weather considerations for your {req.mood} mood.")
+            else:
+                sentences.append(f"The available {item_count} pieces work together to create a cohesive look that matches your {req.mood} aesthetic.")
+        else:
+            sentences.append("The outfit selection prioritizes comfort and weather appropriateness within your style preferences.")
+        
+        # Sentence 3: Confidence and weather appropriateness
+        if req.weather:
+            sentences.append(f"Each item has been chosen to ensure comfort in {req.weather.temperature}°F conditions while maintaining your desired {req.style} style.")
+        else:
+            sentences.append(f"The combination creates a well-balanced {req.style} ensemble that works for various weather conditions.")
+        
+        return " ".join(sentences)
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to generate weather-aware fallback reasoning: {e}")
+        # Basic fallback with weather context if available
+        weather_note = ""
+        if req.weather:
+            weather_note = f" for {req.weather.temperature}°F {req.weather.condition.lower()} weather"
+        return f"This {req.style} {req.occasion} outfit{weather_note} uses your available wardrobe pieces. The selection balances style and comfort for your {req.mood} mood. Each item works together to create a weather-appropriate, cohesive look."
+
+def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather) -> Dict[str, Any]:
+    """Validate outfit combinations for weather appropriateness and add warnings."""
+    try:
+        items = outfit.get('items', [])
+        if not items:
+            return outfit
+            
+        temp = weather.temperature
+        condition = weather.condition.lower()
+        
+        # Check for problematic combinations
+        outfit_warnings = []
+        
+        # Get item types for combination analysis
+        item_types = [item.get('type', '').lower() for item in items]
+        item_names = [item.get('name', '').lower() for item in items]
+        
+        # Check for temperature-inappropriate combinations
+        has_shorts = any('shorts' in t or 'short' in name for t, name in zip(item_types, item_names))
+        has_heavy_jacket = any(('jacket' in t or 'coat' in t) and any(heavy in name for heavy in ['heavy', 'winter', 'wool']) for t, name in zip(item_types, item_names))
+        has_tank_top = any('tank' in t or 'sleeveless' in t for t in item_types)
+        has_sweater = any('sweater' in t or 'pullover' in t for t in item_types)
+        
+        # Flag inappropriate combinations for temperature
+        if temp <= 67 and has_shorts:
+            outfit_warnings.append(f"Note: Shorts may be too cool for {temp}°F weather - consider long pants for better comfort.")
+        
+        if temp <= 67 and has_shorts and has_heavy_jacket:
+            outfit_warnings.append(f"Note: The combination of shorts with a heavy jacket creates an unbalanced look for {temp}°F weather - consider matching the formality levels.")
+        
+        if temp >= 80 and has_sweater and not has_shorts:
+            outfit_warnings.append(f"Note: A sweater may be too warm for {temp}°F {condition} weather - consider lighter layers.")
+        
+        if temp <= 50 and has_tank_top:
+            outfit_warnings.append(f"Note: Tank tops may be inadequate for {temp}°F {condition} conditions - consider adding layers.")
+        
+        # Add warnings to reasoning if any found
+        if outfit_warnings:
+            current_reasoning = outfit.get('reasoning', '')
+            warning_text = "\n\n" + " ".join(outfit_warnings)
+            outfit['reasoning'] = current_reasoning + warning_text
+            logger.info(f"🌤️ Added {len(outfit_warnings)} weather combination warnings to outfit")
+        
+        return outfit
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to validate weather outfit combinations: {e}")
+        return outfit
 
 # Real Firestore operations
 async def save_outfit(user_id: str, outfit_id: str, outfit_record: Dict[str, Any]) -> bool:
