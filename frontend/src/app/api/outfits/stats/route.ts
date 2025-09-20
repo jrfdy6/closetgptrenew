@@ -4,20 +4,37 @@ export async function GET(req: NextRequest) {
   console.log("🔍 [API] /api/outfits/stats GET route called");
   
   try {
-    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/outfit-history/stats`;
     const authHeader = req.headers.get('authorization');
-    console.log("🔍 [API] Proxying to backend URL:", backendUrl);
-    console.log("🔍 [API] Authorization header:", authHeader ? `Present (${authHeader.substring(0, 20)}...)` : 'Missing');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const days = searchParams.get('days') || '7';
+
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      'https://closetgptrenew-backend-production.up.railway.app';
     
-    const res = await fetch(backendUrl, {
+    console.log("🔍 [API] Proxying to backend URL:", `${baseUrl}/api/outfit-stats/stats`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const res = await fetch(`${baseUrl}/api/outfit-stats/stats?days=${encodeURIComponent(days)}`, {
       method: 'GET',
       headers: {
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
-        ...(req.headers.get('authorization') && {
-          Authorization: req.headers.get('authorization')!,
-        }),
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       console.error('❌ [API] Backend responded with:', res.status, res.statusText);
@@ -39,9 +56,20 @@ export async function GET(req: NextRequest) {
 
     const data = await res.json();
     console.log("✅ [API] Successfully fetched stats from backend");
-    return NextResponse.json(data, { status: res.status });
-  } catch (err) {
-    console.error('❌ [API] /api/outfits/stats proxy failed:', err);
-    return NextResponse.json({ error: 'Proxy failed', details: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
+    return NextResponse.json(data);
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { success: false, error: 'Backend request timeout' },
+        { status: 504 }
+      );
+    }
+    console.error('❌ [API] /api/outfits/stats proxy failed:', error);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Proxy failed', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
   }
 }
