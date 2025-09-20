@@ -45,6 +45,7 @@ from ..services.analytics_service import log_analytics_event
 
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
+# Force Railway redeploy - outfit history routes should work
 
 async def calculate_worn_outfits_this_week(user_id: str) -> int:
     """
