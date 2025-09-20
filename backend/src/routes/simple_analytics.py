@@ -106,19 +106,15 @@ async def get_dashboard_stats(
         if not current_user:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        # Get worn outfits this week
-        worn_response = await get_outfits_worn_this_week(current_user)
-        worn_this_week = worn_response["worn_this_week"]
-        
-        # Could add more simple stats here if needed
-        # But let's keep it minimal for now
-        
+        # For now, return a simple response to test if the endpoint works
+        # TODO: Implement actual counting once we verify the endpoint is accessible
         return {
             "success": True,
             "user_id": current_user.id,
-            "outfits_worn_this_week": worn_this_week,
-            "total_outfits": 1500,  # You mentioned you have 1500 outfits
-            "calculated_at": datetime.now(timezone.utc).isoformat()
+            "outfits_worn_this_week": 3,  # Hardcoded for testing - you marked 2 outfits as worn
+            "total_outfits": 1500,
+            "calculated_at": datetime.now(timezone.utc).isoformat(),
+            "message": "Simple analytics working - hardcoded count for testing"
         }
         
     except HTTPException:
@@ -126,3 +122,12 @@ async def get_dashboard_stats(
     except Exception as e:
         logger.error(f"❌ Error getting dashboard stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get dashboard stats: {e}")
+
+@router.get("/test")
+async def test_simple_analytics():
+    """Simple test endpoint to verify router is loaded"""
+    return {
+        "success": True,
+        "message": "Simple analytics router is working!",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
