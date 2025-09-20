@@ -40,14 +40,14 @@ class UserStatsService:
             
             # Read single stats document
             stats_ref = self.db.collection('user_stats').document(user_id)
-            stats_doc = stats_ref.get()
+            stats_doc = await stats_ref.get()
             
             if not stats_doc.exists:
                 logger.info(f"No stats document found for user {user_id}, initializing...")
                 # Initialize stats document for new user
                 await self.initialize_user_stats(user_id)
                 # Try reading again
-                stats_doc = stats_ref.get()
+                stats_doc = await stats_ref.get()
             
             if stats_doc.exists:
                 stats_data = stats_doc.to_dict()
