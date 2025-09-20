@@ -77,8 +77,8 @@ async def get_simple_outfit_stats(
                 logger.info(f"✅ Got worn count from user_stats: {worn_count}")
             else:
                 # Fallback: count manually but with limit to prevent timeout
-                logger.info("📊 User stats not found, doing limited manual count")
-                outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).limit(50)
+                logger.info("📊 User stats not found, doing limited manual count and creating stats doc")
+                outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).limit(100)
                 
                 docs = outfits_ref.stream()
                 for doc in docs:
@@ -88,7 +88,21 @@ async def get_simple_outfit_stats(
                     if last_worn and last_worn >= week_start:
                         worn_count += 1
                         
-                logger.info(f"📊 Manual count (limited to 50 outfits): {worn_count}")
+                logger.info(f"📊 Manual count (limited to 100 outfits): {worn_count}")
+                
+                # Create user_stats document with current count
+                try:
+                    stats_ref.set({
+                        'user_id': current_user.id,
+                        'worn_this_week': worn_count,
+                        'created_this_week': 0,
+                        'total_outfits': 1500,
+                        'last_updated': now,
+                        'created_at': now
+                    })
+                    logger.info(f"✅ Created user_stats document with worn_this_week: {worn_count}")
+                except Exception as create_error:
+                    logger.error(f"❌ Failed to create user_stats: {create_error}")
                 
         except Exception as e:
             logger.warning(f"Error counting worn outfits: {e}")
