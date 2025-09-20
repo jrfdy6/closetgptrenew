@@ -39,20 +39,28 @@ async def get_weather(request: WeatherRequest):
             raise HTTPException(status_code=500, detail="OpenWeather API key not configured")
 
         # Determine if location is coordinates or city name
+        # Check if it looks like coordinates (numbers with comma)
+        is_coordinates = False
         if "," in request.location:
-            try:
-                lat, lon = request.location.split(",")
-                lat = float(lat.strip())
-                lon = float(lon.strip())
-                params = {
-                    "lat": lat,
-                    "lon": lon,
-                    "appid": api_key,
-                    "units": "metric"  # Use metric for Celsius
-                }
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid coordinates format")
-        else:
+            parts = request.location.split(",")
+            if len(parts) == 2:
+                try:
+                    lat = float(parts[0].strip())
+                    lon = float(parts[1].strip())
+                    # Valid coordinate ranges: lat [-90, 90], lon [-180, 180]
+                    if -90 <= lat <= 90 and -180 <= lon <= 180:
+                        is_coordinates = True
+                        params = {
+                            "lat": lat,
+                            "lon": lon,
+                            "appid": api_key,
+                            "units": "metric"  # Use metric for Celsius
+                        }
+                except ValueError:
+                    # Not coordinates, treat as city name
+                    is_coordinates = False
+        
+        if not is_coordinates:
             params = {
                 "q": request.location,
                 "appid": api_key,
