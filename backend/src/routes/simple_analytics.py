@@ -2,6 +2,7 @@
 Simple, reliable analytics system for ClosetGPT
 NO complex pre-aggregation, NO caching, NO broken services
 Just direct counts when needed.
+FORCE REDEPLOY: Fri Sep 20 17:30
 """
 
 from fastapi import APIRouter, HTTPException, Depends
