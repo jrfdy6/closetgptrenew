@@ -194,36 +194,9 @@ class DashboardService {
       
       const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
       const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
-      // Get outfits worn this week from simple analytics
+      // Get outfits worn this week from simple analytics - no complex fallbacks needed
       const outfitsThisWeek = (simpleAnalytics as any)?.outfits_worn_this_week || 0;
-      
-      // If outfit history is empty, try to get outfits from the outfits endpoint as fallback
-      if (outfitsThisWeek === 0) {
-        console.log('🔍 DEBUG: Outfit history is empty, trying fallback method...');
-        
-        // Try the simple outfit stats endpoint as fallback
-        try {
-          console.log('🔍 DEBUG: Trying simple outfit stats endpoint as fallback...');
-          const simpleStatsResponse = await this.makeAuthenticatedRequest('/outfit-stats/stats?days=7', user);
-          if (simpleStatsResponse?.success && simpleStatsResponse.outfits_this_week) {
-            outfitsThisWeek = simpleStatsResponse.outfits_this_week;
-            console.log('🔍 DEBUG: Simple stats endpoint returned:', outfitsThisWeek, 'outfits this week');
-          } else {
-            throw new Error('Simple stats endpoint failed');
-          }
-        } catch (simpleStatsError) {
-          console.log('🔍 DEBUG: Simple stats endpoint also failed, trying direct outfit calculation');
-          try {
-            const outfitsResponse = await this.makeAuthenticatedRequest('/outfits/', user);
-            const outfits = Array.isArray(outfitsResponse) ? outfitsResponse : [];
-            outfitsThisWeek = this.calculateOutfitsThisWeekFromOutfits(outfits);
-            console.log('🔍 DEBUG: Direct outfit calculation result:', outfitsThisWeek);
-          } catch (error) {
-            console.error('🔍 DEBUG: All calculation methods failed:', error);
-            outfitsThisWeek = 0; // Reset to 0 to see true state
-          }
-        }
-      }
+      console.log('🔍 DEBUG: Simple analytics returned:', outfitsThisWeek, 'outfits worn this week');
       
       console.log('🔍 DEBUG: Extracted data:');
       console.log('🔍 DEBUG: - wardrobeItems:', wardrobeItems.length, 'items (empty - backend only returns stats)');
