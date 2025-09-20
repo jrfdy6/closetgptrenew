@@ -61,8 +61,18 @@ async def get_weather(request: WeatherRequest):
                     is_coordinates = False
         
         if not is_coordinates:
+            # For city names, try the original format first
+            query_location = request.location
+            
+            # If it's a US city with state (e.g., "New York, NY"), also try without state
+            # OpenWeather sometimes doesn't recognize "City, State" format for US cities
+            if ", " in request.location and len(request.location.split(", ")[1]) == 2:
+                # Looks like "City, State" format - try city only as backup
+                city_only = request.location.split(", ")[0]
+                logger.info(f"US city format detected: {request.location}, will try '{city_only}' if needed")
+            
             params = {
-                "q": request.location,
+                "q": query_location,
                 "appid": api_key,
                 "units": "metric"  # Use metric for Celsius
             }
@@ -83,8 +93,30 @@ async def get_weather(request: WeatherRequest):
                 raise HTTPException(status_code=500, detail="Weather service timeout")
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 404:
-                    logger.error(f"Location not found: {request.location}")
-                    raise HTTPException(status_code=404, detail="Location not found")
+                    # Try fallback for US cities (City, State -> City)
+                    if not is_coordinates and ", " in request.location and len(request.location.split(", ")[1]) == 2:
+                        city_only = request.location.split(", ")[0]
+                        logger.info(f"Retrying with city only: {city_only}")
+                        
+                        try:
+                            fallback_params = {
+                                "q": city_only,
+                                "appid": api_key,
+                                "units": "metric"
+                            }
+                            fallback_response = await client.get(
+                                "https://api.openweathermap.org/data/2.5/weather",
+                                params=fallback_params
+                            )
+                            fallback_response.raise_for_status()
+                            data = fallback_response.json()
+                            logger.info(f"Fallback successful for {data.get('name', 'unknown location')}")
+                        except httpx.HTTPStatusError:
+                            logger.error(f"Location not found even with fallback: {request.location}")
+                            raise HTTPException(status_code=404, detail="Location not found")
+                    else:
+                        logger.error(f"Location not found: {request.location}")
+                        raise HTTPException(status_code=404, detail="Location not found")
                 elif e.response.status_code == 401:
                     logger.error("Invalid OpenWeather API key")
                     raise HTTPException(status_code=500, detail="Weather service configuration error")
