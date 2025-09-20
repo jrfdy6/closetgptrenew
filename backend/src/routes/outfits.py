@@ -3177,6 +3177,17 @@ async def mark_outfit_as_worn(
             
         logger.info(f"👕 Marking outfit {outfit_id} as worn for user {current_user.id}")
         
+        # Import Firebase inside function to prevent import-time crashes
+        try:
+            from ..config.firebase import db, firebase_initialized
+        except ImportError as e:
+            logger.error(f"⚠️ Firebase import failed: {e}")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
+        if not db:
+            logger.error("⚠️ Firebase not available")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
         # Simple direct update instead of using the complex OutfitService
         # This avoids the dictionary update error
         outfit_ref = db.collection('outfits').document(outfit_id)
