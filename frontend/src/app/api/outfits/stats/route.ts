@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+// Fix 405 errors - connect outfits page to working stats
 
 export async function GET(req: NextRequest) {
   console.log("🔍 [API] /api/outfits/stats GET route called");
