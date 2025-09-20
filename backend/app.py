@@ -131,7 +131,7 @@ ROUTERS = [
     ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router
     ("src.routes.image_analysis", ""),   # Full image analysis router with debug logging
     ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
-    # ("src.routes.weather", ""),          # Router already has /api/weather prefix
+    ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.forgotten_gems", "/api/wardrobe-insights"),  # Forgotten gems router - mounted at /api/wardrobe-insights to avoid conflict
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
