@@ -41,7 +41,7 @@ def parse_last_worn(ts):
 from ..auth.auth_service import get_current_user  # Keep this for dependency injection
 from ..custom_types.profile import UserProfile   # Keep this for type hints
 from ..core.logging import get_logger
-from ..services.analytics_service import log_analytics_event
+# from ..services.analytics_service import log_analytics_event  # Temporarily commented out for debugging
 
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
@@ -978,8 +978,8 @@ async def mark_today_suggestion_as_worn(
                     "source": "daily_outfit_suggestion"
                 }
             )
-            from ..services.analytics_service import log_analytics_event
-            log_analytics_event(analytics_event)
+            # from ..services.analytics_service import log_analytics_event  # Temporarily commented out
+            # log_analytics_event(analytics_event)  # Temporarily commented out
         except Exception as analytics_error:
             logger.warning(f"Failed to log analytics: {analytics_error}")
         
