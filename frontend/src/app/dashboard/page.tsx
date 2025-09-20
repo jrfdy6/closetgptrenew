@@ -64,15 +64,23 @@ export default function Dashboard() {
   // Automatic location prompt when dashboard loads
   useEffect(() => {
     if (user && weather && (weather.location === "Unknown Location" || weather.location === "Default Location")) {
-      // Show a simple browser prompt for location
-      const shouldGetLocation = confirm(
-        "🌤️ Get accurate weather data for better outfit recommendations?\n\n" +
-        "We need your location to provide weather-perfect outfit suggestions.\n" +
-        "Click OK to use your current location, or Cancel to skip."
-      );
+      // Check if we've already asked for location in this session
+      const hasAskedForLocation = sessionStorage.getItem('has-asked-for-location');
       
-      if (shouldGetLocation) {
-        fetchWeatherByLocation();
+      if (!hasAskedForLocation) {
+        // Show a simple browser prompt for location
+        const shouldGetLocation = confirm(
+          "🌤️ Get accurate weather data for better outfit recommendations?\n\n" +
+          "We need your location to provide weather-perfect outfit suggestions.\n" +
+          "Click OK to use your current location, or Cancel to skip."
+        );
+        
+        // Mark that we've asked for location in this session
+        sessionStorage.setItem('has-asked-for-location', 'true');
+        
+        if (shouldGetLocation) {
+          fetchWeatherByLocation();
+        }
       }
     }
   }, [user, weather, fetchWeatherByLocation]);
