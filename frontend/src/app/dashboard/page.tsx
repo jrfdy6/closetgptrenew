@@ -301,6 +301,15 @@ export default function Dashboard() {
             <Zap className="w-5 h-5 mr-3" />
             Initialize Stats System
           </Button>
+
+          {/* Backfill Stats Button */}
+          <Button 
+            onClick={handleBackfillStats}
+            className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+          >
+            <RefreshCw className="w-5 h-5 mr-3" />
+            Backfill Stats
+          </Button>
         </div>
 
         {/* Quick Stats */}
