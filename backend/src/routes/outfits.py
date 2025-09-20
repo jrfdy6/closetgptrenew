@@ -4206,13 +4206,19 @@ async def get_outfits_worn_this_week_simple(
         logger.info(f"📊 Counting outfits worn since {week_start.isoformat()} for user {current_user.id}")
         
         worn_count = 0
+        processed_count = 0
         
-        # Query user's outfits
-        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
+        # Query user's outfits with limit to prevent timeout
+        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).limit(1000)
         
         for outfit_doc in outfits_ref.stream():
             outfit_data = outfit_doc.to_dict()
+            processed_count += 1
             last_worn = outfit_data.get('lastWorn')
+            
+            # Log progress every 100 outfits
+            if processed_count % 100 == 0:
+                logger.info(f"📊 Processed {processed_count} outfits, found {worn_count} worn this week")
             
             if last_worn:
                 # Parse lastWorn date safely - handle multiple formats
@@ -4254,12 +4260,13 @@ async def get_outfits_worn_this_week_simple(
                     logger.warning(f"Could not parse lastWorn date {last_worn} (type: {type(last_worn)}): {parse_error}")
                     continue
         
-        logger.info(f"✅ Found {worn_count} outfits worn this week for user {current_user.id}")
+        logger.info(f"✅ Found {worn_count} outfits worn this week for user {current_user.id} (processed {processed_count} total outfits)")
         
         return {
             "success": True,
             "user_id": current_user.id,
             "outfits_worn_this_week": worn_count,
+            "processed_count": processed_count,
             "week_start": week_start.isoformat(),
             "calculated_at": datetime.now(timezone.utc).isoformat()
         }

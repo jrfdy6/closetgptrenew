@@ -172,7 +172,7 @@ class DashboardService {
         topWornItems
       ] = await Promise.all([
         fetchWithTimeout(this.getWardrobeStats(user), 8000, { items: [], total_items: 0 }),
-        fetchWithTimeout(this.getSimpleAnalytics(user), 8000, { success: true, outfits_worn_this_week: 0 }),
+        fetchWithTimeout(this.getSimpleAnalytics(user), 15000, { success: true, outfits_worn_this_week: 0 }),
         fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }),
         fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }),
         fetchWithTimeout(this.getTopWornItems(user), 8000, { success: true, data: { items: [] } })
