@@ -128,6 +128,7 @@ export default function Dashboard() {
   };
 
   // Clean, simple analytics - no complex initialization functions needed
+  // Force browser cache refresh - removed all handleInitializeStats references
 
 
   const handleRetry = () => {

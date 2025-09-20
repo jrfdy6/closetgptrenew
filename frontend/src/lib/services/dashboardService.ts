@@ -198,6 +198,8 @@ class DashboardService {
       const outfitsThisWeek = (simpleAnalytics as any)?.outfits_worn_this_week || 0;
       console.log('🔍 DEBUG: Simple analytics returned:', outfitsThisWeek, 'outfits worn this week');
       
+      // Force browser cache refresh - removed all outfitHistory references
+      
       console.log('🔍 DEBUG: Extracted data:');
       console.log('🔍 DEBUG: - wardrobeItems:', wardrobeItems.length, 'items (empty - backend only returns stats)');
       console.log('🔍 DEBUG: - totalItems:', totalItems);
