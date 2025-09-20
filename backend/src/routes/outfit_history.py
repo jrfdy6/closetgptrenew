@@ -29,7 +29,8 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
         outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
         
         worn_count = 0
-        async for doc in outfits_ref.stream():
+        docs = outfits_ref.stream()
+        for doc in docs:
             data = doc.to_dict()
             last_worn = data.get('lastWorn')
             
