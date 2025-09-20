@@ -1394,4 +1394,4 @@ async def backfill_user_stats_endpoint(
         logger.error(f"❌ Error backfilling stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to backfill stats: {e}")
 
-# Force redeploy Wed Sep 18 15:15:00 EDT 2025 - FIXED DUPLICATE ROUTE ISSUE!
+# Force redeploy Fri Sep 20 17:00:00 EDT 2025 - ADDED BACKFILL-STATS ENDPOINT!
