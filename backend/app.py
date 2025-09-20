@@ -137,7 +137,7 @@ ROUTERS = [
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
     ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats
-    ("src.routes.outfit_stats_simple", "/api/outfit-stats"),  # Simple outfit stats router - bypass outfit_history issues
+    ("src.routes.simple_analytics", ""),                     # NEW: Simple, reliable analytics - no prefix needed
     ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
     # ("src.routes.test_debug", ""),       # Router already has /api/test prefix
     # ("src.routes.analytics_dashboard", ""), # Analytics dashboard router

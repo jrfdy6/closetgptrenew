@@ -127,67 +127,7 @@ export default function Dashboard() {
     }
   };
 
-  // Temporary function to initialize stats
-  const handleInitializeStats = async () => {
-    if (!user) return;
-    
-    try {
-      console.log('🚀 Initializing user stats...');
-      const token = await user.getIdToken();
-      
-      const response = await fetch('/api/outfit-history/initialize-stats', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
-      
-      const result = await response.json();
-      console.log('✅ Initialization result:', result);
-      
-      if (result.success) {
-        alert('🎉 Stats initialized successfully! The dashboard will now refresh.');
-        await fetchDashboardData(); // Refresh the dashboard
-      } else {
-        alert('❌ Failed to initialize stats: ' + (result.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Failed to initialize stats:', error);
-      alert('❌ Failed to initialize stats: ' + error);
-    }
-  };
-
-  // Backfill function to correct existing worn outfit counts
-  const handleBackfillStats = async () => {
-    if (!user) return;
-    
-    try {
-      console.log('🔄 Backfilling worn outfit stats...');
-      const token = await user.getIdToken();
-      
-      const response = await fetch('/api/outfit-history/backfill-stats', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
-      
-      const result = await response.json();
-      console.log('✅ Backfill result:', result);
-      
-      if (result.success) {
-        alert(`🔄 Backfill complete! Found ${result.worn_this_week} outfits worn this week. Dashboard will refresh.`);
-        await fetchDashboardData(); // Refresh the dashboard
-      } else {
-        alert('❌ Failed to backfill stats: ' + (result.error || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Failed to backfill stats:', error);
-      alert('❌ Failed to backfill stats: ' + error);
-    }
-  };
+  // Clean, simple analytics - no complex initialization functions needed
 
 
   const handleRetry = () => {
@@ -293,23 +233,7 @@ export default function Dashboard() {
             Add Items with AI
           </Button>
           
-          {/* Temporary Stats Initialization Button */}
-          <Button 
-            onClick={handleInitializeStats}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
-          >
-            <Zap className="w-5 h-5 mr-3" />
-            Initialize Stats System
-          </Button>
-
-          {/* Backfill Stats Button */}
-          <Button 
-            onClick={handleBackfillStats}
-            className="bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
-          >
-            <RefreshCw className="w-5 h-5 mr-3" />
-            Backfill Stats
-          </Button>
+          {/* Clean, simple analytics - no complex initialization needed */}
         </div>
 
         {/* Quick Stats */}

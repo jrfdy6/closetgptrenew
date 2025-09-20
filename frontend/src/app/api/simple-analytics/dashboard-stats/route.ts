@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     // Get the authorization header from the request
     const authorization = request.headers.get('Authorization');
@@ -19,10 +19,10 @@ export async function POST(request: NextRequest) {
 
     // Forward the request to the backend with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(`${backendUrl}/api/outfit-history/backfill-stats`, {
-      method: 'POST',
+    const response = await fetch(`${backendUrl}/api/simple-analytics/dashboard-stats`, {
+      method: 'GET',
       headers: {
         'Authorization': authorization,
         'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Backend backfill error:', response.status, errorText);
+      console.error('Backend simple analytics error:', response.status, errorText);
       return NextResponse.json(
         { 
           success: false, 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error: any) {
-    console.error('Backfill stats API error:', error);
+    console.error('Simple analytics API error:', error);
     
     if (error.name === 'AbortError') {
       return NextResponse.json(

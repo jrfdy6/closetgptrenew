@@ -166,13 +166,13 @@ class DashboardService {
       // Fetch data from multiple endpoints with individual timeouts
       const [
         wardrobeStats,
-        outfitHistory,
+        simpleAnalytics,
         trendingStyles,
         todaysOutfit,
         topWornItems
       ] = await Promise.all([
         fetchWithTimeout(this.getWardrobeStats(user), 8000, { items: [], total_items: 0 }),
-        fetchWithTimeout(this.getOutfitHistory(user), 8000, { success: true, total_outfits: 0, outfits_this_week: 0, totalThisWeek: 0 }),
+        fetchWithTimeout(this.getSimpleAnalytics(user), 8000, { success: true, outfits_worn_this_week: 0 }),
         fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }),
         fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }),
         fetchWithTimeout(this.getTopWornItems(user), 8000, { success: true, data: { items: [] } })
@@ -182,7 +182,7 @@ class DashboardService {
 
       // Process and combine the data with proper backend response mapping
       console.log('🔍 DEBUG: Processing wardrobeStats:', wardrobeStats);
-      console.log('🔍 DEBUG: Processing outfitHistory:', outfitHistory);
+      console.log('🔍 DEBUG: Processing simpleAnalytics:', simpleAnalytics);
       console.log('🔍 DEBUG: Processing trendingStyles:', trendingStyles);
       console.log('🔍 DEBUG: Processing todaysOutfit:', todaysOutfit);
       console.log('🔍 DEBUG: Processing topWornItems:', topWornItems);
@@ -194,8 +194,8 @@ class DashboardService {
       
       const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
       const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
-      // Calculate outfits this week with fallback
-      let outfitsThisWeek = this.calculateOutfitsThisWeek(outfitHistory);
+      // Get outfits worn this week from simple analytics
+      const outfitsThisWeek = (simpleAnalytics as any)?.outfits_worn_this_week || 0;
       
       // If outfit history is empty, try to get outfits from the outfits endpoint as fallback
       if (outfitsThisWeek === 0) {
@@ -368,6 +368,23 @@ class DashboardService {
         total_outfits: 0,
         outfits_this_week: 0,
         totalThisWeek: 0
+      };
+    }
+  }
+
+  private async getSimpleAnalytics(user: User) {
+    try {
+      console.log('🔍 DEBUG: Fetching simple analytics from /simple-analytics/dashboard-stats');
+      const response = await this.makeAuthenticatedRequest('/simple-analytics/dashboard-stats', user, {
+        method: 'GET'
+      });
+      console.log('🔍 DEBUG: Simple analytics response:', response);
+      return response;
+    } catch (error) {
+      console.error('Error fetching simple analytics:', error);
+      return {
+        success: true,
+        outfits_worn_this_week: 0
       };
     }
   }
