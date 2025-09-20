@@ -18,18 +18,29 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Forward request to backend
+    // Get query parameters
+    const { searchParams } = new URL(req.url);
+    const days = searchParams.get('days') || '7';
+
+    // Forward request to backend with timeout
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       'https://closetgptrenew-backend-production.up.railway.app';
-    const response = await fetch(`${baseUrl}/api/outfit-history/stats`, {
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    const response = await fetch(`${baseUrl}/api/outfit-history/stats?days=${encodeURIComponent(days)}`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const data = await response.json();
 
@@ -46,7 +57,17 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(data);
 
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Backend request timeout',
+          details: 'Backend took too long to respond'
+        },
+        { status: 504 }
+      );
+    }
     console.error('Error fetching outfit history stats:', error);
     return NextResponse.json(
       { 
