@@ -193,7 +193,8 @@ class UserStatsService:
         }
 
         # Increment worn_this_week counter
-        updates["outfits.worn_this_week"] = self.db.field_value.increment(1)
+        from google.cloud import firestore
+        updates["outfits.worn_this_week"] = firestore.Increment(1)
 
         try:
             await doc_ref.update(updates)
