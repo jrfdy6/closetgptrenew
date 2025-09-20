@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       'https://closetgptrenew-backend-production.up.railway.app';
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased to 20 seconds
 
     const response = await fetch(`${baseUrl}/api/outfit-stats/stats?days=${encodeURIComponent(days)}`, {
       method: 'GET',

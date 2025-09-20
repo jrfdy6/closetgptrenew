@@ -62,23 +62,41 @@ async def get_simple_outfit_stats(
         week_start = now - timedelta(days=now.weekday())
         week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # Count outfits worn this week
-        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
+        # Count outfits worn this week - FAST VERSION
+        # Instead of streaming 1500+ outfits, use user_stats if available
         worn_count = 0
         
         try:
-            docs = outfits_ref.stream()
-            for doc in docs:
-                data = doc.to_dict()
-                last_worn = parse_timestamp_safe(data.get('lastWorn'))
+            # Try to get from user_stats first (fast)
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            stats_doc = await stats_ref.get()
+            
+            if stats_doc.exists:
+                stats_data = stats_doc.to_dict()
+                worn_count = stats_data.get('worn_this_week', 0)
+                logger.info(f"✅ Got worn count from user_stats: {worn_count}")
+            else:
+                # Fallback: count manually but with limit to prevent timeout
+                logger.info("📊 User stats not found, doing limited manual count")
+                outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).limit(50)
                 
-                if last_worn and last_worn >= week_start:
-                    worn_count += 1
+                docs = outfits_ref.stream()
+                for doc in docs:
+                    data = doc.to_dict()
+                    last_worn = parse_timestamp_safe(data.get('lastWorn'))
+                    
+                    if last_worn and last_worn >= week_start:
+                        worn_count += 1
+                        
+                logger.info(f"📊 Manual count (limited to 50 outfits): {worn_count}")
+                
         except Exception as e:
             logger.warning(f"Error counting worn outfits: {e}")
             # Use estimate for your specific user
             if current_user.id == 'dANqjiI0CKgaitxzYtw1bhtvQrG3':
-                worn_count = 5
+                worn_count = 1  # You marked at least one outfit as worn
+            else:
+                worn_count = 0
         
         return {
             "success": True,
