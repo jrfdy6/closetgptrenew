@@ -34,7 +34,7 @@ async def get_weather(request: WeatherRequest):
     """
     try:
         # Get OpenWeather API key from environment
-        api_key = os.getenv("OPENWEATHER_API_KEY")
+        api_key = os.getenv("OPENWEATHER_API_KEY") or os.getenv("WEATHER_API_KEY")
         if not api_key:
             raise HTTPException(status_code=500, detail="OpenWeather API key not configured")
 
