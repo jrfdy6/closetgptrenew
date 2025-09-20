@@ -2614,8 +2614,12 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         # Sentence 1: Weather context and fallback explanation
         weather_context = ""
         if req.weather:
-            temp = req.weather.temperature
-            condition = req.weather.condition.lower()
+            temp = getattr(req.weather, 'temperature', 70)
+            condition = getattr(req.weather, 'condition', 'clear')
+            if isinstance(condition, str):
+                condition = condition.lower()
+            else:
+                condition = 'clear'
             
             if temp >= 75:
                 weather_context = f"suitable for {temp}°F {condition} weather with comfortable pieces"
@@ -2664,8 +2668,13 @@ def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather) -> Dic
         if not items:
             return outfit
             
-        temp = weather.temperature
-        condition = weather.condition.lower()
+        # Safely extract weather data
+        temp = getattr(weather, 'temperature', None) or weather.get('temperature', 70) if hasattr(weather, 'get') else 70
+        condition = getattr(weather, 'condition', None) or weather.get('condition', 'clear') if hasattr(weather, 'get') else 'clear'
+        if isinstance(condition, str):
+            condition = condition.lower()
+        else:
+            condition = 'clear'
         
         # Check for problematic combinations
         outfit_warnings = []
