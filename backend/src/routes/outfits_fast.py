@@ -3,6 +3,7 @@ Fast Outfit Loading Routes
 
 Provides lightning-fast outfit loading using pre-aggregated stats and metadata.
 Designed to replace slow pagination with instant loading.
+Updated for Railway deployment.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
