@@ -332,7 +332,8 @@ class DashboardService {
       console.log('🔍 DEBUG: Fetching outfit history stats via Next.js API route');
       
       // Use Next.js API route as proxy instead of calling backend directly
-      const response = await this.makeAuthenticatedRequest('/outfit-history/stats?days=7', user);
+      // Using outfit-stats endpoint as fallback since outfit-history has 405 errors
+      const response = await this.makeAuthenticatedRequest('/outfit-stats/stats?days=7', user);
       
       console.log('🔍 DEBUG: Outfit history stats response:', response);
       
@@ -392,41 +393,46 @@ class DashboardService {
 
   private async getTodaysOutfit(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /outfit-history/today-suggestion');
-      console.log('🔍 DEBUG: User ID:', user.uid);
-      console.log('🔍 DEBUG: User email:', user.email);
-      const response = await this.makeAuthenticatedRequest('/outfit-history/today-suggestion', user);
-      console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
-      console.log('🔍 DEBUG: Today\'s outfit suggestion response details:', JSON.stringify(response, null, 2));
+      // Temporarily disabled due to 405 errors on outfit-history endpoints
+      console.log('🔍 DEBUG: Today\'s outfit suggestion temporarily disabled');
+      return null;
+      
+      // TODO: Re-enable when backend outfit-history routes are fixed
+      // console.log('🔍 DEBUG: Fetching today\'s outfit suggestion from /outfit-history/today-suggestion');
+      // console.log('🔍 DEBUG: User ID:', user.uid);
+      // console.log('🔍 DEBUG: User email:', user.email);
+      // const response = await this.makeAuthenticatedRequest('/outfit-history/today-suggestion', user);
+      // console.log('🔍 DEBUG: Today\'s outfit suggestion response:', response);
+      // console.log('🔍 DEBUG: Today\'s outfit suggestion response details:', JSON.stringify(response, null, 2));
       
       // Handle new suggestion format
-      if (response.suggestion) {
-        const suggestion = response.suggestion;
-        const outfitData = suggestion.outfitData || {};
-        
-        console.log('🔍 DEBUG: Today\'s outfit suggestion data:', JSON.stringify(suggestion, null, 2));
-        console.log('🔍 DEBUG: Today\'s outfit items count:', Array.isArray(outfitData.items) ? outfitData.items.length : 'not an array');
-        console.log('🔍 DEBUG: Today\'s outfit name:', outfitData.name);
-        
-        return {
-          suggestionId: suggestion.id,
-          outfitName: outfitData.name || 'Daily Suggestion',
-          outfitImage: outfitData.imageUrl || '',
-          occasion: outfitData.occasion || 'Daily Suggestion',
-          mood: outfitData.mood || 'Confident',
-          weather: outfitData.weather || {},
-          items: outfitData.items || [],
-          isWorn: response.isWorn || false,
-          wornAt: response.wornAt,
-          generatedAt: suggestion.generatedAt,
-          isSuggestion: true // Flag to distinguish from worn outfits
-        };
-      }
-      
-      // Handle case where no suggestion is returned
-      console.log('🔍 DEBUG: No suggestion found in response, response keys:', Object.keys(response));
-      
-      return null;
+      // if (response.suggestion) {
+      //   const suggestion = response.suggestion;
+      //   const outfitData = suggestion.outfitData || {};
+      //   
+      //   console.log('🔍 DEBUG: Today\'s outfit suggestion data:', JSON.stringify(suggestion, null, 2));
+      //   console.log('🔍 DEBUG: Today\'s outfit items count:', Array.isArray(outfitData.items) ? outfitData.items.length : 'not an array');
+      //   console.log('🔍 DEBUG: Today\'s outfit name:', outfitData.name);
+      //   
+      //   return {
+      //     suggestionId: suggestion.id,
+      //     outfitName: outfitData.name || 'Daily Suggestion',
+      //     outfitImage: outfitData.imageUrl || '',
+      //     occasion: outfitData.occasion || 'Daily Suggestion',
+      //     mood: outfitData.mood || 'Confident',
+      //     weather: outfitData.weather || {},
+      //     items: outfitData.items || [],
+      //     isWorn: response.isWorn || false,
+      //     wornAt: response.wornAt,
+      //     generatedAt: suggestion.generatedAt,
+      //     isSuggestion: true // Flag to distinguish from worn outfits
+      //   };
+      // }
+      // 
+      // // Handle case where no suggestion is returned
+      // console.log('🔍 DEBUG: No suggestion found in response, response keys:', Object.keys(response));
+      // 
+      // return null;
     } catch (error) {
       console.error('Error fetching today\'s outfit:', error);
       // Return null for production when backend is not ready
