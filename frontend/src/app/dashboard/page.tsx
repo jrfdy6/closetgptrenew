@@ -158,6 +158,37 @@ export default function Dashboard() {
     }
   };
 
+  // Backfill function to correct existing worn outfit counts
+  const handleBackfillStats = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🔄 Backfilling worn outfit stats...');
+      const token = await user.getIdToken();
+      
+      const response = await fetch('/api/outfit-history/backfill-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+      
+      const result = await response.json();
+      console.log('✅ Backfill result:', result);
+      
+      if (result.success) {
+        alert(`🔄 Backfill complete! Found ${result.worn_this_week} outfits worn this week. Dashboard will refresh.`);
+        await fetchDashboardData(); // Refresh the dashboard
+      } else {
+        alert('❌ Failed to backfill stats: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Failed to backfill stats:', error);
+      alert('❌ Failed to backfill stats: ' + error);
+    }
+  };
+
 
   const handleRetry = () => {
     if (user) {

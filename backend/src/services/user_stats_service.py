@@ -168,49 +168,163 @@ class UserStatsService:
             logger.warning(f"Failed to update outfit stats: {e}")
             # Don't fail the main operation
     
-    async def update_outfit_worn_stats(self, user_id: str, outfit_id: str):
+    async def ensure_user_stats_document(self, user_id: str):
         """
-        Updates outfit worn statistics when an outfit is marked as worn.
-        Called when an outfit is worn to update the worn_this_week counter.
+        Ensures user_stats document exists before any operations.
+        Returns the document reference.
+        """
+        doc_ref = self.db.collection('user_stats').document(user_id)
+        doc = await doc_ref.get()
+        
+        if not doc.exists:
+            logger.info(f"📊 Creating user_stats document for {user_id}")
+            initial_stats = {
+                'user_id': user_id,
+                'worn_this_week': 0,
+                'worn_this_month': 0,
+                'created_this_week': 0,
+                'created_this_month': 0,
+                'total_outfits': 0,
+                'last_updated': datetime.now(timezone.utc).isoformat(),
+                'created_at': datetime.now(timezone.utc).isoformat()
+            }
+            await doc_ref.set(initial_stats)
+            logger.info(f"✅ Created user_stats document for {user_id}")
+        
+        return doc_ref
+
+    async def increment_outfits_worn(self, user_id: str):
+        """
+        Increments outfit worn counters using FieldValue.increment for concurrency safety.
+        Updates both weekly and monthly counters.
         """
         if not self.db:
             logger.error("Firestore DB not initialized for outfit worn stats update.")
             return
 
         try:
-            doc_ref = self.db.collection('user_stats').document(user_id)
+            # Ensure document exists first
+            doc_ref = await self.ensure_user_stats_document(user_id)
             
-            # Check if stats document exists, if not, create it with proper structure
-            doc = await doc_ref.get()
-            if not doc.exists:
-                logger.info(f"📊 Creating user_stats document for {user_id}")
-                # Create with simple structure that matches dashboard expectations
-                initial_stats = {
-                    'user_id': user_id,
-                    'worn_this_week': 1,  # Start with 1 since we're marking one as worn
-                    'created_this_week': 0,
-                    'total_outfits': 1500,
-                    'last_updated': datetime.now(timezone.utc).isoformat(),
-                    'created_at': datetime.now(timezone.utc).isoformat()
-                }
-                await doc_ref.set(initial_stats)
-                logger.info(f"✅ Created user_stats document with worn_this_week: 1")
-                return
-            
-            # Document exists, increment the counter
-            current_data = doc.to_dict()
-            current_worn = current_data.get('worn_this_week', 0)
-            new_worn = current_worn + 1
+            # Use FieldValue.increment for atomic, concurrent-safe updates
+            from firebase_admin import firestore
             
             await doc_ref.update({
-                'worn_this_week': new_worn,
+                'worn_this_week': firestore.Increment(1),
+                'worn_this_month': firestore.Increment(1),
                 'last_updated': datetime.now(timezone.utc).isoformat()
             })
             
-            logger.info(f"✅ Updated user_stats: worn_this_week {current_worn} → {new_worn}")
+            logger.info(f"✅ Incremented worn stats for user {user_id}: +1 week, +1 month")
             
         except Exception as e:
-            logger.error(f"❌ Error updating outfit worn stats for user {user_id}: {e}")
+            logger.error(f"❌ Error incrementing outfit worn stats for user {user_id}: {e}")
+
+    async def backfill_outfits_this_week(self, user_id: str):
+        """
+        Backfills the worn_this_week counter by counting existing worn outfits.
+        Useful for correcting stats after implementing the tracking system.
+        """
+        if not self.db:
+            logger.error("Firestore DB not initialized for backfill.")
+            return 0
+
+        try:
+            from datetime import datetime, timezone, timedelta
+            
+            # Calculate start of this week (Monday)
+            now = datetime.now(timezone.utc)
+            days_since_monday = now.weekday()
+            start_of_week = now - timedelta(days=days_since_monday, hours=now.hour, 
+                                          minutes=now.minute, seconds=now.second, 
+                                          microseconds=now.microsecond)
+            
+            logger.info(f"🔍 Backfilling worn outfits since {start_of_week.isoformat()}")
+            
+            # Count outfits worn this week from outfits collection
+            outfits_ref = self.db.collection('outfits').where('user_id', '==', user_id)
+            outfits_stream = outfits_ref.stream()
+            
+            worn_this_week = 0
+            worn_this_month = 0
+            
+            # Calculate start of month
+            start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            for outfit_doc in outfits_stream:
+                outfit_data = outfit_doc.to_dict()
+                last_worn = outfit_data.get('lastWorn')
+                
+                if last_worn:
+                    # Parse lastWorn date
+                    if isinstance(last_worn, str):
+                        try:
+                            worn_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                        except:
+                            continue
+                    elif hasattr(last_worn, 'timestamp'):
+                        worn_date = last_worn.replace(tzinfo=timezone.utc)
+                    else:
+                        continue
+                    
+                    # Ensure timezone aware
+                    if worn_date.tzinfo is None:
+                        worn_date = worn_date.replace(tzinfo=timezone.utc)
+                    
+                    # Count if worn this week
+                    if worn_date >= start_of_week:
+                        worn_this_week += 1
+                    
+                    # Count if worn this month
+                    if worn_date >= start_of_month:
+                        worn_this_month += 1
+            
+            # Also check outfit_history collection for additional worn records
+            history_ref = self.db.collection('outfit_history').where('user_id', '==', user_id)
+            history_stream = history_ref.stream()
+            
+            for history_doc in history_stream:
+                history_data = history_doc.to_dict()
+                date_worn = history_data.get('date_worn')
+                
+                if date_worn:
+                    # Convert timestamp to datetime
+                    if isinstance(date_worn, int):
+                        worn_date = datetime.fromtimestamp(date_worn / 1000, tz=timezone.utc)
+                    else:
+                        continue
+                    
+                    # Count if worn this week
+                    if worn_date >= start_of_week:
+                        worn_this_week += 1
+                    
+                    # Count if worn this month  
+                    if worn_date >= start_of_month:
+                        worn_this_month += 1
+            
+            logger.info(f"📊 Backfill found: {worn_this_week} outfits worn this week, {worn_this_month} this month")
+            
+            # Update the user_stats document with correct counts
+            doc_ref = await self.ensure_user_stats_document(user_id)
+            await doc_ref.update({
+                'worn_this_week': worn_this_week,
+                'worn_this_month': worn_this_month,
+                'last_updated': datetime.now(timezone.utc).isoformat()
+            })
+            
+            logger.info(f"✅ Backfilled user_stats for {user_id}: {worn_this_week} week, {worn_this_month} month")
+            return worn_this_week
+            
+        except Exception as e:
+            logger.error(f"❌ Error backfilling outfit worn stats for user {user_id}: {e}")
+            return 0
+
+    async def update_outfit_worn_stats(self, user_id: str, outfit_id: str):
+        """
+        Updates outfit worn statistics when an outfit is marked as worn.
+        Uses the new increment_outfits_worn method for proper concurrency handling.
+        """
+        await self.increment_outfits_worn(user_id)
 
     async def update_wardrobe_stats(self, user_id: str, operation: str, item_data: Optional[Dict] = None):
         """Update wardrobe-related statistics."""

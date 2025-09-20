@@ -1363,4 +1363,35 @@ async def initialize_user_stats_endpoint(
         logger.error(f"Error initializing user stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to initialize stats: {str(e)}")
 
+@router.post("/backfill-stats")
+async def backfill_user_stats_endpoint(
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """Backfill worn outfit stats by counting existing worn outfits."""
+    try:
+        if not current_user:
+            raise HTTPException(status_code=400, detail="User not found")
+        
+        logger.info(f"Backfilling worn stats for user {current_user.id}")
+        
+        # Import and use the stats service
+        from ..services.user_stats_service import user_stats_service
+        
+        # Backfill the worn stats
+        worn_this_week = await user_stats_service.backfill_outfits_this_week(current_user.id)
+        
+        # Get the updated stats to return
+        stats_data = await user_stats_service.get_user_stats(current_user.id)
+        
+        return {
+            "success": True,
+            "message": f"Backfilled {worn_this_week} outfits worn this week",
+            "worn_this_week": worn_this_week,
+            "stats": stats_data
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error backfilling stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to backfill stats: {e}")
+
 # Force redeploy Wed Sep 18 15:15:00 EDT 2025 - FIXED DUPLICATE ROUTE ISSUE!
