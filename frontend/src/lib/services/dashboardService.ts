@@ -306,17 +306,19 @@ class DashboardService {
 
   private async getSimpleAnalytics(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching simple analytics from /simple-analytics/dashboard-stats');
-      const response = await this.makeAuthenticatedRequest('/simple-analytics/dashboard-stats', user, {
+      console.log('🔍 DEBUG: Fetching worn outfits from /outfits/analytics/worn-this-week');
+      const response = await this.makeAuthenticatedRequest('/outfits/analytics/worn-this-week', user, {
         method: 'GET'
       });
-      console.log('🔍 DEBUG: Simple analytics response:', response);
+      console.log('🔍 DEBUG: Worn outfits analytics response:', response);
       return response;
     } catch (error) {
-      console.error('Error fetching simple analytics:', error);
+      console.error('Error fetching worn outfits analytics:', error);
+      // Return fallback data that matches the expected structure
       return {
         success: true,
-        outfits_worn_this_week: 0
+        outfits_worn_this_week: 0,
+        message: 'Using fallback data due to analytics service unavailable'
       };
     }
   }

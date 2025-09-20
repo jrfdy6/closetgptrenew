@@ -4172,4 +4172,83 @@ async def get_user_profile_cached(user_id: str) -> Dict:
     # Cache the result
     get_user_profile_cached._cache[cache_key] = (profile, time.time())
     
-    return profile 
+    return profile
+
+@router.get("/analytics/worn-this-week")
+async def get_outfits_worn_this_week_simple(
+    current_user: UserProfile = Depends(get_current_user)
+):
+    """
+    SIMPLE: Count outfits worn this week - added to working outfits router.
+    """
+    try:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Import Firebase inside function to avoid startup issues
+        try:
+            from ..config.firebase import db, firebase_initialized
+        except ImportError as e:
+            logger.error(f"⚠️ Firebase import failed: {e}")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
+        if not db:
+            logger.error("⚠️ Firebase not available")
+            raise HTTPException(status_code=503, detail="Firebase service unavailable")
+        
+        # Calculate start of week (Monday)
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        days_since_monday = now.weekday()
+        week_start = now - timedelta(days=days_since_monday)
+        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        logger.info(f"📊 Counting outfits worn since {week_start.isoformat()} for user {current_user.id}")
+        
+        worn_count = 0
+        
+        # Query user's outfits
+        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
+        
+        for outfit_doc in outfits_ref.stream():
+            outfit_data = outfit_doc.to_dict()
+            last_worn = outfit_data.get('lastWorn')
+            
+            if last_worn:
+                # Parse lastWorn date safely
+                try:
+                    if isinstance(last_worn, str):
+                        worn_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                    elif hasattr(last_worn, 'timestamp'):
+                        worn_date = last_worn.replace(tzinfo=timezone.utc) if last_worn.tzinfo is None else last_worn
+                    else:
+                        continue
+                    
+                    # Ensure timezone aware
+                    if worn_date.tzinfo is None:
+                        worn_date = worn_date.replace(tzinfo=timezone.utc)
+                    
+                    # Count if worn this week
+                    if worn_date >= week_start:
+                        worn_count += 1
+                        logger.info(f"📊 Found worn outfit: {outfit_data.get('name', 'Unknown')} worn at {worn_date}")
+                        
+                except Exception as parse_error:
+                    logger.warning(f"Could not parse lastWorn date {last_worn}: {parse_error}")
+                    continue
+        
+        logger.info(f"✅ Found {worn_count} outfits worn this week for user {current_user.id}")
+        
+        return {
+            "success": True,
+            "user_id": current_user.id,
+            "outfits_worn_this_week": worn_count,
+            "week_start": week_start.isoformat(),
+            "calculated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error counting worn outfits: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}") 
