@@ -127,6 +127,37 @@ export default function Dashboard() {
     }
   };
 
+  // Temporary function to initialize stats
+  const handleInitializeStats = async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🚀 Initializing user stats...');
+      const token = await user.getIdToken();
+      
+      const response = await fetch('/api/outfit-history/initialize-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+      
+      const result = await response.json();
+      console.log('✅ Initialization result:', result);
+      
+      if (result.success) {
+        alert('🎉 Stats initialized successfully! The dashboard will now refresh.');
+        await fetchDashboardData(); // Refresh the dashboard
+      } else {
+        alert('❌ Failed to initialize stats: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Failed to initialize stats:', error);
+      alert('❌ Failed to initialize stats: ' + error);
+    }
+  };
+
 
   const handleRetry = () => {
     if (user) {
@@ -181,13 +212,22 @@ export default function Dashboard() {
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Dashboard Error</h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-            <Button onClick={handleRetry} className="mr-4">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
-            <Link href="/profile">
-              <Button variant="outline">Go to Profile</Button>
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={handleRetry}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+              <Button onClick={handleInitializeStats} variant="outline" className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200">
+                <Zap className="w-4 h-4 mr-2" />
+                Initialize Stats System
+              </Button>
+              <Link href="/profile">
+                <Button variant="outline">Go to Profile</Button>
+              </Link>
+            </div>
+            <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+              If you're seeing this error for the first time, try clicking "Initialize Stats System" to set up your dashboard statistics.
+            </p>
           </div>
         </div>
       </div>
