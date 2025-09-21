@@ -675,12 +675,13 @@ async def get_wardrobe_items_with_slash(
         print(f"🔍 DEBUG: Processing {len(docs_list)} documents...")
         for i, item_data in enumerate(docs_list):
             try:
-                print(f"🔍 DEBUG: Processing document {i+1}: {item_data.get('id', 'NO_ID')}")
-                print(f"🔍 DEBUG: Document data keys: {list(item_data.keys())}")
-                print(f"🔍 DEBUG: Document userId field: {item_data.get('userId', 'NOT_FOUND')}")
-                print(f"🔍 DEBUG: Document uid field: {item_data.get('uid', 'NOT_FOUND')}")
-                print(f"🔍 DEBUG: Document ownerId field: {item_data.get('ownerId', 'NOT_FOUND')}")
-                print(f"🔍 DEBUG: Document user_id field: {item_data.get('user_id', 'NOT_FOUND')}")
+                # DEBUG DISABLED: Causing Railway rate limiting that drops critical user_stats logs
+                # print(f"🔍 DEBUG: Processing document {i+1}: {item_data.get('id', 'NO_ID')}")
+                # print(f"🔍 DEBUG: Document data keys: {list(item_data.keys())}")
+                # print(f"🔍 DEBUG: Document userId field: {item_data.get('userId', 'NOT_FOUND')}")
+                # print(f"🔍 DEBUG: Document uid field: {item_data.get('uid', 'NOT_FOUND')}")
+                # print(f"🔍 DEBUG: Document ownerId field: {item_data.get('ownerId', 'NOT_FOUND')}")
+                # print(f"🔍 DEBUG: Document user_id field: {item_data.get('user_id', 'NOT_FOUND')}")
                 
                 # Ensure required fields exist
                 if 'name' not in item_data:
