@@ -63,6 +63,14 @@ export function SmartWeatherOutfitGenerator({
   const { user } = useAuthContext();
   const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError } = useAutoWeather();
   
+  // Debug logging
+  console.log('🔍 SmartWeatherOutfitGenerator mounted:', {
+    user: !!user,
+    weather: !!weather,
+    weatherLoading,
+    weatherError
+  });
+  
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
   const [isWearingOutfit, setIsWearingOutfit] = useState(false);
@@ -451,6 +459,7 @@ export function SmartWeatherOutfitGenerator({
   const formattedWeather = weather ? formatWeatherForDisplay(weather) : null;
   const recommendations = weather ? getClothingRecommendations(weather) : [];
 
+  // Always render the component with debug info
   return (
     <Card className={`border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 ${className}`}>
       <CardHeader className="pb-4">
@@ -463,6 +472,10 @@ export function SmartWeatherOutfitGenerator({
         <p className="text-stone-600 dark:text-stone-400">
           Perfect outfit recommendations based on your exact location and current weather
         </p>
+        {/* Debug info */}
+        <div className="text-xs text-gray-500 mt-2">
+          Debug: User: {user ? '✅' : '❌'}, Weather: {weather ? '✅' : '❌'}, Loading: {weatherLoading ? '⏳' : '✅'}
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-6">
