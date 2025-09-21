@@ -393,6 +393,29 @@ export function SmartWeatherOutfitGenerator({
         setGeneratedOutfit(updatedOutfit);
         saveTodaysOutfit(updatedOutfit);
         
+        // Test: Directly check user_stats after wear action
+        setTimeout(async () => {
+          try {
+            console.log('🧪 Testing: Fetching user_stats directly to check increment...');
+            const token = await user.getIdToken();
+            const testResponse = await fetch('/api/outfits/analytics/worn-this-week', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            
+            if (testResponse.ok) {
+              const testData = await testResponse.json();
+              console.log('🧪 Direct user_stats check:', testData);
+              console.log(`🧪 Current worn count: ${testData.outfits_worn_this_week}`);
+            }
+          } catch (error) {
+            console.error('🧪 Error testing user_stats:', error);
+          }
+        }, 500); // Quick test
+        
         // Dispatch event to refresh dashboard stats with a small delay 
         // to allow database transaction to complete
         setTimeout(() => {
