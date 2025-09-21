@@ -99,13 +99,30 @@ class CohesiveOutfitCompositionService:
         """
         logger.info(f"🎨 Creating cohesive outfit for {occasion} {style} occasion")
         
-        # Step 1: Filter wardrobe with graceful fallback for occasion and style
-        appropriate_items = self._filter_appropriate_items_with_fallback(wardrobe, occasion, style, weather)
-        logger.info(f"📋 {len(appropriate_items)} appropriate items from {len(wardrobe)} total")
-        
-        if len(appropriate_items) < 2:
-            logger.warning("⚠️ Insufficient appropriate items even after fallback")
-            return self._create_fallback_outfit(appropriate_items)
+        try:
+            # Step 1: Filter wardrobe with graceful fallback for occasion and style
+            appropriate_items = self._filter_appropriate_items_with_fallback(wardrobe, occasion, style, weather)
+            logger.info(f"📋 {len(appropriate_items)} appropriate items from {len(wardrobe)} total")
+            
+            if len(appropriate_items) < 2:
+                logger.warning("⚠️ Insufficient appropriate items even after fallback")
+                return self._create_fallback_outfit(appropriate_items)
+                
+        except Exception as e:
+            logger.error(f"❌ Error in graceful fallback filtering: {e}")
+            # Emergency fallback: use first 10 weather-appropriate items
+            emergency_items = []
+            for item in wardrobe[:20]:  # Limit to first 20 items
+                try:
+                    if self._is_weather_appropriate(item, weather):
+                        emergency_items.append(item)
+                        if len(emergency_items) >= 10:
+                            break
+                except:
+                    continue
+            
+            logger.info(f"🚨 Emergency fallback: using {len(emergency_items)} items")
+            return self._create_fallback_outfit(emergency_items)
         
         # Step 2: Select base piece (usually bottom or dress)
         base_piece = self._select_base_piece(appropriate_items, occasion, style)
@@ -192,35 +209,34 @@ class CohesiveOutfitCompositionService:
     ) -> List[ClothingItem]:
         """Filter wardrobe items with graceful fallback for occasion and style."""
         
-        # Define style fallback hierarchy
+        # Simplified fallback hierarchy to prevent timeout
         style_fallbacks = {
-            "loungewear": ["athleisure", "casual", "weekend", "all"],
-            "athleisure": ["loungewear", "casual", "weekend", "all"],
-            "casual": ["weekend", "athleisure", "loungewear", "all"],
-            "business_casual": ["business", "casual", "all"],
-            "business": ["business_casual", "formal", "all"],
-            "formal": ["business", "business_casual", "all"],
-            "weekend": ["casual", "athleisure", "loungewear", "all"],
-            "evening": ["formal", "business", "all"],
-            "party": ["evening", "formal", "casual", "all"],
-            "date": ["business_casual", "casual", "evening", "all"],
-            "travel": ["casual", "athleisure", "weekend", "all"],
-            "workout": ["athleisure", "loungewear", "casual", "all"]
+            "loungewear": ["athleisure", "casual"],
+            "athleisure": ["loungewear", "casual"],
+            "casual": ["weekend", "athleisure"],
+            "business_casual": ["business", "casual"],
+            "business": ["business_casual", "formal"],
+            "formal": ["business", "business_casual"],
+            "weekend": ["casual", "athleisure"],
+            "evening": ["formal", "business"],
+            "party": ["evening", "formal"],
+            "date": ["business_casual", "casual"],
+            "travel": ["casual", "athleisure"],
+            "workout": ["athleisure", "loungewear"]
         }
         
-        # Define occasion fallback hierarchy
         occasion_fallbacks = {
-            "loungewear": ["athleisure", "casual", "weekend", "all"],
-            "athleisure": ["loungewear", "casual", "weekend", "all"],
-            "casual": ["weekend", "athleisure", "loungewear", "all"],
-            "business": ["business_casual", "formal", "all"],
-            "formal": ["business", "evening", "all"],
-            "weekend": ["casual", "athleisure", "loungewear", "all"],
-            "evening": ["formal", "business", "party", "all"],
-            "party": ["evening", "formal", "casual", "all"],
-            "date": ["business_casual", "casual", "evening", "all"],
-            "travel": ["casual", "athleisure", "weekend", "all"],
-            "workout": ["athleisure", "loungewear", "casual", "all"]
+            "loungewear": ["athleisure", "casual"],
+            "athleisure": ["loungewear", "casual"],
+            "casual": ["weekend", "athleisure"],
+            "business": ["business_casual", "formal"],
+            "formal": ["business", "evening"],
+            "weekend": ["casual", "athleisure"],
+            "evening": ["formal", "business"],
+            "party": ["evening", "formal"],
+            "date": ["business_casual", "casual"],
+            "travel": ["casual", "athleisure"],
+            "workout": ["athleisure", "loungewear"]
         }
         
         # Try original occasion and style first
@@ -230,9 +246,9 @@ class CohesiveOutfitCompositionService:
             logger.info(f"✅ Found {len(appropriate_items)} items for {occasion} {style}")
             return appropriate_items
         
-        # Try style fallbacks
-        style_fallback_list = style_fallbacks.get(style.lower(), ["casual", "all"])
-        for fallback_style in style_fallback_list:
+        # Try style fallbacks (limit to 2 attempts)
+        style_fallback_list = style_fallbacks.get(style.lower(), ["casual"])
+        for fallback_style in style_fallback_list[:2]:  # Limit to 2 attempts
             if fallback_style == style.lower():
                 continue  # Skip original style
                 
@@ -243,9 +259,9 @@ class CohesiveOutfitCompositionService:
                 logger.info(f"✅ Found {len(fallback_items)} items with style fallback: {fallback_style}")
                 return fallback_items
         
-        # Try occasion fallbacks
-        occasion_fallback_list = occasion_fallbacks.get(occasion.lower(), ["casual", "all"])
-        for fallback_occasion in occasion_fallback_list:
+        # Try occasion fallbacks (limit to 2 attempts)
+        occasion_fallback_list = occasion_fallbacks.get(occasion.lower(), ["casual"])
+        for fallback_occasion in occasion_fallback_list[:2]:  # Limit to 2 attempts
             if fallback_occasion == occasion.lower():
                 continue  # Skip original occasion
                 
@@ -256,12 +272,12 @@ class CohesiveOutfitCompositionService:
                 logger.info(f"✅ Found {len(fallback_items)} items with occasion fallback: {fallback_occasion}")
                 return fallback_items
         
-        # Try combined fallbacks (different occasion + different style)
-        for fallback_occasion in occasion_fallback_list[:2]:  # Try top 2 occasion fallbacks
-            for fallback_style in style_fallback_list[:2]:  # Try top 2 style fallbacks
-                if fallback_occasion == occasion.lower() and fallback_style == style.lower():
-                    continue  # Skip original combination
-                    
+        # Try one combined fallback
+        if occasion_fallback_list and style_fallback_list:
+            fallback_occasion = occasion_fallback_list[0]
+            fallback_style = style_fallback_list[0]
+            
+            if fallback_occasion != occasion.lower() or fallback_style != style.lower():
                 logger.info(f"🔄 Trying combined fallback: {fallback_occasion} + {fallback_style}")
                 fallback_items = self._filter_appropriate_items(wardrobe, fallback_occasion, fallback_style, weather)
                 
@@ -272,7 +288,7 @@ class CohesiveOutfitCompositionService:
         # Final fallback: any weather-appropriate items
         logger.info("🔄 Final fallback: any weather-appropriate items")
         final_items = []
-        for item in wardrobe:
+        for item in wardrobe[:50]:  # Limit to first 50 items for performance
             if self._is_weather_appropriate(item, weather):
                 final_items.append(item)
         
