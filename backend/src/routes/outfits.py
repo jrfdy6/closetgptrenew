@@ -3670,6 +3670,24 @@ async def mark_outfit_as_worn(
                     # New week, reset count to 1
                     new_worn_count = 1
                     print(f"📊 NEW WEEK: Resetting count to {new_worn_count} (last_updated: {last_updated}, week_start: {week_start})")
+                    
+                    # RAILWAY-PROOF: Write new week debug info to Firestore
+                    try:
+                        debug_ref = db.collection('debug_stats_updates').document()
+                        debug_ref.set({
+                            'event': 'user_stats_new_week_reset',
+                            'user_id': current_user.id,
+                            'outfit_id': outfit_id,
+                            'action': 'new_week_reset',
+                            'old_count': current_worn_count,
+                            'new_count': new_worn_count,
+                            'week_start': week_start.isoformat(),
+                            'last_updated': last_updated.isoformat() if last_updated else None,
+                            'timestamp': current_time_dt.isoformat(),
+                            'success': True
+                        })
+                    except:
+                        pass
                 
                 # Use set with merge=True for guaranteed write
                 stats_ref.set({
@@ -3679,6 +3697,24 @@ async def mark_outfit_as_worn(
                     'updated_at': current_time_dt
                 }, merge=True)
                 print(f"✅ STATS UPDATED: worn_this_week = {new_worn_count}")
+                
+                # RAILWAY-PROOF: Write debug info to Firestore (bypasses rate limiting)
+                try:
+                    debug_ref = db.collection('debug_stats_updates').document()
+                    debug_ref.set({
+                        'event': 'user_stats_increment',
+                        'user_id': current_user.id,
+                        'outfit_id': outfit_id,
+                        'action': 'same_week_increment',
+                        'old_count': current_worn_count,
+                        'new_count': new_worn_count,
+                        'week_start': week_start.isoformat(),
+                        'last_updated': last_updated.isoformat() if last_updated else None,
+                        'timestamp': current_time_dt.isoformat(),
+                        'success': True
+                    })
+                except:
+                    pass  # Don't fail the main operation
                 
             else:
                 # Create new stats document
@@ -3691,6 +3727,22 @@ async def mark_outfit_as_worn(
                     'created_at': current_time_dt
                 }, merge=True)
                 print("✅ STATS CREATED: new user_stats with worn_this_week = 1")
+                
+                # RAILWAY-PROOF: Write debug info to Firestore
+                try:
+                    debug_ref = db.collection('debug_stats_updates').document()
+                    debug_ref.set({
+                        'event': 'user_stats_create',
+                        'user_id': current_user.id,
+                        'outfit_id': outfit_id,
+                        'action': 'create_new_user_stats',
+                        'old_count': 0,
+                        'new_count': 1,
+                        'timestamp': current_time_dt.isoformat(),
+                        'success': True
+                    })
+                except:
+                    pass
                 
         except Exception as stats_error:
             # FORCE ERROR TO SURFACE - Use multiple methods to ensure visibility
