@@ -467,6 +467,124 @@ def check_item_weather_appropriateness(item: Dict[str, Any], weather_data: Dict[
         logger.warning(f"Error checking weather appropriateness: {e}")
         return True  # Default to appropriate if check fails
 
+def attach_weather_context_to_items(items: List[Dict], weather_data: Dict[str, Any]) -> List[Dict]:
+    """Attach weather context and appropriateness analysis to each item."""
+    try:
+        if not weather_data or not items:
+            return items
+            
+        temp = weather_data.get('temperature', 70)
+        condition = weather_data.get('condition', 'clear').lower()
+        precipitation = weather_data.get('precipitation', 0)
+        
+        enhanced_items = []
+        for item in items:
+            enhanced_item = item.copy()
+            
+            # Analyze weather appropriateness
+            item_type = item.get('type', '').lower()
+            item_name = item.get('name', '').lower()
+            material = ""
+            metadata = item.get('metadata', {})
+            if isinstance(metadata, dict):
+                visual_attrs = metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    material = visual_attrs.get('material', '').lower()
+            
+            color = item.get('color', '').title()
+            
+            # Temperature appropriateness analysis
+            temp_appropriateness = "excellent"
+            temp_note = ""
+            
+            if temp >= 85:  # Very hot weather
+                if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
+                    temp_appropriateness = "too warm"
+                    temp_note = f"may be too warm for {temp}°F weather"
+                elif 'shorts' in item_type or 'tank' in item_type:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"perfect for {temp}°F hot weather"
+                elif 'cotton' in material or 'linen' in material:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"breathable fabric ideal for {temp}°F weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"suitable for {temp}°F warm weather"
+                    
+            elif temp >= 75:  # Warm weather
+                if 'shorts' in item_type or 'tank' in item_type:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"comfortable for {temp}°F warm weather"
+                elif any(heavy in item_name for heavy in ['heavy', 'winter', 'thick']):
+                    temp_appropriateness = "borderline"
+                    temp_note = f"may be warm for {temp}°F weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"appropriate for {temp}°F warm weather"
+                    
+            elif temp >= 65:  # Mild weather
+                temp_appropriateness = "excellent"
+                temp_note = f"ideal for {temp}°F mild weather"
+                
+            elif temp >= 55:  # Cool weather
+                if 'shorts' in item_type:
+                    temp_appropriateness = "borderline"
+                    temp_note = f"may be cool for {temp}°F weather"
+                elif 'sweater' in item_type or 'jacket' in item_type:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"perfect for {temp}°F cool weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"suitable for {temp}°F cool weather"
+                    
+            else:  # Cold weather
+                if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
+                    temp_appropriateness = "inappropriate"
+                    temp_note = f"inadequate for {temp}°F cold weather"
+                elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
+                    temp_appropriateness = "excellent"
+                    temp_note = f"ideal for {temp}°F cold weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"appropriate for {temp}°F cold weather"
+            
+            # Fabric and condition analysis
+            fabric_note = ""
+            if 'rain' in condition or precipitation > 50:
+                if any(delicate in material for delicate in ['silk', 'suede', 'velvet', 'linen']):
+                    fabric_note = f"Note: {material} fabric may not be ideal for wet conditions"
+                elif any(water_resistant in material for water_resistant in ['nylon', 'polyester', 'gore-tex']):
+                    fabric_note = f"Excellent: {material} provides good water resistance"
+                    
+            # Style and occasion analysis
+            style_note = ""
+            if item_type in ['dress', 'blazer', 'suit']:
+                style_note = "professional and versatile"
+            elif item_type in ['jeans', 'denim']:
+                style_note = "casual and comfortable"
+            elif item_type in ['sweater', 'cardigan']:
+                style_note = "cozy and layered"
+            elif item_type in ['shirt', 'blouse']:
+                style_note = "classic and adaptable"
+            
+            # Attach weather context
+            enhanced_item['weather_context'] = {
+                'temperature_appropriateness': temp_appropriateness,
+                'temperature_note': temp_note,
+                'fabric_note': fabric_note,
+                'style_note': style_note,
+                'color': color,
+                'overall_suitability': temp_appropriateness
+            }
+            
+            enhanced_items.append(enhanced_item)
+            
+        return enhanced_items
+        
+    except Exception as e:
+        logger.warning(f"Error attaching weather context to items: {e}")
+        return items
+
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Real outfit generation logic using user's wardrobe and AI recommendations."""
@@ -594,6 +712,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Apply final base item guarantee
         outfit = ensure_base_item_included(outfit, req.baseItemId, wardrobe_items)
+        
+        # ENHANCED: Attach weather context to each item
+        if req.weather:
+            weather_data = {
+                'temperature': getattr(req.weather, 'temperature', 70),
+                'condition': getattr(req.weather, 'condition', 'clear'),
+                'precipitation': getattr(req.weather, 'precipitation', 0)
+            }
+            outfit['items'] = attach_weather_context_to_items(outfit.get('items', []), weather_data)
+            logger.info(f"🌤️ Attached weather context to {len(outfit.get('items', []))} items")
         
         # ENHANCED: Add weather combination validation
         if req.weather:
@@ -2624,6 +2752,16 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         # Return empty outfit when wardrobe retrieval fails
         selected_items = []
     
+    # Attach weather context to fallback items
+    if req.weather and selected_items:
+        weather_data = {
+            'temperature': getattr(req.weather, 'temperature', 70),
+            'condition': getattr(req.weather, 'condition', 'clear'),
+            'precipitation': getattr(req.weather, 'precipitation', 0)
+        }
+        selected_items = attach_weather_context_to_items(selected_items, weather_data)
+        logger.info(f"🌤️ Attached weather context to {len(selected_items)} fallback items")
+    
     return {
         "name": outfit_name,
         "style": req.style,
@@ -4495,19 +4633,41 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
             
         sentences.append(weather_note)
         
-        # Sentence 3: Harmony, layering, or color reasoning
+        # Sentence 3: Harmony, layering, or color reasoning with item-specific weather context
         if items and len(items) >= 2:
-            # Analyze colors
+            # Analyze colors and weather context
             colors = [item.get('color', '').title() for item in items if item.get('color')]
+            weather_notes = []
+            
+            # Check for any weather-related item notes
+            for item in items:
+                weather_context = item.get('weather_context', {})
+                if weather_context:
+                    temp_note = weather_context.get('temperature_note', '')
+                    if temp_note and ('perfect' in temp_note or 'ideal' in temp_note or 'excellent' in temp_note):
+                        weather_notes.append(f"the {item.get('type', 'item')} is {temp_note}")
+                    elif temp_note and ('borderline' in weather_context.get('temperature_appropriateness', '') or 'may be' in temp_note):
+                        weather_notes.append(f"the {item.get('type', 'item')} {temp_note}")
+            
+            # Build the sentence
             if colors:
                 color_combo = " and ".join(colors[:3])  # Limit to 3 colors
                 if len(colors) > 3:
                     color_combo += f" and {len(colors)-3} other tones"
-                sentences.append(f"The {color_combo} tones create color harmony across your pieces, while the layered composition adds depth and sophistication.")
+                
+                if weather_notes:
+                    weather_context_text = ", ".join(weather_notes[:2])  # Limit to 2 weather notes
+                    sentences.append(f"The {color_combo} tones create color harmony across your pieces, while {weather_context_text} for optimal weather comfort.")
+                else:
+                    sentences.append(f"The {color_combo} tones create color harmony across your pieces, while the layered composition adds depth and sophistication.")
             else:
-                # Fallback to item types
+                # Fallback to item types with weather context
                 item_types = [item.get('type', '').title() for item in items]
-                sentences.append(f"The {', '.join(item_types)} work together to create a cohesive look with balanced proportions and complementary textures.")
+                if weather_notes:
+                    weather_context_text = ", ".join(weather_notes[:2])
+                    sentences.append(f"The {', '.join(item_types)} work together to create a cohesive look, while {weather_context_text} for weather-appropriate comfort.")
+                else:
+                    sentences.append(f"The {', '.join(item_types)} work together to create a cohesive look with balanced proportions and complementary textures.")
         else:
             sentences.append("The outfit selection prioritizes style coherence and practical versatility for your occasion.")
         
