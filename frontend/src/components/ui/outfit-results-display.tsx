@@ -257,7 +257,10 @@ export default function OutfitResultsDisplay({
 
           {/* Rating Section */}
           <div className="border-t pt-6">
-            <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Rate This Outfit</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Rate This Outfit</h4>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Click the stars to rate this outfit. Your feedback helps improve future suggestions!
+            </p>
             
             {/* Star Rating */}
             <div className="flex items-center gap-3 mb-4">
@@ -267,11 +270,13 @@ export default function OutfitResultsDisplay({
                   <button
                     key={star}
                     onClick={() => onRatingChange(star)}
-                    className={`text-2xl transition-all duration-200 hover:scale-110 ${
+                    className={`text-2xl transition-all duration-200 hover:scale-110 cursor-pointer select-none ${
                       star <= rating.rating
                         ? 'text-yellow-400 fill-current'
                         : 'text-gray-300 dark:text-gray-600 hover:text-yellow-300'
                     }`}
+                    style={{ userSelect: 'none' }}
+                    disabled={ratingSubmitted}
                   >
                     ★
                   </button>
@@ -282,6 +287,11 @@ export default function OutfitResultsDisplay({
                   {rating.rating} star{rating.rating !== 1 ? 's' : ''}
                 </span>
               )}
+              {ratingSubmitted && (
+                <span className="text-xs text-green-600 dark:text-green-400 ml-2">
+                  ✓ Submitted
+                </span>
+              )}
             </div>
 
             {/* Like/Dislike Buttons */}
@@ -290,11 +300,12 @@ export default function OutfitResultsDisplay({
                 variant={rating.isLiked ? "default" : "outline"}
                 size="sm"
                 onClick={onLikeToggle}
+                disabled={ratingSubmitted}
                 className={`flex items-center gap-2 ${
                   rating.isLiked 
                     ? 'bg-green-600 hover:bg-green-700 text-white' 
                     : 'hover:bg-green-50 hover:text-green-600'
-                }`}
+                } ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <ThumbsUp className="h-4 w-4" />
                 {rating.isLiked ? 'Liked' : 'Like'}
@@ -303,7 +314,8 @@ export default function OutfitResultsDisplay({
                 variant={rating.isDisliked ? "destructive" : "outline"}
                 size="sm"
                 onClick={onDislikeToggle}
-                className="flex items-center gap-2"
+                disabled={ratingSubmitted}
+                className={`flex items-center gap-2 ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <ThumbsDown className="h-4 w-4" />
                 {rating.isDisliked ? 'Disliked' : 'Dislike'}
@@ -318,6 +330,7 @@ export default function OutfitResultsDisplay({
                 onChange={(e) => onFeedbackChange(e.target.value)}
                 rows={3}
                 className="text-sm"
+                disabled={ratingSubmitted}
               />
             </div>
 
