@@ -4754,6 +4754,11 @@ async def get_outfits_worn_this_week_simple(
                 last_updated = stats_data.get('last_updated')
                 
                 # Check if stats were updated this week
+                logger.info(f"📊 DEBUG: Checking user_stats fast path - last_updated: {last_updated}, week_start: {week_start}")
+                logger.info(f"📊 DEBUG: last_updated type: {type(last_updated)}, is datetime: {isinstance(last_updated, datetime)}")
+                if last_updated and isinstance(last_updated, datetime):
+                    logger.info(f"📊 DEBUG: Comparing {last_updated} >= {week_start} = {last_updated >= week_start}")
+                
                 if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
                     worn_count = stats_data.get('worn_this_week', 0)
                     logger.info(f"✅ FAST PATH: Got worn count from user_stats: {worn_count}")
@@ -4767,7 +4772,7 @@ async def get_outfits_worn_this_week_simple(
                         "calculated_at": datetime.now(timezone.utc).isoformat()
                     }
                 else:
-                    logger.info("📊 User stats exist but are outdated, falling back to manual count")
+                    logger.info(f"📊 User stats exist but are outdated (last_updated: {last_updated}, week_start: {week_start}), falling back to manual count")
             else:
                 logger.info("📊 No user stats found, doing manual count and will create stats")
                 
