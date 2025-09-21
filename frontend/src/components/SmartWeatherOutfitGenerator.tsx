@@ -239,8 +239,30 @@ export function SmartWeatherOutfitGenerator({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to generate outfit');
+        const errorText = await response.text();
+        console.error('❌ Backend error response:', response.status, errorText);
+        
+        // Create fallback outfit when backend fails
+        const fallbackOutfit: GeneratedOutfit = {
+          id: `fallback-outfit-${Date.now()}`,
+          name: `Weather-Appropriate ${weather.condition} Look`,
+          items: [], // Empty items array - will show recommendations instead
+          weather: {
+            temperature: weather.temperature,
+            condition: weather.condition,
+            location: weather.location
+          },
+          reasoning: `This outfit recommendation is based on ${weather.temperature}°F ${weather.condition.toLowerCase()} weather in ${weather.location}. The backend outfit generation is temporarily unavailable, but here are weather-appropriate clothing recommendations based on current conditions.`,
+          confidence: 0.6,
+          generatedAt: new Date().toISOString(),
+          isWorn: false
+        };
+
+        setGeneratedOutfit(fallbackOutfit);
+        setLastGenerated(new Date());
+        saveTodaysOutfit(fallbackOutfit);
+        setOutfitError('Backend temporarily unavailable - showing weather recommendations instead');
+        return;
       }
 
       const outfitData = await response.json();
@@ -269,7 +291,27 @@ export function SmartWeatherOutfitGenerator({
 
     } catch (error) {
       console.error('❌ Error generating today\'s weather outfit:', error);
-      setOutfitError(error instanceof Error ? error.message : 'Failed to generate outfit');
+      
+      // Create fallback outfit for any other errors
+      const fallbackOutfit: GeneratedOutfit = {
+        id: `fallback-outfit-${Date.now()}`,
+        name: `Weather-Appropriate ${weather.condition} Look`,
+        items: [],
+        weather: {
+          temperature: weather.temperature,
+          condition: weather.condition,
+          location: weather.location
+        },
+        reasoning: `This outfit recommendation is based on ${weather.temperature}°F ${weather.condition.toLowerCase()} weather. The outfit generation service is temporarily unavailable, but here are weather-appropriate clothing recommendations.`,
+        confidence: 0.5,
+        generatedAt: new Date().toISOString(),
+        isWorn: false
+      };
+
+      setGeneratedOutfit(fallbackOutfit);
+      setLastGenerated(new Date());
+      saveTodaysOutfit(fallbackOutfit);
+      setOutfitError('Service temporarily unavailable - showing weather recommendations instead');
     } finally {
       setIsGeneratingOutfit(false);
     }
@@ -613,7 +655,7 @@ export function SmartWeatherOutfitGenerator({
               </div>
               
               {/* Outfit Items Display */}
-              {generatedOutfit.items && generatedOutfit.items.length > 0 && (
+              {generatedOutfit.items && generatedOutfit.items.length > 0 ? (
                 <div className="space-y-3 mb-6">
                   <h5 className="text-sm font-medium text-stone-700 dark:text-stone-300">
                     Outfit Items ({generatedOutfit.items.length}):
@@ -657,6 +699,26 @@ export function SmartWeatherOutfitGenerator({
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : (
+                /* Weather Recommendations when no items available */
+                <div className="space-y-3 mb-6">
+                  <h5 className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                    Weather-Appropriate Recommendations:
+                  </h5>
+                  <div className="bg-white/70 dark:bg-black/30 rounded-lg p-4 border border-stone-200 dark:border-stone-700">
+                    <div className="space-y-2">
+                      {recommendations.slice(0, 5).map((rec, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-300">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                          <span>{rec}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-stone-500 dark:text-stone-500 mt-3">
+                      Based on current weather conditions: {weather.temperature}°F {weather.condition.toLowerCase()}
+                    </p>
                   </div>
                 </div>
               )}
