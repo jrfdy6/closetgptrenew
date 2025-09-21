@@ -1,0 +1,67 @@
+{
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 3,
+    "failed_tests": 2,
+    "success_rate": 60.0,
+    "duration": 0.00017786026000976562,
+    "timestamp": "2025-09-20T20:54:43.004506"
+  },
+  "integration_checks": [
+    {
+      "test": "Complete Outfit Generation Flow",
+      "passed": false,
+      "details": "All 7 steps completed, data integrity maintained"
+    },
+    {
+      "test": "Weather Priority - Manual Override Priority",
+      "passed": true,
+      "details": "Expected: manual (85\u00b0F), Got: manual (85\u00b0F)"
+    },
+    {
+      "test": "Weather Priority - Real Weather Priority",
+      "passed": true,
+      "details": "Expected: real (72\u00b0F), Got: real (72\u00b0F)"
+    },
+    {
+      "test": "Weather Priority - Fallback Weather Usage",
+      "passed": true,
+      "details": "Expected: fallback (70\u00b0F), Got: fallback (70\u00b0F)"
+    },
+    {
+      "test": "Advisory Consistency - Real Weather Advisory",
+      "passed": false,
+      "details": "Found 1/3 expected elements: ['real-time weather data']"
+    },
+    {
+      "test": "Advisory Consistency - Fallback Weather Advisory",
+      "passed": true,
+      "details": "Found 2/3 expected elements: ['fallback weather was used', 'minor adjustments']"
+    },
+    {
+      "test": "Advisory Consistency - Manual Override Advisory",
+      "passed": false,
+      "details": "Found 1/3 expected elements: ['manual weather preference']"
+    },
+    {
+      "test": "User Feedback - Outfit Rating",
+      "passed": true,
+      "details": "Fields present: True, Weather data: True"
+    },
+    {
+      "test": "User Feedback - Learn from Outfit",
+      "passed": true,
+      "details": "Fields present: True, Weather data: True"
+    },
+    {
+      "test": "User Feedback - ML Improvement Data",
+      "passed": true,
+      "details": "Fields present: True, Weather data: True"
+    },
+    {
+      "test": "Dashboard Integration",
+      "passed": true,
+      "details": "Stats: True, Weather data: True, History: True"
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "summary": {
+    "total_categories": 6,
+    "passed_categories": 6,
+    "failed_categories": 0,
+    "success_rate": 100.0,
+    "duration": 0.000208
+  },
+  "edge_cases": [
+    {
+      "test": "Rapid Successive Generation",
+      "passed": true,
+      "details": "Generated 5 unique outfits from 5 requests"
+    },
+    {
+      "test": "Minimal Wardrobe (0 items)",
+      "passed": false,
+      "details": "Wardrobe size: 0, Generated: False, Fallback: True"
+    },
+    {
+      "test": "Minimal Wardrobe (1 items)",
+      "passed": true,
+      "details": "Wardrobe size: 1, Generated: True, Fallback: True"
+    },
+    {
+      "test": "Minimal Wardrobe (2 items)",
+      "passed": true,
+      "details": "Wardrobe size: 2, Generated: True, Fallback: True"
+    },
+    {
+      "test": "Minimal Wardrobe (3 items)",
+      "passed": true,
+      "details": "Wardrobe size: 3, Generated: True, Fallback: False"
+    },
+    {
+      "test": "Weather API Failure - API Timeout",
+      "passed": true,
+      "details": "Expected fallback: True, Got fallback: True"
+    },
+    {
+      "test": "Weather API Failure - Invalid API Response",
+      "passed": true,
+      "details": "Expected fallback: True, Got fallback: True"
+    },
+    {
+      "test": "Weather API Failure - Network Error",
+      "passed": true,
+      "details": "Expected fallback: True, Got fallback: True"
+    },
+    {
+      "test": "Weather API Failure - Invalid Location",
+      "passed": true,
+      "details": "Expected fallback: True, Got fallback: True"
+    },
+    {
+      "test": "User-Uploaded Inappropriate - Heavy Winter Coat",
+      "passed": true,
+      "details": "Included: True, Warning: True, User Selected: True"
+    },
+    {
+      "test": "User-Uploaded Inappropriate - Summer Bikini",
+      "passed": true,
+      "details": "Included: True, Warning: True, User Selected: True"
+    },
+    {
+      "test": "User-Uploaded Inappropriate - Silk Evening Gown",
+      "passed": true,
+      "details": "Included: True, Warning: True, User Selected: True"
+    },
+    {
+      "test": "Concurrent User Requests",
+      "passed": true,
+      "details": "Processed 10 concurrent requests, 10 unique outfits"
+    },
+    {
+      "test": "Mixed Weather Sources - Real Weather + Manual Override",
+      "passed": true,
+      "details": "Expected: manual (85\u00b0F), Got: manual (85\u00b0F)"
+    },
+    {
+      "test": "Mixed Weather Sources - Fallback + Real Weather",
+      "passed": true,
+      "details": "Expected: real (69\u00b0F), Got: real (69\u00b0F)"
+    },
+    {
+      "test": "Mixed Weather Sources - Multiple Fallback Sources",
+      "passed": true,
+      "details": "Expected: primary_fallback (72\u00b0F), Got: primary_fallback (72\u00b0F)"
+    }
+  ]
+}

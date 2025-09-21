@@ -1,0 +1,215 @@
+{
+  "summary": {
+    "total_tests": 34,
+    "passed": 34,
+    "failed": 0,
+    "success_rate": 100.0,
+    "duration": 0.0004868507385253906
+  },
+  "test_results": [
+    {
+      "test_name": "Hot Weather Filtering (95\u00b0F)",
+      "passed": true,
+      "details": "Found 9 appropriate items for 95\u00b0F weather",
+      "timestamp": "2025-09-20T20:51:50.105940"
+    },
+    {
+      "test_name": "Cold Weather Filtering (25\u00b0F)",
+      "passed": true,
+      "details": "Found 10 appropriate items for 25\u00b0F weather",
+      "timestamp": "2025-09-20T20:51:50.105981"
+    },
+    {
+      "test_name": "Rain/Snow Filtering (snow)",
+      "passed": true,
+      "details": "Found 9 appropriate items for snow weather",
+      "timestamp": "2025-09-20T20:51:50.106021"
+    },
+    {
+      "test_name": "Rain/Snow Filtering (rain)",
+      "passed": true,
+      "details": "Found 9 appropriate items for rain weather",
+      "timestamp": "2025-09-20T20:51:50.106032"
+    },
+    {
+      "test_name": "Cold Weather Filtering (20\u00b0F)",
+      "passed": true,
+      "details": "Found 10 appropriate items for 20\u00b0F weather",
+      "timestamp": "2025-09-20T20:51:50.106052"
+    },
+    {
+      "test_name": "Rain/Snow Filtering (snow)",
+      "passed": true,
+      "details": "Found 9 appropriate items for snow weather",
+      "timestamp": "2025-09-20T20:51:50.106060"
+    },
+    {
+      "test_name": "Hot Weather Filtering (88\u00b0F)",
+      "passed": true,
+      "details": "Found 9 appropriate items for 88\u00b0F weather",
+      "timestamp": "2025-09-20T20:51:50.106085"
+    },
+    {
+      "test_name": "Cold Weather Filtering (35\u00b0F)",
+      "passed": true,
+      "details": "Found 10 appropriate items for 35\u00b0F weather",
+      "timestamp": "2025-09-20T20:51:50.106106"
+    },
+    {
+      "test_name": "User Attributes Integration (preppy)",
+      "passed": true,
+      "details": "User attributes properly integrated for preppy style",
+      "timestamp": "2025-09-20T20:51:50.106116"
+    },
+    {
+      "test_name": "User Attributes Integration (bohemian)",
+      "passed": true,
+      "details": "User attributes properly integrated for bohemian style",
+      "timestamp": "2025-09-20T20:51:50.106125"
+    },
+    {
+      "test_name": "User Attributes Integration (streetwear)",
+      "passed": true,
+      "details": "User attributes properly integrated for streetwear style",
+      "timestamp": "2025-09-20T20:51:50.106131"
+    },
+    {
+      "test_name": "User Attributes Integration (minimalist)",
+      "passed": true,
+      "details": "User attributes properly integrated for minimalist style",
+      "timestamp": "2025-09-20T20:51:50.106135"
+    },
+    {
+      "test_name": "Wardrobe Validation (Summer Shorts in 90\u00b0F clear)",
+      "passed": true,
+      "details": "Expected True, got True",
+      "timestamp": "2025-09-20T20:51:50.106152"
+    },
+    {
+      "test_name": "Wardrobe Validation (Summer Shorts in 30\u00b0F snow)",
+      "passed": true,
+      "details": "Expected False, got False",
+      "timestamp": "2025-09-20T20:51:50.106160"
+    },
+    {
+      "test_name": "Wardrobe Validation (Winter Coat in 95\u00b0F clear)",
+      "passed": true,
+      "details": "Expected False, got False",
+      "timestamp": "2025-09-20T20:51:50.106165"
+    },
+    {
+      "test_name": "Wardrobe Validation (Winter Coat in 25\u00b0F snow)",
+      "passed": true,
+      "details": "Expected True, got True",
+      "timestamp": "2025-09-20T20:51:50.106171"
+    },
+    {
+      "test_name": "Wardrobe Validation (Silk Blouse in 70\u00b0F rain)",
+      "passed": true,
+      "details": "Expected False, got False",
+      "timestamp": "2025-09-20T20:51:50.106177"
+    },
+    {
+      "test_name": "Wardrobe Validation (Waterproof Boots in 60\u00b0F rain)",
+      "passed": true,
+      "details": "Expected True, got True",
+      "timestamp": "2025-09-20T20:51:50.106181"
+    },
+    {
+      "test_name": "Manual Override (Hot)",
+      "passed": true,
+      "details": "Expected 85\u00b0F Clear, got 85\u00b0F Clear",
+      "timestamp": "2025-09-20T20:51:50.106191"
+    },
+    {
+      "test_name": "Manual Override (Cold)",
+      "passed": true,
+      "details": "Expected 35\u00b0F Clear, got 35\u00b0F Clear",
+      "timestamp": "2025-09-20T20:51:50.106197"
+    },
+    {
+      "test_name": "Manual Override (Rainy)",
+      "passed": true,
+      "details": "Expected 60\u00b0F Rain, got 60\u00b0F Rain",
+      "timestamp": "2025-09-20T20:51:50.106204"
+    },
+    {
+      "test_name": "Manual Override (Windy)",
+      "passed": true,
+      "details": "Expected 72\u00b0F Windy, got 72\u00b0F Windy",
+      "timestamp": "2025-09-20T20:51:50.106210"
+    },
+    {
+      "test_name": "Weather Warning (Wool Sweater in 90\u00b0F clear)",
+      "passed": true,
+      "details": "Expected warning: True, got: True. Warning: 'may be too warm for 90\u00b0F weather'",
+      "timestamp": "2025-09-20T20:51:50.106223"
+    },
+    {
+      "test_name": "Weather Warning (Summer Shorts in 30\u00b0F snow)",
+      "passed": true,
+      "details": "Expected warning: True, got: True. Warning: 'inadequate for 30\u00b0F cold weather'",
+      "timestamp": "2025-09-20T20:51:50.106230"
+    },
+    {
+      "test_name": "Weather Warning (Silk Blouse in 70\u00b0F rain)",
+      "passed": true,
+      "details": "Expected warning: True, got: True. Warning: 'may not be ideal for wet conditions'",
+      "timestamp": "2025-09-20T20:51:50.106237"
+    },
+    {
+      "test_name": "Weather Warning (Cotton T-Shirt in 75\u00b0F clear)",
+      "passed": true,
+      "details": "Expected warning: False, got: False. Warning: ''",
+      "timestamp": "2025-09-20T20:51:50.106243"
+    },
+    {
+      "test_name": "Advisory Text 3-Sentence Structure",
+      "passed": true,
+      "details": "Expected 3 sentences, got 3",
+      "timestamp": "2025-09-20T20:51:50.106257"
+    },
+    {
+      "test_name": "Weather Source Indication (This outfit was generated base...)",
+      "passed": true,
+      "details": "Source indication properly included",
+      "timestamp": "2025-09-20T20:51:50.106265"
+    },
+    {
+      "test_name": "Weather Source Indication (This outfit was generated base...)",
+      "passed": true,
+      "details": "Source indication properly included",
+      "timestamp": "2025-09-20T20:51:50.106271"
+    },
+    {
+      "test_name": "Weather Source Indication (Fallback weather was used; con...)",
+      "passed": true,
+      "details": "Source indication properly included",
+      "timestamp": "2025-09-20T20:51:50.106275"
+    },
+    {
+      "test_name": "Dashboard Stats - Outfits This Week",
+      "passed": true,
+      "details": "Found 9 outfits from the past week",
+      "timestamp": "2025-09-20T20:51:50.106350"
+    },
+    {
+      "test_name": "Dashboard Stats - Weather-Aware History",
+      "passed": true,
+      "details": "All 10 outfits have weather data",
+      "timestamp": "2025-09-20T20:51:50.106358"
+    },
+    {
+      "test_name": "User Feedback Data Capture",
+      "passed": true,
+      "details": "All required fields present: ['outfit_id', 'user_id', 'rating', 'weather_data', 'outfit_data', 'timestamp']",
+      "timestamp": "2025-09-20T20:51:50.106380"
+    },
+    {
+      "test_name": "ML Improvement Data Structure",
+      "passed": true,
+      "details": "ML data structure properly formatted for future improvements",
+      "timestamp": "2025-09-20T20:51:50.106385"
+    }
+  ]
+}
