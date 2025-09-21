@@ -3643,55 +3643,54 @@ async def mark_outfit_as_worn(
             'updatedAt': current_time
         })
         
-        # ROBUST: Force guaranteed write with Firestore increment and merge
+        # COMPLEX: Proper week validation with robust error handling and guaranteed writes
         try:
             from google.cloud.firestore import Increment, SERVER_TIMESTAMP
             
+            # Update user_stats collection for fast dashboard analytics
             current_time_dt = datetime.utcnow()
-            stats_ref = db.collection('user_stats').document(current_user.id)
+            week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
+            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
             
-            # Method 1: Try Firestore increment (atomic)
-            try:
-                stats_ref.set({
-                    'worn_this_week': Increment(1),
-                    'last_updated': SERVER_TIMESTAMP,
-                    'user_id': current_user.id
-                }, merge=True)
-                print("✅ STATS_SUCCESS: Firestore atomic increment worked")
-                # Also log success to debug_errors collection to ensure visibility
-                try:
-                    success_ref = db.collection('debug_errors').document()
-                    success_ref.set({
-                        'event_type': 'user_stats_increment_success',
-                        'user_id': current_user.id,
-                        'outfit_id': outfit_id,
-                        'method': 'firestore_atomic_increment',
-                        'timestamp': datetime.utcnow()
-                    })
-                except:
-                    pass
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            stats_doc = stats_ref.get()
+            
+            if stats_doc.exists:
+                stats_data = stats_doc.to_dict()
+                current_worn_count = stats_data.get('worn_this_week', 0)
                 
-            except Exception as increment_error:
-                print(f"⚠️ Firestore increment failed: {increment_error}")
+                # Check if we're still in the same week
+                last_updated = stats_data.get('last_updated')
                 
-                # Method 2: Fallback to manual increment with guaranteed creation
-                stats_doc = stats_ref.get()
-                if stats_doc.exists:
-                    stats_data = stats_doc.to_dict()
-                    current_worn_count = stats_data.get('worn_this_week', 0)
+                if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
+                    # Same week, increment count
                     new_worn_count = current_worn_count + 1
+                    print(f"📊 SAME WEEK: Incrementing {current_worn_count} -> {new_worn_count}")
                 else:
-                    current_worn_count = 0
+                    # New week, reset count to 1
                     new_worn_count = 1
+                    print(f"📊 NEW WEEK: Resetting count to {new_worn_count} (last_updated: {last_updated}, week_start: {week_start})")
                 
-                # Force creation/update with set + merge
+                # Use set with merge=True for guaranteed write
                 stats_ref.set({
                     'user_id': current_user.id,
                     'worn_this_week': new_worn_count,
                     'last_updated': current_time_dt,
                     'updated_at': current_time_dt
                 }, merge=True)
-                print(f"✅ STATS MANUAL UPDATE: {current_worn_count} -> {new_worn_count}")
+                print(f"✅ STATS UPDATED: worn_this_week = {new_worn_count}")
+                
+            else:
+                # Create new stats document
+                stats_ref.set({
+                    'user_id': current_user.id,
+                    'worn_this_week': 1,
+                    'created_this_week': 0,
+                    'total_outfits': 1500,  # Estimate
+                    'last_updated': current_time_dt,
+                    'created_at': current_time_dt
+                }, merge=True)
+                print("✅ STATS CREATED: new user_stats with worn_this_week = 1")
                 
         except Exception as stats_error:
             # FORCE ERROR TO SURFACE - Use multiple methods to ensure visibility
