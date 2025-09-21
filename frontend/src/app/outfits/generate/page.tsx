@@ -370,10 +370,29 @@ export default function OutfitGenerationPage() {
       
       console.log('🌤️ Starting weather data preparation for outfit generation');
       
-      // Check if we have recent, real weather data
-      if (weather && !weather.fallback && weather.location !== "Default Location") {
+      // Priority 1: Check for manual weather override
+      if (formData.weather && formData.weather !== "Auto") {
+        console.log('🌤️ Using manual weather override:', formData.weather);
+        weatherData = {
+          temperature: formData.weather === "Hot" ? 85 : 
+                      formData.weather === "Cold" ? 35 :
+                      formData.weather === "Rainy" ? 60 : 72,
+          condition: formData.weather === "Hot" ? "Clear" :
+                    formData.weather === "Cold" ? "Clear" :
+                    formData.weather === "Rainy" ? "Rain" :
+                    formData.weather === "Windy" ? "Windy" : "Clear",
+          humidity: formData.weather === "Rainy" ? 90 : 65,
+          wind_speed: formData.weather === "Windy" ? 15 : 5,
+          location: "Manual Override",
+          precipitation: formData.weather === "Rainy" ? 80 : 0,
+          fallback: true,
+          isManualOverride: true
+        };
+      }
+      // Priority 2: Check if we have recent, real weather data
+      else if (weather && !weather.fallback && weather.location !== "Default Location" && weather.location !== "Unknown Location") {
         console.log('🌤️ Using existing real weather data:', weather);
-        weatherData = weather;
+        weatherData = { ...weather, isManualOverride: false, isRealWeather: true };
       } else {
         // Try to fetch fresh weather data using the hook's method
         console.log('🌤️ Fetching fresh weather data for outfit generation...');
@@ -420,9 +439,10 @@ export default function OutfitGenerationPage() {
           console.log('✅ Fresh weather data fetched successfully:', freshWeatherData);
           
           if (!freshWeatherData.fallback && freshWeatherData.location !== "Unknown Location" && freshWeatherData.location !== "Default Location") {
-            weatherData = freshWeatherData;
+            weatherData = { ...freshWeatherData, isManualOverride: false, isRealWeather: true };
             // Store fresh weather data for UI display
             setFreshWeatherData(freshWeatherData);
+            console.log('✅ Using real weather data from API');
           } else {
             throw new Error('Weather fetch returned fallback data');
           }
@@ -437,10 +457,14 @@ export default function OutfitGenerationPage() {
             condition: formData.weather || "Clear",
             humidity: formData.weather === "Rainy" ? 90 : 65,
             wind_speed: formData.weather === "Windy" ? 15 : 5,
-            location: "User Location",
+            location: "Fallback Location",
             precipitation: formData.weather === "Rainy" ? 80 : 0,
-            fallback: true
+            fallback: true,
+            isManualOverride: false,
+            isRealWeather: false,
+            isFallbackWeather: true
           };
+          console.log('⚠️ Using fallback weather data - API unavailable');
         }
       }
 
@@ -449,7 +473,10 @@ export default function OutfitGenerationPage() {
         temperature: weatherData.temperature,
         condition: weatherData.condition,
         location: weatherData.location,
-        fallback: weatherData.fallback
+        fallback: weatherData.fallback,
+        isManualOverride: weatherData.isManualOverride,
+        isRealWeather: weatherData.isRealWeather,
+        isFallbackWeather: weatherData.isFallbackWeather
       });
 
       // Prepare request data with all required fields

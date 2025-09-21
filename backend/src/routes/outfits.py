@@ -2663,7 +2663,21 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         else:
             weather_context = "designed for comfortable all-day wear"
             
-        sentences.append(f"This {req.style} {req.occasion} outfit is {weather_context} using your available wardrobe pieces.")
+        # Add weather source indication
+        weather_source_note = ""
+        if req.weather:
+            is_manual_override = getattr(req.weather, 'isManualOverride', False)
+            is_real_weather = getattr(req.weather, 'isRealWeather', False)
+            is_fallback_weather = getattr(req.weather, 'isFallbackWeather', False)
+            
+            if is_manual_override:
+                weather_source_note = " (This outfit was generated based on your manual weather preference.)"
+            elif is_real_weather:
+                weather_source_note = " (This outfit was generated based on real-time weather data.)"
+            elif is_fallback_weather:
+                weather_source_note = " (Fallback weather was used; consider minor adjustments if needed.)"
+        
+        sentences.append(f"This {req.style} {req.occasion} outfit is {weather_context} using your available wardrobe pieces.{weather_source_note}")
         
         # Sentence 2: Item selection rationale
         if selected_items:
@@ -4444,23 +4458,38 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
             temp = getattr(req.weather, 'temperature', 70)
             condition = getattr(req.weather, 'condition', 'clear').lower()
             
-            # Weather-appropriate messaging
+            # Check if this is real weather, manual override, or fallback
+            is_manual_override = getattr(req.weather, 'isManualOverride', False)
+            is_real_weather = getattr(req.weather, 'isRealWeather', False)
+            is_fallback_weather = getattr(req.weather, 'isFallbackWeather', False)
+            
+            # Weather-appropriate messaging with source indication
             if temp >= 85:
-                weather_note = f"The current weather is {temp}°F and {condition}, so the lightweight pieces ensure comfort in warm conditions."
+                base_note = f"The current weather is {temp}°F and {condition}, so the lightweight pieces ensure comfort in warm conditions."
             elif temp >= 75:
-                weather_note = f"The current weather is {temp}°F and {condition}, so the breathable fabrics provide comfort throughout the day."
+                base_note = f"The current weather is {temp}°F and {condition}, so the breathable fabrics provide comfort throughout the day."
             elif temp >= 65:
-                weather_note = f"The current weather is {temp}°F and {condition}, so the balanced layering adapts well to mild conditions."
+                base_note = f"The current weather is {temp}°F and {condition}, so the balanced layering adapts well to mild conditions."
             elif temp >= 55:
-                weather_note = f"The current weather is {temp}°F and {condition}, so the thoughtful layering provides warmth and comfort."
+                base_note = f"The current weather is {temp}°F and {condition}, so the thoughtful layering provides warmth and comfort."
             else:
-                weather_note = f"The current weather is {temp}°F and {condition}, so the warm layers ensure comfort in cool conditions."
+                base_note = f"The current weather is {temp}°F and {condition}, so the warm layers ensure comfort in cool conditions."
                 
             # Add condition-specific notes
             if 'rain' in condition:
-                weather_note = weather_note.replace("comfort", "protection and comfort")
+                base_note = base_note.replace("comfort", "protection and comfort")
             elif 'wind' in condition:
-                weather_note = weather_note.replace("comfort", "secure fit and comfort")
+                base_note = base_note.replace("comfort", "secure fit and comfort")
+            
+            # Add weather source indication
+            if is_manual_override:
+                weather_note = base_note + " (This outfit was generated based on your manual weather preference.)"
+            elif is_real_weather:
+                weather_note = base_note + " (This outfit was generated based on real-time weather data.)"
+            elif is_fallback_weather:
+                weather_note = base_note + " (Fallback weather was used; consider minor adjustments if needed.)"
+            else:
+                weather_note = base_note
         else:
             weather_note = "The pieces are selected for comfortable all-day wear and versatile styling."
             
