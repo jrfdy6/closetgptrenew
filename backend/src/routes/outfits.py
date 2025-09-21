@@ -5219,13 +5219,21 @@ def _apply_final_outfit_validation(outfit: Dict[str, Any]) -> Dict[str, Any]:
         outfit['items'] = filtered_items
         outfit['name'] = f"Validated {outfit.get('name', 'Outfit')}"
     
-    # CRITICAL: Formal Shoes + Casual Bottoms Prevention
-    has_formal_shoes = any('oxford' in item_type or 'loafers' in item_type or 'dress shoes' in item_type or 
-                          'oxford' in item_name or 'loafers' in item_name or 'dress shoes' in item_name 
-                          for item_type, item_name in zip(item_types, item_names))
-    has_casual_bottoms = any('shorts' in item_type or 'cargo pants' in item_type or 'athletic pants' in item_type or
-                            'shorts' in item_name or 'cargo pants' in item_name or 'athletic pants' in item_name
-                            for item_type, item_name in zip(item_types, item_names))
+    # CRITICAL: Formal Shoes + Casual Bottoms Prevention (Enhanced)
+    formal_shoe_types = ['oxford', 'loafers', 'dress shoes', 'heels', 'pumps']
+    casual_bottom_types = ['shorts', 'athletic shorts', 'basketball shorts', 'cargo shorts', 'denim shorts', 
+                          'cargo pants', 'athletic pants', 'sweatpants', 'joggers', 'leggings', 'yoga pants']
+    
+    has_formal_shoes = any(
+        any(formal_type in item_type for formal_type in formal_shoe_types) or
+        any(formal_type in item_name for formal_type in formal_shoe_types)
+        for item_type, item_name in zip(item_types, item_names)
+    )
+    has_casual_bottoms = any(
+        any(casual_type in item_type for casual_type in casual_bottom_types) or
+        any(casual_type in item_name for casual_type in casual_bottom_types)
+        for item_type, item_name in zip(item_types, item_names)
+    )
     
     if has_formal_shoes and has_casual_bottoms:
         # Remove casual bottoms and replace with appropriate bottom
@@ -5236,9 +5244,13 @@ def _apply_final_outfit_validation(outfit: Dict[str, Any]) -> Dict[str, Any]:
             item_type = item.get('type', '').lower()
             item_name = item.get('name', '').lower()
             
-            # Skip casual bottom items
-            if ('shorts' in item_type or 'cargo pants' in item_type or 'athletic pants' in item_type or
-                'shorts' in item_name or 'cargo pants' in item_name or 'athletic pants' in item_name):
+            # Skip casual bottom items (enhanced detection)
+            is_casual_bottom = any(
+                casual_type in item_type or casual_type in item_name
+                for casual_type in casual_bottom_types
+            )
+            
+            if is_casual_bottom:
                 casual_removed = True
                 continue
             else:

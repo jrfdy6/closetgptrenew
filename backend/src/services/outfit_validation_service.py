@@ -176,11 +176,12 @@ class OutfitValidationService:
             "ultimate_formal_shoes_casual_bottoms": {
                 "description": "Ultimate Formal Shoes + Casual Bottoms Prevention",
                 "reason": "CRITICAL: Formal shoes can NEVER be worn with casual bottoms",
-                "remove_items": ["shorts", "athletic shorts", "basketball shorts", "cargo shorts", "denim shorts", "cargo pants", "athletic pants", "sweatpants", "joggers"],
-                "keep_items": ["oxford", "loafers", "dress shoes", "heels", "pumps", "pants", "jeans", "dress pants", "chinos", "slacks"],
-                "frequency": 1,  # 1 case from realistic test
+                "remove_items": ["shorts", "athletic shorts", "basketball shorts", "cargo shorts", "denim shorts", "cargo pants", "athletic pants", "sweatpants", "joggers", "leggings", "yoga pants", "sweatpants"],
+                "keep_items": ["oxford", "loafers", "dress shoes", "heels", "pumps", "pants", "jeans", "dress pants", "chinos", "slacks", "trousers"],
+                "frequency": 7,  # 7 cases from critical rules test
                 "category": "critical_formal_shoes_casual_bottoms",
-                "priority": "critical"
+                "priority": "critical",
+                "complex_rule": True  # Make this a complex rule for better handling
             }
         }
     
@@ -590,6 +591,9 @@ class OutfitValidationService:
                 elif rule_name == "enhanced_essential_categories_enforcement":
                     # Special handling for enhanced essential categories enforcement (critical priority)
                     filtered_items, rule_errors = self._apply_enhanced_essential_categories_enforcement(filtered_items, rule, context)
+                elif rule_name == "ultimate_formal_shoes_casual_bottoms":
+                    # Special handling for ultimate formal shoes + casual bottoms prevention (critical priority)
+                    filtered_items, rule_errors = self._apply_ultimate_formal_shoes_casual_bottoms(filtered_items, rule, context)
                 else:
                     rule_filtered_items, rule_errors = self._apply_complex_rule(filtered_items, rule, rule_name, context)
             elif rule.get("occasion_rule"):
@@ -866,6 +870,91 @@ class OutfitValidationService:
             )
         }
         return fallback_items.get(category)
+    
+    def _apply_ultimate_formal_shoes_casual_bottoms(self, items: List[ClothingItem], rule: Dict, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
+        """CRITICAL: Ultimate formal shoes + casual bottoms prevention with absolute guarantee."""
+        filtered_items = items.copy()
+        errors = []
+        
+        # Get item types and names
+        item_types = [item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower() for item in filtered_items]
+        item_names = [item.name.lower() for item in filtered_items]
+        
+        # Check for formal shoes
+        formal_shoe_types = ['oxford', 'loafers', 'dress shoes', 'heels', 'pumps']
+        has_formal_shoes = any(
+            any(formal_type in item_type for formal_type in formal_shoe_types) or
+            any(formal_type in item_name for formal_type in formal_shoe_types)
+            for item_type, item_name in zip(item_types, item_names)
+        )
+        
+        # Check for casual bottoms
+        casual_bottom_types = ['shorts', 'athletic shorts', 'basketball shorts', 'cargo shorts', 'denim shorts', 
+                              'cargo pants', 'athletic pants', 'sweatpants', 'joggers', 'leggings', 'yoga pants']
+        has_casual_bottoms = any(
+            any(casual_type in item_type for casual_type in casual_bottom_types) or
+            any(casual_type in item_name for casual_type in casual_bottom_types)
+            for item_type, item_name in zip(item_types, item_names)
+        )
+        
+        if has_formal_shoes and has_casual_bottoms:
+            # Remove ALL casual bottoms
+            items_to_remove = []
+            for item in filtered_items:
+                item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+                item_name = item.name.lower()
+                
+                # Check if this is a casual bottom
+                is_casual_bottom = any(
+                    casual_type in item_type or casual_type in item_name
+                    for casual_type in casual_bottom_types
+                )
+                
+                if is_casual_bottom:
+                    items_to_remove.append(item)
+                    errors.append(f"CRITICAL: Removed {item.name} - inappropriate with formal shoes")
+            
+            # Remove the casual bottom items
+            for item in items_to_remove:
+                if item in filtered_items:
+                    filtered_items.remove(item)
+            
+            # Add appropriate bottom if missing
+            current_categories = self._categorize_items(filtered_items)
+            if len(current_categories.get("bottom", [])) == 0:
+                # Try to get appropriate bottom from original items
+                original_items = context.get("original_items", items)
+                original_categories = self._categorize_items(original_items)
+                available_bottoms = original_categories.get("bottom", [])
+                
+                # Find appropriate bottoms (not casual)
+                appropriate_bottoms = []
+                for bottom_item in available_bottoms:
+                    bottom_type = bottom_item.type.value.lower() if hasattr(bottom_item.type, 'value') else str(bottom_item.type).lower()
+                    bottom_name = bottom_item.name.lower()
+                    
+                    # Check if this bottom is appropriate (not casual)
+                    is_appropriate = not any(
+                        casual_type in bottom_type or casual_type in bottom_name
+                        for casual_type in casual_bottom_types
+                    )
+                    
+                    if is_appropriate:
+                        appropriate_bottoms.append(bottom_item)
+                
+                if appropriate_bottoms:
+                    item_to_add = appropriate_bottoms[0]
+                    if item_to_add not in filtered_items:
+                        filtered_items.append(item_to_add)
+                        errors.append(f"CRITICAL: Added {item_to_add.name} to replace inappropriate casual bottom")
+                else:
+                    # Create fallback appropriate bottom
+                    fallback_bottom = self._create_fallback_item("bottom")
+                    if fallback_bottom:
+                        filtered_items.append(fallback_bottom)
+                        errors.append(f"CRITICAL: Created fallback appropriate bottom - no suitable items available")
+        
+        return filtered_items, errors
     
     def _apply_complex_rule(self, items: List[ClothingItem], rule: Dict, rule_name: str, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
         """Apply complex validation rules."""
