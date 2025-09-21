@@ -5067,7 +5067,10 @@ async def get_outfits_worn_this_week_simple(
             
             # Log first 5 outfits to see ordering and recent data
             if processed_count <= 5:
-                logger.info(f"📊 DEBUG: Outfit #{processed_count}: {outfit_doc.id} - lastWorn: {last_worn} - updatedAt: {outfit_data.get('updatedAt')}")
+                logger.info(f"📊 DEBUG: Outfit #{processed_count}: {outfit_doc.id}")
+                logger.info(f"📊 DEBUG:   - lastWorn: {last_worn} (type: {type(last_worn)})")
+                logger.info(f"📊 DEBUG:   - updatedAt: {outfit_data.get('updatedAt')} (type: {type(outfit_data.get('updatedAt'))})")
+                logger.info(f"📊 DEBUG:   - name: {outfit_data.get('name', 'Unknown')}")
             
             if last_worn:
                 # Parse lastWorn date safely - handle multiple formats
@@ -5103,11 +5106,17 @@ async def get_outfits_worn_this_week_simple(
                     # Count if worn this week
                     if worn_date and worn_date >= week_start:
                         worn_count += 1
-                        logger.info(f"📊 Found worn outfit: {outfit_data.get('name', 'Unknown')} worn at {worn_date}")
+                        logger.info(f"📊 ✅ COUNTED: {outfit_data.get('name', 'Unknown')} worn at {worn_date.isoformat()} (>= {week_start.isoformat()})")
+                    else:
+                        logger.info(f"📊 ❌ SKIPPED: {outfit_data.get('name', 'Unknown')} worn at {worn_date.isoformat() if worn_date else 'None'} (< {week_start.isoformat()})")
                         
                 except Exception as parse_error:
                     logger.warning(f"Could not parse lastWorn date {last_worn} (type: {type(last_worn)}): {parse_error}")
                     continue
+            else:
+                # Log outfits without lastWorn for first 5
+                if processed_count <= 5:
+                    logger.info(f"📊 DEBUG: Outfit #{processed_count} has no lastWorn field")
         
         logger.info(f"✅ MANUAL COUNT RESULT: Found {worn_count} outfits worn this week for user {current_user.id} (processed {processed_count} total outfits)")
         logger.info(f"📊 DEBUG: Week range was {week_start.isoformat()} to {datetime.now(timezone.utc).isoformat()}")
