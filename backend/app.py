@@ -198,7 +198,7 @@ async def startup_event():
     
     # Initialize Firebase with proper credentials
     try:
-        from ..config.firebase import firebase_initialized, db
+        from src.config.firebase import firebase_initialized, db
         if firebase_initialized:
             print("🔥 Firebase already initialized via config")
         else:

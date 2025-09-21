@@ -759,6 +759,7 @@ async def get_wardrobe_items_with_slash(
             except Exception as analytics_error:
                 # Analytics logging failed
                 # Don't fail the request if analytics fails
+                pass
         
         # Transform backend data to match frontend expectations
         transformed_items = []
