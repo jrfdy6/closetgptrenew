@@ -3611,21 +3611,16 @@ async def mark_outfit_as_worn(
         if not current_user:
             raise HTTPException(status_code=401, detail="Not authenticated")
             
-        logger.info(f"👕 Marking outfit {outfit_id} as worn for user {current_user.id}")
-        
         # Import Firebase inside function to prevent import-time crashes
         try:
             from ..config.firebase import db, firebase_initialized
         except ImportError as e:
-            logger.error(f"⚠️ Firebase import failed: {e}")
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
         
         if not db:
-            logger.error("⚠️ Firebase not available")
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
         
         # Simple direct update instead of using the complex OutfitService
-        # This avoids the dictionary update error
         outfit_ref = db.collection('outfits').document(outfit_id)
         outfit_doc = outfit_ref.get()
         
@@ -3642,16 +3637,11 @@ async def mark_outfit_as_worn(
         current_wear_count = outfit_data.get('wearCount', 0)
         current_time = datetime.utcnow()
         
-        logger.info(f"🔍 DEBUG: Updating outfit {outfit_id} with wearCount: {current_wear_count} -> {current_wear_count + 1}")
-        logger.info(f"🔍 DEBUG: Setting lastWorn to: {current_time}")
-        
         outfit_ref.update({
             'wearCount': current_wear_count + 1,
             'lastWorn': current_time,
             'updatedAt': current_time
         })
-        
-        logger.info(f"✅ DEBUG: Successfully updated outfit {outfit_id} in Firestore")
         
         # Update user stats for outfit worn (CRITICAL FOR DASHBOARD ANALYTICS)
         try:
