@@ -226,8 +226,14 @@ class OutfitValidationService:
                 item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
                 item_name = item.name.lower()
                 
-                # Check if this item should be kept
-                should_keep = any(keep_type in item_type or keep_type in item_name for keep_type in keep_items)
+                # Enhanced matching for keep items
+                should_keep = False
+                for keep_type in keep_items:
+                    if (keep_type in item_type or keep_type in item_name or 
+                        item_type == keep_type or item_name == keep_type):
+                        should_keep = True
+                        break
+                
                 if should_keep:
                     has_formal_items = True
                     break
@@ -239,8 +245,13 @@ class OutfitValidationService:
                     item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
                     item_name = item.name.lower()
                     
-                    # Check if this item should be removed
-                    should_remove = any(remove_type in item_type or remove_type in item_name for remove_type in remove_items)
+                    # Enhanced matching for remove items
+                    should_remove = False
+                    for remove_type in remove_items:
+                        if (remove_type in item_type or remove_type in item_name or 
+                            item_type == remove_type or item_name == remove_type):
+                            should_remove = True
+                            break
                     
                     # Additional checks for cargo pants variations
                     if not should_remove and "cargo" in remove_items:
