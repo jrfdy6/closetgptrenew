@@ -519,8 +519,13 @@ class OutfitValidationService:
         warnings = []
         applied_rules = []
         
-        # Apply each enhanced rule (but don't remove essential categories)
-        for rule_name, rule in self.enhanced_rules.items():
+        # Apply each enhanced rule in priority order (but don't remove essential categories)
+        # Sort rules by priority (high priority first)
+        sorted_rules = sorted(self.enhanced_rules.items(), 
+                             key=lambda x: (x[1].get("priority") == "high", x[1].get("frequency", 0)), 
+                             reverse=True)
+        
+        for rule_name, rule in sorted_rules:
             if rule.get("complex_rule"):
                 if rule_name == "essential_categories_enforcement":
                     # Special handling for essential categories enforcement
@@ -768,6 +773,10 @@ class OutfitValidationService:
         keep_items = rule.get("keep_items", [])
         remove_items = rule.get("remove_items", [])
         
+        print(f"🔍 SIMPLE RULE: {rule.get('description', 'Unknown')}")
+        print(f"🔍 KEEP ITEMS: {keep_items}")
+        print(f"🔍 REMOVE ITEMS: {remove_items}")
+        
         # Find items that should be kept (formal items)
         has_formal_items = False
         for item in filtered_items:
@@ -778,7 +787,10 @@ class OutfitValidationService:
             should_keep = any(keep_type in item_type or keep_type in item_name for keep_type in keep_items)
             if should_keep:
                 has_formal_items = True
+                print(f"🔍 FOUND FORMAL ITEM: {item.name} ({item_type})")
                 break
+        
+        print(f"🔍 HAS FORMAL ITEMS: {has_formal_items}")
         
         # If we have formal items that should be kept, remove casual items
         if has_formal_items:
@@ -793,11 +805,15 @@ class OutfitValidationService:
                 if should_remove:
                     items_to_remove.append(item)
                     errors.append(f"Removed {item.name} - {rule['reason']}")
+                    print(f"🔍 MARKING FOR REMOVAL: {item.name} ({item_type})")
             
             # Remove the inappropriate items
             for item in items_to_remove:
                 if item in filtered_items:
                     filtered_items.remove(item)
+                    print(f"🔍 REMOVED: {item.name}")
+        else:
+            print(f"🔍 NO FORMAL ITEMS FOUND - RULE NOT APPLIED")
         
         return filtered_items, errors
     
