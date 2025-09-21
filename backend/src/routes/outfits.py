@@ -4942,10 +4942,30 @@ async def get_outfits_worn_this_week_simple(
                 # Check if stats were updated this week
                 logger.info(f"📊 DEBUG: Checking user_stats fast path - last_updated: {last_updated}, week_start: {week_start}")
                 logger.info(f"📊 DEBUG: last_updated type: {type(last_updated)}, is datetime: {isinstance(last_updated, datetime)}")
-                if last_updated and isinstance(last_updated, datetime):
-                    logger.info(f"📊 DEBUG: Comparing {last_updated} >= {week_start} = {last_updated >= week_start}")
                 
-                if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
+                # Handle both datetime objects and Firestore timestamps
+                last_updated_dt = None
+                if last_updated:
+                    if isinstance(last_updated, datetime):
+                        last_updated_dt = last_updated
+                        logger.info(f"📊 DEBUG: Using datetime object: {last_updated_dt}")
+                    elif hasattr(last_updated, 'timestamp'):
+                        # Firestore timestamp object
+                        last_updated_dt = last_updated
+                        logger.info(f"📊 DEBUG: Using Firestore timestamp: {last_updated_dt}")
+                    elif isinstance(last_updated, str):
+                        try:
+                            last_updated_dt = datetime.fromisoformat(last_updated.replace('Z', '+00:00'))
+                            logger.info(f"📊 DEBUG: Parsed string to datetime: {last_updated_dt}")
+                        except:
+                            logger.warning(f"📊 DEBUG: Failed to parse string: {last_updated}")
+                
+                if last_updated_dt and last_updated_dt >= week_start:
+                    logger.info(f"📊 DEBUG: Week validation PASSED: {last_updated_dt} >= {week_start}")
+                else:
+                    logger.info(f"📊 DEBUG: Week validation FAILED: {last_updated_dt} >= {week_start}")
+                
+                if last_updated_dt and last_updated_dt >= week_start:
                     worn_count = stats_data.get('worn_this_week', 0)
                     logger.info(f"✅ FAST PATH: Got worn count from user_stats: {worn_count}")
                     
