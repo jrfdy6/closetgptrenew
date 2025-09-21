@@ -46,34 +46,17 @@ class OutfitGenerationService:
         
         unique_wardrobe = list(unique_items.values())
         
-        # NEW: Use cohesive composition service for harmonious outfit creation
-        print("🎨 Creating cohesive outfit composition...")
+        # TEMPORARILY DISABLED: Use traditional selection to debug backend timeout
+        print("🎨 Using traditional outfit selection (cohesive composition temporarily disabled)")
         try:
-            composition = await self.composition_service.create_cohesive_outfit(
-                wardrobe=unique_wardrobe,
-                occasion=occasion,
-                style=style,
-                mood=mood,
-                weather=weather,
-                user_profile=user_profile,
-                max_items=4  # Limit to 4 items for better cohesion
-            )
-            
-            # Extract items from composition
-            selected_items = [composition.base_piece] + composition.complementary_pieces
-            
-            print(f"✅ Cohesive composition created:")
-            print(f"  - Base piece: {composition.base_piece.name} ({composition.base_piece.type})")
-            print(f"  - Total items: {composition.total_items}")
-            print(f"  - Color harmony: {composition.color_harmony.value}")
-            print(f"  - Style consistency: {composition.style_consistency:.1f}")
-            for i, item in enumerate(composition.complementary_pieces):
-                print(f"  - Complementary {i+1}: {item.name} ({item.type})")
+            # Traditional selection for debugging
+            selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style, base_item_id)
+            print(f"✅ Traditional selection created: {len(selected_items)} items")
             
         except Exception as e:
-            print(f"⚠️ Cohesive composition failed: {e}, falling back to traditional selection")
-            # Fallback to traditional selection
-            selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style, base_item_id)
+            print(f"⚠️ Traditional selection failed: {e}, using fallback")
+            # Emergency fallback
+            selected_items = unique_wardrobe[:4] if len(unique_wardrobe) >= 4 else unique_wardrobe
         
         # CRITICAL: Apply enhanced validation to prevent inappropriate combinations
         print("🔍 Applying enhanced validation to prevent inappropriate combinations...")
