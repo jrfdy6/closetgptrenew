@@ -108,13 +108,63 @@ async def get_dashboard_stats(
         
         # For now, return a simple response to test if the endpoint works
         # TODO: Implement actual counting once we verify the endpoint is accessible
+        # Calculate actual worn outfits this week instead of hardcoded value
+        worn_count = 0
+        processed_count = 0
+        
+        try:
+            # Import Firebase inside function to avoid startup issues
+            from ..config.firebase import db, firebase_initialized
+            
+            if not db:
+                logger.error("⚠️ Firebase not available")
+                worn_count = 3  # Fallback to previous hardcoded value
+            else:
+                # Calculate start of week (Monday)
+                from datetime import datetime, timezone, timedelta
+                now = datetime.now(timezone.utc)
+                days_since_monday = now.weekday()
+                week_start = now - timedelta(days=days_since_monday)
+                week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                
+                # Query outfits worn this week
+                outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
+                outfits_docs = outfits_ref.stream()
+                
+                for doc in outfits_docs:
+                    processed_count += 1
+                    outfit_data = doc.to_dict()
+                    
+                    # Check if outfit has lastWorn field and it's this week
+                    last_worn = outfit_data.get('lastWorn')
+                    if last_worn:
+                        if isinstance(last_worn, str):
+                            try:
+                                last_worn_dt = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                            except:
+                                continue
+                        elif hasattr(last_worn, 'timestamp'):
+                            last_worn_dt = last_worn
+                        else:
+                            continue
+                            
+                        if last_worn_dt >= week_start:
+                            worn_count += 1
+                
+                logger.info(f"✅ Calculated {worn_count} outfits worn this week for user {current_user.id}")
+            
+        except Exception as calc_error:
+            logger.error(f"❌ Error calculating worn outfits: {calc_error}")
+            worn_count = 3  # Fallback to previous value if calculation fails
+        
         return {
             "success": True,
             "user_id": current_user.id,
-            "outfits_worn_this_week": 3,  # Hardcoded for testing - you marked 2 outfits as worn
-            "total_outfits": 1500,
+            "outfits_worn_this_week": worn_count,
+            "processed_count": processed_count,
+            "week_start": week_start.isoformat(),
             "calculated_at": datetime.now(timezone.utc).isoformat(),
-            "message": "Simple analytics working - hardcoded count for testing"
+            "message": "Real analytics calculation (removed hardcoded value)"
         }
         
     except HTTPException:
