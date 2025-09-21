@@ -263,6 +263,7 @@ app.include_router(diag)
 @app.on_event("startup")
 async def show_all_routes():
     # Routes table removed to reduce Railway rate limiting
+    pass
 
 # ---------------- ROOT ----------------
 @app.get("/")
