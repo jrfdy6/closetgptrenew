@@ -2691,8 +2691,14 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
             weather_note = f" for {req.weather.temperature}°F {req.weather.condition.lower()} weather"
         return f"This {req.style} {req.occasion} outfit{weather_note} uses your available wardrobe pieces. The selection balances style and comfort for your {req.mood} mood. Each item works together to create a weather-appropriate, cohesive look."
 
-def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather) -> Dict[str, Any]:
-    """Validate outfit combinations for weather appropriateness and add warnings."""
+def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather, mode: str = "soft") -> Dict[str, Any]:
+    """Validate outfit combinations for weather appropriateness with hard/soft rule modes.
+    
+    Args:
+        outfit: The generated outfit dictionary
+        weather: Weather data object
+        mode: "hard" to exclude inappropriate items, "soft" to warn but keep items
+    """
     try:
         items = outfit.get('items', [])
         if not items:
@@ -2708,18 +2714,42 @@ def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather) -> Dic
         
         # Check for problematic combinations
         outfit_warnings = []
+        items_to_remove = []
         
         # Get item types for combination analysis
         item_types = [item.get('type', '').lower() for item in items]
         item_names = [item.get('name', '').lower() for item in items]
+        item_materials = [item.get('material', '').lower() for item in items]
         
         # Check for temperature-inappropriate combinations
         has_shorts = any('shorts' in t or 'short' in name for t, name in zip(item_types, item_names))
         has_heavy_jacket = any(('jacket' in t or 'coat' in t) and any(heavy in name for heavy in ['heavy', 'winter', 'wool']) for t, name in zip(item_types, item_names))
         has_tank_top = any('tank' in t or 'sleeveless' in t for t in item_types)
         has_sweater = any('sweater' in t or 'pullover' in t for t in item_types)
+        has_wool = any('wool' in mat for mat in item_materials)
+        has_thermal = any('thermal' in mat or 'fleece' in mat for mat in item_materials)
         
-        # Flag inappropriate combinations for temperature
+        # HARD RULES - Items that should be excluded for comfort
+        for i, (item_type, item_name, item_material) in enumerate(zip(item_types, item_names, item_materials)):
+            # Very hot weather exclusions
+            if temp >= 85:
+                if 'heavy' in item_name or 'winter' in item_name or 'wool' in item_material or 'thermal' in item_material:
+                    if mode == "hard":
+                        items_to_remove.append(i)
+                        logger.info(f"🌡️ Hard rule: Excluding {item_name} for {temp}°F weather")
+                    else:
+                        outfit_warnings.append(f"Warning: {item_name} may be too warm for {temp}°F weather.")
+            
+            # Very cold weather exclusions  
+            elif temp <= 40:
+                if 'tank' in item_type or 'sleeveless' in item_type or 'short' in item_type:
+                    if mode == "hard":
+                        items_to_remove.append(i)
+                        logger.info(f"🌡️ Hard rule: Excluding {item_name} for {temp}°F weather")
+                    else:
+                        outfit_warnings.append(f"Warning: {item_name} may be inadequate for {temp}°F weather.")
+        
+        # SOFT RULES - Combinations that should be warned about
         if temp <= 67 and has_shorts:
             outfit_warnings.append(f"Note: Shorts may be too cool for {temp}°F weather - consider long pants for better comfort.")
         
@@ -2731,6 +2761,14 @@ def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather) -> Dic
         
         if temp <= 50 and has_tank_top:
             outfit_warnings.append(f"Note: Tank tops may be inadequate for {temp}°F {condition} conditions - consider adding layers.")
+        
+        # Apply hard rules if mode is "hard"
+        if mode == "hard" and items_to_remove:
+            # Remove items in reverse order to maintain indices
+            for i in sorted(items_to_remove, reverse=True):
+                removed_item = items.pop(i)
+                logger.info(f"🗑️ Removed inappropriate item: {removed_item.get('name', 'Unknown')}")
+            outfit['items'] = items
         
         # Add warnings to reasoning if any found
         if outfit_warnings:
@@ -4393,63 +4431,56 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
         # Always generate exactly 3 sentences for consistency
         sentences = []
         
-        # Sentence 1: Weather context and outfit purpose
-        weather_context = ""
+        # Sentence 1: Outfit style, mood, and occasion
+        mood_desc = {
+            'bold': 'confident', 'relaxed': 'comfortable', 'sophisticated': 'elegant',
+            'dynamic': 'energetic', 'serene': 'peaceful', 'mysterious': 'intriguing'
+        }.get(req.mood.lower(), req.mood.lower())
+        
+        sentences.append(f"This outfit reflects your {req.style} style for a {req.occasion} occasion, creating a {mood_desc} mood.")
+        
+        # Sentence 2: Weather appropriateness / comfort note
         if req.weather:
-            temp = req.weather.temperature
-            condition = req.weather.condition.lower()
+            temp = getattr(req.weather, 'temperature', 70)
+            condition = getattr(req.weather, 'condition', 'clear').lower()
             
+            # Weather-appropriate messaging
             if temp >= 85:
-                weather_context = f"perfect for the {temp}°F {condition} weather with breathable fabrics and minimal layers"
+                weather_note = f"The current weather is {temp}°F and {condition}, so the lightweight pieces ensure comfort in warm conditions."
             elif temp >= 75:
-                weather_context = f"ideal for {temp}°F {condition} conditions with comfortable, versatile pieces"
-            elif temp <= 40:
-                weather_context = f"designed for {temp}°F {condition} weather with warm, insulating layers"
-            elif temp <= 55:
-                weather_context = f"suitable for cool {temp}°F {condition} conditions with thoughtful layering"
+                weather_note = f"The current weather is {temp}°F and {condition}, so the breathable fabrics provide comfort throughout the day."
+            elif temp >= 65:
+                weather_note = f"The current weather is {temp}°F and {condition}, so the balanced layering adapts well to mild conditions."
+            elif temp >= 55:
+                weather_note = f"The current weather is {temp}°F and {condition}, so the thoughtful layering provides warmth and comfort."
             else:
-                weather_context = f"perfectly matched to {temp}°F {condition} weather"
+                weather_note = f"The current weather is {temp}°F and {condition}, so the warm layers ensure comfort in cool conditions."
                 
+            # Add condition-specific notes
             if 'rain' in condition:
-                weather_context += " and water-resistant materials"
-            elif 'wind' in condition or req.weather.wind_speed > 15:
-                weather_context += " with secure, fitted silhouettes"
+                weather_note = weather_note.replace("comfort", "protection and comfort")
+            elif 'wind' in condition:
+                weather_note = weather_note.replace("comfort", "secure fit and comfort")
         else:
-            weather_context = "designed for comfortable all-day wear"
+            weather_note = "The pieces are selected for comfortable all-day wear and versatile styling."
             
-        sentences.append(f"This {req.style} {req.occasion} outfit is {weather_context}.")
+        sentences.append(weather_note)
         
-        # Sentence 2: Item composition and style rationale
-        item_types = [item.get('type', '').lower() for item in items]
-        key_pieces = []
-        
-        if any('dress' in t for t in item_types):
-            key_pieces.append("a versatile dress as the centerpiece")
-        if any('blazer' in t or 'jacket' in t for t in item_types):
-            key_pieces.append("structured outerwear for sophistication")
-        if any('jean' in t or 'denim' in t for t in item_types):
-            key_pieces.append("denim for effortless style")
-        if any('sweater' in t or 'cardigan' in t for t in item_types):
-            key_pieces.append("cozy knits for comfort")
-        if any('blouse' in t or 'shirt' in t for t in item_types):
-            key_pieces.append("polished tops for versatility")
-            
-        if key_pieces:
-            pieces_text = ", ".join(key_pieces[:2])  # Limit to 2 key pieces for readability
-            sentences.append(f"The combination features {pieces_text} to achieve the desired {req.mood} mood.")
+        # Sentence 3: Harmony, layering, or color reasoning
+        if items and len(items) >= 2:
+            # Analyze colors
+            colors = [item.get('color', '').title() for item in items if item.get('color')]
+            if colors:
+                color_combo = " and ".join(colors[:3])  # Limit to 3 colors
+                if len(colors) > 3:
+                    color_combo += f" and {len(colors)-3} other tones"
+                sentences.append(f"The {color_combo} tones create color harmony across your pieces, while the layered composition adds depth and sophistication.")
+            else:
+                # Fallback to item types
+                item_types = [item.get('type', '').title() for item in items]
+                sentences.append(f"The {', '.join(item_types)} work together to create a cohesive look with balanced proportions and complementary textures.")
         else:
-            sentences.append(f"Each of the {len(items)} carefully selected pieces contributes to the overall {req.mood} aesthetic.")
-        
-        # Sentence 3: Cohesion and confidence assessment
-        confidence = outfit_score.get('total_score', 0.7)
-        if confidence > 0.8:
-            cohesion_text = "The harmonious color palette and complementary silhouettes create a polished, confident look that works seamlessly together."
-        elif confidence > 0.6:
-            cohesion_text = "The thoughtful color coordination and balanced proportions ensure a well-composed ensemble that feels intentional and stylish."
-        else:
-            cohesion_text = "The creative mix of textures and tones creates an interesting, individualistic outfit that expresses personal style."
-            
-        sentences.append(cohesion_text)
+            sentences.append("The outfit selection prioritizes style coherence and practical versatility for your occasion.")
         
         return " ".join(sentences)
         
