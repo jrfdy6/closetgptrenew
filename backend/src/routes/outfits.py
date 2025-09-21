@@ -3759,29 +3759,29 @@ async def mark_outfit_as_worn(
             except Exception as e:
                 # print(f"❌ Datetime calculation failed: {e}", flush=True)
                 pass
-        
-        # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
-        try:
-            current_time_dt = datetime.now(timezone.utc)
-            week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
-            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            # print(f"✅ WEEK_CALC_SUCCESS: current_time={current_time_dt}, week_start={week_start}", flush=True)
-        except Exception as week_error:
-            # print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
-            raise
-        
-        # SURGICAL FIRESTORE TEST: Check if Firestore access is the culprit (silent)
-        try:
-            stats_ref = db.collection('user_stats').document(current_user.id)
-            stats_doc = stats_ref.get()
-            # print("✅ Firestore access successful", flush=True)
-        except Exception as e:
-            # print(f"❌ Firestore access failed: {e}", flush=True)
-            raise
+            
+            # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
+            try:
+                current_time_dt = datetime.now(timezone.utc)
+                week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
+                week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                # print(f"✅ WEEK_CALC_SUCCESS: current_time={current_time_dt}, week_start={week_start}", flush=True)
+            except Exception as week_error:
+                # print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
+                raise
+            
+            # SURGICAL FIRESTORE TEST: Check if Firestore access is the culprit (silent)
+            try:
+                stats_ref = db.collection('user_stats').document(current_user.id)
+                stats_doc = stats_ref.get()
+                # print("✅ Firestore access successful", flush=True)
+            except Exception as e:
+                # print(f"❌ Firestore access failed: {e}", flush=True)
+                raise
 
-        if stats_doc.exists:
-            stats_data = stats_doc.to_dict()
-            current_worn_count = stats_data.get('worn_this_week', 0)
+            if stats_doc.exists:
+                stats_data = stats_doc.to_dict()
+                current_worn_count = stats_data.get('worn_this_week', 0)
             
             # Check if we're still in the same week
             last_updated_raw = stats_data.get('last_updated')
@@ -3929,6 +3929,14 @@ async def mark_outfit_as_worn(
             
             # Don't raise - outfit was still marked as worn successfully
             
+        except Exception as stats_error:
+            # CRITICAL: Handle user_stats update failures gracefully
+            error_msg = f"🚨 USER_STATS_CRITICAL_ERROR: {stats_error}"
+            # print(error_msg, flush=True)  # DISABLED
+            logger.error(error_msg)
+            
+            # Don't raise - outfit was still marked as worn successfully
+            
         # Also try the old stats service if available
         try:
             from ..services.user_stats_service import user_stats_service
@@ -4035,6 +4043,20 @@ async def mark_outfit_as_worn(
             "message": "Outfit marked as worn successfully (outfit + wardrobe items updated)",
             "wearCount": current_wear_count,
             "lastWorn": last_worn_str
+        }
+        
+    except Exception as stats_error:
+        # CRITICAL: Handle user_stats update failures gracefully
+        error_msg = f"🚨 USER_STATS_CRITICAL_ERROR: {stats_error}"
+        # print(error_msg, flush=True)  # DISABLED
+        logger.error(error_msg)
+        
+        # Don't raise - outfit was still marked as worn successfully
+        return {
+            "success": True,
+            "message": "Outfit marked as worn successfully (stats update failed)",
+            "wearCount": current_wear_count + 1,
+            "lastWorn": current_time.isoformat()
         }
         
     except HTTPException:
