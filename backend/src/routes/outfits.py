@@ -3659,6 +3659,22 @@ async def mark_outfit_as_worn(
             'updatedAt': current_time
         })
         
+        # CRITICAL DEBUG: Log successful outfit update
+        try:
+            debug_ref = db.collection('debug_stats_updates').document()
+            debug_ref.set({
+                'event': 'outfit_update_successful',
+                'user_id': current_user.id,
+                'outfit_id': outfit_id,
+                'old_wear_count': current_wear_count,
+                'new_wear_count': current_wear_count + 1,
+                'timestamp': datetime.utcnow().isoformat(),
+                'message': 'Successfully updated outfit wear count'
+            })
+            print("🚨 CRITICAL: Outfit update successful, proceeding to user_stats")
+        except Exception as outfit_error:
+            print(f"🚨 CRITICAL: Failed to log outfit update: {outfit_error}")
+        
         # CRITICAL DEBUG: Force visibility of user_stats section entry
         print("🚨 CRITICAL: About to start user_stats update section")
         
