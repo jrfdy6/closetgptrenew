@@ -3806,35 +3806,35 @@ async def mark_outfit_as_worn(
                 })
             except:
                 pass
+            
+            if last_updated and last_updated >= week_start:
+                # Same week, increment count
+                # print("📊 SAME_WEEK_INCREMENT: entering", flush=True)  # DISABLED
+                new_worn_count = current_worn_count + 1
+                # print(f"📊 SAME WEEK: Incrementing {current_worn_count} -> {new_worn_count}")  # DISABLED
+            else:
+                # New week, reset count to 1
+                # print("📊 NEW_WEEK_RESET: entering", flush=True)  # DISABLED
+                new_worn_count = 1
+                # print(f"📊 NEW WEEK: Resetting count to {new_worn_count} (last_updated: {last_updated}, week_start: {week_start})")  # DISABLED
                 
-                if last_updated and last_updated >= week_start:
-                    # Same week, increment count
-                    print("📊 SAME_WEEK_INCREMENT: entering", flush=True)
-                    new_worn_count = current_worn_count + 1
-                    print(f"📊 SAME WEEK: Incrementing {current_worn_count} -> {new_worn_count}")
-                else:
-                    # New week, reset count to 1
-                    print("📊 NEW_WEEK_RESET: entering", flush=True)
-                    new_worn_count = 1
-                    print(f"📊 NEW WEEK: Resetting count to {new_worn_count} (last_updated: {last_updated}, week_start: {week_start})")
-                    
-                    # RAILWAY-PROOF: Write new week debug info to Firestore
-                    try:
-                        debug_ref = db.collection('debug_stats_updates').document()
-                        debug_ref.set({
-                            'event': 'user_stats_new_week_reset',
-                            'user_id': current_user.id,
-                            'outfit_id': outfit_id,
-                            'action': 'new_week_reset',
-                            'old_count': current_worn_count,
-                            'new_count': new_worn_count,
-                            'week_start': week_start.isoformat(),
-                            'last_updated': last_updated.isoformat() if last_updated else None,
-                            'timestamp': current_time_dt.isoformat(),
-                            'success': True
-                        })
-                    except:
-                        pass
+                # RAILWAY-PROOF: Write new week debug info to Firestore
+                try:
+                    debug_ref = db.collection('debug_stats_updates').document()
+                    debug_ref.set({
+                        'event': 'user_stats_new_week_reset',
+                        'user_id': current_user.id,
+                        'outfit_id': outfit_id,
+                        'action': 'new_week_reset',
+                        'old_count': current_worn_count,
+                        'new_count': new_worn_count,
+                        'week_start': week_start.isoformat(),
+                        'last_updated': last_updated.isoformat() if last_updated else None,
+                        'timestamp': current_time_dt.isoformat(),
+                        'success': True
+                    })
+                except:
+                    pass
                 
                 # Before Firestore write
                 print(f"🔥 USER_STATS_WRITE_ATTEMPT: worn_this_week={new_worn_count}", flush=True)
