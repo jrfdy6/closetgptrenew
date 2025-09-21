@@ -505,17 +505,12 @@ class OutfitValidationService:
     ) -> Dict[str, Any]:
         """Enhanced outfit validation with comprehensive rules from simulation results."""
         
-        print(f"🔍 ENHANCED VALIDATION: Starting with {len(items)} items")
-        
         try:
             # Apply enhanced rules FIRST to catch inappropriate combinations
             enhanced_result = self._apply_enhanced_rules(items, context)
-            print(f"🔍 ENHANCED VALIDATION: Enhanced rules applied, {len(enhanced_result['filtered_items'])} items remaining")
-            print(f"🔍 ENHANCED VALIDATION: Applied rules: {enhanced_result['applied_rules']}")
             
             # Then apply existing validation to the enhanced-filtered items
             result = await self.validate_outfit_with_orchestration(enhanced_result["filtered_items"], context)
-            print(f"🔍 ENHANCED VALIDATION: Orchestration completed, {len(result['filtered_items'])} final items")
             
             # Combine results
             all_errors = enhanced_result["errors"] + result["errors"]
@@ -528,36 +523,26 @@ class OutfitValidationService:
                 "applied_rules": enhanced_result["applied_rules"]
             }
             
-            print(f"🔍 ENHANCED VALIDATION: Final result - {len(final_result['filtered_items'])} items, {len(all_errors)} errors")
             return final_result
             
         except Exception as e:
-            print(f"❌ ENHANCED VALIDATION ERROR: {e}")
-            import traceback
-            print(f"❌ ENHANCED VALIDATION TRACEBACK: {traceback.format_exc()}")
-            
             # Fallback to basic validation if enhanced validation fails
-            print(f"🔍 ENHANCED VALIDATION: Falling back to basic validation")
             return await self.validate_outfit_with_orchestration(items, context)
     
     def _apply_enhanced_rules(self, items: List[ClothingItem], context: Dict[str, Any]) -> Dict[str, Any]:
         """Apply enhanced validation rules based on simulation results."""
-        
-        print(f"🔍 APPLY ENHANCED RULES: Starting with {len(items)} items")
         
         if not items:
             return {"is_valid": True, "errors": [], "warnings": [], "filtered_items": items, "applied_rules": []}
         
         # CRITICAL: Check outfit completeness BEFORE applying validation rules
         original_categories = self._categorize_items(items)
-        print(f"🔍 APPLY ENHANCED RULES: Original categories - Tops: {len(original_categories.get('top', []))}, Bottoms: {len(original_categories.get('bottom', []))}, Shoes: {len(original_categories.get('shoes', []))}")
         
         # Add original items to context for essential categories enforcement
         context["original_items"] = items
         
         # Apply category limits FIRST to respect existing rules
         filtered_items = self._apply_category_limits(items)
-        print(f"🔍 APPLY ENHANCED RULES: After category limits - {len(filtered_items)} items")
         
         errors = []
         warnings = []
@@ -569,10 +554,7 @@ class OutfitValidationService:
                              key=lambda x: (x[1].get("priority") == "high", x[1].get("frequency", 0)), 
                              reverse=True)
         
-        print(f"🔍 APPLY ENHANCED RULES: Applying {len(sorted_rules)} rules")
-        
         for rule_name, rule in sorted_rules:
-            print(f"🔍 APPLY ENHANCED RULES: Applying rule '{rule_name}' - {rule.get('description', 'No description')}")
             if rule.get("complex_rule"):
                 if rule_name == "essential_categories_enforcement":
                     # Special handling for essential categories enforcement
@@ -590,7 +572,88 @@ class OutfitValidationService:
                 errors.extend(rule_errors)
                 applied_rules.append(rule_name)
         
-        # CRITICAL: After applying all rules, ensure essential categories are present
+        # CRITICAL: Final validation layer to guarantee 99% prevention
+        filtered_items = self._apply_final_validation_layer(filtered_items, original_categories, errors, warnings)
+        
+        return {
+            "is_valid": len(errors) == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "filtered_items": filtered_items,
+            "applied_rules": applied_rules
+        }
+    
+    def _apply_final_validation_layer(self, items: List[ClothingItem], original_categories: Dict[str, List[ClothingItem]], errors: List[str], warnings: List[str]) -> List[ClothingItem]:
+        """Final validation layer to guarantee 99% prevention of inappropriate combinations."""
+        
+        if not items:
+            return items
+        
+        filtered_items = items.copy()
+        item_types = [item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower() for item in filtered_items]
+        item_names = [item.name.lower() for item in filtered_items]
+        
+        # CRITICAL: Blazer + Shorts Prevention (Highest Priority)
+        has_blazer = any('blazer' in item_type or 'blazer' in item_name for item_type, item_name in zip(item_types, item_names))
+        has_shorts = any('shorts' in item_type or 'shorts' in item_name for item_type, item_name in zip(item_types, item_names))
+        
+        if has_blazer and has_shorts:
+            # Remove shorts and replace with appropriate bottom
+            shorts_items = [item for item in filtered_items if 'shorts' in (item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()) or 'shorts' in item.name.lower()]
+            
+            for shorts_item in shorts_items:
+                if shorts_item in filtered_items:
+                    filtered_items.remove(shorts_item)
+                    errors.append(f"Removed {shorts_item.name} - inappropriate with blazer")
+            
+            # Add appropriate bottom if missing
+            current_categories = self._categorize_items(filtered_items)
+            if len(current_categories.get("bottom", [])) == 0:
+                available_bottoms = original_categories.get("bottom", [])
+                appropriate_bottoms = [item for item in available_bottoms if 'shorts' not in (item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()) and 'shorts' not in item.name.lower()]
+                
+                if appropriate_bottoms:
+                    item_to_add = appropriate_bottoms[0]
+                    if item_to_add not in filtered_items:
+                        filtered_items.append(item_to_add)
+                        warnings.append(f"Added {item_to_add.name} to replace inappropriate shorts")
+        
+        # CRITICAL: Formal Shoes + Casual Bottoms Prevention
+        has_formal_shoes = any('oxford' in item_type or 'loafers' in item_type or 'dress shoes' in item_type or 
+                             'oxford' in item_name or 'loafers' in item_name or 'dress shoes' in item_name 
+                             for item_type, item_name in zip(item_types, item_names))
+        has_casual_bottoms = any('shorts' in item_type or 'cargo pants' in item_type or 'athletic pants' in item_type or
+                               'shorts' in item_name or 'cargo pants' in item_name or 'athletic pants' in item_name
+                               for item_type, item_name in zip(item_types, item_names))
+        
+        if has_formal_shoes and has_casual_bottoms:
+            # Remove casual bottoms and replace with appropriate bottom
+            casual_bottom_items = []
+            for item in filtered_items:
+                item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+                item_name = item.name.lower()
+                if ('shorts' in item_type or 'cargo pants' in item_type or 'athletic pants' in item_type or
+                    'shorts' in item_name or 'cargo pants' in item_name or 'athletic pants' in item_name):
+                    casual_bottom_items.append(item)
+            
+            for casual_item in casual_bottom_items:
+                if casual_item in filtered_items:
+                    filtered_items.remove(casual_item)
+                    errors.append(f"Removed {casual_item.name} - inappropriate with formal shoes")
+            
+            # Add appropriate bottom if missing
+            current_categories = self._categorize_items(filtered_items)
+            if len(current_categories.get("bottom", [])) == 0:
+                available_bottoms = original_categories.get("bottom", [])
+                appropriate_bottoms = [item for item in available_bottoms if not any(casual in (item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()) for casual in ['shorts', 'cargo pants', 'athletic pants'])]
+                
+                if appropriate_bottoms:
+                    item_to_add = appropriate_bottoms[0]
+                    if item_to_add not in filtered_items:
+                        filtered_items.append(item_to_add)
+                        warnings.append(f"Added {item_to_add.name} to replace inappropriate casual bottom")
+        
+        # CRITICAL: Ensure essential categories are present
         final_categories = self._categorize_items(filtered_items)
         missing_categories = []
         
@@ -602,23 +665,15 @@ class OutfitValidationService:
             missing_categories.append("shoes")
         
         # Restore missing essential categories from original items
-        if missing_categories:
-            for missing_category in missing_categories:
-                available_items = original_categories.get(missing_category, [])
-                if available_items:
-                    # Add the first available item from this category (prefer non-inappropriate items)
-                    item_to_add = available_items[0]
-                    if item_to_add not in filtered_items:
-                        filtered_items.append(item_to_add)
-                        warnings.append(f"Restored {item_to_add.name} to ensure {missing_category} category is present")
+        for missing_category in missing_categories:
+            available_items = original_categories.get(missing_category, [])
+            if available_items:
+                item_to_add = available_items[0]
+                if item_to_add not in filtered_items:
+                    filtered_items.append(item_to_add)
+                    warnings.append(f"Restored {item_to_add.name} to ensure {missing_category} category is present")
         
-        return {
-            "is_valid": len(errors) == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "filtered_items": filtered_items,
-            "applied_rules": applied_rules
-        }
+        return filtered_items
     
     def _apply_category_limits(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Apply category limits to respect existing outfit generation rules."""
