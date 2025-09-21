@@ -5030,8 +5030,9 @@ async def get_outfits_worn_this_week_simple(
         logger.info("📊 Using manual count (slow path)")
         logger.info(f"📊 DEBUG: Counting outfits with lastWorn >= {week_start.isoformat()}")
         
-        # Query user's outfits with limit to prevent timeout
-        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).limit(1000)
+        # Query user's outfits with limit to prevent timeout - ORDER BY updatedAt to get recent ones
+        from google.cloud.firestore import Query
+        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).order_by('updatedAt', direction=Query.DESCENDING).limit(1000)
         
         for outfit_doc in outfits_ref.stream():
             outfit_data = outfit_doc.to_dict()
@@ -5041,6 +5042,10 @@ async def get_outfits_worn_this_week_simple(
             # Log progress every 100 outfits
             if processed_count % 100 == 0:
                 logger.info(f"📊 Processed {processed_count} outfits, found {worn_count} worn this week")
+            
+            # Log first 5 outfits to see ordering and recent data
+            if processed_count <= 5:
+                logger.info(f"📊 DEBUG: Outfit #{processed_count}: {outfit_doc.id} - lastWorn: {last_worn} - updatedAt: {outfit_data.get('updatedAt')}")
             
             if last_worn:
                 # Parse lastWorn date safely - handle multiple formats
