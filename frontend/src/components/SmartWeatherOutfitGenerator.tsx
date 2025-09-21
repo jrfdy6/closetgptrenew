@@ -376,7 +376,7 @@ export function SmartWeatherOutfitGenerator({
       const token = await user.getIdToken();
       
       // Mark outfit as worn
-      const response = await fetch(`/api/outfits/${generatedOutfit.id}/wear`, {
+      const response = await fetch(`/api/outfits/${generatedOutfit.id}/worn`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
