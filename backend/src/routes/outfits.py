@@ -5044,9 +5044,32 @@ async def get_outfits_worn_this_week_simple(
         worn_count = 0
         processed_count = 0
         
-        # SIMPLIFIED: Always do manual count for now to avoid cache issues
-        # The complex user_stats caching logic was causing syntax errors
-        logger.info("📊 SIMPLIFIED: Using manual count (bypassing cache to fix 405 errors)")
+        # FIXED: Use user_stats as primary source (it's working correctly)
+        # Manual count has Firestore consistency issues, user_stats increment is reliable
+        try:
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            stats_doc = stats_ref.get()
+            
+            if stats_doc.exists:
+                stats_data = stats_doc.to_dict()
+                user_stats_count = stats_data.get('worn_this_week', 0)
+                logger.info(f"✅ USER_STATS PRIMARY: Found {user_stats_count} outfits worn this week (reliable increment)")
+                
+                return {
+                    "success": True,
+                    "user_id": current_user.id,
+                    "outfits_worn_this_week": user_stats_count,
+                    "source": "user_stats_reliable",
+                    "week_start": week_start.isoformat(),
+                    "calculated_at": datetime.now(timezone.utc).isoformat()
+                }
+            else:
+                logger.info("📊 No user_stats found, falling back to manual count")
+        except Exception as stats_error:
+            logger.warning(f"Error reading user_stats: {stats_error}, falling back to manual count")
+        
+        # FALLBACK: Manual count (has consistency issues but better than nothing)
+        logger.info("📊 FALLBACK: Using manual count (user_stats unavailable)")
         
         # SLOW PATH: Manual counting (fallback or force_fresh)
         logger.info("📊 Using manual count (slow path)")
