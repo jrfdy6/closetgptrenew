@@ -3657,7 +3657,19 @@ async def mark_outfit_as_worn(
                     'last_updated': SERVER_TIMESTAMP,
                     'user_id': current_user.id
                 }, merge=True)
-                print("✅ STATS INCREMENTED: Used Firestore atomic increment")
+                print("✅ STATS_SUCCESS: Firestore atomic increment worked")
+                # Also log success to debug_errors collection to ensure visibility
+                try:
+                    success_ref = db.collection('debug_errors').document()
+                    success_ref.set({
+                        'event_type': 'user_stats_increment_success',
+                        'user_id': current_user.id,
+                        'outfit_id': outfit_id,
+                        'method': 'firestore_atomic_increment',
+                        'timestamp': datetime.utcnow()
+                    })
+                except:
+                    pass
                 
             except Exception as increment_error:
                 print(f"⚠️ Firestore increment failed: {increment_error}")
@@ -3682,9 +3694,28 @@ async def mark_outfit_as_worn(
                 print(f"✅ STATS MANUAL UPDATE: {current_worn_count} -> {new_worn_count}")
                 
         except Exception as stats_error:
-            print(f"🚨 CRITICAL STATS ERROR: {stats_error}")
+            # FORCE ERROR TO SURFACE - Use multiple methods to ensure visibility
+            error_msg = f"🚨 USER_STATS_CRITICAL_ERROR: {stats_error}"
+            print(error_msg)
             print(f"🚨 Error type: {type(stats_error).__name__}")
             print(f"🚨 Error details: {str(stats_error)}")
+            logger.error(error_msg)  # Also use logger in case print is throttled
+            
+            # Try to write error to a different collection as last resort
+            try:
+                error_ref = db.collection('debug_errors').document()
+                error_ref.set({
+                    'error_type': 'user_stats_update_failed',
+                    'user_id': current_user.id,
+                    'outfit_id': outfit_id,
+                    'error_message': str(stats_error),
+                    'timestamp': datetime.utcnow(),
+                    'attempt': 'robust_fix_with_increment'
+                })
+                print("🚨 ERROR LOGGED TO debug_errors COLLECTION")
+            except:
+                pass  # Don't fail the whole request if error logging fails
+            
             # Don't raise - outfit was still marked as worn successfully
             
         # Also try the old stats service if available
