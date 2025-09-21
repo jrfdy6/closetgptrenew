@@ -106,9 +106,9 @@ export default function Dashboard() {
   useEffect(() => {
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
       console.log('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
-      // Call fetchDashboardData directly to avoid dependency issues
+      // Call fetchDashboardData with force fresh to bypass cache
       if (user) {
-        fetchDashboardData();
+        fetchDashboardDataFresh();
       }
     };
 
@@ -139,6 +139,30 @@ export default function Dashboard() {
       console.log('🔍 DEBUG: Dashboard: State update called with:', data);
     } catch (err) {
       console.error('🔍 DEBUG: Dashboard: Error fetching data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchDashboardDataFresh = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      console.log('🔍 DEBUG: Dashboard: Starting to fetch FRESH data (bypassing cache)...');
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const data = await dashboardService.getDashboardData(user, true); // Force fresh
+      console.log('🔍 DEBUG: Dashboard: FRESH data received:', data);
+      console.log('🔍 DEBUG: Dashboard: FRESH outfitsThisWeek:', data?.outfitsThisWeek);
+      
+      setDashboardData(data);
+      console.log('🔍 DEBUG: Dashboard: State update called with FRESH data:', data);
+    } catch (err) {
+      console.error('🔍 DEBUG: Dashboard: Error fetching FRESH data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
     } finally {
       setIsLoading(false);

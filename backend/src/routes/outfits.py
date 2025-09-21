@@ -4989,7 +4989,8 @@ async def get_user_profile_cached(user_id: str) -> Dict:
 
 @router.get("/analytics/worn-this-week")
 async def get_outfits_worn_this_week_simple(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    force_fresh: bool = False
 ):
     """
     SIMPLE: Count outfits worn this week - added to working outfits router.
@@ -5021,17 +5022,18 @@ async def get_outfits_worn_this_week_simple(
         worn_count = 0
         processed_count = 0
         
-        # Try to get from user_stats first (FAST PATH)
-        try:
-            stats_ref = db.collection('user_stats').document(current_user.id)
-            stats_doc = stats_ref.get()
-            
-            if stats_doc.exists:
-                stats_data = stats_doc.to_dict()
-                last_updated_raw = stats_data.get('last_updated')
+        # Try to get from user_stats first (FAST PATH) - unless force_fresh is requested
+        if not force_fresh:
+            try:
+                stats_ref = db.collection('user_stats').document(current_user.id)
+                stats_doc = stats_ref.get()
                 
-                # DEFENSIVE FIX: Normalize Firestore timestamp to Python datetime
-                last_updated = normalize_ts(last_updated_raw)
+                if stats_doc.exists:
+                    stats_data = stats_doc.to_dict()
+                    last_updated_raw = stats_data.get('last_updated')
+                    
+                    # DEFENSIVE FIX: Normalize Firestore timestamp to Python datetime
+                    last_updated = normalize_ts(last_updated_raw)
                 
                 # Check if stats were updated this week
                 logger.info(f"📊 DEBUG: Checking user_stats fast path - last_updated_raw: {last_updated_raw} (type: {type(last_updated_raw)})")
@@ -5060,10 +5062,12 @@ async def get_outfits_worn_this_week_simple(
             else:
                 logger.info("📊 No user stats found, doing manual count and will create stats")
                 
-        except Exception as stats_error:
-            logger.warning(f"Error checking user_stats: {stats_error}")
+            except Exception as stats_error:
+                logger.warning(f"Error checking user_stats: {stats_error}")
+        else:
+            logger.info("📊 FORCE FRESH: Bypassing user_stats cache due to force_fresh=True")
         
-        # SLOW PATH: Manual counting (fallback)
+        # SLOW PATH: Manual counting (fallback or force_fresh)
         logger.info("📊 Using manual count (slow path)")
         
         # Query user's outfits with limit to prevent timeout

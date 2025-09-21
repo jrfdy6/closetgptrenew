@@ -448,19 +448,20 @@ export function SmartWeatherOutfitGenerator({
               }
             }, 2000); // Wait longer for debug endpoint
         
-        // Dispatch event to refresh dashboard stats with a small delay 
-        // to allow database transaction to complete
+        // Dispatch event to refresh dashboard stats with a longer delay 
+        // to allow Firestore write to be fully committed and readable
         setTimeout(() => {
           const event = new CustomEvent('outfitMarkedAsWorn', {
             detail: {
               outfitId: generatedOutfit.id,
               outfitName: generatedOutfit.name,
-              timestamp: new Date().toISOString()
+              timestamp: new Date().toISOString(),
+              forceFresh: true  // Force analytics to bypass cache
             }
           });
           window.dispatchEvent(event);
-          console.log('🔄 Dispatched outfitMarkedAsWorn event for dashboard refresh');
-        }, 1500); // 1.5 second delay to allow DB transaction to complete
+          console.log('🔄 Dispatched outfitMarkedAsWorn event for dashboard refresh (force fresh)');
+        }, 3000); // 3 second delay to allow Firestore write consistency
         
         // Show success message briefly
         setTimeout(() => {

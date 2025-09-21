@@ -146,7 +146,7 @@ class DashboardService {
     return response.json();
   }
 
-  async getDashboardData(user: User | null): Promise<DashboardData> {
+  async getDashboardData(user: User | null, forceFresh: boolean = false): Promise<DashboardData> {
     try {
       console.log('🔍 DEBUG: Fetching dashboard data...');
       
@@ -172,7 +172,7 @@ class DashboardService {
         topWornItems
       ] = await Promise.all([
         fetchWithTimeout(this.getWardrobeStats(user), 8000, { items: [], total_items: 0 }),
-        fetchWithTimeout(this.getSimpleAnalytics(user), 15000, { success: true, outfits_worn_this_week: 0 }),
+        fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, { success: true, outfits_worn_this_week: 0 }),
         fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }),
         fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }),
         fetchWithTimeout(this.getTopWornItems(user), 8000, { success: true, data: { items: [] } })
@@ -304,10 +304,14 @@ class DashboardService {
 
   // Removed getOutfitHistory - replaced with getSimpleAnalytics
 
-  private async getSimpleAnalytics(user: User) {
+  private async getSimpleAnalytics(user: User, forceFresh: boolean = false) {
     try {
       console.log('🔍 DEBUG: [FIXED] Fetching outfit analytics from /outfits/analytics/worn-this-week');
-      const response = await this.makeAuthenticatedRequest('/outfits/analytics/worn-this-week', user, {
+      
+      // Add cache-busting parameter and force_fresh parameter
+      const cacheBuster = `?t=${Date.now()}`;
+      const forceParam = forceFresh ? `&force_fresh=true` : '';
+      const response = await this.makeAuthenticatedRequest(`/outfits/analytics/worn-this-week${cacheBuster}${forceParam}`, user, {
         method: 'GET'
       });
       console.log('🔍 DEBUG: Worn outfits analytics response:', response);
