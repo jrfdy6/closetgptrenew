@@ -393,16 +393,19 @@ export function SmartWeatherOutfitGenerator({
         setGeneratedOutfit(updatedOutfit);
         saveTodaysOutfit(updatedOutfit);
         
-        // Dispatch event to refresh dashboard stats
-        const event = new CustomEvent('outfitMarkedAsWorn', {
-          detail: {
-            outfitId: generatedOutfit.id,
-            outfitName: generatedOutfit.name,
-            timestamp: new Date().toISOString()
-          }
-        });
-        window.dispatchEvent(event);
-        console.log('🔄 Dispatched outfitMarkedAsWorn event for dashboard refresh');
+        // Dispatch event to refresh dashboard stats with a small delay 
+        // to allow database transaction to complete
+        setTimeout(() => {
+          const event = new CustomEvent('outfitMarkedAsWorn', {
+            detail: {
+              outfitId: generatedOutfit.id,
+              outfitName: generatedOutfit.name,
+              timestamp: new Date().toISOString()
+            }
+          });
+          window.dispatchEvent(event);
+          console.log('🔄 Dispatched outfitMarkedAsWorn event for dashboard refresh');
+        }, 1500); // 1.5 second delay to allow DB transaction to complete
         
         // Show success message briefly
         setTimeout(() => {
