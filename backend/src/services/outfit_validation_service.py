@@ -598,8 +598,6 @@ class OutfitValidationService:
             items_to_keep = category_items[:limit]  # Take first N items (best scored)
             filtered_items.extend(items_to_keep)
             
-            if len(category_items) > limit:
-                print(f"🔍 CATEGORY LIMIT: Kept {limit}/{len(category_items)} {category} items")
         
         return filtered_items
     
@@ -631,10 +629,8 @@ class OutfitValidationService:
                     if item_to_add not in filtered_items:
                         filtered_items.append(item_to_add)
                         errors.append(f"Added {item_to_add.name} to ensure {missing_category} category is present")
-                        print(f"🔍 ESSENTIAL ENFORCEMENT: Added {item_to_add.name} for {missing_category} category")
                 else:
                     errors.append(f"Warning: No {missing_category} items available in wardrobe")
-                    print(f"⚠️ ESSENTIAL ENFORCEMENT: No {missing_category} items available")
         
         return filtered_items, errors
     
@@ -773,10 +769,6 @@ class OutfitValidationService:
         keep_items = rule.get("keep_items", [])
         remove_items = rule.get("remove_items", [])
         
-        print(f"🔍 SIMPLE RULE: {rule.get('description', 'Unknown')}")
-        print(f"🔍 KEEP ITEMS: {keep_items}")
-        print(f"🔍 REMOVE ITEMS: {remove_items}")
-        
         # Find items that should be kept (formal items)
         has_formal_items = False
         for item in filtered_items:
@@ -787,10 +779,7 @@ class OutfitValidationService:
             should_keep = any(keep_type in item_type or keep_type in item_name for keep_type in keep_items)
             if should_keep:
                 has_formal_items = True
-                print(f"🔍 FOUND FORMAL ITEM: {item.name} ({item_type})")
                 break
-        
-        print(f"🔍 HAS FORMAL ITEMS: {has_formal_items}")
         
         # If we have formal items that should be kept, remove casual items
         if has_formal_items:
@@ -805,15 +794,11 @@ class OutfitValidationService:
                 if should_remove:
                     items_to_remove.append(item)
                     errors.append(f"Removed {item.name} - {rule['reason']}")
-                    print(f"🔍 MARKING FOR REMOVAL: {item.name} ({item_type})")
             
             # Remove the inappropriate items
             for item in items_to_remove:
                 if item in filtered_items:
                     filtered_items.remove(item)
-                    print(f"🔍 REMOVED: {item.name}")
-        else:
-            print(f"🔍 NO FORMAL ITEMS FOUND - RULE NOT APPLIED")
         
         return filtered_items, errors
     
