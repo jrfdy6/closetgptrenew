@@ -131,7 +131,7 @@ ROUTERS = [
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     # ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - TEMPORARILY DISABLED
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
-    ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats
+    # ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats - TEMPORARILY DISABLED
     ("src.routes.outfit_stats_simple", "/api/outfit-stats"), # Simple outfit stats router - fixes 405 errors
     ("src.routes.simple_analytics", ""),                     # NEW: Simple, reliable analytics - no prefix needed
     ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
