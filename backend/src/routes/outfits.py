@@ -3695,6 +3695,23 @@ async def mark_outfit_as_worn(
                 # Check if we're still in the same week
                 last_updated = stats_data.get('last_updated')
                 
+                # CRITICAL DEBUG: Log exact values for debugging
+                try:
+                    debug_ref = db.collection('debug_stats_updates').document()
+                    debug_ref.set({
+                        'event': 'week_validation_debug',
+                        'user_id': current_user.id,
+                        'outfit_id': outfit_id,
+                        'current_worn_count': current_worn_count,
+                        'last_updated': str(last_updated),
+                        'last_updated_type': str(type(last_updated)),
+                        'week_start': week_start.isoformat(),
+                        'is_datetime': isinstance(last_updated, datetime),
+                        'timestamp': current_time_dt.isoformat()
+                    })
+                except:
+                    pass
+                
                 if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
                     # Same week, increment count
                     new_worn_count = current_worn_count + 1
