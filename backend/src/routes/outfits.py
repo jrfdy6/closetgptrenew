@@ -3667,30 +3667,22 @@ async def mark_outfit_as_worn(
                 stats_data = stats_doc.to_dict()
                 current_worn_count = stats_data.get('worn_this_week', 0)
                 
-                logger.info(f"📊 DEBUG: Found existing user_stats - current worn_this_week: {current_worn_count}")
-                logger.info(f"📊 DEBUG: user_stats data: {stats_data}")
-                
                 # Check if we're still in the same week
                 last_updated = stats_data.get('last_updated')
-                logger.info(f"📊 DEBUG: last_updated from stats: {last_updated}, type: {type(last_updated)}")
-                logger.info(f"📊 DEBUG: week_start: {week_start}, type: {type(week_start)}")
                 
                 if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
                     # Same week, increment count
                     new_worn_count = current_worn_count + 1
-                    logger.info(f"📊 DEBUG: Same week detected, incrementing: {current_worn_count} -> {new_worn_count}")
                 else:
                     # New week, reset count
                     new_worn_count = 1
-                    logger.info(f"📊 DEBUG: New week or no last_updated, resetting count to: {new_worn_count}")
                 
-                logger.info(f"📊 DEBUG: About to update user_stats with worn_this_week: {new_worn_count}")
                 stats_ref.update({
                     'worn_this_week': new_worn_count,
                     'last_updated': current_time_dt,
                     'updated_at': current_time_dt
                 })
-                logger.info(f"✅ Updated user_stats: worn_this_week = {new_worn_count}")
+                print(f"🎯 CRITICAL: Updated user_stats: {current_worn_count} -> {new_worn_count}")  # Use print instead of logger to avoid rate limits
             else:
                 # Create new stats document
                 stats_ref.set({
@@ -3701,7 +3693,7 @@ async def mark_outfit_as_worn(
                     'last_updated': current_time_dt,
                     'created_at': current_time_dt
                 })
-                logger.info("✅ Created new user_stats document with worn_this_week = 1")
+                print("🎯 CRITICAL: Created new user_stats with worn_this_week = 1")  # Use print to avoid rate limits
                 
         except Exception as stats_error:
             logger.error(f"❌ Failed to update user_stats: {stats_error}")
