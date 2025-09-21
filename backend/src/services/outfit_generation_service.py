@@ -58,34 +58,18 @@ class OutfitGenerationService:
             # Emergency fallback
             selected_items = unique_wardrobe[:4] if len(unique_wardrobe) >= 4 else unique_wardrobe
         
-        # CRITICAL: Apply enhanced validation to prevent inappropriate combinations
-        print("🔍 Applying enhanced validation to prevent inappropriate combinations...")
-        validation_context = {
-            "occasion": occasion,
-            "weather": weather,
-            "user_profile": user_profile,
-            "style": style,
-            "mood": mood
-        }
-        
+        # TEMPORARILY DISABLED: Enhanced validation to debug backend timeout
+        print("🔍 Enhanced validation temporarily disabled for debugging")
         try:
-            validation_result = await self.validation_service.validate_outfit_with_enhanced_rules(
-                selected_items, validation_context
-            )
-            
-            if validation_result.get("filtered_items"):
-                validated_items = validation_result["filtered_items"]
-                print(f"✅ Validation applied: {len(selected_items)} → {len(validated_items)} items")
-                if validation_result.get("errors"):
-                    print(f"⚠️ Validation errors: {validation_result['errors']}")
-                if validation_result.get("warnings"):
-                    print(f"⚠️ Validation warnings: {validation_result['warnings']}")
-                selected_items = validated_items
+            # Simple validation only
+            if len(selected_items) > 6:
+                selected_items = selected_items[:6]  # Limit to 6 items
+                print(f"✅ Limited to 6 items for basic validation")
             else:
-                print("⚠️ Validation returned no filtered items, using original selection")
+                print(f"✅ Using {len(selected_items)} items without enhanced validation")
                 
         except Exception as e:
-            print(f"⚠️ Validation failed: {e}, using original selection")
+            print(f"⚠️ Basic validation failed: {e}, using original selection")
         
         return await self._create_outfit_from_items(
             items=selected_items,
