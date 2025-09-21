@@ -157,6 +157,30 @@ class OutfitValidationService:
                 "category": "missing_essential_categories",
                 "essential_categories": ["top", "bottom", "shoes"],
                 "complex_rule": True
+            },
+            
+            # Rule 7: ENHANCED Essential Categories Enforcement (prevents remaining missing categories)
+            "enhanced_essential_categories_enforcement": {
+                "description": "Enhanced Essential Categories Enforcement",
+                "reason": "CRITICAL: Every outfit MUST have top, bottom, and shoes - no exceptions",
+                "remove_items": [],  # Complex rule
+                "keep_items": [],
+                "frequency": 8,  # 8 cases from realistic test
+                "category": "critical_missing_essential_categories",
+                "essential_categories": ["top", "bottom", "shoes"],
+                "complex_rule": True,
+                "priority": "critical"
+            },
+            
+            # Rule 8: ULTIMATE Formal Shoes + Casual Bottoms Prevention (prevents remaining mismatch)
+            "ultimate_formal_shoes_casual_bottoms": {
+                "description": "Ultimate Formal Shoes + Casual Bottoms Prevention",
+                "reason": "CRITICAL: Formal shoes can NEVER be worn with casual bottoms",
+                "remove_items": ["shorts", "athletic shorts", "basketball shorts", "cargo shorts", "denim shorts", "cargo pants", "athletic pants", "sweatpants", "joggers"],
+                "keep_items": ["oxford", "loafers", "dress shoes", "heels", "pumps", "pants", "jeans", "dress pants", "chinos", "slacks"],
+                "frequency": 1,  # 1 case from realistic test
+                "category": "critical_formal_shoes_casual_bottoms",
+                "priority": "critical"
             }
         }
     
@@ -549,9 +573,13 @@ class OutfitValidationService:
         applied_rules = []
         
         # Apply each enhanced rule in priority order (but don't remove essential categories)
-        # Sort rules by priority (high priority first)
+        # Sort rules by priority (critical > high > normal) and frequency
         sorted_rules = sorted(self.enhanced_rules.items(), 
-                             key=lambda x: (x[1].get("priority") == "high", x[1].get("frequency", 0)), 
+                             key=lambda x: (
+                                 x[1].get("priority") == "critical",  # Critical rules first
+                                 x[1].get("priority") == "high",      # Then high priority
+                                 x[1].get("frequency", 0)            # Then by frequency
+                             ), 
                              reverse=True)
         
         for rule_name, rule in sorted_rules:
@@ -559,6 +587,9 @@ class OutfitValidationService:
                 if rule_name == "essential_categories_enforcement":
                     # Special handling for essential categories enforcement
                     filtered_items, rule_errors = self._apply_essential_categories_enforcement(filtered_items, rule, context)
+                elif rule_name == "enhanced_essential_categories_enforcement":
+                    # Special handling for enhanced essential categories enforcement (critical priority)
+                    filtered_items, rule_errors = self._apply_enhanced_essential_categories_enforcement(filtered_items, rule, context)
                 else:
                     rule_filtered_items, rule_errors = self._apply_complex_rule(filtered_items, rule, rule_name, context)
             elif rule.get("occasion_rule"):
@@ -732,6 +763,109 @@ class OutfitValidationService:
                     errors.append(f"Warning: No {missing_category} items available in wardrobe")
         
         return filtered_items, errors
+    
+    def _apply_enhanced_essential_categories_enforcement(self, items: List[ClothingItem], rule: Dict, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
+        """CRITICAL: Enhanced essential categories enforcement with absolute guarantee."""
+        filtered_items = items.copy()
+        errors = []
+        
+        categories = self._categorize_items(filtered_items)
+        essential_categories = rule.get("essential_categories", ["top", "bottom", "shoes"])
+        
+        # Check if we have all essential categories
+        missing_categories = []
+        for category in essential_categories:
+            if len(categories.get(category, [])) == 0:
+                missing_categories.append(category)
+        
+        if missing_categories:
+            # CRITICAL: Try to restore missing categories from original items
+            original_items = context.get("original_items", items)
+            original_categories = self._categorize_items(original_items)
+            
+            for missing_category in missing_categories:
+                # Find items from the original items that belong to this category
+                available_items = original_categories.get(missing_category, [])
+                if available_items:
+                    # Add the first available item from this category
+                    item_to_add = available_items[0]
+                    if item_to_add not in filtered_items:
+                        filtered_items.append(item_to_add)
+                        errors.append(f"CRITICAL: Added {item_to_add.name} to ensure {missing_category} category is present")
+                else:
+                    # If no items available, create a fallback item
+                    fallback_item = self._create_fallback_item(missing_category)
+                    if fallback_item:
+                        filtered_items.append(fallback_item)
+                        errors.append(f"CRITICAL: Created fallback {missing_category} item - no items available in wardrobe")
+        
+        return filtered_items, errors
+    
+    def _create_fallback_item(self, category: str) -> Optional[ClothingItem]:
+        """Create a fallback item for missing essential categories."""
+        fallback_items = {
+            "top": ClothingItem(
+                id="fallback_top",
+                name="Basic Top",
+                type="t-shirt",
+                color="white",
+                imageUrl="",
+                style=["casual"],
+                occasion=["casual"],
+                season=["all"],
+                userId="system",
+                dominantColors=[],
+                matchingColors=[],
+                createdAt=0,
+                updatedAt=0,
+                brand="",
+                wearCount=0,
+                favorite_score=0.0,
+                tags=[],
+                metadata={}
+            ),
+            "bottom": ClothingItem(
+                id="fallback_bottom",
+                name="Basic Pants",
+                type="pants",
+                color="black",
+                imageUrl="",
+                style=["casual"],
+                occasion=["casual"],
+                season=["all"],
+                userId="system",
+                dominantColors=[],
+                matchingColors=[],
+                createdAt=0,
+                updatedAt=0,
+                brand="",
+                wearCount=0,
+                favorite_score=0.0,
+                tags=[],
+                metadata={}
+            ),
+            "shoes": ClothingItem(
+                id="fallback_shoes",
+                name="Basic Shoes",
+                type="sneakers",
+                color="white",
+                imageUrl="",
+                style=["casual"],
+                occasion=["casual"],
+                season=["all"],
+                userId="system",
+                dominantColors=[],
+                matchingColors=[],
+                createdAt=0,
+                updatedAt=0,
+                brand="",
+                wearCount=0,
+                favorite_score=0.0,
+                tags=[],
+                metadata={}
+            )
+        }
+        return fallback_items.get(category)
     
     def _apply_complex_rule(self, items: List[ClothingItem], rule: Dict, rule_name: str, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
         """Apply complex validation rules."""
