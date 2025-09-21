@@ -505,20 +505,20 @@ class OutfitValidationService:
     ) -> Dict[str, Any]:
         """Enhanced outfit validation with comprehensive rules from simulation results."""
         
-        # Apply existing validation first
-        result = await self.validate_outfit_with_orchestration(items, context)
+        # Apply enhanced rules FIRST to catch inappropriate combinations
+        enhanced_result = self._apply_enhanced_rules(items, context)
         
-        # Apply enhanced rules
-        enhanced_result = self._apply_enhanced_rules(result["filtered_items"], context)
+        # Then apply existing validation to the enhanced-filtered items
+        result = await self.validate_outfit_with_orchestration(enhanced_result["filtered_items"], context)
         
         # Combine results
-        all_errors = result["errors"] + enhanced_result["errors"]
+        all_errors = enhanced_result["errors"] + result["errors"]
         
         return {
             "is_valid": len(all_errors) == 0,
             "errors": all_errors,
-            "warnings": result["warnings"] + enhanced_result["warnings"],
-            "filtered_items": enhanced_result["filtered_items"],
+            "warnings": enhanced_result["warnings"] + result["warnings"],
+            "filtered_items": result["filtered_items"],
             "applied_rules": enhanced_result["applied_rules"]
         }
     
