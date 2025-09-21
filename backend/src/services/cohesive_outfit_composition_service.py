@@ -340,12 +340,12 @@ class CohesiveOutfitCompositionService:
         """Calculate how well an item fits the outfit composition with style profile integration."""
         score = 0.0
         
-        # Color compatibility (25% of score)
+        # Color compatibility (20% of score)
         item_color = item.color.lower()
         if item_color in color_palette:
-            score += 25
-        elif self._colors_are_harmonious(item_color, color_palette):
             score += 20
+        elif self._colors_are_harmonious(item_color, color_palette):
+            score += 15
         
         # Enhanced color scoring with user preferences
         if user_profile and hasattr(user_profile, 'colorPalette'):
@@ -361,7 +361,7 @@ class CohesiveOutfitCompositionService:
                     preferred_colors.extend([c.lower() for c in color_palette_data['accent']])
                 
                 if item_color in preferred_colors:
-                    score += 15  # Bonus for user's preferred colors
+                    score += 10  # Bonus for user's preferred colors
                 
                 # Penalty for avoided colors
                 if color_palette_data.get('avoid'):
@@ -369,21 +369,25 @@ class CohesiveOutfitCompositionService:
                     if item_color in avoided_colors:
                         score -= 20
         
-        # Type compatibility (25% of score)
+        # Type compatibility (20% of score)
         if self._item_matches_category(item, target_type):
-            score += 25
+            score += 20
         
-        # Enhanced style compatibility with user profile (25% of score)
+        # Enhanced style compatibility with user profile (20% of score)
         style_score = self._calculate_style_profile_compatibility(item, user_profile)
         score += style_score
         
-        # Material preferences (15% of score)
+        # Material preferences (10% of score)
         material_score = self._calculate_material_compatibility(item, user_profile)
         score += material_score
         
-        # Brand preferences (10% of score)
+        # Brand preferences (5% of score)
         brand_score = self._calculate_brand_compatibility(item, user_profile)
         score += brand_score
+        
+        # Physical measurements compatibility (15% of score)
+        measurements_score = self._calculate_measurements_compatibility(item, user_profile)
+        score += measurements_score
         
         return score
 
@@ -672,6 +676,184 @@ class CohesiveOutfitCompositionService:
                     score += 10
         
         return min(score, 10)  # Cap at 10 points
+
+    def _calculate_measurements_compatibility(self, item: ClothingItem, user_profile: Optional[UserProfile]) -> float:
+        """Calculate compatibility based on physical measurements and sizing."""
+        if not user_profile or not hasattr(user_profile, 'measurements'):
+            return 0.0
+        
+        measurements = user_profile.measurements
+        if not measurements:
+            return 0.0
+        
+        score = 0.0
+        
+        # Height-based compatibility
+        height = measurements.get('height', 0)
+        height_feet_inches = measurements.get('heightFeetInches', '')
+        
+        if height > 0 or height_feet_inches:
+            # Convert height to inches for calculations
+            height_inches = self._convert_height_to_inches(height, height_feet_inches)
+            
+            # Height-appropriate item selection
+            item_name = item.name.lower()
+            item_type = item.type.lower()
+            
+            # Petite considerations (under 5'4")
+            if height_inches < 64:
+                if any(petite in item_name for petite in ['petite', 'cropped', 'ankle']):
+                    score += 8
+                elif any(tall in item_name for tall in ['long', 'maxi', 'floor-length']):
+                    score -= 5
+            
+            # Tall considerations (over 5'8")
+            elif height_inches > 68:
+                if any(tall in item_name for tall in ['tall', 'long', 'maxi', 'floor-length']):
+                    score += 8
+                elif any(petite in item_name for petite in ['petite', 'cropped', 'ankle']):
+                    score -= 5
+        
+        # Weight-based compatibility
+        weight = measurements.get('weight', 0)
+        plus_size = measurements.get('plusSize', False)
+        
+        if weight > 0 or plus_size:
+            item_name = item.name.lower()
+            
+            # Plus-size considerations
+            if plus_size or weight > 180:  # Approximate threshold
+                if any(plus in item_name for plus in ['plus', 'curvy', 'extended']):
+                    score += 8
+                elif any(regular in item_name for regular in ['regular', 'standard']):
+                    score += 5
+        
+        # Clothing size matching
+        item_size = self._extract_item_size(item)
+        if item_size:
+            # Top size matching
+            if item_type in ['shirt', 't-shirt', 'blouse', 'sweater', 'jacket', 'blazer']:
+                user_top_size = measurements.get('topSize', '')
+                if user_top_size and self._sizes_match(item_size, user_top_size):
+                    score += 10
+            
+            # Bottom size matching
+            elif item_type in ['pants', 'jeans', 'shorts', 'skirt']:
+                user_bottom_size = measurements.get('bottomSize', '')
+                if user_bottom_size and self._sizes_match(item_size, user_bottom_size):
+                    score += 10
+            
+            # Dress size matching
+            elif item_type == 'dress':
+                user_dress_size = measurements.get('dressSize', '')
+                if user_dress_size and self._sizes_match(item_size, user_dress_size):
+                    score += 10
+            
+            # Shoe size matching
+            elif item_type in ['shoes', 'sneakers', 'boots', 'sandals', 'heels']:
+                user_shoe_size = measurements.get('shoeSize', '')
+                if user_shoe_size and self._shoe_sizes_match(item_size, user_shoe_size):
+                    score += 10
+        
+        # Skin tone compatibility for colors
+        skin_tone = measurements.get('skinTone')
+        if skin_tone:
+            color_compatibility = self._calculate_skin_tone_color_compatibility(item, skin_tone)
+            score += color_compatibility
+        
+        return min(score, 10)  # Cap at 10 points
+
+    def _convert_height_to_inches(self, height: int, height_feet_inches: str) -> int:
+        """Convert height to inches for calculations."""
+        if height > 0:
+            return height
+        
+        if height_feet_inches:
+            # Parse formats like "5'4"", "5'4", "5-4"
+            import re
+            match = re.search(r'(\d+)[\'-](\d+)', height_feet_inches)
+            if match:
+                feet = int(match.group(1))
+                inches = int(match.group(2))
+                return feet * 12 + inches
+        
+        return 0
+
+    def _extract_item_size(self, item: ClothingItem) -> Optional[str]:
+        """Extract size information from item name or metadata."""
+        item_name = item.name.lower()
+        
+        # Common size patterns
+        import re
+        
+        # Numeric sizes (4, 6, 8, 10, 12, 14, 16, etc.)
+        numeric_match = re.search(r'\b(\d{1,2})\b', item_name)
+        if numeric_match:
+            return numeric_match.group(1)
+        
+        # Letter sizes (XS, S, M, L, XL, XXL)
+        letter_match = re.search(r'\b([X]*[SL])\b', item_name.upper())
+        if letter_match:
+            return letter_match.group(1)
+        
+        # Shoe sizes (7, 7.5, 8, 8.5, etc.)
+        shoe_match = re.search(r'\b(\d{1,2}(?:\.\d)?)\b', item_name)
+        if shoe_match and item.type.lower() in ['shoes', 'sneakers', 'boots', 'sandals']:
+            return shoe_match.group(1)
+        
+        return None
+
+    def _sizes_match(self, item_size: str, user_size: str) -> bool:
+        """Check if item size matches user size."""
+        if not item_size or not user_size:
+            return False
+        
+        # Exact match
+        if item_size.lower() == user_size.lower():
+            return True
+        
+        # Numeric size tolerance (±1 size)
+        if item_size.isdigit() and user_size.isdigit():
+            item_num = int(item_size)
+            user_num = int(user_size)
+            return abs(item_num - user_num) <= 1
+        
+        return False
+
+    def _shoe_sizes_match(self, item_size: str, user_size: str) -> bool:
+        """Check if shoe sizes match with tolerance."""
+        if not item_size or not user_size:
+            return False
+        
+        try:
+            item_float = float(item_size)
+            user_float = float(user_size)
+            return abs(item_float - user_float) <= 0.5  # Half size tolerance
+        except ValueError:
+            return item_size.lower() == user_size.lower()
+
+    def _calculate_skin_tone_color_compatibility(self, item: ClothingItem, skin_tone: str) -> float:
+        """Calculate color compatibility with skin tone."""
+        item_color = item.color.lower()
+        skin_tone_lower = skin_tone.lower()
+        
+        # Warm skin tone colors
+        if 'warm' in skin_tone_lower or 'olive' in skin_tone_lower:
+            warm_colors = ['gold', 'yellow', 'orange', 'coral', 'peach', 'warm brown', 'olive']
+            if any(warm in item_color for warm in warm_colors):
+                return 5
+        
+        # Cool skin tone colors
+        elif 'cool' in skin_tone_lower or 'pink' in skin_tone_lower:
+            cool_colors = ['blue', 'purple', 'silver', 'pink', 'mint', 'cool gray']
+            if any(cool in item_color for cool in cool_colors):
+                return 5
+        
+        # Neutral skin tone - most colors work
+        elif 'neutral' in skin_tone_lower:
+            return 3  # Small bonus for any color
+        
+        return 0
 
     def _create_fallback_outfit(self, items: List[ClothingItem]) -> OutfitComposition:
         """Create a minimal fallback outfit when there are insufficient items."""
