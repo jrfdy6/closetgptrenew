@@ -3712,18 +3712,19 @@ async def mark_outfit_as_worn(
             pass  # Silent error handling
             # print(f"🚨 CRITICAL: Failed to log entry to user_stats section: {entry_error}")
         
-        # TEMPORARILY DISABLED: Complex user_stats update logic causing syntax errors
-        # Will re-enable after fixing indentation issues
+        # FIXED: Simple user_stats update with proper increment logic
         try:
-            # Simple user_stats update - just increment without complex week logic
+            from google.cloud.firestore import Increment
             stats_ref = db.collection('user_stats').document(current_user.id)
+            
+            # Use Firestore Increment to properly add 1 to existing count
             stats_ref.set({
                 'user_id': current_user.id,
-                'worn_this_week': 1,  # Simplified - will fix proper increment later
+                'worn_this_week': Increment(1),  # FIXED: Proper increment instead of hardcoded 1
                 'last_updated': datetime.utcnow(),
                 'updated_at': datetime.utcnow()
             }, merge=True)
-            print("✅ SIMPLIFIED: Updated user_stats (complex logic disabled)")
+            print("✅ FIXED: Updated user_stats with proper increment")
             
         except Exception as simple_stats_error:
             # Don't fail - outfit was still marked as worn successfully
