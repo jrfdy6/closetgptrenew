@@ -7,10 +7,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-logger.info("=== Starting FastAPI application ===")
-logger.info(f"Current working directory: {os.getcwd()}")
-logger.info(f"Python path: {sys.path}")
-logger.info(f"__file__ location: {__file__}")
+# Startup logging removed to reduce Railway rate limiting
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 import re
@@ -148,7 +145,7 @@ ROUTERS = [
 
 def include_router_safe(module_name: str, prefix: str):
     try:
-        print(f"🔄 Attempting to import {module_name}...")
+        # Importing module
         module = importlib.import_module(module_name)
         # Module imported
         
@@ -158,7 +155,7 @@ def include_router_safe(module_name: str, prefix: str):
             return
             
         # Log router details before mounting
-        print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
+        # Mounting router
         # Router loaded successfully
         
         # Log all routes in the router
@@ -177,7 +174,7 @@ def include_router_safe(module_name: str, prefix: str):
         print(f"🔥 Error message: {str(e)}")
         traceback.print_exc()
 
-print("🚀 Starting router loading process...")
+# Router loading
 # Router loading process
 
 for mod, prefix in ROUTERS:
@@ -194,7 +191,7 @@ for mod, prefix in ROUTERS:
 @app.on_event("startup")
 async def startup_event():
     """Startup event handler - re-enabled now that Uvicorn startup is stable"""
-    print("🚀 Startup event triggered - Uvicorn startup issue resolved!")
+    # Startup event triggered
     
     # Initialize Firebase with proper credentials
     try:
@@ -264,8 +261,7 @@ def __debug():
 # Mount diagnostics router
 app.include_router(diag)
 
-print("🔍 DEBUG: Self-diagnostics endpoints added!")
-print("🔍 DEBUG: You can now check /__routes to see what's actually mounted!")
+# Self-diagnostics endpoints added
 
 # ---------------- ROUTER LOADER ----------------
 @app.on_event("startup")
@@ -707,11 +703,7 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
         doc_ref = db.collection('wardrobe').document(item_id)
         doc_ref.set(wardrobe_item)
         
-        print(f"DEBUG: Successfully added item with ID: {item_id}")
-        print(f"DEBUG: Item saved with userId: {wardrobe_item['userId']}")
-        print(f"DEBUG: Item name: {wardrobe_item['name']}")
-        print(f"DEBUG: Item type: {wardrobe_item['type']}")
-        print(f"DEBUG: Item color: {wardrobe_item['color']}")
+        # Item added successfully
         
         return {
             "success": True,
@@ -720,7 +712,7 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
             "item": wardrobe_item
         }
     except Exception as e:
-        print(f"DEBUG: Error adding wardrobe item: {e}")
+        # Error adding wardrobe item
         return {"error": f"Failed to add item: {str(e)}"}
 
 @app.get("/api/wardrobe/count")

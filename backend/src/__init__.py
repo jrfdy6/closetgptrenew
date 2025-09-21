@@ -20,14 +20,14 @@ def safe_import(module_name: str, item_name: str = None):
 # Safe imports with fallbacks
 try:
     from .custom_types.profile import UserProfile
-    logger.info("Successfully imported UserProfile")
+    # UserProfile imported
 except Exception as e:
     logger.error(f"Failed to import UserProfile: {e}")
     UserProfile = None
 
 try:
     from .custom_types.outfit import WeatherData, OutfitContext, OutfitGeneratedOutfit, OutfitPiece
-    logger.info("Successfully imported outfit types")
+    # Outfit types imported
 except Exception as e:
     logger.error(f"Failed to import outfit types: {e}")
     WeatherData = None
@@ -50,7 +50,7 @@ try:
         Outfit,
         GeneratedOutfit as WardrobeGeneratedOutfit
     )
-    logger.info("Successfully imported wardrobe types")
+    # Wardrobe types imported
 except Exception as e:
     logger.error(f"Failed to import wardrobe types: {e}")
     # Set all to None if import fails
@@ -80,4 +80,4 @@ if ClothingType:
         'ClothingItem', 'Outfit', 'WardrobeGeneratedOutfit'
     ])
 
-logger.info(f"Successfully imported {len(__all__)} items from src package") 
+# Package imports complete 
