@@ -166,6 +166,7 @@ def include_router_safe(module_name: str, prefix: str):
             for route in router.routes:
                 if hasattr(route, 'path') and hasattr(route, 'methods'):
                     # Route registered
+                    pass
         
         app.include_router(router, prefix=prefix)
         # Router mounted
