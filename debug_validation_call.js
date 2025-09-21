@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * DEBUG VALIDATION FLOW
- * Test the validation flow to see where blazer + shorts is getting through
+ * DEBUG VALIDATION CALL
+ * Check if the enhanced validation is actually being called and working
  */
 
 const https = require('https');
@@ -33,8 +33,8 @@ async function makeRequest(url, options = {}) {
     });
 }
 
-async function debugValidationFlow() {
-    console.log("🔍 DEBUGGING VALIDATION FLOW");
+async function debugValidationCall() {
+    console.log("🔍 DEBUGGING VALIDATION CALL");
     console.log("=" * 50);
     
     const testRequest = {
@@ -57,7 +57,7 @@ async function debugValidationFlow() {
     };
     
     try {
-        console.log("🧪 Testing outfit generation with debug output...");
+        console.log("🧪 Testing outfit generation with validation debug...");
         const response = await makeRequest(`${BACKEND_URL}/api/outfits/generate`, {
             method: 'POST',
             headers: {
@@ -93,33 +93,43 @@ async function debugValidationFlow() {
             console.log(`  - Has Shorts: ${hasShorts ? '✅' : '❌'}`);
             
             if (hasBlazer && hasShorts) {
-                console.log(`  ❌ PROBLEM: Blazer + Shorts inappropriate combination!`);
-                console.log(`  🔍 This means the existing validation (_enforce_inappropriate_combinations) is NOT working`);
+                console.log(`  ❌ VALIDATION FAILED: Blazer + Shorts inappropriate combination!`);
+                console.log(`  🔍 This means the enhanced validation is NOT working properly`);
+                
+                // Test the specific items that should be caught
+                const blazerItem = outfit.items.find(item => 
+                    item.type.toLowerCase().includes('blazer') || 
+                    item.name.toLowerCase().includes('blazer')
+                );
+                const shortsItem = outfit.items.find(item => 
+                    item.type.toLowerCase().includes('shorts') || 
+                    item.name.toLowerCase().includes('shorts')
+                );
+                
+                console.log(`\n🧪 Testing rule matching:`);
+                if (blazerItem) {
+                    console.log(`  Blazer: "${blazerItem.name}" (type: "${blazerItem.type}")`);
+                    console.log(`  - "blazer" in type: ${blazerItem.type.toLowerCase().includes('blazer')}`);
+                    console.log(`  - "blazer" in name: ${blazerItem.name.toLowerCase().includes('blazer')}`);
+                    console.log(`  - Should match keep_items: ["blazer", "suit jacket", "sport coat"]`);
+                }
+                
+                if (shortsItem) {
+                    console.log(`  Shorts: "${shortsItem.name}" (type: "${shortsItem.type}")`);
+                    console.log(`  - "shorts" in type: ${shortsItem.type.toLowerCase().includes('shorts')}`);
+                    console.log(`  - "shorts" in name: ${shortsItem.name.toLowerCase().includes('shorts')}`);
+                    console.log(`  - Should match remove_items: ["shorts", "athletic shorts", "basketball shorts", "cargo shorts", "denim shorts"]`);
+                }
+                
+                console.log(`\n🔧 DIAGNOSIS:`);
+                console.log(`  The enhanced validation rules should have:`);
+                console.log(`  1. Detected blazer item (keep_items)`);
+                console.log(`  2. Detected shorts item (remove_items)`);
+                console.log(`  3. Removed the shorts item because blazer was present`);
+                console.log(`  Since this didn't happen, there's a bug in the validation logic.`);
+                
             } else {
-                console.log(`  ✅ No inappropriate combination`);
-            }
-            
-            // Test the string matching logic
-            console.log(`\n🧪 Testing string matching logic:`);
-            const blazerItem = outfit.items.find(item => 
-                item.type.toLowerCase().includes('blazer') || 
-                item.name.toLowerCase().includes('blazer')
-            );
-            const shortsItem = outfit.items.find(item => 
-                item.type.toLowerCase().includes('shorts') || 
-                item.name.toLowerCase().includes('shorts')
-            );
-            
-            if (blazerItem) {
-                console.log(`  Blazer item: "${blazerItem.name}" (type: "${blazerItem.type}")`);
-                console.log(`  - "blazer" in type: ${blazerItem.type.toLowerCase().includes('blazer')}`);
-                console.log(`  - "blazer" in name: ${blazerItem.name.toLowerCase().includes('blazer')}`);
-            }
-            
-            if (shortsItem) {
-                console.log(`  Shorts item: "${shortsItem.name}" (type: "${shortsItem.type}")`);
-                console.log(`  - "shorts" in type: ${shortsItem.type.toLowerCase().includes('shorts')}`);
-                console.log(`  - "shorts" in name: ${shortsItem.name.toLowerCase().includes('shorts')}`);
+                console.log(`  ✅ No inappropriate combination - validation working!`);
             }
             
         } else {
@@ -131,4 +141,4 @@ async function debugValidationFlow() {
     }
 }
 
-debugValidationFlow().catch(console.error);
+debugValidationCall().catch(console.error);

@@ -559,35 +559,33 @@ class OutfitValidationService:
             else:
                 rule_filtered_items, rule_errors = self._apply_simple_enhanced_rule(filtered_items, rule)
             
-            # Only apply rule if it doesn't remove essential categories (except for essential categories enforcement)
-            if rule_name != "essential_categories_enforcement":
-                rule_categories = self._categorize_items(rule_filtered_items)
-                original_has_essential = (
-                    len(original_categories.get("top", [])) > 0 and
-                    len(original_categories.get("bottom", [])) > 0 and
-                    len(original_categories.get("shoes", [])) > 0
-                )
-                rule_has_essential = (
-                    len(rule_categories.get("top", [])) > 0 and
-                    len(rule_categories.get("bottom", [])) > 0 and
-                    len(rule_categories.get("shoes", [])) > 0
-                )
-                
-                if rule_has_essential or not original_has_essential:
-                    # Rule is safe to apply
-                    filtered_items = rule_filtered_items
-                    if rule_errors:
-                        errors.extend(rule_errors)
-                        applied_rules.append(rule_name)
-                else:
-                    # Rule would remove essential categories, skip it
-                    warnings.append(f"Skipped rule '{rule_name}' to preserve essential categories")
-            else:
-                # Essential categories enforcement always applies
-                filtered_items = rule_filtered_items
-                if rule_errors:
-                    errors.extend(rule_errors)
-                    applied_rules.append(rule_name)
+            # Apply the rule and then restore essential categories if needed
+            filtered_items = rule_filtered_items
+            if rule_errors:
+                errors.extend(rule_errors)
+                applied_rules.append(rule_name)
+        
+        # CRITICAL: After applying all rules, ensure essential categories are present
+        final_categories = self._categorize_items(filtered_items)
+        missing_categories = []
+        
+        if len(final_categories.get("top", [])) == 0:
+            missing_categories.append("top")
+        if len(final_categories.get("bottom", [])) == 0:
+            missing_categories.append("bottom")
+        if len(final_categories.get("shoes", [])) == 0:
+            missing_categories.append("shoes")
+        
+        # Restore missing essential categories from original items
+        if missing_categories:
+            for missing_category in missing_categories:
+                available_items = original_categories.get(missing_category, [])
+                if available_items:
+                    # Add the first available item from this category (prefer non-inappropriate items)
+                    item_to_add = available_items[0]
+                    if item_to_add not in filtered_items:
+                        filtered_items.append(item_to_add)
+                        warnings.append(f"Restored {item_to_add.name} to ensure {missing_category} category is present")
         
         return {
             "is_valid": len(errors) == 0,
