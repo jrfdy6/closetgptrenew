@@ -220,11 +220,7 @@ async def startup_event():
         print(f"❌ Firebase initialization failed: {e}")
         traceback.print_exc()
     
-    # Show all routes
-    print("\n📜 ROUTES TABLE:")
-    for route in app.routes:
-        print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
-    print()
+    # Routes table removed to reduce Railway rate limiting
     
     # Startup complete
 
@@ -266,10 +262,7 @@ app.include_router(diag)
 # ---------------- ROUTER LOADER ----------------
 @app.on_event("startup")
 async def show_all_routes():
-    print("\n📜 ROUTES TABLE:")
-    for route in app.routes:
-        print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
-    print()
+    # Routes table removed to reduce Railway rate limiting
 
 # ---------------- ROOT ----------------
 @app.get("/")
