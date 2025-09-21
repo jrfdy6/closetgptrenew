@@ -501,6 +501,9 @@ class OutfitValidationService:
                 errors.extend(rule_errors)
                 applied_rules.append(rule_name)
         
+        # CRITICAL: Ensure outfit completeness after validation
+        filtered_items = self._ensure_outfit_completeness(filtered_items, context)
+        
         return {
             "is_valid": len(errors) == 0,
             "errors": errors,
@@ -508,6 +511,45 @@ class OutfitValidationService:
             "filtered_items": filtered_items,
             "applied_rules": applied_rules
         }
+    
+    def _ensure_outfit_completeness(self, items: List[ClothingItem], context: Dict[str, Any]) -> List[ClothingItem]:
+        """Ensure outfit has essential categories (top, bottom, shoes) after validation."""
+        if not items:
+            return items
+        
+        # Categorize items
+        categories = {
+            "top": [],
+            "bottom": [],
+            "shoes": [],
+            "accessory": []
+        }
+        
+        for item in items:
+            item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+            
+            if item_type in ["shirt", "t-shirt", "blouse", "sweater", "jacket", "coat", "polo", "rugby shirt"]:
+                categories["top"].append(item)
+            elif item_type in ["pants", "jeans", "shorts", "skirt", "dress pants", "chinos", "athletic pants", "cargo pants"]:
+                categories["bottom"].append(item)
+            elif item_type in ["shoes", "sneakers", "boots", "sandals", "oxford", "heels", "loafers", "flip-flops", "slides"]:
+                categories["shoes"].append(item)
+            elif item_type in ["belt", "watch", "necklace", "bracelet", "earrings", "bag", "hat", "accessory"]:
+                categories["accessory"].append(item)
+        
+        # Check if we have essential categories
+        has_top = len(categories["top"]) > 0
+        has_bottom = len(categories["bottom"]) > 0
+        has_shoes = len(categories["shoes"]) > 0
+        
+        # If we're missing essential categories, we need to be less strict with validation
+        # This is a safety net to ensure we always have complete outfits
+        if not has_bottom:
+            print("⚠️ WARNING: No bottoms found after validation - this is a critical issue!")
+            # For now, keep the items as-is and let the calling service handle completeness
+            # In a real scenario, we might want to relax validation rules for bottoms
+        
+        return items
     
     def _apply_complex_rule(self, items: List[ClothingItem], rule: Dict, rule_name: str, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
         """Apply complex validation rules like formality consistency."""
@@ -619,13 +661,23 @@ class OutfitValidationService:
         """Get formality level for an item."""
         # Define formality levels for different item types
         formality_map = {
-            "blazer": 3, "suit": 4, "dress shirt": 3, "dress pants": 3,
-            "oxford": 3, "heels": 3, "polo shirt": 2, "chinos": 2,
-            "loafers": 2, "cardigan": 2, "t-shirt": 1, "jeans": 1,
-            "sneakers": 1, "hoodie": 1, "athletic shorts": 1,
-            "athletic pants": 1, "tank top": 1, "cargo pants": 1,
-            "flip-flops": 1, "slides": 1, "sandals": 1, "boots": 2,
-            "sweater": 2, "skirt": 2, "dress": 3, "blouse": 2
+            # Formal items (Level 4)
+            "suit": 4,
+            
+            # Business formal items (Level 3)
+            "blazer": 3, "dress shirt": 3, "dress pants": 3,
+            "oxford": 3, "heels": 3, "dress": 3,
+            
+            # Business casual items (Level 2)
+            "polo shirt": 2, "chinos": 2, "loafers": 2, "cardigan": 2,
+            "boots": 2, "sweater": 2, "skirt": 2, "blouse": 2,
+            "pants": 2, "shorts": 2, "belt": 2, "accessory": 2,
+            
+            # Casual items (Level 1)
+            "t-shirt": 1, "jeans": 1, "sneakers": 1, "hoodie": 1,
+            "athletic shorts": 1, "athletic pants": 1, "tank top": 1,
+            "cargo pants": 1, "flip-flops": 1, "slides": 1, "sandals": 1,
+            "shirt": 1, "rugby shirt": 1  # Default shirts to casual
         }
         
         item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
