@@ -2739,13 +2739,23 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         
         # ENHANCED: Apply weather filtering to fallback generation
         if req.weather and wardrobe_items:
-            logger.info(f"🌤️ Applying weather filtering to fallback generation: {req.weather.temperature}°F, {req.weather.condition}")
+            # Handle both dict and object weather data
+            if isinstance(req.weather, dict):
+                temp = req.weather.get('temperature', 70)
+                condition = req.weather.get('condition', 'clear')
+                precipitation = req.weather.get('precipitation', 0)
+            else:
+                temp = getattr(req.weather, 'temperature', 70)
+                condition = getattr(req.weather, 'condition', 'clear')
+                precipitation = getattr(req.weather, 'precipitation', 0)
+            
+            logger.info(f"🌤️ Applying weather filtering to fallback generation: {temp}°F, {condition}")
             weather_filtered_items = []
             for item in wardrobe_items:
                 if check_item_weather_appropriateness(item, {
-                    'temperature': req.weather.temperature,
-                    'condition': req.weather.condition,
-                    'precipitation': req.weather.precipitation
+                    'temperature': temp,
+                    'condition': condition,
+                    'precipitation': precipitation
                 }):
                     weather_filtered_items.append(item)
             logger.info(f"After weather filtering: {len(weather_filtered_items)}/{len(wardrobe_items)} items remain")
@@ -2876,7 +2886,12 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         
         # Sentence 3: Confidence and weather appropriateness
         if req.weather:
-            sentences.append(f"Each item has been chosen to ensure comfort in {req.weather.temperature}°F conditions while maintaining your desired {req.style} style.")
+            # Handle both dict and object weather data
+            if isinstance(req.weather, dict):
+                temp = req.weather.get('temperature', 70)
+            else:
+                temp = getattr(req.weather, 'temperature', 70)
+            sentences.append(f"Each item has been chosen to ensure comfort in {temp}°F conditions while maintaining your desired {req.style} style.")
         else:
             sentences.append(f"The combination creates a well-balanced {req.style} ensemble that works for various weather conditions.")
         
@@ -2887,7 +2902,14 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         # Basic fallback with weather context if available
         weather_note = ""
         if req.weather:
-            weather_note = f" for {req.weather.temperature}°F {req.weather.condition.lower()} weather"
+            # Handle both dict and object weather data
+            if isinstance(req.weather, dict):
+                temp = req.weather.get('temperature', 70)
+                condition = req.weather.get('condition', 'clear')
+            else:
+                temp = getattr(req.weather, 'temperature', 70)
+                condition = getattr(req.weather, 'condition', 'clear')
+            weather_note = f" for {temp}°F {condition.lower()} weather"
         return f"This {req.style} {req.occasion} outfit{weather_note} uses your available wardrobe pieces. The selection balances style and comfort for your {req.mood} mood. Each item works together to create a weather-appropriate, cohesive look."
 
 def validate_weather_outfit_combinations(outfit: Dict[str, Any], weather, mode: str = "soft") -> Dict[str, Any]:
@@ -4961,7 +4983,14 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
         # Fallback with weather context if available
         weather_note = ""
         if req.weather:
-            weather_note = f" for {req.weather.temperature}°F {req.weather.condition.lower()} weather"
+            # Handle both dict and object weather data
+            if isinstance(req.weather, dict):
+                temp = req.weather.get('temperature', 70)
+                condition = req.weather.get('condition', 'clear')
+            else:
+                temp = getattr(req.weather, 'temperature', 70)
+                condition = getattr(req.weather, 'condition', 'clear')
+            weather_note = f" for {temp}°F {condition.lower()} weather"
         return f"This {req.style} {req.occasion} outfit{weather_note} combines {len(items)} carefully selected pieces. The ensemble balances comfort and style for your desired {req.mood} mood. Each item works harmoniously to create a cohesive, weather-appropriate look."
 
 # 🚀 Performance Optimization Functions
