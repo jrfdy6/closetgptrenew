@@ -117,10 +117,7 @@ except Exception as e:
 # Firebase config will be imported when needed, not at startup
 # This prevents import-time crashes
 
-print("🔍 DEBUG: Core modules import section completed successfully!")
-print("🔍 DEBUG: About to start router loading section...")
-print("🔍 DEBUG: This print should appear before router loading...")
-print("🔍 DEBUG: Backend restart - checking if this fixes the timeout issue...")
+# Router loading section
 
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
@@ -153,7 +150,7 @@ def include_router_safe(module_name: str, prefix: str):
     try:
         print(f"🔄 Attempting to import {module_name}...")
         module = importlib.import_module(module_name)
-        print(f"📦 Successfully imported {module_name}")
+        # Module imported
         
         router = getattr(module, "router", None)
         if router is None:
@@ -162,17 +159,16 @@ def include_router_safe(module_name: str, prefix: str):
             
         # Log router details before mounting
         print(f"🔗 Found router in {module_name}, mounting at prefix {prefix}")
-        print(f"🔍 DEBUG: Router type: {type(router)}")
-        print(f"🔍 DEBUG: Router routes count: {len(router.routes) if hasattr(router, 'routes') else 'unknown'}")
+        # Router loaded successfully
         
         # Log all routes in the router
         if hasattr(router, 'routes'):
             for route in router.routes:
                 if hasattr(route, 'path') and hasattr(route, 'methods'):
-                    print(f"🔍 DEBUG: Route found: {list(route.methods)} {route.path}")
+                    # Route registered
         
         app.include_router(router, prefix=prefix)
-        print(f"✅ Mounted {module_name} at prefix {prefix}")
+        # Router mounted
         
     except Exception as e:
         print(f"🔥 Failed to mount {module_name}")
@@ -181,18 +177,15 @@ def include_router_safe(module_name: str, prefix: str):
         traceback.print_exc()
 
 print("🚀 Starting router loading process...")
-print(f"🔍 DEBUG: ROUTERS list contains {len(ROUTERS)} items")
-print(f"🔍 DEBUG: ROUTERS = {ROUTERS}")
+# Router loading process
 
 for mod, prefix in ROUTERS:
-    print(f"🔍 DEBUG: About to process router: {mod} with prefix: {prefix}")
+    # Processing router
     include_router_safe(mod, prefix)
 
-print("🏁 Router loading process complete!")
-print("🔍 DEBUG: Router loading process completed successfully!")
+# Router loading complete
 
-print("🔍 DEBUG: Router loading section completed!")
-print("🔍 DEBUG: About to start startup events section...")
+# Startup events section
 
 # Image processing router is now working with optional imports
 
@@ -235,7 +228,7 @@ async def startup_event():
         print(f"{route.path} → {route.name} ({', '.join(route.methods)})")
     print()
     
-    print("✅ Application startup events completed successfully!")
+    # Startup complete
 
 # ---------------- SELF-DIAGNOSTICS ----------------
 # Add diagnostics endpoints to see exactly what's working
@@ -354,7 +347,7 @@ async def analyze_image_real(request: dict):
             # Analyze the image with GPT-4 Vision
             print(f"🔍 Starting real GPT-4 Vision analysis for image: {temp_file_path}")
             analysis_result = await analyze_image_with_gpt4(temp_file_path)
-            print(f"✅ GPT-4 Vision analysis completed: {analysis_result}")
+            # GPT-4 Vision analysis completed
             
             # Ensure all array fields are actually arrays
             style_array = analysis_result.get("style", [])
