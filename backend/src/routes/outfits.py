@@ -3680,6 +3680,33 @@ async def mark_outfit_as_worn(
         try:
             from google.cloud.firestore import Increment, SERVER_TIMESTAMP
             
+            # CRITICAL DEBUG: Log successful import and db access
+            try:
+                debug_ref = db.collection('debug_stats_updates').document()
+                debug_ref.set({
+                    'event': 'user_stats_imports_successful',
+                    'user_id': current_user.id,
+                    'outfit_id': outfit_id,
+                    'db_available': db is not None,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'message': 'Successfully imported Firestore and accessed db'
+                })
+                print("🚨 CRITICAL: Firestore imports and db access successful")
+            except Exception as import_error:
+                print(f"🚨 CRITICAL: Firestore import/db access failed: {import_error}")
+                # Try to log the error to a different collection
+                try:
+                    error_ref = db.collection('debug_errors').document()
+                    error_ref.set({
+                        'error_type': 'firestore_import_db_access_failed',
+                        'user_id': current_user.id,
+                        'outfit_id': outfit_id,
+                        'error_message': str(import_error),
+                        'timestamp': datetime.utcnow().isoformat()
+                    })
+                except:
+                    pass
+            
             # Update user_stats collection for fast dashboard analytics
             current_time_dt = datetime.utcnow()
             week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
