@@ -3724,6 +3724,8 @@ async def mark_outfit_as_worn(
                     pass
             
             # Update user_stats collection for fast dashboard analytics
+            print("📅 WEEK_VALIDATION_START", flush=True)
+            
             current_time_dt = datetime.utcnow()
             week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
             week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -3737,6 +3739,9 @@ async def mark_outfit_as_worn(
                 
                 # Check if we're still in the same week
                 last_updated = stats_data.get('last_updated')
+                
+                # After week calc (show raw values used for comparison)
+                print(f"📅 WEEK_VALIDATION_DEBUG: today={current_time_dt}, last_updated={last_updated}, week_start={week_start}", flush=True)
                 
                 # CRITICAL DEBUG: Log exact values for debugging
                 try:
@@ -3757,10 +3762,12 @@ async def mark_outfit_as_worn(
                 
                 if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
                     # Same week, increment count
+                    print("📊 SAME_WEEK_INCREMENT: entering", flush=True)
                     new_worn_count = current_worn_count + 1
                     print(f"📊 SAME WEEK: Incrementing {current_worn_count} -> {new_worn_count}")
                 else:
                     # New week, reset count to 1
+                    print("📊 NEW_WEEK_RESET: entering", flush=True)
                     new_worn_count = 1
                     print(f"📊 NEW WEEK: Resetting count to {new_worn_count} (last_updated: {last_updated}, week_start: {week_start})")
                     
@@ -3782,14 +3789,21 @@ async def mark_outfit_as_worn(
                     except:
                         pass
                 
+                # Before Firestore write
+                print(f"🔥 USER_STATS_WRITE_ATTEMPT: worn_this_week={new_worn_count}", flush=True)
+                
                 # Use set with merge=True for guaranteed write
-                stats_ref.set({
-                    'user_id': current_user.id,
-                    'worn_this_week': new_worn_count,
-                    'last_updated': current_time_dt,
-                    'updated_at': current_time_dt
-                }, merge=True)
-                print(f"✅ STATS UPDATED: worn_this_week = {new_worn_count}")
+                try:
+                    stats_ref.set({
+                        'user_id': current_user.id,
+                        'worn_this_week': new_worn_count,
+                        'last_updated': current_time_dt,
+                        'updated_at': current_time_dt
+                    }, merge=True)
+                    print("✅ USER_STATS_WRITE_SUCCESS", flush=True)
+                    print(f"✅ STATS UPDATED: worn_this_week = {new_worn_count}")
+                except Exception as e:
+                    print(f"❌ USER_STATS_WRITE_ERROR: {e}", flush=True)
                 
                 # RAILWAY-PROOF: Write debug info to Firestore (bypasses rate limiting)
                 try:
@@ -3811,15 +3825,21 @@ async def mark_outfit_as_worn(
                 
             else:
                 # Create new stats document
-                stats_ref.set({
-                    'user_id': current_user.id,
-                    'worn_this_week': 1,
-                    'created_this_week': 0,
-                    'total_outfits': 1500,  # Estimate
-                    'last_updated': current_time_dt,
-                    'created_at': current_time_dt
-                }, merge=True)
-                print("✅ STATS CREATED: new user_stats with worn_this_week = 1")
+                print("🔥 USER_STATS_CREATE_ATTEMPT: worn_this_week=1", flush=True)
+                
+                try:
+                    stats_ref.set({
+                        'user_id': current_user.id,
+                        'worn_this_week': 1,
+                        'created_this_week': 0,
+                        'total_outfits': 1500,  # Estimate
+                        'last_updated': current_time_dt,
+                        'created_at': current_time_dt
+                    }, merge=True)
+                    print("✅ USER_STATS_CREATE_SUCCESS", flush=True)
+                    print("✅ STATS CREATED: new user_stats with worn_this_week = 1")
+                except Exception as e:
+                    print(f"❌ USER_STATS_CREATE_ERROR: {e}", flush=True)
                 
                 # RAILWAY-PROOF: Write debug info to Firestore
                 try:
