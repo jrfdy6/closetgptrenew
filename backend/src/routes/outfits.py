@@ -3619,10 +3619,10 @@ async def mark_outfit_as_worn(
     outfit_id: str,
     current_user: UserProfile = Depends(get_current_user)
 ):
-    # CRITICAL DEBUG: Log endpoint entry immediately
-    print(f"🚨 CRITICAL: mark_outfit_as_worn endpoint called with outfit_id={outfit_id}, user_id={current_user.id}")
+    # DEBUG DISABLED: Causing 4000+ log drops on Railway
+    # print(f"🚨 CRITICAL: mark_outfit_as_worn endpoint called with outfit_id={outfit_id}, user_id={current_user.id}")
     
-    # Write endpoint entry to Firestore immediately
+    # Write endpoint entry to Firestore immediately (silent)
     try:
         debug_ref = db.collection('debug_stats_updates').document()
         debug_ref.set({
@@ -3632,9 +3632,10 @@ async def mark_outfit_as_worn(
             'timestamp': datetime.utcnow().isoformat(),
             'message': 'Successfully entered mark_outfit_as_worn endpoint'
         })
-        print("🚨 CRITICAL: Logged endpoint entry to Firestore")
+        # print("🚨 CRITICAL: Logged endpoint entry to Firestore")
     except Exception as entry_error:
-        print(f"🚨 CRITICAL: Failed to log endpoint entry: {entry_error}")
+        pass  # Silent error handling
+        # print(f"🚨 CRITICAL: Failed to log endpoint entry: {entry_error}")
     """
     Mark an outfit as worn (simplified endpoint for frontend compatibility).
     This will update both the outfit wear counter AND individual wardrobe item wear counters.
@@ -3675,7 +3676,7 @@ async def mark_outfit_as_worn(
             'updatedAt': current_time
         })
         
-        # CRITICAL DEBUG: Log successful outfit update
+        # DEBUG DISABLED: Causing 4000+ log drops on Railway
         try:
             debug_ref = db.collection('debug_stats_updates').document()
             debug_ref.set({
@@ -3687,15 +3688,16 @@ async def mark_outfit_as_worn(
                 'timestamp': datetime.utcnow().isoformat(),
                 'message': 'Successfully updated outfit wear count'
             })
-            print("🚨 CRITICAL: Outfit update successful, proceeding to user_stats")
+            # print("🚨 CRITICAL: Outfit update successful, proceeding to user_stats")
         except Exception as outfit_error:
-            print(f"🚨 CRITICAL: Failed to log outfit update: {outfit_error}")
+            pass  # Silent error handling
+            # print(f"🚨 CRITICAL: Failed to log outfit update: {outfit_error}")
         
-        # CRITICAL DEBUG: Force visibility of user_stats section entry
-        print("🚨 CRITICAL: About to start user_stats update section")
-        print("🚨 DEPLOYMENT_TEST: Surgical debug code is LIVE", flush=True)
+        # DEBUG DISABLED: Causing massive Railway log flooding
+        # print("🚨 CRITICAL: About to start user_stats update section")
+        # print("🚨 DEPLOYMENT_TEST: Surgical debug code is LIVE", flush=True)
         
-        # Write entry debug to Firestore immediately (before any potential errors)
+        # Write entry debug to Firestore immediately (before any potential errors) - SILENT
         try:
             debug_ref = db.collection('debug_stats_updates').document()
             debug_ref.set({
@@ -3705,15 +3707,16 @@ async def mark_outfit_as_worn(
                 'timestamp': datetime.utcnow().isoformat(),
                 'message': 'Successfully entered user_stats update section'
             })
-            print("🚨 CRITICAL: Logged entry to user_stats section in Firestore")
+            # print("🚨 CRITICAL: Logged entry to user_stats section in Firestore")
         except Exception as entry_error:
-            print(f"🚨 CRITICAL: Failed to log entry to user_stats section: {entry_error}")
+            pass  # Silent error handling
+            # print(f"🚨 CRITICAL: Failed to log entry to user_stats section: {entry_error}")
         
         # COMPLEX: Proper week validation with robust error handling and guaranteed writes
         try:
             from google.cloud.firestore import Increment, SERVER_TIMESTAMP
             
-            # CRITICAL DEBUG: Log successful import and db access
+            # DEBUG DISABLED: All prints causing 4000+ log drops on Railway
             try:
                 debug_ref = db.collection('debug_stats_updates').document()
                 debug_ref.set({
@@ -3724,10 +3727,9 @@ async def mark_outfit_as_worn(
                     'timestamp': datetime.utcnow().isoformat(),
                     'message': 'Successfully imported Firestore and accessed db'
                 })
-                print("🚨 CRITICAL: Firestore imports and db access successful")
+                # print("🚨 CRITICAL: Firestore imports and db access successful")
             except Exception as import_error:
-                print(f"🚨 CRITICAL: Firestore import/db access failed: {import_error}")
-                # Try to log the error to a different collection
+                # print(f"🚨 CRITICAL: Firestore import/db access failed: {import_error}")
                 try:
                     error_ref = db.collection('debug_errors').document()
                     error_ref.set({
@@ -3741,38 +3743,40 @@ async def mark_outfit_as_worn(
                     pass
             
             # Update user_stats collection for fast dashboard analytics
-            print("📅 WEEK_VALIDATION_START", flush=True)
+            # print("📅 WEEK_VALIDATION_START", flush=True)
             
-            # SURGICAL IMPORT TEST: Check if timezone import is the culprit
+            # Import timezone and timedelta (silent)
             try:
                 from datetime import timezone, timedelta
-                print("✅ Imported timezone and timedelta successfully", flush=True)
+                # print("✅ Imported timezone and timedelta successfully", flush=True)
             except Exception as e:
-                print(f"❌ Failed to import timezone/timedelta: {e}", flush=True)
+                # print(f"❌ Failed to import timezone/timedelta: {e}", flush=True)
+                pass
             
             try:
                 test_now = datetime.now(timezone.utc)
-                print(f"✅ Datetime with timezone works: {test_now}", flush=True)
+                # print(f"✅ Datetime with timezone works: {test_now}", flush=True)
             except Exception as e:
-                print(f"❌ Datetime calculation failed: {e}", flush=True)
+                # print(f"❌ Datetime calculation failed: {e}", flush=True)
+                pass
         
         # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
         try:
             current_time_dt = datetime.now(timezone.utc)
             week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
             week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            print(f"✅ WEEK_CALC_SUCCESS: current_time={current_time_dt}, week_start={week_start}", flush=True)
+            # print(f"✅ WEEK_CALC_SUCCESS: current_time={current_time_dt}, week_start={week_start}", flush=True)
         except Exception as week_error:
-            print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
+            # print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
             raise
         
-        # SURGICAL FIRESTORE TEST: Check if Firestore access is the culprit
+        # SURGICAL FIRESTORE TEST: Check if Firestore access is the culprit (silent)
         try:
             stats_ref = db.collection('user_stats').document(current_user.id)
             stats_doc = stats_ref.get()
-            print("✅ Firestore access successful", flush=True)
+            # print("✅ Firestore access successful", flush=True)
         except Exception as e:
-            print(f"❌ Firestore access failed: {e}", flush=True)
+            # print(f"❌ Firestore access failed: {e}", flush=True)
             raise
 
         if stats_doc.exists:
@@ -3783,8 +3787,8 @@ async def mark_outfit_as_worn(
             last_updated_raw = stats_data.get('last_updated')
             last_updated = normalize_ts(last_updated_raw)
             
-            # After week calc (show raw values used for comparison)
-            print(f"📅 WEEK_VALIDATION_DEBUG: today={current_time_dt}, last_updated={last_updated}, week_start={week_start}", flush=True)
+            # After week calc (show raw values used for comparison) - DEBUG DISABLED
+            # print(f"📅 WEEK_VALIDATION_DEBUG: today={current_time_dt}, last_updated={last_updated}, week_start={week_start}", flush=True)
             
             # CRITICAL DEBUG: Log exact values for debugging
             try:
