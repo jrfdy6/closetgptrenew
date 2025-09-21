@@ -752,7 +752,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
         
         # CRITICAL: Final validation check to guarantee 99% prevention
-        outfit = self._apply_final_outfit_validation(outfit)
+        outfit = _apply_final_outfit_validation(outfit)
         
         return outfit
         
