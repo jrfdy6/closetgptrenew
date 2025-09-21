@@ -3603,6 +3603,22 @@ async def mark_outfit_as_worn(
     outfit_id: str,
     current_user: UserProfile = Depends(get_current_user)
 ):
+    # CRITICAL DEBUG: Log endpoint entry immediately
+    print(f"🚨 CRITICAL: mark_outfit_as_worn endpoint called with outfit_id={outfit_id}, user_id={current_user.id}")
+    
+    # Write endpoint entry to Firestore immediately
+    try:
+        debug_ref = db.collection('debug_stats_updates').document()
+        debug_ref.set({
+            'event': 'mark_outfit_as_worn_endpoint_entered',
+            'user_id': current_user.id,
+            'outfit_id': outfit_id,
+            'timestamp': datetime.utcnow().isoformat(),
+            'message': 'Successfully entered mark_outfit_as_worn endpoint'
+        })
+        print("🚨 CRITICAL: Logged endpoint entry to Firestore")
+    except Exception as entry_error:
+        print(f"🚨 CRITICAL: Failed to log endpoint entry: {entry_error}")
     """
     Mark an outfit as worn (simplified endpoint for frontend compatibility).
     This will update both the outfit wear counter AND individual wardrobe item wear counters.
@@ -3642,6 +3658,23 @@ async def mark_outfit_as_worn(
             'lastWorn': current_time,
             'updatedAt': current_time
         })
+        
+        # CRITICAL DEBUG: Force visibility of user_stats section entry
+        print("🚨 CRITICAL: About to start user_stats update section")
+        
+        # Write entry debug to Firestore immediately (before any potential errors)
+        try:
+            debug_ref = db.collection('debug_stats_updates').document()
+            debug_ref.set({
+                'event': 'user_stats_section_entered',
+                'user_id': current_user.id,
+                'outfit_id': outfit_id,
+                'timestamp': datetime.utcnow().isoformat(),
+                'message': 'Successfully entered user_stats update section'
+            })
+            print("🚨 CRITICAL: Logged entry to user_stats section in Firestore")
+        except Exception as entry_error:
+            print(f"🚨 CRITICAL: Failed to log entry to user_stats section: {entry_error}")
         
         # COMPLEX: Proper week validation with robust error handling and guaranteed writes
         try:
