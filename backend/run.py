@@ -17,12 +17,13 @@ if not api_key:
     raise ValueError(f"No OpenAI API key found in environment variables. Please check {env_path}")
 print(f"API Key loaded (first 10 chars): {api_key[:10]}...")
 
-# TEMPORARILY USE MINIMAL APP FOR TESTING
-# from app import app
-from test_minimal import app
+# Now we can import the app
+from app import app
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8080))  # Use Railway's PORT or fallback to 8080 locally
-    print(f"🚀 Starting MINIMAL test server on port {port}")
-    uvicorn.run(app, host="0.0.0.0", port=port) 
+    print(f"🚀 Starting server on port {port}")
+    print(f"🔍 Environment PORT: {os.getenv('PORT')}")
+    print(f"🔍 Environment variables: {list(os.environ.keys())}")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="debug") 
