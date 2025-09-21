@@ -19,6 +19,24 @@ try:
 except ImportError:
     FIRESTORE_TIMESTAMP_AVAILABLE = False
 
+def normalize_ts(value):
+    """
+    Normalize Firestore timestamps to Python datetime objects.
+    Handles Firestore Timestamp, datetime, string, and None values.
+    """
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if hasattr(value, "to_datetime"):  # Firestore Timestamp
+        return value.to_datetime()
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError:
+            return None
+    return None
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, field_validator
@@ -3727,7 +3745,9 @@ async def mark_outfit_as_worn(
             # Update user_stats collection for fast dashboard analytics
             print("📅 WEEK_VALIDATION_START", flush=True)
             
-            current_time_dt = datetime.utcnow()
+            # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
+            from datetime import timezone
+            current_time_dt = datetime.now(timezone.utc)
             week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
             week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
             
@@ -3739,7 +3759,8 @@ async def mark_outfit_as_worn(
                 current_worn_count = stats_data.get('worn_this_week', 0)
                 
                 # Check if we're still in the same week
-                last_updated = stats_data.get('last_updated')
+                last_updated_raw = stats_data.get('last_updated')
+                last_updated = normalize_ts(last_updated_raw)
                 
                 # After week calc (show raw values used for comparison)
                 print(f"📅 WEEK_VALIDATION_DEBUG: today={current_time_dt}, last_updated={last_updated}, week_start={week_start}", flush=True)
@@ -3761,7 +3782,7 @@ async def mark_outfit_as_worn(
                 except:
                     pass
                 
-                if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
+                if last_updated and last_updated >= week_start:
                     # Same week, increment count
                     print("📊 SAME_WEEK_INCREMENT: entering", flush=True)
                     new_worn_count = current_worn_count + 1
@@ -4937,35 +4958,22 @@ async def get_outfits_worn_this_week_simple(
             
             if stats_doc.exists:
                 stats_data = stats_doc.to_dict()
-                last_updated = stats_data.get('last_updated')
+                last_updated_raw = stats_data.get('last_updated')
+                
+                # DEFENSIVE FIX: Normalize Firestore timestamp to Python datetime
+                last_updated = normalize_ts(last_updated_raw)
                 
                 # Check if stats were updated this week
-                logger.info(f"📊 DEBUG: Checking user_stats fast path - last_updated: {last_updated}, week_start: {week_start}")
-                logger.info(f"📊 DEBUG: last_updated type: {type(last_updated)}, is datetime: {isinstance(last_updated, datetime)}")
+                logger.info(f"📊 DEBUG: Checking user_stats fast path - last_updated_raw: {last_updated_raw} (type: {type(last_updated_raw)})")
+                logger.info(f"📊 DEBUG: last_updated_normalized: {last_updated} (type: {type(last_updated)})")
+                logger.info(f"📊 DEBUG: week_start: {week_start}")
                 
-                # Handle both datetime objects and Firestore timestamps
-                last_updated_dt = None
-                if last_updated:
-                    if isinstance(last_updated, datetime):
-                        last_updated_dt = last_updated
-                        logger.info(f"📊 DEBUG: Using datetime object: {last_updated_dt}")
-                    elif hasattr(last_updated, 'timestamp'):
-                        # Firestore timestamp object
-                        last_updated_dt = last_updated
-                        logger.info(f"📊 DEBUG: Using Firestore timestamp: {last_updated_dt}")
-                    elif isinstance(last_updated, str):
-                        try:
-                            last_updated_dt = datetime.fromisoformat(last_updated.replace('Z', '+00:00'))
-                            logger.info(f"📊 DEBUG: Parsed string to datetime: {last_updated_dt}")
-                        except:
-                            logger.warning(f"📊 DEBUG: Failed to parse string: {last_updated}")
-                
-                if last_updated_dt and last_updated_dt >= week_start:
-                    logger.info(f"📊 DEBUG: Week validation PASSED: {last_updated_dt} >= {week_start}")
+                if last_updated and last_updated >= week_start:
+                    logger.info(f"📊 DEBUG: Week validation PASSED: {last_updated} >= {week_start}")
                 else:
-                    logger.info(f"📊 DEBUG: Week validation FAILED: {last_updated_dt} >= {week_start}")
+                    logger.info(f"📊 DEBUG: Week validation FAILED: {last_updated} >= {week_start}")
                 
-                if last_updated_dt and last_updated_dt >= week_start:
+                if last_updated and last_updated >= week_start:
                     worn_count = stats_data.get('worn_this_week', 0)
                     logger.info(f"✅ FAST PATH: Got worn count from user_stats: {worn_count}")
                     
