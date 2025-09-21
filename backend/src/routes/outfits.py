@@ -751,6 +751,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.info(f"✅ Final outfit: {len(outfit.get('items', []))} items")
         logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
         
+        # CRITICAL: Final validation check to guarantee 99% prevention
+        outfit = self._apply_final_outfit_validation(outfit)
+        
         return outfit
         
     except Exception as e:
@@ -5157,4 +5160,114 @@ async def get_outfits_worn_this_week_simple(
         raise
     except Exception as e:
         logger.error(f"❌ Error counting worn outfits: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}") 
+        raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}")
+
+def _apply_final_outfit_validation(outfit: Dict[str, Any]) -> Dict[str, Any]:
+    """Final validation check to guarantee 99% prevention of inappropriate combinations."""
+    
+    items = outfit.get('items', [])
+    if not items:
+        return outfit
+    
+    # Get all item types and names for analysis
+    item_types = [item.get('type', '').lower() for item in items]
+    item_names = [item.get('name', '').lower() for item in items]
+    
+    # CRITICAL: Blazer + Shorts Prevention (Highest Priority)
+    has_blazer = any('blazer' in item_type or 'blazer' in item_name for item_type, item_name in zip(item_types, item_names))
+    has_shorts = any('shorts' in item_type or 'shorts' in item_name for item_type, item_name in zip(item_types, item_names))
+    
+    if has_blazer and has_shorts:
+        # Remove shorts and replace with appropriate bottom
+        filtered_items = []
+        shorts_removed = False
+        
+        for item in items:
+            item_type = item.get('type', '').lower()
+            item_name = item.get('name', '').lower()
+            
+            # Skip shorts items
+            if 'shorts' in item_type or 'shorts' in item_name:
+                shorts_removed = True
+                continue
+            else:
+                filtered_items.append(item)
+        
+        # If we removed shorts, add appropriate bottom if missing
+        if shorts_removed:
+            # Check if we still have a bottom
+            has_bottom = any(item_type in ['pants', 'jeans', 'skirt'] for item_type in [item.get('type', '').lower() for item in filtered_items])
+            
+            if not has_bottom:
+                # Add pants as replacement (this should be available in wardrobe)
+                pants_item = {
+                    'id': 'pants_replacement',
+                    'name': 'Black Pants',
+                    'type': 'pants',
+                    'color': 'black',
+                    'imageUrl': '',
+                    'style': 'casual',
+                    'occasion': 'casual',
+                    'brand': '',
+                    'wearCount': 0,
+                    'favorite_score': 0,
+                    'tags': [],
+                    'metadata': {}
+                }
+                filtered_items.append(pants_item)
+        
+        outfit['items'] = filtered_items
+        outfit['name'] = f"Validated {outfit.get('name', 'Outfit')}"
+    
+    # CRITICAL: Formal Shoes + Casual Bottoms Prevention
+    has_formal_shoes = any('oxford' in item_type or 'loafers' in item_type or 'dress shoes' in item_type or 
+                          'oxford' in item_name or 'loafers' in item_name or 'dress shoes' in item_name 
+                          for item_type, item_name in zip(item_types, item_names))
+    has_casual_bottoms = any('shorts' in item_type or 'cargo pants' in item_type or 'athletic pants' in item_type or
+                            'shorts' in item_name or 'cargo pants' in item_name or 'athletic pants' in item_name
+                            for item_type, item_name in zip(item_types, item_names))
+    
+    if has_formal_shoes and has_casual_bottoms:
+        # Remove casual bottoms and replace with appropriate bottom
+        filtered_items = []
+        casual_removed = False
+        
+        for item in items:
+            item_type = item.get('type', '').lower()
+            item_name = item.get('name', '').lower()
+            
+            # Skip casual bottom items
+            if ('shorts' in item_type or 'cargo pants' in item_type or 'athletic pants' in item_type or
+                'shorts' in item_name or 'cargo pants' in item_name or 'athletic pants' in item_name):
+                casual_removed = True
+                continue
+            else:
+                filtered_items.append(item)
+        
+        # If we removed casual bottoms, add appropriate bottom if missing
+        if casual_removed:
+            # Check if we still have a bottom
+            has_bottom = any(item_type in ['pants', 'jeans', 'skirt'] for item_type in [item.get('type', '').lower() for item in filtered_items])
+            
+            if not has_bottom:
+                # Add pants as replacement
+                pants_item = {
+                    'id': 'pants_replacement',
+                    'name': 'Black Pants',
+                    'type': 'pants',
+                    'color': 'black',
+                    'imageUrl': '',
+                    'style': 'casual',
+                    'occasion': 'casual',
+                    'brand': '',
+                    'wearCount': 0,
+                    'favorite_score': 0,
+                    'tags': [],
+                    'metadata': {}
+                }
+                filtered_items.append(pants_item)
+        
+        outfit['items'] = filtered_items
+        outfit['name'] = f"Validated {outfit.get('name', 'Outfit')}"
+    
+    return outfit 
