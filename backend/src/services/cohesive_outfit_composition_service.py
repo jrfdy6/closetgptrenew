@@ -99,12 +99,12 @@ class CohesiveOutfitCompositionService:
         """
         logger.info(f"🎨 Creating cohesive outfit for {occasion} {style} occasion")
         
-        # Step 1: Filter wardrobe for occasion and weather appropriateness
-        appropriate_items = self._filter_appropriate_items(wardrobe, occasion, style, weather)
+        # Step 1: Filter wardrobe with graceful fallback for occasion and style
+        appropriate_items = self._filter_appropriate_items_with_fallback(wardrobe, occasion, style, weather)
         logger.info(f"📋 {len(appropriate_items)} appropriate items from {len(wardrobe)} total")
         
         if len(appropriate_items) < 2:
-            logger.warning("⚠️ Insufficient appropriate items for cohesive outfit")
+            logger.warning("⚠️ Insufficient appropriate items even after fallback")
             return self._create_fallback_outfit(appropriate_items)
         
         # Step 2: Select base piece (usually bottom or dress)
@@ -182,6 +182,102 @@ class CohesiveOutfitCompositionService:
             appropriate.append(item)
         
         return appropriate
+
+    def _filter_appropriate_items_with_fallback(
+        self,
+        wardrobe: List[ClothingItem],
+        occasion: str,
+        style: str,
+        weather: WeatherData
+    ) -> List[ClothingItem]:
+        """Filter wardrobe items with graceful fallback for occasion and style."""
+        
+        # Define style fallback hierarchy
+        style_fallbacks = {
+            "loungewear": ["athleisure", "casual", "weekend", "all"],
+            "athleisure": ["loungewear", "casual", "weekend", "all"],
+            "casual": ["weekend", "athleisure", "loungewear", "all"],
+            "business_casual": ["business", "casual", "all"],
+            "business": ["business_casual", "formal", "all"],
+            "formal": ["business", "business_casual", "all"],
+            "weekend": ["casual", "athleisure", "loungewear", "all"],
+            "evening": ["formal", "business", "all"],
+            "party": ["evening", "formal", "casual", "all"],
+            "date": ["business_casual", "casual", "evening", "all"],
+            "travel": ["casual", "athleisure", "weekend", "all"],
+            "workout": ["athleisure", "loungewear", "casual", "all"]
+        }
+        
+        # Define occasion fallback hierarchy
+        occasion_fallbacks = {
+            "loungewear": ["athleisure", "casual", "weekend", "all"],
+            "athleisure": ["loungewear", "casual", "weekend", "all"],
+            "casual": ["weekend", "athleisure", "loungewear", "all"],
+            "business": ["business_casual", "formal", "all"],
+            "formal": ["business", "evening", "all"],
+            "weekend": ["casual", "athleisure", "loungewear", "all"],
+            "evening": ["formal", "business", "party", "all"],
+            "party": ["evening", "formal", "casual", "all"],
+            "date": ["business_casual", "casual", "evening", "all"],
+            "travel": ["casual", "athleisure", "weekend", "all"],
+            "workout": ["athleisure", "loungewear", "casual", "all"]
+        }
+        
+        # Try original occasion and style first
+        appropriate_items = self._filter_appropriate_items(wardrobe, occasion, style, weather)
+        
+        if len(appropriate_items) >= 2:
+            logger.info(f"✅ Found {len(appropriate_items)} items for {occasion} {style}")
+            return appropriate_items
+        
+        # Try style fallbacks
+        style_fallback_list = style_fallbacks.get(style.lower(), ["casual", "all"])
+        for fallback_style in style_fallback_list:
+            if fallback_style == style.lower():
+                continue  # Skip original style
+                
+            logger.info(f"🔄 Trying style fallback: {fallback_style}")
+            fallback_items = self._filter_appropriate_items(wardrobe, occasion, fallback_style, weather)
+            
+            if len(fallback_items) >= 2:
+                logger.info(f"✅ Found {len(fallback_items)} items with style fallback: {fallback_style}")
+                return fallback_items
+        
+        # Try occasion fallbacks
+        occasion_fallback_list = occasion_fallbacks.get(occasion.lower(), ["casual", "all"])
+        for fallback_occasion in occasion_fallback_list:
+            if fallback_occasion == occasion.lower():
+                continue  # Skip original occasion
+                
+            logger.info(f"🔄 Trying occasion fallback: {fallback_occasion}")
+            fallback_items = self._filter_appropriate_items(wardrobe, fallback_occasion, style, weather)
+            
+            if len(fallback_items) >= 2:
+                logger.info(f"✅ Found {len(fallback_items)} items with occasion fallback: {fallback_occasion}")
+                return fallback_items
+        
+        # Try combined fallbacks (different occasion + different style)
+        for fallback_occasion in occasion_fallback_list[:2]:  # Try top 2 occasion fallbacks
+            for fallback_style in style_fallback_list[:2]:  # Try top 2 style fallbacks
+                if fallback_occasion == occasion.lower() and fallback_style == style.lower():
+                    continue  # Skip original combination
+                    
+                logger.info(f"🔄 Trying combined fallback: {fallback_occasion} + {fallback_style}")
+                fallback_items = self._filter_appropriate_items(wardrobe, fallback_occasion, fallback_style, weather)
+                
+                if len(fallback_items) >= 2:
+                    logger.info(f"✅ Found {len(fallback_items)} items with combined fallback: {fallback_occasion} + {fallback_style}")
+                    return fallback_items
+        
+        # Final fallback: any weather-appropriate items
+        logger.info("🔄 Final fallback: any weather-appropriate items")
+        final_items = []
+        for item in wardrobe:
+            if self._is_weather_appropriate(item, weather):
+                final_items.append(item)
+        
+        logger.info(f"✅ Final fallback found {len(final_items)} weather-appropriate items")
+        return final_items
 
     def _select_base_piece(
         self,
