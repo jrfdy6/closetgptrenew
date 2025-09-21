@@ -10,10 +10,11 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any
 from ..auth.auth_service import get_current_user
 from ..custom_types.profile import UserProfile
-from ..utils.logger import get_logger
+# from ..utils.logger import get_logger  # Module doesn't exist
+import logging
 
 router = APIRouter(prefix="/api/simple-analytics", tags=["simple-analytics"])
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 def get_week_start() -> datetime:
     """Get start of current week (Monday 00:00:00 UTC)"""

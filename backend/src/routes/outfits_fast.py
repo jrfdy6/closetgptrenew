@@ -10,11 +10,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, timedelta
 import logging
-from ..core.logging import get_logger
-from ..models.user import UserProfile
+# from ..core.logging import get_logger  # Module doesn't exist
+from ..custom_types.profile import UserProfile
 from ..core.auth import get_current_user
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/metadata")
