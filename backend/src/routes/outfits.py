@@ -3743,9 +3743,23 @@ async def mark_outfit_as_worn(
             # Update user_stats collection for fast dashboard analytics
             print("📅 WEEK_VALIDATION_START", flush=True)
             
-            # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
+            # SURGICAL IMPORT TEST: Check if timezone import is the culprit
             try:
                 from datetime import timezone
+                print("✅ Imported timezone successfully", flush=True)
+            except Exception as e:
+                print(f"❌ Failed to import timezone: {e}", flush=True)
+            
+            from datetime import datetime, timedelta
+            
+            try:
+                now = datetime.now(timezone.utc)
+                print(f"✅ Datetime with timezone works: {now}", flush=True)
+            except Exception as e:
+                print(f"❌ Datetime calculation failed: {e}", flush=True)
+            
+            # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
+            try:
                 current_time_dt = datetime.now(timezone.utc)
                 week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
                 week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -3754,8 +3768,14 @@ async def mark_outfit_as_worn(
                 print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
                 raise
             
-            stats_ref = db.collection('user_stats').document(current_user.id)
-            stats_doc = stats_ref.get()
+            # SURGICAL FIRESTORE TEST: Check if Firestore access is the culprit
+            try:
+                stats_ref = db.collection('user_stats').document(current_user.id)
+                stats_doc = stats_ref.get()
+                print("✅ Firestore access successful", flush=True)
+            except Exception as e:
+                print(f"❌ Firestore access failed: {e}", flush=True)
+                raise
             
             if stats_doc.exists:
                 stats_data = stats_doc.to_dict()
