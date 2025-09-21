@@ -7,7 +7,7 @@ from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
-logger.info("✅ wardrobe_analysis router loaded")
+# Router loaded
 
 router = APIRouter(tags=["wardrobe-analysis"])
 

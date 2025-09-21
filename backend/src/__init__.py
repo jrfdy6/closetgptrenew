@@ -20,7 +20,7 @@ def safe_import(module_name: str, item_name: str = None):
 # Safe imports with fallbacks
 try:
     from .custom_types.profile import UserProfile
-    # UserProfile imported
+    pass  # UserProfile imported
 except Exception as e:
     logger.error(f"Failed to import UserProfile: {e}")
     UserProfile = None

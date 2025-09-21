@@ -8,13 +8,13 @@ import logging
 
 # Set up basic logging
 logger = logging.getLogger(__name__)
-logger.info("✅ wardrobe router loaded")
+# Router loaded
 
 # Optional imports with graceful fallbacks
 try:
     from ..custom_types.wardrobe import ClothingItem, ClothingType, Color
     CUSTOM_TYPES_AVAILABLE = True
-    logger.info("✅ Custom wardrobe types imported successfully")
+    pass  # Custom types imported
 except ImportError as e:
     logger.warning(f"⚠️ Custom wardrobe types import failed: {e}")
     CUSTOM_TYPES_AVAILABLE = False
@@ -32,7 +32,7 @@ except ImportError as e:
 try:
     from ..custom_types.profile import UserProfile
     PROFILE_TYPES_AVAILABLE = True
-    logger.info("✅ Profile types imported successfully")
+    pass  # Profile types imported
 except ImportError as e:
     logger.warning(f"⚠️ Profile types import failed: {e}")
     PROFILE_TYPES_AVAILABLE = False
@@ -46,7 +46,7 @@ except ImportError as e:
 try:
     from ..services.metadata_enhancement_service import MetadataEnhancementService
     METADATA_SERVICE_AVAILABLE = True
-    logger.info("✅ Metadata enhancement service imported successfully")
+    pass  # Metadata service imported
 except ImportError as e:
     logger.warning(f"⚠️ Metadata enhancement service import failed: {e}")
     METADATA_SERVICE_AVAILABLE = False
@@ -66,7 +66,7 @@ try:
     from ..core.logging import get_logger
     logger = get_logger("wardrobe")
     CORE_LOGGING_AVAILABLE = True
-    logger.info("✅ Core logging imported successfully")
+    pass  # Core logging imported
 except ImportError as e:
     logger.warning(f"⚠️ Core logging import failed: {e}")
     CORE_LOGGING_AVAILABLE = False
@@ -76,7 +76,7 @@ try:
     from ..models.analytics_event import AnalyticsEvent
     from ..services.analytics_service import log_analytics_event
     ANALYTICS_AVAILABLE = True
-    logger.info("✅ Analytics services imported successfully")
+    pass  # Analytics imported
 except ImportError as e:
     logger.warning(f"⚠️ Analytics services import failed: {e}")
     ANALYTICS_AVAILABLE = False
@@ -86,7 +86,7 @@ except ImportError as e:
 try:
     from ..auth.auth_service import get_current_user, get_current_user_id, get_current_user_optional
     AUTH_SERVICE_AVAILABLE = True
-    logger.info("✅ Auth service imported successfully")
+    pass  # Auth service imported
 except ImportError as e:
     logger.warning(f"⚠️ Auth service import failed: {e}")
     AUTH_SERVICE_AVAILABLE = False
@@ -104,7 +104,7 @@ router = APIRouter(tags=["wardrobe"])
 try:
     db = firestore.client()
     FIREBASE_AVAILABLE = True
-    logger.info("✅ Firebase client initialized successfully")
+    pass  # Firebase initialized
 except Exception as e:
     logger.warning(f"⚠️ Firebase client initialization failed: {e}")
     db = None
