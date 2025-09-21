@@ -783,18 +783,7 @@ class OutfitValidationService:
         # Find items that should be kept (formal items)
         has_formal_items = False
         for item in filtered_items:
-            item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
-            item_name = item.name.lower()
-            
-            # Enhanced matching for keep items
-            should_keep = False
-            for keep_type in keep_items:
-                if (keep_type in item_type or keep_type in item_name or 
-                    item_type == keep_type or item_name == keep_type):
-                    should_keep = True
-                    break
-            
-            if should_keep:
+            if self._is_item_match(item, keep_items, match_type="keep"):
                 has_formal_items = True
                 break
         
@@ -802,18 +791,7 @@ class OutfitValidationService:
         if has_formal_items:
             items_to_remove = []
             for item in filtered_items:
-                item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
-                item_name = item.name.lower()
-                
-                # Enhanced matching for remove items
-                should_remove = False
-                for remove_type in remove_items:
-                    if (remove_type in item_type or remove_type in item_name or 
-                        item_type == remove_type or item_name == remove_type):
-                        should_remove = True
-                        break
-                
-                if should_remove:
+                if self._is_item_match(item, remove_items, match_type="remove"):
                     items_to_remove.append(item)
                     errors.append(f"Removed {item.name} - {rule['reason']}")
             
@@ -823,6 +801,237 @@ class OutfitValidationService:
                     filtered_items.remove(item)
         
         return filtered_items, errors
+    
+    def _is_item_match(self, item: ClothingItem, target_items: List[str], match_type: str = "keep") -> bool:
+        """
+        Comprehensive item matching using all available attributes.
+        
+        Args:
+            item: The clothing item to check
+            target_items: List of item types/names to match against
+            match_type: "keep" or "remove" for different matching logic
+        
+        Returns:
+            bool: True if item matches any target items
+        """
+        # Extract all possible attributes from the item
+        item_attributes = self._extract_all_item_attributes(item)
+        
+        # Check against each target item
+        for target_item in target_items:
+            target_lower = target_item.lower()
+            
+            # Direct matches
+            if self._check_direct_match(item_attributes, target_lower):
+                return True
+            
+            # Semantic matches (e.g., "pants" matches "chinos", "khakis", "bottoms")
+            if self._check_semantic_match(item_attributes, target_lower, match_type):
+                return True
+            
+            # Material-based matches (e.g., "denim" matches "jeans")
+            if self._check_material_match(item_attributes, target_lower):
+                return True
+            
+            # Style-based matches (e.g., "formal" matches "dress shirt", "oxford")
+            if self._check_style_match(item_attributes, target_lower, match_type):
+                return True
+        
+        return False
+    
+    def _extract_all_item_attributes(self, item: ClothingItem) -> Dict[str, str]:
+        """Extract all possible attributes from a clothing item."""
+        attributes = {}
+        
+        # Basic attributes
+        attributes['name'] = item.name.lower() if item.name else ""
+        attributes['type'] = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+        attributes['color'] = item.color.lower() if item.color else ""
+        attributes['brand'] = item.brand.lower() if item.brand else ""
+        attributes['style'] = item.style.lower() if item.style else ""
+        attributes['occasion'] = item.occasion.lower() if item.occasion else ""
+        
+        # Metadata attributes
+        if item.metadata:
+            if isinstance(item.metadata, dict):
+                # Visual attributes
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    attributes['material'] = visual_attrs.get('material', '').lower()
+                    attributes['pattern'] = visual_attrs.get('pattern', '').lower()
+                    attributes['texture'] = visual_attrs.get('texture', '').lower()
+                    attributes['fit'] = visual_attrs.get('fit', '').lower()
+                    attributes['length'] = visual_attrs.get('length', '').lower()
+                    attributes['sleeve_length'] = visual_attrs.get('sleeveLength', '').lower()
+                
+                # Style attributes
+                style_attrs = item.metadata.get('styleAttributes', {})
+                if isinstance(style_attrs, dict):
+                    attributes['formality'] = style_attrs.get('formality', '').lower()
+                    attributes['season'] = style_attrs.get('season', '').lower()
+                    attributes['category'] = style_attrs.get('category', '').lower()
+        
+        # Tags
+        if item.tags:
+            if isinstance(item.tags, list):
+                attributes['tags'] = ' '.join([tag.lower() for tag in item.tags])
+            else:
+                attributes['tags'] = str(item.tags).lower()
+        
+        return attributes
+    
+    def _check_direct_match(self, attributes: Dict[str, str], target: str) -> bool:
+        """Check for direct string matches in any attribute."""
+        for attr_value in attributes.values():
+            if attr_value and target in attr_value:
+                return True
+        return False
+    
+    def _check_semantic_match(self, attributes: Dict[str, str], target: str, match_type: str) -> bool:
+        """Check for semantic matches using comprehensive item type mappings."""
+        
+        # Comprehensive item type mappings
+        semantic_mappings = {
+            # Bottoms
+            'pants': ['chinos', 'khakis', 'trousers', 'slacks', 'bottoms', 'pants', 'jeans', 'dress pants', 'work pants'],
+            'shorts': ['shorts', 'athletic shorts', 'basketball shorts', 'cargo shorts', 'denim shorts', 'board shorts', 'running shorts'],
+            'jeans': ['jeans', 'denim', 'blue jeans', 'black jeans', 'skinny jeans', 'straight jeans'],
+            'chinos': ['chinos', 'khakis', 'khaki pants', 'chino pants'],
+            'skirt': ['skirt', 'mini skirt', 'maxi skirt', 'pencil skirt', 'a-line skirt'],
+            
+            # Tops
+            'shirt': ['shirt', 'dress shirt', 'button-up', 'button up', 'oxford', 'polo', 'polo shirt', 't-shirt', 'tee'],
+            'blouse': ['blouse', 'shirt', 'dress shirt', 'button-up', 'button up'],
+            'sweater': ['sweater', 'pullover', 'cardigan', 'hoodie', 'jumper', 'knit'],
+            'jacket': ['jacket', 'blazer', 'suit jacket', 'sport coat', 'coat', 'outerwear'],
+            'blazer': ['blazer', 'suit jacket', 'sport coat', 'jacket'],
+            'hoodie': ['hoodie', 'sweatshirt', 'pullover', 'hooded'],
+            
+            # Shoes
+            'shoes': ['shoes', 'footwear', 'sneakers', 'boots', 'loafers', 'oxford', 'heels', 'sandals', 'flip-flops'],
+            'sneakers': ['sneakers', 'tennis shoes', 'athletic shoes', 'running shoes', 'trainers'],
+            'boots': ['boots', 'ankle boots', 'knee boots', 'combat boots', 'hiking boots'],
+            'loafers': ['loafers', 'slip-ons', 'moccasins'],
+            'oxford': ['oxford', 'oxford shoes', 'dress shoes', 'formal shoes'],
+            'heels': ['heels', 'high heels', 'pumps', 'stilettos'],
+            'sandals': ['sandals', 'flip-flops', 'slides', 'thongs'],
+            
+            # Accessories
+            'belt': ['belt', 'leather belt', 'chain belt', 'fabric belt'],
+            'watch': ['watch', 'wristwatch', 'timepiece'],
+            'bag': ['bag', 'purse', 'handbag', 'backpack', 'tote', 'clutch'],
+            
+            # Materials
+            'denim': ['denim', 'jeans', 'jean'],
+            'cotton': ['cotton', 'cotton blend'],
+            'wool': ['wool', 'woolen', 'wool blend'],
+            'leather': ['leather', 'leather shoes', 'leather belt', 'leather jacket'],
+            'silk': ['silk', 'silk shirt', 'silk blouse'],
+            'polyester': ['polyester', 'poly blend'],
+            'linen': ['linen', 'linen shirt', 'linen pants'],
+            
+            # Sleeve lengths
+            'long sleeve': ['long sleeve', 'long-sleeve', 'long sleeved', 'longsleeve'],
+            'short sleeve': ['short sleeve', 'short-sleeve', 'short sleeved', 'shortsleeve'],
+            'sleeveless': ['sleeveless', 'tank', 'tank top', 'camisole'],
+            
+            # Fits
+            'slim fit': ['slim fit', 'slim-fit', 'slim', 'fitted'],
+            'loose fit': ['loose fit', 'loose-fit', 'loose', 'relaxed'],
+            'regular fit': ['regular fit', 'regular-fit', 'regular', 'standard'],
+            
+            # Lengths
+            'long': ['long', 'full length', 'full-length'],
+            'short': ['short', 'cropped', 'mini'],
+            'midi': ['midi', 'mid-length', 'mid length'],
+            
+            # Patterns
+            'solid': ['solid', 'plain'],
+            'striped': ['striped', 'stripes', 'stripe'],
+            'polka dot': ['polka dot', 'polka-dot', 'dots', 'dot'],
+            'floral': ['floral', 'flower', 'flowers'],
+            'plaid': ['plaid', 'tartan', 'check'],
+            'paisley': ['paisley', 'swirl'],
+            
+            # Colors
+            'black': ['black', 'dark', 'charcoal'],
+            'white': ['white', 'ivory', 'cream'],
+            'blue': ['blue', 'navy', 'royal blue', 'light blue'],
+            'red': ['red', 'burgundy', 'maroon', 'crimson'],
+            'green': ['green', 'olive', 'forest green', 'emerald'],
+            'brown': ['brown', 'tan', 'beige', 'khaki'],
+            'gray': ['gray', 'grey', 'silver'],
+            'pink': ['pink', 'rose', 'salmon'],
+            'yellow': ['yellow', 'gold', 'mustard'],
+            'purple': ['purple', 'violet', 'lavender'],
+            'orange': ['orange', 'peach', 'coral']
+        }
+        
+        # Check if target matches any items in the semantic mapping
+        for category, variations in semantic_mappings.items():
+            if target == category:
+                for variation in variations:
+                    for attr_value in attributes.values():
+                        if attr_value and variation in attr_value:
+                            return True
+            elif target in variations:
+                # Target is a variation, check if item matches the category
+                for attr_value in attributes.values():
+                    if attr_value and category in attr_value:
+                        return True
+        
+        return False
+    
+    def _check_material_match(self, attributes: Dict[str, str], target: str) -> bool:
+        """Check for material-based matches."""
+        material = attributes.get('material', '')
+        if not material:
+            return False
+        
+        # Material mappings
+        material_mappings = {
+            'denim': ['jeans', 'denim', 'jean'],
+            'cotton': ['shirt', 't-shirt', 'polo', 'dress'],
+            'wool': ['sweater', 'blazer', 'coat', 'suit'],
+            'leather': ['shoes', 'belt', 'jacket', 'boots'],
+            'silk': ['shirt', 'blouse', 'dress'],
+            'polyester': ['shirt', 'pants', 'jacket'],
+            'linen': ['shirt', 'pants', 'dress']
+        }
+        
+        for material_type, item_types in material_mappings.items():
+            if material_type in material:
+                for item_type in item_types:
+                    if target in item_type:
+                        return True
+        
+        return False
+    
+    def _check_style_match(self, attributes: Dict[str, str], target: str, match_type: str) -> bool:
+        """Check for style-based matches."""
+        style = attributes.get('style', '')
+        formality = attributes.get('formality', '')
+        
+        # Style mappings
+        style_mappings = {
+            'formal': ['blazer', 'suit', 'dress shirt', 'oxford', 'heels', 'dress pants'],
+            'casual': ['t-shirt', 'jeans', 'sneakers', 'shorts', 'hoodie'],
+            'business': ['blazer', 'dress shirt', 'dress pants', 'oxford', 'loafers'],
+            'athletic': ['sneakers', 'athletic shorts', 'sweatpants', 'tank top'],
+            'streetwear': ['sneakers', 'hoodie', 'jeans', 't-shirt'],
+            'preppy': ['polo', 'chinos', 'loafers', 'blazer'],
+            'minimalist': ['basic', 'solid', 'simple', 'clean']
+        }
+        
+        # Check style and formality attributes
+        for style_type, item_types in style_mappings.items():
+            if (style_type in style or style_type in formality or 
+                style_type in attributes.get('tags', '')):
+                for item_type in item_types:
+                    if target in item_type:
+                        return True
+        
+        return False
     
     def _get_item_formality_level(self, item: ClothingItem) -> int:
         """Get formality level for an item."""
