@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 import logging
 # from ..core.logging import get_logger  # Module doesn't exist
 from ..custom_types.profile import UserProfile
-from ..core.auth import get_current_user
+from ..auth.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
