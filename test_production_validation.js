@@ -1,82 +1,16 @@
 #!/usr/bin/env node
 /**
- * Production Testing Script for Enhanced Validation Rules
- * Tests the production backend with enhanced validation rules
+ * TEST PRODUCTION VALIDATION
+ * Test if the enhanced validation system is working in production
  */
 
 const https = require('https');
-const http = require('http');
 
-// Configuration
-const BACKEND_URL = 'https://closetgpt-backend-production.up.railway.app'; // Update with your production URL
-const FRONTEND_URL = 'https://closetgpt-frontend.vercel.app'; // Update with your production URL
-
-// Test scenarios
-const TEST_SCENARIOS = [
-    {
-        name: "Business Occasion",
-        occasion: "business",
-        expectedFormality: "high",
-        shouldNotHave: ["sneakers", "hoodie", "t-shirt", "athletic shorts", "cargo pants"]
-    },
-    {
-        name: "Athletic Occasion", 
-        occasion: "athletic",
-        expectedFormality: "low",
-        shouldNotHave: ["blazer", "suit", "dress shirt", "oxford", "heels"]
-    },
-    {
-        name: "Formal Occasion",
-        occasion: "formal", 
-        expectedFormality: "very high",
-        shouldNotHave: ["sneakers", "hoodie", "t-shirt", "jeans", "cargo pants"]
-    },
-    {
-        name: "Casual Occasion",
-        occasion: "casual",
-        expectedFormality: "low",
-        shouldNotHave: ["suit", "dress shirt"] // Should allow some mixing
-    },
-    {
-        name: "Business Casual Occasion",
-        occasion: "business casual",
-        expectedFormality: "medium",
-        shouldNotHave: ["suit", "athletic shorts", "flip-flops"]
-    }
-];
-
-// Mock wardrobe data for testing
-const MOCK_WARDROBE = [
-    // Formal items
-    { id: "1", name: "Navy Blazer", type: "blazer", color: "navy", style: ["formal"], occasion: ["business", "formal"] },
-    { id: "2", name: "Black Suit", type: "suit", color: "black", style: ["formal"], occasion: ["formal", "business"] },
-    { id: "3", name: "White Dress Shirt", type: "dress shirt", color: "white", style: ["formal"], occasion: ["business", "formal"] },
-    { id: "4", name: "Black Oxford Shoes", type: "oxford", color: "black", style: ["formal"], occasion: ["business", "formal"] },
-    { id: "5", name: "Black Heels", type: "heels", color: "black", style: ["formal"], occasion: ["business", "formal"] },
-    
-    // Business casual items
-    { id: "6", name: "Navy Polo Shirt", type: "polo shirt", color: "navy", style: ["business casual"], occasion: ["business casual"] },
-    { id: "7", name: "Khaki Chinos", type: "chinos", color: "khaki", style: ["business casual"], occasion: ["business casual"] },
-    { id: "8", name: "Brown Loafers", type: "loafers", color: "brown", style: ["business casual"], occasion: ["business casual"] },
-    
-    // Casual items
-    { id: "9", name: "White T-Shirt", type: "t-shirt", color: "white", style: ["casual"], occasion: ["casual", "athletic"] },
-    { id: "10", name: "Blue Jeans", type: "jeans", color: "blue", style: ["casual"], occasion: ["casual"] },
-    { id: "11", name: "White Sneakers", type: "sneakers", color: "white", style: ["casual"], occasion: ["casual", "athletic"] },
-    { id: "12", name: "Gray Hoodie", type: "hoodie", color: "gray", style: ["casual"], occasion: ["casual", "athletic"] },
-    
-    // Problematic items (should be filtered)
-    { id: "13", name: "Black Athletic Shorts", type: "athletic shorts", color: "black", style: ["athletic"], occasion: ["athletic"] },
-    { id: "14", name: "Khaki Cargo Pants", type: "cargo pants", color: "khaki", style: ["casual"], occasion: ["casual"] },
-    { id: "15", name: "Black Flip Flops", type: "flip-flops", color: "black", style: ["casual"], occasion: ["casual", "beach"] },
-    { id: "16", name: "White Tank Top", type: "tank top", color: "white", style: ["casual"], occasion: ["casual", "athletic"] }
-];
+const BACKEND_URL = 'https://closetgptrenew-backend-production.up.railway.app';
 
 async function makeRequest(url, options = {}) {
     return new Promise((resolve, reject) => {
-        const protocol = url.startsWith('https') ? https : http;
-        
-        const req = protocol.request(url, options, (res) => {
+        const req = https.request(url, options, (res) => {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
@@ -99,187 +33,148 @@ async function makeRequest(url, options = {}) {
     });
 }
 
-async function testOutfitGeneration(occasion) {
-    console.log(`\n🧪 Testing ${occasion} outfit generation...`);
+async function testProductionValidation() {
+    console.log("🔍 TESTING PRODUCTION VALIDATION SYSTEM");
+    console.log("=" * 60);
+    
+    // Test with a wardrobe that should trigger validation issues
+    const testWardrobe = [
+        { id: "1", name: "Black Blazer", type: "blazer", color: "black", style: "formal" },
+        { id: "2", name: "Khaki Shorts", type: "shorts", color: "khaki", style: "casual" },
+        { id: "3", name: "Brown Pants", type: "pants", color: "brown", style: "casual" },
+        { id: "4", name: "Black Oxford Shoes", type: "shoes", color: "black", style: "formal" },
+        { id: "5", name: "White T-Shirt", type: "t-shirt", color: "white", style: "casual" },
+        { id: "6", name: "White Sneakers", type: "sneakers", color: "white", style: "casual" },
+        { id: "7", name: "Blue Jeans", type: "jeans", color: "blue", style: "casual" },
+        { id: "8", name: "Black Belt", type: "belt", color: "black", style: "casual" }
+    ];
+    
+    const testRequest = {
+        occasion: "Fall",
+        wardrobe: testWardrobe,
+        userProfile: { id: "test_user" },
+        style: "Coastal Chic",
+        mood: "Serene",
+        weather: {
+            temperature: 70,
+            condition: "Clouds",
+            humidity: 80,
+            windSpeed: 4.12,
+            precipitation: 0
+        }
+    };
+    
+    console.log("🧪 Testing with problematic wardrobe that should trigger validation...");
+    console.log("   - Has blazer + shorts (should be prevented)");
+    console.log("   - Has formal shoes + casual bottoms (should be prevented)");
+    console.log("   - Has multiple bottoms (should be limited to 1)");
     
     try {
-        const requestBody = JSON.stringify({
-            occasion: occasion,
-            wardrobe: MOCK_WARDROBE,
-            weather: {
-                temperature: 70,
-                condition: "clear",
-                humidity: 50,
-                windSpeed: 5,
-                precipitation: 0
-            },
-            userProfile: {
-                id: "test_user",
-                preferences: {},
-                bodyType: "average"
-            },
-            style: occasion === "casual" ? "casual" : "business",
-            mood: "confident"
-        });
-        
         const response = await makeRequest(`${BACKEND_URL}/api/outfits/generate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(requestBody)
+                'Authorization': 'Bearer test',
+                'Content-Length': Buffer.byteLength(JSON.stringify(testRequest))
             },
-            body: requestBody
+            body: JSON.stringify(testRequest)
         });
+        
+        console.log(`\n📊 RESPONSE STATUS: ${response.status}`);
         
         if (response.status === 200) {
-            console.log(`✅ ${occasion} outfit generated successfully`);
-            return response.data;
+            const outfit = response.data;
+            const items = outfit.items || [];
+            
+            console.log(`✅ Success: Generated outfit "${outfit.name}"`);
+            console.log(`   Items (${items.length}):`);
+            items.forEach((item, index) => {
+                console.log(`     ${index + 1}. ${item.name} (${item.type}) - ${item.color}`);
+            });
+            
+            // Check for validation issues
+            const itemTypes = items.map(item => item.type.toLowerCase());
+            const itemNames = items.map(item => item.name.toLowerCase());
+            
+            console.log(`\n🔍 VALIDATION CHECKS:`);
+            
+            // Check for blazer + shorts
+            const hasBlazer = itemTypes.some(type => type.includes('blazer')) || itemNames.some(name => name.includes('blazer'));
+            const hasShorts = itemTypes.some(type => type.includes('shorts')) || itemNames.some(name => name.includes('shorts'));
+            
+            if (hasBlazer && hasShorts) {
+                console.log(`❌ VALIDATION FAILED: Blazer + Shorts combination detected!`);
+            } else {
+                console.log(`✅ VALIDATION PASSED: No blazer + shorts combination`);
+            }
+            
+            // Check for multiple bottoms
+            const bottomTypes = ['pants', 'jeans', 'shorts', 'skirt', 'dress'];
+            const bottomCount = itemTypes.filter(type => bottomTypes.some(bottom => type.includes(bottom))).length;
+            
+            if (bottomCount > 1) {
+                console.log(`❌ VALIDATION FAILED: Multiple bottoms detected (${bottomCount})!`);
+            } else {
+                console.log(`✅ VALIDATION PASSED: Only ${bottomCount} bottom(s)`);
+            }
+            
+            // Check for multiple shoes
+            const shoeTypes = ['shoes', 'sneakers', 'boots', 'sandals', 'heels'];
+            const shoeCount = itemTypes.filter(type => shoeTypes.some(shoe => type.includes(shoe))).length;
+            
+            if (shoeCount > 1) {
+                console.log(`❌ VALIDATION FAILED: Multiple shoes detected (${shoeCount})!`);
+            } else {
+                console.log(`✅ VALIDATION PASSED: Only ${shoeCount} shoe(s)`);
+            }
+            
+            // Check for formal shoes + casual bottoms
+            const hasFormalShoes = itemTypes.some(type => type.includes('oxford') || type.includes('loafers') || type.includes('heels'));
+            const hasCasualBottoms = itemTypes.some(type => type.includes('shorts') || type.includes('cargo pants') || type.includes('sweatpants'));
+            
+            if (hasFormalShoes && hasCasualBottoms) {
+                console.log(`❌ VALIDATION FAILED: Formal shoes + Casual bottoms combination detected!`);
+            } else {
+                console.log(`✅ VALIDATION PASSED: No formal shoes + casual bottoms combination`);
+            }
+            
+            // Check essential categories
+            const hasTop = itemTypes.some(type => type.includes('shirt') || type.includes('blazer') || type.includes('t-shirt'));
+            const hasBottom = itemTypes.some(type => bottomTypes.some(bottom => type.includes(bottom)));
+            const hasShoes = itemTypes.some(type => shoeTypes.some(shoe => type.includes(shoe)));
+            
+            console.log(`\n📋 ESSENTIAL CATEGORIES:`);
+            console.log(`   Top: ${hasTop ? '✅' : '❌'}`);
+            console.log(`   Bottom: ${hasBottom ? '✅' : '❌'}`);
+            console.log(`   Shoes: ${hasShoes ? '✅' : '❌'}`);
+            
+            // Check item count
+            if (items.length >= 3 && items.length <= 6) {
+                console.log(`✅ VALIDATION PASSED: Item count is appropriate (${items.length}/3-6)`);
+            } else {
+                console.log(`❌ VALIDATION FAILED: Item count is inappropriate (${items.length}/3-6)`);
+            }
+            
+            // Overall assessment
+            const hasValidationIssues = (hasBlazer && hasShorts) || bottomCount > 1 || shoeCount > 1 || (hasFormalShoes && hasCasualBottoms) || !hasTop || !hasBottom || !hasShoes || items.length < 3 || items.length > 6;
+            
+            console.log(`\n🎯 OVERALL ASSESSMENT:`);
+            if (hasValidationIssues) {
+                console.log(`❌ VALIDATION SYSTEM NOT WORKING: Multiple issues detected`);
+                console.log(`   The enhanced validation system is not being applied properly`);
+            } else {
+                console.log(`✅ VALIDATION SYSTEM WORKING: All checks passed`);
+                console.log(`   The enhanced validation system is working correctly`);
+            }
+            
         } else {
-            console.log(`❌ ${occasion} outfit generation failed: ${response.status}`);
-            console.log(`   Response: ${JSON.stringify(response.data, null, 2)}`);
-            return null;
+            console.log(`❌ Request failed: HTTP ${response.status}`);
+            console.log(`   Response: ${JSON.stringify(response.data)}`);
         }
+        
     } catch (error) {
-        console.log(`❌ ${occasion} outfit generation error: ${error.message}`);
-        return null;
+        console.log(`❌ Error: ${error.message}`);
     }
 }
 
-function analyzeOutfit(outfit, scenario) {
-    if (!outfit || !outfit.items) {
-        return {
-            isValid: false,
-            issues: ["No outfit generated"],
-            items: []
-        };
-    }
-    
-    const items = outfit.items;
-    const itemNames = items.map(item => item.name.toLowerCase());
-    const itemTypes = items.map(item => item.type.toLowerCase());
-    
-    const issues = [];
-    
-    // Check for inappropriate items based on occasion
-    scenario.shouldNotHave.forEach(forbiddenItem => {
-        if (itemTypes.includes(forbiddenItem.toLowerCase())) {
-            issues.push(`Contains inappropriate ${forbiddenItem} for ${scenario.name} occasion`);
-        }
-    });
-    
-    // Check for specific problematic combinations
-    const hasBlazer = itemTypes.includes('blazer');
-    const hasSuit = itemTypes.includes('suit');
-    const hasFormalShoes = itemTypes.some(type => ['oxford', 'heels', 'loafers'].includes(type));
-    const hasCasualBottoms = itemTypes.some(type => ['jeans', 'athletic shorts', 'cargo pants'].includes(type));
-    const hasCasualItems = itemTypes.some(type => ['sneakers', 'hoodie', 't-shirt', 'tank top'].includes(type));
-    
-    // Check blazer + casual items
-    if (hasBlazer && hasCasualItems) {
-        issues.push("Blazer paired with casual items");
-    }
-    
-    // Check formal shoes + casual bottoms
-    if (hasFormalShoes && hasCasualBottoms) {
-        issues.push("Formal shoes paired with casual bottoms");
-    }
-    
-    // Check suit + casual items
-    if (hasSuit && hasCasualItems) {
-        issues.push("Suit paired with casual items");
-    }
-    
-    return {
-        isValid: issues.length === 0,
-        issues: issues,
-        items: items,
-        itemCount: items.length
-    };
-}
-
-async function runProductionTests() {
-    console.log("🚀 Production Testing for Enhanced Validation Rules");
-    console.log("=" * 60);
-    console.log(`Backend URL: ${BACKEND_URL}`);
-    console.log(`Frontend URL: ${FRONTEND_URL}`);
-    console.log("=" * 60);
-    
-    const results = {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        scenarios: []
-    };
-    
-    for (const scenario of TEST_SCENARIOS) {
-        console.log(`\n🎭 Testing ${scenario.name}...`);
-        
-        const outfit = await testOutfitGeneration(scenario.occasion);
-        const analysis = analyzeOutfit(outfit, scenario);
-        
-        results.total++;
-        results.scenarios.push({
-            name: scenario.name,
-            occasion: scenario.occasion,
-            isValid: analysis.isValid,
-            issues: analysis.issues,
-            itemCount: analysis.itemCount,
-            items: analysis.items?.map(item => `${item.name} (${item.type})`) || []
-        });
-        
-        if (analysis.isValid) {
-            results.passed++;
-            console.log(`✅ ${scenario.name}: PASSED`);
-            console.log(`   Items: ${analysis.items?.map(item => item.name).join(', ') || 'None'}`);
-        } else {
-            results.failed++;
-            console.log(`❌ ${scenario.name}: FAILED`);
-            analysis.issues.forEach(issue => console.log(`   - ${issue}`));
-            console.log(`   Items: ${analysis.items?.map(item => item.name).join(', ') || 'None'}`);
-        }
-        
-        // Wait a bit between requests
-        await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    
-    // Print summary
-    console.log("\n📊 PRODUCTION TEST RESULTS");
-    console.log("=" * 60);
-    console.log(`Total Tests: ${results.total}`);
-    console.log(`Passed: ${results.passed}`);
-    console.log(`Failed: ${results.failed}`);
-    console.log(`Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`);
-    
-    console.log("\n📋 DETAILED RESULTS:");
-    results.scenarios.forEach(scenario => {
-        const status = scenario.isValid ? "✅ PASS" : "❌ FAIL";
-        console.log(`\n${status} ${scenario.name}:`);
-        console.log(`   Occasion: ${scenario.occasion}`);
-        console.log(`   Items (${scenario.itemCount}): ${scenario.items.join(', ')}`);
-        if (scenario.issues.length > 0) {
-            console.log(`   Issues: ${scenario.issues.join(', ')}`);
-        }
-    });
-    
-    // Final assessment
-    const successRate = (results.passed / results.total) * 100;
-    console.log("\n🎊 FINAL ASSESSMENT:");
-    if (successRate >= 90) {
-        console.log("🎉 EXCELLENT: Enhanced validation rules are working perfectly in production!");
-    } else if (successRate >= 80) {
-        console.log("✅ GOOD: Enhanced validation rules are working well in production!");
-    } else if (successRate >= 70) {
-        console.log("⚠️  MODERATE: Enhanced validation rules need some improvement");
-    } else {
-        console.log("❌ NEEDS WORK: Enhanced validation rules need significant improvement");
-    }
-    
-    return results;
-}
-
-// Run the tests
-if (require.main === module) {
-    runProductionTests().catch(console.error);
-}
-
-module.exports = { runProductionTests, testOutfitGeneration, analyzeOutfit };
+testProductionValidation().catch(console.error);

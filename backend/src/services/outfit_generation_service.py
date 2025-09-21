@@ -13,6 +13,7 @@ from src.custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
 from src.custom_types.weather import WeatherData
 from src.custom_types.profile import UserProfile
 from src.services.outfit_fallback_service import OutfitFallbackService
+from src.services.outfit_validation_service import OutfitValidationService
 from src.config.firebase import db
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 class OutfitGenerationService:
     def __init__(self):
         self.fallback_service = OutfitFallbackService()
+        self.validation_service = OutfitValidationService()
     
     async def generate_outfit(
         self,
@@ -48,6 +50,35 @@ class OutfitGenerationService:
         print(f"🔍 Selected {len(selected_items)} items for {occasion} occasion")
         for i, item in enumerate(selected_items):
             print(f"  {i+1}. {item.name} ({item.type})")
+        
+        # CRITICAL: Apply enhanced validation to prevent inappropriate combinations
+        print("🔍 Applying enhanced validation to prevent inappropriate combinations...")
+        validation_context = {
+            "occasion": occasion,
+            "weather": weather,
+            "user_profile": user_profile,
+            "style": style,
+            "mood": mood
+        }
+        
+        try:
+            validation_result = await self.validation_service.validate_outfit_with_enhanced_rules(
+                selected_items, validation_context
+            )
+            
+            if validation_result.get("filtered_items"):
+                validated_items = validation_result["filtered_items"]
+                print(f"✅ Validation applied: {len(selected_items)} → {len(validated_items)} items")
+                if validation_result.get("errors"):
+                    print(f"⚠️ Validation errors: {validation_result['errors']}")
+                if validation_result.get("warnings"):
+                    print(f"⚠️ Validation warnings: {validation_result['warnings']}")
+                selected_items = validated_items
+            else:
+                print("⚠️ Validation returned no filtered items, using original selection")
+                
+        except Exception as e:
+            print(f"⚠️ Validation failed: {e}, using original selection")
         
         return await self._create_outfit_from_items(
             items=selected_items,
