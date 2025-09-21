@@ -3643,50 +3643,34 @@ async def mark_outfit_as_worn(
             'updatedAt': current_time
         })
         
-        # Update user stats for outfit worn (CRITICAL FOR DASHBOARD ANALYTICS)
+        # SIMPLIFIED: Force increment user_stats without complex logic to avoid rate limiting
         try:
-            # Update user_stats collection for fast dashboard analytics
             current_time_dt = datetime.utcnow()
-            week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
-            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            
             stats_ref = db.collection('user_stats').document(current_user.id)
             stats_doc = stats_ref.get()
             
             if stats_doc.exists:
                 stats_data = stats_doc.to_dict()
                 current_worn_count = stats_data.get('worn_this_week', 0)
-                
-                # Check if we're still in the same week
-                last_updated = stats_data.get('last_updated')
-                
-                if last_updated and isinstance(last_updated, datetime) and last_updated >= week_start:
-                    # Same week, increment count
-                    new_worn_count = current_worn_count + 1
-                else:
-                    # New week, reset count
-                    new_worn_count = 1
+                new_worn_count = current_worn_count + 1
                 
                 stats_ref.update({
                     'worn_this_week': new_worn_count,
                     'last_updated': current_time_dt,
                     'updated_at': current_time_dt
                 })
-                print(f"🎯 CRITICAL: Updated user_stats: {current_worn_count} -> {new_worn_count}")  # Use print instead of logger to avoid rate limits
+                print(f"🎯 STATS UPDATE: {current_worn_count} -> {new_worn_count}")
             else:
-                # Create new stats document
                 stats_ref.set({
                     'user_id': current_user.id,
                     'worn_this_week': 1,
-                    'created_this_week': 0,
-                    'total_outfits': 1500,  # Estimate
                     'last_updated': current_time_dt,
                     'created_at': current_time_dt
                 })
-                print("🎯 CRITICAL: Created new user_stats with worn_this_week = 1")  # Use print to avoid rate limits
+                print("🎯 STATS CREATED: worn_this_week = 1")
                 
         except Exception as stats_error:
-            logger.error(f"❌ Failed to update user_stats: {stats_error}")
+            print(f"🚨 STATS ERROR: {stats_error}")
             
         # Also try the old stats service if available
         try:
