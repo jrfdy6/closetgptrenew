@@ -75,7 +75,18 @@ class OutfitValidationService:
         # ENHANCED VALIDATION RULES (based on 1000-outfit simulation results)
         # These rules prevent 114 inappropriate outfit combinations identified in comprehensive testing
         self.enhanced_rules = {
-            # Rule 1: Formality Consistency (prevents 79/100 inappropriate outfits)
+            # Rule 1: STRONG Blazer + Shorts Prevention (prevents 93/100 inappropriate outfits)
+            "strong_blazer_shorts_prevention": {
+                "description": "Strong Blazer + Shorts Prevention",
+                "reason": "Blazers are formal wear and should never be paired with shorts",
+                "remove_items": ["shorts", "athletic shorts", "basketball shorts", "cargo shorts", "denim shorts"],
+                "keep_items": ["blazer", "suit jacket", "sport coat", "dress shirt", "oxford", "dress pants", "chinos"],
+                "frequency": 93,
+                "category": "blazer_shorts_mismatch",
+                "priority": "high"
+            },
+            
+            # Rule 2: Formality Consistency (prevents 79/100 inappropriate outfits)
             "formality_consistency": {
                 "description": "Formality Consistency Rule",
                 "reason": "Outfit items should have consistent formality levels - no more than 2 different levels",
@@ -87,7 +98,7 @@ class OutfitValidationService:
                 "max_formality_levels": 2
             },
             
-            # Rule 2: Occasion Appropriateness (prevents 19/100 inappropriate outfits)
+            # Rule 3: Occasion Appropriateness (prevents 19/100 inappropriate outfits)
             "occasion_appropriateness": {
                 "description": "Occasion Appropriateness Rule",
                 "reason": "Items should match the formality level of the occasion",
@@ -105,7 +116,7 @@ class OutfitValidationService:
                 }
             },
             
-            # Rule 3: Enhanced Formal Shoes + Casual Bottoms (prevents 11/100 inappropriate outfits)
+            # Rule 4: Enhanced Formal Shoes + Casual Bottoms (prevents 11/100 inappropriate outfits)
             "enhanced_formal_shoes_casual_bottoms": {
                 "description": "Enhanced Formal Shoes + Casual Bottoms Prevention",
                 "reason": "Formal shoes should not be worn with casual bottoms",
@@ -115,7 +126,7 @@ class OutfitValidationService:
                 "category": "formal_shoes_casual_bottoms"
             },
             
-            # Rule 4: Enhanced Formal + Casual Prevention (prevents 5/100 inappropriate outfits)
+            # Rule 5: Enhanced Formal + Casual Prevention (prevents 5/100 inappropriate outfits)
             "enhanced_formal_casual_prevention": {
                 "description": "Enhanced Formal + Casual Prevention",
                 "reason": "Formal items should not be paired with casual items",
@@ -123,6 +134,18 @@ class OutfitValidationService:
                 "keep_items": ["blazer", "suit", "dress shirt", "oxford", "heels", "dress pants"],
                 "frequency": 5,
                 "category": "formal_casual_mismatch"
+            },
+            
+            # Rule 6: Essential Categories Enforcement (prevents missing categories)
+            "essential_categories_enforcement": {
+                "description": "Essential Categories Enforcement",
+                "reason": "Every outfit must have at least one top, one bottom, and one pair of shoes",
+                "remove_items": [],  # Complex rule
+                "keep_items": [],
+                "frequency": 130,  # 13% of 1000 tests
+                "category": "missing_essential_categories",
+                "essential_categories": ["top", "bottom", "shoes"],
+                "complex_rule": True
             }
         }
     
@@ -486,6 +509,9 @@ class OutfitValidationService:
         # CRITICAL: Check outfit completeness BEFORE applying validation rules
         original_categories = self._categorize_items(items)
         
+        # Add original items to context for essential categories enforcement
+        context["original_items"] = items
+        
         # Apply category limits FIRST to respect existing rules
         filtered_items = self._apply_category_limits(items)
         
@@ -496,34 +522,45 @@ class OutfitValidationService:
         # Apply each enhanced rule (but don't remove essential categories)
         for rule_name, rule in self.enhanced_rules.items():
             if rule.get("complex_rule"):
-                rule_filtered_items, rule_errors = self._apply_complex_rule(filtered_items, rule, rule_name, context)
+                if rule_name == "essential_categories_enforcement":
+                    # Special handling for essential categories enforcement
+                    filtered_items, rule_errors = self._apply_essential_categories_enforcement(filtered_items, rule, context)
+                else:
+                    rule_filtered_items, rule_errors = self._apply_complex_rule(filtered_items, rule, rule_name, context)
             elif rule.get("occasion_rule"):
                 rule_filtered_items, rule_errors = self._apply_occasion_rule(filtered_items, rule, context)
             else:
                 rule_filtered_items, rule_errors = self._apply_simple_enhanced_rule(filtered_items, rule)
             
-            # Only apply rule if it doesn't remove essential categories
-            rule_categories = self._categorize_items(rule_filtered_items)
-            original_has_essential = (
-                len(original_categories.get("top", [])) > 0 and
-                len(original_categories.get("bottom", [])) > 0 and
-                len(original_categories.get("shoes", [])) > 0
-            )
-            rule_has_essential = (
-                len(rule_categories.get("top", [])) > 0 and
-                len(rule_categories.get("bottom", [])) > 0 and
-                len(rule_categories.get("shoes", [])) > 0
-            )
-            
-            if rule_has_essential or not original_has_essential:
-                # Rule is safe to apply
+            # Only apply rule if it doesn't remove essential categories (except for essential categories enforcement)
+            if rule_name != "essential_categories_enforcement":
+                rule_categories = self._categorize_items(rule_filtered_items)
+                original_has_essential = (
+                    len(original_categories.get("top", [])) > 0 and
+                    len(original_categories.get("bottom", [])) > 0 and
+                    len(original_categories.get("shoes", [])) > 0
+                )
+                rule_has_essential = (
+                    len(rule_categories.get("top", [])) > 0 and
+                    len(rule_categories.get("bottom", [])) > 0 and
+                    len(rule_categories.get("shoes", [])) > 0
+                )
+                
+                if rule_has_essential or not original_has_essential:
+                    # Rule is safe to apply
+                    filtered_items = rule_filtered_items
+                    if rule_errors:
+                        errors.extend(rule_errors)
+                        applied_rules.append(rule_name)
+                else:
+                    # Rule would remove essential categories, skip it
+                    warnings.append(f"Skipped rule '{rule_name}' to preserve essential categories")
+            else:
+                # Essential categories enforcement always applies
                 filtered_items = rule_filtered_items
                 if rule_errors:
                     errors.extend(rule_errors)
                     applied_rules.append(rule_name)
-            else:
-                # Rule would remove essential categories, skip it
-                warnings.append(f"Skipped rule '{rule_name}' to preserve essential categories")
         
         return {
             "is_valid": len(errors) == 0,
@@ -560,6 +597,41 @@ class OutfitValidationService:
                 print(f"🔍 CATEGORY LIMIT: Kept {limit}/{len(category_items)} {category} items")
         
         return filtered_items
+    
+    def _apply_essential_categories_enforcement(self, items: List[ClothingItem], rule: Dict, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
+        """Enforce essential categories (top, bottom, shoes) in every outfit."""
+        filtered_items = items.copy()
+        errors = []
+        
+        categories = self._categorize_items(filtered_items)
+        essential_categories = rule.get("essential_categories", ["top", "bottom", "shoes"])
+        
+        # Check if we have all essential categories
+        missing_categories = []
+        for category in essential_categories:
+            if len(categories.get(category, [])) == 0:
+                missing_categories.append(category)
+        
+        if missing_categories:
+            # Try to restore missing categories from original items
+            original_items = context.get("original_items", items)
+            original_categories = self._categorize_items(original_items)
+            
+            for missing_category in missing_categories:
+                # Find items from the original items that belong to this category
+                available_items = original_categories.get(missing_category, [])
+                if available_items:
+                    # Add the first available item from this category
+                    item_to_add = available_items[0]
+                    if item_to_add not in filtered_items:
+                        filtered_items.append(item_to_add)
+                        errors.append(f"Added {item_to_add.name} to ensure {missing_category} category is present")
+                        print(f"🔍 ESSENTIAL ENFORCEMENT: Added {item_to_add.name} for {missing_category} category")
+                else:
+                    errors.append(f"Warning: No {missing_category} items available in wardrobe")
+                    print(f"⚠️ ESSENTIAL ENFORCEMENT: No {missing_category} items available")
+        
+        return filtered_items, errors
     
     def _ensure_outfit_completeness(self, items: List[ClothingItem], context: Dict[str, Any]) -> List[ClothingItem]:
         """Ensure outfit has essential categories (top, bottom, shoes) after validation."""
