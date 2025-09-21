@@ -75,8 +75,8 @@ class OutfitGenerationPipelineService:
                 print(f"⚠️  Removed {len(selected_items) - len(unique_items)} duplicate items")
                 selected_items = unique_items
             
-            # Phase 4: Validation (hard/soft rules)
-            validation_result = await self.validation_service.validate_outfit_with_orchestration(selected_items, context)
+            # Phase 4: Enhanced Validation (hard/soft rules + simulation-based rules)
+            validation_result = await self.validation_service.validate_outfit_with_enhanced_rules(selected_items, context)
             
             # Phase 5: Handle Validation Results
             if validation_result["is_valid"]:

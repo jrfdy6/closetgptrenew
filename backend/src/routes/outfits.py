@@ -861,8 +861,8 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         }
     }
     
-    # Run validation with inappropriate combination enforcement
-    validation_result = await validation_service.validate_outfit_with_orchestration(clothing_items, context)
+    # Run enhanced validation with inappropriate combination enforcement + simulation-based rules
+    validation_result = await validation_service.validate_outfit_with_enhanced_rules(clothing_items, context)
     
     if validation_result.get("filtered_items"):
         # Convert back to dict format
