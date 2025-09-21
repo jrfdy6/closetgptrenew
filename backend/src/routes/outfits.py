@@ -3745,65 +3745,63 @@ async def mark_outfit_as_worn(
             
             # SURGICAL IMPORT TEST: Check if timezone import is the culprit
             try:
-                from datetime import timezone
-                print("✅ Imported timezone successfully", flush=True)
+                from datetime import timezone, timedelta
+                print("✅ Imported timezone and timedelta successfully", flush=True)
             except Exception as e:
-                print(f"❌ Failed to import timezone: {e}", flush=True)
-            
-            from datetime import datetime, timedelta
+                print(f"❌ Failed to import timezone/timedelta: {e}", flush=True)
             
             try:
-                now = datetime.now(timezone.utc)
-                print(f"✅ Datetime with timezone works: {now}", flush=True)
+                test_now = datetime.now(timezone.utc)
+                print(f"✅ Datetime with timezone works: {test_now}", flush=True)
             except Exception as e:
                 print(f"❌ Datetime calculation failed: {e}", flush=True)
+        
+        # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
+        try:
+            current_time_dt = datetime.now(timezone.utc)
+            week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
+            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            print(f"✅ WEEK_CALC_SUCCESS: current_time={current_time_dt}, week_start={week_start}", flush=True)
+        except Exception as week_error:
+            print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
+            raise
+        
+        # SURGICAL FIRESTORE TEST: Check if Firestore access is the culprit
+        try:
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            stats_doc = stats_ref.get()
+            print("✅ Firestore access successful", flush=True)
+        except Exception as e:
+            print(f"❌ Firestore access failed: {e}", flush=True)
+            raise
+
+        if stats_doc.exists:
+            stats_data = stats_doc.to_dict()
+            current_worn_count = stats_data.get('worn_this_week', 0)
             
-            # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
+            # Check if we're still in the same week
+            last_updated_raw = stats_data.get('last_updated')
+            last_updated = normalize_ts(last_updated_raw)
+            
+            # After week calc (show raw values used for comparison)
+            print(f"📅 WEEK_VALIDATION_DEBUG: today={current_time_dt}, last_updated={last_updated}, week_start={week_start}", flush=True)
+            
+            # CRITICAL DEBUG: Log exact values for debugging
             try:
-                current_time_dt = datetime.now(timezone.utc)
-                week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
-                week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-                print(f"✅ WEEK_CALC_SUCCESS: current_time={current_time_dt}, week_start={week_start}", flush=True)
-            except Exception as week_error:
-                print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
-                raise
-            
-            # SURGICAL FIRESTORE TEST: Check if Firestore access is the culprit
-            try:
-                stats_ref = db.collection('user_stats').document(current_user.id)
-                stats_doc = stats_ref.get()
-                print("✅ Firestore access successful", flush=True)
-            except Exception as e:
-                print(f"❌ Firestore access failed: {e}", flush=True)
-                raise
-            
-            if stats_doc.exists:
-                stats_data = stats_doc.to_dict()
-                current_worn_count = stats_data.get('worn_this_week', 0)
-                
-                # Check if we're still in the same week
-                last_updated_raw = stats_data.get('last_updated')
-                last_updated = normalize_ts(last_updated_raw)
-                
-                # After week calc (show raw values used for comparison)
-                print(f"📅 WEEK_VALIDATION_DEBUG: today={current_time_dt}, last_updated={last_updated}, week_start={week_start}", flush=True)
-                
-                # CRITICAL DEBUG: Log exact values for debugging
-                try:
-                    debug_ref = db.collection('debug_stats_updates').document()
-                    debug_ref.set({
-                        'event': 'week_validation_debug',
-                        'user_id': current_user.id,
-                        'outfit_id': outfit_id,
-                        'current_worn_count': current_worn_count,
-                        'last_updated': str(last_updated),
-                        'last_updated_type': str(type(last_updated)),
-                        'week_start': week_start.isoformat(),
-                        'is_datetime': isinstance(last_updated, datetime),
-                        'timestamp': current_time_dt.isoformat()
-                    })
-                except:
-                    pass
+                debug_ref = db.collection('debug_stats_updates').document()
+                debug_ref.set({
+                    'event': 'week_validation_debug',
+                    'user_id': current_user.id,
+                    'outfit_id': outfit_id,
+                    'current_worn_count': current_worn_count,
+                    'last_updated': str(last_updated),
+                    'last_updated_type': str(type(last_updated)),
+                    'week_start': week_start.isoformat(),
+                    'is_datetime': isinstance(last_updated, datetime),
+                    'timestamp': current_time_dt.isoformat()
+                })
+            except:
+                pass
                 
                 if last_updated and last_updated >= week_start:
                     # Same week, increment count
