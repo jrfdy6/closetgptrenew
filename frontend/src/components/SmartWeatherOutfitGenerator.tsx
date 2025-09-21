@@ -18,7 +18,10 @@ import {
   Droplets,
   Sun,
   Cloud,
-  Zap
+  Zap,
+  Calendar,
+  Eye,
+  Heart
 } from 'lucide-react';
 import { useAutoWeather } from '@/hooks/useWeather';
 import { formatWeatherForDisplay, getClothingRecommendations } from '@/lib/weather';
@@ -38,6 +41,9 @@ interface GeneratedOutfit {
     type: string;
     color: string;
     image?: string;
+    imageUrl?: string;
+    material?: string;
+    brand?: string;
   }>;
   weather: {
     temperature: number;
@@ -46,6 +52,8 @@ interface GeneratedOutfit {
   };
   reasoning: string;
   confidence: number;
+  generatedAt: string;
+  isWorn?: boolean;
 }
 
 export function SmartWeatherOutfitGenerator({ 
@@ -57,9 +65,17 @@ export function SmartWeatherOutfitGenerator({
   
   const [locationStatus, setLocationStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
   const [isGeneratingOutfit, setIsGeneratingOutfit] = useState(false);
+  const [isWearingOutfit, setIsWearingOutfit] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [outfitError, setOutfitError] = useState<string | null>(null);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
+  const [todayKey, setTodayKey] = useState<string>('');
+
+  // Initialize today's key for daily outfit generation
+  useEffect(() => {
+    const today = new Date().toDateString();
+    setTodayKey(today);
+  }, []);
 
   // Auto-detect location and fetch weather on component mount
   useEffect(() => {
@@ -80,6 +96,43 @@ export function SmartWeatherOutfitGenerator({
 
     initializeWeatherAndLocation();
   }, []);
+
+  // Auto-generate outfit once per day when weather is available
+  useEffect(() => {
+    if (weather && user && !generatedOutfit && todayKey) {
+      const storedOutfit = getTodaysOutfit();
+      if (storedOutfit) {
+        console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
+        setGeneratedOutfit(storedOutfit);
+        setLastGenerated(new Date(storedOutfit.generatedAt));
+      } else {
+        console.log('🎯 Auto-generating today\'s weather outfit...');
+        generateTodaysOutfit();
+      }
+    }
+  }, [weather, user, todayKey]);
+
+  // Helper functions for daily outfit management
+  const getTodaysOutfit = (): GeneratedOutfit | null => {
+    if (!todayKey) return null;
+    try {
+      const stored = localStorage.getItem(`daily-outfit-${todayKey}`);
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Error loading today\'s outfit:', error);
+      return null;
+    }
+  };
+
+  const saveTodaysOutfit = (outfit: GeneratedOutfit) => {
+    if (!todayKey) return;
+    try {
+      localStorage.setItem(`daily-outfit-${todayKey}`, JSON.stringify(outfit));
+      console.log('💾 Saved today\'s outfit to storage');
+    } catch (error) {
+      console.error('Error saving today\'s outfit:', error);
+    }
+  };
 
   const requestLocationPermission = async () => {
     setLocationStatus('requesting');
@@ -117,7 +170,7 @@ export function SmartWeatherOutfitGenerator({
     }
   };
 
-  const generateWeatherOutfit = async () => {
+  const generateTodaysOutfit = async () => {
     if (!user) {
       setOutfitError('Please sign in to generate outfits');
       return;
@@ -132,7 +185,7 @@ export function SmartWeatherOutfitGenerator({
     setOutfitError(null);
 
     try {
-      console.log('🎯 Generating weather-perfect outfit for:', weather);
+      console.log('🎯 Auto-generating today\'s weather-perfect outfit for:', weather);
       
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
@@ -159,7 +212,7 @@ export function SmartWeatherOutfitGenerator({
         }
       };
 
-      console.log('🌤️ Generating outfit with weather data:', {
+      console.log('🌤️ Auto-generating outfit with weather data:', {
         temperature: weather.temperature,
         condition: weather.condition,
         location: weather.location,
@@ -183,31 +236,77 @@ export function SmartWeatherOutfitGenerator({
       }
 
       const outfitData = await response.json();
-      console.log('✅ Weather-perfect outfit generated:', outfitData);
+      console.log('✅ Today\'s weather-perfect outfit generated:', outfitData);
       
       // Transform the response into our format
       const outfit: GeneratedOutfit = {
-        id: outfitData.id || `weather-outfit-${Date.now()}`,
-        name: `Perfect for ${weather.temperature}°F ${weather.condition}`,
+        id: outfitData.id || `daily-outfit-${Date.now()}`,
+        name: `Today's Perfect Weather Outfit`,
         items: outfitData.items || [],
         weather: {
           temperature: weather.temperature,
           condition: weather.condition,
           location: weather.location
         },
-        reasoning: outfitData.reasoning || `This weather-optimized outfit is perfect for ${weather.temperature}°F ${weather.condition.toLowerCase()} conditions in ${weather.location}. The carefully selected pieces balance comfort and style while ensuring weather appropriateness. Each item works harmoniously to create a cohesive look that matches the current environmental conditions.`,
-        confidence: outfitData.confidence || 0.9
+        reasoning: outfitData.reasoning || `This weather-optimized outfit is perfect for today's ${weather.temperature}°F ${weather.condition.toLowerCase()} conditions in ${weather.location}. The carefully selected pieces balance comfort and style while ensuring weather appropriateness. Each item works harmoniously to create a cohesive look that matches the current environmental conditions.`,
+        confidence: outfitData.confidence || 0.9,
+        generatedAt: new Date().toISOString(),
+        isWorn: false
       };
 
       setGeneratedOutfit(outfit);
       setLastGenerated(new Date());
+      saveTodaysOutfit(outfit);
       onOutfitGenerated?.(outfit);
 
     } catch (error) {
-      console.error('❌ Error generating weather outfit:', error);
+      console.error('❌ Error generating today\'s weather outfit:', error);
       setOutfitError(error instanceof Error ? error.message : 'Failed to generate outfit');
     } finally {
       setIsGeneratingOutfit(false);
+    }
+  };
+
+  const wearTodaysOutfit = async () => {
+    if (!generatedOutfit || !user) return;
+
+    setIsWearingOutfit(true);
+
+    try {
+      console.log('👕 Wearing today\'s outfit:', generatedOutfit.name);
+      
+      const token = await user.getIdToken();
+      
+      // Mark outfit as worn
+      const response = await fetch(`/api/outfits/${generatedOutfit.id}/wear`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Outfit marked as worn:', result);
+        
+        // Update local state
+        const updatedOutfit = { ...generatedOutfit, isWorn: true };
+        setGeneratedOutfit(updatedOutfit);
+        saveTodaysOutfit(updatedOutfit);
+        
+        // Show success message briefly
+        setTimeout(() => {
+          console.log('🎉 Outfit worn successfully!');
+        }, 1000);
+      } else {
+        throw new Error('Failed to mark outfit as worn');
+      }
+    } catch (error) {
+      console.error('❌ Error wearing outfit:', error);
+      setOutfitError('Failed to mark outfit as worn');
+    } finally {
+      setIsWearingOutfit(false);
     }
   };
 
@@ -464,18 +563,18 @@ export function SmartWeatherOutfitGenerator({
           </div>
         )}
 
-        {/* Outfit Generation Section */}
+        {/* Today's Weather Outfit Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-stone-900 dark:text-stone-100">
-              Perfect Weather Outfit
+              Today's Weather Outfit
             </h3>
-            {lastGenerated && (
-              <div className="flex items-center gap-1 text-xs text-stone-500">
-                <Clock className="h-3 w-3" />
-                <span>Generated {lastGenerated.toLocaleTimeString()}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-stone-500" />
+              <span className="text-xs text-stone-500">
+                {new Date().toLocaleDateString()}
+              </span>
+            </div>
           </div>
 
           {generatedOutfit ? (
@@ -484,29 +583,64 @@ export function SmartWeatherOutfitGenerator({
                 <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
                   <Shirt className="h-5 w-5 text-white" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h4 className="font-medium text-stone-900 dark:text-stone-100">
                     {generatedOutfit.name}
                   </h4>
                   <p className="text-sm text-stone-600 dark:text-stone-400">
-                    {generatedOutfit.reasoning}
+                    Perfect for {generatedOutfit.weather.temperature}°F {generatedOutfit.weather.condition.toLowerCase()} weather
                   </p>
                 </div>
+                {generatedOutfit.isWorn && (
+                  <div className="flex items-center gap-1 text-emerald-600">
+                    <CheckCircle className="h-4 w-4" />
+                    <span className="text-xs font-medium">Worn</span>
+                  </div>
+                )}
               </div>
               
+              {/* Outfit Items Display */}
               {generatedOutfit.items && generatedOutfit.items.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-3 mb-6">
                   <h5 className="text-sm font-medium text-stone-700 dark:text-stone-300">
-                    Outfit Items:
+                    Outfit Items ({generatedOutfit.items.length}):
                   </h5>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {generatedOutfit.items.map((item, index) => (
-                      <div key={index} className="bg-white/50 dark:bg-black/20 rounded-lg p-3 text-sm">
-                        <div className="font-medium text-stone-900 dark:text-stone-100">
-                          {item.name}
-                        </div>
-                        <div className="text-xs text-stone-600 dark:text-stone-400">
-                          {item.type} • {item.color}
+                      <div key={index} className="bg-white/70 dark:bg-black/30 rounded-lg p-4 border border-stone-200 dark:border-stone-700">
+                        <div className="flex items-start gap-3">
+                          {/* Item Image or Placeholder */}
+                          <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                            {item.imageUrl || item.image ? (
+                              <img 
+                                src={item.imageUrl || item.image} 
+                                alt={item.name}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            ) : (
+                              <Shirt className="h-6 w-6 text-stone-400" />
+                            )}
+                          </div>
+                          
+                          {/* Item Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-stone-900 dark:text-stone-100 text-sm truncate">
+                              {item.name}
+                            </div>
+                            <div className="text-xs text-stone-600 dark:text-stone-400 mt-1">
+                              {item.type} • {item.color}
+                            </div>
+                            {item.brand && (
+                              <div className="text-xs text-stone-500 dark:text-stone-500 mt-1">
+                                {item.brand}
+                              </div>
+                            )}
+                            {item.material && (
+                              <div className="text-xs text-stone-500 dark:text-stone-500">
+                                {item.material}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -514,19 +648,57 @@ export function SmartWeatherOutfitGenerator({
                 </div>
               )}
               
-              <div className="mt-4 pt-4 border-t border-emerald-200 dark:border-emerald-700">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-emerald-600" />
-                    <span className="text-sm text-emerald-700 dark:text-emerald-300">
-                      Confidence: {Math.round((generatedOutfit.confidence || 0.9) * 100)}%
-                    </span>
+              {/* Weather Advisory */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Eye className="h-3 w-3 text-white" />
                   </div>
-                  <Button size="sm" variant="outline" onClick={generateWeatherOutfit} disabled={isGeneratingOutfit}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingOutfit ? 'animate-spin' : ''}`} />
-                    Regenerate
-                  </Button>
+                  <div>
+                    <h6 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
+                      Weather Advisory
+                    </h6>
+                    <p className="text-xs text-blue-800 dark:text-blue-200 leading-relaxed">
+                      {generatedOutfit.reasoning}
+                    </p>
+                  </div>
                 </div>
+              </div>
+              
+              {/* Wear Outfit Button */}
+              <div className="flex items-center justify-between pt-4 border-t border-emerald-200 dark:border-emerald-700">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-600" />
+                  <span className="text-sm text-emerald-700 dark:text-emerald-300">
+                    Confidence: {Math.round((generatedOutfit.confidence || 0.9) * 100)}%
+                  </span>
+                </div>
+                <Button 
+                  onClick={wearTodaysOutfit}
+                  disabled={isWearingOutfit || generatedOutfit.isWorn}
+                  className={`${
+                    generatedOutfit.isWorn 
+                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      : 'bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white'
+                  }`}
+                >
+                  {isWearingOutfit ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Wearing...
+                    </>
+                  ) : generatedOutfit.isWorn ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Worn Today
+                    </>
+                  ) : (
+                    <>
+                      <Heart className="h-4 w-4 mr-2" />
+                      Wear This Outfit
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           ) : (
@@ -536,35 +708,21 @@ export function SmartWeatherOutfitGenerator({
                   <AlertCircle className="h-6 w-6 mx-auto mb-2" />
                   {outfitError}
                 </div>
+              ) : isGeneratingOutfit ? (
+                <div className="text-stone-600 dark:text-stone-400 mb-4">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-3 text-blue-500 animate-spin" />
+                  <p>Generating today's perfect weather outfit...</p>
+                </div>
               ) : (
                 <div className="text-stone-600 dark:text-stone-400 mb-4">
                   <Shirt className="h-12 w-12 mx-auto mb-3 text-stone-400" />
-                  <p>Generate a perfect outfit for today's weather</p>
+                  <p>Auto-generating outfit for today's weather</p>
                 </div>
               )}
               
-              <Button 
-                onClick={generateWeatherOutfit}
-                disabled={isGeneratingOutfit || !weather || !user}
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              >
-                {isGeneratingOutfit ? (
-                  <>
-                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                    Generating Perfect Outfit...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-5 w-5 mr-2" />
-                    Generate Weather-Perfect Outfit
-                  </>
-                )}
-              </Button>
-              
               {!user && (
                 <p className="text-xs text-stone-500 mt-2">
-                  Sign in to generate personalized outfits
+                  Sign in to get your daily weather outfit
                 </p>
               )}
             </div>
