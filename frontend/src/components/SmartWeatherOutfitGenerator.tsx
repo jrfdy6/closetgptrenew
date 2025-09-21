@@ -393,6 +393,17 @@ export function SmartWeatherOutfitGenerator({
         setGeneratedOutfit(updatedOutfit);
         saveTodaysOutfit(updatedOutfit);
         
+        // Dispatch event to refresh dashboard stats
+        const event = new CustomEvent('outfitMarkedAsWorn', {
+          detail: {
+            outfitId: generatedOutfit.id,
+            outfitName: generatedOutfit.name,
+            timestamp: new Date().toISOString()
+          }
+        });
+        window.dispatchEvent(event);
+        console.log('🔄 Dispatched outfitMarkedAsWorn event for dashboard refresh');
+        
         // Show success message briefly
         setTimeout(() => {
           console.log('🎉 Outfit worn successfully!');
