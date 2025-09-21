@@ -3746,10 +3746,15 @@ async def mark_outfit_as_worn(
             print("📅 WEEK_VALIDATION_START", flush=True)
             
             # DEFENSIVE FIX: Use timezone-aware datetime for consistent Firestore handling
-            from datetime import timezone
-            current_time_dt = datetime.now(timezone.utc)
-            week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
-            week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            try:
+                from datetime import timezone
+                current_time_dt = datetime.now(timezone.utc)
+                week_start = current_time_dt - timedelta(days=current_time_dt.weekday())
+                week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                print(f"✅ WEEK_CALC_SUCCESS: current_time={current_time_dt}, week_start={week_start}", flush=True)
+            except Exception as week_error:
+                print(f"❌ WEEK_CALC_ERROR: {week_error}", flush=True)
+                raise
             
             stats_ref = db.collection('user_stats').document(current_user.id)
             stats_doc = stats_ref.get()
