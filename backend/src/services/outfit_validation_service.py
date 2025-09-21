@@ -485,54 +485,45 @@ class OutfitValidationService:
         
         # CRITICAL: Check outfit completeness BEFORE applying validation rules
         original_categories = self._categorize_items(items)
-        has_essential_categories = (
-            len(original_categories.get("top", [])) > 0 and
-            len(original_categories.get("bottom", [])) > 0 and
-            len(original_categories.get("shoes", [])) > 0
-        )
         
-        filtered_items = items.copy()
+        # Apply category limits FIRST to respect existing rules
+        filtered_items = self._apply_category_limits(items)
+        
         errors = []
         warnings = []
         applied_rules = []
         
-        # Apply each enhanced rule
+        # Apply each enhanced rule (but don't remove essential categories)
         for rule_name, rule in self.enhanced_rules.items():
             if rule.get("complex_rule"):
-                filtered_items, rule_errors = self._apply_complex_rule(filtered_items, rule, rule_name, context)
+                rule_filtered_items, rule_errors = self._apply_complex_rule(filtered_items, rule, rule_name, context)
             elif rule.get("occasion_rule"):
-                filtered_items, rule_errors = self._apply_occasion_rule(filtered_items, rule, context)
+                rule_filtered_items, rule_errors = self._apply_occasion_rule(filtered_items, rule, context)
             else:
-                filtered_items, rule_errors = self._apply_simple_enhanced_rule(filtered_items, rule)
+                rule_filtered_items, rule_errors = self._apply_simple_enhanced_rule(filtered_items, rule)
             
-            if rule_errors:
-                errors.extend(rule_errors)
-                applied_rules.append(rule_name)
-        
-        # CRITICAL: Check if validation removed essential categories
-        filtered_categories = self._categorize_items(filtered_items)
-        missing_essential = []
-        
-        if len(filtered_categories.get("bottom", [])) == 0 and len(original_categories.get("bottom", [])) > 0:
-            missing_essential.append("bottom")
-        if len(filtered_categories.get("shoes", [])) == 0 and len(original_categories.get("shoes", [])) > 0:
-            missing_essential.append("shoes")
-        if len(filtered_categories.get("top", [])) == 0 and len(original_categories.get("top", [])) > 0:
-            missing_essential.append("top")
-        
-        # If essential categories were removed, restore them
-        if missing_essential:
-            warnings.append(f"Enhanced validation removed essential categories: {missing_essential}. Restoring for outfit completeness.")
+            # Only apply rule if it doesn't remove essential categories
+            rule_categories = self._categorize_items(rule_filtered_items)
+            original_has_essential = (
+                len(original_categories.get("top", [])) > 0 and
+                len(original_categories.get("bottom", [])) > 0 and
+                len(original_categories.get("shoes", [])) > 0
+            )
+            rule_has_essential = (
+                len(rule_categories.get("top", [])) > 0 and
+                len(rule_categories.get("bottom", [])) > 0 and
+                len(rule_categories.get("shoes", [])) > 0
+            )
             
-            for category in missing_essential:
-                # Find the best item from the original items for this category
-                original_items_in_category = original_categories.get(category, [])
-                if original_items_in_category:
-                    # Add back the first item from this category (best match)
-                    item_to_restore = original_items_in_category[0]
-                    if item_to_restore not in filtered_items:
-                        filtered_items.append(item_to_restore)
-                        warnings.append(f"Restored {item_to_restore.name} to maintain outfit completeness")
+            if rule_has_essential or not original_has_essential:
+                # Rule is safe to apply
+                filtered_items = rule_filtered_items
+                if rule_errors:
+                    errors.extend(rule_errors)
+                    applied_rules.append(rule_name)
+            else:
+                # Rule would remove essential categories, skip it
+                warnings.append(f"Skipped rule '{rule_name}' to preserve essential categories")
         
         return {
             "is_valid": len(errors) == 0,
@@ -541,6 +532,34 @@ class OutfitValidationService:
             "filtered_items": filtered_items,
             "applied_rules": applied_rules
         }
+    
+    def _apply_category_limits(self, items: List[ClothingItem]) -> List[ClothingItem]:
+        """Apply category limits to respect existing outfit generation rules."""
+        if not items:
+            return items
+            
+        # Define category limits (same as in validate_outfit_composition)
+        category_limits = {
+            "top": 3,      # Maximum 3 tops (including base top)
+            "bottom": 1,   # Maximum 1 bottom (prevent shorts + pants conflicts)
+            "shoes": 1,    # Maximum 1 pair of shoes
+            "accessory": 2, # Maximum 2 accessories
+            "dress": 1     # Maximum 1 dress
+        }
+        
+        categorized_items = self._categorize_items(items)
+        filtered_items = []
+        
+        # Apply limits for each category
+        for category, category_items in categorized_items.items():
+            limit = category_limits.get(category, 2)  # Default limit of 2
+            items_to_keep = category_items[:limit]  # Take first N items (best scored)
+            filtered_items.extend(items_to_keep)
+            
+            if len(category_items) > limit:
+                print(f"🔍 CATEGORY LIMIT: Kept {limit}/{len(category_items)} {category} items")
+        
+        return filtered_items
     
     def _ensure_outfit_completeness(self, items: List[ClothingItem], context: Dict[str, Any]) -> List[ClothingItem]:
         """Ensure outfit has essential categories (top, bottom, shoes) after validation."""

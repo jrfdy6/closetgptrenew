@@ -37,7 +37,7 @@ async function testOutfitGeneration() {
     console.log("🧪 Testing Outfit Generation with Debug");
     console.log("=" * 50);
     
-    // Create a test request
+    // Create a test request without weather to avoid format issues
     const testRequest = {
         occasion: "casual",
         wardrobe: [
@@ -58,13 +58,6 @@ async function testOutfitGeneration() {
             // Accessories
             { id: "9", name: "Black Belt", type: "belt", color: "black" }
         ],
-        weather: { 
-            temperature: 70, 
-            condition: "clear",
-            humidity: 65,
-            wind_speed: 5,
-            precipitation: 0
-        },
         userProfile: { id: "test_user" },
         style: "casual",
         mood: "confident"
