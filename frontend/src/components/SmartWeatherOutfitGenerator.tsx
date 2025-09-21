@@ -198,13 +198,37 @@ export function SmartWeatherOutfitGenerator({
       // Get Firebase ID token for authentication
       const token = await user.getIdToken();
       
+      // Fetch wardrobe items first
+      console.log('📦 Fetching wardrobe items for outfit generation...');
+      let wardrobeItems: any[] = [];
+      
+      try {
+        const wardrobeResponse = await fetch('/api/wardrobe', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (wardrobeResponse.ok) {
+          const wardrobeData = await wardrobeResponse.json();
+          wardrobeItems = Array.isArray(wardrobeData) ? wardrobeData : (wardrobeData as any)?.items || [];
+          console.log(`✅ Fetched ${wardrobeItems.length} wardrobe items for outfit generation`);
+        } else {
+          console.warn('⚠️ Failed to fetch wardrobe items, using empty array');
+        }
+      } catch (wardrobeError) {
+        console.error('❌ Error fetching wardrobe items:', wardrobeError);
+      }
+      
       // Prepare request with weather-optimized parameters
       const requestData = {
         occasion: determineOccasionFromWeather(weather),
         style: determineStyleFromWeather(weather),
         mood: determineMoodFromWeather(weather),
         weather: weather,
-        wardrobe: [], // Will be fetched by backend
+        wardrobe: wardrobeItems, // Send actual wardrobe items
         user_profile: {
           id: user.uid,
           name: user.displayName || "User",
