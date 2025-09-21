@@ -5022,50 +5022,9 @@ async def get_outfits_worn_this_week_simple(
         worn_count = 0
         processed_count = 0
         
-        # Try to get from user_stats first (FAST PATH) - unless force_fresh is requested
-        if not force_fresh:
-            try:
-                stats_ref = db.collection('user_stats').document(current_user.id)
-                stats_doc = stats_ref.get()
-                
-                if stats_doc.exists:
-                    stats_data = stats_doc.to_dict()
-                    last_updated_raw = stats_data.get('last_updated')
-                    
-                    # DEFENSIVE FIX: Normalize Firestore timestamp to Python datetime
-                    last_updated = normalize_ts(last_updated_raw)
-                
-                # Check if stats were updated this week
-                logger.info(f"📊 DEBUG: Checking user_stats fast path - last_updated_raw: {last_updated_raw} (type: {type(last_updated_raw)})")
-                logger.info(f"📊 DEBUG: last_updated_normalized: {last_updated} (type: {type(last_updated)})")
-                logger.info(f"📊 DEBUG: week_start: {week_start}")
-                
-                if last_updated and last_updated >= week_start:
-                    logger.info(f"📊 DEBUG: Week validation PASSED: {last_updated} >= {week_start}")
-                else:
-                    logger.info(f"📊 DEBUG: Week validation FAILED: {last_updated} >= {week_start}")
-                
-                if last_updated and last_updated >= week_start:
-                    worn_count = stats_data.get('worn_this_week', 0)
-                    logger.info(f"✅ FAST PATH: Got worn count from user_stats: {worn_count}")
-                    
-                    return {
-                        "success": True,
-                        "user_id": current_user.id,
-                        "outfits_worn_this_week": worn_count,
-                        "source": "user_stats_cache",
-                        "week_start": week_start.isoformat(),
-                        "calculated_at": datetime.now(timezone.utc).isoformat()
-                    }
-                else:
-                    logger.info(f"📊 User stats exist but are outdated (last_updated: {last_updated}, week_start: {week_start}), falling back to manual count")
-            else:
-                logger.info("📊 No user stats found, doing manual count and will create stats")
-                
-            except Exception as stats_error:
-                logger.warning(f"Error checking user_stats: {stats_error}")
-        else:
-            logger.info("📊 FORCE FRESH: Bypassing user_stats cache due to force_fresh=True")
+        # SIMPLIFIED: Always do manual count for now to avoid cache issues
+        # The complex user_stats caching logic was causing syntax errors
+        logger.info("📊 SIMPLIFIED: Using manual count (bypassing cache to fix 405 errors)")
         
         # SLOW PATH: Manual counting (fallback or force_fresh)
         logger.info("📊 Using manual count (slow path)")
