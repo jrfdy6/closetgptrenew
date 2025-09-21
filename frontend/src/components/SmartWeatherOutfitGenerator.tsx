@@ -433,7 +433,12 @@ export function SmartWeatherOutfitGenerator({
                   console.log(`🔍 Current user_stats from debug: ${debugData.current_stats?.worn_this_week || 'N/A'}`);
                   console.log(`🔍 Recent debug entries (${debugData.debug_entries?.length || 0}):`);
                   debugData.debug_entries?.slice(0, 3).forEach((entry: any, index: number) => {
-                    console.log(`🔍   ${index + 1}. ${entry.action}: ${entry.old_count} -> ${entry.new_count} at ${entry.timestamp}`);
+                    // Handle different debug entry formats
+                    const event = entry.event || entry.action || 'unknown_event';
+                    const oldCount = entry.old_count || entry.old_wear_count || 'N/A';
+                    const newCount = entry.new_count || entry.new_wear_count || 'N/A';
+                    const timestamp = entry.timestamp || 'N/A';
+                    console.log(`🔍   ${index + 1}. ${event}: ${oldCount} -> ${newCount} at ${timestamp}`);
                   });
                 } else {
                   console.log('🔍 Debug stats endpoint not ready yet (expected during deployment)');
