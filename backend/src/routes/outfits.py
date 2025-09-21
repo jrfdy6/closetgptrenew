@@ -3677,6 +3677,7 @@ async def mark_outfit_as_worn(
         
         # CRITICAL DEBUG: Force visibility of user_stats section entry
         print("🚨 CRITICAL: About to start user_stats update section")
+        print("🚨 DEPLOYMENT_TEST: Surgical debug code is LIVE", flush=True)
         
         # Write entry debug to Firestore immediately (before any potential errors)
         try:
