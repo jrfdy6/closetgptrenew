@@ -483,6 +483,14 @@ class OutfitValidationService:
         if not items:
             return {"is_valid": True, "errors": [], "warnings": [], "filtered_items": items, "applied_rules": []}
         
+        # CRITICAL: Check outfit completeness BEFORE applying validation rules
+        original_categories = self._categorize_items(items)
+        has_essential_categories = (
+            len(original_categories.get("top", [])) > 0 and
+            len(original_categories.get("bottom", [])) > 0 and
+            len(original_categories.get("shoes", [])) > 0
+        )
+        
         filtered_items = items.copy()
         errors = []
         warnings = []
@@ -501,8 +509,30 @@ class OutfitValidationService:
                 errors.extend(rule_errors)
                 applied_rules.append(rule_name)
         
-        # CRITICAL: Ensure outfit completeness after validation
-        filtered_items = self._ensure_outfit_completeness(filtered_items, context)
+        # CRITICAL: Check if validation removed essential categories
+        filtered_categories = self._categorize_items(filtered_items)
+        missing_essential = []
+        
+        if len(filtered_categories.get("bottom", [])) == 0 and len(original_categories.get("bottom", [])) > 0:
+            missing_essential.append("bottom")
+        if len(filtered_categories.get("shoes", [])) == 0 and len(original_categories.get("shoes", [])) > 0:
+            missing_essential.append("shoes")
+        if len(filtered_categories.get("top", [])) == 0 and len(original_categories.get("top", [])) > 0:
+            missing_essential.append("top")
+        
+        # If essential categories were removed, restore them
+        if missing_essential:
+            warnings.append(f"Enhanced validation removed essential categories: {missing_essential}. Restoring for outfit completeness.")
+            
+            for category in missing_essential:
+                # Find the best item from the original items for this category
+                original_items_in_category = original_categories.get(category, [])
+                if original_items_in_category:
+                    # Add back the first item from this category (best match)
+                    item_to_restore = original_items_in_category[0]
+                    if item_to_restore not in filtered_items:
+                        filtered_items.append(item_to_restore)
+                        warnings.append(f"Restored {item_to_restore.name} to maintain outfit completeness")
         
         return {
             "is_valid": len(errors) == 0,
@@ -550,6 +580,29 @@ class OutfitValidationService:
             # In a real scenario, we might want to relax validation rules for bottoms
         
         return items
+    
+    def _categorize_items(self, items: List[ClothingItem]) -> Dict[str, List[ClothingItem]]:
+        """Categorize items by type (top, bottom, shoes, accessory)."""
+        categories = {
+            "top": [],
+            "bottom": [],
+            "shoes": [],
+            "accessory": []
+        }
+        
+        for item in items:
+            item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
+            
+            if item_type in ["shirt", "t-shirt", "blouse", "sweater", "jacket", "coat", "polo", "rugby shirt", "dress shirt", "button up shirt", "short sleeve button down"]:
+                categories["top"].append(item)
+            elif item_type in ["pants", "jeans", "shorts", "skirt", "dress pants", "chinos", "athletic pants", "cargo pants", "slim fit pants"]:
+                categories["bottom"].append(item)
+            elif item_type in ["shoes", "sneakers", "boots", "sandals", "oxford", "heels", "loafers", "flip-flops", "slides", "casual sneakers", "oxford sneakers"]:
+                categories["shoes"].append(item)
+            elif item_type in ["belt", "watch", "necklace", "bracelet", "earrings", "bag", "hat", "accessory", "ribbed belt", "solid belt"]:
+                categories["accessory"].append(item)
+        
+        return categories
     
     def _apply_complex_rule(self, items: List[ClothingItem], rule: Dict, rule_name: str, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
         """Apply complex validation rules like formality consistency."""
