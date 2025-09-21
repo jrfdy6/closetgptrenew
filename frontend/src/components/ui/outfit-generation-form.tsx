@@ -42,6 +42,7 @@ interface OutfitGenerationFormProps {
   weatherOptions: string[];
   baseItem?: any;
   onRemoveBaseItem?: () => void;
+  freshWeatherData?: any; // Fresh weather data for UI display
 }
 
 export default function OutfitGenerationForm({
@@ -55,10 +56,14 @@ export default function OutfitGenerationForm({
   moods,
   weatherOptions,
   baseItem,
-  onRemoveBaseItem
+  onRemoveBaseItem,
+  freshWeatherData
 }: OutfitGenerationFormProps) {
   const [activeStep, setActiveStep] = useState(0);
   const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError } = useAutoWeather();
+  
+  // Use fresh weather data if available, otherwise fall back to hook weather
+  const displayWeather = freshWeatherData || weather;
   
   const steps = [
     { id: 'occasion', label: 'Occasion', icon: Calendar },
@@ -246,23 +251,23 @@ export default function OutfitGenerationForm({
                 <RefreshCw className="h-4 w-4 animate-spin text-gray-400 mr-2" />
                 <span className="text-sm text-gray-500">Loading weather...</span>
               </div>
-            ) : weather ? (
+            ) : displayWeather ? (
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {formatWeatherForDisplay(weather).temperature}
+                      {formatWeatherForDisplay(displayWeather).temperature}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatWeatherForDisplay(weather).condition}
+                      {formatWeatherForDisplay(displayWeather).condition}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500">
-                      {weather.location}
+                      {displayWeather.location}
                     </p>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
-                      {formatWeatherForDisplay(weather).details.slice(0, 2).map((detail, index) => (
+                      {formatWeatherForDisplay(displayWeather).details.slice(0, 2).map((detail, index) => (
                         <p key={index}>{detail}</p>
                       ))}
                     </div>
@@ -278,7 +283,7 @@ export default function OutfitGenerationForm({
                     </Button>
                   </div>
                 </div>
-                {weather.fallback && (
+                {displayWeather.fallback && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     Using fallback weather data

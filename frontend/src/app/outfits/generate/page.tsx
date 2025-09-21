@@ -74,6 +74,7 @@ export default function OutfitGenerationPage() {
   const [baseItem, setBaseItem] = useState<any>(null);
   const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
   const [wardrobeLoading, setWardrobeLoading] = useState(false);
+  const [freshWeatherData, setFreshWeatherData] = useState<WeatherData | null>(null);
   
   // Extract base item ID from URL parameters
   useEffect(() => {
@@ -420,6 +421,8 @@ export default function OutfitGenerationPage() {
           
           if (!freshWeatherData.fallback && freshWeatherData.location !== "Unknown Location" && freshWeatherData.location !== "Default Location") {
             weatherData = freshWeatherData;
+            // Store fresh weather data for UI display
+            setFreshWeatherData(freshWeatherData);
           } else {
             throw new Error('Weather fetch returned fallback data');
           }
@@ -898,6 +901,7 @@ export default function OutfitGenerationPage() {
             moods={moods}
             weatherOptions={weatherOptions}
             baseItem={baseItem}
+            freshWeatherData={freshWeatherData}
             onRemoveBaseItem={() => {
               setBaseItem(null);
               const url = new URL(window.location.href);
