@@ -5028,6 +5028,7 @@ async def get_outfits_worn_this_week_simple(
         
         # SLOW PATH: Manual counting (fallback or force_fresh)
         logger.info("📊 Using manual count (slow path)")
+        logger.info(f"📊 DEBUG: Counting outfits with lastWorn >= {week_start.isoformat()}")
         
         # Query user's outfits with limit to prevent timeout
         outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).limit(1000)
@@ -5081,7 +5082,8 @@ async def get_outfits_worn_this_week_simple(
                     logger.warning(f"Could not parse lastWorn date {last_worn} (type: {type(last_worn)}): {parse_error}")
                     continue
         
-        logger.info(f"✅ Found {worn_count} outfits worn this week for user {current_user.id} (processed {processed_count} total outfits)")
+        logger.info(f"✅ MANUAL COUNT RESULT: Found {worn_count} outfits worn this week for user {current_user.id} (processed {processed_count} total outfits)")
+        logger.info(f"📊 DEBUG: Week range was {week_start.isoformat()} to {datetime.now(timezone.utc).isoformat()}")
         
         return {
             "success": True,

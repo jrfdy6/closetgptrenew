@@ -1,0 +1,4207 @@
+{
+  "test_results": {
+    "total_tests": 1000,
+    "successful_generations": 100,
+    "inappropriate_found": 100,
+    "success_rate": 90.0,
+    "simulation_time": 0.06390595436096191
+  },
+  "inappropriate_outfits": [
+    {
+      "test_number": 4,
+      "user_profile": {
+        "id": "user_094",
+        "gender": "female",
+        "age": 52,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "beach",
+      "mood": "bold",
+      "weather": {
+        "temperature": 79,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Navy Flip-Flops",
+          "type": "flip-flops",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 12,
+      "user_profile": {
+        "id": "user_026",
+        "gender": "male",
+        "age": 48,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "outdoor activity",
+      "mood": "minimalist",
+      "weather": {
+        "temperature": 49,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Black Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "White Cardigan",
+          "type": "cardigan",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 16,
+      "user_profile": {
+        "id": "user_057",
+        "gender": "non-binary",
+        "age": 21,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "business",
+      "mood": "minimalist",
+      "weather": {
+        "temperature": 80,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['sneakers']"
+      ]
+    },
+    {
+      "test_number": 49,
+      "user_profile": {
+        "id": "user_002",
+        "gender": "female",
+        "age": 43,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "church",
+      "mood": "romantic",
+      "weather": {
+        "temperature": 82,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Navy T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 65,
+      "user_profile": {
+        "id": "user_052",
+        "gender": "male",
+        "age": 41,
+        "style_preferences": [
+          "modern",
+          "contemporary"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "business",
+      "mood": "classic",
+      "weather": {
+        "temperature": 69,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Black Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "White Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        },
+        {
+          "name": "White Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['sneakers']"
+      ]
+    },
+    {
+      "test_number": 66,
+      "user_profile": {
+        "id": "user_089",
+        "gender": "non-binary",
+        "age": 39,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "funeral",
+      "mood": "adventurous",
+      "weather": {
+        "temperature": 44,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "Black Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "White Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "White Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 68,
+      "user_profile": {
+        "id": "user_063",
+        "gender": "non-binary",
+        "age": 30,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "concert",
+      "mood": "casual",
+      "weather": {
+        "temperature": 49,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Cardigan",
+          "type": "cardigan",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 72,
+      "user_profile": {
+        "id": "user_032",
+        "gender": "female",
+        "age": 32,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "date night",
+      "mood": "relaxed",
+      "weather": {
+        "temperature": 44,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "Black Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Winter Coat",
+          "type": "winter coat",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 85,
+      "user_profile": {
+        "id": "user_011",
+        "gender": "male",
+        "age": 18,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "church",
+      "mood": "creative",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 88,
+      "user_profile": {
+        "id": "user_018",
+        "gender": "male",
+        "age": 42,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "dinner",
+      "mood": "playful",
+      "weather": {
+        "temperature": 44,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "White Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 96,
+      "user_profile": {
+        "id": "user_002",
+        "gender": "female",
+        "age": 43,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "business casual",
+      "mood": "serious",
+      "weather": {
+        "temperature": 91,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Navy T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['t-shirt']"
+      ]
+    },
+    {
+      "test_number": 98,
+      "user_profile": {
+        "id": "user_027",
+        "gender": "male",
+        "age": 20,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "beach",
+      "mood": "minimalist",
+      "weather": {
+        "temperature": 80,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "Black T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 112,
+      "user_profile": {
+        "id": "user_081",
+        "gender": "non-binary",
+        "age": 51,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "business",
+      "mood": "creative",
+      "weather": {
+        "temperature": 53,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Black Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "White Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Occasion too formal for casual items: ['hoodie']"
+      ]
+    },
+    {
+      "test_number": 115,
+      "user_profile": {
+        "id": "user_006",
+        "gender": "male",
+        "age": 51,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "travel",
+      "mood": "youthful",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 116,
+      "user_profile": {
+        "id": "user_053",
+        "gender": "female",
+        "age": 44,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "concert",
+      "mood": "classic",
+      "weather": {
+        "temperature": 80,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "Black Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Tank Top",
+          "type": "tank top",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 158,
+      "user_profile": {
+        "id": "user_061",
+        "gender": "non-binary",
+        "age": 30,
+        "style_preferences": [
+          "modern",
+          "contemporary"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "family gathering",
+      "mood": "mature",
+      "weather": {
+        "temperature": 53,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Dress",
+          "type": "dress",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 169,
+      "user_profile": {
+        "id": "user_083",
+        "gender": "non-binary",
+        "age": 60,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "brunch",
+      "mood": "trendy",
+      "weather": {
+        "temperature": 73,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Black Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "White Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "White Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 184,
+      "user_profile": {
+        "id": "user_057",
+        "gender": "non-binary",
+        "age": 21,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "interview",
+      "mood": "conservative",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Black Blazer",
+          "type": "blazer",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Boots",
+          "type": "boots",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 205,
+      "user_profile": {
+        "id": "user_024",
+        "gender": "male",
+        "age": 48,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "business",
+      "mood": "serious",
+      "weather": {
+        "temperature": 52,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Navy Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 213,
+      "user_profile": {
+        "id": "user_048",
+        "gender": "non-binary",
+        "age": 48,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "business",
+      "mood": "casual",
+      "weather": {
+        "temperature": 79,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Navy Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 221,
+      "user_profile": {
+        "id": "user_066",
+        "gender": "male",
+        "age": 31,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "theater",
+      "mood": "sophisticated",
+      "weather": {
+        "temperature": 80,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "White Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "White Slides",
+          "type": "slides",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 280,
+      "user_profile": {
+        "id": "user_065",
+        "gender": "non-binary",
+        "age": 18,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "business",
+      "mood": "conservative",
+      "weather": {
+        "temperature": 67,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "White Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 300,
+      "user_profile": {
+        "id": "user_003",
+        "gender": "female",
+        "age": 47,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "church",
+      "mood": "sophisticated",
+      "weather": {
+        "temperature": 80,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Slides",
+          "type": "slides",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 301,
+      "user_profile": {
+        "id": "user_022",
+        "gender": "female",
+        "age": 39,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "formal",
+      "mood": "comfortable",
+      "weather": {
+        "temperature": 90,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Black T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Flip-Flops",
+          "type": "flip-flops",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['t-shirt']"
+      ]
+    },
+    {
+      "test_number": 304,
+      "user_profile": {
+        "id": "user_066",
+        "gender": "male",
+        "age": 31,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "date night",
+      "mood": "youthful",
+      "weather": {
+        "temperature": 69,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Navy Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White Dress",
+          "type": "dress",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 307,
+      "user_profile": {
+        "id": "user_048",
+        "gender": "non-binary",
+        "age": 48,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "funeral",
+      "mood": "confident",
+      "weather": {
+        "temperature": 78,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Tank Top",
+          "type": "tank top",
+          "formality_level": 1
+        },
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]",
+        "Formal item with casual items: ['tank top']"
+      ]
+    },
+    {
+      "test_number": 315,
+      "user_profile": {
+        "id": "user_018",
+        "gender": "male",
+        "age": 42,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "shopping",
+      "mood": "conservative",
+      "weather": {
+        "temperature": 82,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "White Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 338,
+      "user_profile": {
+        "id": "user_007",
+        "gender": "female",
+        "age": 50,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "business",
+      "mood": "minimalist",
+      "weather": {
+        "temperature": 90,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "White Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "Black T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['t-shirt', 't-shirt']"
+      ]
+    },
+    {
+      "test_number": 341,
+      "user_profile": {
+        "id": "user_001",
+        "gender": "male",
+        "age": 30,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "lunch",
+      "mood": "youthful",
+      "weather": {
+        "temperature": 80,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "Black Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "White Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Flip-Flops",
+          "type": "flip-flops",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 344,
+      "user_profile": {
+        "id": "user_018",
+        "gender": "male",
+        "age": 42,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "lunch",
+      "mood": "athletic",
+      "weather": {
+        "temperature": 52,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Boots",
+          "type": "boots",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 352,
+      "user_profile": {
+        "id": "user_029",
+        "gender": "non-binary",
+        "age": 63,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "meeting",
+      "mood": "classic",
+      "weather": {
+        "temperature": 49,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "White Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "White Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 353,
+      "user_profile": {
+        "id": "user_012",
+        "gender": "non-binary",
+        "age": 30,
+        "style_preferences": [
+          "bohemian",
+          "eclectic"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "beach",
+      "mood": "classic",
+      "weather": {
+        "temperature": 50,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "Black Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 367,
+      "user_profile": {
+        "id": "user_045",
+        "gender": "non-binary",
+        "age": 40,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "church",
+      "mood": "conservative",
+      "weather": {
+        "temperature": 80,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "Black Slides",
+          "type": "slides",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]",
+        "Formal item with casual items: ['slides']"
+      ]
+    },
+    {
+      "test_number": 373,
+      "user_profile": {
+        "id": "user_039",
+        "gender": "non-binary",
+        "age": 21,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "beach",
+      "mood": "casual",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Navy Cardigan",
+          "type": "cardigan",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 374,
+      "user_profile": {
+        "id": "user_077",
+        "gender": "non-binary",
+        "age": 42,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "business",
+      "mood": "elegant",
+      "weather": {
+        "temperature": 80,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Navy Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Dress",
+          "type": "dress",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]",
+        "Occasion too formal for casual items: ['t-shirt']"
+      ]
+    },
+    {
+      "test_number": 393,
+      "user_profile": {
+        "id": "user_072",
+        "gender": "male",
+        "age": 64,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "travel",
+      "mood": "adventurous",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 399,
+      "user_profile": {
+        "id": "user_089",
+        "gender": "non-binary",
+        "age": 39,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "gym",
+      "mood": "stylish",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Occasion too casual for formal items: ['oxford']"
+      ]
+    },
+    {
+      "test_number": 419,
+      "user_profile": {
+        "id": "user_010",
+        "gender": "female",
+        "age": 33,
+        "style_preferences": [
+          "bohemian",
+          "eclectic"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "formal",
+      "mood": "stylish",
+      "weather": {
+        "temperature": 90,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Black Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Flip-Flops",
+          "type": "flip-flops",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        },
+        {
+          "name": "Black T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['t-shirt']"
+      ]
+    },
+    {
+      "test_number": 421,
+      "user_profile": {
+        "id": "user_088",
+        "gender": "male",
+        "age": 48,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "concert",
+      "mood": "serious",
+      "weather": {
+        "temperature": 80,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "White Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 432,
+      "user_profile": {
+        "id": "user_057",
+        "gender": "non-binary",
+        "age": 21,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "shopping",
+      "mood": "serious",
+      "weather": {
+        "temperature": 67,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Black Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 480,
+      "user_profile": {
+        "id": "user_022",
+        "gender": "female",
+        "age": 39,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "wedding",
+      "mood": "bold",
+      "weather": {
+        "temperature": 50,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "White Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Winter Coat",
+          "type": "winter coat",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 481,
+      "user_profile": {
+        "id": "user_076",
+        "gender": "female",
+        "age": 37,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "funeral",
+      "mood": "comfortable",
+      "weather": {
+        "temperature": 53,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "White Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 482,
+      "user_profile": {
+        "id": "user_044",
+        "gender": "non-binary",
+        "age": 28,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "theater",
+      "mood": "minimalist",
+      "weather": {
+        "temperature": 80,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Navy Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Tank Top",
+          "type": "tank top",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 516,
+      "user_profile": {
+        "id": "user_055",
+        "gender": "non-binary",
+        "age": 62,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "family gathering",
+      "mood": "youthful",
+      "weather": {
+        "temperature": 82,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "White Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "White Dress",
+          "type": "dress",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 524,
+      "user_profile": {
+        "id": "user_057",
+        "gender": "non-binary",
+        "age": 21,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "business casual",
+      "mood": "energetic",
+      "weather": {
+        "temperature": 94,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "White Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        },
+        {
+          "name": "White T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['t-shirt']"
+      ]
+    },
+    {
+      "test_number": 528,
+      "user_profile": {
+        "id": "user_028",
+        "gender": "non-binary",
+        "age": 56,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "church",
+      "mood": "calm",
+      "weather": {
+        "temperature": 69,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Navy Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "White T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]"
+      ]
+    },
+    {
+      "test_number": 542,
+      "user_profile": {
+        "id": "user_020",
+        "gender": "female",
+        "age": 31,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "outdoor activity",
+      "mood": "bold",
+      "weather": {
+        "temperature": 79,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Black T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "White Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 543,
+      "user_profile": {
+        "id": "user_045",
+        "gender": "non-binary",
+        "age": 40,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "museum",
+      "mood": "stylish",
+      "weather": {
+        "temperature": 69,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Black Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]",
+        "Formal item with casual items: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 544,
+      "user_profile": {
+        "id": "user_022",
+        "gender": "female",
+        "age": 39,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "travel",
+      "mood": "energetic",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Black Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Navy Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Boots",
+          "type": "boots",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 550,
+      "user_profile": {
+        "id": "user_089",
+        "gender": "non-binary",
+        "age": 39,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "concert",
+      "mood": "mature",
+      "weather": {
+        "temperature": 80,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "Navy Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "White Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 555,
+      "user_profile": {
+        "id": "user_041",
+        "gender": "non-binary",
+        "age": 19,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "business",
+      "mood": "mature",
+      "weather": {
+        "temperature": 73,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "White Slides",
+          "type": "slides",
+          "formality_level": 1
+        },
+        {
+          "name": "White Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['sneakers']"
+      ]
+    },
+    {
+      "test_number": 561,
+      "user_profile": {
+        "id": "user_059",
+        "gender": "female",
+        "age": 51,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "brunch",
+      "mood": "adventurous",
+      "weather": {
+        "temperature": 73,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Navy Blazer",
+          "type": "blazer",
+          "formality_level": 3
+        },
+        {
+          "name": "White Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "White Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 564,
+      "user_profile": {
+        "id": "user_094",
+        "gender": "female",
+        "age": 52,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "theater",
+      "mood": "serious",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "White Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "White Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 584,
+      "user_profile": {
+        "id": "user_046",
+        "gender": "female",
+        "age": 37,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "beach",
+      "mood": "elegant",
+      "weather": {
+        "temperature": 78,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]"
+      ]
+    },
+    {
+      "test_number": 595,
+      "user_profile": {
+        "id": "user_094",
+        "gender": "female",
+        "age": 52,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "interview",
+      "mood": "classic",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Black Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]"
+      ]
+    },
+    {
+      "test_number": 603,
+      "user_profile": {
+        "id": "user_005",
+        "gender": "female",
+        "age": 60,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "interview",
+      "mood": "romantic",
+      "weather": {
+        "temperature": 69,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "White Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Blazer",
+          "type": "blazer",
+          "formality_level": 3
+        },
+        {
+          "name": "White Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 610,
+      "user_profile": {
+        "id": "user_080",
+        "gender": "male",
+        "age": 40,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "business",
+      "mood": "professional",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Black Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 615,
+      "user_profile": {
+        "id": "user_018",
+        "gender": "male",
+        "age": 42,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "travel",
+      "mood": "professional",
+      "weather": {
+        "temperature": 49,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "White Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 616,
+      "user_profile": {
+        "id": "user_037",
+        "gender": "non-binary",
+        "age": 55,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "business",
+      "mood": "conservative",
+      "weather": {
+        "temperature": 52,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Black Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['sneakers']"
+      ]
+    },
+    {
+      "test_number": 621,
+      "user_profile": {
+        "id": "user_089",
+        "gender": "non-binary",
+        "age": 39,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "funeral",
+      "mood": "calm",
+      "weather": {
+        "temperature": 67,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Navy Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]"
+      ]
+    },
+    {
+      "test_number": 640,
+      "user_profile": {
+        "id": "user_019",
+        "gender": "male",
+        "age": 30,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "shopping",
+      "mood": "confident",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Navy Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 644,
+      "user_profile": {
+        "id": "user_042",
+        "gender": "male",
+        "age": 18,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "outdoor activity",
+      "mood": "relaxed",
+      "weather": {
+        "temperature": 73,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "White Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]"
+      ]
+    },
+    {
+      "test_number": 656,
+      "user_profile": {
+        "id": "user_092",
+        "gender": "male",
+        "age": 46,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "dinner",
+      "mood": "classic",
+      "weather": {
+        "temperature": 53,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Black Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Cardigan",
+          "type": "cardigan",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Blazer",
+          "type": "blazer",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 661,
+      "user_profile": {
+        "id": "user_071",
+        "gender": "female",
+        "age": 35,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "business",
+      "mood": "athletic",
+      "weather": {
+        "temperature": 73,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Black Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "White Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "White Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Occasion too formal for casual items: ['sneakers']"
+      ]
+    },
+    {
+      "test_number": 664,
+      "user_profile": {
+        "id": "user_034",
+        "gender": "male",
+        "age": 21,
+        "style_preferences": [
+          "bohemian",
+          "eclectic"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "meeting",
+      "mood": "relaxed",
+      "weather": {
+        "temperature": 50,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "Navy Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "White Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "White Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 669,
+      "user_profile": {
+        "id": "user_083",
+        "gender": "non-binary",
+        "age": 60,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "wedding",
+      "mood": "edgy",
+      "weather": {
+        "temperature": 49,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Navy Winter Coat",
+          "type": "winter coat",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]"
+      ]
+    },
+    {
+      "test_number": 704,
+      "user_profile": {
+        "id": "user_042",
+        "gender": "male",
+        "age": 18,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "concert",
+      "mood": "bold",
+      "weather": {
+        "temperature": 69,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "White Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 707,
+      "user_profile": {
+        "id": "user_015",
+        "gender": "male",
+        "age": 52,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "museum",
+      "mood": "conservative",
+      "weather": {
+        "temperature": 78,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 710,
+      "user_profile": {
+        "id": "user_098",
+        "gender": "non-binary",
+        "age": 24,
+        "style_preferences": [
+          "modern",
+          "contemporary"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "travel",
+      "mood": "romantic",
+      "weather": {
+        "temperature": 79,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 717,
+      "user_profile": {
+        "id": "user_084",
+        "gender": "female",
+        "age": 59,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "business",
+      "mood": "stylish",
+      "weather": {
+        "temperature": 78,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Navy Slides",
+          "type": "slides",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "White Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]",
+        "Formal item with casual items: ['slides']"
+      ]
+    },
+    {
+      "test_number": 751,
+      "user_profile": {
+        "id": "user_080",
+        "gender": "male",
+        "age": 40,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "dinner",
+      "mood": "bold",
+      "weather": {
+        "temperature": 50,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 753,
+      "user_profile": {
+        "id": "user_043",
+        "gender": "non-binary",
+        "age": 39,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "beach",
+      "mood": "youthful",
+      "weather": {
+        "temperature": 82,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Black Slides",
+          "type": "slides",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Tank Top",
+          "type": "tank top",
+          "formality_level": 1
+        },
+        {
+          "name": "White Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 755,
+      "user_profile": {
+        "id": "user_088",
+        "gender": "male",
+        "age": 48,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "lunch",
+      "mood": "comfortable",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "White Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 770,
+      "user_profile": {
+        "id": "user_095",
+        "gender": "female",
+        "age": 18,
+        "style_preferences": [
+          "bohemian",
+          "eclectic"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "brunch",
+      "mood": "adventurous",
+      "weather": {
+        "temperature": 44,
+        "condition": "windy"
+      },
+      "items": [
+        {
+          "name": "Black Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 787,
+      "user_profile": {
+        "id": "user_085",
+        "gender": "male",
+        "age": 39,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "travel",
+      "mood": "classic",
+      "weather": {
+        "temperature": 53,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Cardigan",
+          "type": "cardigan",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 789,
+      "user_profile": {
+        "id": "user_098",
+        "gender": "non-binary",
+        "age": 24,
+        "style_preferences": [
+          "modern",
+          "contemporary"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "business",
+      "mood": "athletic",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "White Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['sneakers']"
+      ]
+    },
+    {
+      "test_number": 796,
+      "user_profile": {
+        "id": "user_004",
+        "gender": "male",
+        "age": 56,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "family gathering",
+      "mood": "casual",
+      "weather": {
+        "temperature": 78,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Navy Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "White Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 805,
+      "user_profile": {
+        "id": "user_072",
+        "gender": "male",
+        "age": 64,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "concert",
+      "mood": "confident",
+      "weather": {
+        "temperature": 52,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 806,
+      "user_profile": {
+        "id": "user_019",
+        "gender": "male",
+        "age": 30,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "family gathering",
+      "mood": "youthful",
+      "weather": {
+        "temperature": 49,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "White Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]"
+      ]
+    },
+    {
+      "test_number": 828,
+      "user_profile": {
+        "id": "user_069",
+        "gender": "non-binary",
+        "age": 32,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "gym",
+      "mood": "elegant",
+      "weather": {
+        "temperature": 46,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Navy Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Occasion too casual for formal items: ['heels']"
+      ]
+    },
+    {
+      "test_number": 843,
+      "user_profile": {
+        "id": "user_086",
+        "gender": "female",
+        "age": 52,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "meeting",
+      "mood": "edgy",
+      "weather": {
+        "temperature": 67,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 870,
+      "user_profile": {
+        "id": "user_072",
+        "gender": "male",
+        "age": 64,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "gym",
+      "mood": "edgy",
+      "weather": {
+        "temperature": 82,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "Navy Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Occasion too casual for formal items: ['oxford']"
+      ]
+    },
+    {
+      "test_number": 876,
+      "user_profile": {
+        "id": "user_001",
+        "gender": "male",
+        "age": 30,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "brunch",
+      "mood": "casual",
+      "weather": {
+        "temperature": 73,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Navy Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Sandals",
+          "type": "sandals",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 879,
+      "user_profile": {
+        "id": "user_079",
+        "gender": "female",
+        "age": 26,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "interview",
+      "mood": "confident",
+      "weather": {
+        "temperature": 49,
+        "condition": "clear"
+      },
+      "items": [
+        {
+          "name": "Black Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Black Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Cardigan",
+          "type": "cardigan",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [2, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 880,
+      "user_profile": {
+        "id": "user_049",
+        "gender": "female",
+        "age": 51,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "gym",
+      "mood": "professional",
+      "weather": {
+        "temperature": 50,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "White Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Occasion too casual for formal items: ['heels']"
+      ]
+    },
+    {
+      "test_number": 888,
+      "user_profile": {
+        "id": "user_002",
+        "gender": "female",
+        "age": 43,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "travel",
+      "mood": "athletic",
+      "weather": {
+        "temperature": 52,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Black Boots",
+          "type": "boots",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Dress Pants",
+          "type": "dress pants",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 907,
+      "user_profile": {
+        "id": "user_054",
+        "gender": "male",
+        "age": 34,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "dinner",
+      "mood": "sophisticated",
+      "weather": {
+        "temperature": 46,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "Black Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Suit",
+          "type": "suit",
+          "formality_level": 4
+        },
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 3, 4]"
+      ]
+    },
+    {
+      "test_number": 912,
+      "user_profile": {
+        "id": "user_036",
+        "gender": "female",
+        "age": 60,
+        "style_preferences": [
+          "modern",
+          "contemporary"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "museum",
+      "mood": "minimalist",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Navy Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Blouse",
+          "type": "blouse",
+          "formality_level": 2
+        },
+        {
+          "name": "White Suit",
+          "type": "suit",
+          "formality_level": 4
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 4]",
+        "Formal item with casual items: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 918,
+      "user_profile": {
+        "id": "user_010",
+        "gender": "female",
+        "age": 33,
+        "style_preferences": [
+          "bohemian",
+          "eclectic"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "outdoor activity",
+      "mood": "sophisticated",
+      "weather": {
+        "temperature": 80,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "Black Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Dress Shirt",
+          "type": "dress shirt",
+          "formality_level": 3
+        },
+        {
+          "name": "White Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 931,
+      "user_profile": {
+        "id": "user_016",
+        "gender": "male",
+        "age": 24,
+        "style_preferences": [
+          "modern",
+          "contemporary"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "business",
+      "mood": "serious",
+      "weather": {
+        "temperature": 36,
+        "condition": "snowy"
+      },
+      "items": [
+        {
+          "name": "Black Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Winter Coat",
+          "type": "winter coat",
+          "formality_level": 2
+        },
+        {
+          "name": "White Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Occasion too formal for casual items: ['hoodie', 'hoodie']"
+      ]
+    },
+    {
+      "test_number": 932,
+      "user_profile": {
+        "id": "user_084",
+        "gender": "female",
+        "age": 59,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "brunch",
+      "mood": "classic",
+      "weather": {
+        "temperature": 53,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "Black Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "White Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "White Cardigan",
+          "type": "cardigan",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 935,
+      "user_profile": {
+        "id": "user_079",
+        "gender": "female",
+        "age": 26,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "museum",
+      "mood": "trendy",
+      "weather": {
+        "temperature": 52,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "White Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 936,
+      "user_profile": {
+        "id": "user_047",
+        "gender": "female",
+        "age": 25,
+        "style_preferences": [
+          "modern",
+          "contemporary"
+        ],
+        "occupation": "professional"
+      },
+      "occasion": "meeting",
+      "mood": "confident",
+      "weather": {
+        "temperature": 53,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Navy Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        },
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "White Oxford",
+          "type": "oxford",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]",
+        "Formal shoes with casual bottoms: ['cargo pants']"
+      ]
+    },
+    {
+      "test_number": 941,
+      "user_profile": {
+        "id": "user_092",
+        "gender": "male",
+        "age": 46,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "healthcare"
+      },
+      "occasion": "church",
+      "mood": "sophisticated",
+      "weather": {
+        "temperature": 53,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Black Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Hoodie",
+          "type": "hoodie",
+          "formality_level": 1
+        },
+        {
+          "name": "Black Blazer",
+          "type": "blazer",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 962,
+      "user_profile": {
+        "id": "user_055",
+        "gender": "non-binary",
+        "age": 62,
+        "style_preferences": [
+          "formal",
+          "professional"
+        ],
+        "occupation": "teacher"
+      },
+      "occasion": "lunch",
+      "mood": "bold",
+      "weather": {
+        "temperature": 60,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "White Chinos",
+          "type": "chinos",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Blazer",
+          "type": "blazer",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Blazer",
+          "type": "blazer",
+          "formality_level": 3
+        },
+        {
+          "name": "Navy Jeans",
+          "type": "jeans",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 981,
+      "user_profile": {
+        "id": "user_069",
+        "gender": "non-binary",
+        "age": 32,
+        "style_preferences": [
+          "casual",
+          "minimalist"
+        ],
+        "occupation": "athlete"
+      },
+      "occasion": "travel",
+      "mood": "edgy",
+      "weather": {
+        "temperature": 69,
+        "condition": "rainy"
+      },
+      "items": [
+        {
+          "name": "Navy Sweater",
+          "type": "sweater",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "White Skirt",
+          "type": "skirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Black T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 987,
+      "user_profile": {
+        "id": "user_050",
+        "gender": "male",
+        "age": 38,
+        "style_preferences": [
+          "vintage",
+          "retro"
+        ],
+        "occupation": "creative"
+      },
+      "occasion": "shopping",
+      "mood": "serious",
+      "weather": {
+        "temperature": 52,
+        "condition": "overcast"
+      },
+      "items": [
+        {
+          "name": "Navy Dress",
+          "type": "dress",
+          "formality_level": 3
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Sneakers",
+          "type": "sneakers",
+          "formality_level": 1
+        },
+        {
+          "name": "White Cargo Pants",
+          "type": "cargo pants",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 988,
+      "user_profile": {
+        "id": "user_020",
+        "gender": "female",
+        "age": 31,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "gym",
+      "mood": "casual",
+      "weather": {
+        "temperature": 46,
+        "condition": "sunny"
+      },
+      "items": [
+        {
+          "name": "White Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "White Boots",
+          "type": "boots",
+          "formality_level": 2
+        }
+      ],
+      "issues": [
+        "Occasion too casual for formal items: ['heels']"
+      ]
+    },
+    {
+      "test_number": 991,
+      "user_profile": {
+        "id": "user_002",
+        "gender": "female",
+        "age": 43,
+        "style_preferences": [
+          "classic",
+          "timeless"
+        ],
+        "occupation": "entrepreneur"
+      },
+      "occasion": "shopping",
+      "mood": "casual",
+      "weather": {
+        "temperature": 82,
+        "condition": "cloudy"
+      },
+      "items": [
+        {
+          "name": "White T-Shirt",
+          "type": "t-shirt",
+          "formality_level": 1
+        },
+        {
+          "name": "White Loafers",
+          "type": "loafers",
+          "formality_level": 2
+        },
+        {
+          "name": "Navy Dress",
+          "type": "dress",
+          "formality_level": 3
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    },
+    {
+      "test_number": 997,
+      "user_profile": {
+        "id": "user_083",
+        "gender": "non-binary",
+        "age": 60,
+        "style_preferences": [
+          "athletic",
+          "sporty"
+        ],
+        "occupation": "student"
+      },
+      "occasion": "brunch",
+      "mood": "confident",
+      "weather": {
+        "temperature": 78,
+        "condition": "foggy"
+      },
+      "items": [
+        {
+          "name": "White Polo Shirt",
+          "type": "polo shirt",
+          "formality_level": 2
+        },
+        {
+          "name": "Black Athletic Pants",
+          "type": "athletic pants",
+          "formality_level": 1
+        },
+        {
+          "name": "Navy Heels",
+          "type": "heels",
+          "formality_level": 3
+        },
+        {
+          "name": "Black Summer Dress",
+          "type": "summer dress",
+          "formality_level": 1
+        }
+      ],
+      "issues": [
+        "Formality mismatch: levels [1, 2, 3]"
+      ]
+    }
+  ],
+  "new_rules": [
+    {
+      "rule_name": "formality_consistency_0",
+      "description": "Formality Consistency Rule",
+      "reason": "Outfit items should have consistent formality levels",
+      "remove_items": [],
+      "keep_items": [],
+      "frequency": 79,
+      "category": "formality_mismatch",
+      "complex_rule": true
+    },
+    {
+      "rule_name": "occasion_appropriateness_0",
+      "description": "Occasion Appropriateness Rule",
+      "reason": "Items should be appropriate for the occasion",
+      "remove_items": [],
+      "keep_items": [],
+      "frequency": 19,
+      "category": "occasion_inappropriate",
+      "occasion_rule": true
+    },
+    {
+      "rule_name": "enhanced_formal_shoes_0",
+      "description": "Enhanced Formal Shoes + Casual Bottoms Prevention",
+      "reason": "Formal shoes should not be worn with casual bottoms",
+      "remove_items": [
+        "shorts",
+        "athletic shorts",
+        "cargo pants",
+        "athletic pants"
+      ],
+      "keep_items": [
+        "oxford",
+        "loafers",
+        "dress shoes",
+        "heels",
+        "pumps"
+      ],
+      "frequency": 11,
+      "category": "formal_shoes_casual_bottoms"
+    },
+    {
+      "rule_name": "enhanced_formal_casual_0",
+      "description": "Enhanced Formal + Casual Prevention",
+      "reason": "Formal items should not be paired with casual items",
+      "remove_items": [
+        "shorts",
+        "athletic shorts",
+        "cargo pants",
+        "flip-flops",
+        "slides",
+        "tank top",
+        "hoodie"
+      ],
+      "keep_items": [
+        "blazer",
+        "suit",
+        "dress shirt",
+        "oxford",
+        "heels",
+        "dress pants"
+      ],
+      "frequency": 5,
+      "category": "formal_casual_mismatch"
+    }
+  ],
+  "timestamp": "2025-09-21T11:35:23.775592"
+}
