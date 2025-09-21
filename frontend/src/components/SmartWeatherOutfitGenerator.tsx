@@ -461,7 +461,7 @@ export function SmartWeatherOutfitGenerator({
           });
           window.dispatchEvent(event);
           console.log('🔄 Dispatched outfitMarkedAsWorn event for dashboard refresh (force fresh)');
-        }, 3000); // 3 second delay to allow Firestore write consistency
+        }, 5000); // 5 second delay for stronger Firestore consistency
         
         // Show success message briefly
         setTimeout(() => {
