@@ -393,28 +393,55 @@ export function SmartWeatherOutfitGenerator({
         setGeneratedOutfit(updatedOutfit);
         saveTodaysOutfit(updatedOutfit);
         
-        // Test: Directly check user_stats after wear action
-        setTimeout(async () => {
-          try {
-            console.log('🧪 Testing: Fetching user_stats directly to check increment...');
-            const token = await user.getIdToken();
-            const testResponse = await fetch('/api/outfits/analytics/worn-this-week', {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            });
+            // Test: Directly check user_stats after wear action
+            setTimeout(async () => {
+              try {
+                console.log('🧪 Testing: Fetching user_stats directly to check increment...');
+                const token = await user.getIdToken();
+                const testResponse = await fetch('/api/outfits/analytics/worn-this-week', {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                });
+                
+                if (testResponse.ok) {
+                  const testData = await testResponse.json();
+                  console.log('🧪 Direct user_stats check:', testData);
+                  console.log(`🧪 Current worn count: ${testData.outfits_worn_this_week}`);
+                }
+              } catch (error) {
+                console.error('🧪 Error testing user_stats:', error);
+              }
+            }, 500); // Quick test
             
-            if (testResponse.ok) {
-              const testData = await testResponse.json();
-              console.log('🧪 Direct user_stats check:', testData);
-              console.log(`🧪 Current worn count: ${testData.outfits_worn_this_week}`);
-            }
-          } catch (error) {
-            console.error('🧪 Error testing user_stats:', error);
-          }
-        }, 500); // Quick test
+            // RAILWAY-PROOF: Check debug stats to see actual backend operations
+            setTimeout(async () => {
+              try {
+                console.log('🔍 Railway-proof debug: Checking backend increment operations...');
+                const debugResponse = await fetch(`/api/debug-stats?userId=${user.uid}`, {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                });
+                
+                if (debugResponse.ok) {
+                  const debugData = await debugResponse.json();
+                  console.log('🔍 Debug stats response:', debugData);
+                  console.log(`🔍 Current user_stats from debug: ${debugData.current_stats?.worn_this_week || 'N/A'}`);
+                  console.log(`🔍 Recent debug entries (${debugData.debug_entries?.length || 0}):`);
+                  debugData.debug_entries?.slice(0, 3).forEach((entry: any, index: number) => {
+                    console.log(`🔍   ${index + 1}. ${entry.action}: ${entry.old_count} -> ${entry.new_count} at ${entry.timestamp}`);
+                  });
+                } else {
+                  console.log('🔍 Debug stats endpoint not ready yet (expected during deployment)');
+                }
+              } catch (error) {
+                console.log('🔍 Debug stats not available yet:', error);
+              }
+            }, 2000); // Wait longer for debug endpoint
         
         // Dispatch event to refresh dashboard stats with a small delay 
         // to allow database transaction to complete
