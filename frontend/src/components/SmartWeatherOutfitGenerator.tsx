@@ -110,9 +110,21 @@ export function SmartWeatherOutfitGenerator({
     if (weather && user && !generatedOutfit && todayKey) {
       const storedOutfit = getTodaysOutfit();
       if (storedOutfit) {
-        console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
-        setGeneratedOutfit(storedOutfit);
-        setLastGenerated(new Date(storedOutfit.generatedAt));
+        // Check if stored outfit is a fallback (low confidence, no items, or fallback name)
+        const isFallback = storedOutfit.confidence <= 0.6 || 
+                          !storedOutfit.items || 
+                          storedOutfit.items.length === 0 || 
+                          storedOutfit.name.includes('Weather-Appropriate');
+        
+        if (isFallback) {
+          console.log('🗑️ Clearing cached fallback outfit, regenerating with real backend...');
+          clearTodaysOutfit();
+          generateTodaysOutfit();
+        } else {
+          console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
+          setGeneratedOutfit(storedOutfit);
+          setLastGenerated(new Date(storedOutfit.generatedAt));
+        }
       } else {
         console.log('🎯 Auto-generating today\'s weather outfit...');
         generateTodaysOutfit();
@@ -139,6 +151,18 @@ export function SmartWeatherOutfitGenerator({
       console.log('💾 Saved today\'s outfit to storage');
     } catch (error) {
       console.error('Error saving today\'s outfit:', error);
+    }
+  };
+
+  const clearTodaysOutfit = () => {
+    if (!todayKey) return;
+    try {
+      localStorage.removeItem(`daily-outfit-${todayKey}`);
+      console.log('🗑️ Cleared today\'s cached outfit');
+      setGeneratedOutfit(null);
+      setLastGenerated(null);
+    } catch (error) {
+      console.error('Error clearing today\'s outfit:', error);
     }
   };
 
@@ -772,32 +796,47 @@ export function SmartWeatherOutfitGenerator({
                     Confidence: {Math.round((generatedOutfit.confidence || 0.9) * 100)}%
                   </span>
                 </div>
-                <Button 
-                  onClick={wearTodaysOutfit}
-                  disabled={isWearingOutfit || generatedOutfit.isWorn}
-                  className={`${
-                    generatedOutfit.isWorn 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white'
-                  }`}
-                >
-                  {isWearingOutfit ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Wearing...
-                    </>
-                  ) : generatedOutfit.isWorn ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Worn Today
-                    </>
-                  ) : (
-                    <>
-                      <Heart className="h-4 w-4 mr-2" />
-                      Wear This Outfit
-                    </>
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    onClick={() => {
+                      clearTodaysOutfit();
+                      generateTodaysOutfit();
+                    }}
+                    variant="outline"
+                    size="sm"
+                    disabled={isGeneratingOutfit}
+                    className="text-stone-600 border-stone-300 hover:bg-stone-50"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingOutfit ? 'animate-spin' : ''}`} />
+                    Regenerate
+                  </Button>
+                  <Button 
+                    onClick={wearTodaysOutfit}
+                    disabled={isWearingOutfit || generatedOutfit.isWorn}
+                    className={`${
+                      generatedOutfit.isWorn 
+                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        : 'bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white'
+                    }`}
+                  >
+                    {isWearingOutfit ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Wearing...
+                      </>
+                    ) : generatedOutfit.isWorn ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Worn Today
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="h-4 w-4 mr-2" />
+                        Wear This Outfit
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
