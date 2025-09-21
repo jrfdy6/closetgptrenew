@@ -623,20 +623,18 @@ async def get_wardrobe_items_with_slash(
     try:
         # Check Firebase initialization status
         from src.config.firebase import firebase_initialized, db
-        print(f"🔍 DEBUG: Firebase initialized: {firebase_initialized}")
-        print(f"🔍 DEBUG: Database client: {db}")
+        # Debug logging removed to reduce Railway rate limiting
         # Railway redeploy trigger - Firebase credentials updated
         
         if not firebase_initialized or db is None:
-            print("🔍 DEBUG: Firebase not initialized or database client is None")
+            # Firebase not available
             raise HTTPException(
                 status_code=500, 
                 detail="Database connection not available. Firebase may not be properly configured."
             )
         
         logger.info(f"Getting wardrobe items for user: {current_user.id}")
-        print(f"🔍 DEBUG: User authenticated: {current_user.id}")
-        print(f"🔍 DEBUG: Querying wardrobe collection for userId: {current_user.id}")
+        # User authenticated, querying wardrobe
         
         # Query Firestore for user's wardrobe items - SIMPLE APPROACH
         try:
@@ -662,7 +660,7 @@ async def get_wardrobe_items_with_slash(
             docs_list = items
             
         except Exception as db_error:
-            print(f"🔍 DEBUG: Firestore query failed: {db_error}")
+            # Firestore query failed
             logger.error(f"Firestore query failed: {db_error}")
             raise HTTPException(
                 status_code=500, 
@@ -672,16 +670,9 @@ async def get_wardrobe_items_with_slash(
         items = []
         errors = []
         
-        print(f"🔍 DEBUG: Processing {len(docs_list)} documents...")
+        # Process documents (debug logging removed to reduce Railway rate limiting)
         for i, item_data in enumerate(docs_list):
             try:
-                # DEBUG DISABLED: Causing Railway rate limiting that drops critical user_stats logs
-                # print(f"🔍 DEBUG: Processing document {i+1}: {item_data.get('id', 'NO_ID')}")
-                # print(f"🔍 DEBUG: Document data keys: {list(item_data.keys())}")
-                # print(f"🔍 DEBUG: Document userId field: {item_data.get('userId', 'NOT_FOUND')}")
-                # print(f"🔍 DEBUG: Document uid field: {item_data.get('uid', 'NOT_FOUND')}")
-                # print(f"🔍 DEBUG: Document ownerId field: {item_data.get('ownerId', 'NOT_FOUND')}")
-                # print(f"🔍 DEBUG: Document user_id field: {item_data.get('user_id', 'NOT_FOUND')}")
                 
                 # Ensure required fields exist
                 if 'name' not in item_data:
@@ -766,7 +757,7 @@ async def get_wardrobe_items_with_slash(
                 )
                 log_analytics_event(analytics_event)
             except Exception as analytics_error:
-                print(f"🔍 DEBUG: Analytics logging failed: {analytics_error}")
+                # Analytics logging failed
                 # Don't fail the request if analytics fails
         
         # Transform backend data to match frontend expectations
@@ -790,7 +781,7 @@ async def get_wardrobe_items_with_slash(
             }
             transformed_items.append(transformed_item)
         
-        print(f"🔍 DEBUG: Successfully returning {len(transformed_items)} items")
+        # Successfully returning items
         return {
             "success": True,
             "items": transformed_items,
@@ -802,10 +793,9 @@ async def get_wardrobe_items_with_slash(
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        print(f"🔍 DEBUG: Unexpected error in get_wardrobe_items: {e}")
-        print(f"🔍 DEBUG: Error type: {type(e)}")
+        # Unexpected error in get_wardrobe_items
+        # Error details removed to reduce Railway rate limiting
         import traceback
-        print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
         logger.error(f"Error retrieving wardrobe items: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving wardrobe items: {str(e)}")
 

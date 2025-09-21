@@ -262,8 +262,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     
     global exclusion_debug
     
-    print(f"🔍 EXCLUSION DEBUG: Checking {item.get('name', 'unnamed')} for {style}")
-    print(f"🔍 EXCLUSION DEBUG: item_text = '{item_text}'")
+    # Exclusion debug logging removed
     
     # Define hard exclusions for specific styles
     exclusion_rules = {
@@ -650,7 +649,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             return await generate_fallback_outfit(req, user_id)
         
         # 2. Get user's style profile (with caching)
-        logger.info(f"🔍 DEBUG: Getting user profile for user {user_id}")
+        # Getting user profile
         user_profile = await get_user_profile_cached(user_id)
         logger.info(f"👤 Retrieved user profile for {user_id}")
         
@@ -663,8 +662,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # In the future, we could suggest alternatives or reject the request
         
         # 3. Generate outfit using rule-based decision tree
-        logger.info(f"🔍 DEBUG: About to call generate_rule_based_outfit with {len(wardrobe_items)} items")
-        logger.info(f"🔍 DEBUG: Base item ID in request: {req.baseItemId}")
+        # Generating rule-based outfit
         
         # Log weather data for outfit generation
         if req.weather:
@@ -722,8 +720,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.error(f"🔎 MAIN LOGIC: Rule-based generation FAILED: {rule_exception}")
             raise rule_exception
         logger.info(f"✨ Generated outfit: {outfit['name']}")
-        logger.info(f"🔍 DEBUG: Outfit items count: {len(outfit.get('items', []))}")
-        logger.info(f"🔍 DEBUG: Outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
+        # Outfit generated successfully
         
         # Check if outfit generation was successful
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
@@ -732,7 +729,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             return await generate_fallback_outfit(req, user_id)
         
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
-        logger.info(f"🔍 DEBUG: Rule-based outfit items: {[item.get('name', 'Unknown') for item in outfit.get('items', [])]}")
+        # Rule-based outfit completed
         
         # Apply final base item guarantee
         outfit = ensure_base_item_included(outfit, req.baseItemId, wardrobe_items)
@@ -766,7 +763,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
     """Validate if the requested style is appropriate for the user's gender."""
-    logger.info(f"🔍 DEBUG: Validating style '{style}' for gender '{user_gender}'")
+    # Validating style for gender
     
     # Gender-specific style definitions
     feminine_styles = [
@@ -812,7 +809,7 @@ async def validate_style_gender_compatibility(style: str, user_gender: str) -> D
 
 async def validate_outfit_composition(items: List[Dict], occasion: str, base_item: Optional[Dict] = None) -> List[Dict]:
     """Validate and ensure outfit has required components using enhanced validation."""
-    logger.info(f"🔍 DEBUG: Validating outfit composition for {occasion} occasion")
+    # Validating outfit composition
     
     # Convert dict items to ClothingItem objects for validation
     from ..custom_types.wardrobe import ClothingItem
@@ -915,7 +912,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     default_required = ["top", "bottom", "shoes"]
     required = required_categories.get(occasion.lower(), default_required)
     
-    logger.info(f"🔍 DEBUG: Required categories for {occasion}: {required}")
+    # Checking required categories
     
     # Categorize items
     categorized_items = {}
@@ -931,7 +928,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         if base_item and item.get('id') == base_item.get('id'):
             logger.info(f"🧪 BASE ITEM CATEGORIZATION: {item.get('name', 'Unknown')} -> type: {item_type} -> category: {category}")
     
-    logger.info(f"🔍 DEBUG: Categorized items: {list(categorized_items.keys())}")
+    # Items categorized
     logger.info(f"🧪 CATEGORIZED ITEMS DETAILS: {[(cat, [item.get('id') for item in items]) for cat, items in categorized_items.items()]}")
     
     # Check if we have required categories
@@ -951,7 +948,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     # ENHANCED: Ensure base item is included if provided
     if base_item:
         base_item_id = base_item.get('id')
-        logger.info(f"🎯 DEBUG: Ensuring base item is included: {base_item.get('name', 'unnamed')} (ID: {base_item_id})")
+        # Ensuring base item inclusion
         
         # SURGICAL DEBUG: Log base item details before processing
         import json
@@ -967,7 +964,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
                     category_items.remove(item)
                     # Add the base item to the beginning of validated_outfit
                     validated_outfit.insert(0, item)
-                    logger.info(f"🎯 DEBUG: Added base item to validated outfit: {item.get('name', 'unnamed')}")
+                    # Base item added to outfit
                     base_item_found = True
                     break
             if base_item_found:
@@ -977,7 +974,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         if not base_item_found:
             logger.warning(f"⚠️ DEBUG: Base item not found in categorized items, adding directly")
             validated_outfit.insert(0, base_item)
-            logger.info(f"🎯 DEBUG: Added base item directly to validated outfit: {base_item.get('name', 'unnamed')}")
+            # Base item added directly
         
         # SURGICAL DEBUG: Log validation result after base item insertion
         logger.info(f"🧪 VALIDATION RESULT: {[item.get('id') for item in validated_outfit]}")
@@ -2192,6 +2189,7 @@ debug_data = []  # Global debug data collector
 exclusion_debug = []  # Global exclusion debug data
 
 def debug_rule_engine(stage: str, wardrobe_items=None, suitable=None, categorized=None, scores=None, validated=None):
+    # Debug logging removed to reduce Railway rate limiting
     try:
         debug_info = {
             "stage": stage,
@@ -2202,13 +2200,13 @@ def debug_rule_engine(stage: str, wardrobe_items=None, suitable=None, categorize
             "validated_count": len(validated) if validated is not None else None,
         }
         debug_data.append(debug_info)
-        print("🔎 RULE ENGINE DEBUG:", debug_info)
-        logger.info(f"🔎 RULE ENGINE DEBUG: {debug_info}")
+        # Removed: print("🔎 RULE ENGINE DEBUG:", debug_info)
+        # Removed: logger.info(f"🔎 RULE ENGINE DEBUG: {debug_info}")
     except Exception as e:
         error_info = {"stage": stage, "error": str(e)}
         debug_data.append(error_info)
-        print("⚠️ DEBUG ERROR:", e)
-        logger.error(f"⚠️ DEBUG ERROR: {e}")
+        # Keep only critical errors
+        logger.error(f"⚠️ CRITICAL DEBUG ERROR: {e}")
 
 async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: Dict, req: OutfitRequest) -> Dict[str, Any]:
     """Generate outfit using rule-based decision tree and user's wardrobe."""
