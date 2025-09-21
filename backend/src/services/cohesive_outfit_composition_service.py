@@ -13,6 +13,7 @@ from enum import Enum
 from src.custom_types.wardrobe import ClothingItem
 from src.custom_types.weather import WeatherData
 from src.custom_types.profile import UserProfile
+from src.services.body_type_optimization_service import BodyTypeOptimizationService, BodyType
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class OutfitComposition:
 
 class CohesiveOutfitCompositionService:
     def __init__(self):
+        self.body_type_service = BodyTypeOptimizationService()
         self.color_harmony_map = {
             # Neutral colors that work with everything
             "neutral": ["black", "white", "gray", "beige", "navy", "charcoal", "ivory", "cream"],
@@ -118,9 +120,23 @@ class CohesiveOutfitCompositionService:
             appropriate_items, base_piece, color_palette, occasion, style, max_items - 1
         )
         
-        # Step 5: Ensure style consistency and occasion appropriateness
+        # Step 5: Apply body type optimization for flattering silhouettes
+        all_pieces = [base_piece] + complementary_pieces
+        body_type = self._get_user_body_type(user_profile)
+        
+        if body_type:
+            logger.info(f"🎯 Applying body type optimization for {body_type.value}")
+            optimized_pieces = await self.body_type_service.optimize_outfit_for_body_type(
+                all_pieces, body_type, user_profile
+            )
+            logger.info(f"✅ Body type optimization: {len(all_pieces)} → {len(optimized_pieces)} items")
+        else:
+            optimized_pieces = all_pieces
+            logger.info("⚠️ No body type specified, skipping body type optimization")
+        
+        # Step 6: Ensure style consistency and occasion appropriateness
         final_pieces = self._ensure_style_consistency(
-            [base_piece] + complementary_pieces, occasion, style
+            optimized_pieces, occasion, style
         )
         
         # Step 6: Calculate composition metrics
@@ -496,6 +512,41 @@ class CohesiveOutfitCompositionService:
         
         # Default to medium formality
         return 2.5
+
+    def _get_user_body_type(self, user_profile: UserProfile) -> Optional[BodyType]:
+        """Extract body type from user profile."""
+        if not user_profile:
+            return None
+        
+        # Check if user profile has body type information
+        if hasattr(user_profile, 'body_type') and user_profile.body_type:
+            try:
+                return BodyType(user_profile.body_type.lower())
+            except ValueError:
+                logger.warning(f"Invalid body type in profile: {user_profile.body_type}")
+        
+        # Check if body type is in user preferences or metadata
+        if hasattr(user_profile, 'preferences') and user_profile.preferences:
+            if isinstance(user_profile.preferences, dict):
+                body_type = user_profile.preferences.get('body_type')
+                if body_type:
+                    try:
+                        return BodyType(body_type.lower())
+                    except ValueError:
+                        pass
+        
+        # Check if body type is in style preferences
+        if hasattr(user_profile, 'style_preferences') and user_profile.style_preferences:
+            if isinstance(user_profile.style_preferences, list):
+                for preference in user_profile.style_preferences:
+                    if isinstance(preference, dict) and 'body_type' in preference:
+                        try:
+                            return BodyType(preference['body_type'].lower())
+                        except ValueError:
+                            pass
+        
+        logger.info("No body type information found in user profile")
+        return None
 
     def _create_fallback_outfit(self, items: List[ClothingItem]) -> OutfitComposition:
         """Create a minimal fallback outfit when there are insufficient items."""
