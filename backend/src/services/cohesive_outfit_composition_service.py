@@ -262,7 +262,7 @@ class CohesiveOutfitCompositionService:
                 
             # Find best item of this type
             best_item = self._find_best_item_for_type(
-                available_items, item_type, color_palette, used_items
+                available_items, item_type, color_palette, used_items, user_profile
             )
             
             if best_item:
@@ -305,7 +305,8 @@ class CohesiveOutfitCompositionService:
         items: List[ClothingItem],
         item_type: str,
         color_palette: List[str],
-        used_items: set
+        used_items: set,
+        user_profile: Optional[UserProfile] = None
     ) -> Optional[ClothingItem]:
         """Find the best item of a specific type that fits the color palette."""
         candidates = []
@@ -318,8 +319,8 @@ class CohesiveOutfitCompositionService:
             if not self._item_matches_category(item, item_type):
                 continue
             
-            # Calculate compatibility score
-            score = self._calculate_item_compatibility(item, color_palette, item_type)
+            # Calculate compatibility score with style profile integration
+            score = self._calculate_item_compatibility(item, color_palette, item_type, user_profile)
             candidates.append((item, score))
         
         if not candidates:
@@ -333,31 +334,56 @@ class CohesiveOutfitCompositionService:
         self,
         item: ClothingItem,
         color_palette: List[str],
-        target_type: str
+        target_type: str,
+        user_profile: Optional[UserProfile] = None
     ) -> float:
-        """Calculate how well an item fits the outfit composition."""
+        """Calculate how well an item fits the outfit composition with style profile integration."""
         score = 0.0
         
-        # Color compatibility (40% of score)
+        # Color compatibility (25% of score)
         item_color = item.color.lower()
         if item_color in color_palette:
-            score += 40
+            score += 25
         elif self._colors_are_harmonious(item_color, color_palette):
-            score += 30
-        
-        # Type compatibility (30% of score)
-        if self._item_matches_category(item, target_type):
-            score += 30
-        
-        # Style compatibility (20% of score)
-        if hasattr(item, 'style') and item.style:
-            # Add style matching logic here
             score += 20
         
-        # Occasion compatibility (10% of score)
-        if hasattr(item, 'occasion') and item.occasion:
-            # Add occasion matching logic here
-            score += 10
+        # Enhanced color scoring with user preferences
+        if user_profile and hasattr(user_profile, 'colorPalette'):
+            color_palette_data = user_profile.colorPalette
+            if color_palette_data:
+                # Check against user's preferred colors
+                preferred_colors = []
+                if color_palette_data.get('primary'):
+                    preferred_colors.extend([c.lower() for c in color_palette_data['primary']])
+                if color_palette_data.get('secondary'):
+                    preferred_colors.extend([c.lower() for c in color_palette_data['secondary']])
+                if color_palette_data.get('accent'):
+                    preferred_colors.extend([c.lower() for c in color_palette_data['accent']])
+                
+                if item_color in preferred_colors:
+                    score += 15  # Bonus for user's preferred colors
+                
+                # Penalty for avoided colors
+                if color_palette_data.get('avoid'):
+                    avoided_colors = [c.lower() for c in color_palette_data['avoid']]
+                    if item_color in avoided_colors:
+                        score -= 20
+        
+        # Type compatibility (25% of score)
+        if self._item_matches_category(item, target_type):
+            score += 25
+        
+        # Enhanced style compatibility with user profile (25% of score)
+        style_score = self._calculate_style_profile_compatibility(item, user_profile)
+        score += style_score
+        
+        # Material preferences (15% of score)
+        material_score = self._calculate_material_compatibility(item, user_profile)
+        score += material_score
+        
+        # Brand preferences (10% of score)
+        brand_score = self._calculate_brand_compatibility(item, user_profile)
+        score += brand_score
         
         return score
 
@@ -547,6 +573,105 @@ class CohesiveOutfitCompositionService:
         
         logger.info("No body type information found in user profile")
         return None
+
+    def _calculate_style_profile_compatibility(self, item: ClothingItem, user_profile: Optional[UserProfile]) -> float:
+        """Calculate style compatibility based on user's style profile."""
+        if not user_profile:
+            return 0.0
+        
+        score = 0.0
+        
+        # Check style personality scores
+        if hasattr(user_profile, 'stylePersonality') and user_profile.stylePersonality:
+            style_personality = user_profile.stylePersonality
+            
+            # Map item characteristics to style personality traits
+            item_name = item.name.lower()
+            item_type = item.type.lower()
+            
+            # Classic items (structured, traditional)
+            if any(classic in item_name or classic in item_type for classic in 
+                   ['blazer', 'oxford', 'pencil', 'sheath', 'classic', 'traditional']):
+                score += style_personality.get('classic', 0.5) * 10
+            
+            # Modern items (contemporary, minimalist)
+            elif any(modern in item_name or modern in item_type for modern in 
+                     ['minimalist', 'contemporary', 'sleek', 'modern', 'geometric']):
+                score += style_personality.get('modern', 0.5) * 10
+            
+            # Creative items (unique, artistic, bold)
+            elif any(creative in item_name or creative in item_type for creative in 
+                     ['artistic', 'unique', 'bold', 'statement', 'creative', 'patterned']):
+                score += style_personality.get('creative', 0.5) * 10
+            
+            # Minimal items (simple, clean)
+            elif any(minimal in item_name or minimal in item_type for minimal in 
+                     ['simple', 'clean', 'basic', 'essential', 'minimal']):
+                score += style_personality.get('minimal', 0.5) * 10
+            
+            # Bold items (eye-catching, dramatic)
+            elif any(bold in item_name or bold in item_type for bold in 
+                     ['dramatic', 'eye-catching', 'bold', 'vibrant', 'statement']):
+                score += style_personality.get('bold', 0.5) * 10
+        
+        # Check style preferences
+        if hasattr(user_profile, 'stylePreferences') and user_profile.stylePreferences:
+            item_styles = item.style if hasattr(item, 'style') and item.style else []
+            if isinstance(item_styles, list):
+                for user_style in user_profile.stylePreferences:
+                    if user_style.lower() in [s.lower() for s in item_styles]:
+                        score += 15  # Strong match for user's preferred styles
+        
+        return min(score, 25)  # Cap at 25 points
+
+    def _calculate_material_compatibility(self, item: ClothingItem, user_profile: Optional[UserProfile]) -> float:
+        """Calculate material compatibility based on user preferences."""
+        if not user_profile or not hasattr(user_profile, 'materialPreferences'):
+            return 0.0
+        
+        material_prefs = user_profile.materialPreferences
+        if not material_prefs:
+            return 0.0
+        
+        score = 0.0
+        
+        # Check item material against preferences
+        item_name = item.name.lower()
+        item_type = item.type.lower()
+        
+        # Check preferred materials
+        preferred_materials = material_prefs.get('preferred', [])
+        for material in preferred_materials:
+            if material.lower() in item_name or material.lower() in item_type:
+                score += 10
+        
+        # Check avoided materials
+        avoided_materials = material_prefs.get('avoid', [])
+        for material in avoided_materials:
+            if material.lower() in item_name or material.lower() in item_type:
+                score -= 15
+        
+        return min(score, 15)  # Cap at 15 points
+
+    def _calculate_brand_compatibility(self, item: ClothingItem, user_profile: Optional[UserProfile]) -> float:
+        """Calculate brand compatibility based on user preferences."""
+        if not user_profile or not hasattr(user_profile, 'preferredBrands'):
+            return 0.0
+        
+        preferred_brands = user_profile.preferredBrands
+        if not preferred_brands:
+            return 0.0
+        
+        score = 0.0
+        
+        # Check if item brand matches user preferences
+        if hasattr(item, 'brand') and item.brand:
+            item_brand = item.brand.lower()
+            for preferred_brand in preferred_brands:
+                if preferred_brand.lower() in item_brand:
+                    score += 10
+        
+        return min(score, 10)  # Cap at 10 points
 
     def _create_fallback_outfit(self, items: List[ClothingItem]) -> OutfitComposition:
         """Create a minimal fallback outfit when there are insufficient items."""
