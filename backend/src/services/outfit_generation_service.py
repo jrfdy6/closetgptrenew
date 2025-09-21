@@ -129,34 +129,37 @@ class OutfitGenerationService:
         )
 
     def _select_appropriate_items(self, wardrobe: List[ClothingItem], occasion: str, style: Optional[str], base_item_id: Optional[str] = None) -> List[ClothingItem]:
-        """Select appropriate items based on occasion and style."""
+        """TEMPORARILY SIMPLIFIED: Select appropriate items based on occasion and style."""
         print(f"🔍 DEBUG: _select_appropriate_items called with base_item_id: {base_item_id}")
         print(f"🔍 DEBUG: Wardrobe size: {len(wardrobe)}")
-        selected_items = []
         
-        # If base item is specified, prioritize it FIRST (before any filtering)
-        base_item = None
-        if base_item_id:
-            # First, try to find it in the provided wardrobe
-            for item in wardrobe:
-                if item.id == base_item_id:
-                    base_item = item
-                    break
-            
-            # If not found in wardrobe, fetch from database
-            if not base_item:
-                print(f"🔍 Base item not found in wardrobe, fetching from database: {base_item_id}")
-                base_item = self._fetch_item_from_database(base_item_id)
-            
-            if base_item:
-                print(f"🎯 Including base item in selection: {base_item.name} ({base_item.type})")
-                selected_items.append(base_item)
+        # TEMPORARILY SIMPLIFIED: Just return first 4 items for debugging
+        try:
+            if base_item_id:
+                # Find base item first
+                base_item = None
+                for item in wardrobe:
+                    if item.id == base_item_id:
+                        base_item = item
+                        break
+                
+                if base_item:
+                    print(f"🎯 Including base item: {base_item.name} ({base_item.type})")
+                    # Add base item + 3 more items
+                    remaining_items = [item for item in wardrobe if item.id != base_item_id]
+                    selected_items = [base_item] + remaining_items[:3]
+                else:
+                    print(f"⚠️ Base item not found, using first 4 items")
+                    selected_items = wardrobe[:4]
             else:
-                print(f"⚠️ Base item not found in database: {base_item_id}")
-        
-        # Now filter items by occasion appropriateness (excluding the base item)
-        wardrobe_without_base = [item for item in wardrobe if not base_item_id or item.id != base_item_id]
-        filtered_wardrobe = self._filter_items_by_occasion(wardrobe_without_base, occasion)
+                selected_items = wardrobe[:4]
+            
+            print(f"✅ Selected {len(selected_items)} items for debugging")
+            return selected_items
+            
+        except Exception as e:
+            print(f"⚠️ Selection failed: {e}, using emergency fallback")
+            return wardrobe[:4] if wardrobe else []
         
         # Add comprehensive handling for all dropdown occasions
         occasion_lower = occasion.lower()
