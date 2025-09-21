@@ -3643,34 +3643,49 @@ async def mark_outfit_as_worn(
             'updatedAt': current_time
         })
         
-        # SIMPLIFIED: Force increment user_stats without complex logic to avoid rate limiting
+        # ROBUST: Force guaranteed write with Firestore increment and merge
         try:
+            from google.cloud.firestore import Increment, SERVER_TIMESTAMP
+            
             current_time_dt = datetime.utcnow()
             stats_ref = db.collection('user_stats').document(current_user.id)
-            stats_doc = stats_ref.get()
             
-            if stats_doc.exists:
-                stats_data = stats_doc.to_dict()
-                current_worn_count = stats_data.get('worn_this_week', 0)
-                new_worn_count = current_worn_count + 1
+            # Method 1: Try Firestore increment (atomic)
+            try:
+                stats_ref.set({
+                    'worn_this_week': Increment(1),
+                    'last_updated': SERVER_TIMESTAMP,
+                    'user_id': current_user.id
+                }, merge=True)
+                print("✅ STATS INCREMENTED: Used Firestore atomic increment")
                 
-                stats_ref.update({
+            except Exception as increment_error:
+                print(f"⚠️ Firestore increment failed: {increment_error}")
+                
+                # Method 2: Fallback to manual increment with guaranteed creation
+                stats_doc = stats_ref.get()
+                if stats_doc.exists:
+                    stats_data = stats_doc.to_dict()
+                    current_worn_count = stats_data.get('worn_this_week', 0)
+                    new_worn_count = current_worn_count + 1
+                else:
+                    current_worn_count = 0
+                    new_worn_count = 1
+                
+                # Force creation/update with set + merge
+                stats_ref.set({
+                    'user_id': current_user.id,
                     'worn_this_week': new_worn_count,
                     'last_updated': current_time_dt,
                     'updated_at': current_time_dt
-                })
-                print(f"🎯 STATS UPDATE: {current_worn_count} -> {new_worn_count}")
-            else:
-                stats_ref.set({
-                    'user_id': current_user.id,
-                    'worn_this_week': 1,
-                    'last_updated': current_time_dt,
-                    'created_at': current_time_dt
-                })
-                print("🎯 STATS CREATED: worn_this_week = 1")
+                }, merge=True)
+                print(f"✅ STATS MANUAL UPDATE: {current_worn_count} -> {new_worn_count}")
                 
         except Exception as stats_error:
-            print(f"🚨 STATS ERROR: {stats_error}")
+            print(f"🚨 CRITICAL STATS ERROR: {stats_error}")
+            print(f"🚨 Error type: {type(stats_error).__name__}")
+            print(f"🚨 Error details: {str(stats_error)}")
+            # Don't raise - outfit was still marked as worn successfully
             
         # Also try the old stats service if available
         try:
