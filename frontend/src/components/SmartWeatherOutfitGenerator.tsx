@@ -292,45 +292,21 @@ export function SmartWeatherOutfitGenerator({
       // Use robust API client with comprehensive error handling
       const response = await generateOutfit(convertedData);
       const data = response.data;
-        
-        // Create fallback outfit when backend fails
-        const fallbackOutfit: GeneratedOutfit = {
-          id: `fallback-outfit-${Date.now()}`,
-          name: `Weather-Appropriate ${weather.condition} Look`,
-          items: [], // Empty items array - will show recommendations instead
-          weather: {
-            temperature: weather.temperature,
-            condition: weather.condition,
-            location: weather.location
-          },
-          reasoning: `This outfit recommendation is based on ${weather.temperature}°F ${weather.condition.toLowerCase()} weather in ${weather.location}. The backend outfit generation is temporarily unavailable, but here are weather-appropriate clothing recommendations based on current conditions.`,
-          confidence: 0.6,
-          generatedAt: new Date().toISOString(),
-          isWorn: false
-        };
-
-        setGeneratedOutfit(fallbackOutfit);
-        setLastGenerated(new Date());
-        saveTodaysOutfit(fallbackOutfit);
-        setOutfitError('Backend temporarily unavailable - showing weather recommendations instead');
-        return;
-      }
-
-      const outfitData = await response.json();
-      console.log('✅ Today\'s weather-perfect outfit generated:', outfitData);
+      
+      console.log('✅ Today\'s weather-perfect outfit generated:', data);
       
       // Transform the response into our format
       const outfit: GeneratedOutfit = {
-        id: outfitData.id || `daily-outfit-${Date.now()}`,
+        id: data.id || `daily-outfit-${Date.now()}`,
         name: `Today's Perfect Weather Outfit`,
-        items: outfitData.items || [],
+        items: data.items || [],
         weather: {
           temperature: weather.temperature,
           condition: weather.condition,
           location: weather.location
         },
-        reasoning: outfitData.reasoning || `This weather-optimized outfit is perfect for today's ${weather.temperature}°F ${weather.condition.toLowerCase()} conditions in ${weather.location}. The carefully selected pieces balance comfort and style while ensuring weather appropriateness. Each item works harmoniously to create a cohesive look that matches the current environmental conditions.`,
-        confidence: outfitData.confidence || 0.9,
+        reasoning: data.reasoning || `This weather-optimized outfit is perfect for today's ${weather.temperature}°F ${weather.condition.toLowerCase()} conditions in ${weather.location}. The carefully selected pieces balance comfort and style while ensuring weather appropriateness. Each item works harmoniously to create a cohesive look that matches the current environmental conditions.`,
+        confidence: data.confidence || 0.9,
         generatedAt: new Date().toISOString(),
         isWorn: false
       };
