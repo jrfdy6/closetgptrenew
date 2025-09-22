@@ -42,14 +42,19 @@ const nextConfig = {
       },
     ],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'https://closetgptrenew-backend-production.up.railway.app/api/:path*',
-      },
-    ];
-  },
+  // Removed rewrites - using environment variables instead
+  // async rewrites() {
+  //   return [
+  //     {
+  //       source: '/api/outfit/:path*',
+  //       destination: 'https://closetgptrenew-backend-production.up.railway.app/api/outfit/:path*',
+  //     },
+  //     {
+  //       source: '/api/outfits/:path*',
+  //       destination: 'https://closetgptrenew-backend-production.up.railway.app/api/outfits/:path*',
+  //     },
+  //   ];
+  // },
   async headers() {
     return [
       {
