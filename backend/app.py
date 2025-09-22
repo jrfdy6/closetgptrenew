@@ -189,6 +189,17 @@ for mod, prefix in ROUTERS:
 
 # Router loading complete
 
+# Debug: Log all registered routes
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info("=== ALL REGISTERED ROUTES ===")
+for route in app.routes:
+    if hasattr(route, 'path') and hasattr(route, 'methods'):
+        logger.info(f"PATH={route.path}, METHODS={route.methods}, NAME={route.name}")
+logger.info("=== END ROUTE LIST ===")
+
 # Startup events section
 
 # Image processing router is now working with optional imports
