@@ -133,7 +133,8 @@ ROUTERS = [
     # ("simple_outfit", ""),               # Ultra-simple outfit router
     # ("test_outfit_router", ""),          # Test outfit router at root level
     # ("src.routes.outfit_simple", ""),    # Simple outfit router for testing
-    ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
+    ("test_router", ""),                 # Test router with no dependencies
+    # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
     # ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats - TEMPORARILY DISABLED
