@@ -16,7 +16,7 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  console.log("🔍 DEBUG: Outfits GET route called - CONNECTING TO PRODUCTION BACKEND");
+  console.log("🔍 DEBUG: Outfits GET route called - CONNECTING TO PRODUCTION BACKEND [DEPLOYMENT TEST v4.0]");
   
   try {
     // Get the authorization header
