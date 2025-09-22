@@ -20,8 +20,8 @@ class OutfitGenerationRequest(BaseModel):
     weather: WeatherData
     wardrobe: List[ClothingItem]
     user_profile: UserProfile
-    likedOutfits: List[str]
-    trendingStyles: List[str]
+    likedOutfits: Optional[List[str]] = []
+    trendingStyles: Optional[List[str]] = []
     preferences: Optional[Dict[str, Any]] = None
     outfitHistory: Optional[List[Dict[str, Any]]] = None
     randomSeed: Optional[float] = None
