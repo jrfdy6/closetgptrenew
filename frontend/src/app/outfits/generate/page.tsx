@@ -517,8 +517,8 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Full request data:', requestData);
       console.log('🔍 DEBUG: baseItemId in request:', requestData.baseItemId);
       
-      console.log('🔍 DEBUG: Making API call to /api/outfits');
-      const response = await fetch('/api/outfits', {
+      console.log('🔍 DEBUG: Making API call to /api/outfit/generate');
+      const response = await fetch('/api/outfit/generate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

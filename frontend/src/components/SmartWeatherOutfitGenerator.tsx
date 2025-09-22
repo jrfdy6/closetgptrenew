@@ -277,7 +277,7 @@ export function SmartWeatherOutfitGenerator({
         mood: requestData.mood
       });
 
-      const response = await fetch('/api/outfits', {
+      const response = await fetch('/api/outfit/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

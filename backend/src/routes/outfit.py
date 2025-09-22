@@ -27,9 +27,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 class OutfitGenerationRequest(BaseModel):
     occasion: str
-    weather: WeatherData
-    wardrobe: List[ClothingItem]
-    user_profile: UserProfile
+    weather: Dict[str, Any]  # Accept plain dict, convert internally
+    wardrobe: List[Dict[str, Any]]  # Accept plain dicts, convert internally
+    user_profile: Dict[str, Any]  # Accept plain dict, convert internally
     likedOutfits: Optional[List[str]] = []
     trendingStyles: Optional[List[str]] = []
     preferences: Optional[Dict[str, Any]] = None
@@ -38,7 +38,7 @@ class OutfitGenerationRequest(BaseModel):
     season: Optional[str] = None
     style: Optional[str] = None
     mood: Optional[str] = None  # Add mood parameter
-    baseItem: Optional[ClothingItem] = None
+    baseItem: Optional[Dict[str, Any]] = None  # Accept plain dict
     baseItemId: Optional[str] = None  # Add baseItemId parameter
 
 class OutfitFeedbackRequest(BaseModel):
@@ -98,37 +98,74 @@ async def generate_outfit(request: OutfitGenerationRequest):
     print(f"  - style: {request.style}")
     print(f"  - wardrobe size: {len(request.wardrobe)}")
     print(f"  - baseItemId: {request.baseItemId if request.baseItemId else 'None'}")
-    print(f"  - user_profile.id: {request.user_profile.id}")
-    print(f"🔍 DEBUG: Weather data: temp={request.weather.temperature}, condition={request.weather.condition}")
-    print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].name if request.wardrobe else 'None'}")
+    print(f"  - user_profile.id: {request.user_profile.get('id', 'None')}")
+    print(f"🔍 DEBUG: Weather data: temp={request.weather.get('temperature', 'None')}, condition={request.weather.get('condition', 'None')}")
+    print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].get('name', 'None') if request.wardrobe else 'None'}")
+    
+    # Convert plain objects to Pydantic models
+    try:
+        # Convert weather dict to WeatherData
+        weather_data = WeatherData(**request.weather)
+        
+        # Convert wardrobe dicts to ClothingItem objects
+        wardrobe_items = []
+        for item_dict in request.wardrobe:
+            try:
+                # Ensure required fields have defaults
+                item_dict.setdefault('season', [])
+                item_dict.setdefault('tags', [])
+                item_dict.setdefault('style', [])
+                item_dict.setdefault('occasion', [])
+                item_dict.setdefault('dominantColors', [])
+                item_dict.setdefault('matchingColors', [])
+                item_dict.setdefault('wearCount', 0)
+                item_dict.setdefault('favorite_score', 0.0)
+                item_dict.setdefault('createdAt', int(time.time() * 1000))
+                item_dict.setdefault('updatedAt', int(time.time() * 1000))
+                
+                clothing_item = ClothingItem(**item_dict)
+                wardrobe_items.append(clothing_item)
+            except Exception as e:
+                print(f"⚠️ DEBUG: Failed to convert wardrobe item {item_dict.get('name', 'Unknown')}: {e}")
+                # Skip invalid items
+                continue
+        
+        # Convert user_profile dict to UserProfile
+        user_profile = UserProfile(**request.user_profile)
+        
+        print(f"🔍 DEBUG: Converted {len(wardrobe_items)} wardrobe items successfully")
+        
+    except Exception as e:
+        print(f"❌ DEBUG: Failed to convert request data: {e}")
+        raise HTTPException(status_code=422, detail=f"Invalid request data format: {str(e)}")
     
     # Debug: Check if base item is in wardrobe
     if request.baseItemId:
-        base_item_in_wardrobe = any(item.id == request.baseItemId for item in request.wardrobe)
+        base_item_in_wardrobe = any(item.id == request.baseItemId for item in wardrobe_items)
         print(f"🔍 DEBUG: Base item {request.baseItemId} found in wardrobe: {base_item_in_wardrobe}")
         if base_item_in_wardrobe:
-            base_item = next(item for item in request.wardrobe if item.id == request.baseItemId)
+            base_item = next(item for item in wardrobe_items if item.id == request.baseItemId)
             print(f"🔍 DEBUG: Base item details: {base_item.name} ({base_item.type})")
     
     # NEW: More detailed debugging
     print(f"🔍 DEBUG: Wardrobe data details:")
-    if request.wardrobe:
-        print(f"  - First item: {request.wardrobe[0].name} ({request.wardrobe[0].type})")
-        print(f"  - First item dominantColors: {len(request.wardrobe[0].dominantColors)}")
-        print(f"  - First item matchingColors: {len(request.wardrobe[0].matchingColors)}")
-        print(f"  - First item style: {request.wardrobe[0].style}")
-        print(f"  - First item occasion: {request.wardrobe[0].occasion}")
+    if wardrobe_items:
+        print(f"  - First item: {wardrobe_items[0].name} ({wardrobe_items[0].type})")
+        print(f"  - First item dominantColors: {len(wardrobe_items[0].dominantColors)}")
+        print(f"  - First item matchingColors: {len(wardrobe_items[0].matchingColors)}")
+        print(f"  - First item style: {wardrobe_items[0].style}")
+        print(f"  - First item occasion: {wardrobe_items[0].occasion}")
     else:
         print(f"  - No wardrobe items received!")
     
     try:
         print(f"🔍 DEBUG: Calling outfit_generation_service.generate_outfit")
         result = await outfit_generation_service.generate_outfit(
-            user_id=request.user_profile.id,
-            wardrobe=request.wardrobe,
+            user_id=user_profile.id,
+            wardrobe=wardrobe_items,
             occasion=request.occasion,
-            weather=request.weather,
-            user_profile=request.user_profile,
+            weather=weather_data,
+            user_profile=user_profile,
             style=request.style,
             mood=request.mood,
             base_item_id=request.baseItemId
