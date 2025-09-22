@@ -133,7 +133,7 @@ ROUTERS = [
     # ("simple_outfit", ""),               # Ultra-simple outfit router
     # ("test_outfit_router", ""),          # Test outfit router at root level
     # ("src.routes.outfit_simple", ""),    # Simple outfit router for testing
-    ("simple_test", ""),                 # Ultra-simple test router
+    ("src.routes.outfit_test", ""),      # Outfit test router in proper location
     # ("test_router", ""),                 # Test router with no dependencies
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
