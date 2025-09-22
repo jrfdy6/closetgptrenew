@@ -230,7 +230,9 @@ class CohesiveOutfitCompositionService:
             "athleisure": ["loungewear", "casual"],
             "casual": ["weekend", "athleisure"],
             "business": ["business_casual", "formal"],
+            "business_casual": ["business", "casual"],
             "formal": ["business", "evening"],
+            "interview": ["business", "formal", "business_casual"],
             "weekend": ["casual", "athleisure"],
             "evening": ["formal", "business"],
             "party": ["evening", "formal"],
@@ -308,6 +310,7 @@ class CohesiveOutfitCompositionService:
             "formal": ["dress", "suit", "dress_pants", "skirt"],
             "business": ["dress", "dress_pants", "skirt", "chinos"],
             "business_casual": ["dress", "dress_pants", "chinos", "jeans"],
+            "interview": ["dress", "dress_pants", "suit", "skirt", "chinos"],
             "casual": ["jeans", "pants", "shorts", "dress"],
             "weekend": ["jeans", "shorts", "pants", "dress"]
         }
@@ -315,12 +318,24 @@ class CohesiveOutfitCompositionService:
         # Get items by priority for this occasion
         occasion_priority = base_priorities.get(occasion.lower(), ["pants", "jeans", "dress"])
         
+        logger.info(f"🎯 Selecting base piece for {occasion} occasion")
+        logger.info(f"   Priority types: {occasion_priority}")
+        logger.info(f"   Available items: {[f'{item.name} ({item.type})' for item in items[:5]]}")
+        
         for priority_type in occasion_priority:
             for item in items:
                 if self._item_matches_type(item, priority_type):
+                    logger.info(f"✅ Selected base piece: {item.name} ({item.type}) - matches {priority_type}")
                     return item
         
-        # Fallback: return first appropriate item
+        # Fallback: look for any bottom item
+        for item in items:
+            if self._item_matches_category(item, "bottom"):
+                logger.info(f"✅ Fallback base piece: {item.name} ({item.type}) - bottom category")
+                return item
+        
+        # Final fallback: return first item
+        logger.warning(f"⚠️ No suitable base piece found, using first item: {items[0].name} ({items[0].type})")
         return items[0]
 
     def _determine_color_palette(
