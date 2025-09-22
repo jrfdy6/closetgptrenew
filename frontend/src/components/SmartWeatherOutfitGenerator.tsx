@@ -290,7 +290,8 @@ export function SmartWeatherOutfitGenerator({
       console.log('🌤️ Making ROBUST API call for weather-based outfit generation');
       
       // Use robust API client with comprehensive error handling
-      const response = await generateOutfit(convertedData);
+      const token = await user.getIdToken();
+      const response = await generateOutfit(convertedData, token);
       const data = response.data;
       
       console.log('✅ Today\'s weather-perfect outfit generated:', data);
