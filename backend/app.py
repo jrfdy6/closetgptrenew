@@ -127,6 +127,7 @@ ROUTERS = [
     ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.debug_stats", "/api"),  # Debug stats router for Railway-proof debugging
+    ("src.routes.health", "/health"),     # Health monitoring router
     ("src.routes.forgotten_gems", "/api/wardrobe-insights"),  # Forgotten gems router - mounted at /api/wardrobe-insights to avoid conflict
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
     ("src.routes.outfit", ""),           # Router has /api/outfit prefix defined - RE-ENABLED for frontend compatibility

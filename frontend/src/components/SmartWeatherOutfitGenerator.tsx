@@ -279,25 +279,19 @@ export function SmartWeatherOutfitGenerator({
 
       // Convert frontend data to Pydantic-compatible format
       const { convertToPydanticShape, validateConvertedData } = await import('@/lib/outfitDataConverter');
+      const { generateOutfit } = await import('@/lib/robustApiClient');
+      
       const convertedData = convertToPydanticShape(requestData);
       
       if (!validateConvertedData(convertedData)) {
         throw new Error('Data validation failed');
       }
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-      const response = await fetch(`${API_BASE_URL}/api/outfit/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(convertedData),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Backend error response:', response.status, errorText);
+      console.log('🌤️ Making ROBUST API call for weather-based outfit generation');
+      
+      // Use robust API client with comprehensive error handling
+      const response = await generateOutfit(convertedData);
+      const data = response.data;
         
         // Create fallback outfit when backend fails
         const fallbackOutfit: GeneratedOutfit = {

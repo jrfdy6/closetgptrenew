@@ -519,38 +519,19 @@ export default function OutfitGenerationPage() {
       
       // Convert frontend data to Pydantic-compatible format
       const { convertToPydanticShape, validateConvertedData } = await import('@/lib/outfitDataConverter');
+      const { generateOutfit } = await import('@/lib/robustApiClient');
+      
       const convertedData = convertToPydanticShape(requestData);
       
       if (!validateConvertedData(convertedData)) {
         throw new Error('Data validation failed');
       }
       
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-      console.log('🔍 DEBUG: Making API call to ADVANCED endpoint with converted data', `${API_BASE_URL}/api/outfit/generate`);
-      const response = await fetch(`${API_BASE_URL}/api/outfit/generate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(convertedData),
-      });
-      console.log('🔍 DEBUG: API response status:', response.status);
-      console.log('🔍 DEBUG: API response URL:', response.url);
+      console.log('🔍 DEBUG: Making ROBUST API call to ADVANCED endpoint with converted data');
       
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication failed. Please sign in again.');
-        } else if (response.status === 403) {
-          throw new Error('Access denied. You do not have permission to generate outfits.');
-        } else if (response.status >= 500) {
-          throw new Error('Backend server error. Please try again later.');
-        } else {
-          throw new Error(`Request failed with status ${response.status}`);
-        }
-      }
-      
-      const data = await response.json();
+      // Use robust API client with comprehensive error handling
+      const response = await generateOutfit(convertedData);
+      const data = response.data;
       console.log('🔍 DEBUG: Generated outfit data:', data);
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
       setGeneratedOutfit(data);
