@@ -447,7 +447,7 @@ class OutfitValidationService:
         if not items:
             return {"is_valid": False, "errors": ["No items selected"], "warnings": []}
         
-        min_items = target_counts.get("min_items", 2)
+        min_items = target_counts.get("min_items", 3)
         max_items = target_counts.get("max_items", 6)
         
         errors = []

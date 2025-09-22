@@ -92,7 +92,7 @@ class CohesiveOutfitCompositionService:
         mood: str,
         weather: WeatherData,
         user_profile: UserProfile,
-        max_items: int = 4
+        max_items: int = 6
     ) -> OutfitComposition:
         """
         Create a cohesive outfit by selecting a base piece and building around it harmoniously.

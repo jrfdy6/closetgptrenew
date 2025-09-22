@@ -56,7 +56,7 @@ class OutfitGenerationService:
                 mood=mood,
                 weather=weather,
                 user_profile=user_profile,
-                max_items=4  # Limit to 4 items for better cohesion
+                max_items=6  # Allow 3-6 items for complete outfits
             )
             
             # Extract items from composition
