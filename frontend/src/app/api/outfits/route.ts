@@ -16,7 +16,7 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  console.log("🔍 DEBUG: Outfits GET route called - CONNECTING TO PRODUCTION BACKEND [DEPLOYMENT TEST v4.0]");
+  console.log("🚀 FORCE DEPLOYMENT: Outfits GET route called - CONNECTING TO PRODUCTION BACKEND [VERCEL FORCE DEPLOY v5.0]");
   
   try {
     // Get the authorization header
@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
-  console.log(`🔍 DEBUG: Outfits POST route called - CONNECTING TO PRODUCTION BACKEND [${timestamp}]`);
+  console.log(`🚀 FORCE DEPLOYMENT: Outfits POST route called - CONNECTING TO PRODUCTION BACKEND [VERCEL FORCE DEPLOY v5.0] [${timestamp}]`);
     console.log(`🔍 DEBUG: API ROUTE IS BEING CALLED! - COHESIVE COMPOSITION ENABLED [URGENT v3.0]`);
   
   try {
