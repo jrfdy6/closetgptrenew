@@ -280,6 +280,78 @@ async def upload_image_inline():
     """Inline test route to verify FastAPI routing is working"""
     return {"message": "Inline upload route is working", "status": "success"}
 
+# ---------------- INLINE OUTFIT ROUTES ----------------
+@app.get("/api/outfit/")
+async def get_outfits_inline():
+    """Inline outfit router GET endpoint"""
+    return {"message": "Inline outfit router is working!", "status": "success"}
+
+@app.post("/api/outfit/generate")
+async def generate_outfit_inline(request: dict):
+    """Inline outfit generation endpoint"""
+    print(f"🔍 DEBUG: Inline outfit generation called")
+    print(f"🔍 DEBUG: Request data: {request}")
+    
+    # Simple mock response
+    mock_outfit = {
+        "id": "inline-outfit-123",
+        "name": f"Inline {request.get('style', 'Casual')} Outfit",
+        "occasion": request.get("occasion", "casual"),
+        "style": request.get("style", "casual"),
+        "mood": request.get("mood", "confident"),
+        "confidence": 85.0,
+        "items": [
+            {
+                "id": "inline-item-1",
+                "name": "Inline Shirt",
+                "type": "shirt",
+                "color": "blue",
+                "imageUrl": "",
+                "style": ["casual"],
+                "occasion": ["casual"],
+                "brand": "",
+                "wearCount": 0,
+                "favorite_score": 0.0,
+                "tags": [],
+                "metadata": {}
+            },
+            {
+                "id": "inline-item-2", 
+                "name": "Inline Pants",
+                "type": "pants",
+                "color": "black",
+                "imageUrl": "",
+                "style": ["casual"],
+                "occasion": ["casual"],
+                "brand": "",
+                "wearCount": 0,
+                "favorite_score": 0.0,
+                "tags": [],
+                "metadata": {}
+            },
+            {
+                "id": "inline-item-3",
+                "name": "Inline Shoes", 
+                "type": "shoes",
+                "color": "white",
+                "imageUrl": "",
+                "style": ["casual"],
+                "occasion": ["casual"],
+                "brand": "",
+                "wearCount": 0,
+                "favorite_score": 0.0,
+                "tags": [],
+                "metadata": {}
+            }
+        ],
+        "reasoning": "Inline mock outfit for testing endpoint connectivity",
+        "createdAt": 1758580800,
+        "userId": request.get("user_profile", {}).get("id", "unknown")
+    }
+    
+    print(f"✅ DEBUG: Inline outfit generated successfully")
+    return mock_outfit
+
 @app.post("/analyze-image")
 async def analyze_image_real(request: dict):
     """Real AI-powered image analysis endpoint using GPT-4 Vision"""
