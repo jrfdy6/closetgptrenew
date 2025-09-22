@@ -46,30 +46,63 @@ class OutfitGenerationService:
         
         unique_wardrobe = list(unique_items.values())
         
-        # TEMPORARILY DISABLED: Use traditional selection to debug backend timeout
-        print("🎨 Using traditional outfit selection (cohesive composition temporarily disabled)")
+        # NEW: Use cohesive composition service for harmonious outfit creation
+        print("🎨 Creating cohesive outfit composition...")
         try:
-            # Traditional selection for debugging
-            selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style, base_item_id)
-            print(f"✅ Traditional selection created: {len(selected_items)} items")
+            composition = await self.composition_service.create_cohesive_outfit(
+                wardrobe=unique_wardrobe,
+                occasion=occasion,
+                style=style,
+                mood=mood,
+                weather=weather,
+                user_profile=user_profile,
+                max_items=4  # Limit to 4 items for better cohesion
+            )
+            
+            # Extract items from composition
+            selected_items = [composition.base_piece] + composition.complementary_pieces
+            
+            print(f"✅ Cohesive composition created:")
+            print(f"  - Base piece: {composition.base_piece.name} ({composition.base_piece.type})")
+            print(f"  - Total items: {composition.total_items}")
+            print(f"  - Color harmony: {composition.color_harmony.value}")
+            print(f"  - Style consistency: {composition.style_consistency:.1f}")
+            for i, item in enumerate(composition.complementary_pieces):
+                print(f"  - Complementary {i+1}: {item.name} ({item.type})")
             
         except Exception as e:
-            print(f"⚠️ Traditional selection failed: {e}, using fallback")
-            # Emergency fallback
-            selected_items = unique_wardrobe[:4] if len(unique_wardrobe) >= 4 else unique_wardrobe
+            print(f"⚠️ Cohesive composition failed: {e}, falling back to traditional selection")
+            # Fallback to traditional selection
+            selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style, base_item_id)
         
-        # TEMPORARILY DISABLED: Enhanced validation to debug backend timeout
-        print("🔍 Enhanced validation temporarily disabled for debugging")
+        # CRITICAL: Apply enhanced validation to prevent inappropriate combinations
+        print("🔍 Applying enhanced validation to prevent inappropriate combinations...")
+        validation_context = {
+            "occasion": occasion,
+            "weather": weather,
+            "user_profile": user_profile,
+            "style": style,
+            "mood": mood
+        }
+        
         try:
-            # Simple validation only
-            if len(selected_items) > 6:
-                selected_items = selected_items[:6]  # Limit to 6 items
-                print(f"✅ Limited to 6 items for basic validation")
+            validation_result = await self.validation_service.validate_outfit_with_enhanced_rules(
+                selected_items, validation_context
+            )
+            
+            if validation_result.get("filtered_items"):
+                validated_items = validation_result["filtered_items"]
+                print(f"✅ Validation applied: {len(selected_items)} → {len(validated_items)} items")
+                if validation_result.get("errors"):
+                    print(f"⚠️ Validation errors: {validation_result['errors']}")
+                if validation_result.get("warnings"):
+                    print(f"⚠️ Validation warnings: {validation_result['warnings']}")
+                selected_items = validated_items
             else:
-                print(f"✅ Using {len(selected_items)} items without enhanced validation")
+                print("⚠️ Validation returned no filtered items, using original selection")
                 
         except Exception as e:
-            print(f"⚠️ Basic validation failed: {e}, using original selection")
+            print(f"⚠️ Validation failed: {e}, using original selection")
         
         return await self._create_outfit_from_items(
             items=selected_items,
