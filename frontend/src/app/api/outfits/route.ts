@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     
     // Call the production backend
     const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
-    const backendEndpoint = isCreation ? '/api/outfits' : '/api/outfits/generate';
+    const backendEndpoint = isCreation ? '/api/outfits' : '/api/outfit/generate';
     const fullBackendUrl = `${backendUrl}${backendEndpoint}`;
     console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
     
