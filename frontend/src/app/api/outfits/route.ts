@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// Test route to verify deployment
+export async function OPTIONS(req: NextRequest) {
+  console.log("🔍 DEBUG: OPTIONS request received - API route is deployed");
+  return new NextResponse(null, { 
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function GET(req: NextRequest) {
   console.log("🔍 DEBUG: Outfits GET route called - CONNECTING TO PRODUCTION BACKEND");
   
@@ -84,7 +97,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
   console.log(`🔍 DEBUG: Outfits POST route called - CONNECTING TO PRODUCTION BACKEND [${timestamp}]`);
-  console.log(`🔍 DEBUG: API ROUTE IS BEING CALLED!`);
+  console.log(`🔍 DEBUG: API ROUTE IS BEING CALLED! - COHESIVE COMPOSITION ENABLED`);
   
   try {
     // Get the authorization header
