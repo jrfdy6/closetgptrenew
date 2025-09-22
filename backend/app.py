@@ -130,10 +130,10 @@ ROUTERS = [
     ("src.routes.health", "/health"),     # Health monitoring router
     ("src.routes.forgotten_gems", "/api/wardrobe-insights"),  # Forgotten gems router - mounted at /api/wardrobe-insights to avoid conflict
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
-    ("simple_outfit", ""),               # Ultra-simple outfit router
+    # ("simple_outfit", ""),               # Ultra-simple outfit router
     # ("test_outfit_router", ""),          # Test outfit router at root level
     # ("src.routes.outfit_simple", ""),    # Simple outfit router for testing
-    # ("src.routes.outfit", ""),           # Original outfit router - temporarily disabled
+    ("src.routes.outfit", ""),           # Original outfit router - testing import errors
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
     # ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats - TEMPORARILY DISABLED
     ("src.routes.outfit_stats_simple", "/api/outfit-stats"), # Simple outfit stats router - fixes 405 errors
