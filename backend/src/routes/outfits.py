@@ -620,6 +620,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         from ..auth.auth_service import get_current_user
         from ..custom_types.profile import UserProfile
         from ..custom_types.outfit import OutfitGeneratedOutfit
+        from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
         FIREBASE_AVAILABLE = True
         print(f"🔎 MAIN LOGIC: Firebase imports successful")
     except ImportError as e:
@@ -631,6 +632,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         get_current_user = None
         UserProfile = None
         OutfitGeneratedOutfit = None
+        RobustOutfitGenerationService = None
+        GenerationContext = None
     
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
     
@@ -680,9 +683,58 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         else:
             logger.warning(f"⚠️ No weather data provided for outfit generation")
         
-        print(f"🔎 MAIN LOGIC: About to call rule-based generation")
+        print(f"🔎 MAIN LOGIC: About to call robust outfit generation service")
         try:
-            outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
+            # Use robust outfit generation service if available
+            if RobustOutfitGenerationService and GenerationContext and FIREBASE_AVAILABLE:
+                logger.info("🚀 Using robust outfit generation service")
+                
+                # Create generation context
+                context = GenerationContext(
+                    user_id=user_id,
+                    occasion=req.occasion,
+                    style=req.style,
+                    mood=req.mood,
+                    weather=req.weather,
+                    wardrobe=wardrobe_items,
+                    user_profile=user_profile,
+                    base_item_id=req.baseItemId
+                )
+                
+                # Generate outfit using robust service
+                robust_outfit = await RobustOutfitGenerationService().generate_outfit(context)
+                
+                # Convert to expected format
+                outfit = {
+                    'id': robust_outfit.id,
+                    'name': robust_outfit.name,
+                    'occasion': robust_outfit.occasion,
+                    'style': robust_outfit.style,
+                    'mood': robust_outfit.mood,
+                    'confidence': robust_outfit.confidence,
+                    'items': robust_outfit.items,
+                    'reasoning': robust_outfit.reasoning,
+                    'createdAt': robust_outfit.createdAt,
+                    'userId': robust_outfit.userId,
+                    'weather_data': robust_outfit.weather,
+                    'pieces': robust_outfit.pieces,
+                    'explanation': robust_outfit.explanation,
+                    'styleTags': robust_outfit.styleTags,
+                    'colorHarmony': robust_outfit.colorHarmony,
+                    'styleNotes': robust_outfit.styleNotes,
+                    'season': robust_outfit.season,
+                    'updatedAt': robust_outfit.updatedAt,
+                    'metadata': robust_outfit.metadata,
+                    'wasSuccessful': robust_outfit.wasSuccessful,
+                    'baseItemId': robust_outfit.baseItemId,
+                    'validationErrors': robust_outfit.validationErrors,
+                    'userFeedback': robust_outfit.userFeedback
+                }
+                
+                logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
+            else:
+                logger.warning("⚠️ Robust service not available, falling back to rule-based generation")
+                outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
             
             # Add weather data to outfit for base item validation
             if req.weather:
@@ -4218,23 +4270,43 @@ async def generate_outfit(
     current_user: UserProfile = Depends(get_current_user)
 ):
     """
-    Generate an outfit using decision logic, save it to Firestore,
-    and return the standardized response.
+    Generate an outfit using robust decision logic with comprehensive validation,
+    fallback strategies, body type optimization, and style profile integration.
     """
+    start_time = time.time()
+    generation_attempts = 0
+    max_attempts = 3
+    
     try:
-        # Get real user ID from request context
+        # Enhanced authentication validation
         if not current_user:
+            logger.error("❌ Authentication failed: No current user")
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        # Reduced logging to prevent Railway rate limits
-        logger.info(f"🔍 DEBUG: current_user: {current_user.id if current_user else 'None'}")
-        
-        current_user_id = current_user.id  # Your actual user ID
-        logger.info(f"Using real user ID: {current_user_id}")
+        current_user_id = current_user.id
+        logger.info(f"🎯 Starting robust outfit generation for user: {current_user_id}")
+        logger.info(f"📋 Request details: {req.occasion}, {req.style}, {req.mood}")
         
         if not current_user_id:
             logger.error("❌ CRITICAL: current_user_id is None or empty!")
             raise HTTPException(status_code=500, detail="User ID not found in authentication")
+        
+        # Enhanced request validation
+        validation_errors = []
+        if not req.occasion:
+            validation_errors.append("Occasion is required")
+        if not req.style:
+            validation_errors.append("Style is required")
+        if not req.mood:
+            validation_errors.append("Mood is required")
+        if not req.wardrobe or len(req.wardrobe) == 0:
+            validation_errors.append("Wardrobe items are required")
+        
+        if validation_errors:
+            logger.error(f"❌ Request validation failed: {validation_errors}")
+            raise HTTPException(status_code=422, detail=f"Invalid request: {', '.join(validation_errors)}")
+        
+        logger.info(f"✅ Request validation passed")
         
         # Log base item information
         logger.info(f"🔍 DEBUG: Received baseItemId: {req.baseItemId}")
@@ -4248,10 +4320,50 @@ async def generate_outfit(
         else:
             logger.info("🔍 DEBUG: No baseItemId provided")
         
-        logger.info(f"🎨 Generating outfit for user: {current_user_id}")
+        logger.info(f"🎨 Starting outfit generation with retry logic")
         
-        # 1. Run generation logic (GPT + rules + metadata validation)
-        outfit = await generate_outfit_logic(req, current_user_id)
+        # Retry logic for robust generation
+        outfit = None
+        last_error = None
+        
+        for attempt in range(max_attempts):
+            generation_attempts += 1
+            try:
+                logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
+                
+                # Run generation logic with robust service
+                outfit = await generate_outfit_logic(req, current_user_id)
+                
+                # Validate the generated outfit
+                if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
+                    logger.info(f"✅ Generation successful on attempt {generation_attempts}")
+                    break
+                else:
+                    logger.warning(f"⚠️ Generation attempt {generation_attempts} produced invalid outfit")
+                    if attempt < max_attempts - 1:
+                        await asyncio.sleep(1)  # Brief delay before retry
+                        continue
+                    
+            except Exception as e:
+                last_error = e
+                logger.error(f"❌ Generation attempt {generation_attempts} failed: {e}")
+                if attempt < max_attempts - 1:
+                    await asyncio.sleep(1)  # Brief delay before retry
+                    continue
+        
+        # Check if all attempts failed
+        if not outfit or not outfit.get('items') or len(outfit.get('items', [])) < 3:
+            logger.error(f"❌ All {max_attempts} generation attempts failed")
+            if last_error:
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Outfit generation failed after {max_attempts} attempts: {str(last_error)}"
+                )
+            else:
+                raise HTTPException(
+                    status_code=500, 
+                    detail=f"Outfit generation failed: Unable to generate valid outfit"
+                )
 
         # 2. Wrap with metadata
         outfit_id = str(uuid4())
@@ -4276,16 +4388,112 @@ async def generate_outfit(
         except Exception as stats_error:
             logger.warning(f"Stats update failed: {stats_error}")
 
-        # 4. Return standardized outfit response
-        logger.info(f"✅ Successfully generated and saved outfit {outfit_id}")
+        # 4. Performance monitoring and final validation
+        generation_time = time.time() - start_time
+        logger.info(f"⏱️ Generation completed in {generation_time:.2f} seconds")
+        logger.info(f"📊 Generation attempts: {generation_attempts}")
+        
+        # Final outfit validation
+        final_validation = await _validate_final_outfit(outfit_record, req)
+        if not final_validation['is_valid']:
+            logger.warning(f"⚠️ Final validation issues: {final_validation['issues']}")
+            # Add validation warnings to metadata
+            outfit_record['metadata']['validation_warnings'] = final_validation['issues']
+        
+        # Enhanced success logging
+        logger.info(f"✅ Successfully generated robust outfit {outfit_id}")
+        logger.info(f"📋 Outfit details: {len(outfit_record.get('items', []))} items, confidence: {outfit_record.get('confidence', 'unknown')}")
+        
+        # Return standardized outfit response
         return OutfitResponse(**outfit_record)
 
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        logger.error(f"❌ Outfit generation failed: {e}", exc_info=True)
-        import traceback
-        error_details = traceback.format_exc()
-        logger.error(f"❌ Full traceback: {error_details}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate outfit: {str(e)}")
+        generation_time = time.time() - start_time
+        logger.error(f"❌ Robust outfit generation failed after {generation_time:.2f}s: {e}", exc_info=True)
+        
+        # Enhanced error reporting
+        error_details = {
+            "error_type": type(e).__name__,
+            "error_message": str(e),
+            "generation_time": generation_time,
+            "attempts": generation_attempts,
+            "user_id": current_user.id if current_user else "unknown",
+            "request_details": {
+                "occasion": req.occasion,
+                "style": req.style,
+                "mood": req.mood,
+                "wardrobe_size": len(req.wardrobe) if req.wardrobe else 0
+            }
+        }
+        
+        logger.error(f"❌ Enhanced error details: {error_details}")
+        
+        # Return appropriate error based on error type
+        if "Authentication" in str(e):
+            raise HTTPException(status_code=401, detail="Authentication failed")
+        elif "validation" in str(e).lower():
+            raise HTTPException(status_code=422, detail=f"Request validation failed: {str(e)}")
+        else:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Outfit generation failed: {str(e)}. Attempts: {generation_attempts}, Time: {generation_time:.2f}s"
+            )
+
+async def _validate_final_outfit(outfit_record: Dict[str, Any], req: OutfitRequest) -> Dict[str, Any]:
+    """Validate the final outfit before returning to user"""
+    issues = []
+    is_valid = True
+    
+    # Check item count
+    items = outfit_record.get('items', [])
+    if len(items) < 3:
+        issues.append(f"Outfit has only {len(items)} items (minimum: 3)")
+        is_valid = False
+    elif len(items) > 6:
+        issues.append(f"Outfit has {len(items)} items (maximum: 6)")
+        is_valid = False
+    
+    # Check for essential categories
+    categories = set()
+    for item in items:
+        item_type = item.get('type', '').lower()
+        if item_type in ['shirt', 'blouse', 'sweater', 'tank', 'top']:
+            categories.add('tops')
+        elif item_type in ['pants', 'jeans', 'shorts', 'skirt']:
+            categories.add('bottoms')
+        elif item_type in ['shoes', 'sneakers', 'boots', 'sandals']:
+            categories.add('shoes')
+    
+    missing_essential = {'tops', 'bottoms', 'shoes'} - categories
+    if missing_essential:
+        issues.append(f"Missing essential categories: {missing_essential}")
+        is_valid = False
+    
+    # Check for inappropriate combinations
+    inappropriate_combinations = [
+        ("blazer", "shorts"),
+        ("formal_shoes", "casual_bottoms"),
+        ("tie", "t_shirt")
+    ]
+    
+    for item1 in items:
+        for item2 in items:
+            if item1 != item2:
+                type1 = item1.get('type', '').lower()
+                type2 = item2.get('type', '').lower()
+                
+                for combo1, combo2 in inappropriate_combinations:
+                    if (combo1 in type1 and combo2 in type2) or (combo1 in type2 and combo2 in type1):
+                        issues.append(f"Inappropriate combination: {type1} with {type2}")
+                        is_valid = False
+    
+    return {
+        "is_valid": is_valid,
+        "issues": issues
+    }
 
 
 @router.post("")
