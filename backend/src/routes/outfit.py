@@ -27,9 +27,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 class OutfitGenerationRequest(BaseModel):
     occasion: str
-    weather: Dict[str, Any]  # Accept plain dict, convert internally
-    wardrobe: List[Dict[str, Any]]  # Accept plain dicts, convert internally
-    user_profile: Dict[str, Any]  # Accept plain dict, convert internally
+    weather: WeatherData  # Frontend now sends proper WeatherData
+    wardrobe: List[ClothingItem]  # Frontend now sends proper ClothingItem objects
+    user_profile: UserProfile  # Frontend now sends proper UserProfile
     likedOutfits: Optional[List[str]] = []
     trendingStyles: Optional[List[str]] = []
     preferences: Optional[Dict[str, Any]] = None
@@ -38,7 +38,7 @@ class OutfitGenerationRequest(BaseModel):
     season: Optional[str] = None
     style: Optional[str] = None
     mood: Optional[str] = None  # Add mood parameter
-    baseItem: Optional[Dict[str, Any]] = None  # Accept plain dict
+    baseItem: Optional[ClothingItem] = None  # Frontend now sends proper ClothingItem
     baseItemId: Optional[str] = None  # Add baseItemId parameter
 
 class OutfitFeedbackRequest(BaseModel):
@@ -91,94 +91,21 @@ async def get_outfit(outfit_id: str):
 
 @router.post("/generate", response_model=OutfitGeneratedOutfit)
 async def generate_outfit(request: OutfitGenerationRequest):
-    print(f"🔍 DEBUG: Backend generate_outfit called [COHESIVE COMPOSITION v2.1 - FORCE DEPLOY]")
+    print(f"🔍 DEBUG: Backend generate_outfit called [ADVANCED ENDPOINT v3.0]")
     print(f"🔍 DEBUG: Request data:")
     print(f"  - occasion: {request.occasion}")
     print(f"  - mood: {request.mood}")
     print(f"  - style: {request.style}")
     print(f"  - wardrobe size: {len(request.wardrobe)}")
     print(f"  - baseItemId: {request.baseItemId if request.baseItemId else 'None'}")
-    print(f"  - user_profile.id: {request.user_profile.get('id', 'None')}")
-    print(f"🔍 DEBUG: Weather data: temp={request.weather.get('temperature', 'None')}, condition={request.weather.get('condition', 'None')}")
-    print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].get('name', 'None') if request.wardrobe else 'None'}")
+    print(f"  - user_profile.id: {request.user_profile.id}")
+    print(f"🔍 DEBUG: Weather data: temp={request.weather.temperature}, condition={request.weather.condition}")
+    print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].name if request.wardrobe else 'None'}")
     
-    # Convert plain objects to Pydantic models with robust error handling
-    try:
-        # Convert weather dict to WeatherData
-        print(f"🔍 DEBUG: Converting weather data: {request.weather}")
-        weather_data = WeatherData(**request.weather)
-        
-        # Convert wardrobe dicts to ClothingItem objects
-        wardrobe_items = []
-        print(f"🔍 DEBUG: Converting {len(request.wardrobe)} wardrobe items")
-        
-        for i, item_dict in enumerate(request.wardrobe):
-            try:
-                # Create a copy to avoid modifying original
-                item_copy = item_dict.copy()
-                
-                # Ensure required fields have defaults
-                item_copy.setdefault('season', ['all'])
-                item_copy.setdefault('tags', [])
-                item_copy.setdefault('style', [])
-                item_copy.setdefault('occasion', ['casual'])
-                item_copy.setdefault('dominantColors', [])
-                item_copy.setdefault('matchingColors', [])
-                item_copy.setdefault('wearCount', 0)
-                item_copy.setdefault('favorite_score', 0.0)
-                item_copy.setdefault('createdAt', int(time.time() * 1000))
-                item_copy.setdefault('updatedAt', int(time.time() * 1000))
-                item_copy.setdefault('userId', request.user_profile.get('id', 'unknown'))
-                item_copy.setdefault('imageUrl', '')
-                item_copy.setdefault('subType', None)
-                item_copy.setdefault('colorName', None)
-                item_copy.setdefault('backgroundRemoved', None)
-                item_copy.setdefault('embedding', None)
-                item_copy.setdefault('metadata', {})
-                
-                # Handle type field - convert string to ClothingType enum if needed
-                if 'type' in item_copy and isinstance(item_copy['type'], str):
-                    # Try to convert string type to ClothingType enum
-                    try:
-                        from ..custom_types.wardrobe import ClothingType
-                        item_copy['type'] = ClothingType(item_copy['type'].lower())
-                    except ValueError:
-                        # If conversion fails, use a default type
-                        item_copy['type'] = ClothingType.OTHER
-                
-                # Handle style field - ensure it's a list
-                if isinstance(item_copy.get('style'), str):
-                    item_copy['style'] = [item_copy['style']]
-                elif not isinstance(item_copy.get('style'), list):
-                    item_copy['style'] = []
-                
-                # Handle occasion field - ensure it's a list
-                if isinstance(item_copy.get('occasion'), str):
-                    item_copy['occasion'] = [item_copy['occasion']]
-                elif not isinstance(item_copy.get('occasion'), list):
-                    item_copy['occasion'] = ['casual']
-                
-                print(f"🔍 DEBUG: Converting item {i+1}: {item_copy.get('name', 'Unknown')}")
-                clothing_item = ClothingItem(**item_copy)
-                wardrobe_items.append(clothing_item)
-                
-            except Exception as e:
-                print(f"⚠️ DEBUG: Failed to convert wardrobe item {i+1} ({item_dict.get('name', 'Unknown')}): {e}")
-                print(f"🔍 DEBUG: Item data: {item_dict}")
-                # Skip invalid items but continue processing
-                continue
-        
-        # Convert user_profile dict to UserProfile
-        print(f"🔍 DEBUG: Converting user profile: {request.user_profile}")
-        user_profile = UserProfile(**request.user_profile)
-        
-        print(f"🔍 DEBUG: Successfully converted {len(wardrobe_items)} wardrobe items and user profile")
-        
-    except Exception as e:
-        print(f"❌ DEBUG: Failed to convert request data: {e}")
-        import traceback
-        print(f"🔍 DEBUG: Conversion error traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=422, detail=f"Invalid request data format: {str(e)}")
+    # Frontend now sends properly formatted Pydantic models - no conversion needed!
+    weather_data = request.weather
+    wardrobe_items = request.wardrobe
+    user_profile = request.user_profile
     
     # Debug: Check if base item is in wardrobe
     if request.baseItemId:

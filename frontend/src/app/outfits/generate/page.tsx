@@ -517,15 +517,23 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Full request data:', requestData);
       console.log('🔍 DEBUG: baseItemId in request:', requestData.baseItemId);
       
+      // Convert frontend data to Pydantic-compatible format
+      const { convertToPydanticShape, validateConvertedData } = await import('@/lib/outfitDataConverter');
+      const convertedData = convertToPydanticShape(requestData);
+      
+      if (!validateConvertedData(convertedData)) {
+        throw new Error('Data validation failed');
+      }
+      
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-      console.log('🔍 DEBUG: Making API call to ADVANCED endpoint', `${API_BASE_URL}/api/outfit/generate`);
+      console.log('🔍 DEBUG: Making API call to ADVANCED endpoint with converted data', `${API_BASE_URL}/api/outfit/generate`);
       const response = await fetch(`${API_BASE_URL}/api/outfit/generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(convertedData),
       });
       console.log('🔍 DEBUG: API response status:', response.status);
       console.log('🔍 DEBUG: API response URL:', response.url);

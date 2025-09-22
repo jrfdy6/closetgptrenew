@@ -277,6 +277,14 @@ export function SmartWeatherOutfitGenerator({
         mood: requestData.mood
       });
 
+      // Convert frontend data to Pydantic-compatible format
+      const { convertToPydanticShape, validateConvertedData } = await import('@/lib/outfitDataConverter');
+      const convertedData = convertToPydanticShape(requestData);
+      
+      if (!validateConvertedData(convertedData)) {
+        throw new Error('Data validation failed');
+      }
+
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
       const response = await fetch(`${API_BASE_URL}/api/outfit/generate`, {
         method: 'POST',
@@ -284,7 +292,7 @@ export function SmartWeatherOutfitGenerator({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(convertedData),
       });
 
       if (!response.ok) {
