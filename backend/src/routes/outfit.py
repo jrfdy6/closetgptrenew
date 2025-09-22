@@ -6,15 +6,20 @@ from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.weather import WeatherData
 from ..custom_types.profile import UserProfile
 from pydantic import BaseModel
-from ..services.outfit_service import OutfitService
-from ..services.outfit_generation_service import OutfitGenerationService
+# Temporarily comment out problematic imports
+# from ..services.outfit_service import OutfitService
+# from ..services.outfit_generation_service import OutfitGenerationService
 from ..auth.auth_service import get_current_user, get_current_user_optional
 import time
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/outfit")
-outfit_service = OutfitService()
-outfit_generation_service = OutfitGenerationService()
+# Temporarily comment out service initialization
+# outfit_service = OutfitService()
+# outfit_generation_service = OutfitGenerationService()
 
 @router.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -65,33 +70,34 @@ class UpdateOutfitRequest(BaseModel):
 
 
 
-@router.get("/", response_model=List[OutfitGeneratedOutfit])
-async def get_outfits(current_user: UserProfile = Depends(get_current_user)):
-    logger.info("🚨 DEBUG: /api/outfit/ endpoint called (NOT /api/outfits/)")
-    try:
-        logger.info(f"🔍 [outfit.py] Fetching outfits for user: {current_user.id}")
-        result = await outfit_service.get_outfits_by_user(current_user.id)
-        logger.info(f"✅ [outfit.py] Successfully retrieved {len(result)} outfits")
-        return result
-    except Exception as e:
-        logger.error(f"❌ [outfit.py] Error fetching outfits: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+# Temporarily comment out service-dependent endpoints
+# @router.get("/", response_model=List[OutfitGeneratedOutfit])
+# async def get_outfits(current_user: UserProfile = Depends(get_current_user)):
+#     logger.info("🚨 DEBUG: /api/outfit/ endpoint called (NOT /api/outfits/)")
+#     try:
+#         logger.info(f"🔍 [outfit.py] Fetching outfits for user: {current_user.id}")
+#         result = await outfit_service.get_outfits_by_user(current_user.id)
+#         logger.info(f"✅ [outfit.py] Successfully retrieved {len(result)} outfits")
+#         return result
+#     except Exception as e:
+#         logger.error(f"❌ [outfit.py] Error fetching outfits: {str(e)}", exc_info=True)
+#         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{outfit_id}", response_model=OutfitGeneratedOutfit)
-async def get_outfit(outfit_id: str):
-    try:
-        outfit = await outfit_service.get_outfit(outfit_id)
-        if not outfit:
-            raise HTTPException(status_code=404, detail="Outfit not found")
-        return outfit
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.get("/{outfit_id}", response_model=OutfitGeneratedOutfit)
+# async def get_outfit(outfit_id: str):
+#     try:
+#         outfit = await outfit_service.get_outfit(outfit_id)
+#         if not outfit:
+#             raise HTTPException(status_code=404, detail="Outfit not found")
+#         return outfit
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/generate", response_model=OutfitGeneratedOutfit)
+@router.post("/generate")
 async def generate_outfit(request: OutfitGenerationRequest):
-    print(f"🔍 DEBUG: Backend generate_outfit called [ADVANCED ENDPOINT v3.0]")
+    print(f"🔍 DEBUG: Backend generate_outfit called [SIMPLE ENDPOINT v1.0]")
     print(f"🔍 DEBUG: Request data:")
     print(f"  - occasion: {request.occasion}")
     print(f"  - mood: {request.mood}")
@@ -102,51 +108,69 @@ async def generate_outfit(request: OutfitGenerationRequest):
     print(f"🔍 DEBUG: Weather data: temp={request.weather.temperature}, condition={request.weather.condition}")
     print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].name if request.wardrobe else 'None'}")
     
-    # Frontend now sends properly formatted Pydantic models - no conversion needed!
-    weather_data = request.weather
-    wardrobe_items = request.wardrobe
-    user_profile = request.user_profile
+    # Simple mock response for now
+    mock_outfit = {
+        "id": str(uuid.uuid4()),
+        "name": f"Mock {request.style} Outfit for {request.occasion}",
+        "occasion": request.occasion,
+        "style": request.style,
+        "mood": request.mood,
+        "confidence": 85.0,
+        "weather": {
+            "temperature": request.weather.temperature,
+            "condition": request.weather.condition
+        },
+        "items": [
+            {
+                "id": "mock-item-1",
+                "name": "Mock Shirt",
+                "type": "shirt",
+                "color": "blue",
+                "imageUrl": "",
+                "style": ["casual"],
+                "occasion": ["casual"],
+                "brand": "",
+                "wearCount": 0,
+                "favorite_score": 0.0,
+                "tags": [],
+                "metadata": {}
+            },
+            {
+                "id": "mock-item-2", 
+                "name": "Mock Pants",
+                "type": "pants",
+                "color": "black",
+                "imageUrl": "",
+                "style": ["casual"],
+                "occasion": ["casual"],
+                "brand": "",
+                "wearCount": 0,
+                "favorite_score": 0.0,
+                "tags": [],
+                "metadata": {}
+            },
+            {
+                "id": "mock-item-3",
+                "name": "Mock Shoes", 
+                "type": "shoes",
+                "color": "white",
+                "imageUrl": "",
+                "style": ["casual"],
+                "occasion": ["casual"],
+                "brand": "",
+                "wearCount": 0,
+                "favorite_score": 0.0,
+                "tags": [],
+                "metadata": {}
+            }
+        ],
+        "reasoning": "Mock outfit for testing endpoint connectivity",
+        "createdAt": int(time.time()),
+        "userId": request.user_profile.id
+    }
     
-    # Debug: Check if base item is in wardrobe
-    if request.baseItemId:
-        base_item_in_wardrobe = any(item.id == request.baseItemId for item in wardrobe_items)
-        print(f"🔍 DEBUG: Base item {request.baseItemId} found in wardrobe: {base_item_in_wardrobe}")
-        if base_item_in_wardrobe:
-            base_item = next(item for item in wardrobe_items if item.id == request.baseItemId)
-            print(f"🔍 DEBUG: Base item details: {base_item.name} ({base_item.type})")
-    
-    # NEW: More detailed debugging
-    print(f"🔍 DEBUG: Wardrobe data details:")
-    if wardrobe_items:
-        print(f"  - First item: {wardrobe_items[0].name} ({wardrobe_items[0].type})")
-        print(f"  - First item dominantColors: {len(wardrobe_items[0].dominantColors)}")
-        print(f"  - First item matchingColors: {len(wardrobe_items[0].matchingColors)}")
-        print(f"  - First item style: {wardrobe_items[0].style}")
-        print(f"  - First item occasion: {wardrobe_items[0].occasion}")
-    else:
-        print(f"  - No wardrobe items received!")
-    
-    try:
-        print(f"🔍 DEBUG: Calling outfit_generation_service.generate_outfit")
-        result = await outfit_generation_service.generate_outfit(
-            user_id=user_profile.id,
-            wardrobe=wardrobe_items,
-            occasion=request.occasion,
-            weather=weather_data,
-            user_profile=user_profile,
-            style=request.style,
-            mood=request.mood,
-            base_item_id=request.baseItemId
-        )
-        print(f"✅ DEBUG: outfit_service.generate_outfit completed successfully")
-        print(f"🔍 DEBUG: Generated outfit id: {result.id}")
-        return result
-    except Exception as e:
-        print(f"❌ DEBUG: Error in generate_outfit: {str(e)}")
-        print(f"🔍 DEBUG: Exception type: {type(e)}")
-        import traceback
-        print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+    print(f"✅ DEBUG: Mock outfit generated successfully")
+    return mock_outfit
 
 # MOVED TO OUTFITS.PY - Using unified REST structure
 # @router.post("/create", response_model=OutfitGeneratedOutfit)
@@ -165,123 +189,123 @@ async def generate_outfit(request: OutfitGenerationRequest):
 #         raise HTTPException(status_code=500, detail=str(e))
     pass  # Placeholder since function is moved
 
-@router.put("/{outfit_id}/update", response_model=OutfitGeneratedOutfit)
-async def update_outfit(
-    outfit_id: str,
-    request: UpdateOutfitRequest,
-    current_user: UserProfile = Depends(get_current_user_optional)
-):
-    """
-    Update an existing outfit with new details and items.
-    """
-    try:
-        print(f"🔍 DEBUG: Backend update_outfit called")
-        print(f"🔍 DEBUG: Request data:")
-        print(f"  - outfit_id: {outfit_id}")
-        print(f"  - name: {request.name}")
-        print(f"  - occasion: {request.occasion}")
-        print(f"  - style: {request.style}")
-        print(f"  - items count: {len(request.items)}")
-        
-        # Handle case where current_user might be None
-        if current_user is None:
-            print(f"❌ DEBUG: Authentication failed - current_user is None")
-            raise HTTPException(status_code=401, detail="Authentication required")
-        
-        print(f"  - user_profile.id: {current_user.id}")
-        
-        # Update outfit data
-        outfit_data = {
-            "name": request.name,
-            "occasion": request.occasion,
-            "style": request.style,
-            "description": request.description or "",
-            "items": request.items,
-            "updatedAt": int(time.time()),
-            "is_edited": True  # Mark as edited
-        }
-        
-        # Save to database
-        result = await outfit_service.update_outfit(outfit_id, outfit_data, current_user.id)
-        
-        print(f"✅ DEBUG: update_outfit completed successfully")
-        print(f"🔍 DEBUG: Updated outfit id: {result.id}")
-        return result
-        
-    except Exception as e:
-        print(f"❌ DEBUG: Error in update_outfit: {str(e)}")
-        print(f"🔍 DEBUG: Exception type: {type(e)}")
-        import traceback
-        print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.put("/{outfit_id}/update", response_model=OutfitGeneratedOutfit)
+# async def update_outfit(
+#     outfit_id: str,
+#     request: UpdateOutfitRequest,
+#     current_user: UserProfile = Depends(get_current_user_optional)
+# ):
+#     """
+#     Update an existing outfit with new details and items.
+#     """
+#     try:
+#         print(f"🔍 DEBUG: Backend update_outfit called")
+#         print(f"🔍 DEBUG: Request data:")
+#         print(f"  - outfit_id: {outfit_id}")
+#         print(f"  - name: {request.name}")
+#         print(f"  - occasion: {request.occasion}")
+#         print(f"  - style: {request.style}")
+#         print(f"  - items count: {len(request.items)}")
+#         
+#         # Handle case where current_user might be None
+#         if current_user is None:
+#             print(f"❌ DEBUG: Authentication failed - current_user is None")
+#             raise HTTPException(status_code=401, detail="Authentication required")
+#         
+#         print(f"  - user_profile.id: {current_user.id}")
+#         
+#         # Update outfit data
+#         outfit_data = {
+#             "name": request.name,
+#             "occasion": request.occasion,
+#             "style": request.style,
+#             "description": request.description or "",
+#             "items": request.items,
+#             "updatedAt": int(time.time()),
+#             "is_edited": True  # Mark as edited
+#         }
+#         
+#         # Save to database
+#         result = await outfit_service.update_outfit(outfit_id, outfit_data, current_user.id)
+#         
+#         print(f"✅ DEBUG: update_outfit completed successfully")
+#         print(f"🔍 DEBUG: Updated outfit id: {result.id}")
+#         return result
+#         
+#     except Exception as e:
+#         print(f"❌ DEBUG: Error in update_outfit: {str(e)}")
+#         print(f"🔍 DEBUG: Exception type: {type(e)}")
+#         import traceback
+#         print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
+#         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/{outfit_id}/feedback")
-async def submit_outfit_feedback(
-    outfit_id: str, 
-    feedback: OutfitFeedbackRequest,
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """
-    Submit feedback for a generated outfit.
-    
-    - liked: Whether the user liked the outfit
-    - rating: Rating from 1-5
-    - comment: Optional comment
-    - worn: Whether the user actually wore the outfit
-    - occasion_used: What occasion they wore it for
-    """
-    try:
-        # Validate rating
-        if feedback.rating < 1 or feedback.rating > 5:
-            raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
-        
-        # Prepare feedback data
-        feedback_data = {
-            "liked": feedback.liked,
-            "rating": feedback.rating,
-            "comment": feedback.comment or "",
-            "worn": feedback.worn,
-            "occasion_used": feedback.occasion_used,
-            "user_id": current_user.id,
-            "timestamp": int(time.time())
-        }
-        
-        # Update outfit with feedback
-        success = await outfit_service.update_outfit_feedback(outfit_id, feedback_data)
-        
-        if not success:
-            raise HTTPException(status_code=500, detail="Failed to save feedback")
-        
-        return {
-            "success": True,
-            "message": "Feedback submitted successfully",
-            "outfit_id": outfit_id
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error submitting feedback: {str(e)}")
+# @router.post("/{outfit_id}/feedback")
+# async def submit_outfit_feedback(
+#     outfit_id: str, 
+#     feedback: OutfitFeedbackRequest,
+#     current_user: UserProfile = Depends(get_current_user)
+# ):
+#     """
+#     Submit feedback for a generated outfit.
+#     
+#     - liked: Whether the user liked the outfit
+#     - rating: Rating from 1-5
+#     - comment: Optional comment
+#     - worn: Whether the user actually wore the outfit
+#     - occasion_used: What occasion they wore it for
+#     """
+#     try:
+#         # Validate rating
+#         if feedback.rating < 1 or feedback.rating > 5:
+#             raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+#         
+#         # Prepare feedback data
+#         feedback_data = {
+#             "liked": feedback.liked,
+#             "rating": feedback.rating,
+#             "comment": feedback.comment or "",
+#             "worn": feedback.worn,
+#             "occasion_used": feedback.occasion_used,
+#             "user_id": current_user.id,
+#             "timestamp": int(time.time())
+#         }
+#         
+#         # Update outfit with feedback
+#         success = await outfit_service.update_outfit_feedback(outfit_id, feedback_data)
+#         
+#         if not success:
+#             raise HTTPException(status_code=500, detail="Failed to save feedback")
+#         
+#         return {
+#             "success": True,
+#             "message": "Feedback submitted successfully",
+#             "outfit_id": outfit_id
+#         }
+#         
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error submitting feedback: {str(e)}")
 
-@router.get("/{outfit_id}/feedback")
-async def get_outfit_feedback(
-    outfit_id: str,
-    current_user: UserProfile = Depends(get_current_user)
-):
-    """Get feedback for a specific outfit."""
-    try:
-        outfit = await outfit_service.get_outfit(outfit_id)
-        if not outfit:
-            raise HTTPException(status_code=404, detail="Outfit not found")
-        
-        return {
-            "outfit_id": outfit_id,
-            "feedback": outfit.userFeedback
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @router.get("/{outfit_id}/feedback")
+# async def get_outfit_feedback(
+#     outfit_id: str,
+#     current_user: UserProfile = Depends(get_current_user)
+# ):
+#     """Get feedback for a specific outfit."""
+#     try:
+#         outfit = await outfit_service.get_outfit(outfit_id)
+#         if not outfit:
+#             raise HTTPException(status_code=404, detail="Outfit not found")
+#         
+#         return {
+#             "outfit_id": outfit_id,
+#             "feedback": outfit.userFeedback
+#         }
+#         
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
  
