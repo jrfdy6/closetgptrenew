@@ -22,6 +22,7 @@ export interface ApiRequest {
   headers?: Record<string, string>;
   timeout?: number;
   retryable?: boolean;
+  authToken?: string;
 }
 
 export interface ApiResponse<T = any> {
@@ -134,6 +135,11 @@ export class RobustApiClient {
       'X-Request-ID': requestId,
       ...request.headers
     };
+
+    // Add authentication header if token is provided
+    if (request.authToken) {
+      headers['Authorization'] = `Bearer ${request.authToken}`;
+    }
 
     const fetchConfig: RequestInit = {
       method: request.method,
@@ -366,7 +372,7 @@ export class RobustApiClient {
 /**
  * Convenience function for outfit generation
  */
-export async function generateOutfit(requestData: any): Promise<any> {
+export async function generateOutfit(requestData: any, authToken?: string): Promise<any> {
   const client = RobustApiClient.getInstance();
   
   console.log('🔍 DEBUG: Making API call to ROBUST endpoint with converted data', `${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfits/generate`);
@@ -375,7 +381,8 @@ export async function generateOutfit(requestData: any): Promise<any> {
     method: 'POST',
     endpoint: '/api/outfits/generate',
     data: requestData,
-    retryable: true
+    retryable: true,
+    authToken: authToken
   });
 }
 

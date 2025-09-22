@@ -522,7 +522,8 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Making ROBUST API call to /api/outfits/generate endpoint with converted data');
       
       // Use robust API client with comprehensive error handling
-      const response = await generateOutfit(convertedData);
+      const token = await user.getIdToken();
+      const response = await generateOutfit(convertedData, token);
       const data = response.data;
       console.log('🔍 DEBUG: Generated outfit data:', data);
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
