@@ -3,7 +3,7 @@ from typing import Dict, Any
 import time
 import uuid
 
-router = APIRouter(prefix="/api/outfit")
+router = APIRouter(prefix="/api/outfit-new")
 
 @router.get("/")
 async def get_outfits():
