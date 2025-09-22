@@ -241,8 +241,8 @@ export default function OutfitGenerationPage() {
   ];
 
   const moods = [
-    // Backend-supported moods (matching enum values from Mood enum)
-    'Confident', 'Relaxed', 'Professional', 'Playful', 'Elegant', 'Bold', 'Minimal', 'Creative', 'Comfortable', 'Sophisticated', 'Energetic'
+    // Backend-supported moods (from validation error message)
+    'Romantic', 'Playful', 'Serene', 'Dynamic', 'Bold', 'Subtle'
   ];
 
   const weatherOptions = [
