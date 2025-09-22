@@ -281,12 +281,12 @@ async def upload_image_inline():
     return {"message": "Inline upload route is working", "status": "success"}
 
 # ---------------- INLINE OUTFIT ROUTES ----------------
-@app.get("/api/outfit/")
+@app.get("/api/outfit-test/")
 async def get_outfits_inline():
     """Inline outfit router GET endpoint"""
     return {"message": "Inline outfit router is working!", "status": "success"}
 
-@app.post("/api/outfit/generate")
+@app.post("/api/outfit-test/generate")
 async def generate_outfit_inline(request: dict):
     """Inline outfit generation endpoint"""
     print(f"🔍 DEBUG: Inline outfit generation called")
