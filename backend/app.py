@@ -166,13 +166,15 @@ def include_router_safe(module_name: str, prefix: str):
         # Router loaded successfully
         
         # Log all routes in the router
+        print(f"🔍 DEBUG: Router {module_name} has {len(router.routes)} routes")
         if hasattr(router, 'routes'):
             for route in router.routes:
                 if hasattr(route, 'path') and hasattr(route, 'methods'):
-                    # Route registered
-                    pass
+                    print(f"🔍 DEBUG: Route {route.path} with methods {route.methods}")
         
+        print(f"🔍 DEBUG: About to mount router {module_name} with prefix '{prefix}'")
         app.include_router(router, prefix=prefix)
+        print(f"✅ DEBUG: Successfully mounted router {module_name}")
         # Router mounted
         
     except Exception as e:
