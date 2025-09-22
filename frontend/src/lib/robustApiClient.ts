@@ -371,7 +371,7 @@ export async function generateOutfit(requestData: any): Promise<any> {
   
   return await client.request({
     method: 'POST',
-    endpoint: '/api/outfits/generate',
+    endpoint: '/api/outfit/generate',
     data: requestData,
     retryable: true
   });
