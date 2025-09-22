@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     const isCreation = requestData.items && Array.isArray(requestData.items);
     console.log("🔍 DEBUG: Request type detected:", isCreation ? "outfit creation" : "outfit generation");
     
-    // Call the production backend
+    // Call the production backend - Updated to use cohesive composition service
     const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
     const backendEndpoint = isCreation ? '/api/outfits' : '/api/outfit/generate';
     const fullBackendUrl = `${backendUrl}${backendEndpoint}`;
