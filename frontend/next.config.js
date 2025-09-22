@@ -42,6 +42,14 @@ const nextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://closetgptrenew-backend-production.up.railway.app/api/:path*',
+      },
+    ];
+  },
   async headers() {
     return [
       {
