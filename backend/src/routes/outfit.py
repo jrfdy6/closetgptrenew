@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
+from fastapi.exceptions import RequestValidationError
 from typing import List, Optional, Dict, Any
 from ..custom_types.outfit import Outfit, OutfitGenerationRequest, OutfitGeneratedOutfit
 from ..custom_types.wardrobe import ClothingItem
@@ -14,6 +15,15 @@ import uuid
 router = APIRouter(prefix="/api/outfit")
 outfit_service = OutfitService()
 outfit_generation_service = OutfitGenerationService()
+
+@router.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"🔍 DEBUG: Validation error occurred:")
+    print(f"  - URL: {request.url}")
+    print(f"  - Method: {request.method}")
+    print(f"  - Errors: {exc.errors()}")
+    print(f"  - Body: {await request.body()}")
+    return HTTPException(status_code=422, detail=f"Validation error: {exc.errors()}")
 
 class OutfitGenerationRequest(BaseModel):
     occasion: str
@@ -89,6 +99,8 @@ async def generate_outfit(request: OutfitGenerationRequest):
     print(f"  - wardrobe size: {len(request.wardrobe)}")
     print(f"  - baseItemId: {request.baseItemId if request.baseItemId else 'None'}")
     print(f"  - user_profile.id: {request.user_profile.id}")
+    print(f"🔍 DEBUG: Weather data: temp={request.weather.temperature}, condition={request.weather.condition}")
+    print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].name if request.wardrobe else 'None'}")
     
     # Debug: Check if base item is in wardrobe
     if request.baseItemId:
