@@ -6,9 +6,9 @@ from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.weather import WeatherData
 from ..custom_types.profile import UserProfile
 from pydantic import BaseModel
-# Import services with minimal dependencies
-from ..services.outfit_service import OutfitService
-# from ..services.outfit_generation_service import OutfitGenerationService  # Comment out for now
+# Temporarily comment out service imports to test router loading
+# from ..services.outfit_service import OutfitService
+# from ..services.outfit_generation_service import OutfitGenerationService
 from ..auth.auth_service import get_current_user, get_current_user_optional
 import time
 import uuid
@@ -17,8 +17,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/outfit")
-outfit_service = OutfitService()
-# outfit_generation_service = OutfitGenerationService()  # Comment out for now
+# outfit_service = OutfitService()  # Comment out for now
+# outfit_generation_service = OutfitGenerationService()
 
 @router.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -69,29 +69,15 @@ class UpdateOutfitRequest(BaseModel):
 
 
 
-@router.get("/", response_model=List[OutfitGeneratedOutfit])
-async def get_outfits(current_user: UserProfile = Depends(get_current_user)):
-    logger.info("🚨 DEBUG: /api/outfit/ endpoint called (NOT /api/outfits/)")
-    try:
-        logger.info(f"🔍 [outfit.py] Fetching outfits for user: {current_user.id}")
-        result = await outfit_service.get_outfits_by_user(current_user.id)
-        logger.info(f"✅ [outfit.py] Successfully retrieved {len(result)} outfits")
-        return result
-    except Exception as e:
-        logger.error(f"❌ [outfit.py] Error fetching outfits: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/")
+async def get_outfits():
+    """Simple test endpoint to verify outfit router loads"""
+    return {"message": "Outfit router is working!", "status": "success"}
 
-@router.get("/{outfit_id}", response_model=OutfitGeneratedOutfit)
+@router.get("/{outfit_id}")
 async def get_outfit(outfit_id: str):
-    try:
-        outfit = await outfit_service.get_outfit(outfit_id)
-        if not outfit:
-            raise HTTPException(status_code=404, detail="Outfit not found")
-        return outfit
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Simple test endpoint to get outfit by ID"""
+    return {"message": f"Getting outfit {outfit_id}", "outfit_id": outfit_id}
 
 @router.post("/generate")
 async def generate_outfit(request: OutfitGenerationRequest):
