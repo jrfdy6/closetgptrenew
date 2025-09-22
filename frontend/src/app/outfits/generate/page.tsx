@@ -241,16 +241,8 @@ export default function OutfitGenerationPage() {
   ];
 
   const moods = [
-    // Personality & Attitude
-    'Confident', 'Bold', 'Mysterious', 'Playful', 'Sophisticated',
-    // Energy Levels
-    'Energetic', 'Relaxed', 'Calm', 'Dynamic', 'Serene',
-    // Emotional States
-    'Romantic', 'Dreamy', 'Powerful', 'Edgy', 'Whimsical',
-    // Style Attitudes
-    'Classic', 'Trendy', 'Artistic', 'Minimalist', 'Maximalist',
-    // Social Vibes
-    'Approachable', 'Intimidating', 'Friendly', 'Professional', 'Casual'
+    // Backend-supported moods (matching enum values from Mood enum)
+    'Confident', 'Relaxed', 'Professional', 'Playful', 'Elegant', 'Bold', 'Minimal', 'Creative', 'Comfortable', 'Sophisticated', 'Energetic'
   ];
 
   const weatherOptions = [
