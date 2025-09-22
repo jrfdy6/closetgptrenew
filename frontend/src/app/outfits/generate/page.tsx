@@ -518,8 +518,8 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: baseItemId in request:', requestData.baseItemId);
       
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-      console.log('🔍 DEBUG: Making API call to', `${API_BASE_URL}/api/outfits/generate`);
-      const response = await fetch(`${API_BASE_URL}/api/outfits/generate`, {
+      console.log('🔍 DEBUG: Making API call to ADVANCED endpoint', `${API_BASE_URL}/api/outfit/generate`);
+      const response = await fetch(`${API_BASE_URL}/api/outfit/generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -102,41 +102,82 @@ async def generate_outfit(request: OutfitGenerationRequest):
     print(f"🔍 DEBUG: Weather data: temp={request.weather.get('temperature', 'None')}, condition={request.weather.get('condition', 'None')}")
     print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].get('name', 'None') if request.wardrobe else 'None'}")
     
-    # Convert plain objects to Pydantic models
+    # Convert plain objects to Pydantic models with robust error handling
     try:
         # Convert weather dict to WeatherData
+        print(f"🔍 DEBUG: Converting weather data: {request.weather}")
         weather_data = WeatherData(**request.weather)
         
         # Convert wardrobe dicts to ClothingItem objects
         wardrobe_items = []
-        for item_dict in request.wardrobe:
+        print(f"🔍 DEBUG: Converting {len(request.wardrobe)} wardrobe items")
+        
+        for i, item_dict in enumerate(request.wardrobe):
             try:
-                # Ensure required fields have defaults
-                item_dict.setdefault('season', [])
-                item_dict.setdefault('tags', [])
-                item_dict.setdefault('style', [])
-                item_dict.setdefault('occasion', [])
-                item_dict.setdefault('dominantColors', [])
-                item_dict.setdefault('matchingColors', [])
-                item_dict.setdefault('wearCount', 0)
-                item_dict.setdefault('favorite_score', 0.0)
-                item_dict.setdefault('createdAt', int(time.time() * 1000))
-                item_dict.setdefault('updatedAt', int(time.time() * 1000))
+                # Create a copy to avoid modifying original
+                item_copy = item_dict.copy()
                 
-                clothing_item = ClothingItem(**item_dict)
+                # Ensure required fields have defaults
+                item_copy.setdefault('season', ['all'])
+                item_copy.setdefault('tags', [])
+                item_copy.setdefault('style', [])
+                item_copy.setdefault('occasion', ['casual'])
+                item_copy.setdefault('dominantColors', [])
+                item_copy.setdefault('matchingColors', [])
+                item_copy.setdefault('wearCount', 0)
+                item_copy.setdefault('favorite_score', 0.0)
+                item_copy.setdefault('createdAt', int(time.time() * 1000))
+                item_copy.setdefault('updatedAt', int(time.time() * 1000))
+                item_copy.setdefault('userId', request.user_profile.get('id', 'unknown'))
+                item_copy.setdefault('imageUrl', '')
+                item_copy.setdefault('subType', None)
+                item_copy.setdefault('colorName', None)
+                item_copy.setdefault('backgroundRemoved', None)
+                item_copy.setdefault('embedding', None)
+                item_copy.setdefault('metadata', {})
+                
+                # Handle type field - convert string to ClothingType enum if needed
+                if 'type' in item_copy and isinstance(item_copy['type'], str):
+                    # Try to convert string type to ClothingType enum
+                    try:
+                        from ..custom_types.wardrobe import ClothingType
+                        item_copy['type'] = ClothingType(item_copy['type'].lower())
+                    except ValueError:
+                        # If conversion fails, use a default type
+                        item_copy['type'] = ClothingType.OTHER
+                
+                # Handle style field - ensure it's a list
+                if isinstance(item_copy.get('style'), str):
+                    item_copy['style'] = [item_copy['style']]
+                elif not isinstance(item_copy.get('style'), list):
+                    item_copy['style'] = []
+                
+                # Handle occasion field - ensure it's a list
+                if isinstance(item_copy.get('occasion'), str):
+                    item_copy['occasion'] = [item_copy['occasion']]
+                elif not isinstance(item_copy.get('occasion'), list):
+                    item_copy['occasion'] = ['casual']
+                
+                print(f"🔍 DEBUG: Converting item {i+1}: {item_copy.get('name', 'Unknown')}")
+                clothing_item = ClothingItem(**item_copy)
                 wardrobe_items.append(clothing_item)
+                
             except Exception as e:
-                print(f"⚠️ DEBUG: Failed to convert wardrobe item {item_dict.get('name', 'Unknown')}: {e}")
-                # Skip invalid items
+                print(f"⚠️ DEBUG: Failed to convert wardrobe item {i+1} ({item_dict.get('name', 'Unknown')}): {e}")
+                print(f"🔍 DEBUG: Item data: {item_dict}")
+                # Skip invalid items but continue processing
                 continue
         
         # Convert user_profile dict to UserProfile
+        print(f"🔍 DEBUG: Converting user profile: {request.user_profile}")
         user_profile = UserProfile(**request.user_profile)
         
-        print(f"🔍 DEBUG: Converted {len(wardrobe_items)} wardrobe items successfully")
+        print(f"🔍 DEBUG: Successfully converted {len(wardrobe_items)} wardrobe items and user profile")
         
     except Exception as e:
         print(f"❌ DEBUG: Failed to convert request data: {e}")
+        import traceback
+        print(f"🔍 DEBUG: Conversion error traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=422, detail=f"Invalid request data format: {str(e)}")
     
     # Debug: Check if base item is in wardrobe
