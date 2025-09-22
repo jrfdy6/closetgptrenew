@@ -11,7 +11,7 @@ from ..auth.auth_service import get_current_user, get_current_user_optional
 import time
 import uuid
 
-router = APIRouter()
+router = APIRouter(prefix="/api/outfit")
 outfit_service = OutfitService()
 outfit_generation_service = OutfitGenerationService()
 

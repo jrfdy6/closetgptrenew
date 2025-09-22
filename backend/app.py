@@ -129,7 +129,7 @@ ROUTERS = [
     ("src.routes.debug_stats", "/api"),  # Debug stats router for Railway-proof debugging
     ("src.routes.forgotten_gems", "/api/wardrobe-insights"),  # Forgotten gems router - mounted at /api/wardrobe-insights to avoid conflict
     # ("src.routes.wardrobe_minimal", ""), # Router already has /api/wardrobe prefix - using simplified version
-    ("src.routes.outfit", ""),           # Router already has /api/outfit prefix - RE-ENABLED for frontend compatibility
+    ("src.routes.outfit", ""),           # Router has /api/outfit prefix defined - RE-ENABLED for frontend compatibility
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
     # ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats - TEMPORARILY DISABLED
     ("src.routes.outfit_stats_simple", "/api/outfit-stats"), # Simple outfit stats router - fixes 405 errors
