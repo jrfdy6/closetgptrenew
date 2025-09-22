@@ -278,7 +278,7 @@ export function SmartWeatherOutfitGenerator({
       });
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app';
-      const response = await fetch(`${API_BASE_URL}/api/outfit/generate`, {
+      const response = await fetch(`${API_BASE_URL}/api/outfits/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
