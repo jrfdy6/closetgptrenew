@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// Test route to verify deployment
+// Test route to verify deployment - URGENT DEPLOYMENT FORCE
 export async function OPTIONS(req: NextRequest) {
-  console.log("🔍 DEBUG: OPTIONS request received - API route is deployed");
+  console.log("🔍 DEBUG: OPTIONS request received - API route is deployed [URGENT v3.0]");
   return new NextResponse(null, { 
     status: 200,
     headers: {
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString();
   console.log(`🔍 DEBUG: Outfits POST route called - CONNECTING TO PRODUCTION BACKEND [${timestamp}]`);
-  console.log(`🔍 DEBUG: API ROUTE IS BEING CALLED! - COHESIVE COMPOSITION ENABLED`);
+    console.log(`🔍 DEBUG: API ROUTE IS BEING CALLED! - COHESIVE COMPOSITION ENABLED [URGENT v3.0]`);
   
   try {
     // Get the authorization header

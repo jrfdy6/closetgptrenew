@@ -91,7 +91,7 @@ async def get_outfit(outfit_id: str):
 
 @router.post("/generate", response_model=OutfitGeneratedOutfit)
 async def generate_outfit(request: OutfitGenerationRequest):
-    print(f"🔍 DEBUG: Backend generate_outfit called [COHESIVE COMPOSITION v2.0]")
+    print(f"🔍 DEBUG: Backend generate_outfit called [COHESIVE COMPOSITION v2.1 - FORCE DEPLOY]")
     print(f"🔍 DEBUG: Request data:")
     print(f"  - occasion: {request.occasion}")
     print(f"  - mood: {request.mood}")
