@@ -179,7 +179,12 @@ def include_router_safe(module_name: str, prefix: str):
         print(f"🔥 Failed to mount {module_name}")
         print(f"🔥 Error type: {type(e).__name__}")
         print(f"🔥 Error message: {str(e)}")
+        print(f"🔥 Full traceback:")
         traceback.print_exc()
+        # Also log to logger for Railway logs
+        import logging
+        logging.error(f"Failed to mount {module_name}: {e}")
+        logging.error(f"Full traceback: {traceback.format_exc()}")
 
 # Router loading
 # Router loading process
