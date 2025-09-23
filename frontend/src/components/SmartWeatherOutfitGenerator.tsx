@@ -464,7 +464,7 @@ export function SmartWeatherOutfitGenerator({
     const precipitation = weather.precipitation || 0;
     const windSpeed = weather.wind_speed || 0;
     
-    // Priority weather conditions
+    // Priority weather conditions (matching backend enum)
     if (condition.includes('rain') || condition.includes('storm') || precipitation > 50) {
       return 'Rainy Day';
     }
@@ -472,19 +472,13 @@ export function SmartWeatherOutfitGenerator({
       return 'Cold Weather';
     }
     
-    // Temperature-based occasions
+    // Temperature-based occasions (matching backend enum)
     if (temp >= 90) return 'Hot Weather';
-    if (temp >= 80) return 'Warm Day';
     if (temp <= 32) return 'Cold Weather';
-    if (temp <= 45) return 'Cool Weather';
+    if (temp <= 45) return 'Chilly Evening';
     
-    // Condition-based occasions
-    if (windSpeed > 20) return 'Windy Day';
-    if (condition.includes('fog') || condition.includes('mist')) return 'Overcast Day';
-    if (condition.includes('sun') || condition.includes('clear')) return 'Sunny Day';
-    if (condition.includes('cloud')) return 'Overcast Day';
-    
-    return 'Daily Casual';
+    // Default to Casual for normal weather conditions
+    return 'Casual';
   };
 
   const determineStyleFromWeather = (weather: any): string => {
