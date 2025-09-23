@@ -51,7 +51,7 @@ export default function PersonalizationDemoPage() {
   const [formData, setFormData] = useState({
     occasion: 'Business',
     style: 'Classic',
-    mood: 'Confident'
+    mood: 'Bold'
   });
 
   const handleGenerateOutfit = async () => {
@@ -335,9 +335,9 @@ export default function PersonalizationDemoPage() {
                         <option value="Casual">Casual</option>
                         <option value="Business">Business</option>
                         <option value="Party">Party</option>
-                        <option value="Weekend">Weekend</option>
                         <option value="Date">Date</option>
                         <option value="Interview">Interview</option>
+                        <option value="Weekend">Weekend</option>
                         <option value="Loungewear">Loungewear</option>
                       </select>
                     </div>
@@ -349,13 +349,57 @@ export default function PersonalizationDemoPage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, style: e.target.value }))}
                         className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
                       >
+                        {/* Academic & Intellectual */}
+                        <option value="Dark Academia">Dark Academia</option>
+                        <option value="Light Academia">Light Academia</option>
+                        <option value="Old Money">Old Money</option>
+                        
+                        {/* Trendy & Modern */}
+                        <option value="Y2K">Y2K</option>
+                        <option value="Coastal Grandmother">Coastal Grandmother</option>
+                        <option value="Clean Girl">Clean Girl</option>
+                        <option value="Cottagecore">Cottagecore</option>
+                        
+                        {/* Artistic & Creative */}
+                        <option value="Avant-Garde">Avant-Garde</option>
+                        <option value="Artsy">Artsy</option>
+                        <option value="Maximalist">Maximalist</option>
+                        <option value="Colorblock">Colorblock</option>
+                        
+                        {/* Professional & Classic */}
+                        <option value="Business Casual">Business Casual</option>
                         <option value="Classic">Classic</option>
-                        <option value="Modern">Modern</option>
-                        <option value="Edgy">Edgy</option>
                         <option value="Preppy">Preppy</option>
-                        <option value="Minimalist">Minimalist</option>
+                        <option value="Urban Professional">Urban Professional</option>
+                        
+                        {/* Urban & Street */}
+                        <option value="Streetwear">Streetwear</option>
+                        <option value="Techwear">Techwear</option>
+                        <option value="Grunge">Grunge</option>
+                        <option value="Hipster">Hipster</option>
+                        
+                        {/* Feminine & Romantic */}
                         <option value="Romantic">Romantic</option>
-                        <option value="Bohemian">Bohemian</option>
+                        <option value="Boho">Boho</option>
+                        <option value="French Girl">French Girl</option>
+                        <option value="Pinup">Pinup</option>
+                        
+                        {/* Modern & Minimal */}
+                        <option value="Minimalist">Minimalist</option>
+                        <option value="Modern">Modern</option>
+                        <option value="Scandinavian">Scandinavian</option>
+                        
+                        {/* Alternative & Edgy */}
+                        <option value="Gothic">Gothic</option>
+                        <option value="Punk">Punk</option>
+                        <option value="Cyberpunk">Cyberpunk</option>
+                        <option value="Edgy">Edgy</option>
+                        
+                        {/* Seasonal & Lifestyle */}
+                        <option value="Coastal Chic">Coastal Chic</option>
+                        <option value="Athleisure">Athleisure</option>
+                        <option value="Casual Cool">Casual Cool</option>
+                        <option value="Loungewear">Loungewear</option>
                       </select>
                     </div>
                     
@@ -366,13 +410,12 @@ export default function PersonalizationDemoPage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, mood: e.target.value }))}
                         className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
                       >
-                        <option value="Confident">Confident</option>
-                        <option value="Relaxed">Relaxed</option>
-                        <option value="Professional">Professional</option>
+                        <option value="Romantic">Romantic</option>
                         <option value="Playful">Playful</option>
+                        <option value="Serene">Serene</option>
+                        <option value="Dynamic">Dynamic</option>
                         <option value="Bold">Bold</option>
-                        <option value="Elegant">Elegant</option>
-                        <option value="Creative">Creative</option>
+                        <option value="Subtle">Subtle</option>
                       </select>
                     </div>
                   </div>
