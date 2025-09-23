@@ -124,16 +124,24 @@ class DashboardService {
     console.log('🔍 DEBUG: Making request to:', fullUrl);
     console.log('🔍 DEBUG: Authorization header:', `Bearer ${token.substring(0, 20)}...`);
 
+    // Only apply aggressive cache-busting for analytics endpoint
+    const isAnalyticsEndpoint = endpoint.includes('/outfits/analytics/worn-this-week');
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add cache-busting headers only for analytics endpoint
+    if (isAnalyticsEndpoint) {
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+      headers['Pragma'] = 'no-cache';
+      headers['Expires'] = '0';
+    }
+
     const response = await fetch(fullUrl, {
       method: 'GET', // Default to GET, can be overridden in options
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        ...options.headers,
-      },
+      headers,
       ...options,
     });
 
