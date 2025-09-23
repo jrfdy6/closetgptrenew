@@ -83,7 +83,74 @@ export default function PersonalizationDemoPage() {
       const wardrobeItems = wardrobeData.items || wardrobeData;
       console.log('✅ [Demo] Fetched wardrobe items:', wardrobeItems.length);
 
-      // Prepare request data with actual wardrobe items
+      // Fetch the user's complete profile data for advanced validation
+      console.log('🔍 [Demo] Fetching user profile data...');
+      const profileResponse = await fetch('/api/profile', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+      
+      let userProfile = { id: user.uid };
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        userProfile = profileData;
+        console.log('✅ [Demo] Fetched user profile:', {
+          bodyType: profileData.bodyType,
+          skinTone: profileData.skinTone,
+          height: profileData.height,
+          weight: profileData.weight,
+          gender: profileData.gender,
+          stylePreferences: profileData.stylePreferences?.length || 0,
+          colorPreferences: profileData.colorPreferences?.length || 0
+        });
+      } else {
+        console.log('⚠️ [Demo] Could not fetch user profile, using minimal profile');
+      }
+
+      // Fetch user's outfit history and preferences for advanced personalization
+      console.log('🔍 [Demo] Fetching outfit history and preferences...');
+      let likedOutfits = [];
+      let outfitHistory = [];
+      
+      try {
+        const outfitsResponse = await fetch('/api/outfits', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+          },
+        });
+        
+        if (outfitsResponse.ok) {
+          const outfitsData = await outfitsResponse.json();
+          const outfits = outfitsData.outfits || outfitsData || [];
+          
+          // Extract liked outfits and history
+          likedOutfits = outfits
+            .filter(outfit => outfit.favorite || outfit.rating >= 4)
+            .map(outfit => outfit.id);
+          
+          outfitHistory = outfits
+            .filter(outfit => outfit.wearCount > 0)
+            .map(outfit => ({
+              id: outfit.id,
+              items: outfit.items?.map(item => item.id) || [],
+              wearCount: outfit.wearCount,
+              rating: outfit.rating,
+              occasion: outfit.occasion,
+              style: outfit.style
+            }));
+          
+          console.log('✅ [Demo] Fetched outfit data:', {
+            totalOutfits: outfits.length,
+            likedOutfits: likedOutfits.length,
+            outfitHistory: outfitHistory.length
+          });
+        }
+      } catch (error) {
+        console.log('⚠️ [Demo] Could not fetch outfit history, continuing without it');
+      }
+
+      // Prepare request data with complete user data for advanced validation
       const requestData = {
         occasion: formData.occasion,
         style: formData.style,
@@ -95,8 +162,10 @@ export default function PersonalizationDemoPage() {
           wind_speed: 5,
           location: 'Demo Location'
         },
-        wardrobe: wardrobeItems, // Use actual wardrobe items
-        user_profile: { id: user.uid }, // Minimal profile - backend will fetch user's actual profile
+        wardrobe: wardrobeItems, // Use actual wardrobe items with wear counts, favorites, etc.
+        user_profile: userProfile, // Complete profile with body type, skin tone, height, weight, gender, preferences
+        likedOutfits: likedOutfits, // Previously liked outfits for style matching
+        outfit_history: outfitHistory, // Wear history for diversity and preference learning
         baseItemId: null
       };
 
