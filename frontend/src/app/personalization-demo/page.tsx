@@ -588,12 +588,38 @@ export default function PersonalizationDemoPage() {
                       </div>
                       <div className="space-y-2">
                         {generatedOutfit.items.map((item, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                            <div>
-                              <div className="font-medium">{item.name}</div>
-                              <div className="text-sm text-muted-foreground">{item.type} • {item.color}</div>
+                          <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            {/* Item Thumbnail */}
+                            <div className="flex-shrink-0">
+                              {item.imageUrl ? (
+                                <img 
+                                  src={item.imageUrl} 
+                                  alt={item.name}
+                                  className="w-12 h-12 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                                  onError={(e) => {
+                                    // Fallback to placeholder if image fails to load
+                                    e.currentTarget.src = `https://via.placeholder.com/48/666666/FFFFFF?text=${item.type?.charAt(0) || '?'}`;
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                    {item.type?.charAt(0) || '?'}
+                                  </span>
+                                </div>
+                              )}
                             </div>
-                            <Badge variant="outline">{item.color}</Badge>
+                            
+                            {/* Item Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">{item.name}</div>
+                              <div className="text-xs text-muted-foreground">{item.type} • {item.color}</div>
+                            </div>
+                            
+                            {/* Color Badge */}
+                            <Badge variant="outline" className="flex-shrink-0">
+                              {item.color}
+                            </Badge>
                           </div>
                         ))}
                       </div>
