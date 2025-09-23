@@ -5100,6 +5100,54 @@ async def get_outfits_worn_this_week_simple(
         
         logger.info(f"✅ Found {worn_count} wear events this week for user {current_user.id}")
         
+        # If no outfit_history records found, fall back to lastWorn dates from outfits collection
+        if worn_count == 0 and processed_count == 0:
+            logger.info("📊 No outfit_history records found, falling back to lastWorn dates from outfits collection")
+            
+            # Query outfits collection for lastWorn dates
+            outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
+            
+            for outfit_doc in outfits_ref.stream():
+                outfit_data = outfit_doc.to_dict()
+                last_worn = outfit_data.get('lastWorn')
+                
+                if last_worn:
+                    try:
+                        # Parse lastWorn date
+                        if isinstance(last_worn, str):
+                            last_worn_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
+                        elif hasattr(last_worn, 'timestamp'):
+                            last_worn_date = datetime.fromtimestamp(last_worn.timestamp(), tz=timezone.utc)
+                        elif isinstance(last_worn, datetime):
+                            last_worn_date = last_worn
+                        else:
+                            continue
+                        
+                        # Ensure timezone aware
+                        if last_worn_date.tzinfo is None:
+                            last_worn_date = last_worn_date.replace(tzinfo=timezone.utc)
+                        
+                        # Check if this outfit was worn this week
+                        if last_worn_date >= week_start:
+                            worn_count += 1
+                            logger.info(f"📅 Outfit {outfit_doc.id} worn this week (lastWorn fallback): {last_worn_date}")
+                            
+                    except Exception as parse_error:
+                        logger.warning(f"Error parsing lastWorn {last_worn}: {parse_error}")
+                        continue
+            
+            logger.info(f"✅ Fallback found {worn_count} outfits worn this week from lastWorn dates")
+            
+            return {
+                "success": True,
+                "user_id": current_user.id,
+                "outfits_worn_this_week": worn_count,
+                "source": "lastWorn_fallback",
+                "week_start": week_start.isoformat(),
+                "calculated_at": datetime.now(timezone.utc).isoformat(),
+                "note": "Using lastWorn dates as fallback - outfit_history is empty"
+            }
+        
         return {
             "success": True,
             "user_id": current_user.id,
