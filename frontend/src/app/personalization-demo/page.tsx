@@ -112,6 +112,7 @@ export default function PersonalizationDemoPage() {
       console.log('🔍 [Demo] Fetching outfit history and preferences...');
       let likedOutfits = [];
       let outfitHistory = [];
+      let recentlyWornItems = new Set();
       
       try {
         const outfitsResponse = await fetch('/api/outfits', {
@@ -140,17 +141,97 @@ export default function PersonalizationDemoPage() {
               style: outfit.style
             }));
           
+          // Extract recently worn items (last 7 days) for wardrobe rotation
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          
+          outfits
+            .filter(outfit => {
+              const lastWorn = outfit.lastWorn || outfit.updatedAt || outfit.createdAt;
+              return lastWorn && new Date(lastWorn) > sevenDaysAgo;
+            })
+            .forEach(outfit => {
+              outfit.items?.forEach(item => {
+                if (item.id) recentlyWornItems.add(item.id);
+              });
+            });
+          
           console.log('✅ [Demo] Fetched outfit data:', {
             totalOutfits: outfits.length,
             likedOutfits: likedOutfits.length,
-            outfitHistory: outfitHistory.length
+            outfitHistory: outfitHistory.length,
+            recentlyWornItems: recentlyWornItems.size
           });
         }
       } catch (error) {
         console.log('⚠️ [Demo] Could not fetch outfit history, continuing without it');
       }
 
-      // Prepare request data with complete user data for advanced validation
+      // Apply wardrobe diversity scoring to promote unworn items
+      console.log('🔄 [Demo] Applying wardrobe diversity scoring...');
+      const enhancedWardrobeItems = wardrobeItems.map(item => {
+        let diversityScore = 0;
+        let diversityReason = '';
+        
+        // Check if item is recently worn
+        const isRecentlyWorn = recentlyWornItems.has(item.id);
+        const wearCount = item.wearCount || 0;
+        const isFavorite = item.isFavorite || item.favorite || false;
+        
+        if (wearCount === 0) {
+          // Never worn - highest priority
+          diversityScore = 10;
+          diversityReason = 'Never worn - high priority';
+        } else if (wearCount <= 2 && !isRecentlyWorn) {
+          // Lightly worn and not recent - good priority
+          diversityScore = 7;
+          diversityReason = 'Lightly worn, not recent';
+        } else if (isFavorite && !isRecentlyWorn) {
+          // Favorite but not recent - medium priority
+          diversityScore = 5;
+          diversityReason = 'Favorite item, not recent';
+        } else if (isRecentlyWorn) {
+          // Recently worn - lower priority
+          diversityScore = -3;
+          diversityReason = 'Recently worn - lower priority';
+        } else {
+          // Normal scoring
+          diversityScore = 0;
+          diversityReason = 'Normal priority';
+        }
+        
+        return {
+          ...item,
+          diversityScore,
+          diversityReason,
+          isRecentlyWorn,
+          wearCount,
+          isFavorite
+        };
+      });
+      
+      // Sort wardrobe by diversity score (unworn items first)
+      enhancedWardrobeItems.sort((a, b) => {
+        // First sort by diversity score (higher is better)
+        if (a.diversityScore !== b.diversityScore) {
+          return b.diversityScore - a.diversityScore;
+        }
+        // Then by favorites
+        if (a.isFavorite !== b.isFavorite) {
+          return b.isFavorite - a.isFavorite;
+        }
+        // Then by lower wear count
+        return a.wearCount - b.wearCount;
+      });
+      
+      console.log('✅ [Demo] Wardrobe diversity analysis:', {
+        neverWorn: enhancedWardrobeItems.filter(item => item.wearCount === 0).length,
+        lightlyWorn: enhancedWardrobeItems.filter(item => item.wearCount <= 2 && !item.isRecentlyWorn).length,
+        favorites: enhancedWardrobeItems.filter(item => item.isFavorite).length,
+        recentlyWorn: enhancedWardrobeItems.filter(item => item.isRecentlyWorn).length
+      });
+
+      // Prepare request data with enhanced wardrobe diversity for smart rotation
       const requestData = {
         occasion: formData.occasion,
         style: formData.style,
@@ -162,10 +243,12 @@ export default function PersonalizationDemoPage() {
           wind_speed: 5,
           location: 'Demo Location'
         },
-        wardrobe: wardrobeItems, // Use actual wardrobe items with wear counts, favorites, etc.
+        wardrobe: enhancedWardrobeItems, // Enhanced wardrobe with diversity scoring and rotation logic
         user_profile: userProfile, // Complete profile with body type, skin tone, height, weight, gender, preferences
         likedOutfits: likedOutfits, // Previously liked outfits for style matching
         outfit_history: outfitHistory, // Wear history for diversity and preference learning
+        recently_worn_items: Array.from(recentlyWornItems), // Items worn in last 7 days for rotation
+        wardrobe_diversity_enabled: true, // Flag to enable diversity scoring in backend
         baseItemId: null
       };
 
@@ -650,6 +733,30 @@ export default function PersonalizationDemoPage() {
                       </div>
                     )}
 
+                    {/* Wardrobe Diversity Info */}
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-2">
+                        Wardrobe Rotation Applied
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Strategy:</span>
+                          <span className="ml-2 font-medium">
+                            {generatedOutfit.items?.some(item => item.wearCount === 0) 
+                              ? 'Never Worn Priority' 
+                              : 'Diversity Balanced'
+                            }
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Rotation:</span>
+                          <span className="ml-2 font-medium">
+                            {generatedOutfit.items?.filter(item => item.diversityScore > 0).length || 0} Enhanced
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Items */}
                     <div>
                       <div className="text-sm font-medium text-muted-foreground mb-2">
@@ -683,6 +790,26 @@ export default function PersonalizationDemoPage() {
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-sm truncate">{item.name}</div>
                               <div className="text-xs text-muted-foreground">{item.type} • {item.color}</div>
+                              {/* Diversity Info */}
+                              {item.diversityScore !== undefined && (
+                                <div className="text-xs mt-1">
+                                  {item.diversityScore > 0 && (
+                                    <span className="text-green-600 dark:text-green-400">
+                                      ⭐ {item.diversityReason}
+                                    </span>
+                                  )}
+                                  {item.diversityScore < 0 && (
+                                    <span className="text-orange-600 dark:text-orange-400">
+                                      ⚠️ {item.diversityReason}
+                                    </span>
+                                  )}
+                                  {item.wearCount > 0 && (
+                                    <span className="text-gray-500 ml-2">
+                                      Worn {item.wearCount}x
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             
                             {/* Color Badge */}
