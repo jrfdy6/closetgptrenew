@@ -142,6 +142,7 @@ ROUTERS = [
     ("src.routes.lightweight_outfits", "/api/outfits-lightweight"), # Lightweight embeddings without external dependencies
     ("src.routes.simple_personalized_outfits", "/api/outfits-simple"), # Simple personalization integration with existing system
     ("src.routes.test_simple", "/api/test-simple"), # Test router to verify router loading
+    ("src.routes.simple_personalized_outfits_minimal", "/api/outfits-simple-minimal"), # Minimal simple personalization router
     # ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats - TEMPORARILY DISABLED
     ("src.routes.outfit_stats_simple", "/api/outfit-stats"), # Simple outfit stats router - fixes 405 errors
     ("src.routes.simple_analytics", ""),                     # NEW: Simple, reliable analytics - no prefix needed
