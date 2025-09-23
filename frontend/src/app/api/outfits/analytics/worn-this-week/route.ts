@@ -5,9 +5,11 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 DEBUG: Worn outfits analytics API route called');
+    console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
+    console.log('🔍 DEBUG: Authorization header:', authHeader);
     
     if (!authHeader) {
       console.log('🔍 DEBUG: No auth header - returning 401');

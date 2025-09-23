@@ -105,13 +105,18 @@ class DashboardService {
   private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
     // Get authentication token
     let token: string;
+    console.log('🔍 DEBUG: makeAuthenticatedRequest called with user:', user ? 'authenticated' : 'null');
+    console.log('🔍 DEBUG: User email:', user?.email);
+    
     if (!user || user.email === 'test@example.com' || !user.email) {
       token = 'test';
+      console.log('🔍 DEBUG: Using test token');
     } else {
       token = await user.getIdToken();
       if (!token) {
         throw new Error('Failed to get authentication token');
       }
+      console.log('🔍 DEBUG: Got real token:', token.substring(0, 20) + '...');
     }
     
     // Use Next.js API route as proxy instead of calling backend directly
@@ -326,6 +331,30 @@ class DashboardService {
         }
       });
       console.log('🔍 DEBUG: Worn outfits analytics response:', response);
+      
+      // Validate response version to detect stale data
+      if (response && typeof response === 'object') {
+        const version = response.version || 'unknown';
+        const source = response.source || 'unknown';
+        const apiVersion = response.api_version || 'unknown';
+        
+        console.log('🔍 DEBUG: Analytics response validation:', {
+          version,
+          source,
+          apiVersion,
+          isStale: source === 'user_stats_reliable' || version === 'unknown'
+        });
+        
+        // Alert if we detect stale data
+        if (source === 'user_stats_reliable') {
+          console.warn('⚠️ STALE DATA DETECTED: Response contains old user_stats_reliable source');
+        }
+        
+        if (version === 'unknown') {
+          console.warn('⚠️ VERSION UNKNOWN: Response missing version information');
+        }
+      }
+      
       return response;
     } catch (error) {
       console.error('Error fetching worn outfits analytics:', error);
