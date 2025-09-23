@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/lib/firebase-context';
 import { useExistingDataPersonalization } from '@/lib/hooks/useExistingDataPersonalization';
 import { PersonalizedOutfit } from '@/lib/services/existingDataPersonalizationService';
+import { convertToPydanticShape, validateConvertedData } from '@/lib/outfitDataConverter';
 import Navigation from '@/components/Navigation';
 
 export default function PersonalizationDemoPage() {
@@ -58,6 +59,52 @@ export default function PersonalizationDemoPage() {
     try {
       setGenerating(true);
       
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Get Firebase ID token
+      const authToken = await user.getIdToken();
+      console.log('🔍 [Demo] Using real outfit generation with auth token');
+
+      // Prepare request data in the format expected by the real outfit generation service
+      const requestData = {
+        occasion: formData.occasion,
+        style: formData.style,
+        mood: formData.mood,
+        weather: {
+          temperature: 72,
+          condition: 'Clear',
+          humidity: 50,
+          wind_speed: 5,
+          location: 'Demo Location'
+        },
+        wardrobe: [], // Empty for now - will be populated by backend from user's actual wardrobe
+        user_profile: {}, // Empty for now - will be populated by backend
+        baseItemId: null
+      };
+
+      // Convert to Pydantic format
+      const convertedData = convertToPydanticShape(requestData);
+      
+      if (!validateConvertedData(convertedData)) {
+        throw new Error('Data validation failed');
+      }
+
+      // Use the real outfit generation service
+      const { generateOutfit } = await import('@/lib/robustApiClient');
+      const response = await generateOutfit(convertedData, authToken);
+      const outfit = response.data;
+      
+      console.log('✅ [Demo] Real outfit generated:', outfit);
+
+      if (outfit) {
+        setGeneratedOutfit(outfit);
+      }
+    } catch (err) {
+      console.error('❌ [Demo] Real outfit generation failed:', err);
+      // Fallback to mock generation for demo purposes
+      console.log('🔄 [Demo] Falling back to mock generation');
       const outfit = await generatePersonalizedOutfit({
         occasion: formData.occasion,
         style: formData.style,
@@ -74,8 +121,6 @@ export default function PersonalizationDemoPage() {
       if (outfit) {
         setGeneratedOutfit(outfit);
       }
-    } catch (err) {
-      console.error('Demo generation failed:', err);
     } finally {
       setGenerating(false);
     }
