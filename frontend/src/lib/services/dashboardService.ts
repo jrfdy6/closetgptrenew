@@ -107,6 +107,7 @@ class DashboardService {
     let token: string;
     console.log('🔍 DEBUG: makeAuthenticatedRequest called with user:', user ? 'authenticated' : 'null');
     console.log('🔍 DEBUG: User email:', user?.email);
+    console.log('🔍 DEBUG: CACHE BUSTING TEST - NEW CODE LOADED:', Date.now());
     
     if (!user || user.email === 'test@example.com' || !user.email) {
       token = 'test';
