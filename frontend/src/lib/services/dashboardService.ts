@@ -105,19 +105,13 @@ class DashboardService {
   private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
     // Get authentication token
     let token: string;
-    console.log('🔍 DEBUG: makeAuthenticatedRequest called with user:', user ? 'authenticated' : 'null');
-    console.log('🔍 DEBUG: User email:', user?.email);
-    console.log('🔍 DEBUG: CACHE BUSTING TEST - NEW CODE LOADED:', Date.now());
-    
     if (!user || user.email === 'test@example.com' || !user.email) {
       token = 'test';
-      console.log('🔍 DEBUG: Using test token');
     } else {
       token = await user.getIdToken();
       if (!token) {
         throw new Error('Failed to get authentication token');
       }
-      console.log('🔍 DEBUG: Got real token:', token.substring(0, 20) + '...');
     }
     
     // Use Next.js API route as proxy instead of calling backend directly
@@ -257,19 +251,8 @@ class DashboardService {
   private async getWardrobeStats(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching wardrobe items from /wardrobe/ (not wardrobe-stats)');
-      
-      // Add cache busting for wardrobe stats
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
-      
-      const response = await this.makeAuthenticatedRequest(`/wardrobe/${cacheBuster}`, user, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+      const response = await this.makeAuthenticatedRequest('/wardrobe/', user, {
+        method: 'GET'
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
@@ -382,19 +365,8 @@ class DashboardService {
   private async getTrendingStyles(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching trending styles from /wardrobe/trending-styles');
-      
-      // Add cache busting for trending styles
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
-      
-      const response = await this.makeAuthenticatedRequest(`/wardrobe/trending-styles${cacheBuster}`, user, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+      const response = await this.makeAuthenticatedRequest('/wardrobe/trending-styles', user, {
+        method: 'GET'
       });
       console.log('🔍 DEBUG: Trending styles response:', response);
       return response.data || response || {};
@@ -461,19 +433,8 @@ class DashboardService {
   private async getTopWornItems(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching top worn items from /wardrobe/top-worn-items');
-      
-      // Add cache busting for top worn items
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const cacheBuster = `&t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
-      
-      const response = await this.makeAuthenticatedRequest(`/wardrobe/top-worn-items?limit=5${cacheBuster}`, user, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+      const response = await this.makeAuthenticatedRequest('/wardrobe/top-worn-items?limit=5', user, {
+        method: 'GET'
       });
       console.log('🔍 DEBUG: Top worn items response:', response);
       return response.data || response || {};
@@ -738,20 +699,7 @@ class DashboardService {
   private async getWardrobeGapsFromBackend(user: User | null): Promise<WardrobeGap[]> {
     try {
       console.log('🔍 DEBUG: Fetching wardrobe gaps from backend...');
-      
-      // Add cache busting for wardrobe gaps
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
-      
-      const response = await this.makeAuthenticatedRequest(`/wardrobe/gaps${cacheBuster}`, user, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
+      const response = await this.makeAuthenticatedRequest('/wardrobe/gaps', user);
       
       if (response?.success && response?.data?.gaps) {
         console.log('✅ DEBUG: Successfully fetched wardrobe gaps from backend:', response.data.gaps.length);
