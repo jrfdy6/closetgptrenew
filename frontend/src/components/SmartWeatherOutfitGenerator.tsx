@@ -220,7 +220,7 @@ export function SmartWeatherOutfitGenerator({
       console.log('🎯 Auto-generating today\'s weather-perfect outfit for:', weather);
       
       // Get Firebase ID token for authentication
-      const token = await user.getIdToken();
+      const authToken = await user.getIdToken();
       
       // Fetch wardrobe items first
       console.log('📦 Fetching wardrobe items for outfit generation...');
@@ -230,7 +230,7 @@ export function SmartWeatherOutfitGenerator({
         const wardrobeResponse = await fetch('/api/wardrobe', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
           },
         });
@@ -290,8 +290,7 @@ export function SmartWeatherOutfitGenerator({
       console.log('🌤️ Making ROBUST API call for weather-based outfit generation');
       
       // Use robust API client with comprehensive error handling
-      const token = await user.getIdToken();
-      const response = await generateOutfit(convertedData, token);
+      const response = await generateOutfit(convertedData, authToken);
       const data = response.data;
       
       console.log('✅ Today\'s weather-perfect outfit generated:', data);

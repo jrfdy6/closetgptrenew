@@ -95,10 +95,10 @@ export default function OutfitGenerationPage() {
       
       try {
         setWardrobeLoading(true);
-        const token = await user.getIdToken();
+        const wardrobeToken = await user.getIdToken();
         const response = await fetch('/api/wardrobe', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${wardrobeToken}`,
           },
         });
         
@@ -284,10 +284,10 @@ export default function OutfitGenerationPage() {
       
       console.log('🔍 Fetching profile for user:', user.uid);
       try {
-        const token = await user.getIdToken();
+        const profileToken = await user.getIdToken();
         const response = await fetch('/api/user/profile', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${profileToken}`,
           },
         });
         
@@ -355,7 +355,7 @@ export default function OutfitGenerationPage() {
       setError(null);
       
       // Get Firebase ID token for authentication
-      const token = await user.getIdToken();
+      const authToken = await user.getIdToken();
       
       // Enhanced weather data fetching with better error handling
       let weatherData: WeatherData;
@@ -522,8 +522,7 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Making ROBUST API call to /api/outfits/generate endpoint with converted data');
       
       // Use robust API client with comprehensive error handling
-      const token = await user.getIdToken();
-      const response = await generateOutfit(convertedData, token);
+      const response = await generateOutfit(convertedData, authToken);
       const data = response.data;
       console.log('🔍 DEBUG: Generated outfit data:', data);
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
@@ -547,13 +546,13 @@ export default function OutfitGenerationPage() {
             return;
           }
           
-          const token = await user.getIdToken();
+          const saveToken = await user.getIdToken();
           
           // Call the backend creation endpoint directly to ensure proper saving
           const saveResponse = await fetch('https://closetgptrenew-backend-production.up.railway.app/api/outfits', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`,
+              'Authorization': `Bearer ${saveToken}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
@@ -616,11 +615,11 @@ export default function OutfitGenerationPage() {
     
     try {
       // Use API route to mark as worn - this updates backend stats for dashboard counter
-      const token = await user.getIdToken();
+      const wornToken = await user.getIdToken();
       const response = await fetch(`/api/outfits/${generatedOutfit.id}/worn`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${wornToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -727,7 +726,7 @@ export default function OutfitGenerationPage() {
     }
     
     try {
-      const token = await user.getIdToken();
+      const ratingToken = await user.getIdToken();
       
       // If outfit doesn't have an ID yet, save it first
       let outfitId = generatedOutfit.id;
@@ -776,7 +775,7 @@ export default function OutfitGenerationPage() {
         const saveResponse = await fetch('/api/outfits', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${ratingToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(outfitPayload),
@@ -819,7 +818,7 @@ export default function OutfitGenerationPage() {
       const response = await fetch('/api/outfits/rate', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${ratingToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(ratingPayload),
