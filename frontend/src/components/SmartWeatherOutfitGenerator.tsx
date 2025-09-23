@@ -464,18 +464,18 @@ export function SmartWeatherOutfitGenerator({
     const precipitation = weather.precipitation || 0;
     const windSpeed = weather.wind_speed || 0;
     
-    // Priority weather conditions (matching backend enum)
+    // Priority weather conditions (matching backend validation error)
     if (condition.includes('rain') || condition.includes('storm') || precipitation > 50) {
-      return 'Rainy Day';
+      return 'Casual'; // Use simple occasion for rainy weather
     }
     if (condition.includes('snow') || condition.includes('blizzard')) {
-      return 'Cold Weather';
+      return 'Casual'; // Use simple occasion for snowy weather
     }
     
-    // Temperature-based occasions (matching backend enum)
-    if (temp >= 90) return 'Hot Weather';
-    if (temp <= 32) return 'Cold Weather';
-    if (temp <= 45) return 'Chilly Evening';
+    // Temperature-based occasions (matching backend validation error)
+    if (temp >= 90) return 'Casual'; // Hot weather = casual
+    if (temp <= 32) return 'Casual'; // Cold weather = casual
+    if (temp <= 45) return 'Casual'; // Cool weather = casual
     
     // Default to Casual for normal weather conditions
     return 'Casual';

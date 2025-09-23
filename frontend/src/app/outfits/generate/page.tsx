@@ -201,16 +201,8 @@ export default function OutfitGenerationPage() {
   const [filteredStyles, setFilteredStyles] = useState<string[]>([]);
 
   const occasions = [
-    // Professional (matching backend enum)
-    'Business Formal', 'Business Casual', 'Work', 'Interview',
-    // Social
-    'Casual', 'Formal', 'Gala', 'Party', 'Date Night', 'First Date', 'Brunch', 'Wedding Guest', 'Cocktail', 'Night Out',
-    // Travel & Leisure
-    'Travel', 'Airport', 'Loungewear', 'Beach', 'Vacation', 'Festival',
-    // Weather Specific
-    'Rainy Day', 'Snow Day', 'Hot Weather', 'Cold Weather', 'Chilly Evening',
-    // Activities
-    'Athletic / Gym', 'School', 'Holiday', 'Concert', 'Errands'
+    // Simple occasion values (matching backend validation error)
+    'Casual', 'Business', 'Party', 'Date', 'Interview', 'Weekend', 'Loungewear'
   ];
 
   const styles = [
