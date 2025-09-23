@@ -24,6 +24,7 @@ import time
 from typing import List, Dict, Any, Optional, Tuple, Set
 from dataclasses import dataclass
 from enum import Enum
+from .visual_harmony_validator import VisualHarmonyValidator, VisualHarmonyResult
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +74,16 @@ class EnhancedOutfitValidator:
         # Initialize occasion-specific rules
         self.occasion_rules = self._initialize_occasion_rules()
         
+        # Initialize visual harmony validator
+        self.visual_harmony_validator = VisualHarmonyValidator()
+        
         # Initialize validation statistics
         self.validation_stats = {
             "total_validations": 0,
             "successful_validations": 0,
             "failed_validations": 0,
-            "inappropriate_combinations_prevented": 0
+            "inappropriate_combinations_prevented": 0,
+            "visual_harmony_validations": 0
         }
     
     def _initialize_formality_mapping(self) -> Dict[str, FormalityLevel]:
@@ -303,24 +308,34 @@ class EnhancedOutfitValidator:
             formality_issues = await self._validate_formality_consistency(filtered_items, context)
             logger.info(f"✅ Formality validation completed")
             
-            # Step 5: Final validation assessment
+            # Step 5: Visual harmony validation
+            visual_harmony_result = await self._validate_visual_harmony(filtered_items, context)
+            logger.info(f"✅ Visual harmony validation completed - Score: {visual_harmony_result.overall_harmony_score:.1f}/100")
+            
+            # Step 6: Final validation assessment
             all_issues = pre_validation_issues + core_issues + occasion_issues + formality_issues
             is_valid = len(all_issues) == 0 and len(filtered_items) >= 3
             
-            # Calculate confidence score
-            confidence_score = self._calculate_confidence_score(filtered_items, context, all_issues)
+            # Calculate confidence score including visual harmony
+            confidence_score = self._calculate_confidence_score(
+                filtered_items, context, all_issues, visual_harmony_result.overall_harmony_score
+            )
             
             # Determine severity
             severity = self._determine_severity(all_issues)
             
-            # Generate suggestions
+            # Generate suggestions (including visual harmony suggestions)
             suggestions = self._generate_suggestions(all_issues, context)
+            if visual_harmony_result.suggestions:
+                suggestions.extend(visual_harmony_result.suggestions)
             
             # Update statistics
             if is_valid:
                 self.validation_stats["successful_validations"] += 1
             else:
                 self.validation_stats["failed_validations"] += 1
+            
+            self.validation_stats["visual_harmony_validations"] += 1
             
             validation_time = time.time() - start_time
             logger.info(f"✅ Validation completed in {validation_time:.2f}s - Valid: {is_valid}")
@@ -338,6 +353,8 @@ class EnhancedOutfitValidator:
                     "core_issues": len(core_issues),
                     "occasion_issues": len(occasion_issues),
                     "formality_issues": len(formality_issues),
+                    "visual_harmony_score": visual_harmony_result.overall_harmony_score,
+                    "visual_harmony_type": visual_harmony_result.harmony_type,
                     "total_items_input": len(items),
                     "total_items_output": len(filtered_items)
                 }
@@ -547,13 +564,60 @@ class EnhancedOutfitValidator:
         
         return issues
     
+    async def _validate_visual_harmony(
+        self, 
+        items: List[Dict[str, Any]], 
+        context: Dict[str, Any]
+    ) -> VisualHarmonyResult:
+        """Validate visual harmony using comprehensive fashion theory"""
+        if not items:
+            return VisualHarmonyResult(
+                overall_harmony_score=0.0,
+                color_harmony={"error": "No items to analyze"},
+                texture_harmony={"error": "No items to analyze"},
+                proportion_harmony={"error": "No items to analyze"},
+                style_coherence={"error": "No items to analyze"},
+                issues=["No items provided for visual harmony analysis"],
+                suggestions=["Add items to analyze visual harmony"],
+                harmony_type="unknown",
+                confidence=0.0
+            )
+        
+        try:
+            style = context.get('style', 'casual')
+            occasion = context.get('occasion', 'casual')
+            
+            # Use the visual harmony validator
+            harmony_result = await self.visual_harmony_validator.validate_visual_harmony(
+                items, style, occasion, context
+            )
+            
+            logger.info(f"🎨 Visual harmony analysis: {harmony_result.overall_harmony_score:.1f}/100 - {harmony_result.harmony_type}")
+            
+            return harmony_result
+            
+        except Exception as e:
+            logger.error(f"❌ Visual harmony validation failed: {e}")
+            return VisualHarmonyResult(
+                overall_harmony_score=0.0,
+                color_harmony={"error": str(e)},
+                texture_harmony={"error": str(e)},
+                proportion_harmony={"error": str(e)},
+                style_coherence={"error": str(e)},
+                issues=[f"Visual harmony analysis failed: {str(e)}"],
+                suggestions=["Contact support - visual harmony system needs attention"],
+                harmony_type="unknown",
+                confidence=0.0
+            )
+    
     def _calculate_confidence_score(
         self, 
         items: List[Dict[str, Any]], 
         context: Dict[str, Any], 
-        issues: List[str]
+        issues: List[str],
+        visual_harmony_score: float = 70.0
     ) -> float:
-        """Calculate confidence score for the outfit"""
+        """Calculate confidence score for the outfit including visual harmony"""
         base_score = 100.0
         
         # Deduct points for issues
@@ -580,6 +644,10 @@ class EnhancedOutfitValidator:
             )
             if has_formal_items:
                 base_score += 10.0
+        
+        # Include visual harmony in confidence score (weighted 20%)
+        harmony_contribution = visual_harmony_score * 0.2
+        base_score = (base_score * 0.8) + harmony_contribution
         
         return max(0.0, min(100.0, base_score))
     
