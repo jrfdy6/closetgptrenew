@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   try {
     console.log('🔍 DEBUG: Worn outfits analytics API route called');
     console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
+    console.log('🔍 DEBUG: API ROUTE IS WORKING - TEST LOG');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
