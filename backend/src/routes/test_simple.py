@@ -1,8 +1,29 @@
+#!/usr/bin/env python3
+"""
+Test Simple Router
+=================
+
+A minimal test router to verify the router loading system is working.
+"""
+
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/test-simple", tags=["test"])
+# Create router
+router = APIRouter()
 
-@router.get("/")
-async def test_simple():
-    """Simple test endpoint to verify router loading works"""
-    return {"message": "Simple test router loaded successfully", "status": "success"}
+@router.get("/health")
+async def health_check():
+    """Simple health check"""
+    return {
+        "status": "healthy",
+        "message": "Test simple router is working",
+        "timestamp": "2025-09-23T10:25:00Z"
+    }
+
+@router.get("/test")
+async def test_endpoint():
+    """Test endpoint"""
+    return {
+        "message": "Test endpoint is working",
+        "router": "test_simple"
+    }
