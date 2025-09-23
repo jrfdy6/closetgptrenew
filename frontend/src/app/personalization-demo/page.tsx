@@ -67,7 +67,23 @@ export default function PersonalizationDemoPage() {
       const authToken = await user.getIdToken();
       console.log('🔍 [Demo] Using real outfit generation with auth token');
 
-      // Prepare request data in the format expected by the real outfit generation service
+      // First, fetch the user's actual wardrobe items
+      console.log('🔍 [Demo] Fetching user wardrobe items...');
+      const wardrobeResponse = await fetch('/api/wardrobe', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+      
+      if (!wardrobeResponse.ok) {
+        throw new Error('Failed to fetch wardrobe items');
+      }
+      
+      const wardrobeData = await wardrobeResponse.json();
+      const wardrobeItems = wardrobeData.items || wardrobeData;
+      console.log('✅ [Demo] Fetched wardrobe items:', wardrobeItems.length);
+
+      // Prepare request data with actual wardrobe items
       const requestData = {
         occasion: formData.occasion,
         style: formData.style,
@@ -79,7 +95,7 @@ export default function PersonalizationDemoPage() {
           wind_speed: 5,
           location: 'Demo Location'
         },
-        wardrobe: [], // Empty array - backend will fetch user's actual wardrobe
+        wardrobe: wardrobeItems, // Use actual wardrobe items
         user_profile: { id: user.uid }, // Minimal profile - backend will fetch user's actual profile
         baseItemId: null
       };
@@ -87,8 +103,11 @@ export default function PersonalizationDemoPage() {
       // Convert to Pydantic format
       const convertedData = convertToPydanticShape(requestData);
       
-      // Skip wardrobe validation since backend will fetch user's actual wardrobe
-      console.log('✅ [Demo] Skipping wardrobe validation - backend will fetch user wardrobe');
+      // Now validate with actual wardrobe items
+      if (!validateConvertedData(convertedData)) {
+        throw new Error('Data validation failed');
+      }
+      console.log('✅ [Demo] Data validation passed with', wardrobeItems.length, 'wardrobe items');
 
       // Use the real outfit generation service
       const { generateOutfit } = await import('@/lib/robustApiClient');
