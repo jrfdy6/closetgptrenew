@@ -238,6 +238,17 @@ export function useOutfits(): UseOutfitsReturn {
         } : null);
       }
       
+      // Dispatch event to notify dashboard of outfit being marked as worn
+      const event = new CustomEvent('outfitMarkedAsWorn', {
+        detail: {
+          outfitId: id,
+          outfitName: outfit?.name || 'Outfit',
+          timestamp: new Date().toISOString()
+        }
+      });
+      window.dispatchEvent(event);
+      console.log('🔄 [useOutfits] Dispatched outfitMarkedAsWorn event for dashboard refresh');
+      
       console.log(`✅ [useOutfits] Successfully marked outfit ${id} as worn`);
       
     } catch (error) {

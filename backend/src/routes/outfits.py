@@ -5031,11 +5031,14 @@ async def get_outfits_worn_this_week_simple(
             logger.error("⚠️ Firebase not available")
             raise HTTPException(status_code=503, detail="Firebase service unavailable")
         
-        # Calculate start of week (Monday)
+        # Calculate start of week (Sunday)
         from datetime import datetime, timezone, timedelta
         now = datetime.now(timezone.utc)
-        days_since_monday = now.weekday()
-        week_start = now - timedelta(days=days_since_monday)
+        # weekday() returns 0=Monday, 6=Sunday
+        # For Sunday start: if today is Sunday (6), days_since_sunday = 0
+        # if today is Monday (0), days_since_sunday = 1, etc.
+        days_since_sunday = (now.weekday() + 1) % 7
+        week_start = now - timedelta(days=days_since_sunday)
         week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
         
         logger.info(f"📊 Counting outfits worn since {week_start.isoformat()} for user {current_user.id}")
@@ -5043,111 +5046,65 @@ async def get_outfits_worn_this_week_simple(
         worn_count = 0
         processed_count = 0
         
-        # FIXED: Use user_stats as primary source (it's working correctly)
-        # Manual count has Firestore consistency issues, user_stats increment is reliable
-        try:
-            stats_ref = db.collection('user_stats').document(current_user.id)
-            stats_doc = stats_ref.get()
-            
-            if stats_doc.exists:
-                stats_data = stats_doc.to_dict()
-                user_stats_count = stats_data.get('worn_this_week', 0)
-                logger.info(f"✅ USER_STATS PRIMARY: Found {user_stats_count} outfits worn this week (reliable increment)")
-                
-                return {
-                    "success": True,
-                    "user_id": current_user.id,
-                    "outfits_worn_this_week": user_stats_count,
-                    "source": "user_stats_reliable",
-                    "week_start": week_start.isoformat(),
-                    "calculated_at": datetime.now(timezone.utc).isoformat()
-                }
-            else:
-                logger.info("📊 No user_stats found, falling back to manual count")
-        except Exception as stats_error:
-            logger.warning(f"Error reading user_stats: {stats_error}, falling back to manual count")
+        # Count individual wear events from outfit_history collection
+        logger.info("📊 Counting individual wear events from outfit_history collection")
         
-        # FALLBACK: Manual count (has consistency issues but better than nothing)
-        logger.info("📊 FALLBACK: Using manual count (user_stats unavailable)")
-        
-        # SLOW PATH: Manual counting (fallback or force_fresh)
-        logger.info("📊 Using manual count (slow path)")
-        logger.info(f"📊 DEBUG: Counting outfits with lastWorn >= {week_start.isoformat()}")
-        
-        # Query user's outfits with limit to prevent timeout - ORDER BY updatedAt to get recent ones
+        # Query outfit_history to count individual wear events
         from google.cloud.firestore import Query
-        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id).order_by('updatedAt', direction=Query.DESCENDING).limit(1000)
+        history_ref = db.collection('outfit_history').where('user_id', '==', current_user.id).order_by('date_worn', direction=Query.DESCENDING).limit(1000)
         
-        for outfit_doc in outfits_ref.stream():
-            outfit_data = outfit_doc.to_dict()
+        for history_doc in history_ref.stream():
+            history_data = history_doc.to_dict()
             processed_count += 1
-            last_worn = outfit_data.get('lastWorn')
+            date_worn = history_data.get('date_worn')
             
-            # Log progress every 100 outfits
-            if processed_count % 100 == 0:
-                logger.info(f"📊 Processed {processed_count} outfits, found {worn_count} worn this week")
-            
-            # Log first 5 outfits to see ordering and recent data
-            if processed_count <= 5:
-                logger.info(f"📊 DEBUG: Outfit #{processed_count}: {outfit_doc.id}")
-                logger.info(f"📊 DEBUG:   - lastWorn: {last_worn} (type: {type(last_worn)})")
-                logger.info(f"📊 DEBUG:   - updatedAt: {outfit_data.get('updatedAt')} (type: {type(outfit_data.get('updatedAt'))})")
-                logger.info(f"📊 DEBUG:   - name: {outfit_data.get('name', 'Unknown')}")
-            
-            if last_worn:
-                # Parse lastWorn date safely - handle multiple formats
+            if date_worn:
+                # Parse date_worn safely - handle multiple formats
                 try:
                     worn_date = None
                     
-                    if isinstance(last_worn, str):
+                    if isinstance(date_worn, str):
                         # Handle ISO string formats
-                        worn_date = datetime.fromisoformat(last_worn.replace('Z', '+00:00'))
-                    elif hasattr(last_worn, 'timestamp'):
+                        worn_date = datetime.fromisoformat(date_worn.replace('Z', '+00:00'))
+                    elif hasattr(date_worn, 'timestamp'):
                         # Firestore Timestamp object - convert to datetime
-                        if hasattr(last_worn, 'timestamp'):
-                            worn_date = datetime.fromtimestamp(last_worn.timestamp(), tz=timezone.utc)
+                        if hasattr(date_worn, 'timestamp'):
+                            worn_date = datetime.fromtimestamp(date_worn.timestamp(), tz=timezone.utc)
                         else:
-                            worn_date = last_worn
-                    elif isinstance(last_worn, datetime):
+                            worn_date = date_worn
+                    elif isinstance(date_worn, datetime):
                         # Already a datetime object
-                        worn_date = last_worn
-                    elif isinstance(last_worn, (int, float)):
+                        worn_date = date_worn
+                    elif isinstance(date_worn, (int, float)):
                         # Unix timestamp (seconds or milliseconds)
-                        if last_worn > 1e12:  # Likely milliseconds
-                            worn_date = datetime.fromtimestamp(last_worn / 1000.0, tz=timezone.utc)
+                        if date_worn > 1e12:  # Likely milliseconds
+                            worn_date = datetime.fromtimestamp(date_worn / 1000.0, tz=timezone.utc)
                         else:
-                            worn_date = datetime.fromtimestamp(last_worn, tz=timezone.utc)
+                            worn_date = datetime.fromtimestamp(date_worn, tz=timezone.utc)
                     else:
-                        logger.warning(f"Unknown lastWorn type: {type(last_worn)} - {last_worn}")
+                        logger.warning(f"Unknown date_worn type: {type(date_worn)} - {date_worn}")
                         continue
                     
                     # Ensure timezone aware
                     if worn_date and worn_date.tzinfo is None:
                         worn_date = worn_date.replace(tzinfo=timezone.utc)
                     
-                    # Count if worn this week
+                    # Check if this wear event is within the current week
                     if worn_date and worn_date >= week_start:
                         worn_count += 1
-                        logger.info(f"📊 ✅ COUNTED: {outfit_data.get('name', 'Unknown')} worn at {worn_date.isoformat()} (>= {week_start.isoformat()})")
-                    else:
-                        logger.info(f"📊 ❌ SKIPPED: {outfit_data.get('name', 'Unknown')} worn at {worn_date.isoformat() if worn_date else 'None'} (< {week_start.isoformat()})")
+                        logger.info(f"📅 Wear event {history_doc.id} this week: {worn_date}")
                         
                 except Exception as parse_error:
-                    logger.warning(f"Could not parse lastWorn date {last_worn} (type: {type(last_worn)}): {parse_error}")
+                    logger.warning(f"Error parsing date_worn {date_worn}: {parse_error}")
                     continue
-            else:
-                # Log outfits without lastWorn for first 5
-                if processed_count <= 5:
-                    logger.info(f"📊 DEBUG: Outfit #{processed_count} has no lastWorn field")
         
-        logger.info(f"✅ MANUAL COUNT RESULT: Found {worn_count} outfits worn this week for user {current_user.id} (processed {processed_count} total outfits)")
-        logger.info(f"📊 DEBUG: Week range was {week_start.isoformat()} to {datetime.now(timezone.utc).isoformat()}")
+        logger.info(f"✅ Found {worn_count} wear events this week for user {current_user.id}")
         
         return {
             "success": True,
             "user_id": current_user.id,
             "outfits_worn_this_week": worn_count,
-            "processed_count": processed_count,
+            "source": "outfit_history_individual_events",
             "week_start": week_start.isoformat(),
             "calculated_at": datetime.now(timezone.utc).isoformat()
         }

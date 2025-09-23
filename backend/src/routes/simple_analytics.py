@@ -17,10 +17,13 @@ router = APIRouter(prefix="/api/simple-analytics", tags=["simple-analytics"])
 logger = logging.getLogger(__name__)
 
 def get_week_start() -> datetime:
-    """Get start of current week (Monday 00:00:00 UTC)"""
+    """Get start of current week (Sunday 00:00:00 UTC)"""
     now = datetime.now(timezone.utc)
-    days_since_monday = now.weekday()
-    week_start = now - timedelta(days=days_since_monday)
+    # weekday() returns 0=Monday, 6=Sunday
+    # For Sunday start: if today is Sunday (6), days_since_sunday = 0
+    # if today is Monday (0), days_since_sunday = 1, etc.
+    days_since_sunday = (now.weekday() + 1) % 7
+    week_start = now - timedelta(days=days_since_sunday)
     return week_start.replace(hour=0, minute=0, second=0, microsecond=0)
 
 def parse_datetime_safe(dt_value) -> datetime:
@@ -67,16 +70,16 @@ async def get_outfits_worn_this_week(
         
         logger.info(f"📊 Counting outfits worn since {week_start.isoformat()} for user {current_user.id}")
         
-        # Query all user's outfits
-        outfits_ref = db.collection('outfits').where('user_id', '==', current_user.id)
+        # Count individual wear events from outfit_history collection
+        history_ref = db.collection('outfit_history').where('user_id', '==', current_user.id)
         
-        # Count outfits with lastWorn this week
-        for outfit_doc in outfits_ref.stream():
-            outfit_data = outfit_doc.to_dict()
-            last_worn = outfit_data.get('lastWorn')
+        # Count all wear events this week (not unique outfits)
+        for history_doc in history_ref.stream():
+            history_data = history_doc.to_dict()
+            date_worn = history_data.get('date_worn')
             
-            if last_worn:
-                worn_date = parse_datetime_safe(last_worn)
+            if date_worn:
+                worn_date = parse_datetime_safe(date_worn)
                 if worn_date and worn_date >= week_start:
                     worn_count += 1
         
