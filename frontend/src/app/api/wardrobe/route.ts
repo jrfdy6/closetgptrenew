@@ -16,6 +16,8 @@ export async function GET(request: Request) {
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    console.log('🔍 DEBUG: Authorization header value:', authHeader);
+    console.log('🔍 DEBUG: Authorization header starts with Bearer:', authHeader?.startsWith('Bearer '));
     
     if (!authHeader) {
       return NextResponse.json(
