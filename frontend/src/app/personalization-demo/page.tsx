@@ -46,15 +46,22 @@ export default function PersonalizationDemoPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<PersonalizedOutfit | null>(null);
   const [testMode, setTestMode] = useState(false);
+  
+  // Form state for testing different combinations
+  const [formData, setFormData] = useState({
+    occasion: 'Business',
+    style: 'Classic',
+    mood: 'Confident'
+  });
 
   const handleGenerateOutfit = async () => {
     try {
       setGenerating(true);
       
       const outfit = await generatePersonalizedOutfit({
-        occasion: 'Business',
-        style: 'Classic',
-        mood: 'Confident',
+        occasion: formData.occasion,
+        style: formData.style,
+        mood: formData.mood,
         weather: {
           temperature: 72,
           condition: 'Clear',
@@ -315,23 +322,79 @@ export default function PersonalizationDemoPage() {
                   </div>
                 )}
 
-                <Button 
-                  onClick={handleGenerateOutfit}
-                  disabled={generating || isLoading}
-                  className="w-full"
-                >
-                  {generating ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Generating Demo Outfit...
-                    </>
-                  ) : (
-                    <>
-                      <TestTube className="h-4 w-4 mr-2" />
-                      Generate Demo Outfit
-                    </>
-                  )}
-                </Button>
+                {/* Form for testing different combinations */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Occasion</label>
+                      <select
+                        value={formData.occasion}
+                        onChange={(e) => setFormData(prev => ({ ...prev, occasion: e.target.value }))}
+                        className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
+                      >
+                        <option value="Casual">Casual</option>
+                        <option value="Business">Business</option>
+                        <option value="Party">Party</option>
+                        <option value="Weekend">Weekend</option>
+                        <option value="Date">Date</option>
+                        <option value="Interview">Interview</option>
+                        <option value="Loungewear">Loungewear</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Style</label>
+                      <select
+                        value={formData.style}
+                        onChange={(e) => setFormData(prev => ({ ...prev, style: e.target.value }))}
+                        className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
+                      >
+                        <option value="Classic">Classic</option>
+                        <option value="Modern">Modern</option>
+                        <option value="Edgy">Edgy</option>
+                        <option value="Preppy">Preppy</option>
+                        <option value="Minimalist">Minimalist</option>
+                        <option value="Romantic">Romantic</option>
+                        <option value="Bohemian">Bohemian</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Mood</label>
+                      <select
+                        value={formData.mood}
+                        onChange={(e) => setFormData(prev => ({ ...prev, mood: e.target.value }))}
+                        className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
+                      >
+                        <option value="Confident">Confident</option>
+                        <option value="Relaxed">Relaxed</option>
+                        <option value="Professional">Professional</option>
+                        <option value="Playful">Playful</option>
+                        <option value="Bold">Bold</option>
+                        <option value="Elegant">Elegant</option>
+                        <option value="Creative">Creative</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleGenerateOutfit}
+                    disabled={generating || isLoading}
+                    className="w-full"
+                  >
+                    {generating ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Generating {formData.style} {formData.occasion} Outfit...
+                      </>
+                    ) : (
+                      <>
+                        <TestTube className="h-4 w-4 mr-2" />
+                        Generate {formData.style} {formData.occasion} Outfit
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
