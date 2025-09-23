@@ -23,7 +23,7 @@ from ..services.outfit_generation_with_embeddings import OutfitGenerationWithEmb
 from ..services.embedding_service import UserInteraction
 from ..custom_types.profile import UserProfile
 from ..custom_types.outfit_rules import OutfitRequest, OutfitResponse
-from ..auth import get_current_user
+from ..auth.auth_service import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class AnalyticsResponse(BaseModel):
 @router.post("/generate-personalized", response_model=OutfitResponse)
 async def generate_personalized_outfit(
     req: OutfitRequest,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Generate personalized outfit using vector embeddings and user preferences.
@@ -75,10 +75,10 @@ async def generate_personalized_outfit(
     
     try:
         # Validate user
-        if not current_user:
+        if not current_user_id:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        user_id = current_user.id
+        user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit for user {user_id}")
         
         # Create generation context
@@ -87,7 +87,7 @@ async def generate_personalized_outfit(
             "style": req.style,
             "mood": req.mood,
             "weather": req.weather.dict() if req.weather else {},
-            "user_profile": current_user.dict(),
+            "user_profile": {"id": user_id, "name": "User"},
             "base_item_id": req.baseItemId
         }
         
@@ -147,7 +147,7 @@ async def generate_personalized_outfit(
 @router.post("/interaction")
 async def record_interaction(
     interaction: InteractionRequest,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Record user interaction with an outfit or item for learning.
@@ -159,10 +159,10 @@ async def record_interaction(
     """
     try:
         # Validate user
-        if not current_user:
+        if not current_user_id:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        user_id = current_user.id
+        user_id = current_user_id
         
         # Validate interaction
         if not interaction.outfit_id and not interaction.item_id:
@@ -217,7 +217,7 @@ async def record_interaction(
 
 @router.get("/personalization-status", response_model=PersonalizationStatusResponse)
 async def get_personalization_status(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Get personalization status and analytics for the current user.
@@ -230,10 +230,10 @@ async def get_personalization_status(
     """
     try:
         # Validate user
-        if not current_user:
+        if not current_user_id:
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        user_id = current_user.id
+        user_id = current_user_id
         
         # Get personalization status
         status = embedding_service.get_personalization_status(user_id)
@@ -251,7 +251,7 @@ async def get_personalization_status(
 
 @router.get("/analytics", response_model=AnalyticsResponse)
 async def get_recommendation_analytics(
-    current_user: UserProfile = Depends(get_current_user)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Get overall recommendation system analytics.
@@ -284,7 +284,7 @@ async def get_recommendation_analytics(
 @router.post("/update-personalization-settings")
 async def update_personalization_settings(
     settings: Dict[str, Any],
-    current_user: UserProfile = Depends(get_current_user)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Update personalization settings (admin only).
