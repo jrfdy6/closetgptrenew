@@ -1,6 +1,15 @@
 """
-Outfit Validation Service
-Handles all validation logic for outfit generation including temperature comparison fixes.
+Outfit Validation Service - ENHANCED WITH INTEGRATED THOUGHT CLARIFICATION
+========================================================================
+
+This service now uses the Enhanced Outfit Validator with integrated thought clarification
+to systematically prevent inappropriate outfit combinations.
+
+Key improvements:
+- Replaces failing validation with robust system
+- Prevents inappropriate combinations like business + shorts
+- No fallback to bad outfits
+- Comprehensive validation with detailed feedback
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -8,12 +17,16 @@ from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.profile import UserProfile
 from ..custom_types.weather import WeatherData
 from ..services.validation_orchestrator import ValidationResult
+from .validation_integration_service import ValidationIntegrationService
 
 
 class OutfitValidationService:
-    """Handles all validation operations for outfit generation."""
+    """Handles all validation operations for outfit generation with enhanced validation."""
     
     def __init__(self):
+        # Initialize the enhanced validation integration service
+        self.enhanced_validator = ValidationIntegrationService()
+        logger.info("✅ Enhanced Outfit Validation Service initialized")
         # Define inappropriate combinations (existing rules)
         self.inappropriate_combinations = {
             "blazer_shorts": {
@@ -528,31 +541,43 @@ class OutfitValidationService:
         items: List[ClothingItem],
         context: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Enhanced outfit validation with comprehensive rules from simulation results."""
+        """
+        Enhanced validation with integrated thought clarification system.
+        
+        This method now uses the robust Enhanced Outfit Validator to prevent
+        inappropriate combinations and ensure outfit appropriateness.
+        """
+        logger.info(f"🔍 ENHANCED VALIDATION: Starting validation with {len(items)} items")
         
         try:
-            # Apply enhanced rules FIRST to catch inappropriate combinations
-            enhanced_result = self._apply_enhanced_rules(items, context)
+            # Use the enhanced validator
+            result = await self.enhanced_validator.validate_outfit_with_enhanced_rules(
+                items, context
+            )
             
-            # Then apply existing validation to the enhanced-filtered items
-            result = await self.validate_outfit_with_orchestration(enhanced_result["filtered_items"], context)
+            logger.info(f"✅ ENHANCED VALIDATION: Completed - Valid: {result['is_valid']}")
+            logger.info(f"📊 ENHANCED VALIDATION: Filtered items: {len(result['filtered_items'])}")
             
-            # Combine results
-            all_errors = enhanced_result["errors"] + result["errors"]
+            if result.get('issues'):
+                logger.info("🔍 ENHANCED VALIDATION: Issues found:")
+                for issue in result['issues']:
+                    logger.info(f"   - {issue}")
             
-            final_result = {
-                "is_valid": len(all_errors) == 0,
-                "errors": all_errors,
-                "warnings": enhanced_result["warnings"] + result["warnings"],
-                "filtered_items": result["filtered_items"],
-                "applied_rules": enhanced_result["applied_rules"]
-            }
-            
-            return final_result
+            return result
             
         except Exception as e:
-            # Fallback to basic validation if enhanced validation fails
-            return await self.validate_outfit_with_orchestration(items, context)
+            logger.error(f"❌ ENHANCED VALIDATION: Exception during validation: {e}")
+            
+            # Return failure result - no fallback to bad outfits
+            return {
+                "is_valid": False,
+                "filtered_items": [],
+                "issues": [f"Validation system error: {str(e)}"],
+                "suggestions": ["Contact support - validation system needs attention"],
+                "confidence_score": 0.0,
+                "severity": "critical",
+                "validation_details": {"error": str(e)}
+            }
     
     def _apply_enhanced_rules(self, items: List[ClothingItem], context: Dict[str, Any]) -> Dict[str, Any]:
         """Apply enhanced validation rules based on simulation results."""

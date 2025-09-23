@@ -899,8 +899,9 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
             logger.warning(f"⚠️ Failed to convert item to ClothingItem: {e}")
             continue
     
-    # Use enhanced validation service
-    validation_service = OutfitValidationService()
+    # Use ENHANCED validation service with integrated thought clarification
+    from ..services.validation_integration_service import ValidationIntegrationService
+    validation_service = ValidationIntegrationService()
     
     # Create context for validation
     context = {
@@ -956,266 +957,24 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         else:
             print(f"❌ VALIDATION DEBUG: No filtered items returned from enhanced validation!")
             print(f"❌ VALIDATION DEBUG: Validation result: {validation_result}")
-            # Fall through to fallback validation
+            # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
+            return []
             
     except Exception as validation_error:
         print(f"❌ VALIDATION DEBUG: Enhanced validation failed with error: {validation_error}")
         logger.error(f"Enhanced validation failed: {validation_error}")
-        # Fall through to fallback validation
+        # NO FALLBACK TO BAD OUTFITS - Return empty list on validation failure
+        return []
     
     # CRITICAL: Check if we have any items at all before falling back
     if not clothing_items:
         print(f"❌ VALIDATION CRITICAL: No clothing items to validate!")
-        return items  # Return original items as-is
+        return []  # NO FALLBACK TO BAD OUTFITS - Return empty list
     
-    # Fallback to original validation if enhanced validation fails
-    logger.warning("⚠️ Enhanced validation failed, falling back to basic validation")
-    print(f"🔍 VALIDATION FALLBACK: Using original {len(items)} items")
-    
-    # Define required categories for different occasions - ensure complete outfits
-    required_categories = {
-        "casual": ["top", "bottom", "shoes"],
-        "business": ["top", "bottom", "shoes"],
-        "formal": ["top", "bottom", "shoes"],
-        "interview": ["top", "bottom", "shoes"],
-        "athletic": ["top", "bottom", "shoes"],
-        "beach": ["top", "bottom"],
-        "party": ["top", "bottom", "shoes"],
-        "date": ["top", "bottom", "shoes"],
-        "travel": ["top", "bottom", "shoes"]
-    }
-    
-    # Get default requirements - ensure complete outfits
-    default_required = ["top", "bottom", "shoes"]
-    required = required_categories.get(occasion.lower(), default_required)
-    
-    # Checking required categories
-    
-    # Categorize items
-    categorized_items = {}
-    for item in items:
-        item_type = item.get('type', '').lower()
-        category = get_item_category(item_type)
-        
-        if category not in categorized_items:
-            categorized_items[category] = []
-        categorized_items[category].append(item)
-        
-        # SURGICAL DEBUG: Log base item categorization
-        if base_item and item.get('id') == base_item.get('id'):
-            logger.info(f"🧪 BASE ITEM CATEGORIZATION: {item.get('name', 'Unknown')} -> type: {item_type} -> category: {category}")
-    
-    # Items categorized
-    logger.info(f"🧪 CATEGORIZED ITEMS DETAILS: {[(cat, [item.get('id') for item in items]) for cat, items in categorized_items.items()]}")
-    
-    # Check if we have required categories
-    missing_categories = []
-    for category in required:
-        if category not in categorized_items or len(categorized_items[category]) == 0:
-            missing_categories.append(category)
-    
-    if missing_categories:
-        logger.warning(f"⚠️ Missing required categories: {missing_categories}")
-        # Try to find items from missing categories in the full wardrobe
-        # This would require access to the full wardrobe, but for now we'll work with what we have
-    
-    # Build validated outfit with required categories
-    validated_outfit = []
-    
-    # ENHANCED: Ensure base item is included if provided
-    if base_item:
-        base_item_id = base_item.get('id')
-        # Ensuring base item inclusion
-        
-        # SURGICAL DEBUG: Log base item details before processing
-        import json
-        logger.info(f"🧪 BASE ITEM DETAILS: name={base_item.get('name', 'unnamed')}, type={base_item.get('type', 'unknown')}, id={base_item.get('id', 'unknown')}")
-        logger.info(f"🧪 VALIDATION INPUT: validated_outfit (pre-validation): {[item.get('id') for item in validated_outfit]}")
-        
-        # First, try to find the base item in the categorized items
-        base_item_found = False
-        for category, category_items in categorized_items.items():
-            for item in category_items:
-                if item.get('id') == base_item_id:
-                    # Remove the base item from its category to avoid duplication
-                    category_items.remove(item)
-                    # Add the base item to the beginning of validated_outfit
-                    validated_outfit.insert(0, item)
-                    # Base item added to outfit
-                    base_item_found = True
-                    break
-            if base_item_found:
-                break
-        
-        # If not found in categorized items, add it directly from the base_item parameter
-        if not base_item_found:
-            logger.warning(f"⚠️ DEBUG: Base item not found in categorized items, adding directly")
-            validated_outfit.insert(0, base_item)
-            # Base item added directly
-        
-        # SURGICAL DEBUG: Log validation result after base item insertion
-        logger.info(f"🧪 VALIDATION RESULT: {[item.get('id') for item in validated_outfit]}")
-    
-    # ENHANCED: Smart initial selection to ensure category diversity
-    for category in required:
-        if category in categorized_items and categorized_items[category]:
-            # Check if we already have an item from this category (e.g., from base item)
-            existing_categories = [get_item_category(item.get('type', '')) for item in validated_outfit]
-            if category not in existing_categories:
-                # Take the first item from this category (skip if it's the base item)
-                candidate_item = categorized_items[category][0]
-                if not (base_item and candidate_item.get('id') == base_item.get('id')):
-                    validated_outfit.append(candidate_item)
-                    logger.info(f"🔍 DEBUG: Added {category} item: {candidate_item.get('name', 'unnamed')}")
-                else:
-                    logger.info(f"🔍 DEBUG: Skipping {category} - base item already covers this category")
-            else:
-                logger.info(f"🔍 DEBUG: Skipping {category} - already have item from this category")
-    
-    # ENHANCED: If we're missing required categories, try to find alternatives
-    if len(validated_outfit) < len(required):
-        logger.warning(f"⚠️ Missing required categories, trying to find alternatives")
-        missing_categories = [cat for cat in required if cat not in [get_item_category(item.get('type', '')) for item in validated_outfit]]
-        
-        for missing_cat in missing_categories:
-            # Try to find items that could serve as alternatives
-            for category, category_items in categorized_items.items():
-                if len(validated_outfit) >= len(required):
-                    break
-                # For missing bottoms, tops can sometimes work (e.g., long tops with leggings)
-                if missing_cat == "bottom" and category == "top":
-                    # Look for long tops that could work as bottoms
-                    for item in category_items:
-                        if any(long_word in item.get('name', '').lower() for long_word in ['long', 'tunic', 'oversized', 'maxi']):
-                            validated_outfit.append(item)
-                            logger.info(f"🔍 DEBUG: Added alternative {missing_cat} item: {item.get('name', 'unnamed')}")
-                            break
-                # For missing shoes, accessories might work
-                elif missing_cat == "shoes" and category == "accessory":
-                    for item in category_items:
-                        if any(shoe_word in item.get('name', '').lower() for shoe_word in ['boots', 'sneakers', 'shoes']):
-                            validated_outfit.append(item)
-                            logger.info(f"🔍 DEBUG: Added alternative {missing_cat} item: {item.get('name', 'unnamed')}")
-                            break
-    
-    # Add additional items to fill out the outfit (up to 6 total)
-    remaining_slots = 6 - len(validated_outfit)
-    additional_items = []
-    
-    # ENHANCED: Smart category balancing to prevent all-same-category outfits
-    category_limits = {
-        "top": 3,      # Maximum 3 tops (including base top)
-        "bottom": 1,   # Maximum 1 bottom (prevent shorts + pants conflicts)
-        "shoes": 1,    # Maximum 1 pair of shoes
-        "accessory": 2, # Maximum 2 accessories
-        "dress": 1     # Maximum 1 dress
-    }
-    
-    # Count current items per category
-    current_category_counts = {}
-    for item in validated_outfit:
-        category = get_item_category(item.get('type', ''))
-        current_category_counts[category] = current_category_counts.get(category, 0) + 1
-    
-    logger.info(f"🔍 DEBUG: Current category counts: {current_category_counts}")
-    
-    # ENHANCED: Check for bottom type conflicts (shorts + pants, skirts + pants, etc.)
-    bottom_items = [item for item in validated_outfit if get_item_category(item.get('type', '')) == 'bottom']
-    if len(bottom_items) > 1:
-        logger.warning(f"⚠️ Multiple bottom items detected: {[item.get('name', 'unnamed') for item in bottom_items]}")
-        # Keep only the first bottom item to prevent conflicts
-        conflicting_bottoms = bottom_items[1:]
-        for item in conflicting_bottoms:
-            validated_outfit.remove(item)
-            logger.info(f"🔍 DEBUG: Removed conflicting bottom: {item.get('name', 'unnamed')}")
-        # Update category counts
-        current_category_counts['bottom'] = 1
-    
-    # Prioritize layering items for certain occasions
-    layering_priority = ["formal", "business", "date", "party"]
-    if occasion.lower() in layering_priority:
-        # Add layering items first for formal occasions
-        for category, category_items in categorized_items.items():
-            if len(additional_items) >= remaining_slots:
-                break
-            # Check category limits
-            current_count = current_category_counts.get(category, 0)
-            if current_count >= category_limits.get(category, 2):
-                continue
-            # Prioritize layering categories
-            if category in ["top"] and len(additional_items) < remaining_slots:
-                for item in category_items[1:]:  # Skip first item as it's already added
-                    if len(additional_items) < remaining_slots and is_layer_item(item.get('type', '')):
-                        additional_items.append(item)
-                        current_category_counts[category] = current_category_counts.get(category, 0) + 1
-                        logger.info(f"🔍 DEBUG: Added layering item: {item.get('name', 'unnamed')}")
-                        break
-    
-    # Fill remaining slots with balanced category distribution
-    for category, category_items in categorized_items.items():
-        if len(additional_items) >= remaining_slots:
-            break
-        # Check category limits
-        current_count = current_category_counts.get(category, 0)
-        if current_count >= category_limits.get(category, 2):
-            continue
-        
-        # ENHANCED: Special handling for bottoms to prevent conflicts
-        if category == "bottom" and current_count >= 1:
-            logger.info(f"🔍 DEBUG: Skipping additional bottom to prevent conflicts")
-            continue
-            
-        # Add items from this category
-        for item in category_items[1:]:  # Skip first item as it's already added
-            if len(additional_items) < remaining_slots:
-                additional_items.append(item)
-                current_category_counts[category] = current_category_counts.get(category, 0) + 1
-                logger.info(f"🔍 DEBUG: Added additional {category} item: {item.get('name', 'unnamed')}")
-                break
-    
-    validated_outfit.extend(additional_items)
-    
-    # ENHANCED: Final duplicate check and removal
-    final_outfit = []
-    seen_items = set()
-    for item in validated_outfit:
-        item_id = item.get('id', '')
-        if item_id not in seen_items:
-            final_outfit.append(item)
-            seen_items.add(item_id)
-            # Reduced logging to prevent Railway rate limits
-            if len(final_outfit) <= 5:  # Only log first 5 items
-                logger.info(f"🔍 DEBUG: Final outfit item: {item.get('name', 'unnamed')} ({item.get('type', 'unknown')})")
-        else:
-            logger.warning(f"⚠️ Removed duplicate item: {item.get('name', 'unnamed')}")
-    
-    logger.info(f"🔍 DEBUG: Final validated outfit: {len(final_outfit)} items")
-    
-    # ENHANCED: Prevent shirt-on-shirt combinations
-    shirt_types = ['t-shirt', 'polo', 'shirt', 'blouse', 'dress shirt', 'button up', 'button-up', 'oxford', 'dress-shirt']
-    shirt_items = [item for item in final_outfit if any(shirt_type in item.get('type', '').lower() for shirt_type in shirt_types)]
-    if len(shirt_items) > 1:
-        logger.warning(f"🔍 DEBUG: Multiple shirt items detected, removing duplicates: {[item.get('name', 'unnamed') for item in shirt_items]}")
-        # Keep only the first shirt item (usually the base item)
-        shirt_to_keep = shirt_items[0]
-        final_outfit = [item for item in final_outfit if item.get('id') == shirt_to_keep.get('id') or not any(shirt_type in item.get('type', '').lower() for shirt_type in shirt_types)]
-        logger.info(f"🔍 DEBUG: Kept shirt item: {shirt_to_keep.get('name', 'unnamed')}")
-    
-    # ENHANCED: Prevent flip-flops/slides with formal wear
-    formal_items = ['blazer', 'suit', 'suit jacket', 'sport coat', 'jacket']
-    casual_shoes = ['flip-flops', 'flip flops', 'slides', 'sandals', 'thongs']
-    
-    outfit_types = [item.get('type', '').lower() for item in final_outfit]
-    has_formal_item = any(formal_type in outfit_type for formal_type in formal_items for outfit_type in outfit_types)
-    has_casual_shoes = any(casual_shoe in outfit_type for casual_shoe in casual_shoes for outfit_type in outfit_types)
-    
-    if has_formal_item and has_casual_shoes:
-        logger.warning(f"🔍 DEBUG: Formal-casual shoe mismatch detected, removing casual shoes")
-        # Remove casual shoes when formal items are present
-        final_outfit = [item for item in final_outfit if not any(casual_shoe in item.get('type', '').lower() for casual_shoe in casual_shoes)]
-        logger.info(f"🔍 DEBUG: Removed casual shoes due to formal wear")
-    
-    return final_outfit
+    # NO FALLBACK TO BAD OUTFITS - If we reach here, validation failed
+    logger.error("❌ Enhanced validation failed completely - no fallback allowed")
+    print(f"❌ VALIDATION CRITICAL: No valid outfit can be generated")
+    return []
 
 async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str, Any]:
     """Validate layering rules for the outfit."""
@@ -2658,8 +2417,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         except Exception as validation_error:
             print(f"❌ VALIDATION FAILED: {validation_error}")
             logger.error(f"Outfit validation failed: {validation_error}")
-            # Use suitable items as-is if validation fails
-            validated_items = suitable_items[:4]  # Take first 4 items as fallback
+            # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
+            validated_items = []
         
         # DEBUG: After validation
         debug_rule_engine("after_validation", validated=validated_items)
