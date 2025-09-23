@@ -364,6 +364,7 @@ export default function PersonalizationDemoPage() {
                         <option value="Hot Weather">Hot Weather</option>
                         
                         {/* Fitness & Health */}
+                        <option value="Gym">Gym</option>
                         <option value="Going to the gym">Going to the gym</option>
                       </select>
                     </div>
@@ -426,6 +427,7 @@ export default function PersonalizationDemoPage() {
                         <option value="Athleisure">Athleisure</option>
                         <option value="Casual Cool">Casual Cool</option>
                         <option value="Loungewear">Loungewear</option>
+                        <option value="Workout">Workout</option>
                       </select>
                     </div>
                     
