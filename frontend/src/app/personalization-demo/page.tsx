@@ -78,10 +78,8 @@ export default function PersonalizationDemoPage() {
           humidity: 50,
           wind_speed: 5,
           location: 'Demo Location'
-        },
-        wardrobe: [], // Empty for now - will be populated by backend from user's actual wardrobe
-        user_profile: {}, // Empty for now - will be populated by backend
-        baseItemId: null
+        }
+        // Remove wardrobe and user_profile - let backend fetch from Firebase
       };
 
       // Convert to Pydantic format
