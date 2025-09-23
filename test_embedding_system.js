@@ -92,7 +92,7 @@ async function testUserEmbeddingGeneration() {
     
     try {
         // Test health check first
-        const healthResponse = await fetch(`${API_URL}/api/outfits/health`);
+        const healthResponse = await fetch(`${API_URL}/api/outfits-personalized/health`);
         if (healthResponse.status !== 200) {
             console.log('   ❌ Backend not accessible');
             return false;
@@ -139,7 +139,7 @@ async function testUserEmbeddingGeneration() {
             likedOutfits: []
         };
         
-        const response = await fetch(`${API_URL}/api/outfits/generate-personalized`, {
+        const response = await fetch(`${API_URL}/api/outfits-personalized/generate-personalized`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -221,7 +221,7 @@ async function testOutfitPersonalization() {
                 likedOutfits: []
             };
             
-            const response = await fetch(`${API_URL}/api/outfits/generate-personalized`, {
+            const response = await fetch(`${API_URL}/api/outfits-personalized/generate-personalized`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -280,7 +280,7 @@ async function testInteractionRecording() {
         for (const interaction of interactions) {
             console.log(`   📝 Testing ${interaction.interaction_type} interaction...`);
             
-            const response = await fetch(`${API_URL}/api/outfits/interaction`, {
+            const response = await fetch(`${API_URL}/api/outfits-personalized/interaction`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -312,7 +312,7 @@ async function testPersonalizationStatus() {
     console.log('   🔍 Testing personalization status...');
     
     try {
-        const response = await fetch(`${API_URL}/api/outfits/personalization-status`, {
+        const response = await fetch(`${API_URL}/api/outfits-personalized/personalization-status`, {
             method: 'GET',
             headers: {
                 'Authorization': 'Bearer test-token'
@@ -348,7 +348,7 @@ async function testSystemAnalytics() {
     console.log('   🔍 Testing system analytics...');
     
     try {
-        const response = await fetch(`${API_URL}/api/outfits/analytics`, {
+        const response = await fetch(`${API_URL}/api/outfits-personalized/analytics`, {
             method: 'GET',
             headers: {
                 'Authorization': 'Bearer test-token'
