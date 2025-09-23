@@ -1,29 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     console.log('🔍 DEBUG: Worn outfits analytics API route called');
     console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
-    console.log('🔍 DEBUG: API ROUTE IS WORKING - TEST LOG');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
-    console.log('🔍 DEBUG: Authorization header:', authHeader);
+    console.log('🔍 DEBUG: Authorization header received:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
     
     if (!authHeader) {
       console.log('🔍 DEBUG: No auth header - returning 401');
-      console.log('🔍 DEBUG: API ROUTE CALLED BUT NO AUTH HEADER - THIS IS THE ISSUE');
       return NextResponse.json(
         { error: 'Authorization header required', debug: 'API route called but no auth header provided' },
         { status: 401 }
       );
     }
-    
-    // Extract token from "Bearer <token>" format
-    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
-    console.log('🔍 DEBUG: Extracted token:', token.substring(0, 20) + '...');
     
     // Get backend URL from environment variables
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
@@ -40,7 +34,7 @@ export async function GET(request: Request) {
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
       signal: controller.signal,
