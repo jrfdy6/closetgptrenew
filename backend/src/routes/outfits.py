@@ -814,7 +814,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         return outfit
         
-        except Exception as e:
+    except Exception as e:
             logger.error(f"⚠️ FALLBACK TRIGGERED: Outfit generation failed with exception: {e}")
             logger.exception("Full traceback:")
             print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
