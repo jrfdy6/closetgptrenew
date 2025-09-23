@@ -69,7 +69,7 @@ export default function PersonalizationDemoPage() {
 
       // First, fetch the user's actual wardrobe items
       console.log('🔍 [Demo] Fetching user wardrobe items...');
-      const wardrobeResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/wardrobe`, {
+      const wardrobeResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/wardrobe/`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
@@ -85,7 +85,7 @@ export default function PersonalizationDemoPage() {
 
       // Fetch the user's complete profile data for advanced validation
       console.log('🔍 [Demo] Fetching user profile data...');
-      const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/profile`, {
+      const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${authToken}`,
         },
@@ -115,7 +115,7 @@ export default function PersonalizationDemoPage() {
       let recentlyWornItems = new Set();
       
       try {
-        const outfitsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfits`, {
+        const outfitsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfits/`, {
           headers: {
             'Authorization': `Bearer ${authToken}`,
           },
