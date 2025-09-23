@@ -138,6 +138,7 @@ ROUTERS = [
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
+    ("src.routes.outfits_with_embeddings", "/api/outfits"), # Embedding-based personalized outfit generation
     # ("src.routes.outfits_fast", "/api/outfits-fast"),       # Fast outfit loading with pre-aggregated stats - TEMPORARILY DISABLED
     ("src.routes.outfit_stats_simple", "/api/outfit-stats"), # Simple outfit stats router - fixes 405 errors
     ("src.routes.simple_analytics", ""),                     # NEW: Simple, reliable analytics - no prefix needed
