@@ -2533,7 +2533,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             "score_breakdown": outfit_score,
             "reasoning": intelligent_reasoning,
             "createdAt": datetime.now().isoformat() + 'Z',
-            "debug_exclusions": exclusion_debug.copy() if exclusion_debug else [],  # Include exclusion debug data
+            "debug_exclusions": exclusion_debug.copy() if exclusion_debug else [],  # Include exclusion debug data,
             "debug_rule_engine": debug_data.copy() if debug_data else []  # Include rule engine debug data
         }
         
