@@ -648,7 +648,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Handle empty wardrobe case
         if not wardrobe_items:
-            logger.warning(f"⚠️ No wardrobe items available, using fallback generation")
+            logger.warning(f"⚠️ FALLBACK TRIGGERED: No wardrobe items available")
+            print(f"🚨 FALLBACK ALERT: Empty wardrobe detected")
+            print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+            print(f"🚨 FALLBACK REASON: No wardrobe items found for user")
             return await generate_fallback_outfit(req, user_id)
         
         # 2. Get user's style profile (with caching)
@@ -776,8 +779,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Check if outfit generation was successful
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
-            logger.error(f"❌ Rule-based generation produced no items, using fallback")
-            logger.error(f"🔍 DEBUG: Outfit data: {outfit}")
+            logger.error(f"❌ FALLBACK TRIGGERED: Rule-based generation produced no items")
+            logger.error(f"🔍 FALLBACK DEBUG: Outfit data: {outfit}")
+            print(f"🚨 FALLBACK ALERT: Rule-based generation failed - no items generated")
+            print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+            print(f"🚨 FALLBACK REASON: Empty outfit items array")
             return await generate_fallback_outfit(req, user_id)
         
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
@@ -808,13 +814,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         return outfit
         
-    except Exception as e:
-        logger.error(f"⚠️ Outfit generation failed with exception: {e}")
-        logger.exception("Full traceback:")
-        print(f"🚨 EXCEPTION IN MAIN LOGIC: {e}")
-        print(f"🚨 Exception type: {type(e).__name__}")
-        # Fallback to basic generation if rule-based generation fails
-        return await generate_fallback_outfit(req, user_id)
+        except Exception as e:
+            logger.error(f"⚠️ FALLBACK TRIGGERED: Outfit generation failed with exception: {e}")
+            logger.exception("Full traceback:")
+            print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
+            print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+            print(f"🚨 FALLBACK REASON: Exception - {type(e).__name__}: {e}")
+            print(f"🚨 FALLBACK TRACEBACK: {str(e)}")
+            # Fallback to basic generation if rule-based generation fails
+            return await generate_fallback_outfit(req, user_id)
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
     """Validate if the requested style is appropriate for the user's gender."""
@@ -971,10 +979,12 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         print(f"❌ VALIDATION CRITICAL: No clothing items to validate!")
         return []  # NO FALLBACK TO BAD OUTFITS - Return empty list
     
-    # NO FALLBACK TO BAD OUTFITS - If we reach here, validation failed
-    logger.error("❌ Enhanced validation failed completely - no fallback allowed")
-    print(f"❌ VALIDATION CRITICAL: No valid outfit can be generated")
-    return []
+        # NO FALLBACK TO BAD OUTFITS - If we reach here, validation failed
+        logger.error("❌ Enhanced validation failed completely - no fallback allowed")
+        print(f"🚨 VALIDATION FAILURE: No valid outfit can be generated")
+        print(f"🚨 VALIDATION CONTEXT: Items={len(clothing_items)}, Occasion={occasion}")
+        print(f"🚨 VALIDATION REASON: All items failed enhanced validation rules")
+        return []
 
 async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str, Any]:
     """Validate layering rules for the outfit."""
@@ -2536,7 +2546,10 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
 
 async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Generate weather-aware fallback outfit when rule-based generation fails."""
-    logger.info(f"🔄 Generating weather-aware fallback outfit for {user_id}")
+    logger.info(f"🔄 FALLBACK ACTIVATED: Generating weather-aware fallback outfit for {user_id}")
+    print(f"🚨 FALLBACK EXECUTION: Starting fallback outfit generation")
+    print(f"🚨 FALLBACK EXECUTION: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+    print(f"🚨 FALLBACK EXECUTION: This indicates main generation logic needs improvement")
     
     outfit_name = f"{req.style.title()} {req.mood.title()} Look"
     selected_items = []
@@ -2702,6 +2715,17 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         }
         selected_items = attach_weather_context_to_items(selected_items, weather_data)
         logger.info(f"🌤️ Attached weather context to {len(selected_items)} fallback items")
+    
+    # FALLBACK COMPLETION SUMMARY
+    print(f"🚨 FALLBACK COMPLETED: Generated fallback outfit with {len(selected_items)} items")
+    print(f"🚨 FALLBACK SUMMARY: Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+    if selected_items:
+        item_types = [item.get('type', 'unknown') for item in selected_items]
+        item_names = [item.get('name', 'unknown')[:30] for item in selected_items]
+        print(f"🚨 FALLBACK ITEMS: Types={item_types}, Names={item_names}")
+    else:
+        print(f"🚨 FALLBACK WARNING: No items were generated - empty outfit!")
+    print(f"🚨 FALLBACK IMPACT: This indicates main generation logic needs attention")
     
     return {
         "name": outfit_name,
@@ -4172,6 +4196,9 @@ async def generate_outfit(
                     break
                 else:
                     logger.warning(f"⚠️ Generation attempt {generation_attempts} produced invalid outfit")
+                    print(f"🚨 RETRY ALERT: Attempt {generation_attempts} failed - invalid outfit")
+                    print(f"🚨 RETRY CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+                    print(f"🚨 RETRY REASON: Generated outfit has {len(outfit.get('items', []))} items (minimum 3 required)")
                     if attempt < max_attempts - 1:
                         await asyncio.sleep(1)  # Brief delay before retry
                         continue
@@ -4179,6 +4206,9 @@ async def generate_outfit(
             except Exception as e:
                 last_error = e
                 logger.error(f"❌ Generation attempt {generation_attempts} failed: {e}")
+                print(f"🚨 RETRY ALERT: Attempt {generation_attempts} failed with exception")
+                print(f"🚨 RETRY CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+                print(f"🚨 RETRY REASON: Exception - {type(e).__name__}: {e}")
                 if attempt < max_attempts - 1:
                     await asyncio.sleep(1)  # Brief delay before retry
                     continue
@@ -4186,12 +4216,17 @@ async def generate_outfit(
         # Check if all attempts failed
         if not outfit or not outfit.get('items') or len(outfit.get('items', [])) < 3:
             logger.error(f"❌ All {max_attempts} generation attempts failed")
+            print(f"🚨 FINAL FAILURE: All {max_attempts} generation attempts failed")
+            print(f"🚨 FINAL CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+            print(f"🚨 FINAL IMPACT: User will receive HTTP 500 error - no outfit generated")
             if last_error:
+                print(f"🚨 FINAL ERROR: {type(last_error).__name__}: {str(last_error)}")
                 raise HTTPException(
                     status_code=500, 
                     detail=f"Outfit generation failed after {max_attempts} attempts: {str(last_error)}"
                 )
             else:
+                print(f"🚨 FINAL ERROR: No specific error - unable to generate valid outfit")
                 raise HTTPException(
                     status_code=500, 
                     detail=f"Outfit generation failed: Unable to generate valid outfit"
