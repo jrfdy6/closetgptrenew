@@ -2584,9 +2584,48 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             elif category == 'bottoms':
                 all_bottoms = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'bottom', 'leggings', 'joggers', 'sweatpants']]
                 category_items = filter_items_by_style(all_bottoms, req.style)
+                
+                # CRITICAL: Filter out inappropriate bottoms for business occasions
+                if req.occasion and req.occasion.lower() in ['business', 'interview', 'formal', 'professional']:
+                    validated_bottoms = []
+                    for bottom_item in category_items:
+                        bottom_type = bottom_item.get('type', '').lower()
+                        bottom_name = bottom_item.get('name', '').lower()
+                        
+                        # Remove shorts for business occasions
+                        if 'shorts' in bottom_type or 'shorts' in bottom_name:
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out shorts for business occasion: {bottom_item.get('name', 'Unknown')}")
+                            continue
+                        
+                        # Remove athletic wear for business occasions
+                        if any(athletic in bottom_type or athletic in bottom_name for athletic in ['athletic', 'sweatpants', 'joggers']):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out athletic wear for business occasion: {bottom_item.get('name', 'Unknown')}")
+                            continue
+                        
+                        validated_bottoms.append(bottom_item)
+                    
+                    category_items = validated_bottoms
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered bottoms for business occasion: {len(category_items)} appropriate items")
             elif category == 'shoes':
                 all_shoes = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals', 'athletic shoes']]
                 category_items = filter_items_by_style(all_shoes, req.style)
+                
+                # CRITICAL: Filter out inappropriate shoes for business occasions
+                if req.occasion and req.occasion.lower() in ['business', 'interview', 'formal', 'professional']:
+                    validated_shoes = []
+                    for shoe_item in category_items:
+                        shoe_type = shoe_item.get('type', '').lower()
+                        shoe_name = shoe_item.get('name', '').lower()
+                        
+                        # Remove casual shoes for business occasions
+                        if any(casual in shoe_type or casual in shoe_name for casual in ['sneakers', 'athletic', 'canvas', 'flip']):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out casual shoes for business occasion: {shoe_item.get('name', 'Unknown')}")
+                            continue
+                        
+                        validated_shoes.append(shoe_item)
+                    
+                    category_items = validated_shoes
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered shoes for business occasion: {len(category_items)} appropriate items")
             
             if category_items:
                 # Randomly pick an item from the style-appropriate category
@@ -2598,9 +2637,43 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             else:
                 logger.warning(f"No style-appropriate {category} items found for {req.style} style")
         
-        # Add style-appropriate outerwear if available
+        # Add style-appropriate outerwear if available (WITH VALIDATION)
         all_outerwear = [item for item in wardrobe_items if item.get('type', '').lower() in ['jacket', 'outerwear', 'blazer', 'cardigan', 'hoodie', 'zip-up', 'track jacket']]
         style_appropriate_outerwear = filter_items_by_style(all_outerwear, req.style)
+        
+        # CRITICAL: Apply inappropriate combination validation to fallback
+        if style_appropriate_outerwear:
+            # Check if any outerwear would create inappropriate combinations with selected bottoms
+            validated_outerwear = []
+            for outerwear_item in style_appropriate_outerwear:
+                outerwear_type = outerwear_item.get('type', '').lower()
+                outerwear_name = outerwear_item.get('name', '').lower()
+                
+                # Check if this outerwear would conflict with selected bottoms
+                is_inappropriate = False
+                for selected_item in selected_items:
+                    selected_type = selected_item.get('type', '').lower()
+                    selected_name = selected_item.get('name', '').lower()
+                    
+                    # Blazer + Shorts prevention
+                    if ('blazer' in outerwear_type or 'blazer' in outerwear_name) and ('shorts' in selected_type or 'shorts' in selected_name):
+                        logger.warning(f"❌ FALLBACK VALIDATION: Preventing blazer + shorts combination")
+                        is_inappropriate = True
+                        break
+                    
+                    # Formal jacket + casual shorts prevention
+                    if (('jacket' in outerwear_type and 'formal' in outerwear_name) or 'suit jacket' in outerwear_name) and ('shorts' in selected_type or 'shorts' in selected_name):
+                        logger.warning(f"❌ FALLBACK VALIDATION: Preventing formal jacket + shorts combination")
+                        is_inappropriate = True
+                        break
+                
+                if not is_inappropriate:
+                    validated_outerwear.append(outerwear_item)
+                else:
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered out inappropriate outerwear: {outerwear_item.get('name', 'Unknown')}")
+            
+            style_appropriate_outerwear = validated_outerwear
+        
         if style_appropriate_outerwear:
             import random
             random.seed(int(time.time() * 1000) % 1000000)  # Use timestamp for seed
