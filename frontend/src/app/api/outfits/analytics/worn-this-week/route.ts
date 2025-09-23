@@ -14,8 +14,9 @@ export async function GET(request: Request) {
     
     if (!authHeader) {
       console.log('🔍 DEBUG: No auth header - returning 401');
+      console.log('🔍 DEBUG: API ROUTE CALLED BUT NO AUTH HEADER - THIS IS THE ISSUE');
       return NextResponse.json(
-        { error: 'Authorization header required' },
+        { error: 'Authorization header required', debug: 'API route called but no auth header provided' },
         { status: 401 }
       );
     }
