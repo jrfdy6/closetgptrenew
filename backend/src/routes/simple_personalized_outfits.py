@@ -22,49 +22,19 @@ from pydantic import BaseModel
 from ..services.simple_personalization_integration import SimplePersonalizationIntegration, PersonalizedOutfitResult
 from ..services.lightweight_embedding_service import UserInteraction
 
-# Import types (with error handling)
-try:
-    from ..custom_types.outfit_rules import OutfitRequest, OutfitResponse
-except ImportError as e:
-    print(f"Failed to import outfit types: {e}")
-    # Define minimal types for fallback
-    class OutfitRequest:
-        pass
-    class OutfitResponse:
-        pass
+# Import types
+from ..custom_types.outfit_rules import OutfitRequest, OutfitResponse
 
-# Import auth (with error handling)
-try:
-    from ..auth.auth_service import get_current_user_id
-except ImportError as e:
-    print(f"Failed to import auth service: {e}")
-    def get_current_user_id():
-        return "test-user"
+# Import auth
+from ..auth.auth_service import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter()
 
-# Initialize simple personalization service (with error handling)
-try:
-    personalization_service = SimplePersonalizationIntegration()
-    logger.info("✅ Simple personalization service initialized successfully")
-except Exception as e:
-    logger.error(f"❌ Failed to initialize simple personalization service: {e}")
-    # Create a minimal fallback service
-    class FallbackPersonalizationService:
-        def __init__(self):
-            self.enable_personalization = False
-        async def generate_outfit_with_personalization(self, *args, **kwargs):
-            return PersonalizedOutfitResult(outfits=[], personalization_applied=False, confidence=0.0, metadata={"error": "Service unavailable"})
-        async def record_user_interaction(self, *args, **kwargs):
-            return False
-        def get_personalization_status(self, user_id):
-            return {"user_id": user_id, "personalization_enabled": False, "error": "Service unavailable"}
-    
-    personalization_service = FallbackPersonalizationService()
-    logger.warning("⚠️ Using fallback personalization service")
+# Initialize simple personalization service
+personalization_service = SimplePersonalizationIntegration()
 
 # Pydantic models
 class InteractionRequest(BaseModel):

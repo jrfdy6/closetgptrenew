@@ -19,31 +19,9 @@ import time
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
-# Import lightweight services (with error handling)
-try:
-    from .lightweight_embedding_service import LightweightEmbeddingService, UserInteraction
-    from .lightweight_recommendation_engine import LightweightRecommendationEngine
-except ImportError as e:
-    print(f"Failed to import lightweight services: {e}")
-    # Define minimal fallback classes
-    class LightweightEmbeddingService:
-        def get_user_embedding_stats(self, user_id):
-            return {"has_embedding": False, "total_interactions": 0}
-        def generate_user_embedding(self, user_id, items):
-            pass
-    
-    class UserInteraction:
-        def __init__(self, **kwargs):
-            for k, v in kwargs.items():
-                setattr(self, k, v)
-    
-    class LightweightRecommendationEngine:
-        def __init__(self, embedding_service):
-            self.embedding_service = embedding_service
-        async def generate_personalized_outfits(self, **kwargs):
-            return type('Result', (), {'outfits': [], 'confidence': 0.0, 'strategy_used': 'fallback', 'personalization_score': 0.0})()
-        async def record_user_interaction(self, user_id, interaction):
-            return True
+# Import lightweight services
+from .lightweight_embedding_service import LightweightEmbeddingService, UserInteraction
+from .lightweight_recommendation_engine import LightweightRecommendationEngine
 
 logger = logging.getLogger(__name__)
 
@@ -61,30 +39,16 @@ class SimplePersonalizationIntegration:
     """
     
     def __init__(self):
-        try:
-            # Initialize lightweight services
-            self.embedding_service = LightweightEmbeddingService()
-            self.recommendation_engine = LightweightRecommendationEngine(self.embedding_service)
-            
-            # Settings
-            self.enable_personalization = True
-            self.min_interactions_for_personalization = 3  # Need at least 3 interactions
-            self.max_personalized_outfits = 5
-            
-            logger.info("✅ Simple Personalization Integration initialized")
-            
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize Simple Personalization Integration: {e}")
-            # Initialize with fallback services
-            self.embedding_service = LightweightEmbeddingService()
-            self.recommendation_engine = LightweightRecommendationEngine(self.embedding_service)
-            
-            # Settings
-            self.enable_personalization = False  # Disable if initialization failed
-            self.min_interactions_for_personalization = 3
-            self.max_personalized_outfits = 5
-            
-            logger.warning("⚠️ Simple Personalization Integration initialized with fallback services")
+        # Initialize lightweight services
+        self.embedding_service = LightweightEmbeddingService()
+        self.recommendation_engine = LightweightRecommendationEngine(self.embedding_service)
+        
+        # Settings
+        self.enable_personalization = True
+        self.min_interactions_for_personalization = 3  # Need at least 3 interactions
+        self.max_personalized_outfits = 5
+        
+        logger.info("✅ Simple Personalization Integration initialized")
     
     async def generate_outfit_with_personalization(
         self,
