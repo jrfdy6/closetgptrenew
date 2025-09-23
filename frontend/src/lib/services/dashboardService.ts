@@ -333,17 +333,21 @@ class DashboardService {
         }
       });
       console.log('🔍 DEBUG: Worn outfits analytics response:', response);
+      console.log('🔍 DEBUG: Response type:', typeof response);
+      console.log('🔍 DEBUG: Response keys:', Object.keys(response || {}));
       
       // Validate response version to detect stale data
       if (response && typeof response === 'object') {
         const version = response.version || 'unknown';
         const source = response.source || 'unknown';
         const apiVersion = response.api_version || 'unknown';
+        const outfitsWorn = response.outfits_worn_this_week || 0;
         
         console.log('🔍 DEBUG: Analytics response validation:', {
           version,
           source,
           apiVersion,
+          outfitsWorn,
           isStale: source === 'user_stats_reliable' || version === 'unknown'
         });
         
@@ -355,6 +359,8 @@ class DashboardService {
         if (version === 'unknown') {
           console.warn('⚠️ VERSION UNKNOWN: Response missing version information');
         }
+        
+        console.log('🔍 DEBUG: Final outfits_worn_this_week value:', outfitsWorn);
       }
       
       return response;

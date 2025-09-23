@@ -70,6 +70,15 @@ export async function GET(request: NextRequest) {
     
     const data = await response.json();
     console.log('🔍 DEBUG: Backend data received:', data);
+    console.log('🔍 DEBUG: Data structure:', {
+      success: data.success,
+      outfits_worn_this_week: data.outfits_worn_this_week,
+      source: data.source,
+      version: data.version,
+      api_version: data.api_version,
+      week_start: data.week_start,
+      calculated_at: data.calculated_at
+    });
     
     // Add cache-busting headers to prevent browser/CDN caching
     return NextResponse.json(data, {
