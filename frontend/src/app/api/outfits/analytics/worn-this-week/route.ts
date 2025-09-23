@@ -17,6 +17,10 @@ export async function GET(request: NextRequest) {
       );
     }
     
+    // Extract token from "Bearer <token>" format
+    const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : authHeader;
+    console.log('🔍 DEBUG: Extracted token:', token.substring(0, 20) + '...');
+    
     // Get backend URL from environment variables
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
                       process.env.NEXT_PUBLIC_BACKEND_URL || 
@@ -32,7 +36,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
-        'Authorization': authHeader,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       signal: controller.signal,
@@ -58,16 +62,33 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     console.log('🔍 DEBUG: Backend data received:', data);
     
-    return NextResponse.json(data);
+    // Add cache-busting headers to prevent browser/CDN caching
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString(),
+        'ETag': `"${Date.now()}"`
+      }
+    });
     
   } catch (error: any) {
     console.error('🔍 DEBUG: Error in worn outfits analytics route:', error);
     
-    // Return fallback data on error
+    // Return fallback data on error with cache-busting headers
     return NextResponse.json({
       success: true,
       outfits_worn_this_week: 0,
       message: 'Error fetching data, using fallback'
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Last-Modified': new Date().toUTCString(),
+        'ETag': `"${Date.now()}"`
+      }
     });
   }
 }
