@@ -5143,6 +5143,8 @@ async def get_outfits_worn_this_week_simple(
                 "user_id": current_user.id,
                 "outfits_worn_this_week": worn_count,
                 "source": "lastWorn_fallback",
+                "version": "2025-09-23",
+                "api_version": "v2.0",
                 "week_start": week_start.isoformat(),
                 "calculated_at": datetime.now(timezone.utc).isoformat(),
                 "note": "Using lastWorn dates as fallback - outfit_history is empty"
@@ -5153,6 +5155,8 @@ async def get_outfits_worn_this_week_simple(
             "user_id": current_user.id,
             "outfits_worn_this_week": worn_count,
             "source": "outfit_history_individual_events",
+            "version": "2025-09-23",
+            "api_version": "v2.0",
             "week_start": week_start.isoformat(),
             "calculated_at": datetime.now(timezone.utc).isoformat()
         }
