@@ -244,6 +244,29 @@ class EnhancedOutfitValidator:
                 "required_items": ["casual_top", "casual_bottom"],
                 "preferred_shoes": ["sneakers", "casual_shoes", "loafers"],
                 "min_formality": FormalityLevel.SMART_CASUAL
+            },
+            
+            "party": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "business_formal",
+                    "athletic_shorts", "basketball_shorts", "gym_clothes"
+                ],
+                "required_items": ["casual_top", "casual_bottom"],
+                "preferred_shoes": ["sneakers", "casual_shoes", "loafers", "boots"],
+                "min_formality": FormalityLevel.CASUAL,
+                "notes": "Party occasions allow casual wear including shorts and sneakers"
+            },
+            
+            "date": {
+                "required_formality": FormalityLevel.SMART_CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "business_formal",
+                    "athletic_shorts", "basketball_shorts", "gym_clothes", "athletic_shoes"
+                ],
+                "required_items": ["casual_top", "casual_bottom"],
+                "preferred_shoes": ["loafers", "boots", "casual_shoes"],
+                "min_formality": FormalityLevel.SMART_CASUAL
             }
         }
     
