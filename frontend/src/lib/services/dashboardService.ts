@@ -256,8 +256,19 @@ class DashboardService {
   private async getWardrobeStats(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching wardrobe items from /wardrobe/ (not wardrobe-stats)');
-      const response = await this.makeAuthenticatedRequest('/wardrobe/', user, {
-        method: 'GET'
+      
+      // Add cache busting for wardrobe stats
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
+      
+      const response = await this.makeAuthenticatedRequest(`/wardrobe/${cacheBuster}`, user, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
@@ -370,8 +381,19 @@ class DashboardService {
   private async getTrendingStyles(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching trending styles from /wardrobe/trending-styles');
-      const response = await this.makeAuthenticatedRequest('/wardrobe/trending-styles', user, {
-        method: 'GET'
+      
+      // Add cache busting for trending styles
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
+      
+      const response = await this.makeAuthenticatedRequest(`/wardrobe/trending-styles${cacheBuster}`, user, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
       console.log('🔍 DEBUG: Trending styles response:', response);
       return response.data || response || {};
@@ -438,8 +460,19 @@ class DashboardService {
   private async getTopWornItems(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching top worn items from /wardrobe/top-worn-items');
-      const response = await this.makeAuthenticatedRequest('/wardrobe/top-worn-items?limit=5', user, {
-        method: 'GET'
+      
+      // Add cache busting for top worn items
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const cacheBuster = `&t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
+      
+      const response = await this.makeAuthenticatedRequest(`/wardrobe/top-worn-items?limit=5${cacheBuster}`, user, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
       console.log('🔍 DEBUG: Top worn items response:', response);
       return response.data || response || {};
@@ -704,7 +737,20 @@ class DashboardService {
   private async getWardrobeGapsFromBackend(user: User | null): Promise<WardrobeGap[]> {
     try {
       console.log('🔍 DEBUG: Fetching wardrobe gaps from backend...');
-      const response = await this.makeAuthenticatedRequest('/wardrobe/gaps', user);
+      
+      // Add cache busting for wardrobe gaps
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
+      
+      const response = await this.makeAuthenticatedRequest(`/wardrobe/gaps${cacheBuster}`, user, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       
       if (response?.success && response?.data?.gaps) {
         console.log('✅ DEBUG: Successfully fetched wardrobe gaps from backend:', response.data.gaps.length);
