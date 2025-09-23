@@ -122,6 +122,9 @@ class DashboardService {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         ...options.headers,
       },
       ...options,
@@ -308,11 +311,19 @@ class DashboardService {
     try {
       console.log('🔍 DEBUG: [FIXED] Fetching outfit analytics from /outfits/analytics/worn-this-week');
       
-      // Add cache-busting parameter and force_fresh parameter
-      const cacheBuster = `?t=${Date.now()}`;
-      const forceParam = forceFresh ? `&force_fresh=true` : '';
+      // Enhanced cache-busting with multiple parameters
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
+      const forceParam = forceFresh ? `&force_fresh=true&bypass_cache=true` : '';
+      
       const response = await this.makeAuthenticatedRequest(`/outfits/analytics/worn-this-week${cacheBuster}${forceParam}`, user, {
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
       });
       console.log('🔍 DEBUG: Worn outfits analytics response:', response);
       return response;
