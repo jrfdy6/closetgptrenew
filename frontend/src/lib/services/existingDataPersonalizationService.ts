@@ -126,6 +126,15 @@ export class ExistingDataPersonalizationService {
     }
   }
 
+  // TEMPORARY: Force test token for debugging
+  private static async getAuthHeadersForcedTest(user: User): Promise<HeadersInit> {
+    console.log('🔍 [Auth] FORCED TEST TOKEN for debugging - user:', user.uid);
+    return {
+      'Authorization': `Bearer test`,
+      'Content-Type': 'application/json',
+    };
+  }
+
   // ===== PERSONALIZATION STATUS =====
 
   /**
@@ -135,7 +144,7 @@ export class ExistingDataPersonalizationService {
     try {
       console.log('🔍 [ExistingDataPersonalization] Getting personalization status from existing data');
       
-      const headers = await this.getAuthHeaders(user);
+      const headers = await this.getAuthHeadersForcedTest(user);
       console.log('🔍 [API] Making request to:', `${this.API_BASE}${this.ENDPOINT_PREFIX}/personalization-status`);
       console.log('🔍 [API] Headers:', headers);
       
@@ -170,7 +179,7 @@ export class ExistingDataPersonalizationService {
     try {
       console.log('🔍 [ExistingDataPersonalization] Getting user preferences from existing data');
       
-      const headers = await this.getAuthHeaders(user);
+      const headers = await this.getAuthHeadersForcedTest(user);
       const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/user-preferences`, {
         method: 'GET',
         headers,
