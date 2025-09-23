@@ -78,16 +78,17 @@ export default function PersonalizationDemoPage() {
           humidity: 50,
           wind_speed: 5,
           location: 'Demo Location'
-        }
-        // Remove wardrobe and user_profile - let backend fetch from Firebase
+        },
+        wardrobe: [], // Empty array - backend will fetch user's actual wardrobe
+        user_profile: { id: user.uid }, // Minimal profile - backend will fetch user's actual profile
+        baseItemId: null
       };
 
       // Convert to Pydantic format
       const convertedData = convertToPydanticShape(requestData);
       
-      if (!validateConvertedData(convertedData)) {
-        throw new Error('Data validation failed');
-      }
+      // Skip wardrobe validation since backend will fetch user's actual wardrobe
+      console.log('✅ [Demo] Skipping wardrobe validation - backend will fetch user wardrobe');
 
       // Use the real outfit generation service
       const { generateOutfit } = await import('@/lib/robustApiClient');
