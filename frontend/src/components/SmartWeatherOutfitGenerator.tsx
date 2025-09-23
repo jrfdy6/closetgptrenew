@@ -487,39 +487,40 @@ export function SmartWeatherOutfitGenerator({
     const humidity = weather.humidity || 50;
     const windSpeed = weather.wind_speed || 0;
     
+    // Map weather-based styles to valid backend enum values
     // Extreme temperature styles
-    if (temp >= 90) return 'Minimal Summer';
-    if (temp >= 85) return 'Light & Breezy';
-    if (temp <= 25) return 'Winter Layers';
-    if (temp <= 40) return 'Cozy Warm';
+    if (temp >= 90) return 'Minimalist'; // Minimal Summer -> Minimalist
+    if (temp >= 85) return 'Casual Cool'; // Light & Breezy -> Casual Cool
+    if (temp <= 25) return 'Classic'; // Winter Layers -> Classic
+    if (temp <= 40) return 'Classic'; // Cozy Warm -> Classic
     
     // Weather condition styles
     if (condition.includes('rain') || condition.includes('storm')) {
-      return 'Weather-Resistant';
+      return 'Urban Professional'; // Weather-Resistant -> Urban Professional
     }
     if (condition.includes('snow')) {
-      return 'Winter Chic';
+      return 'Classic'; // Winter Chic -> Classic
     }
     if (windSpeed > 15) {
-      return 'Wind-Friendly';
+      return 'Athleisure'; // Wind-Friendly -> Athleisure
     }
     if (humidity > 80) {
-      return 'Breathable Comfort';
+      return 'Athleisure'; // Breathable Comfort -> Athleisure
     }
     
     // Moderate weather styles
     if (temp >= 70 && temp <= 80) {
       if (condition.includes('sun') || condition.includes('clear')) {
-        return 'Bright & Cheerful';
+        return 'Colorblock'; // Bright & Cheerful -> Colorblock
       }
-      return 'Comfortable Casual';
+      return 'Casual Cool'; // Comfortable Casual -> Casual Cool
     }
     
     if (temp >= 55 && temp < 70) {
-      return 'Layered Classic';
+      return 'Classic'; // Layered Classic -> Classic
     }
     
-    return 'Adaptable Classic';
+    return 'Classic'; // Adaptable Classic -> Classic
   };
 
   const determineMoodFromWeather = (weather: any): string => {
