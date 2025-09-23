@@ -119,9 +119,10 @@ class DashboardService {
       console.log('🔍 DEBUG: Got real token:', token.substring(0, 20) + '...');
     }
     
-    // Use Next.js API route as proxy instead of calling backend directly
-    const fullUrl = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
-    console.log('🔍 DEBUG: Making request to:', fullUrl);
+    // TEMPORARILY: Call backend directly to bypass Next.js API route issues
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const fullUrl = endpoint.startsWith('http') ? endpoint : `${backendUrl}${endpoint}`;
+    console.log('🔍 DEBUG: Making DIRECT request to backend:', fullUrl);
     console.log('🔍 DEBUG: Authorization header:', `Bearer ${token.substring(0, 20)}...`);
 
     const response = await fetch(fullUrl, {
