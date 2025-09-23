@@ -105,11 +105,25 @@ export class ExistingDataPersonalizationService {
 
   // ===== AUTHENTICATION HELPERS =====
   private static async getAuthHeaders(user: User): Promise<HeadersInit> {
-    const token = await user.getIdToken();
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    };
+    try {
+      console.log('🔍 [Auth] Getting ID token for user:', user.uid);
+      const token = await user.getIdToken();
+      console.log('🔍 [Auth] Token generated, length:', token.length);
+      console.log('🔍 [Auth] Token preview:', token.substring(0, 20) + '...');
+      
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+    } catch (error) {
+      console.error('❌ [Auth] Failed to get ID token:', error);
+      // Fallback to test token for debugging
+      console.log('🔍 [Auth] Using test token as fallback');
+      return {
+        'Authorization': `Bearer test`,
+        'Content-Type': 'application/json',
+      };
+    }
   }
 
   // ===== PERSONALIZATION STATUS =====
@@ -122,12 +136,20 @@ export class ExistingDataPersonalizationService {
       console.log('🔍 [ExistingDataPersonalization] Getting personalization status from existing data');
       
       const headers = await this.getAuthHeaders(user);
+      console.log('🔍 [API] Making request to:', `${this.API_BASE}${this.ENDPOINT_PREFIX}/personalization-status`);
+      console.log('🔍 [API] Headers:', headers);
+      
       const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/personalization-status`, {
         method: 'GET',
         headers,
       });
 
+      console.log('🔍 [API] Response status:', response.status);
+      console.log('🔍 [API] Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [API] Error response:', errorText);
         throw new Error(`Failed to get personalization status: ${response.status}`);
       }
 
