@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     console.log('🔍 Frontend API: Wardrobe gaps endpoint called');
     
