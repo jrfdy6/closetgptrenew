@@ -548,40 +548,18 @@ export default function PersonalizationDemoPage() {
                         onChange={(e) => setFormData(prev => ({ ...prev, occasion: e.target.value }))}
                         className="w-full p-2 border rounded-md bg-white dark:bg-gray-800"
                       >
-                        {/* Professional */}
-                        <option value="Business Formal">Business Formal</option>
-                        <option value="Business Casual">Business Casual</option>
-                        <option value="Work">Work</option>
-                        <option value="Interview">Interview</option>
-                        
-                        {/* Social */}
+                        {/* Backend-accepted occasions only */}
+                        <option value="">Select Occasion</option>
                         <option value="Casual">Casual</option>
+                        <option value="Business">Business</option>
                         <option value="Formal">Formal</option>
-                        <option value="Gala">Gala</option>
+                        <option value="Athletic">Athletic</option>
                         <option value="Party">Party</option>
-                        <option value="Date Night">Date Night</option>
-                        <option value="First Date">First Date</option>
-                        <option value="Brunch">Brunch</option>
-                        <option value="Wedding Guest">Wedding Guest</option>
-                        <option value="Cocktail">Cocktail</option>
-                        <option value="Night Out">Night Out</option>
-                        
-                        {/* Travel & Leisure */}
-                        <option value="Travel">Travel</option>
-                        <option value="Airport">Airport</option>
+                        <option value="Date">Date</option>
+                        <option value="Interview">Interview</option>
+                        <option value="Weekend">Weekend</option>
                         <option value="Loungewear">Loungewear</option>
-                        <option value="Beach">Beach</option>
-                        <option value="Vacation">Vacation</option>
-                        <option value="Festival">Festival</option>
-                        
-                        {/* Weather Specific */}
-                        <option value="Rainy Day">Rainy Day</option>
-                        <option value="Snow Day">Snow Day</option>
-                        <option value="Hot Weather">Hot Weather</option>
-                        
-                        {/* Fitness & Health */}
                         <option value="Gym">Gym</option>
-                        <option value="Going to the gym">Going to the gym</option>
                       </select>
                     </div>
                     
