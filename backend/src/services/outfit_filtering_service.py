@@ -53,20 +53,82 @@ class OutfitFilteringService:
         return filtered
     
     def apply_light_filtering(self, wardrobe, context):
-        """Light filtering - only basic availability and weather filtering."""
+        """Light filtering - basic weather and occasion filtering."""
         print(f"🔍 DEBUG: apply_light_filtering - Starting with {len(wardrobe)} items")
         filtered = wardrobe[:]
         
-        # Basic weather filtering only
+        # Basic weather filtering
         before = len(filtered)
         filtered = self._filter_by_weather_strict(filtered, context["weather"])
         after = len(filtered)
         print(f"🔍 DEBUG: apply_light_filtering - After weather filtering: {after} items (removed {before - after})")
         
-        # No strict occasion, style, or preference filtering
-        # Let smart selection and validation handle those
+        # Basic occasion filtering to prevent obviously inappropriate items
+        before = len(filtered)
+        filtered = self._filter_by_occasion_light(filtered, context.get("occasion", ""))
+        after = len(filtered)
+        print(f"🔍 DEBUG: apply_light_filtering - After occasion filtering: {after} items (removed {before - after})")
         
         return filtered
+    
+    def _filter_by_occasion_light(self, items: List[ClothingItem], occasion: str) -> List[ClothingItem]:
+        """Light occasion filtering to remove obviously inappropriate items."""
+        if not items or not occasion:
+            return items
+            
+        occasion_lower = occasion.lower()
+        filtered_items = []
+        
+        for item in items:
+            item_name = item.name.lower()
+            item_type = item.type.lower()
+            
+            # Skip obviously inappropriate items for formal occasions
+            if any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'interview']):
+                # Block casual/athletic items for formal occasions
+                if any(inappropriate in item_name or inappropriate in item_type for inappropriate in [
+                    'sneaker', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs',  # Casual shoes
+                    'jersey', 'basketball', 'sport', 'tank', 'tank top',  # Athletic wear
+                    'biker', 'leather jacket', 'hoodie', 'sweatpants', 'joggers'  # Casual outerwear
+                ]):
+                    continue
+            
+            # Skip obviously inappropriate items for party occasions
+            elif any(party_term in occasion_lower for party_term in ['party', 'night out', 'club']):
+                # Block formal/work items for party occasions
+                if any(inappropriate in item_name or inappropriate in item_type for inappropriate in [
+                    'suit', 'dress pants', 'oxford', 'loafers',  # Too formal
+                    'athletic', 'gym', 'jersey', 'basketball', 'sport',  # Too athletic
+                    'sweatpants', 'joggers', 'lounge', 'pajama',  # Too casual
+                    'work', 'business', 'professional'  # Too work-like
+                ]):
+                    continue
+            
+            # Skip obviously inappropriate items for date occasions
+            elif any(date_term in occasion_lower for date_term in ['date', 'romantic']):
+                # Block athletic/casual items for date occasions
+                if any(inappropriate in item_name or inappropriate in item_type for inappropriate in [
+                    'athletic', 'gym', 'jersey', 'basketball', 'sport',  # Too athletic
+                    'lounge', 'pajama', 'sleep',  # Too casual
+                    'work', 'business', 'professional',  # Too work-like
+                    'swim', 'beach', 'bikini'  # Too beachy
+                ]):
+                    continue
+            
+            # Skip obviously inappropriate items for loungewear occasions
+            elif 'loungewear' in occasion_lower:
+                # Block formal/structured items for loungewear
+                if any(inappropriate in item_name or inappropriate in item_type for inappropriate in [
+                    'blazer', 'suit', 'dress pants', 'oxford', 'heels', 'loafers',  # Too formal
+                    'athletic', 'gym', 'jersey', 'basketball', 'sport',  # Too athletic
+                    'work', 'business', 'professional',  # Too work-like
+                    'jeans', 'denim'  # Too structured
+                ]):
+                    continue
+            
+            filtered_items.append(item)
+        
+        return filtered_items
     
     def _filter_by_weather_strict(self, items: List[ClothingItem], weather: WeatherData) -> List[ClothingItem]:
         """Filter items based on weather conditions with temperature conversion."""
