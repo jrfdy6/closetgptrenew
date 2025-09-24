@@ -286,6 +286,219 @@ class EnhancedOutfitValidator:
                 "required_items": ["casual_top", "casual_bottom"],
                 "preferred_shoes": ["loafers", "boots", "casual_shoes"],
                 "min_formality": FormalityLevel.SMART_CASUAL
+            },
+            
+            # Additional comprehensive occasion rules for all frontend options
+            "business_casual": {
+                "required_formality": FormalityLevel.BUSINESS_CASUAL,
+                "forbidden_items": [
+                    "shorts", "athletic_shorts", "basketball_shorts", "bermuda_shorts",
+                    "sneakers", "athletic_shoes", "flip_flops", "sandals",
+                    "tank_top", "athletic_shirt", "gym_clothes",
+                    "sweatpants", "athletic_pants", "lounge_pants"
+                ],
+                "required_items": ["dress_shirt", "button_up", "blazer", "dress_pants", "chinos"],
+                "preferred_shoes": ["dress_shoes", "oxford", "loafers", "business_casual_shoes"],
+                "min_formality": FormalityLevel.BUSINESS_CASUAL
+            },
+            
+            "work": {
+                "required_formality": FormalityLevel.BUSINESS_CASUAL,
+                "forbidden_items": [
+                    "shorts", "athletic_shorts", "basketball_shorts", "bermuda_shorts",
+                    "sneakers", "athletic_shoes", "flip_flops", "sandals",
+                    "tank_top", "athletic_shirt", "gym_clothes",
+                    "sweatpants", "athletic_pants", "lounge_pants"
+                ],
+                "required_items": ["dress_shirt", "button_up", "dress_pants", "chinos"],
+                "preferred_shoes": ["dress_shoes", "oxford", "loafers", "business_casual_shoes"],
+                "min_formality": FormalityLevel.BUSINESS_CASUAL
+            },
+            
+            "date_night": {
+                "required_formality": FormalityLevel.SMART_CASUAL,
+                "forbidden_items": [
+                    "athletic_shorts", "basketball_shorts", "gym_clothes",
+                    "athletic_shoes", "running_shoes", "workout_clothes"
+                ],
+                "required_items": ["stylish_top", "stylish_bottom"],
+                "preferred_shoes": ["dress_shoes", "heels", "stylish_sneakers", "boots"],
+                "min_formality": FormalityLevel.SMART_CASUAL
+            },
+            
+            "first_date": {
+                "required_formality": FormalityLevel.SMART_CASUAL,
+                "forbidden_items": [
+                    "athletic_shorts", "basketball_shorts", "gym_clothes",
+                    "athletic_shoes", "running_shoes", "workout_clothes"
+                ],
+                "required_items": ["stylish_top", "stylish_bottom"],
+                "preferred_shoes": ["dress_shoes", "heels", "stylish_sneakers", "boots"],
+                "min_formality": FormalityLevel.SMART_CASUAL
+            },
+            
+            "brunch": {
+                "required_formality": FormalityLevel.SMART_CASUAL,
+                "forbidden_items": [
+                    "athletic_shorts", "basketball_shorts", "gym_clothes",
+                    "athletic_shoes", "running_shoes", "workout_clothes"
+                ],
+                "required_items": ["stylish_top", "stylish_bottom"],
+                "preferred_shoes": ["dress_shoes", "heels", "stylish_sneakers", "boots"],
+                "min_formality": FormalityLevel.SMART_CASUAL
+            },
+            
+            "wedding_guest": {
+                "required_formality": FormalityLevel.BUSINESS_FORMAL,
+                "forbidden_items": [
+                    "shorts", "athletic_shorts", "basketball_shorts", "bermuda_shorts",
+                    "sneakers", "athletic_shoes", "flip_flops", "sandals",
+                    "tank_top", "athletic_shirt", "gym_clothes",
+                    "sweatpants", "athletic_pants", "lounge_pants",
+                    "casual_shoes", "canvas_shoes", "casual_clothes"
+                ],
+                "required_items": ["dress_shirt", "dress_pants", "dress_shoes", "blazer", "suit"],
+                "preferred_shoes": ["dress_shoes", "oxford"],
+                "min_formality": FormalityLevel.BUSINESS_FORMAL
+            },
+            
+            "cocktail": {
+                "required_formality": FormalityLevel.BUSINESS_FORMAL,
+                "forbidden_items": [
+                    "shorts", "athletic_shorts", "basketball_shorts", "bermuda_shorts",
+                    "sneakers", "athletic_shoes", "flip_flops", "sandals",
+                    "tank_top", "athletic_shirt", "gym_clothes",
+                    "sweatpants", "athletic_pants", "lounge_pants",
+                    "casual_shoes", "canvas_shoes", "casual_clothes"
+                ],
+                "required_items": ["dress_shirt", "dress_pants", "dress_shoes", "blazer", "suit"],
+                "preferred_shoes": ["dress_shoes", "oxford"],
+                "min_formality": FormalityLevel.BUSINESS_FORMAL
+            },
+            
+            "night_out": {
+                "required_formality": FormalityLevel.SMART_CASUAL,
+                "forbidden_items": [
+                    "athletic_shorts", "basketball_shorts", "gym_clothes",
+                    "athletic_shoes", "running_shoes", "workout_clothes"
+                ],
+                "required_items": ["stylish_top", "stylish_bottom"],
+                "preferred_shoes": ["dress_shoes", "heels", "stylish_sneakers", "boots"],
+                "min_formality": FormalityLevel.SMART_CASUAL
+            },
+            
+            "gala": {
+                "required_formality": FormalityLevel.FORMAL,
+                "forbidden_items": [
+                    "shorts", "athletic_shorts", "basketball_shorts", "bermuda_shorts",
+                    "sneakers", "athletic_shoes", "flip_flops", "sandals",
+                    "tank_top", "athletic_shirt", "gym_clothes",
+                    "sweatpants", "athletic_pants", "lounge_pants",
+                    "casual_shoes", "canvas_shoes", "casual_clothes"
+                ],
+                "required_items": ["suit", "dress_shirt", "dress_pants", "dress_shoes"],
+                "preferred_shoes": ["dress_shoes", "oxford"],
+                "min_formality": FormalityLevel.FORMAL
+            },
+            
+            "travel": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "formal_jacket"
+                ],
+                "required_items": ["comfortable_top", "comfortable_bottom"],
+                "preferred_shoes": ["comfortable_shoes", "sneakers", "casual_shoes"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "airport": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "formal_jacket"
+                ],
+                "required_items": ["comfortable_top", "comfortable_bottom"],
+                "preferred_shoes": ["comfortable_shoes", "sneakers", "casual_shoes"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "beach": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "blazer", "dress_shoes", "formal_clothes"
+                ],
+                "required_items": ["casual_top", "casual_bottom"],
+                "preferred_shoes": ["sandals", "flip_flops", "casual_shoes"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "vacation": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "formal_jacket"
+                ],
+                "required_items": ["comfortable_top", "comfortable_bottom"],
+                "preferred_shoes": ["comfortable_shoes", "sneakers", "casual_shoes"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "festival": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "blazer", "dress_shoes", "formal_clothes"
+                ],
+                "required_items": ["casual_top", "casual_bottom"],
+                "preferred_shoes": ["sneakers", "boots", "casual_shoes"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "rainy_day": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "formal_jacket"
+                ],
+                "required_items": ["weather_appropriate_top", "weather_appropriate_bottom"],
+                "preferred_shoes": ["waterproof_shoes", "boots", "sneakers"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "snow_day": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "formal_jacket"
+                ],
+                "required_items": ["warm_top", "warm_bottom"],
+                "preferred_shoes": ["winter_boots", "warm_shoes"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "hot_weather": {
+                "required_formality": FormalityLevel.CASUAL,
+                "forbidden_items": [
+                    "suit", "tuxedo", "formal_dress_shoes", "formal_jacket"
+                ],
+                "required_items": ["light_top", "light_bottom"],
+                "preferred_shoes": ["breathable_shoes", "sandals", "sneakers"],
+                "min_formality": FormalityLevel.CASUAL
+            },
+            
+            "gym": {
+                "required_formality": FormalityLevel.ATHLETIC,
+                "forbidden_items": [
+                    "suit", "blazer", "dress_shoes", "formal_clothes"
+                ],
+                "required_items": ["athletic_top", "athletic_bottom", "athletic_shoes"],
+                "preferred_shoes": ["sneakers", "athletic_shoes", "running_shoes"],
+                "min_formality": FormalityLevel.ATHLETIC
+            },
+            
+            "going_to_the_gym": {
+                "required_formality": FormalityLevel.ATHLETIC,
+                "forbidden_items": [
+                    "suit", "blazer", "dress_shoes", "formal_clothes"
+                ],
+                "required_items": ["athletic_top", "athletic_bottom", "athletic_shoes"],
+                "preferred_shoes": ["sneakers", "athletic_shoes", "running_shoes"],
+                "min_formality": FormalityLevel.ATHLETIC
             }
         }
     
