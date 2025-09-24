@@ -506,6 +506,12 @@ class OccasionValidator(BaseValidator):
             if formal_items:
                 errors.append(f"Too formal for {occasion}: {[item.get('name', 'Unknown') for item in formal_items]}")
                 suggestions.append("Consider athletic wear, sneakers, and comfortable clothing")
+            
+            # Check for blazers and jackets specifically
+            blazer_items = [item for item in items if 'blazer' in item.get('name', '').lower() or 'jacket' in item.get('name', '').lower()]
+            if blazer_items:
+                errors.append(f"Inappropriate for {occasion}: {[item.get('name', 'Unknown') for item in blazer_items]}")
+                suggestions.append("Athletic occasions require athletic wear, not formal jackets")
         
         # Party occasion validation
         elif 'party' in occasion or 'night' in occasion:

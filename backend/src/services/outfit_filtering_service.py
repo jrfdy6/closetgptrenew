@@ -115,6 +115,15 @@ class OutfitFilteringService:
                 ]):
                     continue
             
+            # Skip obviously inappropriate items for athletic occasions
+            elif any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
+                # Block formal items for athletic occasions
+                if any(inappropriate in item_name or inappropriate in item_type for inappropriate in [
+                    'blazer', 'suit', 'dress pants', 'dress shirt', 'oxford', 'loafers', 'heels',  # Too formal
+                    'formal', 'business', 'professional', 'dress', 'suit jacket', 'sport coat'  # Too formal
+                ]):
+                    continue
+            
             # Skip obviously inappropriate items for loungewear occasions
             elif 'loungewear' in occasion_lower:
                 # Block formal/structured items for loungewear

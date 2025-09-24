@@ -839,12 +839,21 @@ class OutfitGenerationService:
             return appropriate_items
         
         elif "athletic" in occasion_lower or "gym" in occasion_lower or "workout" in occasion_lower or "sport" in occasion_lower:
-            # For athletic activities, prefer athletic items
+            # For athletic activities, prefer athletic items and block formal items
             appropriate_items = []
             for item in wardrobe:
                 name_lower = item.name.lower()
+                item_type = item.type.lower()
+                
+                # CRITICAL: Block formal items for athletic occasions
+                if any(formal in name_lower or formal in item_type for formal in [
+                    "blazer", "suit", "dress pants", "dress shirt", "oxford", "loafers", "heels",
+                    "formal", "business", "professional", "dress", "suit jacket", "sport coat"
+                ]):
+                    continue
+                
                 # Prefer athletic items
-                if any(athletic in name_lower for athletic in ["athletic", "sport", "gym", "workout", "sneakers", "track", "jersey"]):
+                if any(athletic in name_lower for athletic in ["athletic", "sport", "gym", "workout", "sneakers", "track", "jersey", "tank", "shorts"]):
                     appropriate_items.insert(0, item)  # Prioritize athletic items
                 else:
                     appropriate_items.append(item)
