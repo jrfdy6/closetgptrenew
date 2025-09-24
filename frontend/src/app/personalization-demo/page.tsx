@@ -232,6 +232,7 @@ export default function PersonalizationDemoPage() {
       });
 
       // Prepare request data with enhanced wardrobe diversity for smart rotation
+      console.log('🔍 [Demo] Form data being sent:', formData);
       const requestData = {
         occasion: formData.occasion,
         style: formData.style,
