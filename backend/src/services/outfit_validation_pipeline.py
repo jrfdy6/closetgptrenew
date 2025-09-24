@@ -205,6 +205,37 @@ class BaseValidator:
 class WeatherValidator(BaseValidator):
     """Validates outfit appropriateness for weather conditions"""
     
+    def __init__(self):
+        # Enhanced temperature thresholds
+        self.temp_thresholds = {
+            'very_hot': 85,      # >85°F - no heavy items allowed
+            'hot': 75,           # >75°F - no heavy coats, warn about heavy items
+            'warm': 65,          # >65°F - allow lightweight jackets
+            'moderate': 55,      # >55°F - allow light layering
+            'cool': 45,          # >45°F - allow moderate layering
+            'cold': 35,          # >35°F - require warm clothing
+            'very_cold': 25      # <25°F - require heavy winter clothing
+        }
+        
+        # Item weight classifications
+        self.heavy_items = {
+            'coats': ['parka', 'down', 'puffer', 'wool coat', 'heavy coat', 'winter coat', 'overcoat'],
+            'materials': ['wool', 'fleece', 'down', 'heavy cotton', 'thick'],
+            'types': ['coat', 'parka', 'overcoat']
+        }
+        
+        self.lightweight_items = {
+            'jackets': ['blazer', 'sport coat', 'light jacket', 'cardigan', 'sweater'],
+            'materials': ['cotton', 'linen', 'light wool', 'breathable'],
+            'types': ['blazer', 'cardigan', 'sweater']
+        }
+        
+        self.moderate_items = {
+            'jackets': ['jacket', 'sweater', 'hoodie', 'cardigan'],
+            'materials': ['cotton', 'light wool', 'acrylic'],
+            'types': ['jacket', 'sweater', 'hoodie']
+        }
+    
     async def validate(self, outfit: Dict[str, Any], context: ValidationContext) -> ValidationResult:
         errors = []
         warnings = []
@@ -216,19 +247,11 @@ class WeatherValidator(BaseValidator):
         
         items = outfit.get('items', [])
         
-        # Check for heavy coats in hot weather
-        if temp > 75:
-            heavy_items = [item for item in items if self._is_heavy_item(item)]
-            if heavy_items:
-                errors.append(f"Too warm ({temp}°F) for heavy items: {[item.get('name', 'Unknown') for item in heavy_items]}")
-                suggestions.append("Consider lighter fabrics like cotton or linen")
-        
-        # Check for shorts in cold weather
-        if temp < 45:
-            shorts = [item for item in items if 'shorts' in item.get('name', '').lower() or 'shorts' in item.get('type', '').lower()]
-            if shorts:
-                errors.append(f"Too cold ({temp}°F) for shorts: {[item.get('name', 'Unknown') for item in shorts]}")
-                suggestions.append("Consider pants or long bottoms for cold weather")
+        # Enhanced temperature-based validation
+        temp_validation = self._validate_temperature_appropriateness(items, temp)
+        errors.extend(temp_validation['errors'])
+        warnings.extend(temp_validation['warnings'])
+        suggestions.extend(temp_validation['suggestions'])
         
         # Check for inappropriate rain wear
         if precipitation > 0.5 and condition in ['rain', 'drizzle']:
@@ -251,13 +274,149 @@ class WeatherValidator(BaseValidator):
             severity=ValidationSeverity.HIGH if errors else ValidationSeverity.LOW
         )
     
+    def _validate_temperature_appropriateness(self, items: List[Dict[str, Any]], temp: float) -> Dict[str, List[str]]:
+        """Enhanced temperature validation with graduated thresholds"""
+        errors = []
+        warnings = []
+        suggestions = []
+        
+        # Very hot weather (>85°F) - no heavy items allowed
+        if temp > self.temp_thresholds['very_hot']:
+            heavy_items = [item for item in items if self._is_heavy_item(item)]
+            if heavy_items:
+                errors.append(f"TOO HOT ({temp}°F): Heavy items not allowed: {[item.get('name', 'Unknown') for item in heavy_items]}")
+                suggestions.append("CRITICAL: Remove heavy coats, use only lightweight fabrics")
+        
+        # Hot weather (>75°F) - no heavy coats, warn about heavy items
+        elif temp > self.temp_thresholds['hot']:
+            heavy_coats = [item for item in items if self._is_heavy_coat(item)]
+            if heavy_coats:
+                errors.append(f"HOT WEATHER ({temp}°F): Heavy coats not appropriate: {[item.get('name', 'Unknown') for item in heavy_coats]}")
+                suggestions.append("Consider lightweight blazers or cardigans instead of heavy coats")
+            
+            # Check for borderline items
+            borderline_items = [item for item in items if self._is_borderline_heavy(item)]
+            if borderline_items:
+                warnings.append(f"HOT WEATHER ({temp}°F): Consider lighter alternatives: {[item.get('name', 'Unknown') for item in borderline_items]}")
+                suggestions.append("Lightweight jackets or cardigans are better for hot weather")
+        
+        # Warm weather (>65°F) - allow lightweight jackets
+        elif temp > self.temp_thresholds['warm']:
+            # Check for appropriate lightweight layering
+            lightweight_items = [item for item in items if self._is_lightweight_item(item)]
+            if lightweight_items:
+                suggestions.append(f"PERFECT: Lightweight layering appropriate for {temp}°F: {[item.get('name', 'Unknown') for item in lightweight_items]}")
+        
+        # Moderate weather (>55°F) - allow light layering
+        elif temp > self.temp_thresholds['moderate']:
+            # Check for appropriate moderate layering
+            moderate_items = [item for item in items if self._is_moderate_item(item)]
+            if moderate_items:
+                suggestions.append(f"GOOD: Moderate layering appropriate for {temp}°F: {[item.get('name', 'Unknown') for item in moderate_items]}")
+        
+        # Cool weather (>45°F) - allow moderate layering
+        elif temp > self.temp_thresholds['cool']:
+            # Check for appropriate cool weather clothing
+            if not any(self._is_warm_item(item) for item in items):
+                warnings.append(f"COOL WEATHER ({temp}°F): Consider adding a light jacket or sweater")
+                suggestions.append("Add a light jacket, sweater, or cardigan for cool weather")
+        
+        # Cold weather (>35°F) - require warm clothing
+        elif temp > self.temp_thresholds['cold']:
+            warm_items = [item for item in items if self._is_warm_item(item)]
+            if not warm_items:
+                errors.append(f"COLD WEATHER ({temp}°F): Warm clothing required")
+                suggestions.append("REQUIRED: Add a jacket, sweater, or warm outer layer")
+            
+            # Check for shorts in cold weather
+            shorts = [item for item in items if 'shorts' in item.get('name', '').lower() or 'shorts' in item.get('type', '').lower()]
+            if shorts:
+                errors.append(f"TOO COLD ({temp}°F) for shorts: {[item.get('name', 'Unknown') for item in shorts]}")
+                suggestions.append("REQUIRED: Use pants or long bottoms for cold weather")
+        
+        # Very cold weather (<35°F) - require heavy winter clothing
+        else:
+            heavy_winter_items = [item for item in items if self._is_heavy_winter_item(item)]
+            if not heavy_winter_items:
+                errors.append(f"VERY COLD ({temp}°F): Heavy winter clothing required")
+                suggestions.append("REQUIRED: Add heavy coat, parka, or winter jacket")
+            
+            # Check for insufficient layering
+            total_layers = len([item for item in items if item.get('type', '').lower() in ['shirt', 'top', 'sweater', 'jacket', 'coat']])
+            if total_layers < 2:
+                warnings.append(f"VERY COLD ({temp}°F): Consider more layers for warmth")
+                suggestions.append("Add multiple layers for very cold weather")
+        
+        return {
+            'errors': errors,
+            'warnings': warnings,
+            'suggestions': suggestions
+        }
+    
     def _is_heavy_item(self, item: Dict[str, Any]) -> bool:
-        """Check if item is too heavy for hot weather"""
+        """Check if item is heavy (not suitable for hot weather)"""
         name = item.get('name', '').lower()
         material = item.get('material', '').lower()
         
-        heavy_indicators = ['coat', 'wool', 'fleece', 'down', 'puffer', 'parka', 'heavy']
-        return any(indicator in name or indicator in material for indicator in heavy_indicators)
+        # Check against heavy item classifications
+        for category, terms in self.heavy_items.items():
+            if any(term in name or term in material for term in terms):
+                return True
+        
+        return False
+    
+    def _is_heavy_coat(self, item: Dict[str, Any]) -> bool:
+        """Check if item is specifically a heavy coat"""
+        name = item.get('name', '').lower()
+        material = item.get('material', '').lower()
+        
+        return any(term in name or term in material for term in self.heavy_items['coats'])
+    
+    def _is_borderline_heavy(self, item: Dict[str, Any]) -> bool:
+        """Check if item is borderline heavy (warn but don't error)"""
+        name = item.get('name', '').lower()
+        material = item.get('material', '').lower()
+        
+        borderline_terms = ['sweater', 'cardigan', 'jacket', 'blazer']
+        return any(term in name for term in borderline_terms) and any(heavy_term in material for heavy_term in ['wool', 'fleece'])
+    
+    def _is_lightweight_item(self, item: Dict[str, Any]) -> bool:
+        """Check if item is lightweight (suitable for warm weather)"""
+        name = item.get('name', '').lower()
+        material = item.get('material', '').lower()
+        
+        for category, terms in self.lightweight_items.items():
+            if any(term in name or term in material for term in terms):
+                return True
+        
+        return False
+    
+    def _is_moderate_item(self, item: Dict[str, Any]) -> bool:
+        """Check if item is moderate weight (suitable for moderate weather)"""
+        name = item.get('name', '').lower()
+        material = item.get('material', '').lower()
+        
+        for category, terms in self.moderate_items.items():
+            if any(term in name or term in material for term in terms):
+                return True
+        
+        return False
+    
+    def _is_warm_item(self, item: Dict[str, Any]) -> bool:
+        """Check if item provides warmth (suitable for cool weather)"""
+        name = item.get('name', '').lower()
+        material = item.get('material', '').lower()
+        
+        warm_indicators = ['sweater', 'cardigan', 'jacket', 'coat', 'hoodie', 'wool', 'fleece']
+        return any(indicator in name or indicator in material for indicator in warm_indicators)
+    
+    def _is_heavy_winter_item(self, item: Dict[str, Any]) -> bool:
+        """Check if item is heavy winter clothing (suitable for very cold weather)"""
+        name = item.get('name', '').lower()
+        material = item.get('material', '').lower()
+        
+        winter_indicators = ['parka', 'down', 'puffer', 'winter coat', 'heavy coat', 'overcoat', 'wool coat']
+        return any(indicator in name or indicator in material for indicator in winter_indicators)
     
     def _is_inappropriate_for_rain(self, item: Dict[str, Any]) -> bool:
         """Check if item is inappropriate for rainy weather"""
@@ -270,6 +429,31 @@ class WeatherValidator(BaseValidator):
 class OccasionValidator(BaseValidator):
     """Validates outfit appropriateness for the occasion"""
     
+    def __init__(self):
+        # Explicit blacklists for formal occasions
+        self.formal_blacklist = {
+            'shoes': ['sneaker', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs', 'running', 'basketball', 'tennis'],
+            'tops': ['t-shirt', 'tank', 'tank top', 'jersey', 'basketball', 'sport', 'athletic', 'hoodie', 'sweatshirt'],
+            'bottoms': ['shorts', 'sweatpants', 'joggers', 'athletic', 'basketball', 'sport'],
+            'outerwear': ['biker', 'leather jacket', 'hoodie', 'sweatshirt']
+        }
+        
+        # Positive reinforcement items for formal occasions
+        self.formal_positive = {
+            'shoes': ['oxford', 'loafer', 'dress shoe', 'dress shoes', 'heels', 'pumps', 'derby'],
+            'tops': ['dress shirt', 'button up', 'button-up', 'blouse', 'dress shirt', 'oxford shirt'],
+            'bottoms': ['dress pants', 'dress trousers', 'slacks', 'dress skirt', 'pencil skirt'],
+            'outerwear': ['blazer', 'suit jacket', 'sport coat', 'dress coat', 'overcoat']
+        }
+        
+        # Business casual specific rules
+        self.business_casual_allowed = {
+            'shoes': ['loafer', 'dress shoe', 'dress shoes', 'oxford', 'derby', 'boots', 'chukka'],
+            'tops': ['dress shirt', 'button up', 'button-up', 'polo', 'sweater', 'cardigan'],
+            'bottoms': ['dress pants', 'chinos', 'dress trousers', 'khakis', 'dress skirt'],
+            'outerwear': ['blazer', 'sport coat', 'cardigan', 'sweater']
+        }
+    
     async def validate(self, outfit: Dict[str, Any], context: ValidationContext) -> ValidationResult:
         errors = []
         warnings = []
@@ -278,25 +462,42 @@ class OccasionValidator(BaseValidator):
         occasion = context.occasion.lower()
         items = outfit.get('items', [])
         
-        # Business formal validation
+        # Business formal validation - STRICTEST RULES
         if 'formal' in occasion or 'business' in occasion:
-            # Check for inappropriate shoes
-            inappropriate_shoes = [item for item in items if self._is_inappropriate_shoe_for_formal(item)]
-            if inappropriate_shoes:
-                errors.append(f"Inappropriate shoes for {occasion}: {[item.get('name', 'Unknown') for item in inappropriate_shoes]}")
-                suggestions.append("Consider dress shoes, oxfords, or loafers for formal occasions")
+            # Check for explicitly blacklisted items
+            blacklist_violations = self._check_blacklist_violations(items, occasion)
+            if blacklist_violations:
+                for category, violations in blacklist_violations.items():
+                    errors.append(f"Blacklisted {category} for {occasion}: {violations}")
+                
+                # Provide specific suggestions based on violations
+                if 'shoes' in blacklist_violations:
+                    suggestions.append("REQUIRED: Dress shoes, oxfords, or loafers for formal occasions")
+                if 'tops' in blacklist_violations:
+                    suggestions.append("REQUIRED: Dress shirts, button-ups, or blouses for formal occasions")
+                if 'bottoms' in blacklist_violations:
+                    suggestions.append("REQUIRED: Dress pants, slacks, or dress skirts for formal occasions")
+                if 'outerwear' in blacklist_violations:
+                    suggestions.append("REQUIRED: Blazers, suit jackets, or dress coats for formal occasions")
             
-            # Check for casual tops
-            casual_tops = [item for item in items if self._is_casual_top(item)]
-            if casual_tops:
-                errors.append(f"Too casual for {occasion}: {[item.get('name', 'Unknown') for item in casual_tops]}")
-                suggestions.append("Consider dress shirts or blouses for formal occasions")
+            # Check for positive reinforcement items (boost scoring)
+            positive_items = self._check_positive_reinforcement(items, occasion)
+            if positive_items:
+                suggestions.append(f"EXCELLENT: Found appropriate formal items: {positive_items}")
             
-            # Check for shorts
-            shorts = [item for item in items if 'shorts' in item.get('name', '').lower()]
-            if shorts:
-                errors.append(f"Shorts are not appropriate for {occasion}: {[item.get('name', 'Unknown') for item in shorts]}")
-                suggestions.append("Consider dress pants or skirts for formal occasions")
+            # Check for missing essential formal items
+            missing_essentials = self._check_missing_formal_essentials(items, occasion)
+            if missing_essentials:
+                warnings.append(f"Consider adding formal essentials: {missing_essentials}")
+                suggestions.extend([f"Add {item} for complete formal look" for item in missing_essentials])
+        
+        # Business casual validation - MODERATE RULES
+        elif 'business' in occasion and 'casual' in occasion:
+            # Check for inappropriate items for business casual
+            inappropriate_items = [item for item in items if self._is_inappropriate_for_business_casual(item)]
+            if inappropriate_items:
+                errors.append(f"Inappropriate for business casual: {[item.get('name', 'Unknown') for item in inappropriate_items]}")
+                suggestions.append("Business casual allows dress shoes, polo shirts, chinos, and blazers")
         
         # Athletic occasion validation
         elif 'athletic' in occasion or 'gym' in occasion:
@@ -321,6 +522,105 @@ class OccasionValidator(BaseValidator):
             suggestions=suggestions,
             severity=ValidationSeverity.CRITICAL if errors else ValidationSeverity.LOW
         )
+    
+    def _check_blacklist_violations(self, items: List[Dict[str, Any]], occasion: str) -> Dict[str, List[str]]:
+        """Check for blacklisted items in formal occasions"""
+        violations = {}
+        
+        for item in items:
+            item_type = item.get('type', '').lower()
+            item_name = item.get('name', '').lower()
+            
+            # Map item types to categories
+            category = None
+            if item_type in ['shoes', 'footwear']:
+                category = 'shoes'
+            elif item_type in ['shirt', 'top', 'blouse', 'sweater', 'hoodie']:
+                category = 'tops'
+            elif item_type in ['pants', 'bottoms', 'shorts', 'trousers']:
+                category = 'bottoms'
+            elif item_type in ['jacket', 'coat', 'blazer', 'outerwear']:
+                category = 'outerwear'
+            
+            if category and category in self.formal_blacklist:
+                # Check if item name contains any blacklisted terms
+                for blacklisted_term in self.formal_blacklist[category]:
+                    if blacklisted_term in item_name:
+                        if category not in violations:
+                            violations[category] = []
+                        violations[category].append(item.get('name', 'Unknown'))
+                        break
+        
+        return violations
+    
+    def _check_positive_reinforcement(self, items: List[Dict[str, Any]], occasion: str) -> List[str]:
+        """Check for positive reinforcement items in formal occasions"""
+        positive_items = []
+        
+        for item in items:
+            item_type = item.get('type', '').lower()
+            item_name = item.get('name', '').lower()
+            
+            # Map item types to categories
+            category = None
+            if item_type in ['shoes', 'footwear']:
+                category = 'shoes'
+            elif item_type in ['shirt', 'top', 'blouse', 'sweater']:
+                category = 'tops'
+            elif item_type in ['pants', 'bottoms', 'trousers']:
+                category = 'bottoms'
+            elif item_type in ['jacket', 'coat', 'blazer', 'outerwear']:
+                category = 'outerwear'
+            
+            if category and category in self.formal_positive:
+                # Check if item name contains any positive terms
+                for positive_term in self.formal_positive[category]:
+                    if positive_term in item_name:
+                        positive_items.append(item.get('name', 'Unknown'))
+                        break
+        
+        return positive_items
+    
+    def _check_missing_formal_essentials(self, items: List[Dict[str, Any]], occasion: str) -> List[str]:
+        """Check for missing essential formal items"""
+        missing = []
+        
+        # Check for essential formal items
+        has_formal_shoes = any(
+            any(term in item.get('name', '').lower() for term in self.formal_positive['shoes'])
+            for item in items if item.get('type', '').lower() in ['shoes', 'footwear']
+        )
+        
+        has_formal_top = any(
+            any(term in item.get('name', '').lower() for term in self.formal_positive['tops'])
+            for item in items if item.get('type', '').lower() in ['shirt', 'top', 'blouse']
+        )
+        
+        has_formal_bottom = any(
+            any(term in item.get('name', '').lower() for term in self.formal_positive['bottoms'])
+            for item in items if item.get('type', '').lower() in ['pants', 'bottoms', 'trousers']
+        )
+        
+        if not has_formal_shoes:
+            missing.append("formal shoes")
+        if not has_formal_top:
+            missing.append("formal top")
+        if not has_formal_bottom:
+            missing.append("formal bottom")
+        
+        return missing
+    
+    def _is_inappropriate_for_business_casual(self, item: Dict[str, Any]) -> bool:
+        """Check if item is inappropriate for business casual"""
+        item_type = item.get('type', '').lower()
+        item_name = item.get('name', '').lower()
+        
+        # Business casual allows more flexibility than formal
+        inappropriate_terms = [
+            't-shirt', 'tank', 'sweatpants', 'shorts', 'sneakers', 'flip', 'slides'
+        ]
+        
+        return any(term in item_name for term in inappropriate_terms)
     
     def _is_inappropriate_shoe_for_formal(self, item: Dict[str, Any]) -> bool:
         """Check if shoe is inappropriate for formal occasions"""
@@ -355,6 +655,41 @@ class OccasionValidator(BaseValidator):
 class StyleValidator(BaseValidator):
     """Validates outfit consistency with requested style"""
     
+    def __init__(self):
+        # Enhanced style definitions with specific rules
+        self.style_rules = {
+            'minimalist': {
+                'max_items': 4,
+                'color_limit': 3,
+                'preferred_items': ['simple', 'clean', 'basic', 'solid'],
+                'avoid_items': ['patterned', 'bold', 'colorful', 'statement', 'loud'],
+                'severity': ValidationSeverity.MEDIUM
+            },
+            'maximalist': {
+                'min_items': 5,
+                'color_limit': 6,
+                'preferred_items': ['bold', 'patterned', 'colorful', 'statement', 'vibrant'],
+                'avoid_items': ['simple', 'plain', 'basic', 'minimal'],
+                'severity': ValidationSeverity.MEDIUM
+            },
+            'formal': {
+                'required_items': ['dress shoes', 'dress shirt', 'dress pants'],
+                'preferred_items': ['suit', 'blazer', 'oxford', 'loafer', 'dress'],
+                'avoid_items': ['casual', 'sneaker', 't-shirt', 'shorts'],
+                'severity': ValidationSeverity.HIGH
+            },
+            'classic': {
+                'preferred_items': ['traditional', 'timeless', 'elegant', 'sophisticated'],
+                'avoid_items': ['trendy', 'fashion-forward', 'edgy', 'experimental'],
+                'severity': ValidationSeverity.LOW
+            },
+            'modern': {
+                'preferred_items': ['contemporary', 'sleek', 'clean', 'streamlined'],
+                'avoid_items': ['vintage', 'retro', 'outdated', 'old-fashioned'],
+                'severity': ValidationSeverity.LOW
+            }
+        }
+    
     async def validate(self, outfit: Dict[str, Any], context: ValidationContext) -> ValidationResult:
         errors = []
         warnings = []
@@ -363,30 +698,140 @@ class StyleValidator(BaseValidator):
         style = context.style.lower()
         items = outfit.get('items', [])
         
-        # Check style consistency
-        if style == 'minimalist':
-            if len(items) > 4:
-                warnings.append(f"Minimalist style typically uses fewer items (current: {len(items)})")
-                suggestions.append("Consider removing one or two items for a cleaner look")
+        # Get style rules
+        style_rule = self.style_rules.get(style, {})
+        if not style_rule:
+            return ValidationResult(valid=True, errors=[], warnings=[], suggestions=[])
         
-        elif style == 'maximalist':
-            if len(items) < 5:
-                warnings.append(f"Maximalist style typically uses more items (current: {len(items)})")
-                suggestions.append("Consider adding accessories or layers for a bolder look")
+        # Check item count rules
+        item_count_validation = self._validate_item_count(items, style, style_rule)
+        errors.extend(item_count_validation['errors'])
+        warnings.extend(item_count_validation['warnings'])
+        suggestions.extend(item_count_validation['suggestions'])
+        
+        # Check color count rules
+        color_validation = self._validate_color_count(items, style, style_rule)
+        warnings.extend(color_validation['warnings'])
+        suggestions.extend(color_validation['suggestions'])
         
         # Check for style-appropriate items
-        inappropriate_items = [item for item in items if not self._is_style_appropriate(item, style)]
-        if inappropriate_items:
-            warnings.append(f"Some items may not match {style} style: {[item.get('name', 'Unknown') for item in inappropriate_items]}")
-            suggestions.append(f"Consider items that better match {style} aesthetic")
+        appropriateness_validation = self._validate_style_appropriateness(items, style, style_rule)
+        errors.extend(appropriateness_validation['errors'])
+        warnings.extend(appropriateness_validation['warnings'])
+        suggestions.extend(appropriateness_validation['suggestions'])
+        
+        # Check for required items (for formal style)
+        if 'required_items' in style_rule:
+            required_validation = self._validate_required_items(items, style, style_rule)
+            errors.extend(required_validation['errors'])
+            suggestions.extend(required_validation['suggestions'])
         
         return ValidationResult(
             valid=len(errors) == 0,
             errors=errors,
             warnings=warnings,
             suggestions=suggestions,
-            severity=ValidationSeverity.LOW
+            severity=style_rule.get('severity', ValidationSeverity.LOW)
         )
+    
+    def _validate_item_count(self, items: List[Dict[str, Any]], style: str, style_rule: Dict[str, Any]) -> Dict[str, List[str]]:
+        """Validate item count against style rules"""
+        errors = []
+        warnings = []
+        suggestions = []
+        
+        item_count = len(items)
+        
+        # Check maximum items for minimalist
+        if 'max_items' in style_rule and item_count > style_rule['max_items']:
+            errors.append(f"TOO MANY ITEMS for {style} style: {item_count} items (max {style_rule['max_items']})")
+            suggestions.append(f"REMOVE {item_count - style_rule['max_items']} items for authentic {style} look")
+        
+        # Check minimum items for maximalist
+        if 'min_items' in style_rule and item_count < style_rule['min_items']:
+            errors.append(f"TOO FEW ITEMS for {style} style: {item_count} items (min {style_rule['min_items']})")
+            suggestions.append(f"ADD {style_rule['min_items'] - item_count} accessories or layers for {style} style")
+        
+        return {'errors': errors, 'warnings': warnings, 'suggestions': suggestions}
+    
+    def _validate_color_count(self, items: List[Dict[str, Any]], style: str, style_rule: Dict[str, Any]) -> Dict[str, List[str]]:
+        """Validate color count against style rules"""
+        errors = []
+        warnings = []
+        suggestions = []
+        
+        if 'color_limit' not in style_rule:
+            return {'errors': errors, 'warnings': warnings, 'suggestions': suggestions}
+        
+        colors = [item.get('color', '').lower() for item in items if item.get('color')]
+        unique_colors = set(colors)
+        color_count = len(unique_colors)
+        
+        if color_count > style_rule['color_limit']:
+            warnings.append(f"TOO MANY COLORS for {style} style: {color_count} colors (limit {style_rule['color_limit']})")
+            suggestions.append(f"REDUCE to {style_rule['color_limit']} colors for {style} aesthetic")
+        elif color_count < 2 and style != 'minimalist':
+            warnings.append(f"TOO FEW COLORS for {style} style: {color_count} colors")
+            suggestions.append(f"ADD more color variety for {style} style")
+        
+        return {'errors': errors, 'warnings': warnings, 'suggestions': suggestions}
+    
+    def _validate_style_appropriateness(self, items: List[Dict[str, Any]], style: str, style_rule: Dict[str, Any]) -> Dict[str, List[str]]:
+        """Validate style appropriateness of items"""
+        errors = []
+        warnings = []
+        suggestions = []
+        
+        inappropriate_items = []
+        preferred_items = []
+        
+        for item in items:
+            name = item.get('name', '').lower()
+            
+            # Check for items to avoid
+            if 'avoid_items' in style_rule:
+                if any(avoid_term in name for avoid_term in style_rule['avoid_items']):
+                    inappropriate_items.append(item.get('name', 'Unknown'))
+            
+            # Check for preferred items
+            if 'preferred_items' in style_rule:
+                if any(preferred_term in name for preferred_term in style_rule['preferred_items']):
+                    preferred_items.append(item.get('name', 'Unknown'))
+        
+        if inappropriate_items:
+            if style_rule.get('severity') == ValidationSeverity.HIGH:
+                errors.append(f"INAPPROPRIATE items for {style} style: {inappropriate_items}")
+            else:
+                warnings.append(f"Consider more {style}-appropriate items: {inappropriate_items}")
+            suggestions.append(f"Replace with {style}-style items")
+        
+        if preferred_items:
+            suggestions.append(f"EXCELLENT {style} items: {preferred_items}")
+        
+        return {'errors': errors, 'warnings': warnings, 'suggestions': suggestions}
+    
+    def _validate_required_items(self, items: List[Dict[str, Any]], style: str, style_rule: Dict[str, Any]) -> Dict[str, List[str]]:
+        """Validate required items for specific styles"""
+        errors = []
+        warnings = []
+        suggestions = []
+        
+        if 'required_items' not in style_rule:
+            return {'errors': errors, 'warnings': warnings, 'suggestions': suggestions}
+        
+        required_items = style_rule['required_items']
+        item_names = [item.get('name', '').lower() for item in items]
+        
+        missing_required = []
+        for required in required_items:
+            if not any(required_term in name for name in item_names for required_term in required.split()):
+                missing_required.append(required)
+        
+        if missing_required:
+            errors.append(f"MISSING REQUIRED items for {style} style: {missing_required}")
+            suggestions.extend([f"ADD {item} for complete {style} look" for item in missing_required])
+        
+        return {'errors': errors, 'warnings': warnings, 'suggestions': suggestions}
     
     def _is_style_appropriate(self, item: Dict[str, Any], style: str) -> bool:
         """Check if item is appropriate for the style"""
