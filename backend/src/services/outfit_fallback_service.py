@@ -603,10 +603,27 @@ class OutfitFallbackService:
         # Step 1: Filter by basic criteria
         filtered_items = self._filter_by_basic_criteria(wardrobe, context, healing_context)
         
-        # Step 2: Get target item counts for the occasion, style, and mood
+        # Step 2: Get target item counts for the occasion, style, mood, and temperature
         style = context.get('style', '')
         mood = context.get('mood', '')
-        target_counts = self._get_target_item_counts(occasion, style, mood)
+        weather = context.get('weather', {})
+        
+        # Extract temperature from weather data
+        if isinstance(weather, dict):
+            temperature = weather.get('temperature', 70.0)
+        else:
+            temperature = getattr(weather, 'temperature', 70.0)
+        
+        # Ensure temperature is a float
+        if isinstance(temperature, str):
+            try:
+                temperature = float(temperature)
+            except (ValueError, TypeError):
+                temperature = 70.0
+        elif temperature is None:
+            temperature = 70.0
+            
+        target_counts = self._get_target_item_counts(occasion, style, mood, temperature)
         
         # Step 3: Select core items for each category
         selected_items = []
@@ -1240,68 +1257,119 @@ class OutfitFallbackService:
         """Check if an item is compatible with the user's skin tone using utility function."""
         return check_skin_tone_compatibility(item, skin_tone)
 
-    def _get_target_item_counts(self, occasion: str, style: str = None, mood: str = None) -> Dict[str, int]:
-        """Get dynamic target item counts based on occasion, style, and mood."""
+    def _get_target_item_counts(self, occasion: str, style: str = None, mood: str = None, temperature: float = 70.0) -> Dict[str, int]:
+        """Get dynamic target item counts based on occasion, style, mood, and temperature with intelligent layering."""
         import random
+        
+        # Temperature ranges for layering decisions
+        is_hot = temperature >= 80
+        is_warm = 70 <= temperature < 80
+        is_moderate = 50 <= temperature < 70
+        is_cold = temperature < 50
+        is_very_cold = temperature < 32
         
         # Base counts for different occasions
         occasion_lower = occasion.lower()
         
         if 'formal' in occasion_lower or 'business' in occasion_lower or 'interview' in occasion_lower:
-            # Formal occasions - more structured, more items
+            # Formal occasions - ALWAYS require blazer/suit jacket, then layer based on temperature
             base_counts = {
-                'top': 1,
-                'bottom': 1, 
-                'shoes': 1,
-                'outerwear': 1,  # Blazer, jacket
+                'top': 1,  # Dress shirt
+                'bottom': 1,  # Dress pants
+                'shoes': 1,  # Dress shoes
+                'outerwear': 1,  # ALWAYS blazer/suit jacket for formal
                 'accessory': 1   # Belt, watch, etc.
             }
-            # Add variety: 4-6 items
-            total_items = random.randint(4, 6)
+            
+            # Temperature-based layering for formal occasions
+            if is_very_cold:
+                # Very cold: shirt + sweater + blazer + coat
+                base_counts['sweater'] = 1  # Add sweater layer
+                base_counts['coat'] = 1     # Add overcoat
+                total_items = random.randint(6, 7)
+            elif is_cold:
+                # Cold: shirt + sweater + blazer
+                base_counts['sweater'] = 1  # Add sweater layer
+                total_items = random.randint(5, 6)
+            elif is_moderate:
+                # Moderate: shirt + blazer (standard formal)
+                total_items = random.randint(4, 5)
+            elif is_warm:
+                # Warm: light shirt + light blazer
+                total_items = random.randint(4, 5)
+            else:  # is_hot
+                # Hot: light shirt + light blazer (still need structure)
+                total_items = random.randint(4, 5)
             
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            # Athletic occasions - functional, fewer items
+            # Athletic occasions - functional, fewer items, temperature-appropriate
             base_counts = {
                 'top': 1,
                 'bottom': 1,
                 'shoes': 1
             }
-            # Add variety: 3-4 items
-            total_items = random.randint(3, 4)
+            
+            # Temperature-based layering for athletic
+            if is_cold or is_very_cold:
+                base_counts['outerwear'] = 1  # Athletic jacket
+                total_items = random.randint(4, 5)
+            else:
+                total_items = random.randint(3, 4)
             
         elif 'casual' in occasion_lower or 'weekend' in occasion_lower or 'loungewear' in occasion_lower:
-            # Casual occasions - relaxed, moderate items
+            # Casual occasions - relaxed, temperature-appropriate layering
             base_counts = {
                 'top': 1,
                 'bottom': 1,
-                'shoes': 1,
-                'accessory': 1
+                'shoes': 1
             }
-            # Add variety: 3-5 items
-            total_items = random.randint(3, 5)
+            
+            # Temperature-based layering for casual
+            if is_very_cold:
+                base_counts['sweater'] = 1
+                base_counts['outerwear'] = 1  # Jacket/coat
+                total_items = random.randint(5, 6)
+            elif is_cold:
+                base_counts['sweater'] = 1
+                base_counts['outerwear'] = 1  # Jacket
+                total_items = random.randint(4, 5)
+            elif is_moderate:
+                base_counts['outerwear'] = 1  # Light jacket
+                total_items = random.randint(4, 5)
+            else:
+                total_items = random.randint(3, 4)
             
         elif 'party' in occasion_lower or 'date' in occasion_lower:
-            # Social occasions - stylish, more items
+            # Social occasions - stylish, temperature-appropriate layering
             base_counts = {
                 'top': 1,
                 'bottom': 1,
                 'shoes': 1,
-                'outerwear': 1,
                 'accessory': 1
             }
-            # Add variety: 4-6 items
-            total_items = random.randint(4, 6)
+            
+            # Temperature-based layering for social occasions
+            if is_cold or is_very_cold:
+                base_counts['outerwear'] = 1  # Stylish jacket/coat
+                total_items = random.randint(5, 6)
+            else:
+                total_items = random.randint(4, 5)
             
         else:
-            # Default - balanced approach
+            # Default - balanced approach with temperature consideration
             base_counts = {
                 'top': 1,
                 'bottom': 1,
-                'shoes': 1,
-                'accessory': 1
+                'shoes': 1
             }
-            # Add variety: 3-5 items
-            total_items = random.randint(3, 5)
+            
+            # Temperature-based layering for default
+            if is_cold or is_very_cold:
+                base_counts['outerwear'] = 1
+                total_items = random.randint(4, 5)
+            else:
+                base_counts['accessory'] = 1
+                total_items = random.randint(3, 4)
         
         # Style-based adjustments
         if style:
@@ -1389,7 +1457,24 @@ class OutfitFallbackService:
         occasion = context.get('occasion', 'casual')
         style = context.get('style', '')
         mood = context.get('mood', '')
-        target_counts = self._get_target_item_counts(occasion, style, mood)
+        weather = context.get('weather', {})
+        
+        # Extract temperature from weather data
+        if isinstance(weather, dict):
+            temperature = weather.get('temperature', 70.0)
+        else:
+            temperature = getattr(weather, 'temperature', 70.0)
+        
+        # Ensure temperature is a float
+        if isinstance(temperature, str):
+            try:
+                temperature = float(temperature)
+            except (ValueError, TypeError):
+                temperature = 70.0
+        elif temperature is None:
+            temperature = 70.0
+            
+        target_counts = self._get_target_item_counts(occasion, style, mood, temperature)
         
         current_categories = self._categorize_items(selected_items)
         

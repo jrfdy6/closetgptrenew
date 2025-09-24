@@ -175,8 +175,9 @@ class OutfitGenerationPipelineService:
         layering_rule = self._get_layering_rule(weather.temperature)
         mood_rule = self._get_mood_rule(mood) if mood else None
         
-        # Determine target item counts by occasion, style, and mood
-        target_counts = self.get_target_item_counts(occasion, style, mood)
+        # Determine target item counts by occasion, style, mood, and temperature
+        temperature = weather.temperature if hasattr(weather, 'temperature') else 70.0
+        target_counts = self.get_target_item_counts(occasion, style, mood, temperature)
         
         # Get style compatibility matrix
         style_matrix = self._get_style_compatibility_matrix(style)
@@ -199,62 +200,113 @@ class OutfitGenerationPipelineService:
             "style_matrix": style_matrix
         }
         
-    def get_target_item_counts(self, occasion: str, style: str = None, mood: str = None) -> Dict[str, Any]:
-        """Get dynamic target item counts based on occasion, style, and mood."""
+    def get_target_item_counts(self, occasion: str, style: str = None, mood: str = None, temperature: float = 70.0) -> Dict[str, Any]:
+        """Get dynamic target item counts based on occasion, style, mood, and temperature with intelligent layering."""
         import random
+        
+        # Temperature ranges for layering decisions
+        is_hot = temperature >= 80
+        is_warm = 70 <= temperature < 80
+        is_moderate = 50 <= temperature < 70
+        is_cold = temperature < 50
+        is_very_cold = temperature < 32
         
         # Base counts for different occasions
         occasion_lower = occasion.lower()
         
         if 'formal' in occasion_lower or 'business' in occasion_lower or 'interview' in occasion_lower:
-            # Formal occasions - more structured, more items
+            # Formal occasions - ALWAYS require blazer/suit jacket, then layer based on temperature
+            required_categories = ["top", "bottom", "shoes", "outerwear", "accessory"]
+            
+            # Temperature-based layering for formal occasions
+            if is_very_cold:
+                # Very cold: shirt + sweater + blazer + coat
+                required_categories.extend(["sweater", "coat"])
+                total_items = random.randint(6, 7)
+            elif is_cold:
+                # Cold: shirt + sweater + blazer
+                required_categories.append("sweater")
+                total_items = random.randint(5, 6)
+            else:
+                # Moderate/Warm/Hot: shirt + blazer (standard formal)
+                total_items = random.randint(4, 5)
+            
             base_counts = {
-                "min_items": 4,
-                "max_items": 6,
-                "required_categories": ["top", "bottom", "shoes", "accessory"]
+                "min_items": max(4, total_items - 1),
+                "max_items": min(7, total_items + 1),
+                "required_categories": required_categories
             }
-            # Add variety: 4-6 items
-            total_items = random.randint(4, 6)
             
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            # Athletic occasions - functional, fewer items
+            # Athletic occasions - functional, fewer items, temperature-appropriate
+            required_categories = ["top", "bottom", "shoes"]
+            
+            if is_cold or is_very_cold:
+                required_categories.append("outerwear")
+                total_items = random.randint(4, 5)
+            else:
+                total_items = random.randint(3, 4)
+            
             base_counts = {
-                "min_items": 3,
-                "max_items": 4,
-                "required_categories": ["top", "bottom", "shoes"]
+                "min_items": max(3, total_items - 1),
+                "max_items": min(5, total_items + 1),
+                "required_categories": required_categories
             }
-            # Add variety: 3-4 items
-            total_items = random.randint(3, 4)
             
         elif 'casual' in occasion_lower or 'weekend' in occasion_lower or 'loungewear' in occasion_lower:
-            # Casual occasions - relaxed, moderate items
+            # Casual occasions - relaxed, temperature-appropriate layering
+            required_categories = ["top", "bottom", "shoes"]
+            
+            if is_very_cold:
+                required_categories.extend(["sweater", "outerwear"])
+                total_items = random.randint(5, 6)
+            elif is_cold:
+                required_categories.extend(["sweater", "outerwear"])
+                total_items = random.randint(4, 5)
+            elif is_moderate:
+                required_categories.append("outerwear")
+                total_items = random.randint(4, 5)
+            else:
+                total_items = random.randint(3, 4)
+            
             base_counts = {
-                "min_items": 3,
-                "max_items": 5,
-                "required_categories": ["top", "bottom", "shoes", "accessory"]
+                "min_items": max(3, total_items - 1),
+                "max_items": min(6, total_items + 1),
+                "required_categories": required_categories
             }
-            # Add variety: 3-5 items
-            total_items = random.randint(3, 5)
             
         elif 'party' in occasion_lower or 'date' in occasion_lower:
-            # Social occasions - stylish, more items
+            # Social occasions - stylish, temperature-appropriate layering
+            required_categories = ["top", "bottom", "shoes", "accessory"]
+            
+            if is_cold or is_very_cold:
+                required_categories.append("outerwear")
+                total_items = random.randint(5, 6)
+            else:
+                total_items = random.randint(4, 5)
+            
             base_counts = {
-                "min_items": 4,
-                "max_items": 6,
-                "required_categories": ["top", "bottom", "shoes", "accessory"]
+                "min_items": max(4, total_items - 1),
+                "max_items": min(6, total_items + 1),
+                "required_categories": required_categories
             }
-            # Add variety: 4-6 items
-            total_items = random.randint(4, 6)
             
         else:
-            # Default - balanced approach
+            # Default - balanced approach with temperature consideration
+            required_categories = ["top", "bottom", "shoes"]
+            
+            if is_cold or is_very_cold:
+                required_categories.append("outerwear")
+                total_items = random.randint(4, 5)
+            else:
+                required_categories.append("accessory")
+                total_items = random.randint(3, 4)
+            
             base_counts = {
-                "min_items": 3,
-                "max_items": 5,
-                "required_categories": ["top", "bottom", "shoes", "accessory"]
+                "min_items": max(3, total_items - 1),
+                "max_items": min(5, total_items + 1),
+                "required_categories": required_categories
             }
-            # Add variety: 3-5 items
-            total_items = random.randint(3, 5)
         
         # Style-based adjustments
         if style:
