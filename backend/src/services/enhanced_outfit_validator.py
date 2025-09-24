@@ -487,6 +487,26 @@ class EnhancedOutfitValidator:
                 "min_formality": FormalityLevel.CASUAL
             },
             
+            "gym": {
+                "required_formality": FormalityLevel.ATHLETIC,
+                "forbidden_items": [
+                    "suit", "blazer", "dress_shoes", "formal_clothes"
+                ],
+                "required_items": ["athletic_top", "athletic_bottom", "athletic_shoes"],
+                "preferred_shoes": ["sneakers", "athletic_shoes", "running_shoes"],
+                "min_formality": FormalityLevel.ATHLETIC
+            },
+            
+            "going_to_the_gym": {
+                "required_formality": FormalityLevel.ATHLETIC,
+                "forbidden_items": [
+                    "suit", "blazer", "dress_shoes", "formal_clothes"
+                ],
+                "required_items": ["athletic_top", "athletic_bottom", "athletic_shoes"],
+                "preferred_shoes": ["sneakers", "athletic_shoes", "running_shoes"],
+                "min_formality": FormalityLevel.ATHLETIC
+            }
+            
         }
     
     def _initialize_style_rules(self) -> Dict[str, Dict[str, Any]]:
