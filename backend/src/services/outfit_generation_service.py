@@ -464,15 +464,22 @@ class OutfitGenerationService:
             return appropriate_items
         
         elif "loungewear" in occasion_lower:
-            # For loungewear, prefer sweats, hoodies, t-shirts, avoid formal/jeans
+            # For loungewear, prefer comfortable items and avoid inappropriate items
             appropriate_items = []
             for item in wardrobe:
                 name_lower = item.name.lower()
+                # Avoid inappropriate items for loungewear
+                if any(inappropriate in name_lower for inappropriate in [
+                    "blazer", "suit", "dress pants", "oxford", "heels", "loafers",  # Too formal
+                    "athletic", "gym", "jersey", "basketball", "sport",  # Too athletic
+                    "work", "business", "professional",  # Too work-like
+                    "jeans", "denim"  # Too structured
+                ]):
+                    continue
+                
                 # Prefer loungewear items
-                if any(lounge in name_lower for lounge in ["sweat", "hoodie", "t-shirt", "jogger", "lounge", "pajama"]):
+                if any(lounge in name_lower for lounge in ["sweat", "hoodie", "t-shirt", "jogger", "lounge", "pajama", "comfortable", "soft"]):
                     appropriate_items.insert(0, item)  # Prioritize loungewear items
-                elif any(formal in name_lower for formal in ["blazer", "suit", "jeans", "oxford", "heels"]):
-                    continue  # Skip formal items
                 else:
                     appropriate_items.append(item)
             
@@ -768,16 +775,21 @@ class OutfitGenerationService:
             return appropriate_items
         
         elif "party" in occasion_lower or "night out" in occasion_lower or "club" in occasion_lower:
-            # For parties/night out, prefer stylish items and avoid formal/business items
+            # For parties/night out, prefer stylish items and avoid inappropriate items
             appropriate_items = []
             for item in wardrobe:
                 name_lower = item.name.lower()
-                # Avoid overly formal items for parties
-                if any(formal in name_lower for formal in ["suit", "dress pants", "oxford", "loafers"]):
+                # Avoid inappropriate items for parties
+                if any(inappropriate in name_lower for inappropriate in [
+                    "suit", "dress pants", "oxford", "loafers",  # Too formal
+                    "athletic", "gym", "jersey", "basketball", "sport",  # Too athletic
+                    "sweatpants", "joggers", "lounge", "pajama",  # Too casual
+                    "work", "business", "professional"  # Too work-like
+                ]):
                     continue
                 
                 # Prefer stylish/trendy items
-                if any(style in name_lower for style in ["designer", "trendy", "stylish", "fashion"]):
+                if any(style in name_lower for style in ["designer", "trendy", "stylish", "fashion", "party", "evening"]):
                     appropriate_items.insert(0, item)  # Prioritize stylish items
                 else:
                     appropriate_items.append(item)
@@ -832,17 +844,43 @@ class OutfitGenerationService:
             return appropriate_items
         
         elif "date" in occasion_lower or "romantic" in occasion_lower:
-            # For dates, prefer stylish items but not overly formal
+            # For dates, prefer stylish items but avoid inappropriate items
             appropriate_items = []
             for item in wardrobe:
                 name_lower = item.name.lower()
-                # Avoid overly casual items for dates
-                if any(casual in name_lower for casual in ["sweatpants", "athletic", "gym", "workout"]):
+                # Avoid inappropriate items for dates
+                if any(inappropriate in name_lower for inappropriate in [
+                    "sweatpants", "athletic", "gym", "workout", "jersey", "basketball", "sport",  # Too athletic
+                    "lounge", "pajama", "sleep",  # Too casual
+                    "work", "business", "professional",  # Too work-like
+                    "swim", "beach", "bikini"  # Too beachy
+                ]):
                     continue
                 
-                # Prefer stylish items
-                if any(style in name_lower for style in ["stylish", "designer", "fashion", "trendy"]):
+                # Prefer stylish/romantic items
+                if any(style in name_lower for style in ["stylish", "designer", "fashion", "trendy", "romantic", "elegant", "sophisticated"]):
                     appropriate_items.insert(0, item)  # Prioritize stylish items
+                else:
+                    appropriate_items.append(item)
+            
+            return appropriate_items
+        
+        elif "weekend" in occasion_lower:
+            # For weekend, prefer casual items but avoid inappropriate items
+            appropriate_items = []
+            for item in wardrobe:
+                name_lower = item.name.lower()
+                # Avoid inappropriate items for weekend
+                if any(inappropriate in name_lower for inappropriate in [
+                    "suit", "dress pants", "oxford", "loafers", "heels",  # Too formal
+                    "athletic", "gym", "jersey", "basketball", "sport",  # Too athletic (unless specified)
+                    "work", "business", "professional"  # Too work-like
+                ]):
+                    continue
+                
+                # Prefer casual/comfortable items
+                if any(casual in name_lower for casual in ["casual", "comfortable", "relaxed", "weekend", "jeans", "sneakers", "t-shirt"]):
+                    appropriate_items.insert(0, item)  # Prioritize casual items
                 else:
                     appropriate_items.append(item)
             

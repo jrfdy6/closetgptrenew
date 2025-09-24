@@ -2659,6 +2659,90 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                     
                     category_items = validated_shoes
                     logger.info(f"✅ FALLBACK VALIDATION: Filtered shoes for business occasion: {len(category_items)} appropriate items")
+                
+                # Add comprehensive filtering for other occasions
+                elif any(party_term in occasion_lower for party_term in ['party', 'night out', 'club']):
+                    # Party occasions - avoid formal, athletic, work items
+                    validated_items = []
+                    for item in category_items:
+                        item_type = item.get('type', '').lower()
+                        item_name = item.get('name', '').lower()
+                        
+                        if any(inappropriate in item_type or inappropriate in item_name for inappropriate in [
+                            'suit', 'dress pants', 'oxford', 'loafers',  # Too formal
+                            'athletic', 'gym', 'jersey', 'basketball', 'sport',  # Too athletic
+                            'sweatpants', 'joggers', 'lounge', 'pajama',  # Too casual
+                            'work', 'business', 'professional'  # Too work-like
+                        ]):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out inappropriate item for party occasion: {item.get('name', 'Unknown')}")
+                            continue
+                        
+                        validated_items.append(item)
+                    
+                    category_items = validated_items
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered items for party occasion: {len(category_items)} appropriate items")
+                
+                elif any(date_term in occasion_lower for date_term in ['date', 'romantic']):
+                    # Date occasions - avoid athletic, casual, work items
+                    validated_items = []
+                    for item in category_items:
+                        item_type = item.get('type', '').lower()
+                        item_name = item.get('name', '').lower()
+                        
+                        if any(inappropriate in item_type or inappropriate in item_name for inappropriate in [
+                            'athletic', 'gym', 'jersey', 'basketball', 'sport',  # Too athletic
+                            'lounge', 'pajama', 'sleep',  # Too casual
+                            'work', 'business', 'professional',  # Too work-like
+                            'swim', 'beach', 'bikini'  # Too beachy
+                        ]):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out inappropriate item for date occasion: {item.get('name', 'Unknown')}")
+                            continue
+                        
+                        validated_items.append(item)
+                    
+                    category_items = validated_items
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered items for date occasion: {len(category_items)} appropriate items")
+                
+                elif 'weekend' in occasion_lower:
+                    # Weekend occasions - avoid formal, athletic, work items
+                    validated_items = []
+                    for item in category_items:
+                        item_type = item.get('type', '').lower()
+                        item_name = item.get('name', '').lower()
+                        
+                        if any(inappropriate in item_type or inappropriate in item_name for inappropriate in [
+                            'suit', 'dress pants', 'oxford', 'loafers', 'heels',  # Too formal
+                            'athletic', 'gym', 'jersey', 'basketball', 'sport',  # Too athletic
+                            'work', 'business', 'professional'  # Too work-like
+                        ]):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out inappropriate item for weekend occasion: {item.get('name', 'Unknown')}")
+                            continue
+                        
+                        validated_items.append(item)
+                    
+                    category_items = validated_items
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered items for weekend occasion: {len(category_items)} appropriate items")
+                
+                elif 'loungewear' in occasion_lower:
+                    # Loungewear occasions - avoid formal, athletic, work, structured items
+                    validated_items = []
+                    for item in category_items:
+                        item_type = item.get('type', '').lower()
+                        item_name = item.get('name', '').lower()
+                        
+                        if any(inappropriate in item_type or inappropriate in item_name for inappropriate in [
+                            'blazer', 'suit', 'dress pants', 'oxford', 'heels', 'loafers',  # Too formal
+                            'athletic', 'gym', 'jersey', 'basketball', 'sport',  # Too athletic
+                            'work', 'business', 'professional',  # Too work-like
+                            'jeans', 'denim'  # Too structured
+                        ]):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out inappropriate item for loungewear occasion: {item.get('name', 'Unknown')}")
+                            continue
+                        
+                        validated_items.append(item)
+                    
+                    category_items = validated_items
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered items for loungewear occasion: {len(category_items)} appropriate items")
             
             if category_items:
                 # Randomly pick an item from the style-appropriate category
