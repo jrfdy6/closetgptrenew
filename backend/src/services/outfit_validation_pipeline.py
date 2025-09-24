@@ -430,10 +430,10 @@ class OccasionValidator(BaseValidator):
     """Validates outfit appropriateness for the occasion"""
     
     def __init__(self):
-        # Explicit blacklists for formal occasions
+        # Explicit blacklists for formal occasions - ENHANCED MATCHING
         self.formal_blacklist = {
-            'shoes': ['sneaker', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs', 'running', 'basketball', 'tennis'],
-            'tops': ['t-shirt', 'tank', 'tank top', 'jersey', 'basketball', 'sport', 'athletic', 'hoodie', 'sweatshirt'],
+            'shoes': ['sneaker', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs', 'running', 'basketball', 'tennis', 'smooth shoes', 'solid shoes', 'casual shoes'],
+            'tops': ['t-shirt', 't shirt', 'tank', 'tank top', 'jersey', 'basketball', 'sport', 'athletic', 'hoodie', 'sweatshirt', 'tee', 't-shirt'],
             'bottoms': ['shorts', 'sweatpants', 'joggers', 'athletic', 'basketball', 'sport'],
             'outerwear': ['biker', 'leather jacket', 'hoodie', 'sweatshirt']
         }
@@ -543,13 +543,22 @@ class OccasionValidator(BaseValidator):
                 category = 'outerwear'
             
             if category and category in self.formal_blacklist:
-                # Check if item name contains any blacklisted terms
+                # Enhanced matching - check if item name contains any blacklisted terms
                 for blacklisted_term in self.formal_blacklist[category]:
                     if blacklisted_term in item_name:
                         if category not in violations:
                             violations[category] = []
-                        violations[category].append(item.get('name', 'Unknown'))
+                        violations[category].append(f"{item.get('name', 'Unknown')} (matched: '{blacklisted_term}')")
                         break
+                
+                # Additional check for generic shoe names that might be sneakers
+                if category == 'shoes' and not any(term in item_name for term in self.formal_blacklist[category]):
+                    # Check for generic shoe descriptions that are likely sneakers
+                    generic_sneaker_indicators = ['smooth shoes', 'solid shoes', 'casual shoes', 'white shoes', 'black shoes']
+                    if any(indicator in item_name for indicator in generic_sneaker_indicators):
+                        if category not in violations:
+                            violations[category] = []
+                        violations[category].append(f"{item.get('name', 'Unknown')} (generic shoe - likely sneaker)")
         
         return violations
     

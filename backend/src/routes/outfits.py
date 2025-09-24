@@ -4320,11 +4320,18 @@ async def generate_outfit(
                             print(f"🚨 VALIDATION WARNINGS: {validation_result.warnings}")
                             print(f"🚨 VALIDATION SUGGESTIONS: {validation_result.suggestions}")
                             
-                            # For now, we'll retry if validation fails
-                            # In the future, we could implement repair logic
+                            # CRITICAL FIX: If validation fails, we MUST retry or fail completely
+                            # We cannot return an outfit that failed validation
                             if attempt < max_attempts - 1:
                                 await asyncio.sleep(1)  # Brief delay before retry
                                 continue
+                            else:
+                                # Final attempt failed validation - we cannot return this outfit
+                                logger.error(f"❌ FINAL VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                print(f"🚨 CRITICAL VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                print(f"🚨 REJECTING OUTFIT: Cannot return outfit that failed validation")
+                                outfit = None  # Force retry or fallback
+                                break
                         else:
                             logger.info(f"✅ Validation passed on attempt {generation_attempts}")
                             if validation_result.warnings:
