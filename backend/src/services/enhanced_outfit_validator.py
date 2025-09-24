@@ -203,6 +203,20 @@ class EnhancedOutfitValidator:
                 "min_formality": FormalityLevel.BUSINESS_CASUAL
             },
             
+            "business_formal": {
+                "required_formality": FormalityLevel.BUSINESS_FORMAL,
+                "forbidden_items": [
+                    "shorts", "athletic_shorts", "basketball_shorts", "bermuda_shorts",
+                    "sneakers", "athletic_shoes", "flip_flops", "sandals",
+                    "tank_top", "athletic_shirt", "gym_clothes",
+                    "sweatpants", "athletic_pants", "lounge_pants",
+                    "casual_shoes", "canvas_shoes", "casual_clothes"
+                ],
+                "required_items": ["dress_shirt", "dress_pants", "dress_shoes", "blazer", "suit"],
+                "preferred_shoes": ["dress_shoes", "oxford"],
+                "min_formality": FormalityLevel.BUSINESS_FORMAL
+            },
+            
             "interview": {
                 "required_formality": FormalityLevel.BUSINESS_FORMAL,
                 "forbidden_items": [
@@ -480,10 +494,14 @@ class EnhancedOutfitValidator:
         issues = []
         occasion = context.get('occasion', '').lower()
         
-        if occasion not in self.occasion_rules:
+        # Handle occasion variations (e.g., "Business Formal" -> "business_formal")
+        normalized_occasion = occasion.replace(' ', '_').replace('-', '_')
+        
+        # Try exact match first, then normalized match
+        if occasion not in self.occasion_rules and normalized_occasion not in self.occasion_rules:
             return filtered_items, issues
         
-        rule = self.occasion_rules[occasion]
+        rule = self.occasion_rules.get(occasion) or self.occasion_rules.get(normalized_occasion)
         forbidden_items = rule.get('forbidden_items', [])
         required_items = rule.get('required_items', [])
         preferred_shoes = rule.get('preferred_shoes', [])
