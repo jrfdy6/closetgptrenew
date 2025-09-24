@@ -74,6 +74,9 @@ class OutfitValidationPipeline:
             "common_failures": {},
             "severity_counts": {severity.value: 0 for severity in ValidationSeverity}
         }
+        
+        # Analytics integration
+        self.analytics_enabled = True
     
     async def validate_outfit(self, outfit: Dict[str, Any], context: ValidationContext) -> ValidationResult:
         """
@@ -140,6 +143,44 @@ class OutfitValidationPipeline:
         
         logger.info(f"🔍 Validation completed in {duration:.2f}s - {'PASS' if is_valid else 'FAIL'}")
         logger.info(f"📊 Errors: {len(all_errors)}, Warnings: {len(all_warnings)}")
+        
+        # Log validation failures to analytics (if enabled and validation failed)
+        if self.analytics_enabled and not is_valid:
+            try:
+                from .validation_analytics_service import validation_analytics
+                
+                # Log each validator failure separately
+                for validator in self.validators:
+                    try:
+                        result = await validator.validate(outfit, context)
+                        if not result.valid:
+                            await validation_analytics.log_validation_failure(
+                                validator_name=validator.__class__.__name__,
+                                severity=result.severity.value,
+                                error_message="; ".join(result.errors) if result.errors else "",
+                                warning_message="; ".join(result.warnings) if result.warnings else "",
+                                suggestion_message="; ".join(result.suggestions) if result.suggestions else "",
+                                context={
+                                    "occasion": context.occasion,
+                                    "style": context.style,
+                                    "mood": context.mood,
+                                    "temperature": context.temperature,
+                                    "weather": context.weather
+                                },
+                                outfit_items=outfit.get("items", []),
+                                user_id=context.user_profile.get("id", "unknown"),
+                                validation_duration=duration,
+                                outfit_id=outfit.get("id", f"outfit_{int(time.time())}"),
+                                generation_request_id=f"req_{int(time.time())}",
+                                retry_attempt=0
+                            )
+                    except Exception as e:
+                        logger.warning(f"⚠️ Failed to log validation failure for {validator.__class__.__name__}: {e}")
+                        
+            except ImportError:
+                logger.warning("⚠️ Analytics service not available for validation logging")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to log validation failures: {e}")
         
         return ValidationResult(
             valid=is_valid,

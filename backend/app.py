@@ -140,6 +140,7 @@ ROUTERS = [
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
     ("src.routes.outfits_with_embeddings", "/api/outfits-personalized"), # Embedding-based personalized outfit generation
     ("src.routes.lightweight_outfits", "/api/outfits-lightweight"), # Lightweight embeddings without external dependencies
+    ("src.routes.validation_analytics", "/api/validation-analytics"), # Validation failure analytics and insights
     # ("src.routes.simple_personalized_outfits", "/api/outfits-simple"), # Simple personalization integration with existing system - TEMPORARILY DISABLED
     ("src.routes.test_simple", "/api/test-simple"), # Test router to verify router loading
     ("src.routes.simple_personalized_outfits_minimal", "/api/outfits-simple-minimal"), # Minimal simple personalization router
