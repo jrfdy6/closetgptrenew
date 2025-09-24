@@ -2599,7 +2599,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                 category_items = filter_items_by_style(all_bottoms, req.style)
                 
                 # CRITICAL: Filter out inappropriate bottoms for business occasions
-                if req.occasion and req.occasion.lower() in ['business', 'interview', 'formal', 'professional']:
+                occasion_lower = req.occasion.lower() if req.occasion else ''
+                if any(biz_term in occasion_lower for biz_term in ['business', 'interview', 'formal', 'professional']):
                     validated_bottoms = []
                     for bottom_item in category_items:
                         bottom_type = bottom_item.get('type', '').lower()
@@ -2624,7 +2625,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                 category_items = filter_items_by_style(all_shoes, req.style)
                 
                 # CRITICAL: Filter out inappropriate shoes for business occasions
-                if req.occasion and req.occasion.lower() in ['business', 'interview', 'formal', 'professional']:
+                occasion_lower = req.occasion.lower() if req.occasion else ''
+                if any(biz_term in occasion_lower for biz_term in ['business', 'interview', 'formal', 'professional']):
                     validated_shoes = []
                     for shoe_item in category_items:
                         shoe_type = shoe_item.get('type', '').lower()
