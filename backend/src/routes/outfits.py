@@ -707,6 +707,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Generate outfit using robust service
                 robust_outfit = await RobustOutfitGenerationService().generate_outfit(context)
                 
+                # Log the generation strategy used
+                strategy = robust_outfit.metadata.get('generation_strategy', 'unknown')
+                logger.info(f"🎯 Generated outfit using strategy: {strategy}")
+                print(f"🎯 GENERATION STRATEGY: {strategy}")
+                
                 # Convert to expected format
                 outfit = {
                     'id': robust_outfit.id,

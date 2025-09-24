@@ -811,13 +811,16 @@ class RobustOutfitGenerationService:
         return weather_appropriate[:self.max_items]
     
     async def _select_basic_items(self, wardrobe: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
-        """Select basic items for fallback generation"""
+        """Select basic items for fallback generation with occasion filtering"""
         basic_items = []
         categories_needed = ["tops", "bottoms", "shoes"]
         categories_found = set()
         
-        # Simple selection: one item per essential category
-        for item in wardrobe:
+        # Filter items by occasion appropriateness first
+        suitable_items = await self._filter_suitable_items(context)
+        
+        # Simple selection: one item per essential category from suitable items
+        for item in suitable_items:
             category = self._get_item_category(item)
             if category in categories_needed and category not in categories_found:
                 basic_items.append(item)
@@ -825,6 +828,18 @@ class RobustOutfitGenerationService:
                 
                 if len(categories_found) == len(categories_needed):
                     break
+        
+        # If we don't have enough suitable items, fall back to any items
+        if len(categories_found) < len(categories_needed):
+            logger.warning(f"⚠️ Only found {len(categories_found)} suitable categories, falling back to any items")
+            for item in wardrobe:
+                category = self._get_item_category(item)
+                if category in categories_needed and category not in categories_found:
+                    basic_items.append(item)
+                    categories_found.add(category)
+                    
+                    if len(categories_found) == len(categories_needed):
+                        break
         
         return basic_items
     
