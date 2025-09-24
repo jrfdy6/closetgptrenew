@@ -74,6 +74,12 @@ class EnhancedOutfitValidator:
         # Initialize occasion-specific rules
         self.occasion_rules = self._initialize_occasion_rules()
         
+        # Initialize style-specific rules
+        self.style_rules = self._initialize_style_rules()
+        
+        # Initialize mood-specific rules
+        self.mood_rules = self._initialize_mood_rules()
+        
         # Initialize visual harmony validator
         self.visual_harmony_validator = VisualHarmonyValidator()
         
@@ -502,6 +508,392 @@ class EnhancedOutfitValidator:
             }
         }
     
+    def _initialize_style_rules(self) -> Dict[str, Dict[str, Any]]:
+        """Initialize comprehensive style-specific validation rules"""
+        return {
+            # Academic & Intellectual Styles
+            "dark_academia": {
+                "color_palette": ["brown", "black", "cream", "burgundy", "navy", "forest_green"],
+                "preferred_items": ["blazer", "dress_shirt", "dress_pants", "oxford_shoes", "turtleneck", "corduroy"],
+                "forbidden_items": ["athletic_shorts", "bright_colors", "casual_sneakers", "tank_tops"],
+                "texture_preference": ["wool", "tweed", "corduroy", "leather"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["vintage_watch", "leather_belt", "reading_glasses"]
+            },
+            
+            "light_academia": {
+                "color_palette": ["cream", "beige", "white", "light_brown", "pastel_blue", "sage_green"],
+                "preferred_items": ["cardigan", "blouse", "pleated_skirt", "loafers", "lightweight_blazer"],
+                "forbidden_items": ["dark_colors", "athletic_wear", "heavy_boots"],
+                "texture_preference": ["cotton", "linen", "lightweight_wool"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["delicate_jewelry", "light_scarf", "canvas_bag"]
+            },
+            
+            "old_money": {
+                "color_palette": ["navy", "cream", "camel", "white", "black", "gold_accent"],
+                "preferred_items": ["blazer", "polo_shirt", "chinos", "loafers", "cashmere_sweater"],
+                "forbidden_items": ["athletic_wear", "bright_colors", "casual_sneakers"],
+                "texture_preference": ["cashmere", "silk", "quality_cotton", "leather"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["gold_watch", "leather_belt", "quality_bag"]
+            },
+            
+            # Trendy & Modern Styles
+            "y2k": {
+                "color_palette": ["pink", "silver", "metallic", "bright_neon", "white", "black"],
+                "preferred_items": ["crop_top", "low_rise_jeans", "platform_shoes", "metallic_accessories"],
+                "forbidden_items": ["formal_wear", "conservative_items"],
+                "texture_preference": ["metallic", "synthetic", "shiny"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["chunky_jewelry", "platform_shoes", "bright_accessories"]
+            },
+            
+            "coastal_grandmother": {
+                "color_palette": ["white", "beige", "navy", "stripes", "natural_tones"],
+                "preferred_items": ["linen_pants", "striped_shirt", "canvas_shoes", "lightweight_cardigan"],
+                "forbidden_items": ["athletic_wear", "heavy_boots", "dark_colors"],
+                "texture_preference": ["linen", "cotton", "canvas"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["straw_hat", "canvas_bag", "simple_jewelry"]
+            },
+            
+            "clean_girl": {
+                "color_palette": ["white", "beige", "cream", "black", "neutral_tones"],
+                "preferred_items": ["minimalist_top", "tailored_pants", "white_sneakers", "simple_dress"],
+                "forbidden_items": ["busy_patterns", "bright_colors", "athletic_wear"],
+                "texture_preference": ["cotton", "linen", "silk"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["minimal_jewelry", "simple_bag", "clean_shoes"]
+            },
+            
+            "cottagecore": {
+                "color_palette": ["earth_tones", "pastels", "floral_patterns", "cream", "sage_green"],
+                "preferred_items": ["floral_dress", "knit_cardigan", "ankle_boots", "vintage_blouse"],
+                "forbidden_items": ["athletic_wear", "urban_styles", "bright_neon"],
+                "texture_preference": ["cotton", "knit", "floral_prints", "natural_fibers"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["floral_accessories", "vintage_jewelry", "natural_bag"]
+            },
+            
+            # Artistic & Creative Styles
+            "avant_garde": {
+                "color_palette": ["bold_colors", "metallic", "black", "white", "unusual_combinations"],
+                "preferred_items": ["statement_pieces", "unusual_cuts", "artistic_accessories"],
+                "forbidden_items": ["basic_items", "conservative_styles"],
+                "texture_preference": ["unusual_textures", "metallic", "experimental_materials"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["statement_jewelry", "artistic_bags", "unique_shoes"]
+            },
+            
+            "artsy": {
+                "color_palette": ["mixed_colors", "artistic_patterns", "earth_tones", "bold_accents"],
+                "preferred_items": ["unique_pieces", "artistic_prints", "vintage_items", "handmade_accessories"],
+                "forbidden_items": ["mass_produced_basics", "athletic_wear"],
+                "texture_preference": ["mixed_textures", "natural_fibers", "artistic_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["handmade_jewelry", "artistic_bags", "unique_accessories"]
+            },
+            
+            "maximalist": {
+                "color_palette": ["all_colors", "bold_patterns", "mixed_prints", "bright_combinations"],
+                "preferred_items": ["patterned_items", "bold_accessories", "colorful_pieces", "statement_items"],
+                "forbidden_items": ["plain_basics", "minimal_items"],
+                "texture_preference": ["mixed_textures", "bold_patterns", "varied_materials"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["bold_jewelry", "colorful_bags", "statement_shoes"]
+            },
+            
+            "colorblock": {
+                "color_palette": ["bold_solid_colors", "contrasting_combinations", "bright_blocks"],
+                "preferred_items": ["solid_color_pieces", "geometric_cuts", "bold_combinations"],
+                "forbidden_items": ["subtle_patterns", "neutral_combinations"],
+                "texture_preference": ["smooth_surfaces", "solid_colors", "clean_lines"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["colorful_accessories", "bold_jewelry", "bright_bags"]
+            },
+            
+            # Professional & Classic Styles
+            "business_casual": {
+                "color_palette": ["navy", "white", "gray", "black", "subtle_patterns"],
+                "preferred_items": ["blazer", "dress_shirt", "dress_pants", "loafers", "polo_shirt"],
+                "forbidden_items": ["athletic_wear", "casual_sneakers", "tank_tops"],
+                "texture_preference": ["cotton", "wool", "quality_fabrics"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["professional_watch", "leather_belt", "quality_bag"]
+            },
+            
+            "classic": {
+                "color_palette": ["navy", "white", "black", "gray", "camel", "neutral_tones"],
+                "preferred_items": ["blazer", "dress_shirt", "dress_pants", "oxford_shoes", "cashmere_sweater"],
+                "forbidden_items": ["trendy_items", "athletic_wear", "casual_sneakers"],
+                "texture_preference": ["wool", "cotton", "silk", "quality_fabrics"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["timeless_jewelry", "quality_bag", "classic_shoes"]
+            },
+            
+            "preppy": {
+                "color_palette": ["navy", "white", "pink", "green", "stripes", "pastels"],
+                "preferred_items": ["polo_shirt", "chinos", "loafers", "blazer", "cable_knit_sweater"],
+                "forbidden_items": ["athletic_wear", "casual_sneakers", "dark_colors"],
+                "texture_preference": ["cotton", "wool", "quality_fabrics"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["leather_belt", "quality_bag", "classic_watch"]
+            },
+            
+            "urban_professional": {
+                "color_palette": ["black", "white", "gray", "navy", "modern_neutrals"],
+                "preferred_items": ["modern_blazer", "dress_shirt", "tailored_pants", "dress_shoes"],
+                "forbidden_items": ["casual_wear", "athletic_wear", "outdated_styles"],
+                "texture_preference": ["modern_fabrics", "quality_materials", "sleek_finishes"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["modern_watch", "sleek_bag", "contemporary_jewelry"]
+            },
+            
+            # Urban & Street Styles
+            "streetwear": {
+                "color_palette": ["black", "white", "gray", "bold_accents", "urban_colors"],
+                "preferred_items": ["hoodie", "sneakers", "jeans", "graphic_tee", "baseball_cap"],
+                "forbidden_items": ["formal_wear", "dress_shoes", "business_attire"],
+                "texture_preference": ["cotton", "denim", "synthetic_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["baseball_cap", "sneakers", "urban_bag"]
+            },
+            
+            "techwear": {
+                "color_palette": ["black", "gray", "white", "tech_colors", "metallic_accents"],
+                "preferred_items": ["tech_jacket", "cargo_pants", "tech_sneakers", "utility_vest"],
+                "forbidden_items": ["formal_wear", "traditional_business_attire"],
+                "texture_preference": ["synthetic_materials", "tech_fabrics", "waterproof_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["tech_accessories", "utility_bag", "modern_watch"]
+            },
+            
+            "grunge": {
+                "color_palette": ["black", "gray", "flannel_patterns", "dark_colors", "faded_tones"],
+                "preferred_items": ["flannel_shirt", "ripped_jeans", "combat_boots", "band_tee"],
+                "forbidden_items": ["formal_wear", "preppy_styles", "bright_colors"],
+                "texture_preference": ["denim", "cotton", "worn_fabrics"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["chunky_jewelry", "combat_boots", "vintage_bag"]
+            },
+            
+            "hipster": {
+                "color_palette": ["earth_tones", "vintage_colors", "muted_tones", "retro_patterns"],
+                "preferred_items": ["vintage_tee", "skinny_jeans", "vintage_sneakers", "thick_framed_glasses"],
+                "forbidden_items": ["mainstream_trends", "formal_wear"],
+                "texture_preference": ["vintage_fabrics", "retro_materials", "unique_textures"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["vintage_accessories", "retro_bag", "unique_jewelry"]
+            },
+            
+            # Feminine & Romantic Styles
+            "romantic": {
+                "color_palette": ["pink", "white", "pastels", "floral_patterns", "soft_tones"],
+                "preferred_items": ["floral_dress", "lace_top", "pearl_accessories", "delicate_jewelry"],
+                "forbidden_items": ["athletic_wear", "dark_colors", "casual_sneakers"],
+                "texture_preference": ["lace", "silk", "soft_fabrics", "delicate_materials"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["pearl_jewelry", "delicate_bag", "feminine_shoes"]
+            },
+            
+            "boho": {
+                "color_palette": ["earth_tones", "jewel_tones", "floral_patterns", "natural_colors"],
+                "preferred_items": ["flowy_dress", "fringe_jacket", "ankle_boots", "layered_jewelry"],
+                "forbidden_items": ["formal_wear", "athletic_wear", "structured_items"],
+                "texture_preference": ["flowy_fabrics", "natural_fibers", "textured_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["layered_jewelry", "fringe_bag", "natural_accessories"]
+            },
+            
+            "french_girl": {
+                "color_palette": ["navy", "white", "black", "red", "stripes", "neutral_tones"],
+                "preferred_items": ["striped_shirt", "high_waisted_jeans", "ballet_flat", "trench_coat"],
+                "forbidden_items": ["athletic_wear", "casual_sneakers", "bright_colors"],
+                "texture_preference": ["cotton", "linen", "quality_fabrics"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["delicate_jewelry", "classic_bag", "timeless_shoes"]
+            },
+            
+            "pinup": {
+                "color_palette": ["red", "black", "white", "polka_dots", "vintage_colors"],
+                "preferred_items": ["circle_skirt", "peplum_top", "heels", "vintage_dress"],
+                "forbidden_items": ["athletic_wear", "casual_sneakers", "modern_casual"],
+                "texture_preference": ["retro_fabrics", "vintage_materials", "classic_textures"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["vintage_jewelry", "retro_bag", "classic_heels"]
+            },
+            
+            # Modern & Minimal Styles
+            "minimalist": {
+                "color_palette": ["white", "black", "gray", "beige", "neutral_tones"],
+                "preferred_items": ["simple_top", "tailored_pants", "white_sneakers", "basic_dress"],
+                "forbidden_items": ["busy_patterns", "bright_colors", "excessive_accessories"],
+                "texture_preference": ["cotton", "linen", "quality_basics"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["minimal_jewelry", "simple_bag", "clean_shoes"]
+            },
+            
+            "modern": {
+                "color_palette": ["black", "white", "gray", "modern_neutrals", "subtle_accents"],
+                "preferred_items": ["contemporary_top", "modern_pants", "sleek_shoes", "structured_jacket"],
+                "forbidden_items": ["outdated_styles", "athletic_wear", "casual_sneakers"],
+                "texture_preference": ["modern_fabrics", "sleek_materials", "contemporary_finishes"],
+                "formality_level": FormalityLevel.BUSINESS_CASUAL,
+                "accessory_style": ["contemporary_jewelry", "modern_bag", "sleek_accessories"]
+            },
+            
+            "scandinavian": {
+                "color_palette": ["white", "black", "gray", "natural_tones", "muted_colors"],
+                "preferred_items": ["oversized_sweater", "wide_leg_pants", "comfortable_shoes", "layered_pieces"],
+                "forbidden_items": ["bright_colors", "athletic_wear", "formal_business_attire"],
+                "texture_preference": ["wool", "cotton", "natural_fibers"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["natural_jewelry", "simple_bag", "comfortable_shoes"]
+            },
+            
+            # Alternative & Edgy Styles
+            "gothic": {
+                "color_palette": ["black", "dark_colors", "red_accents", "purple", "silver"],
+                "preferred_items": ["black_dress", "leather_jacket", "combat_boots", "dark_accessories"],
+                "forbidden_items": ["bright_colors", "preppy_styles", "athletic_wear"],
+                "texture_preference": ["leather", "velvet", "dark_fabrics"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["dark_jewelry", "gothic_accessories", "combat_boots"]
+            },
+            
+            "punk": {
+                "color_palette": ["black", "red", "white", "bold_accents", "contrasting_colors"],
+                "preferred_items": ["band_tee", "ripped_jeans", "combat_boots", "studded_accessories"],
+                "forbidden_items": ["formal_wear", "preppy_styles", "conservative_items"],
+                "texture_preference": ["denim", "leather", "distressed_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["studded_jewelry", "combat_boots", "punk_accessories"]
+            },
+            
+            "cyberpunk": {
+                "color_palette": ["black", "neon_colors", "metallic", "electric_blue", "silver"],
+                "preferred_items": ["tech_jacket", "futuristic_pants", "cyber_shoes", "LED_accessories"],
+                "forbidden_items": ["traditional_formal_wear", "vintage_styles"],
+                "texture_preference": ["synthetic_materials", "metallic_fabrics", "tech_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["tech_accessories", "futuristic_bag", "cyber_jewelry"]
+            },
+            
+            "edgy": {
+                "color_palette": ["black", "dark_colors", "bold_accents", "metallic", "contrasting_tones"],
+                "preferred_items": ["leather_jacket", "dark_jeans", "boots", "statement_accessories"],
+                "forbidden_items": ["preppy_styles", "bright_pastels", "athletic_wear"],
+                "texture_preference": ["leather", "denim", "bold_materials"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["statement_jewelry", "bold_bag", "edgy_shoes"]
+            },
+            
+            # Seasonal & Lifestyle Styles
+            "coastal_chic": {
+                "color_palette": ["white", "navy", "beige", "stripes", "ocean_tones"],
+                "preferred_items": ["linen_dress", "striped_shirt", "canvas_shoes", "lightweight_cardigan"],
+                "forbidden_items": ["heavy_winter_wear", "athletic_wear", "dark_colors"],
+                "texture_preference": ["linen", "cotton", "lightweight_fabrics"],
+                "formality_level": FormalityLevel.SMART_CASUAL,
+                "accessory_style": ["straw_hat", "canvas_bag", "natural_jewelry"]
+            },
+            
+            "athleisure": {
+                "color_palette": ["black", "white", "gray", "athletic_colors", "performance_tones"],
+                "preferred_items": ["athletic_tee", "yoga_pants", "sneakers", "sports_bra"],
+                "forbidden_items": ["formal_wear", "dress_shoes", "business_attire"],
+                "texture_preference": ["performance_fabrics", "moisture_wicking", "stretchy_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["athletic_accessories", "sports_bag", "performance_shoes"]
+            },
+            
+            "casual_cool": {
+                "color_palette": ["neutral_tones", "black", "white", "denim_blue", "subtle_accents"],
+                "preferred_items": ["denim_jacket", "basic_tee", "sneakers", "comfortable_pants"],
+                "forbidden_items": ["formal_wear", "athletic_wear", "bright_colors"],
+                "texture_preference": ["cotton", "denim", "comfortable_fabrics"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["simple_jewelry", "casual_bag", "comfortable_shoes"]
+            },
+            
+            "loungewear": {
+                "color_palette": ["neutral_tones", "soft_colors", "comfortable_tones", "pastels"],
+                "preferred_items": ["sweatpants", "hoodie", "slippers", "comfortable_tee"],
+                "forbidden_items": ["formal_wear", "business_attire", "dress_shoes"],
+                "texture_preference": ["soft_fabrics", "comfortable_materials", "cozy_textures"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["comfortable_accessories", "cozy_bag", "soft_shoes"]
+            },
+            
+            "workout": {
+                "color_palette": ["black", "white", "bright_colors", "athletic_tones", "performance_colors"],
+                "preferred_items": ["athletic_shirt", "workout_pants", "athletic_shoes", "sports_bra"],
+                "forbidden_items": ["formal_wear", "dress_shoes", "business_attire"],
+                "texture_preference": ["performance_fabrics", "moisture_wicking", "stretchy_materials"],
+                "formality_level": FormalityLevel.CASUAL,
+                "accessory_style": ["athletic_accessories", "sports_bag", "performance_shoes"]
+            }
+        }
+    
+    def _initialize_mood_rules(self) -> Dict[str, Dict[str, Any]]:
+        """Initialize comprehensive mood-specific validation rules"""
+        return {
+            "romantic": {
+                "color_preference": ["soft_pastels", "pink", "white", "rose_gold", "delicate_tones"],
+                "style_preference": ["feminine", "delicate", "flowing", "lace", "floral"],
+                "forbidden_items": ["athletic_wear", "dark_colors", "casual_sneakers", "heavy_boots"],
+                "preferred_items": ["floral_dress", "delicate_blouse", "pearl_accessories", "soft_fabrics"],
+                "accessory_style": ["delicate_jewelry", "romantic_bag", "feminine_shoes"],
+                "formality_tendency": "elevated"
+            },
+            
+            "playful": {
+                "color_preference": ["bright_colors", "fun_patterns", "cheerful_tones", "mixed_colors"],
+                "style_preference": ["fun", "colorful", "patterned", "casual", "expressive"],
+                "forbidden_items": ["formal_wear", "dark_colors", "conservative_styles"],
+                "preferred_items": ["colorful_top", "fun_accessories", "patterned_items", "bright_shoes"],
+                "accessory_style": ["colorful_jewelry", "fun_bag", "playful_shoes"],
+                "formality_tendency": "relaxed"
+            },
+            
+            "serene": {
+                "color_preference": ["soft_tones", "neutral_colors", "calm_tones", "muted_pastels"],
+                "style_preference": ["calm", "peaceful", "comfortable", "minimal", "soft"],
+                "forbidden_items": ["bright_colors", "athletic_wear", "heavy_boots"],
+                "preferred_items": ["soft_sweater", "comfortable_pants", "gentle_accessories", "calm_fabrics"],
+                "accessory_style": ["simple_jewelry", "peaceful_bag", "comfortable_shoes"],
+                "formality_tendency": "relaxed"
+            },
+            
+            "dynamic": {
+                "color_preference": ["bold_colors", "energetic_tones", "contrasting_colors", "vibrant_hues"],
+                "style_preference": ["energetic", "bold", "active", "confident", "striking"],
+                "forbidden_items": ["dull_colors", "passive_styles", "conservative_items"],
+                "preferred_items": ["bold_top", "confident_accessories", "energetic_pieces", "striking_shoes"],
+                "accessory_style": ["bold_jewelry", "confident_bag", "dynamic_shoes"],
+                "formality_tendency": "confident"
+            },
+            
+            "bold": {
+                "color_preference": ["strong_colors", "black", "white", "bold_accents", "high_contrast"],
+                "style_preference": ["confident", "striking", "strong", "assertive", "powerful"],
+                "forbidden_items": ["timid_styles", "pastel_colors", "casual_sneakers"],
+                "preferred_items": ["statement_piece", "bold_accessories", "confident_shoes", "strong_silhouette"],
+                "accessory_style": ["statement_jewelry", "bold_bag", "powerful_shoes"],
+                "formality_tendency": "confident"
+            },
+            
+            "subtle": {
+                "color_preference": ["neutral_tones", "muted_colors", "soft_tones", "understated_hues"],
+                "style_preference": ["understated", "refined", "gentle", "sophisticated", "quiet"],
+                "forbidden_items": ["bright_colors", "loud_patterns", "athletic_wear"],
+                "preferred_items": ["refined_top", "quality_basics", "sophisticated_accessories", "understated_shoes"],
+                "accessory_style": ["refined_jewelry", "quality_bag", "sophisticated_shoes"],
+                "formality_tendency": "elevated"
+            }
+        }
+    
     async def validate_outfit_comprehensive(
         self, 
         items: List[Dict[str, Any]], 
@@ -539,8 +931,16 @@ class EnhancedOutfitValidator:
             visual_harmony_result = await self._validate_visual_harmony(filtered_items, context)
             logger.info(f"✅ Visual harmony validation completed - Score: {visual_harmony_result.overall_harmony_score:.1f}/100")
             
-            # Step 6: Final validation assessment
-            all_issues = pre_validation_issues + core_issues + occasion_issues + formality_issues
+            # Step 6: Style-specific validation
+            style_issues = await self._validate_style_specific(filtered_items, context)
+            logger.info(f"✅ Style validation completed - {len(style_issues)} issues found")
+            
+            # Step 7: Mood-specific validation
+            mood_issues = await self._validate_mood_specific(filtered_items, context)
+            logger.info(f"✅ Mood validation completed - {len(mood_issues)} issues found")
+            
+            # Step 8: Final validation assessment
+            all_issues = pre_validation_issues + core_issues + occasion_issues + formality_issues + style_issues + mood_issues
             is_valid = len(all_issues) == 0 and len(filtered_items) >= 3
             
             # Calculate confidence score including visual harmony
@@ -580,6 +980,8 @@ class EnhancedOutfitValidator:
                     "core_issues": len(core_issues),
                     "occasion_issues": len(occasion_issues),
                     "formality_issues": len(formality_issues),
+                    "style_issues": len(style_issues),
+                    "mood_issues": len(mood_issues),
                     "visual_harmony_score": visual_harmony_result.overall_harmony_score,
                     "visual_harmony_type": visual_harmony_result.harmony_type,
                     "total_items_input": len(items),
@@ -929,6 +1331,117 @@ class EnhancedOutfitValidator:
             ])
         
         return suggestions
+    
+    async def _validate_style_specific(self, items: List[Dict[str, Any]], context: Dict[str, Any]) -> List[str]:
+        """Validate items against style-specific rules"""
+        issues = []
+        style = context.get('style', '').lower()
+        
+        if not style or style not in self.style_rules:
+            return issues
+        
+        rule = self.style_rules[style]
+        forbidden_items = rule.get('forbidden_items', [])
+        preferred_items = rule.get('preferred_items', [])
+        color_palette = rule.get('color_palette', [])
+        texture_preference = rule.get('texture_preference', [])
+        
+        logger.info(f"🎨 Style validation for '{style}': Checking {len(items)} items")
+        
+        # Check for forbidden items
+        for item in items:
+            item_name = item.get('name', '').lower()
+            item_type = item.get('type', '').lower()
+            item_color = item.get('color', '').lower()
+            
+            # Check forbidden items
+            for forbidden in forbidden_items:
+                if forbidden.lower() in item_name or forbidden.lower() in item_type:
+                    issues.append(f"Style '{style}' forbids {forbidden} items (found: {item_name})")
+                    logger.warning(f"🚫 Style violation: {forbidden} not allowed for {style}")
+            
+            # Check color palette (if specified)
+            if color_palette and item_color:
+                color_match = any(color.lower() in item_color for color in color_palette)
+                if not color_match and not any(neutral in item_color for neutral in ['black', 'white', 'gray', 'beige', 'navy']):
+                    issues.append(f"Style '{style}' prefers colors from {color_palette} (found: {item_color})")
+        
+        # Check if we have preferred items
+        has_preferred = any(
+            any(preferred.lower() in item.get('name', '').lower() or preferred.lower() in item.get('type', '').lower() 
+                for preferred in preferred_items)
+            for item in items
+        )
+        
+        if preferred_items and not has_preferred:
+            issues.append(f"Style '{style}' would benefit from items like: {', '.join(preferred_items[:3])}")
+        
+        logger.info(f"🎨 Style validation completed: {len(issues)} issues found")
+        return issues
+    
+    async def _validate_mood_specific(self, items: List[Dict[str, Any]], context: Dict[str, Any]) -> List[str]:
+        """Validate items against mood-specific rules"""
+        issues = []
+        mood = context.get('mood', '').lower()
+        
+        if not mood or mood not in self.mood_rules:
+            return issues
+        
+        rule = self.mood_rules[mood]
+        forbidden_items = rule.get('forbidden_items', [])
+        preferred_items = rule.get('preferred_items', [])
+        color_preference = rule.get('color_preference', [])
+        style_preference = rule.get('style_preference', [])
+        formality_tendency = rule.get('formality_tendency', 'neutral')
+        
+        logger.info(f"💭 Mood validation for '{mood}': Checking {len(items)} items")
+        
+        # Check for forbidden items based on mood
+        for item in items:
+            item_name = item.get('name', '').lower()
+            item_type = item.get('type', '').lower()
+            item_color = item.get('color', '').lower()
+            
+            # Check forbidden items
+            for forbidden in forbidden_items:
+                if forbidden.lower() in item_name or forbidden.lower() in item_type:
+                    issues.append(f"Mood '{mood}' forbids {forbidden} items (found: {item_name})")
+                    logger.warning(f"💭 Mood violation: {forbidden} not suitable for {mood} mood")
+        
+        # Check color preference (if specified)
+        if color_preference:
+            color_matches = 0
+            for item in items:
+                item_color = item.get('color', '').lower()
+                if any(color.lower() in item_color for color in color_preference):
+                    color_matches += 1
+            
+            if color_matches == 0:
+                issues.append(f"Mood '{mood}' would be enhanced with colors from {color_preference[:3]}")
+        
+        # Check formality tendency
+        if formality_tendency == 'elevated':
+            casual_items = ['sneakers', 'jeans', 't-shirt', 'hoodie', 'sweatpants']
+            has_casual = any(
+                any(casual in item.get('name', '').lower() or casual in item.get('type', '').lower() 
+                    for casual in casual_items)
+                for item in items
+            )
+            if has_casual:
+                issues.append(f"Mood '{mood}' suggests more elevated/formal pieces")
+        
+        elif formality_tendency == 'relaxed':
+            formal_items = ['suit', 'blazer', 'dress_shoes', 'oxford', 'tie']
+            has_formal = any(
+                any(formal in item.get('name', '').lower() or formal in item.get('type', '').lower() 
+                    for formal in formal_items)
+                for item in items
+            )
+            if has_formal:
+                issues.append(f"Mood '{mood}' suggests more relaxed/casual pieces")
+        
+        logger.info(f"💭 Mood validation completed: {len(issues)} issues found")
+        return issues
     
     def get_validation_stats(self) -> Dict[str, Any]:
         """Get validation statistics"""
