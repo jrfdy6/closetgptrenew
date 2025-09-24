@@ -202,7 +202,7 @@ export default function OutfitGenerationPage() {
 
   const occasions = [
     // Simple occasion values (matching backend validation error)
-    'Casual', 'Business', 'Party', 'Date', 'Interview', 'Weekend', 'Loungewear'
+    'Casual', 'Business', 'Party', 'Date', 'Interview', 'Weekend', 'Loungewear', 'Gym'
   ];
 
   const styles = [
@@ -223,7 +223,7 @@ export default function OutfitGenerationPage() {
     // Alternative & Edgy
     'Gothic', 'Punk', 'Cyberpunk', 'Edgy',
     // Seasonal & Lifestyle
-    'Coastal Chic', 'Athleisure', 'Casual Cool', 'Loungewear'
+    'Coastal Chic', 'Athleisure', 'Casual Cool', 'Loungewear', 'Workout'
   ];
 
   const moods = [
