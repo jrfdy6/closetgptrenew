@@ -2594,6 +2594,24 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             if category == 'tops':
                 all_tops = [item for item in wardrobe_items if item.get('type', '').lower() in ['shirt', 'blouse', 't-shirt', 'top', 'tank', 'sweater', 'hoodie', 'sweatshirt']]
                 category_items = filter_items_by_style(all_tops, req.style)
+                
+                # CRITICAL: Filter out inappropriate tops for business/formal occasions
+                occasion_lower = req.occasion.lower() if req.occasion else ''
+                if any(biz_term in occasion_lower for biz_term in ['business', 'interview', 'formal', 'professional']):
+                    validated_tops = []
+                    for top_item in category_items:
+                        top_type = top_item.get('type', '').lower()
+                        top_name = top_item.get('name', '').lower()
+                        
+                        # Remove athletic wear for business occasions
+                        if any(athletic in top_type or athletic in top_name for athletic in ['jersey', 'athletic', 'basketball', 'sport', 'tank', 'tank top']):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out athletic wear for business occasion: {top_item.get('name', 'Unknown')}")
+                            continue
+                        
+                        validated_tops.append(top_item)
+                    
+                    category_items = validated_tops
+                    logger.info(f"✅ FALLBACK VALIDATION: Filtered tops for business occasion: {len(category_items)} appropriate items")
             elif category == 'bottoms':
                 all_bottoms = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'bottom', 'leggings', 'joggers', 'sweatpants']]
                 category_items = filter_items_by_style(all_bottoms, req.style)
@@ -2633,7 +2651,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                         shoe_name = shoe_item.get('name', '').lower()
                         
                         # Remove casual shoes for business occasions
-                        if any(casual in shoe_type or casual in shoe_name for casual in ['sneakers', 'athletic', 'canvas', 'flip']):
+                        if any(casual in shoe_type or casual in shoe_name for casual in ['sneakers', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs']):
                             logger.warning(f"❌ FALLBACK VALIDATION: Filtering out casual shoes for business occasion: {shoe_item.get('name', 'Unknown')}")
                             continue
                         

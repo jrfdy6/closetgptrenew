@@ -739,7 +739,7 @@ class OutfitGenerationService:
             for item in wardrobe:
                 name_lower = item.name.lower()
                 # Avoid casual items for formal events
-                if any(casual in name_lower for casual in ["t-shirt", "sweatpants", "sneakers", "athletic", "sport"]):
+                if any(casual in name_lower for casual in ["t-shirt", "sweatpants", "sneakers", "athletic", "sport", "jersey", "basketball", "tank", "slides", "sandals", "flip"]):
                     continue
                 
                 # Prefer formal items
@@ -756,7 +756,7 @@ class OutfitGenerationService:
             for item in wardrobe:
                 name_lower = item.name.lower()
                 # Avoid casual/athletic items for business
-                if any(casual in name_lower for casual in ["t-shirt", "sweatpants", "sneakers", "athletic", "sport", "jeans", "shorts", "bermuda", "casual", "beach"]):
+                if any(casual in name_lower for casual in ["t-shirt", "sweatpants", "sneakers", "athletic", "sport", "jeans", "shorts", "bermuda", "casual", "beach", "jersey", "basketball", "tank", "slides", "sandals", "flip"]):
                     continue
                 
                 # Prefer business items
