@@ -231,12 +231,17 @@ export default function PersonalizationDemoPage() {
         recentlyWorn: enhancedWardrobeItems.filter(item => item.isRecentlyWorn).length
       });
 
+      // Convert frontend values to backend-expected format (lowercase)
+      const convertToBackendFormat = (value: string) => {
+        return value.toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+      };
+
       // Prepare request data with enhanced wardrobe diversity for smart rotation
       console.log('🔍 [Demo] Form data being sent:', formData);
       const requestData = {
-        occasion: formData.occasion,
-        style: formData.style,
-        mood: formData.mood,
+        occasion: convertToBackendFormat(formData.occasion),
+        style: convertToBackendFormat(formData.style),
+        mood: convertToBackendFormat(formData.mood),
         weather: {
           temperature: 72,
           condition: 'Clear',
