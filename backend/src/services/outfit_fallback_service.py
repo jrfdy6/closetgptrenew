@@ -603,8 +603,10 @@ class OutfitFallbackService:
         # Step 1: Filter by basic criteria
         filtered_items = self._filter_by_basic_criteria(wardrobe, context, healing_context)
         
-        # Step 2: Get target item counts for the occasion
-        target_counts = self._get_target_item_counts(occasion)
+        # Step 2: Get target item counts for the occasion, style, and mood
+        style = context.get('style', '')
+        mood = context.get('mood', '')
+        target_counts = self._get_target_item_counts(occasion, style, mood)
         
         # Step 3: Select core items for each category
         selected_items = []
@@ -1238,21 +1240,144 @@ class OutfitFallbackService:
         """Check if an item is compatible with the user's skin tone using utility function."""
         return check_skin_tone_compatibility(item, skin_tone)
 
-    def _get_target_item_counts(self, occasion: str) -> Dict[str, int]:
-        """Get target item counts for different occasions."""
-        counts = {
-            'top': 1,
-            'bottom': 1,
-            'shoes': 1,
-            'accessory': 1
-        }
+    def _get_target_item_counts(self, occasion: str, style: str = None, mood: str = None) -> Dict[str, int]:
+        """Get dynamic target item counts based on occasion, style, and mood."""
+        import random
         
-        if occasion in ['formal', 'business']:
-            counts['outerwear'] = 1
-        elif occasion in ['casual', 'athletic']:
-            counts['accessory'] = 0
+        # Base counts for different occasions
+        occasion_lower = occasion.lower()
         
-        return counts
+        if 'formal' in occasion_lower or 'business' in occasion_lower or 'interview' in occasion_lower:
+            # Formal occasions - more structured, more items
+            base_counts = {
+                'top': 1,
+                'bottom': 1, 
+                'shoes': 1,
+                'outerwear': 1,  # Blazer, jacket
+                'accessory': 1   # Belt, watch, etc.
+            }
+            # Add variety: 4-6 items
+            total_items = random.randint(4, 6)
+            
+        elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            # Athletic occasions - functional, fewer items
+            base_counts = {
+                'top': 1,
+                'bottom': 1,
+                'shoes': 1
+            }
+            # Add variety: 3-4 items
+            total_items = random.randint(3, 4)
+            
+        elif 'casual' in occasion_lower or 'weekend' in occasion_lower or 'loungewear' in occasion_lower:
+            # Casual occasions - relaxed, moderate items
+            base_counts = {
+                'top': 1,
+                'bottom': 1,
+                'shoes': 1,
+                'accessory': 1
+            }
+            # Add variety: 3-5 items
+            total_items = random.randint(3, 5)
+            
+        elif 'party' in occasion_lower or 'date' in occasion_lower:
+            # Social occasions - stylish, more items
+            base_counts = {
+                'top': 1,
+                'bottom': 1,
+                'shoes': 1,
+                'outerwear': 1,
+                'accessory': 1
+            }
+            # Add variety: 4-6 items
+            total_items = random.randint(4, 6)
+            
+        else:
+            # Default - balanced approach
+            base_counts = {
+                'top': 1,
+                'bottom': 1,
+                'shoes': 1,
+                'accessory': 1
+            }
+            # Add variety: 3-5 items
+            total_items = random.randint(3, 5)
+        
+        # Style-based adjustments
+        if style:
+            style_lower = style.lower()
+            
+            if 'minimalist' in style_lower or 'minimal' in style_lower:
+                # Minimalist styles - fewer items, cleaner look
+                total_items = max(3, total_items - 1)
+                if 'accessory' in base_counts and total_items <= 3:
+                    base_counts.pop('accessory', None)
+                    
+            elif 'maximalist' in style_lower or 'maximal' in style_lower:
+                # Maximalist styles - more items, layered look
+                total_items = min(6, total_items + 1)
+                if 'outerwear' not in base_counts:
+                    base_counts['outerwear'] = 1
+                    
+            elif 'bohemian' in style_lower or 'boho' in style_lower:
+                # Bohemian styles - more accessories and layers
+                total_items = min(6, total_items + 1)
+                if 'accessory' not in base_counts:
+                    base_counts['accessory'] = 1
+                if 'outerwear' not in base_counts:
+                    base_counts['outerwear'] = 1
+                    
+            elif 'streetwear' in style_lower or 'urban' in style_lower:
+                # Streetwear - more accessories, layered look
+                total_items = min(6, total_items + 1)
+                if 'accessory' not in base_counts:
+                    base_counts['accessory'] = 1
+                    
+            elif 'classic' in style_lower or 'preppy' in style_lower:
+                # Classic styles - structured, moderate items
+                total_items = max(4, min(5, total_items))
+                
+        # Mood-based adjustments
+        if mood:
+            mood_lower = mood.lower()
+            
+            if 'bold' in mood_lower or 'dynamic' in mood_lower or 'energetic' in mood_lower:
+                # Bold moods - more items, statement pieces
+                total_items = min(6, total_items + 1)
+                if 'accessory' not in base_counts:
+                    base_counts['accessory'] = 1
+                    
+            elif 'subtle' in mood_lower or 'serene' in mood_lower:
+                # Subtle moods - fewer items, understated
+                total_items = max(3, total_items - 1)
+                if 'accessory' in base_counts and total_items <= 3:
+                    base_counts.pop('accessory', None)
+                    
+            elif 'romantic' in mood_lower or 'playful' in mood_lower:
+                # Romantic/playful moods - more accessories
+                if 'accessory' not in base_counts:
+                    base_counts['accessory'] = 1
+                    
+        # Ensure we don't exceed the target total
+        current_total = sum(base_counts.values())
+        if current_total > total_items:
+            # Remove items starting with least essential
+            priority_order = ['accessory', 'outerwear', 'top', 'bottom', 'shoes']
+            for category in priority_order:
+                if category in base_counts and current_total > total_items:
+                    base_counts.pop(category, None)
+                    current_total -= 1
+                    
+        elif current_total < total_items:
+            # Add items if we have room
+            if 'accessory' not in base_counts and total_items > current_total:
+                base_counts['accessory'] = 1
+                current_total += 1
+            if 'outerwear' not in base_counts and total_items > current_total:
+                base_counts['outerwear'] = 1
+                current_total += 1
+                
+        return base_counts
 
     def _get_items_for_category(self, items: List[ClothingItem], category: str) -> List[ClothingItem]:
         """Get items that belong to a specific category."""
@@ -1262,7 +1387,9 @@ class OutfitFallbackService:
     def _ensure_outfit_completeness(self, selected_items: List[ClothingItem], all_items: List[ClothingItem], context: Dict[str, Any], healing_context: DynamicHealingContext) -> List[ClothingItem]:
         """Ensure the outfit has all necessary components."""
         occasion = context.get('occasion', 'casual')
-        target_counts = self._get_target_item_counts(occasion)
+        style = context.get('style', '')
+        mood = context.get('mood', '')
+        target_counts = self._get_target_item_counts(occasion, style, mood)
         
         current_categories = self._categorize_items(selected_items)
         

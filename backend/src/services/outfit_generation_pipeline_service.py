@@ -175,8 +175,8 @@ class OutfitGenerationPipelineService:
         layering_rule = self._get_layering_rule(weather.temperature)
         mood_rule = self._get_mood_rule(mood) if mood else None
         
-        # Determine target item counts by occasion
-        target_counts = self.get_target_item_counts(occasion)
+        # Determine target item counts by occasion, style, and mood
+        target_counts = self.get_target_item_counts(occasion, style, mood)
         
         # Get style compatibility matrix
         style_matrix = self._get_style_compatibility_matrix(style)
@@ -199,25 +199,119 @@ class OutfitGenerationPipelineService:
             "style_matrix": style_matrix
         }
         
-    def get_target_item_counts(self, occasion: str) -> Dict[str, Any]:
-        """Get target item counts for the occasion."""
-        # Basic target counts
-        base_counts = {
-            "min_items": 3,
-            "max_items": 6,
-            "required_categories": ["top", "bottom", "shoes"]
-        }
+    def get_target_item_counts(self, occasion: str, style: str = None, mood: str = None) -> Dict[str, Any]:
+        """Get dynamic target item counts based on occasion, style, and mood."""
+        import random
         
-        # Adjust for specific occasions
-        if "formal" in occasion.lower() or "business" in occasion.lower():
-            base_counts["min_items"] = 4
-            base_counts["required_categories"] = ["top", "bottom", "shoes", "accessory"]
-        elif "athletic" in occasion.lower() or "gym" in occasion.lower():
-            base_counts["min_items"] = 3
-            base_counts["required_categories"] = ["top", "bottom", "shoes"]
-        elif "casual" in occasion.lower():
-            base_counts["min_items"] = 3
-            base_counts["required_categories"] = ["top", "bottom", "shoes"]
+        # Base counts for different occasions
+        occasion_lower = occasion.lower()
+        
+        if 'formal' in occasion_lower or 'business' in occasion_lower or 'interview' in occasion_lower:
+            # Formal occasions - more structured, more items
+            base_counts = {
+                "min_items": 4,
+                "max_items": 6,
+                "required_categories": ["top", "bottom", "shoes", "accessory"]
+            }
+            # Add variety: 4-6 items
+            total_items = random.randint(4, 6)
+            
+        elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            # Athletic occasions - functional, fewer items
+            base_counts = {
+                "min_items": 3,
+                "max_items": 4,
+                "required_categories": ["top", "bottom", "shoes"]
+            }
+            # Add variety: 3-4 items
+            total_items = random.randint(3, 4)
+            
+        elif 'casual' in occasion_lower or 'weekend' in occasion_lower or 'loungewear' in occasion_lower:
+            # Casual occasions - relaxed, moderate items
+            base_counts = {
+                "min_items": 3,
+                "max_items": 5,
+                "required_categories": ["top", "bottom", "shoes", "accessory"]
+            }
+            # Add variety: 3-5 items
+            total_items = random.randint(3, 5)
+            
+        elif 'party' in occasion_lower or 'date' in occasion_lower:
+            # Social occasions - stylish, more items
+            base_counts = {
+                "min_items": 4,
+                "max_items": 6,
+                "required_categories": ["top", "bottom", "shoes", "accessory"]
+            }
+            # Add variety: 4-6 items
+            total_items = random.randint(4, 6)
+            
+        else:
+            # Default - balanced approach
+            base_counts = {
+                "min_items": 3,
+                "max_items": 5,
+                "required_categories": ["top", "bottom", "shoes", "accessory"]
+            }
+            # Add variety: 3-5 items
+            total_items = random.randint(3, 5)
+        
+        # Style-based adjustments
+        if style:
+            style_lower = style.lower()
+            
+            if 'minimalist' in style_lower or 'minimal' in style_lower:
+                # Minimalist styles - fewer items, cleaner look
+                total_items = max(3, total_items - 1)
+                if total_items <= 3:
+                    base_counts["required_categories"] = ["top", "bottom", "shoes"]
+                    
+            elif 'maximalist' in style_lower or 'maximal' in style_lower:
+                # Maximalist styles - more items, layered look
+                total_items = min(6, total_items + 1)
+                if "accessory" not in base_counts["required_categories"]:
+                    base_counts["required_categories"].append("accessory")
+                    
+            elif 'bohemian' in style_lower or 'boho' in style_lower:
+                # Bohemian styles - more accessories and layers
+                total_items = min(6, total_items + 1)
+                if "accessory" not in base_counts["required_categories"]:
+                    base_counts["required_categories"].append("accessory")
+                    
+            elif 'streetwear' in style_lower or 'urban' in style_lower:
+                # Streetwear - more accessories, layered look
+                total_items = min(6, total_items + 1)
+                if "accessory" not in base_counts["required_categories"]:
+                    base_counts["required_categories"].append("accessory")
+                    
+            elif 'classic' in style_lower or 'preppy' in style_lower:
+                # Classic styles - structured, moderate items
+                total_items = max(4, min(5, total_items))
+                
+        # Mood-based adjustments
+        if mood:
+            mood_lower = mood.lower()
+            
+            if 'bold' in mood_lower or 'dynamic' in mood_lower or 'energetic' in mood_lower:
+                # Bold moods - more items, statement pieces
+                total_items = min(6, total_items + 1)
+                if "accessory" not in base_counts["required_categories"]:
+                    base_counts["required_categories"].append("accessory")
+                    
+            elif 'subtle' in mood_lower or 'serene' in mood_lower:
+                # Subtle moods - fewer items, understated
+                total_items = max(3, total_items - 1)
+                if total_items <= 3:
+                    base_counts["required_categories"] = ["top", "bottom", "shoes"]
+                    
+            elif 'romantic' in mood_lower or 'playful' in mood_lower:
+                # Romantic/playful moods - more accessories
+                if "accessory" not in base_counts["required_categories"]:
+                    base_counts["required_categories"].append("accessory")
+        
+        # Update min/max based on total_items
+        base_counts["min_items"] = max(3, total_items - 1)
+        base_counts["max_items"] = min(6, total_items + 1)
         
         return base_counts
 
