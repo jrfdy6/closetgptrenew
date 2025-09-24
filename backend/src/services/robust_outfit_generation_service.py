@@ -69,16 +69,16 @@ class RobustOutfitGenerationService:
             GenerationStrategy.EMERGENCY_DEFAULT
         ]
         
-        # Category limits for outfit composition
-        self.category_limits = {
-            "tops": 3,
+        # Dynamic category limits based on occasion and style
+        self.base_category_limits = {
+            "tops": 2,
             "bottoms": 1,
             "shoes": 1,
             "outerwear": 1,
             "accessories": 2
         }
         
-        self.max_items = 6
+        self.max_items = 8  # Increased from 6
         self.min_items = 3
         
         # Inappropriate combinations to prevent
@@ -442,9 +442,15 @@ class RobustOutfitGenerationService:
         return suitable_items
     
     async def _intelligent_item_selection(self, suitable_items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
-        """Intelligently select items for the outfit"""
+        """Intelligently select items for the outfit with dynamic limits"""
         selected_items = []
-        category_counts = {cat: 0 for cat in self.category_limits.keys()}
+        
+        # Get dynamic category limits based on occasion and style
+        category_limits = self._get_dynamic_category_limits(context)
+        category_counts = {cat: 0 for cat in category_limits.keys()}
+        
+        # Calculate target item count based on occasion and style
+        target_count = self._get_target_item_count(context)
         
         # Sort items by preference score
         scored_items = []
@@ -454,18 +460,93 @@ class RobustOutfitGenerationService:
         
         scored_items.sort(key=lambda x: x[1], reverse=True)
         
-        # Select items ensuring category limits
+        # Select items ensuring dynamic category limits
         for item, score in scored_items:
             item_category = self._get_item_category(item)
             
-            if category_counts.get(item_category, 0) < self.category_limits.get(item_category, 3):
+            if category_counts.get(item_category, 0) < category_limits.get(item_category, 2):
                 selected_items.append(item)
                 category_counts[item_category] += 1
                 
-                if len(selected_items) >= self.max_items:
+                if len(selected_items) >= target_count:
                     break
         
         return selected_items
+    
+    def _get_dynamic_category_limits(self, context: GenerationContext) -> Dict[str, int]:
+        """Get dynamic category limits based on occasion and style"""
+        import random
+        
+        # Start with base limits
+        limits = self.base_category_limits.copy()
+        occasion_lower = context.occasion.lower()
+        style_lower = context.style.lower() if context.style else ""
+        
+        # Adjust based on occasion
+        if 'formal' in occasion_lower or 'business' in occasion_lower:
+            # Formal occasions can have more layers
+            limits["tops"] = 3  # shirt + sweater + blazer
+            limits["outerwear"] = 2  # blazer + coat
+            limits["accessories"] = 3  # belt, watch, tie
+        elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            # Athletic occasions are simpler
+            limits["tops"] = 2  # tank + hoodie
+            limits["outerwear"] = 1  # just a jacket
+            limits["accessories"] = 1  # minimal accessories
+        elif 'party' in occasion_lower or 'date' in occasion_lower:
+            # Social occasions can be more elaborate
+            limits["tops"] = 2  # shirt + jacket
+            limits["accessories"] = 3  # more accessories
+        elif 'casual' in occasion_lower:
+            # Casual occasions are flexible
+            limits["tops"] = 2  # t-shirt + hoodie
+            limits["accessories"] = 2  # moderate accessories
+        
+        # Adjust based on style
+        if 'maximalist' in style_lower:
+            # Maximalist styles can have more items
+            for category in limits:
+                limits[category] = min(limits[category] + 1, 4)
+        elif 'minimalist' in style_lower:
+            # Minimalist styles should have fewer items
+            for category in limits:
+                limits[category] = max(limits[category] - 1, 1)
+        
+        return limits
+    
+    def _get_target_item_count(self, context: GenerationContext) -> int:
+        """Get target item count based on occasion, style, and mood"""
+        import random
+        
+        occasion_lower = context.occasion.lower()
+        style_lower = context.style.lower() if context.style else ""
+        mood_lower = context.mood.lower() if context.mood else ""
+        
+        # Base count by occasion
+        if 'formal' in occasion_lower or 'business' in occasion_lower:
+            base_count = random.randint(4, 6)  # 4-6 items for formal
+        elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            base_count = random.randint(3, 5)  # 3-5 items for athletic
+        elif 'party' in occasion_lower or 'date' in occasion_lower:
+            base_count = random.randint(4, 6)  # 4-6 items for social
+        elif 'casual' in occasion_lower:
+            base_count = random.randint(3, 5)  # 3-5 items for casual
+        else:
+            base_count = random.randint(3, 5)  # 3-5 items default
+        
+        # Adjust by style
+        if 'maximalist' in style_lower:
+            base_count = min(base_count + 2, 8)  # Add 2 items, max 8
+        elif 'minimalist' in style_lower:
+            base_count = max(base_count - 1, 3)  # Remove 1 item, min 3
+        
+        # Adjust by mood
+        if 'bold' in mood_lower or 'dynamic' in mood_lower:
+            base_count = min(base_count + 1, 8)  # Add 1 item for bold moods
+        elif 'subtle' in mood_lower or 'serene' in mood_lower:
+            base_count = max(base_count - 1, 3)  # Remove 1 item for subtle moods
+        
+        return base_count
     
     async def _ensure_outfit_completeness(self, items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
         """Ensure outfit has essential categories and is complete"""
@@ -518,7 +599,7 @@ class RobustOutfitGenerationService:
             category_counts[category] = category_counts.get(category, 0) + 1
         
         for category, count in category_counts.items():
-            limit = self.category_limits.get(category, 3)
+            limit = self.base_category_limits.get(category, 2)
             if count > limit:
                 issues.append(f"Too many {category}: {count} (max {limit})")
                 score -= 15.0
