@@ -4294,7 +4294,48 @@ async def generate_outfit(
                 # Run generation logic with robust service
                 outfit = await generate_outfit_logic(req, current_user_id)
                 
-                # Validate the generated outfit
+                # NEW: Apply comprehensive validation pipeline to generated outfit
+                if outfit and outfit.get('items'):
+                    try:
+                        from ..services.outfit_validation_pipeline import validation_pipeline, ValidationContext
+                        
+                        # Create validation context
+                        validation_context = ValidationContext(
+                            occasion=req.occasion,
+                            style=req.style or "casual",
+                            mood=req.mood or "neutral",
+                            weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else req.weather,
+                            user_profile={"id": current_user_id},  # Basic profile for validation
+                            temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
+                        )
+                        
+                        # Run validation pipeline
+                        validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
+                        
+                        if not validation_result.valid:
+                            logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
+                            print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
+                            print(f"🚨 VALIDATION CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+                            print(f"🚨 VALIDATION ERRORS: {validation_result.errors}")
+                            print(f"🚨 VALIDATION WARNINGS: {validation_result.warnings}")
+                            print(f"🚨 VALIDATION SUGGESTIONS: {validation_result.suggestions}")
+                            
+                            # For now, we'll retry if validation fails
+                            # In the future, we could implement repair logic
+                            if attempt < max_attempts - 1:
+                                await asyncio.sleep(1)  # Brief delay before retry
+                                continue
+                        else:
+                            logger.info(f"✅ Validation passed on attempt {generation_attempts}")
+                            if validation_result.warnings:
+                                logger.info(f"⚠️ Validation warnings: {validation_result.warnings}")
+                            if validation_result.suggestions:
+                                logger.info(f"💡 Validation suggestions: {validation_result.suggestions}")
+                                
+                    except Exception as validation_error:
+                        logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
+                
+                # Validate the generated outfit (basic validation)
                 if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
                     logger.info(f"✅ Generation successful on attempt {generation_attempts}")
                     break

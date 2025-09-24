@@ -15,6 +15,7 @@ from src.custom_types.profile import UserProfile
 from src.services.outfit_fallback_service import OutfitFallbackService
 from src.services.outfit_validation_service import OutfitValidationService
 from src.services.cohesive_outfit_composition_service import CohesiveOutfitCompositionService
+from src.services.outfit_validation_pipeline import validation_pipeline, ValidationContext
 from src.config.firebase import db
 
 logger = logging.getLogger(__name__)
@@ -75,9 +76,50 @@ class OutfitGenerationService:
             # Fallback to traditional selection
             selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style, base_item_id)
         
-        # CRITICAL: Apply enhanced validation to prevent inappropriate combinations
-        print("🔍 Applying enhanced validation to prevent inappropriate combinations...")
-        validation_context = {
+        # NEW: Apply comprehensive validation pipeline
+        print("🔍 Applying comprehensive validation pipeline...")
+        
+        # Create validation context
+        validation_context = ValidationContext(
+            occasion=occasion,
+            style=style or "casual",
+            mood=mood or "neutral",
+            weather=weather.__dict__ if hasattr(weather, '__dict__') else weather,
+            user_profile=user_profile.__dict__ if hasattr(user_profile, '__dict__') else user_profile,
+            temperature=getattr(weather, 'temperature', 70.0) if hasattr(weather, 'temperature') else 70.0
+        )
+        
+        # Create outfit dict for validation
+        outfit_dict = {
+            "items": [item.__dict__ if hasattr(item, '__dict__') else item for item in selected_items]
+        }
+        
+        try:
+            # Run comprehensive validation pipeline
+            validation_result = await validation_pipeline.validate_outfit(outfit_dict, validation_context)
+            
+            if not validation_result.valid:
+                print(f"❌ VALIDATION FAILED: {len(validation_result.errors)} errors, {len(validation_result.warnings)} warnings")
+                print(f"   Errors: {validation_result.errors}")
+                print(f"   Warnings: {validation_result.warnings}")
+                print(f"   Suggestions: {validation_result.suggestions}")
+                
+                # For now, we'll continue with the outfit but log the issues
+                # In the future, we could implement repair logic or regeneration
+                print("⚠️ Continuing with outfit despite validation issues (repair mode not yet implemented)")
+            else:
+                print(f"✅ VALIDATION PASSED: {len(validation_result.warnings)} warnings")
+                if validation_result.warnings:
+                    print(f"   Warnings: {validation_result.warnings}")
+                if validation_result.suggestions:
+                    print(f"   Suggestions: {validation_result.suggestions}")
+                
+        except Exception as e:
+            print(f"⚠️ Validation pipeline failed: {e}, using original selection")
+        
+        # LEGACY: Apply enhanced validation to prevent inappropriate combinations
+        print("🔍 Applying legacy enhanced validation...")
+        legacy_validation_context = {
             "occasion": occasion,
             "weather": weather,
             "user_profile": user_profile,
@@ -87,22 +129,22 @@ class OutfitGenerationService:
         
         try:
             validation_result = await self.validation_service.validate_outfit_with_enhanced_rules(
-                selected_items, validation_context
+                selected_items, legacy_validation_context
             )
             
             if validation_result.get("filtered_items"):
                 validated_items = validation_result["filtered_items"]
-                print(f"✅ Validation applied: {len(selected_items)} → {len(validated_items)} items")
+                print(f"✅ Legacy validation applied: {len(selected_items)} → {len(validated_items)} items")
                 if validation_result.get("errors"):
-                    print(f"⚠️ Validation errors: {validation_result['errors']}")
+                    print(f"⚠️ Legacy validation errors: {validation_result['errors']}")
                 if validation_result.get("warnings"):
-                    print(f"⚠️ Validation warnings: {validation_result['warnings']}")
+                    print(f"⚠️ Legacy validation warnings: {validation_result['warnings']}")
                 selected_items = validated_items
             else:
-                print("⚠️ Validation returned no filtered items, using original selection")
+                print("⚠️ Legacy validation returned no filtered items, using original selection")
                 
         except Exception as e:
-            print(f"⚠️ Validation failed: {e}, using original selection")
+            print(f"⚠️ Legacy validation failed: {e}, using original selection")
         
         return await self._create_outfit_from_items(
             items=selected_items,
