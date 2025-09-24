@@ -115,7 +115,7 @@ export default function PersonalizationDemoPage() {
       let recentlyWornItems = new Set();
       
       try {
-        const outfitsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfit/`, {
+        const outfitsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfits/`, {
           headers: {
             'Authorization': `Bearer ${authToken}`,
           },
@@ -233,21 +233,8 @@ export default function PersonalizationDemoPage() {
 
       // Prepare request data with enhanced wardrobe diversity for smart rotation
       console.log('🔍 [Demo] Form data being sent:', formData);
-      
-      // Map frontend occasion values to backend-compatible values
-      const occasionMapping = {
-        'Gym': 'Athletic',
-        'Business Formal': 'Formal', 
-        'Business Casual': 'Business',
-        'Date Night': 'Date',
-        'Going to the gym': 'Athletic'
-      };
-      
-      const mappedOccasion = occasionMapping[formData.occasion] || formData.occasion;
-      console.log('🔄 [Demo] Mapped occasion from', formData.occasion, 'to', mappedOccasion);
-      
       const requestData = {
-        occasion: mappedOccasion,
+        occasion: formData.occasion,
         style: formData.style,
         mood: formData.mood,
         weather: {
@@ -592,8 +579,6 @@ export default function PersonalizationDemoPage() {
                         <option value="Snow Day">Snow Day</option>
                         <option value="Hot Weather">Hot Weather</option>
                         
-                        {/* Fitness & Health */}
-                        <option value="Gym">Gym</option>
                       </select>
                     </div>
                     
@@ -655,7 +640,6 @@ export default function PersonalizationDemoPage() {
                         <option value="Athleisure">Athleisure</option>
                         <option value="Casual Cool">Casual Cool</option>
                         <option value="Loungewear">Loungewear</option>
-                        <option value="Workout">Workout</option>
                       </select>
                     </div>
                     

@@ -194,11 +194,6 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
             'exclude_keywords': ['dress', 'formal', 'suit', 'blazer', 'business', 'oxford', 'heel', 'dress shirt', 'tie', 'formal pants'],
             'preferred_types': ['t-shirt', 'tank', 'hoodie', 'sweatshirt', 'joggers', 'leggings', 'sweatpants', 'sneakers', 'athletic shoes', 'track jacket']
         },
-        'athletic': {
-            'include_keywords': ['athletic', 'sport', 'gym', 'workout', 'running', 'fitness', 'training', 'active', 'performance', 'exercise'],
-            'exclude_keywords': ['dress', 'formal', 'suit', 'blazer', 'business', 'oxford', 'heel', 'dress shirt', 'tie', 'formal pants', 'business casual', 'professional'],
-            'preferred_types': ['t-shirt', 'tank', 'athletic shirt', 'athletic shorts', 'joggers', 'leggings', 'sweatpants', 'sneakers', 'athletic shoes', 'track jacket']
-        },
         'casual': {
             'include_keywords': ['casual', 'everyday', 'comfortable', 'relaxed'],
             'exclude_keywords': ['formal', 'business', 'dressy', 'cocktail'],
@@ -244,9 +239,9 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
             filtered_items.append(item)
             logger.info(f"✅ Including {item.get('name', 'unnamed')} for {style} style")
         else:
-            # For athleisure and athletic, be more restrictive - only include items that explicitly match
-            if style_lower in ['athleisure', 'athletic']:
-                logger.info(f"⚠️ Skipping {item.get('name', 'unnamed')} for {style_lower} (not explicitly athletic)")
+            # For athleisure, be more restrictive - only include items that explicitly match
+            if style_lower == 'athleisure':
+                logger.info(f"⚠️ Skipping {item.get('name', 'unnamed')} for athleisure (not explicitly athletic)")
             else:
                 # For other styles, include items that don't explicitly conflict
                 filtered_items.append(item)
@@ -275,11 +270,6 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
             'formal_indicators': ['formal', 'business', 'dress pants', 'suit', 'blazer', 'dress shirt', 'tie', 'oxford', 'dress shoes', 'heels'],
             'formal_materials': ['wool suit', 'silk tie', 'dress wool'],
             'formal_types': ['dress shirt', 'dress pants', 'suit jacket', 'blazer', 'tie', 'dress shoes']
-        },
-        'athletic': {
-            'formal_indicators': ['formal', 'business', 'dress pants', 'suit', 'blazer', 'dress shirt', 'tie', 'oxford', 'dress shoes', 'heels', 'business casual', 'professional'],
-            'formal_materials': ['wool suit', 'silk tie', 'dress wool', 'business wool'],
-            'formal_types': ['dress shirt', 'dress pants', 'suit jacket', 'blazer', 'tie', 'dress shoes', 'business shirt', 'formal pants']
         },
         'formal': {
             'casual_indicators': ['athletic', 'sport', 'gym', 'workout', 'jogger', 'sweat', 'hoodie', 'sneaker'],
@@ -747,7 +737,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
             else:
                 logger.warning("⚠️ Robust service not available, falling back to rule-based generation")
-            outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
+                outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
             
             # Add weather data to outfit for base item validation
             if req.weather:
@@ -826,13 +816,13 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
     except Exception as e:
             logger.error(f"⚠️ FALLBACK TRIGGERED: Outfit generation failed with exception: {e}")
-        logger.exception("Full traceback:")
+            logger.exception("Full traceback:")
             print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
             print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
             print(f"🚨 FALLBACK REASON: Exception - {type(e).__name__}: {e}")
             print(f"🚨 FALLBACK TRACEBACK: {str(e)}")
-        # Fallback to basic generation if rule-based generation fails
-        return await generate_fallback_outfit(req, user_id)
+            # Fallback to basic generation if rule-based generation fails
+            return await generate_fallback_outfit(req, user_id)
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
     """Validate if the requested style is appropriate for the user's gender."""
@@ -943,36 +933,36 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         validation_result = await validation_service.validate_outfit_with_enhanced_rules(clothing_items, context)
         print(f"🔍 VALIDATION DEBUG: Validation completed, result keys: {validation_result.keys()}")
         print(f"🔍 VALIDATION DEBUG: Filtered items count: {len(validation_result.get('filtered_items', []))}")
-    
-    if validation_result.get("filtered_items"):
-        # Convert back to dict format
-        validated_outfit = []
-        for item in validation_result["filtered_items"]:
-            item_dict = {
-                "id": item.id,
-                "name": item.name,
-                "type": item.type,
-                "color": item.color,
-                "imageUrl": item.imageUrl,
-                "style": item.style,
-                "occasion": item.occasion,
-                "brand": item.brand,
-                "wearCount": item.wearCount,
-                "favorite_score": item.favorite_score,
-                "tags": item.tags,
-                "metadata": item.metadata
-            }
-            validated_outfit.append(item_dict)
         
-        logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
-        if validation_result.get("errors"):
-            logger.info(f"🔍 Validation errors: {validation_result['errors']}")
-        if validation_result.get("warnings"):
-            logger.info(f"🔍 Validation warnings: {validation_result['warnings']}")
-        
+        if validation_result.get("filtered_items"):
+            # Convert back to dict format
+            validated_outfit = []
+            for item in validation_result["filtered_items"]:
+                item_dict = {
+                    "id": item.id,
+                    "name": item.name,
+                    "type": item.type,
+                    "color": item.color,
+                    "imageUrl": item.imageUrl,
+                    "style": item.style,
+                    "occasion": item.occasion,
+                    "brand": item.brand,
+                    "wearCount": item.wearCount,
+                    "favorite_score": item.favorite_score,
+                    "tags": item.tags,
+                    "metadata": item.metadata
+                }
+                validated_outfit.append(item_dict)
+            
+            logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
+            if validation_result.get("errors"):
+                logger.info(f"🔍 Validation errors: {validation_result['errors']}")
+            if validation_result.get("warnings"):
+                logger.info(f"🔍 Validation warnings: {validation_result['warnings']}")
+            
             print(f"🔍 VALIDATION DEBUG: Returning {len(validated_outfit)} items")
-        return validated_outfit
-                else:
+            return validated_outfit
+        else:
             print(f"❌ VALIDATION DEBUG: No filtered items returned from enhanced validation!")
             print(f"❌ VALIDATION DEBUG: Validation result: {validation_result}")
             # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
@@ -2604,34 +2594,12 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             if category == 'tops':
                 all_tops = [item for item in wardrobe_items if item.get('type', '').lower() in ['shirt', 'blouse', 't-shirt', 'top', 'tank', 'sweater', 'hoodie', 'sweatshirt']]
                 category_items = filter_items_by_style(all_tops, req.style)
-                
-                # CRITICAL: Filter out inappropriate tops for specific occasions
-                occasion_lower = req.occasion.lower() if req.occasion else ''
-                
-                # Athletic/Gym occasions - remove formal tops
-                if any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
-                    validated_tops = []
-                    for top_item in category_items:
-                        top_type = top_item.get('type', '').lower()
-                        top_name = top_item.get('name', '').lower()
-                        
-                        # Remove formal tops for athletic occasions
-                        if any(formal in top_type or formal in top_name for formal in ['dress shirt', 'business shirt', 'formal shirt', 'blazer', 'suit jacket']):
-                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out formal top for athletic occasion: {top_item.get('name', 'Unknown')}")
-                            continue
-                        
-                        validated_tops.append(top_item)
-                    
-                    category_items = validated_tops
-                    logger.info(f"✅ FALLBACK VALIDATION: Filtered tops for athletic occasion: {len(category_items)} appropriate items")
             elif category == 'bottoms':
                 all_bottoms = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'bottom', 'leggings', 'joggers', 'sweatpants']]
                 category_items = filter_items_by_style(all_bottoms, req.style)
                 
-                # CRITICAL: Filter out inappropriate bottoms for specific occasions
+                # CRITICAL: Filter out inappropriate bottoms for business occasions
                 occasion_lower = req.occasion.lower() if req.occasion else ''
-                
-                # Business/Formal occasions - remove casual/athletic items
                 if any(biz_term in occasion_lower for biz_term in ['business', 'interview', 'formal', 'professional']):
                     validated_bottoms = []
                     for bottom_item in category_items:
@@ -2652,68 +2620,27 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                     
                     category_items = validated_bottoms
                     logger.info(f"✅ FALLBACK VALIDATION: Filtered bottoms for business occasion: {len(category_items)} appropriate items")
-                
-                # Athletic/Gym occasions - remove formal items
-                elif any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
-                    validated_bottoms = []
-                    for bottom_item in category_items:
-                        bottom_type = bottom_item.get('type', '').lower()
-                        bottom_name = bottom_item.get('name', '').lower()
-                        
-                        # Remove formal items for athletic occasions
-                        if any(formal in bottom_type or formal in bottom_name for formal in ['dress pants', 'formal pants', 'business pants', 'suit pants']):
-                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out formal pants for athletic occasion: {bottom_item.get('name', 'Unknown')}")
-                            continue
-                        
-                        validated_bottoms.append(bottom_item)
-                    
-                    category_items = validated_bottoms
-                    logger.info(f"✅ FALLBACK VALIDATION: Filtered bottoms for athletic occasion: {len(category_items)} appropriate items")
             elif category == 'shoes':
                 all_shoes = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals', 'athletic shoes']]
                 category_items = filter_items_by_style(all_shoes, req.style)
                 
-                # CRITICAL: Filter out inappropriate shoes for specific occasions
+                # CRITICAL: Filter out inappropriate shoes for business occasions
                 occasion_lower = req.occasion.lower() if req.occasion else ''
-                
-                # Business/Formal occasions - remove casual/athletic shoes
                 if any(biz_term in occasion_lower for biz_term in ['business', 'interview', 'formal', 'professional']):
                     validated_shoes = []
                     for shoe_item in category_items:
                         shoe_type = shoe_item.get('type', '').lower()
                         shoe_name = shoe_item.get('name', '').lower()
                         
-                        # Remove sneakers for business occasions
-                        if 'sneaker' in shoe_type or 'sneaker' in shoe_name:
-                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out sneakers for business occasion: {shoe_item.get('name', 'Unknown')}")
-                            continue
-                        
-                        # Remove athletic shoes for business occasions
-                        if any(athletic in shoe_type or athletic in shoe_name for athletic in ['athletic', 'running', 'workout']):
-                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out athletic shoes for business occasion: {shoe_item.get('name', 'Unknown')}")
+                        # Remove casual shoes for business occasions
+                        if any(casual in shoe_type or casual in shoe_name for casual in ['sneakers', 'athletic', 'canvas', 'flip']):
+                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out casual shoes for business occasion: {shoe_item.get('name', 'Unknown')}")
                             continue
                         
                         validated_shoes.append(shoe_item)
                     
                     category_items = validated_shoes
                     logger.info(f"✅ FALLBACK VALIDATION: Filtered shoes for business occasion: {len(category_items)} appropriate items")
-                
-                # Athletic/Gym occasions - remove formal shoes
-                elif any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
-                    validated_shoes = []
-                    for shoe_item in category_items:
-                        shoe_type = shoe_item.get('type', '').lower()
-                        shoe_name = shoe_item.get('name', '').lower()
-                        
-                        # Remove formal shoes for athletic occasions
-                        if any(formal in shoe_type or formal in shoe_name for formal in ['dress shoes', 'oxford', 'loafers', 'heels', 'formal']):
-                            logger.warning(f"❌ FALLBACK VALIDATION: Filtering out formal shoes for athletic occasion: {shoe_item.get('name', 'Unknown')}")
-                            continue
-                        
-                        validated_shoes.append(shoe_item)
-                    
-                    category_items = validated_shoes
-                    logger.info(f"✅ FALLBACK VALIDATION: Filtered shoes for athletic occasion: {len(category_items)} appropriate items")
             
             if category_items:
                 # Randomly pick an item from the style-appropriate category
@@ -4263,7 +4190,7 @@ async def generate_outfit(
                 logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
                 
                 # Run generation logic with robust service
-        outfit = await generate_outfit_logic(req, current_user_id)
+                outfit = await generate_outfit_logic(req, current_user_id)
                 
                 # Validate the generated outfit
                 if outfit and outfit.get('items') and len(outfit.get('items', [])) >= 3:
@@ -5320,11 +5247,11 @@ async def get_outfits_worn_this_week_simple(
                         continue
             
             logger.info(f"✅ Fallback found {worn_count} outfits worn this week from lastWorn dates")
-        
-        return {
-            "success": True,
-            "user_id": current_user.id,
-            "outfits_worn_this_week": worn_count,
+            
+            return {
+                "success": True,
+                "user_id": current_user.id,
+                "outfits_worn_this_week": worn_count,
                 "source": "lastWorn_fallback",
                 "version": "2025-09-23",
                 "api_version": "v2.0",
@@ -5348,7 +5275,7 @@ async def get_outfits_worn_this_week_simple(
         raise
     except Exception as e:
         logger.error(f"❌ Error counting worn outfits: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}") 
+        raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}")
 
 def _apply_final_outfit_validation(outfit: Dict[str, Any]) -> Dict[str, Any]:
     """Final validation check to guarantee 99% prevention of inappropriate combinations."""

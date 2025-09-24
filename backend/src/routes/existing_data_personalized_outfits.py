@@ -139,80 +139,19 @@ async def generate_personalized_outfit_from_existing_data(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit from existing data for user {user_id}")
         
-        # Generate an occasion-appropriate outfit for demonstration
+        # Generate a simple mock outfit for demonstration
         # In production, this would call your existing outfit generation system
-        
-        # Create occasion-appropriate items
-        if req.occasion.lower() in ['athletic', 'gym', 'workout']:
-            outfit_items = [
-                {
-                    "id": "item_1",
-                    "name": "Athletic Performance T-Shirt",
-                    "type": "shirt",
-                    "color": "Black",
-                    "style": "Athletic",
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/000000/FFFFFF?text=Athletic+Shirt"
-                },
-                {
-                    "id": "item_2", 
-                    "name": "Athletic Shorts",
-                    "type": "shorts",
-                    "color": "Navy",
-                    "style": "Athletic",
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/001f3f/FFFFFF?text=Athletic+Shorts"
-                },
-                {
-                    "id": "item_3",
-                    "name": "Athletic Sneakers",
-                    "type": "shoes", 
-                    "color": "White",
-                    "style": "Athletic",
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/FFFFFF/000000?text=Athletic+Shoes"
-                }
-            ]
-        elif req.occasion.lower() in ['formal', 'business']:
-            outfit_items = [
-                {
-                    "id": "item_1",
-                    "name": "Dress Shirt",
-                    "type": "shirt",
-                    "color": "White",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/FFFFFF/000000?text=Dress+Shirt"
-                },
-                {
-                    "id": "item_2", 
-                    "name": "Dress Pants",
-                    "type": "pants",
-                    "color": "Navy",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/001f3f/FFFFFF?text=Dress+Pants"
-                },
-                {
-                    "id": "item_3",
-                    "name": "Oxford Shoes",
-                    "type": "shoes", 
-                    "color": "Black",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/000000/FFFFFF?text=Oxford+Shoes"
-                }
-            ]
-        else:
-            outfit_items = [
+        existing_result = {
+            "id": f"outfit_{int(time.time())}",
+            "name": f"{req.style} {req.occasion} Outfit",
+            "items": [
                 {
                     "id": "item_1",
                     "name": f"{req.style} Shirt",
                     "type": "shirt",
                     "color": "Blue",
                     "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/0074D9/FFFFFF?text=Casual+Shirt"
+                    "occasion": req.occasion
                 },
                 {
                     "id": "item_2", 
@@ -220,8 +159,7 @@ async def generate_personalized_outfit_from_existing_data(
                     "type": "pants",
                     "color": "Black",
                     "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/000000/FFFFFF?text=Casual+Pants"
+                    "occasion": req.occasion
                 },
                 {
                     "id": "item_3",
@@ -229,22 +167,15 @@ async def generate_personalized_outfit_from_existing_data(
                     "type": "shoes", 
                     "color": "Brown",
                     "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://via.placeholder.com/150x200/8B4513/FFFFFF?text=Casual+Shoes"
+                    "occasion": req.occasion
                 }
-            ]
-        
-        existing_result = {
-            "id": f"outfit_{int(time.time())}",
-            "name": f"{req.style} {req.occasion} Outfit",
-            "items": outfit_items,
+            ],
             "confidence": 0.8,
             "metadata": {
                 "generated_by": "existing_data_personalization",
                 "occasion": req.occasion,
                 "style": req.style,
-                "mood": req.mood,
-                "note": "Demonstration outfit with appropriate items for occasion"
+                "mood": req.mood
             }
         }
         
