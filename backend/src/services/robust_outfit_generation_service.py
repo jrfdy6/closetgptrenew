@@ -452,6 +452,9 @@ class RobustOutfitGenerationService:
         # Calculate target item count based on occasion and style
         target_count = self._get_target_item_count(context)
         
+        # Determine if outerwear is needed based on temperature and occasion
+        needs_outerwear = self._needs_outerwear(context)
+        
         # Sort items by preference score
         scored_items = []
         for item in suitable_items:
@@ -464,6 +467,10 @@ class RobustOutfitGenerationService:
         for item, score in scored_items:
             item_category = self._get_item_category(item)
             
+            # Skip outerwear if not needed
+            if item_category == "outerwear" and not needs_outerwear:
+                continue
+                
             if category_counts.get(item_category, 0) < category_limits.get(item_category, 2):
                 selected_items.append(item)
                 category_counts[item_category] += 1
@@ -474,79 +481,102 @@ class RobustOutfitGenerationService:
         return selected_items
     
     def _get_dynamic_category_limits(self, context: GenerationContext) -> Dict[str, int]:
-        """Get dynamic category limits based on occasion and style"""
+        """Get dynamic category limits based on occasion and style - SIMPLIFIED"""
         import random
         
-        # Start with base limits
-        limits = self.base_category_limits.copy()
+        # Start with base limits - SIMPLIFIED
+        limits = {
+            "tops": 2,      # Usually just 1-2 tops
+            "bottoms": 1,   # Always just 1 bottom
+            "shoes": 1,     # Always just 1 pair of shoes
+            "outerwear": 1, # Usually just 1 outerwear (optional)
+            "accessories": 2 # Usually 0-2 accessories
+        }
+        
         occasion_lower = context.occasion.lower()
         style_lower = context.style.lower() if context.style else ""
         
-        # Adjust based on occasion
+        # Adjust based on occasion - SIMPLIFIED
         if 'formal' in occasion_lower or 'business' in occasion_lower:
-            # Formal occasions can have more layers
-            limits["tops"] = 3  # shirt + sweater + blazer
-            limits["outerwear"] = 2  # blazer + coat
-            limits["accessories"] = 3  # belt, watch, tie
+            # Formal: allow more accessories
+            limits["accessories"] = 3
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            # Athletic occasions are simpler
-            limits["tops"] = 2  # tank + hoodie
-            limits["outerwear"] = 1  # just a jacket
-            limits["accessories"] = 1  # minimal accessories
+            # Athletic: keep it simple
+            limits["tops"] = 2
+            limits["accessories"] = 1
         elif 'party' in occasion_lower or 'date' in occasion_lower:
-            # Social occasions can be more elaborate
-            limits["tops"] = 2  # shirt + jacket
-            limits["accessories"] = 3  # more accessories
+            # Social: allow more accessories
+            limits["accessories"] = 3
         elif 'casual' in occasion_lower:
-            # Casual occasions are flexible
-            limits["tops"] = 2  # t-shirt + hoodie
-            limits["accessories"] = 2  # moderate accessories
-        
-        # Adjust based on style
-        if 'maximalist' in style_lower:
-            # Maximalist styles can have more items
-            for category in limits:
-                limits[category] = min(limits[category] + 1, 4)
-        elif 'minimalist' in style_lower:
-            # Minimalist styles should have fewer items
-            for category in limits:
-                limits[category] = max(limits[category] - 1, 1)
+            # Casual: flexible
+            limits["tops"] = 2
+            limits["accessories"] = 2
         
         return limits
     
     def _get_target_item_count(self, context: GenerationContext) -> int:
-        """Get target item count based on occasion, style, and mood"""
+        """Get target item count based on occasion, style, and mood - SIMPLIFIED"""
         import random
         
         occasion_lower = context.occasion.lower()
         style_lower = context.style.lower() if context.style else ""
         mood_lower = context.mood.lower() if context.mood else ""
         
-        # Base count by occasion
+        # SIMPLIFIED: Focus on 3-6 items with clear logic
         if 'formal' in occasion_lower or 'business' in occasion_lower:
-            base_count = random.randint(4, 6)  # 4-6 items for formal
+            # Formal: 4-6 items (need blazer, accessories)
+            return random.randint(4, 6)
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            base_count = random.randint(3, 5)  # 3-5 items for athletic
+            # Athletic: 3-4 items (simple, functional)
+            return random.randint(3, 4)
         elif 'party' in occasion_lower or 'date' in occasion_lower:
-            base_count = random.randint(4, 6)  # 4-6 items for social
+            # Social: 4-5 items (stylish but not overdone)
+            return random.randint(4, 5)
         elif 'casual' in occasion_lower:
-            base_count = random.randint(3, 5)  # 3-5 items for casual
+            # Casual: 3-5 items (flexible)
+            return random.randint(3, 5)
         else:
-            base_count = random.randint(3, 5)  # 3-5 items default
+            # Default: 3-5 items
+            return random.randint(3, 5)
+    
+    def _needs_outerwear(self, context: GenerationContext) -> bool:
+        """Determine if outerwear is needed based on temperature, occasion, and style"""
+        # Get temperature from weather context
+        temperature = 70.0  # Default
+        if context.weather:
+            if hasattr(context.weather, 'temperature'):
+                temperature = context.weather.temperature
+            elif isinstance(context.weather, dict):
+                temperature = context.weather.get('temperature', 70.0)
         
-        # Adjust by style
-        if 'maximalist' in style_lower:
-            base_count = min(base_count + 2, 8)  # Add 2 items, max 8
-        elif 'minimalist' in style_lower:
-            base_count = max(base_count - 1, 3)  # Remove 1 item, min 3
+        occasion_lower = context.occasion.lower()
+        style_lower = context.style.lower() if context.style else ""
+        mood_lower = context.mood.lower() if context.mood else ""
         
-        # Adjust by mood
+        # Temperature-based need (below 65°F)
+        if temperature < 65:
+            return True
+        
+        # Formal occasions always need outerwear (blazer/jacket)
+        if 'formal' in occasion_lower or 'business' in occasion_lower:
+            return True
+        
+        # Style-based preference
+        if 'maximalist' in style_lower or 'layered' in style_lower:
+            return True  # Maximalist styles often include outerwear
+        
+        if 'minimalist' in style_lower:
+            return False  # Minimalist styles often skip outerwear
+        
+        # Mood-based preference
         if 'bold' in mood_lower or 'dynamic' in mood_lower:
-            base_count = min(base_count + 1, 8)  # Add 1 item for bold moods
-        elif 'subtle' in mood_lower or 'serene' in mood_lower:
-            base_count = max(base_count - 1, 3)  # Remove 1 item for subtle moods
+            return True  # Bold moods often include statement outerwear
         
-        return base_count
+        if 'subtle' in mood_lower or 'serene' in mood_lower:
+            return False  # Subtle moods often skip outerwear
+        
+        # Default: optional for casual occasions in warm weather
+        return False
     
     async def _ensure_outfit_completeness(self, items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
         """Ensure outfit has essential categories and is complete"""
