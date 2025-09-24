@@ -233,8 +233,21 @@ export default function PersonalizationDemoPage() {
 
       // Prepare request data with enhanced wardrobe diversity for smart rotation
       console.log('🔍 [Demo] Form data being sent:', formData);
+      
+      // Map frontend occasion values to backend-compatible values
+      const occasionMapping = {
+        'Gym': 'Athletic',
+        'Business Formal': 'Formal', 
+        'Business Casual': 'Business',
+        'Date Night': 'Date',
+        'Going to the gym': 'Athletic'
+      };
+      
+      const mappedOccasion = occasionMapping[formData.occasion] || formData.occasion;
+      console.log('🔄 [Demo] Mapped occasion from', formData.occasion, 'to', mappedOccasion);
+      
       const requestData = {
-        occasion: formData.occasion,
+        occasion: mappedOccasion,
         style: formData.style,
         mood: formData.mood,
         weather: {
@@ -581,7 +594,6 @@ export default function PersonalizationDemoPage() {
                         
                         {/* Fitness & Health */}
                         <option value="Gym">Gym</option>
-                        <option value="Going to the gym">Going to the gym</option>
                       </select>
                     </div>
                     
