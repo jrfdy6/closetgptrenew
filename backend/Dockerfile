@@ -1,5 +1,5 @@
-# Use official Python slim image
-FROM python:3.11-slim
+# Use official Python image (3.11 without slim to avoid registry auth issues)
+FROM python:3.11
 
 # Set working directory
 WORKDIR /app
