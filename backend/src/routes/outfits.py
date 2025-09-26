@@ -167,6 +167,7 @@ class OutfitResponse(BaseModel):
     generated_at: Optional[str] = None
     wearCount: Optional[int] = 0
     lastWorn: Optional[datetime] = None
+    metadata: Optional[Dict[str, Any]] = None  # Include generation_strategy and other metadata
 
     @field_validator("createdAt", mode="before")
     @classmethod
