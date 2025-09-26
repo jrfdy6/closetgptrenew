@@ -14,24 +14,60 @@ from uuid import uuid4
 # Set up logger for generation tracking
 logger = logging.getLogger(__name__)
 
-def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unknown"):
-    """Log generation strategy usage for monitoring fallback frequency."""
+def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unknown", 
+                          generation_time: float = 0.0, validation_time: float = 0.0,
+                          failed_rules: List[str] = None, fallback_reason: str = None):
+    """Log generation strategy usage and record metrics for monitoring."""
     strategy = outfit_response.get("metadata", {}).get("generation_strategy", "unknown")
     outfit_id = outfit_response.get("id", "unknown")
     occasion = outfit_response.get("occasion", "unknown")
     style = outfit_response.get("style", "unknown")
+    mood = outfit_response.get("mood", "unknown")
     item_count = len(outfit_response.get("items", []))
     
     # Define which strategies are considered "complex" vs "fallback"
-    complex_strategies = ["cohesive_composition", "body_type_optimized", "style_profile_matched", "weather_adapted"]
+    complex_strategies = ["cohesive_composition", "body_type_optimized", "style_profile_matched", "weather_adapted", "rule_based"]
     fallback_strategies = ["fallback_simple", "emergency_default"]
     
-    if strategy in complex_strategies:
-        logger.info(f"[GENERATION][COMPLEX] Success | Strategy: {strategy} | User: {user_id} | Outfit: {outfit_id} | Occasion: {occasion} | Style: {style} | Items: {item_count}")
-    elif strategy in fallback_strategies:
-        logger.warning(f"[GENERATION][FALLBACK] Strategy used: {strategy} | User: {user_id} | Outfit: {outfit_id} | Occasion: {occasion} | Style: {style} | Items: {item_count}")
+    # Determine if this was a successful generation
+    success = strategy in complex_strategies
+    
+    # Record metrics
+    try:
+        from ..services.generation_metrics_service import generation_metrics
+        generation_metrics.record_generation(
+            strategy=strategy,
+            occasion=occasion,
+            style=style,
+            mood=mood,
+            user_id=user_id,
+            generation_time=generation_time,
+            validation_time=validation_time,
+            failed_rules=failed_rules or [],
+            fallback_reason=fallback_reason,
+            success=success
+        )
+    except Exception as e:
+        logger.warning(f"Failed to record generation metrics: {e}")
+    
+    # Enhanced logging with segmentation and failed rules
+    if strategy in fallback_strategies or not success:
+        failed_rules_str = ", ".join(failed_rules) if failed_rules else "none"
+        logger.warning(
+            f"[GENERATION][FALLBACK] strategy={strategy} user={user_id} "
+            f"occasion={occasion} style={style} mood={mood} items={item_count} "
+            f"failed_rules=[{failed_rules_str}] reason={fallback_reason or 'unknown'}"
+        )
+    elif strategy in complex_strategies:
+        logger.info(
+            f"[GENERATION][SUCCESS] strategy={strategy} user={user_id} "
+            f"occasion={occasion} style={style} mood={mood} items={item_count}"
+        )
     else:
-        logger.warning(f"[GENERATION][UNKNOWN] Unknown strategy: {strategy} | User: {user_id} | Outfit: {outfit_id} | Occasion: {occasion} | Style: {style} | Items: {item_count}")
+        logger.warning(
+            f"[GENERATION][UNKNOWN] strategy={strategy} user={user_id} "
+            f"occasion={occasion} style={style} mood={mood} items={item_count}"
+        )
 
 # Import for Firestore timestamp handling
 try:
@@ -763,7 +799,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 }
                 
                 # Log generation strategy for monitoring
-                log_generation_strategy(outfit, user_id)
+                failed_rules = outfit.get('metadata', {}).get('failed_rules', [])
+                log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
                 
                 logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
             else:
@@ -849,7 +886,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         outfit['metadata']['generation_strategy'] = 'rule_based'
         
         # Log generation strategy for monitoring
-        log_generation_strategy(outfit, user_id)
+        failed_rules = outfit.get('metadata', {}).get('failed_rules', [])
+        log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
         
         return outfit
         
@@ -2884,7 +2922,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     }
     
     # Log generation strategy for monitoring
-    log_generation_strategy(fallback_outfit, user_id)
+    log_generation_strategy(fallback_outfit, user_id, fallback_reason="main_generation_failed")
     
     return fallback_outfit
 
@@ -4367,6 +4405,7 @@ async def generate_outfit(
                         validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
                         
                         if not validation_result.valid:
+                            failed_rules = validation_result.errors or []
                             logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
                             print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
                             print(f"🚨 VALIDATION CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
@@ -4390,6 +4429,10 @@ async def generate_outfit(
                                     logger.warning(f"⚠️ VALIDATION OVERRIDE: Final attempt - allowing outfit despite validation failure")
                                     print(f"🚨 VALIDATION OVERRIDE: Allowing outfit on final attempt to prevent 500 error")
                                     # Continue with the outfit but log the validation issues
+                                    # Store failed rules for metrics
+                                    if 'metadata' not in outfit:
+                                        outfit['metadata'] = {}
+                                    outfit['metadata']['failed_rules'] = failed_rules
                                     break
                                 else:
                                     print(f"🚨 REJECTING OUTFIT: Cannot return outfit that failed validation")
