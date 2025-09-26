@@ -2634,6 +2634,77 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Fall back to basic generation with proper user_id
         return await generate_fallback_outfit(req, user_profile.get('id', 'unknown') if user_profile else 'unknown')
 
+def _select_priority_item(items: List[Dict[str, Any]], occasion: str, style: str, category: str) -> Dict[str, Any]:
+    """Select the highest priority item for the given occasion and category."""
+    if not items:
+        return None
+    
+    occasion_lower = occasion.lower()
+    
+    # Score items based on priority for formal occasions
+    scored_items = []
+    for item in items:
+        score = 50.0  # Base score
+        item_name = item.get('name', '').lower()
+        item_type = item.get('type', '').lower()
+        
+        # MASSIVE bonus for formal items on formal occasions
+        if any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'interview']):
+            # Prioritize formal shoes (dress shoes, oxfords, loafers)
+            if category == 'shoes' and any(formal_shoe in item_name or formal_shoe in item_type for formal_shoe in [
+                'dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue', 'dress boot'
+            ]):
+                score += 100.0  # MASSIVE priority for formal shoes
+                logger.info(f"🎯 FALLBACK PRIORITY: Boosting formal shoes: {item_name}")
+            
+            # Prioritize formal tops (dress shirts, blazers)
+            elif category in ['tops', 'outerwear'] and any(formal_top in item_name or formal_top in item_type for formal_top in [
+                'dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket', 'sport coat'
+            ]):
+                score += 80.0  # High priority for formal tops
+                logger.info(f"🎯 FALLBACK PRIORITY: Boosting formal tops: {item_name}")
+            
+            # Prioritize formal bottoms (dress pants, suit pants)
+            elif category == 'bottoms' and any(formal_bottom in item_name or formal_bottom in item_type for formal_bottom in [
+                'dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'
+            ]):
+                score += 70.0  # High priority for formal bottoms
+                logger.info(f"🎯 FALLBACK PRIORITY: Boosting formal bottoms: {item_name}")
+            
+            # Penalize casual items on formal occasions
+            elif any(casual_term in item_name or casual_term in item_type for casual_term in [
+                'sneaker', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs',
+                't-shirt', 'tank', 'jersey', 'basketball', 'sport', 'hoodie', 'sweatpants'
+            ]):
+                score -= 50.0  # Heavy penalty for casual items
+                logger.info(f"🎯 FALLBACK PENALTY: Penalizing casual item: {item_name}")
+        
+        # Athletic occasion prioritization
+        elif any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
+            # Prioritize athletic items
+            if any(athletic_term in item_name or athletic_term in item_type for athletic_term in [
+                'sneaker', 'athletic', 'sport', 'gym', 'workout', 'jersey', 'tank', 'shorts'
+            ]):
+                score += 60.0  # High priority for athletic items
+                logger.info(f"🎯 FALLBACK ATHLETIC: Boosting athletic item: {item_name}")
+            
+            # Penalize formal items on athletic occasions
+            elif any(formal_term in item_name or formal_term in item_type for formal_term in [
+                'blazer', 'suit', 'dress pant', 'dress shirt', 'oxford', 'loafer', 'heels'
+            ]):
+                score -= 40.0  # Penalty for formal items
+                logger.info(f"🎯 FALLBACK ATHLETIC PENALTY: Penalizing formal item: {item_name}")
+        
+        scored_items.append((item, score))
+    
+    # Sort by score and return the highest scoring item
+    scored_items.sort(key=lambda x: x[1], reverse=True)
+    best_item = scored_items[0][0]
+    best_score = scored_items[0][1]
+    
+    logger.info(f"🎯 FALLBACK SELECTION: Chose {best_item.get('name', 'Unknown')} with score {best_score:.1f}")
+    return best_item
+
 async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Generate weather-aware fallback outfit when rule-based generation fails."""
     logger.info(f"🔄 FALLBACK ACTIVATED: Generating weather-aware fallback outfit for {user_id}")
@@ -2835,12 +2906,10 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                     logger.info(f"✅ FALLBACK VALIDATION: Filtered items for loungewear occasion: {len(category_items)} appropriate items")
             
             if category_items:
-                # Randomly pick an item from the style-appropriate category
-                import random
-                random.seed(int(time.time() * 1000) % 1000000)  # Use timestamp for seed
-                selected_item = random.choice(category_items)
+                # Use priority-based selection instead of random
+                selected_item = _select_priority_item(category_items, req.occasion, req.style, category)
                 selected_items.append(selected_item)
-                logger.info(f"Selected style-appropriate {selected_item.get('name', 'Unknown')} for {category} ({req.style} style)")
+                logger.info(f"Selected priority {selected_item.get('name', 'Unknown')} for {category} ({req.style} style)")
             else:
                 logger.warning(f"No style-appropriate {category} items found for {req.style} style")
         
@@ -2882,11 +2951,10 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             style_appropriate_outerwear = validated_outerwear
         
         if style_appropriate_outerwear:
-            import random
-            random.seed(int(time.time() * 1000) % 1000000)  # Use timestamp for seed
-            selected_outerwear = random.choice(style_appropriate_outerwear)
+            # Use priority-based selection for outerwear too
+            selected_outerwear = _select_priority_item(style_appropriate_outerwear, req.occasion, req.style, 'outerwear')
             selected_items.append(selected_outerwear)
-            logger.info(f"Added style-appropriate outerwear: {selected_outerwear.get('name', 'Unknown')} for {req.style} style")
+            logger.info(f"Added priority outerwear: {selected_outerwear.get('name', 'Unknown')} for {req.style} style")
         
         if selected_items:
             logger.info(f"Successfully created fallback outfit with {len(selected_items)} real wardrobe items")
@@ -4436,16 +4504,13 @@ async def generate_outfit(
                                 logger.error(f"❌ FINAL VALIDATION FAILURE: All {max_attempts} attempts failed validation")
                                 print(f"🚨 CRITICAL VALIDATION FAILURE: All {max_attempts} attempts failed validation")
                                 
-                                # If this is the final attempt and validation is being too strict,
-                                # we might need to be more lenient to avoid 500 errors
+                                # If this is the final attempt and validation failed,
+                                # force fallback to select valid items instead of bypassing validation
                                 if attempt == max_attempts - 1:
-                                    logger.warning(f"⚠️ VALIDATION OVERRIDE: Final attempt - allowing outfit despite validation failure")
-                                    print(f"🚨 VALIDATION OVERRIDE: Allowing outfit on final attempt to prevent 500 error")
-                                    # Continue with the outfit but log the validation issues
-                                    # Store failed rules for metrics
-                                    if 'metadata' not in outfit:
-                                        outfit['metadata'] = {}
-                                    outfit['metadata']['failed_rules'] = failed_rules
+                                    logger.warning(f"⚠️ VALIDATION FAILURE: Forcing fallback to select valid items")
+                                    print(f"🚨 VALIDATION FAILURE: Forcing fallback to select valid items")
+                                    # Force fallback instead of allowing invalid outfit
+                                    outfit = None  # This will trigger fallback generation
                                     break
                                 else:
                                     print(f"🚨 REJECTING OUTFIT: Cannot return outfit that failed validation")

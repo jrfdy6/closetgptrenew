@@ -712,8 +712,60 @@ class RobustOutfitGenerationService:
         return style.lower() in [s.lower() for s in item_styles]
     
     async def _calculate_item_score(self, item: Dict[str, Any], context: GenerationContext) -> float:
-        """Calculate preference score for item"""
+        """Calculate preference score for item with formal occasion prioritization"""
         score = 50.0  # Base score
+        
+        # CRITICAL: Formal occasion prioritization
+        occasion_lower = context.occasion.lower()
+        item_name = item.get('name', '').lower()
+        item_type = item.get('type', '').lower()
+        
+        # MASSIVE bonus for formal items on formal occasions
+        if any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'interview']):
+            # Prioritize formal shoes (dress shoes, oxfords, loafers)
+            if any(formal_shoe in item_name or formal_shoe in item_type for formal_shoe in [
+                'dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue', 'dress boot'
+            ]):
+                score += 100.0  # MASSIVE priority for formal shoes
+                logger.info(f"🎯 FORMAL PRIORITY: Boosting formal shoes: {item_name}")
+            
+            # Prioritize formal tops (dress shirts, blazers)
+            elif any(formal_top in item_name or formal_top in item_type for formal_top in [
+                'dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket', 'sport coat'
+            ]):
+                score += 80.0  # High priority for formal tops
+                logger.info(f"🎯 FORMAL PRIORITY: Boosting formal tops: {item_name}")
+            
+            # Prioritize formal bottoms (dress pants, suit pants)
+            elif any(formal_bottom in item_name or formal_bottom in item_type for formal_bottom in [
+                'dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'
+            ]):
+                score += 70.0  # High priority for formal bottoms
+                logger.info(f"🎯 FORMAL PRIORITY: Boosting formal bottoms: {item_name}")
+            
+            # Penalize casual items on formal occasions
+            elif any(casual_term in item_name or casual_term in item_type for casual_term in [
+                'sneaker', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs',
+                't-shirt', 'tank', 'jersey', 'basketball', 'sport', 'hoodie', 'sweatpants'
+            ]):
+                score -= 50.0  # Heavy penalty for casual items
+                logger.info(f"🎯 FORMAL PENALTY: Penalizing casual item: {item_name}")
+        
+        # Athletic occasion prioritization
+        elif any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
+            # Prioritize athletic items
+            if any(athletic_term in item_name or athletic_term in item_type for athletic_term in [
+                'sneaker', 'athletic', 'sport', 'gym', 'workout', 'jersey', 'tank', 'shorts'
+            ]):
+                score += 60.0  # High priority for athletic items
+                logger.info(f"🎯 ATHLETIC PRIORITY: Boosting athletic item: {item_name}")
+            
+            # Penalize formal items on athletic occasions
+            elif any(formal_term in item_name or formal_term in item_type for formal_term in [
+                'blazer', 'suit', 'dress pant', 'dress shirt', 'oxford', 'loafer', 'heels'
+            ]):
+                score -= 40.0  # Penalty for formal items
+                logger.info(f"🎯 ATHLETIC PENALTY: Penalizing formal item: {item_name}")
         
         # Style match bonus
         if self._is_style_compatible(item, context.style):
