@@ -468,12 +468,30 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
+        # SAFETY NET: Prevent empty filtered lists
+        if len(suitable_items) == 0:
+            logger.warning(f"🚨 SAFETY NET: No suitable items found, falling back to occasion-appropriate items")
+            # Fall back to occasion-appropriate items only (skip style filtering)
+            for item in context.wardrobe:
+                if self._is_occasion_compatible(item, context.occasion):
+                    suitable_items.append(item)
+            
+            if len(suitable_items) == 0:
+                logger.warning(f"🚨 SAFETY NET: Still no occasion-appropriate items, using all items")
+                # Last resort: use all items
+                suitable_items = context.wardrobe[:]
+        
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
     
     async def _intelligent_item_selection(self, suitable_items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
         """Intelligently select items for the outfit with dynamic limits"""
         selected_items = []
+        
+        # SAFETY NET: Ensure we have items to work with
+        if len(suitable_items) == 0:
+            logger.warning(f"🚨 SAFETY NET: No suitable items for intelligent selection, using all wardrobe items")
+            suitable_items = context.wardrobe[:]
         
         # Get dynamic category limits based on occasion and style
         category_limits = self._get_dynamic_category_limits(context)

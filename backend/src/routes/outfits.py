@@ -2838,6 +2838,11 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                     
                     category_items = validated_tops
                     logger.info(f"✅ FALLBACK VALIDATION: Filtered tops for business occasion: {len(category_items)} appropriate items")
+                
+                # SAFETY NET: Prevent empty tops list
+                if len(category_items) == 0:
+                    logger.warning(f"🚨 FALLBACK SAFETY NET: No appropriate tops found, using all tops")
+                    category_items = all_tops
             elif category == 'bottoms':
                 all_bottoms = [item for item in wardrobe_items if item.get('type', '').lower() in ['pants', 'jeans', 'shorts', 'skirt', 'bottom', 'leggings', 'joggers', 'sweatpants']]
                 category_items = filter_items_by_style(all_bottoms, req.style)
@@ -2864,6 +2869,11 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                     
                     category_items = validated_bottoms
                     logger.info(f"✅ FALLBACK VALIDATION: Filtered bottoms for business occasion: {len(category_items)} appropriate items")
+                
+                # SAFETY NET: Prevent empty bottoms list
+                if len(category_items) == 0:
+                    logger.warning(f"🚨 FALLBACK SAFETY NET: No appropriate bottoms found, using all bottoms")
+                    category_items = all_bottoms
             elif category == 'shoes':
                 all_shoes = [item for item in wardrobe_items if item.get('type', '').lower() in ['shoes', 'sneakers', 'boots', 'sandals', 'athletic shoes']]
                 category_items = filter_items_by_style(all_shoes, req.style)
@@ -2885,6 +2895,11 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                     
                     category_items = validated_shoes
                     logger.info(f"✅ FALLBACK VALIDATION: Filtered shoes for business occasion: {len(category_items)} appropriate items")
+                
+                # SAFETY NET: Prevent empty shoes list
+                if len(category_items) == 0:
+                    logger.warning(f"🚨 FALLBACK SAFETY NET: No appropriate shoes found, using all shoes")
+                    category_items = all_shoes
                 
                 # Add comprehensive filtering for other occasions
                 elif any(party_term in occasion_lower for party_term in ['party', 'night out', 'club']):
@@ -3042,6 +3057,34 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         }
         selected_items = attach_weather_context_to_items(selected_items, weather_data)
         logger.info(f"🌤️ Attached weather context to {len(selected_items)} fallback items")
+    
+    # FINAL SAFETY NET: Ensure we have at least some items
+    if len(selected_items) == 0:
+        logger.warning(f"🚨 FINAL SAFETY NET: No items selected, using emergency fallback")
+        print(f"🚨 EMERGENCY FALLBACK: No items selected, using emergency fallback")
+        
+        # Emergency fallback: pick any items from wardrobe
+        emergency_items = []
+        categories_needed = ["tops", "bottoms", "shoes"]
+        categories_found = set()
+        
+        for item in wardrobe_items:
+            item_type = item.get('type', '').lower()
+            if item_type in ['shirt', 'blouse', 't-shirt', 'top', 'tank', 'sweater', 'hoodie'] and 'tops' not in categories_found:
+                emergency_items.append(item)
+                categories_found.add('tops')
+            elif item_type in ['pants', 'jeans', 'shorts', 'skirt', 'bottom', 'leggings', 'joggers', 'sweatpants'] and 'bottoms' not in categories_found:
+                emergency_items.append(item)
+                categories_found.add('bottoms')
+            elif item_type in ['shoes', 'sneakers', 'boots', 'sandals', 'athletic shoes'] and 'shoes' not in categories_found:
+                emergency_items.append(item)
+                categories_found.add('shoes')
+            
+            if len(categories_found) == len(categories_needed):
+                break
+        
+        selected_items = emergency_items
+        logger.info(f"🚨 EMERGENCY FALLBACK: Selected {len(selected_items)} emergency items")
     
     # FALLBACK COMPLETION SUMMARY
     print(f"🚨 FALLBACK COMPLETED: Generated fallback outfit with {len(selected_items)} items")
