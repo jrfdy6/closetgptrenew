@@ -715,12 +715,12 @@ class RobustOutfitGenerationService:
         """Calculate preference score for item with formal occasion prioritization"""
         score = 50.0  # Base score
         
-        # CRITICAL: Formal occasion prioritization
+        # COMPREHENSIVE: Occasion-based prioritization for ALL occasions
         occasion_lower = context.occasion.lower()
         item_name = item.get('name', '').lower()
         item_type = item.get('type', '').lower()
         
-        # MASSIVE bonus for formal items on formal occasions
+        # FORMAL OCCASIONS (Business, Formal, Interview)
         if any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'interview']):
             # Prioritize formal shoes (dress shoes, oxfords, loafers)
             if any(formal_shoe in item_name or formal_shoe in item_type for formal_shoe in [
@@ -751,7 +751,7 @@ class RobustOutfitGenerationService:
                 score -= 50.0  # Heavy penalty for casual items
                 logger.info(f"🎯 FORMAL PENALTY: Penalizing casual item: {item_name}")
         
-        # Athletic occasion prioritization
+        # ATHLETIC OCCASIONS (Athletic, Gym, Workout, Sport)
         elif any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
             # Prioritize athletic items
             if any(athletic_term in item_name or athletic_term in item_type for athletic_term in [
@@ -766,6 +766,70 @@ class RobustOutfitGenerationService:
             ]):
                 score -= 40.0  # Penalty for formal items
                 logger.info(f"🎯 ATHLETIC PENALTY: Penalizing formal item: {item_name}")
+        
+        # PARTY OCCASIONS (Party, Night Out, Club)
+        elif any(party_term in occasion_lower for party_term in ['party', 'night out', 'club']):
+            # Prioritize stylish/trendy items
+            if any(party_term in item_name or party_term in item_type for party_term in [
+                'party', 'dress', 'blouse', 'top', 'heels', 'boot', 'jacket', 'blazer'
+            ]):
+                score += 50.0  # High priority for party items
+                logger.info(f"🎯 PARTY PRIORITY: Boosting party item: {item_name}")
+            
+            # Penalize work/athletic items on party occasions
+            elif any(inappropriate_term in item_name or inappropriate_term in item_type for inappropriate_term in [
+                'work', 'business', 'professional', 'athletic', 'gym', 'sport', 'sweatpants'
+            ]):
+                score -= 30.0  # Penalty for inappropriate items
+                logger.info(f"🎯 PARTY PENALTY: Penalizing inappropriate item: {item_name}")
+        
+        # DATE OCCASIONS (Date, Romantic)
+        elif any(date_term in occasion_lower for date_term in ['date', 'romantic']):
+            # Prioritize elegant/romantic items
+            if any(date_term in item_name or date_term in item_type for date_term in [
+                'dress', 'blouse', 'button down', 'blazer', 'jacket', 'heels', 'boot'
+            ]):
+                score += 45.0  # High priority for date items
+                logger.info(f"🎯 DATE PRIORITY: Boosting date item: {item_name}")
+            
+            # Penalize athletic/casual items on date occasions
+            elif any(inappropriate_term in item_name or inappropriate_term in item_type for inappropriate_term in [
+                'athletic', 'gym', 'sport', 'sweatpants', 'hoodie', 'sneaker', 'canvas'
+            ]):
+                score -= 35.0  # Penalty for inappropriate items
+                logger.info(f"🎯 DATE PENALTY: Penalizing inappropriate item: {item_name}")
+        
+        # WEEKEND OCCASIONS (Weekend, Casual)
+        elif any(weekend_term in occasion_lower for weekend_term in ['weekend', 'casual']):
+            # Prioritize casual/comfortable items
+            if any(weekend_term in item_name or weekend_term in item_type for weekend_term in [
+                'casual', 'jeans', 'sneaker', 't-shirt', 'sweater', 'hoodie', 'jacket'
+            ]):
+                score += 40.0  # High priority for weekend items
+                logger.info(f"🎯 WEEKEND PRIORITY: Boosting weekend item: {item_name}")
+            
+            # Penalize formal items on weekend occasions
+            elif any(formal_term in item_name or formal_term in item_type for formal_term in [
+                'suit', 'dress pant', 'dress shirt', 'oxford', 'loafer', 'heels'
+            ]):
+                score -= 25.0  # Penalty for formal items
+                logger.info(f"🎯 WEEKEND PENALTY: Penalizing formal item: {item_name}")
+        
+        # LOUNGEWEAR OCCASIONS (Loungewear, Relaxed)
+        elif any(lounge_term in occasion_lower for lounge_term in ['loungewear', 'relaxed', 'lounge']):
+            # Prioritize comfortable/loungewear items
+            if any(lounge_term in item_name or lounge_term in item_type for lounge_term in [
+                'sweat', 'hoodie', 't-shirt', 'jogger', 'lounge', 'pajama', 'comfortable', 'soft'
+            ]):
+                score += 50.0  # High priority for loungewear items
+                logger.info(f"🎯 LOUNGE PRIORITY: Boosting loungewear item: {item_name}")
+            
+            # Penalize formal/structured items on loungewear occasions
+            elif any(inappropriate_term in item_name or inappropriate_term in item_type for inappropriate_term in [
+                'blazer', 'suit', 'dress pant', 'oxford', 'heels', 'loafer', 'jeans', 'denim'
+            ]):
+                score -= 40.0  # Penalty for inappropriate items
+                logger.info(f"🎯 LOUNGE PENALTY: Penalizing inappropriate item: {item_name}")
         
         # Style match bonus
         if self._is_style_compatible(item, context.style):

@@ -2648,28 +2648,29 @@ def _select_priority_item(items: List[Dict[str, Any]], occasion: str, style: str
         item_name = item.get('name', '').lower()
         item_type = item.get('type', '').lower()
         
-        # MASSIVE bonus for formal items on formal occasions
+        # COMPREHENSIVE: Occasion-based prioritization for ALL occasions
+        # FORMAL OCCASIONS (Business, Formal, Interview)
         if any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'interview']):
             # Prioritize formal shoes (dress shoes, oxfords, loafers)
             if category == 'shoes' and any(formal_shoe in item_name or formal_shoe in item_type for formal_shoe in [
                 'dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue', 'dress boot'
             ]):
                 score += 100.0  # MASSIVE priority for formal shoes
-                logger.info(f"🎯 FALLBACK PRIORITY: Boosting formal shoes: {item_name}")
+                logger.info(f"🎯 FALLBACK FORMAL: Boosting formal shoes: {item_name}")
             
             # Prioritize formal tops (dress shirts, blazers)
             elif category in ['tops', 'outerwear'] and any(formal_top in item_name or formal_top in item_type for formal_top in [
                 'dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket', 'sport coat'
             ]):
                 score += 80.0  # High priority for formal tops
-                logger.info(f"🎯 FALLBACK PRIORITY: Boosting formal tops: {item_name}")
+                logger.info(f"🎯 FALLBACK FORMAL: Boosting formal tops: {item_name}")
             
             # Prioritize formal bottoms (dress pants, suit pants)
             elif category == 'bottoms' and any(formal_bottom in item_name or formal_bottom in item_type for formal_bottom in [
                 'dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'
             ]):
                 score += 70.0  # High priority for formal bottoms
-                logger.info(f"🎯 FALLBACK PRIORITY: Boosting formal bottoms: {item_name}")
+                logger.info(f"🎯 FALLBACK FORMAL: Boosting formal bottoms: {item_name}")
             
             # Penalize casual items on formal occasions
             elif any(casual_term in item_name or casual_term in item_type for casual_term in [
@@ -2677,9 +2678,9 @@ def _select_priority_item(items: List[Dict[str, Any]], occasion: str, style: str
                 't-shirt', 'tank', 'jersey', 'basketball', 'sport', 'hoodie', 'sweatpants'
             ]):
                 score -= 50.0  # Heavy penalty for casual items
-                logger.info(f"🎯 FALLBACK PENALTY: Penalizing casual item: {item_name}")
+                logger.info(f"🎯 FALLBACK FORMAL PENALTY: Penalizing casual item: {item_name}")
         
-        # Athletic occasion prioritization
+        # ATHLETIC OCCASIONS (Athletic, Gym, Workout, Sport)
         elif any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
             # Prioritize athletic items
             if any(athletic_term in item_name or athletic_term in item_type for athletic_term in [
@@ -2694,6 +2695,70 @@ def _select_priority_item(items: List[Dict[str, Any]], occasion: str, style: str
             ]):
                 score -= 40.0  # Penalty for formal items
                 logger.info(f"🎯 FALLBACK ATHLETIC PENALTY: Penalizing formal item: {item_name}")
+        
+        # PARTY OCCASIONS (Party, Night Out, Club)
+        elif any(party_term in occasion_lower for party_term in ['party', 'night out', 'club']):
+            # Prioritize stylish/trendy items
+            if any(party_term in item_name or party_term in item_type for party_term in [
+                'party', 'dress', 'blouse', 'top', 'heels', 'boot', 'jacket', 'blazer'
+            ]):
+                score += 50.0  # High priority for party items
+                logger.info(f"🎯 FALLBACK PARTY: Boosting party item: {item_name}")
+            
+            # Penalize work/athletic items on party occasions
+            elif any(inappropriate_term in item_name or inappropriate_term in item_type for inappropriate_term in [
+                'work', 'business', 'professional', 'athletic', 'gym', 'sport', 'sweatpants'
+            ]):
+                score -= 30.0  # Penalty for inappropriate items
+                logger.info(f"🎯 FALLBACK PARTY PENALTY: Penalizing inappropriate item: {item_name}")
+        
+        # DATE OCCASIONS (Date, Romantic)
+        elif any(date_term in occasion_lower for date_term in ['date', 'romantic']):
+            # Prioritize elegant/romantic items
+            if any(date_term in item_name or date_term in item_type for date_term in [
+                'dress', 'blouse', 'button down', 'blazer', 'jacket', 'heels', 'boot'
+            ]):
+                score += 45.0  # High priority for date items
+                logger.info(f"🎯 FALLBACK DATE: Boosting date item: {item_name}")
+            
+            # Penalize athletic/casual items on date occasions
+            elif any(inappropriate_term in item_name or inappropriate_term in item_type for inappropriate_term in [
+                'athletic', 'gym', 'sport', 'sweatpants', 'hoodie', 'sneaker', 'canvas'
+            ]):
+                score -= 35.0  # Penalty for inappropriate items
+                logger.info(f"🎯 FALLBACK DATE PENALTY: Penalizing inappropriate item: {item_name}")
+        
+        # WEEKEND OCCASIONS (Weekend, Casual)
+        elif any(weekend_term in occasion_lower for weekend_term in ['weekend', 'casual']):
+            # Prioritize casual/comfortable items
+            if any(weekend_term in item_name or weekend_term in item_type for weekend_term in [
+                'casual', 'jeans', 'sneaker', 't-shirt', 'sweater', 'hoodie', 'jacket'
+            ]):
+                score += 40.0  # High priority for weekend items
+                logger.info(f"🎯 FALLBACK WEEKEND: Boosting weekend item: {item_name}")
+            
+            # Penalize formal items on weekend occasions
+            elif any(formal_term in item_name or formal_term in item_type for formal_term in [
+                'suit', 'dress pant', 'dress shirt', 'oxford', 'loafer', 'heels'
+            ]):
+                score -= 25.0  # Penalty for formal items
+                logger.info(f"🎯 FALLBACK WEEKEND PENALTY: Penalizing formal item: {item_name}")
+        
+        # LOUNGEWEAR OCCASIONS (Loungewear, Relaxed)
+        elif any(lounge_term in occasion_lower for lounge_term in ['loungewear', 'relaxed', 'lounge']):
+            # Prioritize comfortable/loungewear items
+            if any(lounge_term in item_name or lounge_term in item_type for lounge_term in [
+                'sweat', 'hoodie', 't-shirt', 'jogger', 'lounge', 'pajama', 'comfortable', 'soft'
+            ]):
+                score += 50.0  # High priority for loungewear items
+                logger.info(f"🎯 FALLBACK LOUNGE: Boosting loungewear item: {item_name}")
+            
+            # Penalize formal/structured items on loungewear occasions
+            elif any(inappropriate_term in item_name or inappropriate_term in item_type for inappropriate_term in [
+                'blazer', 'suit', 'dress pant', 'oxford', 'heels', 'loafer', 'jeans', 'denim'
+            ]):
+                score -= 40.0  # Penalty for inappropriate items
+                logger.info(f"🎯 FALLBACK LOUNGE PENALTY: Penalizing inappropriate item: {item_name}")
         
         scored_items.append((item, score))
     
