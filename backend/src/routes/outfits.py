@@ -764,12 +764,25 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 )
                 
                 # Generate outfit using robust service
-                robust_outfit = await RobustOutfitGenerationService().generate_outfit(context)
+                logger.info(f"[GENERATION][ROBUST] START for user {user_id}, wardrobe size={len(wardrobe_items)}")
+                logger.info(f"[GENERATION][ROBUST] Context: occasion={req.occasion}, style={req.style}, mood={req.mood}")
+                logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[item.get('type', 'unknown') for item in wardrobe_items[:10]]}...")
                 
-                # Log the generation strategy used
-                strategy = robust_outfit.metadata.get('generation_strategy', 'unknown')
-                logger.info(f"🎯 Generated outfit using strategy: {strategy}")
-                print(f"🎯 GENERATION STRATEGY: {strategy}")
+                try:
+                    robust_outfit = await RobustOutfitGenerationService().generate_outfit(context)
+                    
+                    # Log the generation strategy used
+                    strategy = robust_outfit.metadata.get('generation_strategy', 'unknown')
+                    logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
+                    logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
+                    print(f"🎯 GENERATION STRATEGY: {strategy}")
+                    
+                except Exception as e:
+                    logger.error(f"[GENERATION][ROBUST][ERROR] {e}", exc_info=True)
+                    logger.error(f"[GENERATION][ROBUST][ERROR] Context: user={user_id}, occasion={req.occasion}, style={req.style}")
+                    logger.error(f"[GENERATION][ROBUST][ERROR] Wardrobe size: {len(wardrobe_items)}")
+                    print(f"🚨 ROBUST GENERATOR ERROR: {e}")
+                    raise
                 
                 # Convert to expected format
                 outfit = {

@@ -103,31 +103,47 @@ class RobustOutfitGenerationService:
         """Generate an outfit with comprehensive validation and fallback strategies"""
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
+        logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
+        logger.info(f"🌤️ Weather: {context.weather.temperature}°F, {context.weather.condition}")
+        
+        # Log wardrobe item types for debugging
+        item_types = [item.type for item in context.wardrobe]
+        type_counts = {item_type: item_types.count(item_type) for item_type in set(item_types)}
+        logger.info(f"📊 Wardrobe breakdown: {type_counts}")
         
         # Try each generation strategy in order
+        logger.info(f"🔄 Available strategies: {[s.value for s in self.generation_strategies]}")
         for strategy in self.generation_strategies:
             try:
                 logger.info(f"🔄 Trying generation strategy: {strategy.value}")
                 context.generation_strategy = strategy
                 
+                # Log strategy-specific context
+                logger.info(f"🔍 Strategy {strategy.value} - Starting generation...")
                 outfit = await self._generate_with_strategy(context)
+                logger.info(f"🔍 Strategy {strategy.value} - Generated outfit with {len(outfit.items)} items")
                 
                 # Validate the generated outfit
+                logger.info(f"🔍 Strategy {strategy.value} - Starting validation...")
                 validation = await self._validate_outfit(outfit, context)
+                logger.info(f"🔍 Strategy {strategy.value} - Validation complete: valid={validation.is_valid}, confidence={validation.confidence}")
                 
                 if validation.is_valid and validation.confidence >= 0.7:
                     logger.info(f"✅ Successfully generated outfit with strategy {strategy.value}")
                     logger.info(f"📊 Validation score: {validation.score}, Confidence: {validation.confidence}")
+                    logger.info(f"📦 Final outfit items: {[item.name for item in outfit.items]}")
                     return outfit
                 else:
                     logger.warning(f"⚠️ Strategy {strategy.value} failed validation: {validation.issues}")
+                    logger.warning(f"⚠️ Validation details: valid={validation.is_valid}, confidence={validation.confidence}, score={validation.score}")
                     if strategy == GenerationStrategy.EMERGENCY_DEFAULT:
                         # If even emergency default fails, return it anyway
                         logger.error(f"🚨 All generation strategies failed, returning emergency default")
                         return outfit
                         
             except Exception as e:
-                logger.error(f"❌ Strategy {strategy.value} failed with error: {e}")
+                logger.error(f"❌ Strategy {strategy.value} failed with error: {e}", exc_info=True)
+                logger.error(f"❌ Strategy {strategy.value} error context: user={context.user_id}, occasion={context.occasion}")
                 continue
         
         # This should never be reached due to emergency default
@@ -153,12 +169,15 @@ class RobustOutfitGenerationService:
     async def _cohesive_composition_generation(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate outfit with cohesive composition logic"""
         logger.info("🎨 Using cohesive composition generation")
+        logger.info(f"🎨 COHESIVE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Filter wardrobe items by occasion and style
         suitable_items = await self._filter_suitable_items(context)
+        logger.info(f"🎨 COHESIVE: After filtering, {len(suitable_items)} suitable items")
         
         # Apply intelligent selection logic
         selected_items = await self._intelligent_item_selection(suitable_items, context)
+        logger.info(f"🎨 COHESIVE: After intelligent selection, {len(selected_items)} selected items")
         
         # Ensure outfit completeness and appropriateness
         complete_outfit = await self._ensure_outfit_completeness(selected_items, context)
@@ -317,9 +336,11 @@ class RobustOutfitGenerationService:
     async def _fallback_simple_generation(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate simple fallback outfit"""
         logger.info("🔄 Using fallback simple generation")
+        logger.info(f"🔄 FALLBACK: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Simple item selection without complex logic
         basic_items = await self._select_basic_items(context.wardrobe, context)
+        logger.info(f"🔄 FALLBACK: Selected {len(basic_items)} basic items")
         
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
@@ -429,7 +450,10 @@ class RobustOutfitGenerationService:
     
     async def _filter_suitable_items(self, context: GenerationContext) -> List[Dict[str, Any]]:
         """Filter wardrobe items suitable for the occasion and style"""
+        logger.info(f"🔍 FILTER: Starting filtering for occasion={context.occasion}, style={context.style}")
         suitable_items = []
+        occasion_rejected = 0
+        style_rejected = 0
         
         for item in context.wardrobe:
             # Check occasion compatibility
@@ -437,6 +461,12 @@ class RobustOutfitGenerationService:
                 # Check style compatibility
                 if self._is_style_compatible(item, context.style):
                     suitable_items.append(item)
+                else:
+                    style_rejected += 1
+            else:
+                occasion_rejected += 1
+        
+        logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
@@ -812,12 +842,14 @@ class RobustOutfitGenerationService:
     
     async def _select_basic_items(self, wardrobe: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
         """Select basic items for fallback generation with occasion filtering"""
+        logger.info(f"🔍 BASIC_SELECT: Starting with {len(wardrobe)} wardrobe items")
         basic_items = []
         categories_needed = ["tops", "bottoms", "shoes"]
         categories_found = set()
         
         # Filter items by occasion appropriateness first
         suitable_items = await self._filter_suitable_items(context)
+        logger.info(f"🔍 BASIC_SELECT: After filtering, {len(suitable_items)} suitable items")
         
         # Simple selection: one item per essential category from suitable items
         for item in suitable_items:
