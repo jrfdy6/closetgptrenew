@@ -11,6 +11,28 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
 
+# Set up logger for generation tracking
+logger = logging.getLogger(__name__)
+
+def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unknown"):
+    """Log generation strategy usage for monitoring fallback frequency."""
+    strategy = outfit_response.get("metadata", {}).get("generation_strategy", "unknown")
+    outfit_id = outfit_response.get("id", "unknown")
+    occasion = outfit_response.get("occasion", "unknown")
+    style = outfit_response.get("style", "unknown")
+    item_count = len(outfit_response.get("items", []))
+    
+    # Define which strategies are considered "complex" vs "fallback"
+    complex_strategies = ["cohesive_composition", "body_type_optimized", "style_profile_matched", "weather_adapted"]
+    fallback_strategies = ["fallback_simple", "emergency_default"]
+    
+    if strategy in complex_strategies:
+        logger.info(f"[GENERATION][COMPLEX] Success | Strategy: {strategy} | User: {user_id} | Outfit: {outfit_id} | Occasion: {occasion} | Style: {style} | Items: {item_count}")
+    elif strategy in fallback_strategies:
+        logger.warning(f"[GENERATION][FALLBACK] Strategy used: {strategy} | User: {user_id} | Outfit: {outfit_id} | Occasion: {occasion} | Style: {style} | Items: {item_count}")
+    else:
+        logger.warning(f"[GENERATION][UNKNOWN] Unknown strategy: {strategy} | User: {user_id} | Outfit: {outfit_id} | Occasion: {occasion} | Style: {style} | Items: {item_count}")
+
 # Import for Firestore timestamp handling
 try:
     from google.cloud.firestore_v1._helpers import DatetimeWithNanoseconds
@@ -740,6 +762,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     'userFeedback': robust_outfit.userFeedback
                 }
                 
+                # Log generation strategy for monitoring
+                log_generation_strategy(outfit, user_id)
+                
                 logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
             else:
                 logger.warning("⚠️ Robust service not available, falling back to rule-based generation")
@@ -817,6 +842,14 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # CRITICAL: Final validation check to guarantee 99% prevention
         outfit = _apply_final_outfit_validation(outfit)
+        
+        # Add metadata for logging (rule-based generation)
+        if 'metadata' not in outfit:
+            outfit['metadata'] = {}
+        outfit['metadata']['generation_strategy'] = 'rule_based'
+        
+        # Log generation strategy for monitoring
+        log_generation_strategy(outfit, user_id)
         
         return outfit
         
@@ -2837,7 +2870,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         print(f"🚨 FALLBACK WARNING: No items were generated - empty outfit!")
     print(f"🚨 FALLBACK IMPACT: This indicates main generation logic needs attention")
     
-    return {
+    fallback_outfit = {
+        "id": str(uuid4()),  # Add ID for logging
         "name": outfit_name,
         "style": req.style,
         "mood": req.mood,
@@ -2848,6 +2882,11 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         "createdAt": datetime.now().isoformat() + 'Z',
         "metadata": {"generation_strategy": "fallback_simple"}
     }
+    
+    # Log generation strategy for monitoring
+    log_generation_strategy(fallback_outfit, user_id)
+    
+    return fallback_outfit
 
 def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items: List[Dict]) -> str:
     """Generate weather-aware reasoning for fallback outfits."""
