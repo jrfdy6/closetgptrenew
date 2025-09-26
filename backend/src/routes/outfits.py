@@ -2844,7 +2844,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         "occasion": req.occasion,
         "confidence_score": 0.7 if len([item for item in selected_items if not item.get('id', '').startswith('fallback')]) > 0 else 0.5,
         "reasoning": generate_weather_aware_fallback_reasoning(req, selected_items),
-        "createdAt": datetime.now().isoformat() + 'Z'
+        "createdAt": datetime.now().isoformat() + 'Z',
+        "metadata": {"generation_strategy": "fallback_simple"}
     }
 
 def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items: List[Dict]) -> str:
