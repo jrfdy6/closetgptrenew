@@ -24,6 +24,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from dataclasses import dataclass, asdict
 from enum import Enum
+from ..auth.auth_service import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
