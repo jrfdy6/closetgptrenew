@@ -21,7 +21,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     try:
         print(f"🔍 DEBUG: Auth service called with credentials: {credentials.credentials[:20]}...")
         print(f"🔍 DEBUG: Full token length: {len(credentials.credentials)}")
-        print(f"🔍 DEBUG: Full token: {credentials.credentials}")
+        # Removed full token logging for security
         
         # Temporarily allow test token for testing purposes
         if credentials.credentials == "test":
@@ -53,7 +53,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             print("🔍 DEBUG: Attempting Firebase token verification...")
             print(f"🔍 DEBUG: Firebase auth module: {auth}")
             print(f"🔍 DEBUG: Firebase auth type: {type(auth)}")
-            print(f"🔍 DEBUG: Token to verify: {credentials.credentials[:50]}...")
+            print(f"🔍 DEBUG: Token to verify: {credentials.credentials[:20]}...")
             # Try with default settings first
             decoded_token = auth.verify_id_token(credentials.credentials)
             user_id = decoded_token['uid']

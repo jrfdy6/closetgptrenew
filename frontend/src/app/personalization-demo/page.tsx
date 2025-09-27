@@ -123,41 +123,49 @@ export default function PersonalizationDemoPage() {
         
         if (outfitsResponse.ok) {
           const outfitsData = await outfitsResponse.json();
-          const outfits = outfitsData.outfits || outfitsData || [];
+          console.log('🔍 [Demo] Raw outfit history response:', outfitsData);
           
-          // Extract liked outfits and history
-          likedOutfits = outfits
-            .filter(outfit => outfit.favorite || outfit.rating >= 4)
-            .map(outfit => outfit.id);
+          // Handle the actual backend response structure
+          const outfitHistoryEntries = outfitsData.outfitHistory || [];
           
-          outfitHistory = outfits
-            .filter(outfit => outfit.wearCount > 0)
-            .map(outfit => ({
-              id: outfit.id,
-              items: outfit.items?.map(item => item.id) || [],
-              wearCount: outfit.wearCount,
-              rating: outfit.rating,
-              occasion: outfit.occasion,
-              style: outfit.style
+          // Extract liked outfits and history from outfit history entries
+          likedOutfits = outfitHistoryEntries
+            .filter(entry => entry.rating >= 4 || entry.favorite)
+            .map(entry => entry.outfitId);
+          
+          outfitHistory = outfitHistoryEntries
+            .map(entry => ({
+              id: entry.outfitId,
+              items: [], // Outfit history entries don't contain item details
+              wearCount: 1, // Each entry represents one wear
+              rating: entry.rating || 0,
+              occasion: entry.occasion,
+              style: entry.style || 'Unknown',
+              dateWorn: entry.dateWorn
             }));
           
           // Extract recently worn items (last 7 days) for wardrobe rotation
           const sevenDaysAgo = new Date();
           sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
           
-          outfits
-            .filter(outfit => {
-              const lastWorn = outfit.lastWorn || outfit.updatedAt || outfit.createdAt;
-              return lastWorn && new Date(lastWorn) > sevenDaysAgo;
+          outfitHistoryEntries
+            .filter(entry => {
+              const dateWorn = entry.dateWorn;
+              if (typeof dateWorn === 'number') {
+                return new Date(dateWorn) > sevenDaysAgo;
+              }
+              return false;
             })
-            .forEach(outfit => {
-              outfit.items?.forEach(item => {
-                if (item.id) recentlyWornItems.add(item.id);
-              });
+            .forEach(entry => {
+              // Since outfit history entries don't contain item details,
+              // we'll need to get this from a separate call or mark the outfit as recently worn
+              if (entry.outfitId) {
+                recentlyWornItems.add(entry.outfitId);
+              }
             });
           
           console.log('✅ [Demo] Fetched outfit data:', {
-            totalOutfits: outfits.length,
+            totalOutfitHistory: outfitHistoryEntries.length,
             likedOutfits: likedOutfits.length,
             outfitHistory: outfitHistory.length,
             recentlyWornItems: recentlyWornItems.size
