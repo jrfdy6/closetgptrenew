@@ -314,34 +314,79 @@ async def generate_personalized_outfit(
         if not req.wardrobe or len(req.wardrobe) == 0:
             raise HTTPException(status_code=400, detail="No wardrobe items provided")
         
-        # Filter wardrobe items by occasion and style
+        # Enhanced filtering by occasion, style, and mood
         suitable_items = []
         for item in req.wardrobe:
-            # Basic filtering by occasion and style
+            item_name = item.get('name', '').lower()
+            item_type = item.get('type', '')
+            item_color = item.get('color', '').lower()
+            
+            # Score item based on occasion, style, and mood
+            score = 0
+            
+            # Occasion-based scoring
             if req.occasion.lower() in ['business', 'formal']:
-                # For business/formal, prefer dress shirts, dress pants, dress shoes
-                if item.get('type') in ['shirt', 'pants', 'shoes'] and any(
-                    keyword in item.get('name', '').lower() for keyword in ['dress', 'formal', 'business', 'blazer', 'suit']
-                ):
-                    suitable_items.append(item)
+                if any(keyword in item_name for keyword in ['dress', 'formal', 'business', 'blazer', 'suit']):
+                    score += 3
+                elif item_type in ['shirt', 'pants', 'shoes']:
+                    score += 1
             elif req.occasion.lower() == 'athletic':
-                # For athletic, prefer athletic items
-                if item.get('type') in ['shirt', 'pants', 'shoes'] and any(
-                    keyword in item.get('name', '').lower() for keyword in ['athletic', 'sport', 'running', 'gym', 'workout']
-                ):
-                    suitable_items.append(item)
+                if any(keyword in item_name for keyword in ['athletic', 'sport', 'running', 'gym', 'workout']):
+                    score += 3
+                elif item_type in ['shirt', 'pants', 'shoes']:
+                    score += 1
             else:
-                # For casual/other occasions, use any items
-                if item.get('type') in ['shirt', 'pants', 'shoes']:
-                    suitable_items.append(item)
+                # Casual/other occasions
+                if item_type in ['shirt', 'pants', 'shoes']:
+                    score += 2
+            
+            # Style-based scoring
+            if req.style.lower() == 'classic':
+                if any(keyword in item_name for keyword in ['classic', 'traditional', 'timeless']):
+                    score += 2
+                if item_color in ['black', 'white', 'navy', 'grey', 'brown']:
+                    score += 1
+            elif req.style.lower() == 'minimalist':
+                if any(keyword in item_name for keyword in ['minimal', 'simple', 'clean']):
+                    score += 2
+                if item_color in ['white', 'black', 'grey', 'beige']:
+                    score += 2
+            elif req.style.lower() == 'maximalist':
+                if any(keyword in item_name for keyword in ['bold', 'statement', 'vibrant']):
+                    score += 2
+                if item_color in ['red', 'blue', 'green', 'yellow', 'purple']:
+                    score += 1
+            
+            # Mood-based scoring
+            if req.mood.lower() == 'bold':
+                if any(keyword in item_name for keyword in ['bold', 'statement', 'standout']):
+                    score += 2
+                if item_color in ['red', 'bright', 'vibrant']:
+                    score += 1
+            elif req.mood.lower() == 'confident':
+                if any(keyword in item_name for keyword in ['confident', 'sharp', 'professional']):
+                    score += 2
+            elif req.mood.lower() == 'comfortable':
+                if any(keyword in item_name for keyword in ['comfort', 'soft', 'casual']):
+                    score += 2
+            
+            # Only include items with positive scores
+            if score > 0:
+                suitable_items.append((item, score))
         
-        # If no suitable items found, use any wardrobe items
-        if not suitable_items:
-            suitable_items = [item for item in req.wardrobe if item.get('type') in ['shirt', 'pants', 'shoes']][:6]
+        # Sort by score (highest first) and select items
+        if suitable_items and isinstance(suitable_items[0], tuple):
+            # Sort by score (highest first)
+            suitable_items.sort(key=lambda x: x[1], reverse=True)
+            # Extract just the items
+            sorted_items = [item[0] for item in suitable_items]
+        else:
+            # Fallback: if no scored items, use any wardrobe items
+            sorted_items = [item for item in req.wardrobe if item.get('type') in ['shirt', 'pants', 'shoes']][:6]
         
         # Select items for the outfit (3-6 items based on occasion)
         target_count = 4 if req.occasion.lower() in ['business', 'formal'] else 3
-        selected_items = suitable_items[:target_count]
+        selected_items = sorted_items[:target_count]
         
         # Ensure we have at least 3 items
         if len(selected_items) < 3:
@@ -377,7 +422,10 @@ async def generate_personalized_outfit(
                 "style": req.style,
                 "mood": req.mood,
                 "wardrobe_size": len(req.wardrobe),
-                "selected_from_real_items": True
+                "selected_from_real_items": True,
+                "style_mood_considered": True,
+                "scoring_applied": True,
+                "items_scored": len(suitable_items) if suitable_items else 0
             }
         }
         
