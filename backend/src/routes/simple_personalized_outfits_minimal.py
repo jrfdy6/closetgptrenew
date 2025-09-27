@@ -503,11 +503,25 @@ async def generate_personalized_outfit(
                             selected_items.append(item)
                             break
         
+        # DEDUPLICATION: Remove duplicate items by ID
+        def deduplicate_items(items):
+            seen_ids = set()
+            unique_items = []
+            for item in items:
+                item_id = item.get('id') or item.get('name', '')
+                if item_id not in seen_ids:
+                    seen_ids.add(item_id)
+                    unique_items.append(item)
+            return unique_items
+        
+        selected_items = deduplicate_items(selected_items)
+        
         # Ensure we have at least 3 items
         if len(selected_items) < 3:
             # Add more items from wardrobe if needed
             remaining_items = [item for item in req.wardrobe if item not in selected_items]
             selected_items.extend(remaining_items[:3-len(selected_items)])
+            selected_items = deduplicate_items(selected_items)  # Dedupe again after adding
         
         # Create outfit from real wardrobe items
         existing_result = {
@@ -544,7 +558,9 @@ async def generate_personalized_outfit(
                 "items_scored": len(suitable_items) if suitable_items else 0,
                 "occasion_requirements_met": len(missing_required) == 0 if 'missing_required' in locals() else True,
                 "validation_applied": True,
-                "hard_requirements_enforced": True
+                "hard_requirements_enforced": True,
+                "deduplication_applied": True,
+                "unique_items_count": len(selected_items)
             }
         }
         
@@ -578,7 +594,7 @@ async def generate_personalized_outfit(
             "mood": req.mood,
             "weather": req.weather or {},
             "confidence": existing_result.get("confidence", 0.8),
-            "personalization_score": existing_result.get("personalization_score"),
+            "personalization_score": existing_result.get("personalization_score") if preference.interaction_count >= 3 else "Not enough data yet",
             "personalization_applied": existing_result.get("personalization_applied", False),
             "user_interactions": preference.interaction_count,
             "metadata": {
