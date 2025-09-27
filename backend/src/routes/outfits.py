@@ -4839,6 +4839,25 @@ async def generate_outfit(
                     # Apply category limits first to prevent validation rejection
                     outfit['items'] = deduplicate_items_with_limits(outfit['items'], req.occasion)
                     
+                    # Calculate confidence score AFTER category limits (ensure it always runs)
+                    if 'confidence' not in outfit or outfit['confidence'] is None:
+                        # Calculate confidence based on outfit completeness and occasion appropriateness
+                        confidence_score = 0.7  # Base confidence
+                        
+                        # Boost confidence for appropriate item count (3-6 items)
+                        item_count = len(outfit['items'])
+                        if 3 <= item_count <= 6:
+                            confidence_score += 0.1  # +10% for good item count
+                        
+                        outfit['confidence'] = min(confidence_score, 1.0)  # Cap at 1.0
+                        logger.info(f"🎯 Calculated confidence score: {outfit['confidence']}")
+                    
+                    # Ensure metadata exists
+                    if 'metadata' not in outfit:
+                        outfit['metadata'] = {}
+                    outfit['metadata']['subtype_tracking_enabled'] = True
+                    outfit['metadata']['confidence_calculated'] = True
+                    
                     if occasion_lower in occasion_requirements:
                         requirements = occasion_requirements[occasion_lower]
                         
@@ -4877,23 +4896,6 @@ async def generate_outfit(
                                     # Emergency fallback: use any available items
                                     outfit['items'] = req.wardrobe[:3] if len(req.wardrobe) >= 3 else req.wardrobe
                         
-                        # Calculate confidence score AFTER final item selection
-                        if 'confidence' not in outfit or outfit['confidence'] is None:
-                            # Calculate confidence based on outfit completeness and occasion appropriateness
-                            confidence_score = 0.7  # Base confidence
-                            
-                            # Boost confidence for complete outfits
-                            if len(final_missing) == 0 if 'final_missing' in locals() else True:
-                                confidence_score += 0.2  # +20% for meeting requirements
-                            
-                            # Boost confidence for appropriate item count (3-6 items)
-                            item_count = len(outfit['items'])
-                            if 3 <= item_count <= 6:
-                                confidence_score += 0.1  # +10% for good item count
-                            
-                            outfit['confidence'] = min(confidence_score, 1.0)  # Cap at 1.0
-                            logger.info(f"🎯 Calculated confidence score: {outfit['confidence']}")
-                        
                         # Update metadata with validation status
                         if 'metadata' not in outfit:
                             outfit['metadata'] = {}
@@ -4901,10 +4903,8 @@ async def generate_outfit(
                         outfit['metadata']['hard_requirements_enforced'] = True
                         outfit['metadata']['deduplication_applied'] = True
                         outfit['metadata']['category_limits_enforced'] = True  # NEW: Category cardinality limits
-                        outfit['metadata']['subtype_tracking_enabled'] = True  # NEW: Subtype tracking for shoes
                         outfit['metadata']['unique_items_count'] = len(outfit['items'])
                         outfit['metadata']['occasion_requirements_met'] = len(final_missing) == 0 if 'final_missing' in locals() else True
-                        outfit['metadata']['confidence_calculated'] = True
                 
                 # NEW: Apply comprehensive validation pipeline to generated outfit (with category limits bypass)
                 if outfit and outfit.get('items') and validation_available:
