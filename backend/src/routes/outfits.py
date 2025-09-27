@@ -4649,15 +4649,16 @@ async def generate_outfit(
                 # Casual/weekend: more flexible
                 return base_limits
         
-        # Enhanced deduplication with category cardinality limits
+        # Enhanced deduplication with category cardinality limits and subtype tracking
         def deduplicate_items_with_limits(items, occasion):
             from collections import defaultdict
             
             # Get category limits for this occasion
             category_limits = get_category_limits(occasion)
             
-            # Track items by category
+            # Track items by category and subtype
             category_counts = defaultdict(int)
+            used_subtypes = set()  # Track shoe subtypes to prevent duplicates
             final_items = []
             
             # First pass: remove exact duplicates (same ID or name+type+color)
@@ -4682,37 +4683,91 @@ async def generate_outfit(
                 else:
                     logger.info(f"🔍 DEBUG: Removed exact duplicate: {item_name} ({item_color})")
             
-            # Second pass: enforce category cardinality limits
+            # Second pass: enforce category cardinality limits with subtype tracking
             for item in unique_items:
                 item_type = item.get('type', '').lower()
+                item_name = item.get('name', '').lower()
                 
-                # Map item type to category
+                # Map item type to category and determine subtype
                 category = None
+                subtype = None
+                
                 if item_type in ['shirt', 'blouse', 't-shirt', 'tank', 'sweater', 'hoodie']:
                     category = 'top'
+                    # Determine shirt subtype
+                    if 'dress' in item_name or 'button' in item_name:
+                        subtype = 'dress_shirt'
+                    elif 'polo' in item_name:
+                        subtype = 'polo_shirt'
+                    elif 't-shirt' in item_name or 'tee' in item_name:
+                        subtype = 't_shirt'
+                    else:
+                        subtype = 'other_top'
+                        
                 elif item_type in ['pants', 'jeans', 'trousers', 'slacks']:
                     category = 'pants'
+                    if 'jeans' in item_name:
+                        subtype = 'jeans'
+                    elif 'dress' in item_name:
+                        subtype = 'dress_pants'
+                    else:
+                        subtype = 'other_pants'
+                        
                 elif item_type in ['shorts', 'athletic-pants', 'joggers']:
                     category = 'shorts'
+                    subtype = 'shorts'
+                    
                 elif item_type in ['shoes', 'sneakers', 'boots', 'sandals', 'oxford']:
                     category = 'shoes'
+                    # CRITICAL: Determine shoe subtype to prevent duplicate shoes
+                    if 'sneaker' in item_name or 'athletic' in item_name:
+                        subtype = 'sneakers'
+                    elif 'oxford' in item_name or 'dress' in item_name:
+                        subtype = 'dress_shoes'
+                    elif 'boot' in item_name:
+                        subtype = 'boots'
+                    elif 'sandals' in item_name:
+                        subtype = 'sandals'
+                    else:
+                        subtype = 'other_shoes'
+                        
                 elif item_type in ['jacket', 'blazer', 'cardigan']:
                     category = 'jacket'
+                    if 'blazer' in item_name:
+                        subtype = 'blazer'
+                    else:
+                        subtype = 'jacket'
+                        
                 elif item_type in ['tie', 'belt', 'watch', 'hat']:
                     category = 'accessories'
+                    subtype = item_type
                 else:
                     # For unknown types, be permissive
                     category = 'other'
+                    subtype = 'other'
                 
-                # Check category limits
+                # Check category limits with subtype tracking for shoes
                 if category in category_limits:
                     min_limit, max_limit = category_limits[category]
                     current_count = category_counts[category]
                     
+                    # Special handling for shoes - prevent duplicate subtypes
+                    if category == 'shoes':
+                        if current_count >= max_limit:
+                            logger.info(f"❌ Skipped {item.get('name', 'Unknown')} - shoe limit reached (1)")
+                            continue
+                        if subtype in used_subtypes:
+                            logger.info(f"❌ Skipped {item.get('name', 'Unknown')} - shoe subtype '{subtype}' already used")
+                            continue
+                        used_subtypes.add(subtype)
+                        logger.info(f"✅ Added {item.get('name', 'Unknown')} (shoes: {subtype})")
+                    
+                    # Regular category limit check
                     if current_count < max_limit:
                         final_items.append(item)
                         category_counts[category] += 1
-                        logger.info(f"✅ Added {item.get('name', 'Unknown')} ({category}, count: {category_counts[category]})")
+                        if category != 'shoes':  # Already logged above
+                            logger.info(f"✅ Added {item.get('name', 'Unknown')} ({category}, count: {category_counts[category]})")
                     else:
                         logger.info(f"❌ Skipped {item.get('name', 'Unknown')} ({category}) - category limit reached ({max_limit})")
                 else:
@@ -4720,8 +4775,9 @@ async def generate_outfit(
                     final_items.append(item)
                     logger.info(f"➕ Added {item.get('name', 'Unknown')} (unknown category)")
             
-            # Log final category distribution
+            # Log final category distribution and used subtypes
             logger.info(f"🎯 Final outfit category distribution: {dict(category_counts)}")
+            logger.info(f"🎯 Used shoe subtypes: {list(used_subtypes)}")
             return final_items
         
         # Enhanced request validation
@@ -4821,6 +4877,23 @@ async def generate_outfit(
                                     # Emergency fallback: use any available items
                                     outfit['items'] = req.wardrobe[:3] if len(req.wardrobe) >= 3 else req.wardrobe
                         
+                        # Calculate confidence score AFTER final item selection
+                        if 'confidence' not in outfit or outfit['confidence'] is None:
+                            # Calculate confidence based on outfit completeness and occasion appropriateness
+                            confidence_score = 0.7  # Base confidence
+                            
+                            # Boost confidence for complete outfits
+                            if len(final_missing) == 0 if 'final_missing' in locals() else True:
+                                confidence_score += 0.2  # +20% for meeting requirements
+                            
+                            # Boost confidence for appropriate item count (3-6 items)
+                            item_count = len(outfit['items'])
+                            if 3 <= item_count <= 6:
+                                confidence_score += 0.1  # +10% for good item count
+                            
+                            outfit['confidence'] = min(confidence_score, 1.0)  # Cap at 1.0
+                            logger.info(f"🎯 Calculated confidence score: {outfit['confidence']}")
+                        
                         # Update metadata with validation status
                         if 'metadata' not in outfit:
                             outfit['metadata'] = {}
@@ -4828,8 +4901,10 @@ async def generate_outfit(
                         outfit['metadata']['hard_requirements_enforced'] = True
                         outfit['metadata']['deduplication_applied'] = True
                         outfit['metadata']['category_limits_enforced'] = True  # NEW: Category cardinality limits
+                        outfit['metadata']['subtype_tracking_enabled'] = True  # NEW: Subtype tracking for shoes
                         outfit['metadata']['unique_items_count'] = len(outfit['items'])
                         outfit['metadata']['occasion_requirements_met'] = len(final_missing) == 0 if 'final_missing' in locals() else True
+                        outfit['metadata']['confidence_calculated'] = True
                 
                 # NEW: Apply comprehensive validation pipeline to generated outfit (with category limits bypass)
                 if outfit and outfit.get('items') and validation_available:
