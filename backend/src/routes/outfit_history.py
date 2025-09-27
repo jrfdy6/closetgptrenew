@@ -157,6 +157,7 @@ async def get_outfit_history(
         
         # Query outfit_history collection
         db = get_db()
+        logger.info(f"🔍 DEBUG: About to query outfit_history collection for user {current_user.id}")
         query = db.collection('outfit_history').filter('user_id', '==', current_user.id)
         
         # Add outfit_id filter if provided
@@ -184,10 +185,14 @@ async def get_outfit_history(
             logger.warning(f"Could not order by date_worn: {e}")
         
         # Execute query
+        logger.info(f"🔍 DEBUG: About to execute Firestore query")
         docs = query.stream()
+        logger.info(f"🔍 DEBUG: Query executed, processing documents")
         
         outfit_history = []
+        doc_count = 0
         for doc in docs:
+            doc_count += 1
             data = doc.to_dict()
             outfit_history.append({
                 "id": doc.id,
@@ -209,15 +214,29 @@ async def get_outfit_history(
             })
         
         logger.info(f"Retrieved {len(outfit_history)} outfit history entries for user {current_user.id}")
+        logger.info(f"🔍 DEBUG: Processed {doc_count} documents from Firestore")
         
         return {
             "success": True,
-            "outfitHistory": outfit_history
+            "outfitHistory": outfit_history,
+            "count": len(outfit_history),
+            "user_id": current_user.id
         }
         
     except Exception as e:
-        logger.error(f"Error fetching outfit history: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to fetch outfit history")
+        logger.error(f"❌ Error fetching outfit history: {str(e)}")
+        logger.error(f"❌ User ID: {current_user.id if current_user else 'None'}")
+        logger.error(f"❌ Error type: {type(e).__name__}")
+        
+        # Return safe fallback instead of 500 error
+        return {
+            "success": True,
+            "outfitHistory": [],
+            "count": 0,
+            "user_id": current_user.id if current_user else None,
+            "error": f"Database query failed: {str(e)}",
+            "fallback": True
+        }
 
 @router.post("/mark-worn")
 async def mark_outfit_as_worn(
