@@ -2956,10 +2956,93 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
             logger.info(f"After weather filtering: {len(weather_filtered_items)}/{len(wardrobe_items)} items remain")
             wardrobe_items = weather_filtered_items if weather_filtered_items else wardrobe_items  # Use filtered if available
         
-        # Style-aware fallback logic: pick appropriate items for the style
-        categories_needed = ['tops', 'bottoms', 'shoes']  # Basic outfit needs
+        # TARGET-DRIVEN FALLBACK: Use dynamic target count and category limits
+        from ..services.outfit_fallback_service import OutfitFallbackService
         
-        for category in categories_needed:
+        # Create fallback service context
+        fallback_context = {
+            'occasion': req.occasion,
+            'style': req.style,
+            'mood': req.mood,
+            'weather': req.weather.__dict__ if hasattr(req.weather, '__dict__') else req.weather,
+            'user_profile': {'id': user_id}
+        }
+        
+        # Get target item counts using the fallback service
+        temperature = 70.0
+        if req.weather:
+            if isinstance(req.weather, dict):
+                temperature = req.weather.get('temperature', 70.0)
+            else:
+                temperature = getattr(req.weather, 'temperature', 70.0)
+        
+        fallback_service = OutfitFallbackService()
+        target_counts = fallback_service._get_target_item_counts(req.occasion, req.style, req.mood, temperature)
+        
+        logger.info(f"🎯 FALLBACK TARGET-DRIVEN: Target counts for {req.occasion}: {target_counts}")
+        
+        # Convert wardrobe items to ClothingItem format for fallback service
+        from ..custom_types.wardrobe import ClothingItem
+        clothing_items = []
+        for item_dict in wardrobe_items:
+            try:
+                clothing_item = ClothingItem(
+                    id=item_dict.get('id', ''),
+                    name=item_dict.get('name', ''),
+                    type=item_dict.get('type', ''),
+                    color=item_dict.get('color', ''),
+                    brand=item_dict.get('brand', ''),
+                    size=item_dict.get('size', ''),
+                    material=item_dict.get('material', ''),
+                    style=item_dict.get('style', ''),
+                    occasion=item_dict.get('occasion', ''),
+                    season=item_dict.get('season', ''),
+                    wearCount=item_dict.get('wearCount', 0),
+                    lastWorn=item_dict.get('lastWorn'),
+                    favorite_score=item_dict.get('favorite_score', 0.0),
+                    tags=item_dict.get('tags', []),
+                    metadata=item_dict.get('metadata', {})
+                )
+                clothing_items.append(clothing_item)
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to convert item to ClothingItem: {e}")
+                continue
+        
+        # Use fallback service intelligent selection
+        from ..services.outfit_fallback_service import DynamicHealingContext
+        healing_context = DynamicHealingContext()
+        
+        selected_clothing_items = await fallback_service._intelligent_item_selection(
+            clothing_items, fallback_context, healing_context
+        )
+        
+        # Convert back to dict format
+        selected_items = []
+        for item in selected_clothing_items:
+            selected_items.append({
+                'id': item.id,
+                'name': item.name,
+                'type': item.type,
+                'color': item.color,
+                'brand': item.brand,
+                'size': item.size,
+                'material': item.material,
+                'style': item.style,
+                'occasion': item.occasion,
+                'season': item.season,
+                'wearCount': item.wearCount,
+                'lastWorn': item.lastWorn,
+                'favorite_score': item.favorite_score,
+                'tags': item.tags,
+                'metadata': item.metadata
+            })
+        
+        logger.info(f"🎯 FALLBACK TARGET-DRIVEN: Selected {len(selected_items)} items using target-driven approach")
+        
+        # OLD HARDCODED APPROACH (commented out):
+        # categories_needed = ['tops', 'bottoms', 'shoes']  # Basic outfit needs
+        # 
+        # for category in categories_needed:
             # Find items in this category with style-appropriate filtering
             category_items = []
             if category == 'tops':
