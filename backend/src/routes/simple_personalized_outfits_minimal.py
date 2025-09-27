@@ -503,15 +503,27 @@ async def generate_personalized_outfit(
                             selected_items.append(item)
                             break
         
-        # DEDUPLICATION: Remove duplicate items by ID
+        # DEDUPLICATION: Remove duplicate items by ID and name+type+color combination
         def deduplicate_items(items):
             seen_ids = set()
+            seen_combinations = set()
             unique_items = []
             for item in items:
-                item_id = item.get('id') or item.get('name', '')
-                if item_id not in seen_ids:
+                item_id = item.get('id', '')
+                item_name = item.get('name', '')
+                item_type = item.get('type', '')
+                item_color = item.get('color', '')
+                
+                # Create a combination key for name+type+color
+                combination_key = f"{item_name}|{item_type}|{item_color}"
+                
+                # Check both ID uniqueness and combination uniqueness
+                if item_id not in seen_ids and combination_key not in seen_combinations:
                     seen_ids.add(item_id)
+                    seen_combinations.add(combination_key)
                     unique_items.append(item)
+                else:
+                    print(f"🔍 DEBUG: Removed duplicate item: {item_name} ({item_color})")
             return unique_items
         
         selected_items = deduplicate_items(selected_items)
