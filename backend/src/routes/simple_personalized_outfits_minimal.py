@@ -310,43 +310,74 @@ async def generate_personalized_outfit(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit for user {user_id}")
         
-        # Generate a simple mock outfit for demonstration
-        # In production, this would call your existing outfit generation system
+        # Use real wardrobe items from the request instead of mock data
+        if not req.wardrobe or len(req.wardrobe) == 0:
+            raise HTTPException(status_code=400, detail="No wardrobe items provided")
+        
+        # Filter wardrobe items by occasion and style
+        suitable_items = []
+        for item in req.wardrobe:
+            # Basic filtering by occasion and style
+            if req.occasion.lower() in ['business', 'formal']:
+                # For business/formal, prefer dress shirts, dress pants, dress shoes
+                if item.get('type') in ['shirt', 'pants', 'shoes'] and any(
+                    keyword in item.get('name', '').lower() for keyword in ['dress', 'formal', 'business', 'blazer', 'suit']
+                ):
+                    suitable_items.append(item)
+            elif req.occasion.lower() == 'athletic':
+                # For athletic, prefer athletic items
+                if item.get('type') in ['shirt', 'pants', 'shoes'] and any(
+                    keyword in item.get('name', '').lower() for keyword in ['athletic', 'sport', 'running', 'gym', 'workout']
+                ):
+                    suitable_items.append(item)
+            else:
+                # For casual/other occasions, use any items
+                if item.get('type') in ['shirt', 'pants', 'shoes']:
+                    suitable_items.append(item)
+        
+        # If no suitable items found, use any wardrobe items
+        if not suitable_items:
+            suitable_items = [item for item in req.wardrobe if item.get('type') in ['shirt', 'pants', 'shoes']][:6]
+        
+        # Select items for the outfit (3-6 items based on occasion)
+        target_count = 4 if req.occasion.lower() in ['business', 'formal'] else 3
+        selected_items = suitable_items[:target_count]
+        
+        # Ensure we have at least 3 items
+        if len(selected_items) < 3:
+            # Add more items from wardrobe if needed
+            remaining_items = [item for item in req.wardrobe if item not in selected_items]
+            selected_items.extend(remaining_items[:3-len(selected_items)])
+        
+        # Create outfit from real wardrobe items
         existing_result = {
             "id": f"outfit_{int(time.time())}",
             "name": f"{req.style} {req.occasion} Outfit",
             "items": [
                 {
-                    "id": "item_1",
-                    "name": f"{req.style} Shirt",
-                    "type": "shirt",
-                    "color": "Blue",
+                    "id": item.get('id', f"item_{i+1}"),
+                    "name": item.get('name', f"{req.style} Item"),
+                    "type": item.get('type', 'unknown'),
+                    "color": item.get('color', 'Unknown'),
                     "style": req.style,
-                    "occasion": req.occasion
-                },
-                {
-                    "id": "item_2", 
-                    "name": f"{req.style} Pants",
-                    "type": "pants",
-                    "color": "Black",
-                    "style": req.style,
-                    "occasion": req.occasion
-                },
-                {
-                    "id": "item_3",
-                    "name": f"{req.style} Shoes",
-                    "type": "shoes", 
-                    "color": "Brown",
-                    "style": req.style,
-                    "occasion": req.occasion
+                    "occasion": req.occasion,
+                    "brand": item.get('brand', ''),
+                    "imageUrl": item.get('imageUrl', ''),
+                    "wearCount": item.get('wearCount', 0),
+                    "favorite_score": item.get('favorite_score', 0.0),
+                    "tags": item.get('tags', []),
+                    "metadata": item.get('metadata', {})
                 }
+                for i, item in enumerate(selected_items)
             ],
             "confidence": 0.8,
             "metadata": {
-                "generated_by": "simple_personalization",
+                "generated_by": "simple_personalization_real_wardrobe",
                 "occasion": req.occasion,
                 "style": req.style,
-                "mood": req.mood
+                "mood": req.mood,
+                "wardrobe_size": len(req.wardrobe),
+                "selected_from_real_items": True
             }
         }
         
