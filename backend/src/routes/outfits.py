@@ -4558,6 +4558,79 @@ async def generate_outfit(
         logger.info(f"🎯 Starting robust outfit generation for user: {current_user_id}")
         logger.info(f"📋 Request details: {req.occasion}, {req.style}, {req.mood}")
         
+        # Define hard requirements per occasion (ported from simple-minimal)
+        occasion_requirements = {
+            'business': {
+                'required': ['shirt', 'pants', 'shoes'],
+                'optional': ['blazer', 'tie', 'jacket'],
+                'forbidden': ['shorts', 'flip-flops', 'tank-top']
+            },
+            'formal': {
+                'required': ['shirt', 'pants', 'shoes'],
+                'optional': ['blazer', 'tie', 'jacket'],
+                'forbidden': ['shorts', 'flip-flops', 'tank-top', 'jeans']
+            },
+            'athletic': {
+                'required': ['top', 'shorts OR athletic-pants', 'sneakers'],
+                'optional': ['jacket', 'hat'],
+                'forbidden': ['dress-shirt', 'tie', 'dress-shoes']
+            },
+            'casual': {
+                'required': ['top', 'bottom'],
+                'optional': ['shoes', 'jacket', 'accessories'],
+                'forbidden': []
+            },
+            'weekend': {
+                'required': ['top', 'bottom'],
+                'optional': ['sneakers', 'hoodie', 'jacket'],
+                'forbidden': ['tie', 'dress-shoes']
+            }
+        }
+        
+        # Validation function (ported from simple-minimal)
+        def validate_outfit_completeness(outfit_items, occasion_reqs):
+            item_types = [item.get('type', '').lower() for item in outfit_items]
+            item_names = [item.get('name', '').lower() for item in outfit_items]
+            
+            missing_required = []
+            for required in occasion_reqs['required']:
+                if ' OR ' in required:
+                    # Handle OR conditions (e.g., "shorts OR athletic-pants")
+                    options = [opt.strip() for opt in required.split(' OR ')]
+                    if not any(any(opt in item_type or opt in item_name for opt in options) 
+                              for item_type, item_name in zip(item_types, item_names)):
+                        missing_required.append(required)
+                else:
+                    # Single requirement
+                    if not any(required in item_type or required in item_name 
+                              for item_type, item_name in zip(item_types, item_names)):
+                        missing_required.append(required)
+            
+            return missing_required
+        
+        # Deduplication function (ported from simple-minimal)
+        def deduplicate_items(items):
+            seen_ids = set()
+            seen_combinations = set()
+            unique_items = []
+            for item in items:
+                item_id = item.get('id', '')
+                item_name = item.get('name', '')
+                item_type = item.get('type', '')
+                item_color = item.get('color', '')
+                
+                # Create a combination key for name+type+color
+                combination_key = f"{item_name}|{item_type}|{item_color}"
+                
+                # Check both ID uniqueness and combination uniqueness
+                if item_id not in seen_ids and combination_key not in seen_combinations:
+                    seen_ids.add(item_id)
+                    seen_combinations.add(combination_key)
+                    unique_items.append(item)
+                else:
+                    logger.info(f"🔍 DEBUG: Removed duplicate item: {item_name} ({item_color})")
+            return unique_items
+        
         # Enhanced request validation
         validation_errors = []
         if not req.occasion:
@@ -4609,6 +4682,59 @@ async def generate_outfit(
                 
                 # Run generation logic with robust service
                 outfit = await generate_outfit_logic(req, current_user_id)
+                
+                # Apply hard occasion requirements validation (ported from simple-minimal)
+                if outfit and outfit.get('items'):
+                    occasion_lower = req.occasion.lower()
+                    if occasion_lower in occasion_requirements:
+                        requirements = occasion_requirements[occasion_lower]
+                        
+                        # Apply deduplication first
+                        outfit['items'] = deduplicate_items(outfit['items'])
+                        
+                        # Check if outfit meets occasion requirements
+                        missing_required = validate_outfit_completeness(outfit['items'], requirements)
+                        
+                        # If missing required items, try to fill them
+                        if missing_required:
+                            logger.info(f"🔍 DEBUG: Missing required items for {occasion_lower}: {missing_required}")
+                            
+                            # Try to find items that fill missing requirements
+                            for missing in missing_required:
+                                if ' OR ' in missing:
+                                    options = [opt.strip() for opt in missing.split(' OR ')]
+                                    for option in options:
+                                        for item in req.wardrobe:
+                                            if (option in item.get('type', '').lower() or option in item.get('name', '').lower()) and item not in outfit['items']:
+                                                outfit['items'].append(item)
+                                                break
+                                        if len(outfit['items']) >= 6:  # Reasonable limit
+                                            break
+                                else:
+                                    for item in req.wardrobe:
+                                        if (missing in item.get('type', '').lower() or missing in item.get('name', '').lower()) and item not in outfit['items']:
+                                            outfit['items'].append(item)
+                                            break
+                            
+                            # Check again after trying to fill
+                            final_missing = validate_outfit_completeness(outfit['items'], requirements)
+                            if final_missing:
+                                logger.warning(f"⚠️ WARNING: Still missing required items after fallback: {final_missing}")
+                                
+                                # Additional safety check - ensure we have at least some items
+                                if len(outfit['items']) == 0:
+                                    logger.error(f"🚨 CRITICAL: No items selected after validation - using emergency fallback")
+                                    # Emergency fallback: use any available items
+                                    outfit['items'] = req.wardrobe[:3] if len(req.wardrobe) >= 3 else req.wardrobe
+                        
+                        # Update metadata with validation status
+                        if 'metadata' not in outfit:
+                            outfit['metadata'] = {}
+                        outfit['metadata']['validation_applied'] = True
+                        outfit['metadata']['hard_requirements_enforced'] = True
+                        outfit['metadata']['deduplication_applied'] = True
+                        outfit['metadata']['unique_items_count'] = len(outfit['items'])
+                        outfit['metadata']['occasion_requirements_met'] = len(final_missing) == 0 if 'final_missing' in locals() else True
                 
                 # NEW: Apply comprehensive validation pipeline to generated outfit
                 if outfit and outfit.get('items') and validation_available:
