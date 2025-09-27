@@ -375,11 +375,11 @@ export class RobustApiClient {
 export async function generateOutfit(requestData: any, authToken?: string): Promise<any> {
   const client = RobustApiClient.getInstance();
   
-  console.log('🔍 DEBUG: Making API call to ROBUST endpoint with converted data', `${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfits/generate`);
+  console.log('🔍 DEBUG: Making API call to ROBUST endpoint with converted data', `${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfit/generate`);
   
   return await client.request({
     method: 'POST',
-    endpoint: '/api/outfits/generate',
+    endpoint: '/api/outfit/generate',
     data: requestData,
     retryable: true,
     authToken: authToken

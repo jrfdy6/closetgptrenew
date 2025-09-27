@@ -505,7 +505,7 @@ export default function OutfitGenerationPage() {
         throw new Error('Data validation failed');
       }
       
-      console.log('🔍 DEBUG: Making ROBUST API call to /api/outfits/generate endpoint with converted data');
+      console.log('🔍 DEBUG: Making ROBUST API call to /api/outfit/generate endpoint with converted data');
       
       // Use robust API client with comprehensive error handling
       const response = await generateOutfit(convertedData, authToken);
