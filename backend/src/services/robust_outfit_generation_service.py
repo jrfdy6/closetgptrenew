@@ -485,7 +485,7 @@ class RobustOutfitGenerationService:
         return suitable_items
     
     async def _intelligent_item_selection(self, suitable_items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
-        """Intelligently select items for the outfit with TARGET-DRIVEN sizing"""
+        """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
         selected_items = []
         
         # SAFETY NET: Ensure we have items to work with
@@ -493,20 +493,20 @@ class RobustOutfitGenerationService:
             logger.warning(f"🚨 SAFETY NET: No suitable items for intelligent selection, using all wardrobe items")
             suitable_items = context.wardrobe[:]
         
-        # Calculate target item count FIRST (this is the primary goal)
+        # STEP 1: Compute dynamic target count FIRST (primary goal)
         target_count = self._get_target_item_count(context)
         logger.info(f"🎯 TARGET-DRIVEN: Target count is {target_count} items for {context.occasion}")
         
-        # Get dynamic category limits that ADAPT to target count
-        category_limits = self._get_dynamic_category_limits(context, target_count)
-        category_counts = {cat: 0 for cat in category_limits.keys()}
+        # STEP 2: Get base category limits that ADAPT to target count
+        base_category_limits = self._get_dynamic_category_limits(context, target_count)
+        category_counts = {cat: 0 for cat in base_category_limits.keys()}
         
-        logger.info(f"🎯 TARGET-DRIVEN: Category limits for {target_count} items: {category_limits}")
+        logger.info(f"🎯 TARGET-DRIVEN: Base category limits for {target_count} items: {base_category_limits}")
         
-        # Determine if outerwear is needed based on temperature and occasion
+        # STEP 3: Determine if outerwear is needed based on temperature and occasion
         needs_outerwear = self._needs_outerwear(context)
         
-        # Sort items by preference score
+        # STEP 4: Sort items by preference score
         scored_items = []
         for item in suitable_items:
             score = await self._calculate_item_score(item, context)
@@ -514,9 +514,9 @@ class RobustOutfitGenerationService:
         
         scored_items.sort(key=lambda x: x[1], reverse=True)
         
-        # TARGET-DRIVEN SELECTION: Prioritize reaching target count
+        # STEP 5: TARGET-DRIVEN SELECTION with proportional category balancing
         for item, score in scored_items:
-            # Stop when we reach the target count
+            # Stop ONLY when target count is reached
             if len(selected_items) >= target_count:
                 logger.info(f"🎯 TARGET-DRIVEN: Reached target count of {target_count} items")
                 break
@@ -526,14 +526,61 @@ class RobustOutfitGenerationService:
             # Skip outerwear if not needed
             if item_category == "outerwear" and not needs_outerwear:
                 continue
-                
-            # Check category limits (now flexible based on target count)
-            if category_counts.get(item_category, 0) < category_limits.get(item_category, 0):
+            
+            # STEP 6: Proportional category balancing (no hard-stopping at fixed limits)
+            current_category_count = category_counts.get(item_category, 0)
+            base_limit = base_category_limits.get(item_category, 0)
+            
+            # Calculate proportional limit based on target count and remaining items needed
+            remaining_items_needed = target_count - len(selected_items)
+            total_base_limit = sum(base_category_limits.values())
+            
+            if total_base_limit > 0:
+                # Proportional limit: allow more items in this category if we need more items overall
+                proportional_limit = max(
+                    base_limit,  # At least the base limit
+                    int((base_limit / total_base_limit) * remaining_items_needed * 1.5)  # Proportional scaling
+                )
+            else:
+                proportional_limit = base_limit
+            
+            # Allow selection if we haven't exceeded proportional limit
+            if current_category_count < proportional_limit:
                 selected_items.append(item)
                 category_counts[item_category] += 1
-                logger.info(f"🎯 TARGET-DRIVEN: Added {item.get('name', 'Unknown')} ({item_category}) - {len(selected_items)}/{target_count} items")
+                logger.info(f"🎯 TARGET-DRIVEN: Added {item.get('name', 'Unknown')} ({item_category}) - {len(selected_items)}/{target_count} items (category: {current_category_count + 1}/{proportional_limit})")
+            else:
+                logger.debug(f"🎯 TARGET-DRIVEN: Skipped {item.get('name', 'Unknown')} ({item_category}) - category limit reached ({current_category_count}/{proportional_limit})")
+        
+        # STEP 7: Ensure we have at least the minimum essential categories
+        essential_categories = ["tops", "bottoms", "shoes"]
+        missing_essentials = []
+        
+        for category in essential_categories:
+            if category_counts.get(category, 0) == 0:
+                missing_essentials.append(category)
+        
+        # If we're missing essentials and haven't reached target, try to fill them
+        if missing_essentials and len(selected_items) < target_count:
+            logger.warning(f"🎯 TARGET-DRIVEN: Missing essential categories: {missing_essentials}, attempting to fill")
+            
+            for category in missing_essentials:
+                if len(selected_items) >= target_count:
+                    break
+                    
+                # Find best item for this essential category
+                for item, score in scored_items:
+                    if item in selected_items:
+                        continue
+                        
+                    if self._get_item_category(item) == category:
+                        selected_items.append(item)
+                        category_counts[category] = category_counts.get(category, 0) + 1
+                        logger.info(f"🎯 TARGET-DRIVEN: Added essential {item.get('name', 'Unknown')} ({category}) - {len(selected_items)}/{target_count} items")
+                        break
         
         logger.info(f"🎯 TARGET-DRIVEN: Final selection: {len(selected_items)} items (target was {target_count})")
+        logger.info(f"🎯 TARGET-DRIVEN: Category distribution: {category_counts}")
         return selected_items
     
     def _get_dynamic_category_limits(self, context: GenerationContext, target_count: int) -> Dict[str, int]:
