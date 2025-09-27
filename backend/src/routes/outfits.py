@@ -757,6 +757,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # Use robust outfit generation service if available (allow without Firebase for testing)
             if RobustOutfitGenerationService and GenerationContext:
                 logger.info("🚀 Using robust outfit generation service")
+                print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
+                print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
                 
                 # Create generation context
                 context = GenerationContext(
