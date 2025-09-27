@@ -679,7 +679,6 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         from ..auth.auth_service import get_current_user
         from ..custom_types.profile import UserProfile
         from ..custom_types.outfit import OutfitGeneratedOutfit
-        from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
         FIREBASE_AVAILABLE = True
         print(f"🔎 MAIN LOGIC: Firebase imports successful")
     except ImportError as e:
@@ -691,6 +690,14 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         get_current_user = None
         UserProfile = None
         OutfitGeneratedOutfit = None
+    
+    # Import robust generation service separately (doesn't require Firebase)
+    try:
+        from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
+        print(f"🔎 MAIN LOGIC: Robust generation service imports successful")
+    except ImportError as e:
+        logger.warning(f"⚠️ Robust generation service import failed: {e}")
+        print(f"🚨 MAIN LOGIC: Robust generation service import FAILED: {e}")
         RobustOutfitGenerationService = None
         GenerationContext = None
     
