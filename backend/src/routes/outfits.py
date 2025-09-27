@@ -4718,7 +4718,7 @@ async def debug_user_outfits(
 @router.post("/generate", response_model=OutfitResponse)
 async def generate_outfit(
     req: OutfitRequest,
-    current_user: UserProfile = Depends(get_current_user)
+    current_user_id: str = Depends(get_current_user_id)
 ):
     """
     Generate an outfit using robust decision logic with comprehensive validation,
@@ -4730,17 +4730,12 @@ async def generate_outfit(
     
     try:
         # Enhanced authentication validation
-        if not current_user:
-            logger.error("❌ Authentication failed: No current user")
+        if not current_user_id:
+            logger.error("❌ Authentication failed: No current user ID")
             raise HTTPException(status_code=401, detail="Authentication required")
         
-        current_user_id = current_user.id
         logger.info(f"🎯 Starting robust outfit generation for user: {current_user_id}")
         logger.info(f"📋 Request details: {req.occasion}, {req.style}, {req.mood}")
-        
-        if not current_user_id:
-            logger.error("❌ CRITICAL: current_user_id is None or empty!")
-            raise HTTPException(status_code=500, detail="User ID not found in authentication")
         
         # Enhanced request validation
         validation_errors = []
@@ -4983,7 +4978,7 @@ async def generate_outfit(
             "error_message": str(e),
             "generation_time": generation_time,
             "attempts": generation_attempts,
-            "user_id": current_user.id if current_user else "unknown",
+            "user_id": current_user_id,
             "request_details": {
                 "occasion": req.occasion,
                 "style": req.style,
