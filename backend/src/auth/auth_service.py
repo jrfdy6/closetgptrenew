@@ -280,6 +280,13 @@ async def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depend
         # Verify Firebase JWT token
         try:
             print("🔍 DEBUG: Attempting Firebase token verification for user ID...")
+            # Import Firebase inside function to prevent import-time crashes
+            try:
+                from firebase_admin import auth
+            except ImportError as e:
+                print(f"⚠️ Firebase import failed: {e}")
+                raise HTTPException(status_code=500, detail="Authentication service unavailable")
+            
             decoded_token = auth.verify_id_token(credentials.credentials)
             user_id = decoded_token['uid']
             print(f"🔍 DEBUG: Token verified successfully for user ID: {user_id}")
