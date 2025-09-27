@@ -454,6 +454,9 @@ async def generate_personalized_outfit(
             # Fallback: if no scored items, use any wardrobe items
             sorted_items = [item for item in req.wardrobe if item.get('type') in ['shirt', 'pants', 'shoes']][:6]
         
+        # Get user preference early for metadata
+        preference = personalization_engine.get_user_preference(user_id)
+        
         # Select items for the outfit (3-6 items based on occasion)
         target_count = 4 if req.occasion.lower() in ['business', 'formal'] else 3
         selected_items = sorted_items[:target_count]
@@ -481,6 +484,7 @@ async def generate_personalized_outfit(
         
         # Check if outfit meets occasion requirements
         missing_required = validate_outfit_completeness(selected_items, requirements)
+        final_missing = missing_required  # Initialize for metadata
         
         # If missing required items, try to fill them
         if missing_required:
@@ -502,6 +506,12 @@ async def generate_personalized_outfit(
                         if (missing in item.get('type', '').lower() or missing in item.get('name', '').lower()) and item not in selected_items:
                             selected_items.append(item)
                             break
+            
+            # If still missing required items after trying to fill, log warning but continue
+            final_missing = validate_outfit_completeness(selected_items, requirements)
+            if final_missing:
+                print(f"⚠️ WARNING: Still missing required items after fallback: {final_missing}")
+                print(f"🔍 DEBUG: Proceeding with incomplete outfit - this may not be ideal for {occasion}")
         
         # DEDUPLICATION: Remove duplicate items by ID and name+type+color combination
         def deduplicate_items(items):
@@ -568,7 +578,7 @@ async def generate_personalized_outfit(
                 "style_mood_considered": True,
                 "scoring_applied": True,
                 "items_scored": len(suitable_items) if suitable_items else 0,
-                "occasion_requirements_met": len(missing_required) == 0 if 'missing_required' in locals() else True,
+                "occasion_requirements_met": len(final_missing) == 0 if 'final_missing' in locals() else True,
                 "validation_applied": True,
                 "hard_requirements_enforced": True,
                 "deduplication_applied": True,
@@ -576,9 +586,6 @@ async def generate_personalized_outfit(
                 "personalization_score_message": "Not enough data yet (need 3+ interactions)" if preference.interaction_count < 3 else "Score calculated"
             }
         }
-        
-        # Get user preference early for metadata
-        preference = personalization_engine.get_user_preference(user_id)
         
         # Extract outfit data for personalization
         outfit_data = {
