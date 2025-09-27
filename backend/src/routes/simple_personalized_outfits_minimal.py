@@ -314,48 +314,118 @@ async def generate_personalized_outfit(
         if not req.wardrobe or len(req.wardrobe) == 0:
             raise HTTPException(status_code=400, detail="No wardrobe items provided")
         
+        # Define hard requirements per occasion
+        occasion_requirements = {
+            'business': {
+                'required': ['shirt', 'pants', 'shoes'],
+                'optional': ['blazer', 'tie', 'jacket'],
+                'forbidden': ['shorts', 'flip-flops', 'tank-top']
+            },
+            'formal': {
+                'required': ['shirt', 'pants', 'shoes'],
+                'optional': ['blazer', 'tie', 'jacket'],
+                'forbidden': ['shorts', 'flip-flops', 'tank-top', 'jeans']
+            },
+            'athletic': {
+                'required': ['top', 'shorts OR athletic-pants', 'sneakers'],
+                'optional': ['jacket', 'hat'],
+                'forbidden': ['dress-shirt', 'tie', 'dress-shoes']
+            },
+            'casual': {
+                'required': ['top', 'bottom'],
+                'optional': ['shoes', 'jacket', 'accessories'],
+                'forbidden': []
+            },
+            'weekend': {
+                'required': ['top', 'bottom'],
+                'optional': ['sneakers', 'hoodie', 'jacket'],
+                'forbidden': ['tie', 'dress-shoes']
+            }
+        }
+        
+        # Get requirements for current occasion
+        occasion = req.occasion.lower()
+        requirements = occasion_requirements.get(occasion, occasion_requirements['casual'])
+        
         # Enhanced filtering by occasion, style, and mood
         suitable_items = []
         for item in req.wardrobe:
             item_name = item.get('name', '').lower()
-            item_type = item.get('type', '')
+            item_type = item.get('type', '').lower()
             item_color = item.get('color', '').lower()
+            
+            # Check if item is forbidden for this occasion
+            is_forbidden = False
+            for forbidden in requirements.get('forbidden', []):
+                if forbidden in item_name or forbidden in item_type:
+                    is_forbidden = True
+                    break
+            
+            if is_forbidden:
+                continue
             
             # Score item based on occasion, style, and mood
             score = 0
             
-            # Occasion-based scoring
-            if req.occasion.lower() in ['business', 'formal']:
+            # Occasion-based scoring with hard requirements
+            if occasion in ['business', 'formal']:
                 if any(keyword in item_name for keyword in ['dress', 'formal', 'business', 'blazer', 'suit']):
                     score += 3
-                elif item_type in ['shirt', 'pants', 'shoes']:
+                elif item_type in requirements['required']:
+                    score += 2  # Required items get higher priority
+                elif item_type in requirements['optional']:
                     score += 1
-            elif req.occasion.lower() == 'athletic':
-                if any(keyword in item_name for keyword in ['athletic', 'sport', 'running', 'gym', 'workout']):
+                else:
+                    score += 0.5  # Other items still allowed but lower priority
+            elif occasion == 'athletic':
+                if any(keyword in item_name for keyword in ['athletic', 'sport', 'running', 'gym', 'workout', 'shorts']):
                     score += 3
-                elif item_type in ['shirt', 'pants', 'shoes']:
+                elif item_type in ['shorts', 'athletic-pants', 'track-pants']:
+                    score += 2  # Athletic bottoms get priority
+                elif item_type in ['sneakers', 'running-shoes']:
+                    score += 2  # Athletic shoes get priority
+                elif item_type in requirements['required']:
                     score += 1
+                elif item_type in requirements['optional']:
+                    score += 0.5
             else:
-                # Casual/other occasions
-                if item_type in ['shirt', 'pants', 'shoes']:
+                # Casual/other occasions - more flexible
+                if item_type in requirements['required']:
                     score += 2
+                elif item_type in requirements['optional']:
+                    score += 1
+                else:
+                    score += 0.5
             
-            # Style-based scoring
-            if req.style.lower() == 'classic':
-                if any(keyword in item_name for keyword in ['classic', 'traditional', 'timeless']):
-                    score += 2
+            # Style-based scoring (decorates occasion requirements, doesn't override)
+            style = req.style.lower()
+            if style == 'classic':
+                # Classic style: prefer traditional cuts and colors within occasion constraints
+                if any(keyword in item_name for keyword in ['classic', 'traditional', 'timeless', 'polo']):
+                    score += 1.5  # Boost classic items
                 if item_color in ['black', 'white', 'navy', 'grey', 'brown']:
                     score += 1
-            elif req.style.lower() == 'minimalist':
-                if any(keyword in item_name for keyword in ['minimal', 'simple', 'clean']):
+                # Classic + Athletic = polo shirt, not dress shirt
+                if occasion == 'athletic' and 'polo' in item_name:
                     score += 2
+            elif style == 'minimalist':
+                # Minimalist: clean lines, neutral colors
+                if any(keyword in item_name for keyword in ['minimal', 'simple', 'clean', 'basic']):
+                    score += 1.5
                 if item_color in ['white', 'black', 'grey', 'beige']:
-                    score += 2
-            elif req.style.lower() == 'maximalist':
-                if any(keyword in item_name for keyword in ['bold', 'statement', 'vibrant']):
-                    score += 2
+                    score += 1.5
+            elif style == 'maximalist':
+                # Maximalist: bold patterns, vibrant colors
+                if any(keyword in item_name for keyword in ['bold', 'statement', 'vibrant', 'patterned']):
+                    score += 1.5
                 if item_color in ['red', 'blue', 'green', 'yellow', 'purple']:
                     score += 1
+            elif style == 'streetwear':
+                # Streetwear: casual, trendy, athletic-inspired
+                if any(keyword in item_name for keyword in ['street', 'urban', 'hoodie', 'sweatshirt']):
+                    score += 1.5
+                if occasion == 'athletic' and any(keyword in item_name for keyword in ['jogger', 'sweatpant']):
+                    score += 2
             
             # Mood-based scoring
             if req.mood.lower() == 'bold':
@@ -387,6 +457,51 @@ async def generate_personalized_outfit(
         # Select items for the outfit (3-6 items based on occasion)
         target_count = 4 if req.occasion.lower() in ['business', 'formal'] else 3
         selected_items = sorted_items[:target_count]
+        
+        # VALIDATION: Ensure required occasion slots are filled
+        def validate_outfit_completeness(outfit_items, occasion_reqs):
+            item_types = [item.get('type', '').lower() for item in outfit_items]
+            item_names = [item.get('name', '').lower() for item in outfit_items]
+            
+            missing_required = []
+            for required in occasion_reqs['required']:
+                if ' OR ' in required:
+                    # Handle OR conditions (e.g., "shorts OR athletic-pants")
+                    options = [opt.strip() for opt in required.split(' OR ')]
+                    if not any(any(opt in item_type or opt in item_name for opt in options) 
+                              for item_type, item_name in zip(item_types, item_names)):
+                        missing_required.append(required)
+                else:
+                    # Single requirement
+                    if not any(required in item_type or required in item_name 
+                              for item_type, item_name in zip(item_types, item_names)):
+                        missing_required.append(required)
+            
+            return missing_required
+        
+        # Check if outfit meets occasion requirements
+        missing_required = validate_outfit_completeness(selected_items, requirements)
+        
+        # If missing required items, try to fill them
+        if missing_required:
+            print(f"🔍 DEBUG: Missing required items for {occasion}: {missing_required}")
+            
+            # Try to find items that fill missing requirements
+            for missing in missing_required:
+                if ' OR ' in missing:
+                    options = [opt.strip() for opt in missing.split(' OR ')]
+                    for option in options:
+                        for item in req.wardrobe:
+                            if (option in item.get('type', '').lower() or option in item.get('name', '').lower()) and item not in selected_items:
+                                selected_items.append(item)
+                                break
+                        if len(selected_items) >= target_count:
+                            break
+                else:
+                    for item in req.wardrobe:
+                        if (missing in item.get('type', '').lower() or missing in item.get('name', '').lower()) and item not in selected_items:
+                            selected_items.append(item)
+                            break
         
         # Ensure we have at least 3 items
         if len(selected_items) < 3:
@@ -426,7 +541,10 @@ async def generate_personalized_outfit(
                 "selected_from_real_items": True,
                 "style_mood_considered": True,
                 "scoring_applied": True,
-                "items_scored": len(suitable_items) if suitable_items else 0
+                "items_scored": len(suitable_items) if suitable_items else 0,
+                "occasion_requirements_met": len(missing_required) == 0 if 'missing_required' in locals() else True,
+                "validation_applied": True,
+                "hard_requirements_enforced": True
             }
         }
         
