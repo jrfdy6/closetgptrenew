@@ -1032,36 +1032,36 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         validation_result = await validation_service.validate_outfit_with_enhanced_rules(clothing_items, context)
         print(f"🔍 VALIDATION DEBUG: Validation completed, result keys: {validation_result.keys()}")
         print(f"🔍 VALIDATION DEBUG: Filtered items count: {len(validation_result.get('filtered_items', []))}")
+    
+    if validation_result.get("filtered_items"):
+        # Convert back to dict format
+        validated_outfit = []
+        for item in validation_result["filtered_items"]:
+            item_dict = {
+                "id": item.id,
+                "name": item.name,
+                "type": item.type,
+                "color": item.color,
+                "imageUrl": item.imageUrl,
+                "style": item.style,
+                "occasion": item.occasion,
+                "brand": item.brand,
+                "wearCount": item.wearCount,
+                "favorite_score": item.favorite_score,
+                "tags": item.tags,
+                "metadata": item.metadata
+            }
+            validated_outfit.append(item_dict)
         
-        if validation_result.get("filtered_items"):
-            # Convert back to dict format
-            validated_outfit = []
-            for item in validation_result["filtered_items"]:
-                item_dict = {
-                    "id": item.id,
-                    "name": item.name,
-                    "type": item.type,
-                    "color": item.color,
-                    "imageUrl": item.imageUrl,
-                    "style": item.style,
-                    "occasion": item.occasion,
-                    "brand": item.brand,
-                    "wearCount": item.wearCount,
-                    "favorite_score": item.favorite_score,
-                    "tags": item.tags,
-                    "metadata": item.metadata
-                }
-                validated_outfit.append(item_dict)
-            
-            logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
-            if validation_result.get("errors"):
-                logger.info(f"🔍 Validation errors: {validation_result['errors']}")
-            if validation_result.get("warnings"):
-                logger.info(f"🔍 Validation warnings: {validation_result['warnings']}")
-            
+        logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
+        if validation_result.get("errors"):
+            logger.info(f"🔍 Validation errors: {validation_result['errors']}")
+        if validation_result.get("warnings"):
+            logger.info(f"🔍 Validation warnings: {validation_result['warnings']}")
+        
             print(f"🔍 VALIDATION DEBUG: Returning {len(validated_outfit)} items")
-            return validated_outfit
-        else:
+        return validated_outfit
+                else:
             print(f"❌ VALIDATION DEBUG: No filtered items returned from enhanced validation!")
             print(f"❌ VALIDATION DEBUG: Validation result: {validation_result}")
             # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
@@ -4608,15 +4608,67 @@ async def generate_outfit(
             
             return missing_required
         
-        # Deduplication function (ported from simple-minimal)
-        def deduplicate_items(items):
+        # Category cardinality limits (prevents double-shoe issue)
+        def get_category_limits(occasion):
+            """Define category limits based on occasion"""
+            base_limits = {
+                "shirt": (1, 2),      # 1-2 shirts allowed
+                "top": (1, 2),        # 1-2 tops allowed  
+                "pants": (1, 1),      # exactly 1 pants
+                "shorts": (1, 1),     # exactly 1 shorts
+                "shoes": (1, 1),      # exactly 1 shoes (prevents double-shoe)
+                "jacket": (0, 1),     # 0-1 jacket
+                "blazer": (0, 1),     # 0-1 blazer
+                "accessories": (0, 2), # 0-2 accessories
+            }
+            
+            # Occasion-specific adjustments
+            occasion_lower = occasion.lower()
+            if occasion_lower in ['business', 'formal']:
+                # Business/formal: prefer structured limits
+                return {
+                    "shirt": (1, 1),      # exactly 1 shirt
+                    "top": (1, 1),        # exactly 1 top
+                    "pants": (1, 1),      # exactly 1 pants
+                    "shoes": (1, 1),      # exactly 1 shoes
+                    "jacket": (0, 1),     # 0-1 jacket/blazer
+                    "blazer": (0, 1),     # 0-1 blazer
+                    "accessories": (0, 1), # 0-1 accessories
+                }
+            elif occasion_lower == 'athletic':
+                # Athletic: allow layering but limit shoes
+                return {
+                    "top": (1, 2),        # 1-2 tops (layering)
+                    "shorts": (1, 1),     # exactly 1 shorts
+                    "pants": (1, 1),      # exactly 1 pants
+                    "shoes": (1, 1),      # exactly 1 shoes
+                    "jacket": (0, 1),     # 0-1 athletic jacket
+                    "accessories": (0, 1), # 0-1 accessories
+                }
+            else:
+                # Casual/weekend: more flexible
+                return base_limits
+        
+        # Enhanced deduplication with category cardinality limits
+        def deduplicate_items_with_limits(items, occasion):
+            from collections import defaultdict
+            
+            # Get category limits for this occasion
+            category_limits = get_category_limits(occasion)
+            
+            # Track items by category
+            category_counts = defaultdict(int)
+            final_items = []
+            
+            # First pass: remove exact duplicates (same ID or name+type+color)
             seen_ids = set()
             seen_combinations = set()
             unique_items = []
+            
             for item in items:
                 item_id = item.get('id', '')
                 item_name = item.get('name', '')
-                item_type = item.get('type', '')
+                item_type = item.get('type', '').lower()
                 item_color = item.get('color', '')
                 
                 # Create a combination key for name+type+color
@@ -4628,8 +4680,49 @@ async def generate_outfit(
                     seen_combinations.add(combination_key)
                     unique_items.append(item)
                 else:
-                    logger.info(f"🔍 DEBUG: Removed duplicate item: {item_name} ({item_color})")
-            return unique_items
+                    logger.info(f"🔍 DEBUG: Removed exact duplicate: {item_name} ({item_color})")
+            
+            # Second pass: enforce category cardinality limits
+            for item in unique_items:
+                item_type = item.get('type', '').lower()
+                
+                # Map item type to category
+                category = None
+                if item_type in ['shirt', 'blouse', 't-shirt', 'tank', 'sweater', 'hoodie']:
+                    category = 'top'
+                elif item_type in ['pants', 'jeans', 'trousers', 'slacks']:
+                    category = 'pants'
+                elif item_type in ['shorts', 'athletic-pants', 'joggers']:
+                    category = 'shorts'
+                elif item_type in ['shoes', 'sneakers', 'boots', 'sandals', 'oxford']:
+                    category = 'shoes'
+                elif item_type in ['jacket', 'blazer', 'cardigan']:
+                    category = 'jacket'
+                elif item_type in ['tie', 'belt', 'watch', 'hat']:
+                    category = 'accessories'
+                else:
+                    # For unknown types, be permissive
+                    category = 'other'
+                
+                # Check category limits
+                if category in category_limits:
+                    min_limit, max_limit = category_limits[category]
+                    current_count = category_counts[category]
+                    
+                    if current_count < max_limit:
+                        final_items.append(item)
+                        category_counts[category] += 1
+                        logger.info(f"✅ Added {item.get('name', 'Unknown')} ({category}, count: {category_counts[category]})")
+                    else:
+                        logger.info(f"❌ Skipped {item.get('name', 'Unknown')} ({category}) - category limit reached ({max_limit})")
+                else:
+                    # Unknown category - allow it
+                    final_items.append(item)
+                    logger.info(f"➕ Added {item.get('name', 'Unknown')} (unknown category)")
+            
+            # Log final category distribution
+            logger.info(f"🎯 Final outfit category distribution: {dict(category_counts)}")
+            return final_items
         
         # Enhanced request validation
         validation_errors = []
@@ -4681,7 +4774,7 @@ async def generate_outfit(
                 logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
                 
                 # Run generation logic with robust service
-                outfit = await generate_outfit_logic(req, current_user_id)
+        outfit = await generate_outfit_logic(req, current_user_id)
                 
                 # Apply hard occasion requirements validation (ported from simple-minimal)
                 if outfit and outfit.get('items'):
@@ -4689,8 +4782,8 @@ async def generate_outfit(
                     if occasion_lower in occasion_requirements:
                         requirements = occasion_requirements[occasion_lower]
                         
-                        # Apply deduplication first
-                        outfit['items'] = deduplicate_items(outfit['items'])
+                        # Apply enhanced deduplication with category limits (prevents double-shoe issue)
+                        outfit['items'] = deduplicate_items_with_limits(outfit['items'], req.occasion)
                         
                         # Check if outfit meets occasion requirements
                         missing_required = validate_outfit_completeness(outfit['items'], requirements)
@@ -4733,6 +4826,7 @@ async def generate_outfit(
                         outfit['metadata']['validation_applied'] = True
                         outfit['metadata']['hard_requirements_enforced'] = True
                         outfit['metadata']['deduplication_applied'] = True
+                        outfit['metadata']['category_limits_enforced'] = True  # NEW: Category cardinality limits
                         outfit['metadata']['unique_items_count'] = len(outfit['items'])
                         outfit['metadata']['occasion_requirements_met'] = len(final_missing) == 0 if 'final_missing' in locals() else True
                 
