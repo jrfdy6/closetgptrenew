@@ -485,7 +485,7 @@ class RobustOutfitGenerationService:
         return suitable_items
     
     async def _intelligent_item_selection(self, suitable_items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
-        """Intelligently select items for the outfit with dynamic limits"""
+        """Intelligently select items for the outfit with TARGET-DRIVEN sizing"""
         selected_items = []
         
         # SAFETY NET: Ensure we have items to work with
@@ -493,12 +493,15 @@ class RobustOutfitGenerationService:
             logger.warning(f"🚨 SAFETY NET: No suitable items for intelligent selection, using all wardrobe items")
             suitable_items = context.wardrobe[:]
         
-        # Get dynamic category limits based on occasion and style
-        category_limits = self._get_dynamic_category_limits(context)
+        # Calculate target item count FIRST (this is the primary goal)
+        target_count = self._get_target_item_count(context)
+        logger.info(f"🎯 TARGET-DRIVEN: Target count is {target_count} items for {context.occasion}")
+        
+        # Get dynamic category limits that ADAPT to target count
+        category_limits = self._get_dynamic_category_limits(context, target_count)
         category_counts = {cat: 0 for cat in category_limits.keys()}
         
-        # Calculate target item count based on occasion and style
-        target_count = self._get_target_item_count(context)
+        logger.info(f"🎯 TARGET-DRIVEN: Category limits for {target_count} items: {category_limits}")
         
         # Determine if outerwear is needed based on temperature and occasion
         needs_outerwear = self._needs_outerwear(context)
@@ -511,56 +514,70 @@ class RobustOutfitGenerationService:
         
         scored_items.sort(key=lambda x: x[1], reverse=True)
         
-        # Select items ensuring dynamic category limits
+        # TARGET-DRIVEN SELECTION: Prioritize reaching target count
         for item, score in scored_items:
+            # Stop when we reach the target count
+            if len(selected_items) >= target_count:
+                logger.info(f"🎯 TARGET-DRIVEN: Reached target count of {target_count} items")
+                break
+                
             item_category = self._get_item_category(item)
             
             # Skip outerwear if not needed
             if item_category == "outerwear" and not needs_outerwear:
                 continue
                 
-            if category_counts.get(item_category, 0) < category_limits.get(item_category, 2):
+            # Check category limits (now flexible based on target count)
+            if category_counts.get(item_category, 0) < category_limits.get(item_category, 0):
                 selected_items.append(item)
                 category_counts[item_category] += 1
-                
-                if len(selected_items) >= target_count:
-                    break
+                logger.info(f"🎯 TARGET-DRIVEN: Added {item.get('name', 'Unknown')} ({item_category}) - {len(selected_items)}/{target_count} items")
         
+        logger.info(f"🎯 TARGET-DRIVEN: Final selection: {len(selected_items)} items (target was {target_count})")
         return selected_items
     
-    def _get_dynamic_category_limits(self, context: GenerationContext) -> Dict[str, int]:
-        """Get dynamic category limits based on occasion and style - SIMPLIFIED"""
-        import random
-        
-        # Start with base limits - SIMPLIFIED
-        limits = {
-            "tops": 2,      # Usually just 1-2 tops
-            "bottoms": 1,   # Always just 1 bottom
-            "shoes": 1,     # Always just 1 pair of shoes
-            "outerwear": 1, # Usually just 1 outerwear (optional)
-            "accessories": 2 # Usually 0-2 accessories
-        }
-        
+    def _get_dynamic_category_limits(self, context: GenerationContext, target_count: int) -> Dict[str, int]:
+        """Get category limits that adapt to target count - TARGET-DRIVEN"""
         occasion_lower = context.occasion.lower()
         style_lower = context.style.lower() if context.style else ""
         
-        # Adjust based on occasion - SIMPLIFIED
-        if 'formal' in occasion_lower or 'business' in occasion_lower:
-            # Formal: allow more accessories
-            limits["accessories"] = 3
-        elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            # Athletic: keep it simple
-            limits["tops"] = 2
-            limits["accessories"] = 1
-        elif 'party' in occasion_lower or 'date' in occasion_lower:
-            # Social: allow more accessories
-            limits["accessories"] = 3
-        elif 'casual' in occasion_lower:
-            # Casual: flexible
-            limits["tops"] = 2
-            limits["accessories"] = 2
+        # TARGET-DRIVEN: Category limits adapt to target count
+        if target_count <= 3:
+            # Minimal outfit: essentials only
+            if 'athletic' in occasion_lower or 'gym' in occasion_lower:
+                return {"tops": 1, "bottoms": 1, "shoes": 1}
+            else:
+                return {"tops": 1, "bottoms": 1, "shoes": 1}
         
-        return limits
+        elif target_count == 4:
+            # Standard outfit: add one layer
+            if 'formal' in occasion_lower or 'business' in occasion_lower:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}  # Blazer required
+            elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}  # Athletic jacket
+            else:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 1}  # Casual accessory
+        
+        elif target_count == 5:
+            # Enhanced outfit: add layers
+            if 'formal' in occasion_lower or 'business' in occasion_lower:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}  # Blazer + accessory
+            elif 'party' in occasion_lower or 'date' in occasion_lower:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}  # Stylish layers
+            else:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}  # Casual layers
+        
+        elif target_count >= 6:
+            # Full outfit: maximum layers
+            if 'formal' in occasion_lower or 'business' in occasion_lower:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2, "sweater": 1}  # Full formal
+            elif 'party' in occasion_lower or 'date' in occasion_lower:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2}  # Full party
+            else:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2}  # Full casual
+        
+        # Fallback for unexpected target counts
+        return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
     
     def _get_target_item_count(self, context: GenerationContext) -> int:
         """Get target item count based on occasion, style, and mood - SIMPLIFIED"""
