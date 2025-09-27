@@ -573,9 +573,12 @@ async def generate_personalized_outfit(
                 "hard_requirements_enforced": True,
                 "deduplication_applied": True,
                 "unique_items_count": len(selected_items),
-                "personalization_score_message": "Not enough data yet (need 3+ interactions)"
+                "personalization_score_message": "Not enough data yet (need 3+ interactions)" if preference.interaction_count < 3 else "Score calculated"
             }
         }
+        
+        # Get user preference early for metadata
+        preference = personalization_engine.get_user_preference(user_id)
         
         # Extract outfit data for personalization
         outfit_data = {
@@ -584,12 +587,6 @@ async def generate_personalized_outfit(
             'occasion': req.occasion
         }
         
-        # Apply personalization if user has enough interactions
-        preference = personalization_engine.get_user_preference(user_id)
-        
-        # Update personalization score message based on actual interaction count
-        if preference.interaction_count >= 3:
-            existing_result["metadata"]["personalization_score_message"] = "Score calculated"
         
         if preference.interaction_count >= 3:
             # Apply personalization
