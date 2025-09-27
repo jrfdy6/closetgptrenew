@@ -584,47 +584,47 @@ class RobustOutfitGenerationService:
         return selected_items
     
     def _get_dynamic_category_limits(self, context: GenerationContext, target_count: int) -> Dict[str, int]:
-        """Get category limits that adapt to target count - TARGET-DRIVEN"""
+        """Get category limits that adapt to target count - TARGET-DRIVEN with optional outerwear"""
         occasion_lower = context.occasion.lower()
         style_lower = context.style.lower() if context.style else ""
         
-        # TARGET-DRIVEN: Category limits adapt to target count
+        # Check if outerwear is needed based on temperature, occasion, and style
+        needs_outerwear = self._needs_outerwear(context)
+        
+        # TARGET-DRIVEN: Category limits adapt to target count with optional outerwear
         if target_count <= 3:
             # Minimal outfit: essentials only
-            if 'athletic' in occasion_lower or 'gym' in occasion_lower:
-                return {"tops": 1, "bottoms": 1, "shoes": 1}
+            if needs_outerwear:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}
             else:
                 return {"tops": 1, "bottoms": 1, "shoes": 1}
         
         elif target_count == 4:
             # Standard outfit: add one layer
-            if 'formal' in occasion_lower or 'business' in occasion_lower:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}  # Blazer required
-            elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}  # Athletic jacket
+            if needs_outerwear:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1}
             else:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 1}  # Casual accessory
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 1}
         
         elif target_count == 5:
             # Enhanced outfit: add layers
-            if 'formal' in occasion_lower or 'business' in occasion_lower:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}  # Blazer + accessory
-            elif 'party' in occasion_lower or 'date' in occasion_lower:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}  # Stylish layers
+            if needs_outerwear:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
             else:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}  # Casual layers
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 2}
         
         elif target_count >= 6:
             # Full outfit: maximum layers
-            if 'formal' in occasion_lower or 'business' in occasion_lower:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2, "sweater": 1}  # Full formal
-            elif 'party' in occasion_lower or 'date' in occasion_lower:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2}  # Full party
+            if needs_outerwear:
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2, "sweater": 1}
             else:
-                return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 2}  # Full casual
+                return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 3, "sweater": 1}
         
         # Fallback for unexpected target counts
-        return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
+        if needs_outerwear:
+            return {"tops": 1, "bottoms": 1, "shoes": 1, "outerwear": 1, "accessories": 1}
+        else:
+            return {"tops": 1, "bottoms": 1, "shoes": 1, "accessories": 1}
     
     def _get_target_item_count(self, context: GenerationContext) -> int:
         """Get target item count based on occasion, style, and mood - SIMPLIFIED"""
