@@ -47,6 +47,7 @@ export default function PersonalizationDemoPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<PersonalizedOutfit | null>(null);
   const [testMode, setTestMode] = useState(false);
+  const [selectedGenerator, setSelectedGenerator] = useState<'simple-minimal' | 'robust'>('simple-minimal');
   
   // Form state for testing different combinations
   const [formData, setFormData] = useState({
@@ -270,12 +271,35 @@ export default function PersonalizationDemoPage() {
       }
       console.log('✅ [Demo] Data validation passed with', wardrobeItems.length, 'wardrobe items');
 
-      // Use the real outfit generation service
-      const { generateOutfit } = await import('@/lib/robustApiClient');
-      const response = await generateOutfit(convertedData, authToken);
-      const outfit = response.data;
+      // Use the selected outfit generation service
+      console.log(`🔍 [Demo] Using ${selectedGenerator} generator`);
       
-      console.log('✅ [Demo] Real outfit generated:', outfit);
+      let outfit;
+      if (selectedGenerator === 'simple-minimal') {
+        // Use simple-minimal generator (current working version)
+        const { generateOutfit } = await import('@/lib/robustApiClient');
+        const response = await generateOutfit(convertedData, authToken);
+        outfit = response.data;
+        console.log('✅ [Demo] Simple-minimal outfit generated:', outfit);
+      } else {
+        // Use robust generator (advanced version)
+        console.log('🔄 [Demo] Calling robust generator endpoint');
+        const robustResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfits/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: JSON.stringify(convertedData),
+        });
+        
+        if (!robustResponse.ok) {
+          throw new Error(`Robust generator failed: ${robustResponse.status} ${robustResponse.statusText}`);
+        }
+        
+        outfit = await robustResponse.json();
+        console.log('✅ [Demo] Robust outfit generated:', outfit);
+      }
 
       if (outfit) {
         setGeneratedOutfit(outfit);
@@ -633,6 +657,47 @@ export default function PersonalizationDemoPage() {
                     </div>
                   </div>
 
+                  {/* Generator Selection Toggle */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <label className="block text-sm font-medium mb-3">Outfit Generator</label>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="simple-minimal"
+                          name="generator"
+                          value="simple-minimal"
+                          checked={selectedGenerator === 'simple-minimal'}
+                          onChange={(e) => setSelectedGenerator(e.target.value as 'simple-minimal' | 'robust')}
+                          className="mr-2"
+                        />
+                        <label htmlFor="simple-minimal" className="text-sm font-medium">
+                          Simple-Minimal
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="robust"
+                          name="generator"
+                          value="robust"
+                          checked={selectedGenerator === 'robust'}
+                          onChange={(e) => setSelectedGenerator(e.target.value as 'simple-minimal' | 'robust')}
+                          className="mr-2"
+                        />
+                        <label htmlFor="robust" className="text-sm font-medium">
+                          Robust Generator
+                        </label>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      {selectedGenerator === 'simple-minimal' 
+                        ? '✅ Reliable, handles edge cases gracefully, good for testing'
+                        : '🔄 Advanced features, body type optimization, multiple strategies'
+                      }
+                    </div>
+                  </div>
+
                   <Button 
                     onClick={handleGenerateOutfit}
                     disabled={generating || isLoading}
@@ -641,12 +706,12 @@ export default function PersonalizationDemoPage() {
                     {generating ? (
                       <>
                         <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Generating {formData.style} {formData.occasion} Outfit...
+                        Generating {formData.style} {formData.occasion} Outfit ({selectedGenerator})...
                       </>
                     ) : (
                       <>
                         <TestTube className="h-4 w-4 mr-2" />
-                        Generate {formData.style} {formData.occasion} Outfit
+                        Generate {formData.style} {formData.occasion} Outfit ({selectedGenerator})
                       </>
                     )}
                   </Button>
@@ -724,6 +789,47 @@ export default function PersonalizationDemoPage() {
                             {generatedOutfit.items?.filter(item => item.diversityScore > 0).length || 0} Enhanced
                           </span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Generator Comparison Metrics */}
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <div className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">
+                        Generator: {selectedGenerator === 'simple-minimal' ? 'Simple-Minimal' : 'Robust'}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex justify-between">
+                          <span>Items Generated:</span>
+                          <span className="font-medium">{generatedOutfit.items?.length || 0}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Confidence:</span>
+                          <span className="font-medium">{generatedOutfit.confidence ? `${Math.round(generatedOutfit.confidence * 100)}%` : 'N/A'}</span>
+                        </div>
+                        {generatedOutfit.metadata && (
+                          <>
+                            <div className="flex justify-between">
+                              <span>Validation Applied:</span>
+                              <span className="font-medium">{generatedOutfit.metadata.validation_applied ? '✅' : '❌'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Requirements Met:</span>
+                              <span className="font-medium">{generatedOutfit.metadata.occasion_requirements_met ? '✅' : '❌'}</span>
+                            </div>
+                            {generatedOutfit.metadata.deduplication_applied && (
+                              <div className="flex justify-between">
+                                <span>Deduplication:</span>
+                                <span className="font-medium">✅</span>
+                              </div>
+                            )}
+                            {generatedOutfit.metadata.unique_items_count && (
+                              <div className="flex justify-between">
+                                <span>Unique Items:</span>
+                                <span className="font-medium">{generatedOutfit.metadata.unique_items_count}</span>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
 
