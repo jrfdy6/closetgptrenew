@@ -100,7 +100,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, field_validator
 
 # Import authentication
-from ..auth.auth_service import get_current_user
+from ..auth.auth_service import get_current_user, get_current_user_id
 from ..custom_types.profile import UserProfile
 
 logger = logging.getLogger(__name__)
