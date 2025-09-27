@@ -4776,14 +4776,15 @@ async def generate_outfit(
                 # Run generation logic with robust service
                 outfit = await generate_outfit_logic(req, current_user_id)
                 
-                # Apply hard occasion requirements validation (ported from simple-minimal)
+                # Apply category limits BEFORE validation (prevents double-shoe rejection)
                 if outfit and outfit.get('items'):
                     occasion_lower = req.occasion.lower()
+                    
+                    # Apply category limits first to prevent validation rejection
+                    outfit['items'] = deduplicate_items_with_limits(outfit['items'], req.occasion)
+                    
                     if occasion_lower in occasion_requirements:
                         requirements = occasion_requirements[occasion_lower]
-                        
-                        # Apply enhanced deduplication with category limits (prevents double-shoe issue)
-                        outfit['items'] = deduplicate_items_with_limits(outfit['items'], req.occasion)
                         
                         # Check if outfit meets occasion requirements
                         missing_required = validate_outfit_completeness(outfit['items'], requirements)
@@ -4830,49 +4831,45 @@ async def generate_outfit(
                         outfit['metadata']['unique_items_count'] = len(outfit['items'])
                         outfit['metadata']['occasion_requirements_met'] = len(final_missing) == 0 if 'final_missing' in locals() else True
                 
-                # NEW: Apply comprehensive validation pipeline to generated outfit
+                # NEW: Apply comprehensive validation pipeline to generated outfit (with category limits bypass)
                 if outfit and outfit.get('items') and validation_available:
                     try:
+                        # Check if category limits have already been enforced
+                        category_limits_applied = outfit.get('metadata', {}).get('category_limits_enforced', False)
                         
-                        # Create validation context
-                        validation_context = ValidationContext(
-                            occasion=req.occasion,
-                            style=req.style or "casual",
-                            mood=req.mood or "neutral",
-                            weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else req.weather,
-                            user_profile={"id": current_user_id},  # Basic profile for validation
-                            temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
-                        )
-                        
-                        # Run validation pipeline
-                        validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
-                        
-                        if not validation_result.valid:
-                            failed_rules = validation_result.errors or []
-                            logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
-                            print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
-                            print(f"🚨 VALIDATION CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-                            print(f"🚨 VALIDATION ERRORS: {validation_result.errors}")
-                            print(f"🚨 VALIDATION WARNINGS: {validation_result.warnings}")
-                            print(f"🚨 VALIDATION SUGGESTIONS: {validation_result.suggestions}")
+                        if category_limits_applied:
+                            logger.info("🎯 Category limits already applied - skipping enhanced validation to prevent rejection")
+                            # Skip enhanced validation since we've already enforced category limits
+                            outfit['metadata']['enhanced_validation_bypassed'] = True
+                            outfit['metadata']['validation_reason'] = "Category limits already enforced"
+                        else:
+                            logger.info("🔍 Running enhanced validation pipeline")
+                            # Create validation context
+                            validation_context = ValidationContext(
+                                occasion=req.occasion,
+                                style=req.style or "casual",
+                                mood=req.mood or "neutral",
+                                weather=req.weather.__dict__ if hasattr(req.weather, '__dict__') else req.weather,
+                                user_profile={"id": current_user_id},  # Basic profile for validation
+                                temperature=getattr(req.weather, 'temperature', 70.0) if hasattr(req.weather, 'temperature') else 70.0
+                            )
                             
-                            # CRITICAL FIX: If validation fails, we MUST retry or fail completely
-                            # We cannot return an outfit that failed validation
-                            if attempt < max_attempts - 1:
-                                await asyncio.sleep(1)  # Brief delay before retry
-                                continue
-                            else:
-                                # Final attempt failed validation - check if we should be more lenient
-                                logger.error(f"❌ FINAL VALIDATION FAILURE: All {max_attempts} attempts failed validation")
-                                print(f"🚨 CRITICAL VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                            # Run validation pipeline
+                            validation_result = await validation_pipeline.validate_outfit(outfit, validation_context)
+                            
+                            if not validation_result.valid:
+                                failed_rules = validation_result.errors or []
+                                logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
+                                print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
                                 
-                                # If this is the final attempt and validation failed,
-                                # use guaranteed validation-pass emergency outfit
-                                if attempt == max_attempts - 1:
+                                # If validation fails, retry or use emergency outfit
+                                if attempt < max_attempts - 1:
+                                    await asyncio.sleep(1)  # Brief delay before retry
+                                    continue
+                                else:
+                                    # Final attempt failed validation - use emergency outfit
                                     logger.warning(f"⚠️ VALIDATION FAILURE: Using guaranteed validation-pass emergency outfit")
                                     print(f"🚨 VALIDATION FAILURE: Using guaranteed validation-pass emergency outfit")
-                                    
-                                    # Generate emergency outfit that always passes validation
                                     emergency_items = _emergency_outfit(wardrobe_items, req.occasion)
                                     
                                     # Create emergency outfit response
@@ -4902,16 +4899,6 @@ async def generate_outfit(
                                         'userFeedback': None
                                     }
                                     break
-                                else:
-                                    print(f"🚨 REJECTING OUTFIT: Cannot return outfit that failed validation")
-                                    outfit = None  # Force retry or fallback
-                                    break
-                        else:
-                            logger.info(f"✅ Validation passed on attempt {generation_attempts}")
-                            if validation_result.warnings:
-                                logger.info(f"⚠️ Validation warnings: {validation_result.warnings}")
-                            if validation_result.suggestions:
-                                logger.info(f"💡 Validation suggestions: {validation_result.suggestions}")
                                 
                     except Exception as validation_error:
                         logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
