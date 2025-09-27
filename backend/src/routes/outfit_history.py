@@ -71,7 +71,7 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
         logger.info(f"🗓️ Checking outfits worn between {week_start} and {week_end}")
         
         # Count individual wear events from outfit_history collection
-        history_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        history_ref = db.collection('outfit_history').where(filter=('user_id', '==', user_id))
         total_worn = 0
         
         history_docs = history_ref.stream()
@@ -158,20 +158,20 @@ async def get_outfit_history(
         # Query outfit_history collection
         db = get_db()
         logger.info(f"🔍 DEBUG: About to query outfit_history collection for user {current_user.id}")
-        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
+        query = db.collection('outfit_history').where(filter=('user_id', '==', current_user.id))
         
         # Add outfit_id filter if provided
         if outfit_id:
-            query = query.where('outfit_id', '==', outfit_id)
+            query = query.where(filter=('outfit_id', '==', outfit_id))
         
         # Add date filters if provided
         if start_date:
             start_timestamp = datetime.strptime(start_date, '%Y-%m-%d').timestamp() * 1000
-            query = query.where('date_worn', '>=', start_timestamp)
+            query = query.where(filter=('date_worn', '>=', start_timestamp))
         
         if end_date:
             end_timestamp = datetime.strptime(end_date, '%Y-%m-%d').timestamp() * 1000
-            query = query.where('date_worn', '<=', end_timestamp)
+            query = query.where(filter=('date_worn', '<=', end_timestamp))
         
         # Limit results before ordering (Firestore requirement)
         if limit:
@@ -559,9 +559,9 @@ async def get_todays_outfit(
             }
         
         # Query outfit history for today
-        query = db.collection('outfit_history').where('user_id', '==', current_user.id)
-        query = query.where('date_worn', '>=', start_timestamp)
-        query = query.where('date_worn', '<=', end_timestamp)
+        query = db.collection('outfit_history').where(filter=('user_id', '==', current_user.id))
+        query = query.where(filter=('date_worn', '>=', start_timestamp))
+        query = query.where(filter=('date_worn', '<=', end_timestamp))
         
         # Execute query with enhanced error handling
         todays_outfits = []
@@ -646,7 +646,7 @@ async def get_todays_outfit_suggestion(
         
         # Look for existing suggestion for today
         suggestions_ref = db.collection('daily_outfit_suggestions')
-        query = suggestions_ref.where('user_id', '==', current_user.id).where('date', '==', today_str)
+        query = suggestions_ref.where(filter=('user_id', '==', current_user.id)).where(filter=('date', '==', today_str))
         existing_docs = list(query.stream())
         
         if existing_docs:
@@ -876,7 +876,7 @@ async def clear_todays_suggestion_cache(
         
         # Delete all suggestions for today
         suggestions_ref = db.collection('daily_outfit_suggestions')
-        query = suggestions_ref.where('user_id', '==', current_user.id).where('date', '==', today_str)
+        query = suggestions_ref.where(filter=('user_id', '==', current_user.id)).where(filter=('date', '==', today_str))
         existing_docs = list(query.stream())
         
         deleted_count = 0
@@ -1101,7 +1101,7 @@ async def debug_user_outfit_history(
         for collection_name in collections_to_check:
             logger.info(f"🔍 Checking collection: {collection_name}")
             collection_ref = db.collection(collection_name)
-            query = collection_ref.where("user_id", "==", user_id)
+            query = collection_ref.where(filter=("user_id", "==", user_id))
             docs = query.stream()
 
             collection_docs = []
@@ -1263,7 +1263,7 @@ async def verify_worn_calculation(
         logger.info(f"📅 Week range: {week_start} to {week_end}")
         
         # Manual count from outfits collection
-        outfits_ref = db.collection('outfits').where('user_id', '==', user_id)
+        outfits_ref = db.collection('outfits').where(filter=('user_id', '==', user_id))
         outfits_count = 0
         outfits_found = []
         
@@ -1282,7 +1282,7 @@ async def verify_worn_calculation(
                 })
         
         # Manual count from outfit_history collection
-        history_ref = db.collection('outfit_history').where('user_id', '==', user_id)
+        history_ref = db.collection('outfit_history').where(filter=('user_id', '==', user_id))
         history_count = 0
         history_found = []
         unique_outfits = set()

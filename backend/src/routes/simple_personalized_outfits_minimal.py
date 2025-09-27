@@ -416,6 +416,7 @@ async def generate_personalized_outfit(
                 for i, item in enumerate(selected_items)
             ],
             "confidence": 0.8,
+            "personalization_applied": True,  # We ARE applying personalization (style/mood scoring)
             "metadata": {
                 "generated_by": "simple_personalization_real_wardrobe",
                 "occasion": req.occasion,
