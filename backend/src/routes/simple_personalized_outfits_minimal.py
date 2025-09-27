@@ -310,6 +310,9 @@ async def generate_personalized_outfit(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit for user {user_id}")
         
+        # Initialize preference early to prevent variable scope errors
+        preference = personalization_engine.get_user_preference(user_id)
+        
         # Use real wardrobe items from the request instead of mock data
         if not req.wardrobe or len(req.wardrobe) == 0:
             raise HTTPException(status_code=400, detail="No wardrobe items provided")
@@ -454,8 +457,7 @@ async def generate_personalized_outfit(
             # Fallback: if no scored items, use any wardrobe items
             sorted_items = [item for item in req.wardrobe if item.get('type') in ['shirt', 'pants', 'shoes']][:6]
         
-        # Get user preference early for metadata
-        preference = personalization_engine.get_user_preference(user_id)
+        # Preference already initialized above
         
         # Select items for the outfit (3-6 items based on occasion)
         target_count = 4 if req.occasion.lower() in ['business', 'formal'] else 3
@@ -512,6 +514,12 @@ async def generate_personalized_outfit(
             if final_missing:
                 print(f"⚠️ WARNING: Still missing required items after fallback: {final_missing}")
                 print(f"🔍 DEBUG: Proceeding with incomplete outfit - this may not be ideal for {occasion}")
+                
+                # Additional safety check - ensure we have at least some items
+                if len(selected_items) == 0:
+                    print(f"🚨 CRITICAL: No items selected after validation - using emergency fallback")
+                    # Emergency fallback: use any available items
+                    selected_items = req.wardrobe[:3] if len(req.wardrobe) >= 3 else req.wardrobe
         
         # DEDUPLICATION: Remove duplicate items by ID and name+type+color combination
         def deduplicate_items(items):
