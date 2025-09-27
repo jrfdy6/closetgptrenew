@@ -115,7 +115,7 @@ export default function PersonalizationDemoPage() {
       let recentlyWornItems = new Set();
       
       try {
-        const outfitsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfits/`, {
+        const outfitsResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfit/`, {
           headers: {
             'Authorization': `Bearer ${authToken}`,
           },

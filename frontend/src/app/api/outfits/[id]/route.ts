@@ -35,7 +35,7 @@ export async function PUT(
     
     // Call the production backend
     const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
-    const fullBackendUrl = `${backendUrl}/api/outfits/${outfitId}`;
+    const fullBackendUrl = `${backendUrl}/api/outfit/${outfitId}`;
     console.log('🔍 DEBUG: About to call backend PUT:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
@@ -122,7 +122,7 @@ export async function DELETE(
     
     // Call the production backend
     const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
-    const fullBackendUrl = `${backendUrl}/api/outfits/${outfitId}`;
+    const fullBackendUrl = `${backendUrl}/api/outfit/${outfitId}`;
     console.log('🔍 DEBUG: About to call backend DELETE:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {

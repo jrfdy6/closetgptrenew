@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
                       'https://closetgptrenew-backend-production.up.railway.app';
     
     // Call the backend endpoint for worn outfits this week
-    const fullBackendUrl = `${backendUrl}/api/outfits/analytics/worn-this-week`;
+    const fullBackendUrl = `${backendUrl}/api/simple-analytics/outfits-worn-this-week`;
     console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
     
     // Use test token if no auth header provided (for testing)

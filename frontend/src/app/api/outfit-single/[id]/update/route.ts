@@ -28,7 +28,7 @@ export async function PUT(
     }
     
     // Forward the request to the backend
-    const response = await fetch(`${API_URL}/api/outfits/${id}`, {
+    const response = await fetch(`${API_URL}/api/outfit/${id}`, {
       method: 'PUT',
       headers,
       body: JSON.stringify(body),

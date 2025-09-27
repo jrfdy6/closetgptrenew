@@ -355,7 +355,7 @@ export function SmartWeatherOutfitGenerator({
       const token = await user.getIdToken();
       
       // Mark outfit as worn
-      const response = await fetch(`/api/outfits/${generatedOutfit.id}/worn`, {
+      const response = await fetch(`/api/outfit-history/mark-worn`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -377,7 +377,7 @@ export function SmartWeatherOutfitGenerator({
               try {
                 console.log('🧪 Testing: Fetching user_stats directly to check increment...');
                 const token = await user.getIdToken();
-                const testResponse = await fetch('/api/outfits/analytics/worn-this-week', {
+                const testResponse = await fetch('/api/simple-analytics/outfits-worn-this-week', {
                   method: 'GET',
                   headers: {
                     'Authorization': `Bearer ${token}`,

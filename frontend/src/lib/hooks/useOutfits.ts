@@ -210,7 +210,7 @@ export function useOutfits(): UseOutfitsReturn {
       
       // Use API route to mark as worn - this updates backend stats for dashboard counter
       const token = await user.getIdToken();
-      const response = await fetch(`/api/outfits/${id}/worn`, {
+      const response = await fetch(`/api/outfit-history/mark-worn`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

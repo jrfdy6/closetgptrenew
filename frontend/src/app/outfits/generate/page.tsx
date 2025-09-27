@@ -602,7 +602,7 @@ export default function OutfitGenerationPage() {
     try {
       // Use API route to mark as worn - this updates backend stats for dashboard counter
       const wornToken = await user.getIdToken();
-      const response = await fetch(`/api/outfits/${generatedOutfit.id}/worn`, {
+      const response = await fetch(`/api/outfit-history/mark-worn`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${wornToken}`,
@@ -801,7 +801,7 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Submitting rating payload:', ratingPayload);
       
       // Submit rating to backend
-      const response = await fetch('/api/outfits/rate', {
+      const response = await fetch('/api/outfit/rate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${ratingToken}`,

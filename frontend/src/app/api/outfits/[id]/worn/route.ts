@@ -34,7 +34,7 @@ export async function POST(
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
     try {
-      const backendResponse = await fetch(`${backendUrl}/api/outfits/${outfitId}/worn`, {
+      const backendResponse = await fetch(`${backendUrl}/api/outfit-history/mark-worn`, {
         method: 'POST',
         headers: {
           'Authorization': authHeader,

@@ -540,7 +540,7 @@ export function useOutfits(): UseOutfitsReturn {
       
       // Call Next.js API route instead of backend directly
       const token = await user.getIdToken();
-      const response = await fetch('/api/outfits/stats', {
+      const response = await fetch('/api/outfit-stats/stats', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

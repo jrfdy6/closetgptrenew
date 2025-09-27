@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const fullApiUrl = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
 
-    const response = await fetch(`${fullApiUrl}/api/outfits/mark-worn`, {
+    const response = await fetch(`${fullApiUrl}/api/outfit-history/mark-worn`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

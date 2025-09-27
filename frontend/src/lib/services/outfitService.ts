@@ -262,7 +262,7 @@ export class OutfitService {
       const token = await user.getIdToken();
       
       // Use Next.js API route as proxy to avoid Railway HTTPS redirect issues
-      const fullUrl = `/api/outfits/${outfitId}`;
+      const fullUrl = `/api/outfit/${outfitId}`;
       console.log('🔍 DEBUG: Using Next.js API route as proxy:', fullUrl);
       
       const response = await fetch(fullUrl, {
