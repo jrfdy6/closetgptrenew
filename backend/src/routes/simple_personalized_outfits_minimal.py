@@ -572,7 +572,8 @@ async def generate_personalized_outfit(
                 "validation_applied": True,
                 "hard_requirements_enforced": True,
                 "deduplication_applied": True,
-                "unique_items_count": len(selected_items)
+                "unique_items_count": len(selected_items),
+                "personalization_score_message": "Not enough data yet (need 3+ interactions)" if preference.interaction_count < 3 else "Score calculated"
             }
         }
         
@@ -606,7 +607,7 @@ async def generate_personalized_outfit(
             "mood": req.mood,
             "weather": req.weather or {},
             "confidence": existing_result.get("confidence", 0.8),
-            "personalization_score": existing_result.get("personalization_score") if preference.interaction_count >= 3 else "Not enough data yet",
+            "personalization_score": existing_result.get("personalization_score") if preference.interaction_count >= 3 else None,
             "personalization_applied": existing_result.get("personalization_applied", False),
             "user_interactions": preference.interaction_count,
             "metadata": {
