@@ -379,7 +379,7 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
   
   return await client.request({
     method: 'POST',
-    endpoint: '/api/outfit/generate',
+        endpoint: '/api/outfits-simple-minimal/generate-personalized',
     data: requestData,
     retryable: true,
     authToken: authToken
