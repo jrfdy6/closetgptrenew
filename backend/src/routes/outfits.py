@@ -1142,7 +1142,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     try:
         validation_result = await validation_service.validate_outfit_with_enhanced_rules(clothing_items, context)
         print(f"🔍 VALIDATION DEBUG: Validation completed, result keys: {validation_result.keys()}")
-        print(f"🔍 VALIDATION DEBUG: Filtered items count: {len(validation_result.get("filtered_items", []))}")
+        print(f"🔍 VALIDATION DEBUG: Filtered items count: {len(validation_result.get('filtered_items', []))}")
         
         if validation_result.get("filtered_items"):
             # Convert back to dict format
@@ -1166,9 +1166,11 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
             
             logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
             if validation_result.get("errors"):
-                logger.info(f"🔍 Validation errors: {validation_result["errors"]}")
+                errors = validation_result["errors"]
+                logger.info(f"🔍 Validation errors: {errors}")
             if validation_result.get("warnings"):
-                logger.info(f"🔍 Validation warnings: {validation_result["warnings"]}")
+                warnings = validation_result["warnings"]
+                logger.info(f"🔍 Validation warnings: {warnings}")
             
             print(f"🔍 VALIDATION DEBUG: Returning {len(validated_outfit)} items")
             return validated_outfit
