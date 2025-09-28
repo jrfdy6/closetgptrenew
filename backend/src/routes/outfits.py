@@ -769,17 +769,90 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
                 
                 # Use WardrobePreprocessor to ensure all items are valid ClothingItem objects
-                from ..services.wardrobe_preprocessor import WardrobePreprocessor
+                logger.info(f"🔧 DEBUG: About to import WardrobePreprocessor")
+                try:
+                    from ..services.wardrobe_preprocessor import WardrobePreprocessor
+                    logger.info(f"🔧 DEBUG: WardrobePreprocessor imported successfully")
+                    
+                    preprocessor = WardrobePreprocessor()
+                    logger.info(f"🔧 DEBUG: WardrobePreprocessor instantiated successfully")
+                    
+                    clothing_items = preprocessor.preprocess_wardrobe(wardrobe_items, user_id)
+                    logger.info(f"🔧 DEBUG: Preprocessing completed, got {len(clothing_items)} items")
+                except Exception as e:
+                    logger.error(f"🔧 DEBUG: WardrobePreprocessor failed: {e}")
+                    logger.error(f"🔧 DEBUG: Falling back to old conversion method")
+                    # Fallback to old method
+                    from ..custom_types.wardrobe import ClothingItem
+                    from ..utils.validation import normalize_clothing_type
+                    import time
+                    
+                    clothing_items = []
+                    for item_dict in wardrobe_items:
+                        try:
+                            raw_type = item_dict.get("type", "other")
+                            if isinstance(raw_type, str):
+                                raw_type = raw_type.lower()
+                            normalized_type = normalize_clothing_type(raw_type)
+                            now = int(time.time() * 1000)
+                            
+                            clothing_item = ClothingItem(
+                                id=item_dict.get("id", ""),
+                                name=item_dict.get("name", "Unknown Item"),
+                                type=normalized_type,
+                                color=item_dict.get("color", "unknown"),
+                                imageUrl=item_dict.get("imageUrl", ""),
+                                style=item_dict.get("style", []),
+                                occasion=item_dict.get("occasion", ["casual"]),
+                                season=item_dict.get("season", ["all"]),
+                                userId=item_dict.get("userId", user_id),
+                                dominantColors=item_dict.get("dominantColors", []),
+                                matchingColors=item_dict.get("matchingColors", []),
+                                createdAt=item_dict.get("createdAt", now),
+                                updatedAt=item_dict.get("updatedAt", now),
+                                brand=item_dict.get("brand", None),
+                                wearCount=item_dict.get("wearCount", 0),
+                                favorite_score=item_dict.get("favorite_score", 0.0),
+                                tags=item_dict.get("tags", []),
+                                subType=item_dict.get("subType", None),
+                                colorName=item_dict.get("colorName", None),
+                                backgroundRemoved=item_dict.get("backgroundRemoved", None),
+                                embedding=item_dict.get("embedding", None),
+                                metadata={
+                                    "analysisTimestamp": now,
+                                    "originalType": raw_type,
+                                    "originalSubType": None,
+                                    "styleTags": item_dict.get("style", []),
+                                    "occasionTags": item_dict.get("occasion", ["casual"]),
+                                    "brand": item_dict.get("brand", None),
+                                    "imageHash": None,
+                                    "colorAnalysis": {"dominant": [], "matching": []},
+                                    "basicMetadata": None,
+                                    "visualAttributes": None,
+                                    "itemMetadata": None,
+                                    "naturalDescription": None,
+                                    "temperatureCompatibility": None,
+                                    "materialCompatibility": None,
+                                    "bodyTypeCompatibility": None,
+                                    "skinToneCompatibility": None,
+                                    "outfitScoring": None
+                                }
+                            )
+                            clothing_items.append(clothing_item)
+                        except Exception as item_error:
+                            logger.warning(f"⚠️ Failed to convert item: {item_error}")
+                            continue
                 
-                preprocessor = WardrobePreprocessor()
-                clothing_items = preprocessor.preprocess_wardrobe(wardrobe_items, user_id)
-                
-                if preprocessor.has_errors():
-                    logger.warning(f"⚠️ Preprocessing completed with {len(preprocessor.get_conversion_errors())} errors")
-                    for error in preprocessor.get_conversion_errors():
-                        logger.warning(f"⚠️ {error}")
-                else:
-                    logger.info(f"✅ Preprocessing completed successfully - all {len(clothing_items)} items converted")
+                # Check for preprocessing errors only if preprocessor was used
+                try:
+                    if preprocessor.has_errors():
+                        logger.warning(f"⚠️ Preprocessing completed with {len(preprocessor.get_conversion_errors())} errors")
+                        for error in preprocessor.get_conversion_errors():
+                            logger.warning(f"⚠️ {error}")
+                    else:
+                        logger.info(f"✅ Preprocessing completed successfully - all {len(clothing_items)} items converted")
+                except:
+                    logger.info(f"✅ Fallback conversion completed - {len(clothing_items)} items converted")
                 
                 context = GenerationContext(
                     user_id=user_id,
