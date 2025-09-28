@@ -787,12 +787,19 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     
                     logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
                     logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
+                    logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
                     
                     # Log the generation strategy used
                     strategy = robust_outfit.metadata.get('generation_strategy', 'unknown')
                     logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
                     logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
                     print(f"🎯 GENERATION STRATEGY: {strategy}")
+                    
+                    # Check if robust service is internally falling back
+                    if strategy == 'fallback_simple':
+                        logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
+                        print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
+                        print(f"🚨 This means the robust service is working but failing internally")
                     
                 except Exception as e:
                     logger.error(f"[GENERATION][ROBUST][ERROR] {e}", exc_info=True)
@@ -839,6 +846,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
             else:
                 logger.warning("⚠️ Robust service not available, falling back to rule-based generation")
+                print(f"🚨 ROBUST SERVICE NOT AVAILABLE: RobustOutfitGenerationService or GenerationContext is None")
+                print(f"🚨 This means the robust service import failed or is not properly configured")
             outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
             
             # Add weather data to outfit for base item validation
