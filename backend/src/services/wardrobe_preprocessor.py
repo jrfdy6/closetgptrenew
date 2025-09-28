@@ -34,7 +34,7 @@ class WardrobePreprocessor:
         Returns:
             List of valid ClothingItem objects
         """
-        logger.info(f"🔧 WARDROBE PREPROCESSOR: Starting preprocessing of {len(raw_wardrobe)} items")
+        logger.info(f"🔧 WARDROBE PREPROCESSOR: Starting preprocessing of {len(raw_wardrobe)} items - v2.0")
         
         clothing_items = []
         self.conversion_errors = []
