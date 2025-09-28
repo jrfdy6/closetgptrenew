@@ -20,6 +20,7 @@ from ..custom_types.wardrobe import ClothingItem
 from ..custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
 from ..custom_types.weather import WeatherData
 from ..custom_types.profile import UserProfile
+from .robust_hydrator import ensure_items_safe_for_pydantic
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,18 @@ class RobustOutfitGenerationService:
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
+        
+        # Safety-net hydration at start of pipeline
+        logger.info(f"🔧 ROBUST HYDRATOR: Starting safety check for wardrobe items")
+        if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
+            # Convert raw wardrobe items to ClothingItem objects with safety net
+            safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
+            logger.info(f"✅ ROBUST HYDRATOR: {len(safe_wardrobe)} items validated and ready")
+            # Update context with safe wardrobe
+            context.wardrobe = safe_wardrobe
+        else:
+            logger.info(f"✅ ROBUST HYDRATOR: Wardrobe items already ClothingItem objects, skipping hydration")
+        
         # Handle weather data safely
         if hasattr(context.weather, 'temperature'):
             temp = context.weather.temperature
