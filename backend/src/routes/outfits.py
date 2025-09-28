@@ -972,9 +972,13 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         print(f"🚨 ROBUST TRACEBACK: {str(e)}")
         
         # FALLBACK RE-ENABLED - Root cause identified and fixed (weather data format)
-        fallback_reason = f"Exception in robust generation: {type(e).__name__}: {e}"
-        logger.warning(f"🔍 ROBUST FALLBACK TRIGGERED: {fallback_reason}")
-        print(f"🚨 ROBUST FALLBACK TRIGGERED: {fallback_reason}")
+        logger.warning(f"⚠️ FALLBACK TRIGGERED: Outfit generation failed with exception: {e}")
+        logger.exception("Full traceback:")
+        print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
+        print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+        print(f"🚨 FALLBACK REASON: Exception - {type(e).__name__}: {e}")
+        print(f"🚨 FALLBACK TRACEBACK: {str(e)}")
+        # Fallback to basic generation if rule-based generation fails
         return await generate_fallback_outfit(req, user_id)
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
