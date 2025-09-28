@@ -475,7 +475,7 @@ class RobustOutfitGenerationService:
         
         return outfit
     
-    async def _filter_suitable_items(self, context: GenerationContext) -> List[Dict[str, Any]]:
+    async def _filter_suitable_items(self, context: GenerationContext) -> List[ClothingItem]:
         """Filter wardrobe items suitable for the occasion and style"""
         logger.info(f"🔍 FILTER: Starting filtering for occasion={context.occasion}, style={context.style}")
         suitable_items = []
@@ -511,7 +511,7 @@ class RobustOutfitGenerationService:
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
     
-    async def _intelligent_item_selection(self, suitable_items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
+    async def _intelligent_item_selection(self, suitable_items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
         selected_items = []
         
@@ -717,7 +717,7 @@ class RobustOutfitGenerationService:
         # Default: optional for casual occasions in warm weather
         return False
     
-    async def _ensure_outfit_completeness(self, items: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
+    async def _ensure_outfit_completeness(self, items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Ensure outfit has essential categories and is complete"""
         # Check for essential categories
         categories_present = set(self._get_item_category(item) for item in items)
@@ -1134,7 +1134,7 @@ class RobustOutfitGenerationService:
         
         return basic_items
     
-    async def _find_item_for_category(self, wardrobe: List[Dict[str, Any]], category: str) -> Optional[Dict[str, Any]]:
+    async def _find_item_for_category(self, wardrobe: List[ClothingItem], category: str) -> Optional[ClothingItem]:
         """Find an item for a specific category"""
         for item in wardrobe:
             if self._get_item_category(item) == category:
