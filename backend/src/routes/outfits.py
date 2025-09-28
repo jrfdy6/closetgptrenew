@@ -772,105 +772,29 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 print("🚨🚨🚨 FORCE REDEPLOY v5.0: MAJOR CHANGE - This should definitely appear!")
                 logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: Starting WardrobePreprocessor import")
                 logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: This should appear in Railway logs")
-                # Use guarded import from startup module
-                try:
-                    from ..app_start import WARDROBE_PREPROCESSOR_AVAILABLE, WardrobePreprocessor
-                    
-                    if WARDROBE_PREPROCESSOR_AVAILABLE and WardrobePreprocessor:
-                        logger.error(f"🚨 FORCE REDEPLOY v7.0: Using pre-imported WardrobePreprocessor")
-                        
-                        preprocessor = WardrobePreprocessor()
-                        logger.error(f"🚨 FORCE REDEPLOY v7.0: WardrobePreprocessor instantiated successfully")
-                        
-                        clothing_items = preprocessor.preprocess_wardrobe(wardrobe_items, user_id)
-                        logger.error(f"🚨 FORCE REDEPLOY v7.0: Preprocessing completed, got {len(clothing_items)} items")
-                        
-                        # Verify the items have all required fields
-                        for i, item in enumerate(clothing_items):
-                            logger.error(f"🚨 FORCE REDEPLOY v7.0: Item {i}: {item.name}, imageUrl='{item.imageUrl}', userId='{item.userId}', createdAt={item.createdAt}")
-                    else:
-                        logger.error(f"🔧 DEBUG: WardrobePreprocessor not available from startup module")
-                        raise ImportError("WardrobePreprocessor not available")
-                        
-                except Exception as e:
-                    logger.error(f"🔧 DEBUG: WardrobePreprocessor failed: {e}")
-                    logger.error(f"🔧 DEBUG: Exception type: {type(e)}")
-                    logger.error(f"🔧 DEBUG: Falling back to old conversion method")
-                    # Fallback to old method - FIXED VERSION
-                    from ..custom_types.wardrobe import ClothingItem
-                    from ..utils.validation import normalize_clothing_type
-                    import time
-                    
-                    clothing_items = []
-                    for item_dict in wardrobe_items:
-                        try:
-                            raw_type = item_dict.get("type", "other")
-                            if isinstance(raw_type, str):
-                                raw_type = raw_type.lower()
-                            normalized_type = normalize_clothing_type(raw_type)
-                            now = int(time.time() * 1000)
-                            
-                            # Ensure all required fields are present with proper types and defaults
-                            clothing_item = ClothingItem(
-                                id=item_dict.get("id", f"fallback-{now}"),
-                                name=item_dict.get("name", "Unknown Item"),
-                                type=normalized_type,
-                                color=item_dict.get("color", "unknown"),
-                                imageUrl=item_dict.get("imageUrl", ""),  # Default to empty string
-                                style=item_dict.get("style", []),  # Ensure it's a list
-                                occasion=item_dict.get("occasion", ["casual"]) if isinstance(item_dict.get("occasion"), list) else [item_dict.get("occasion", "casual")],
-                                season=item_dict.get("season", ["all"]) if isinstance(item_dict.get("season"), list) else [item_dict.get("season", "all")],
-                                userId=item_dict.get("userId", user_id),
-                                dominantColors=item_dict.get("dominantColors", []),
-                                matchingColors=item_dict.get("matchingColors", []),
-                                createdAt=item_dict.get("createdAt", now),
-                                updatedAt=item_dict.get("updatedAt", now),
-                                brand=item_dict.get("brand", None),
-                                wearCount=item_dict.get("wearCount", 0),
-                                favorite_score=item_dict.get("favorite_score", 0.0),
-                                tags=item_dict.get("tags", []),
-                                subType=item_dict.get("subType", None),
-                                colorName=item_dict.get("colorName", None),
-                                backgroundRemoved=item_dict.get("backgroundRemoved", None),
-                                embedding=item_dict.get("embedding", None),
-                                metadata={
-                                    "analysisTimestamp": now,
-                                    "originalType": raw_type,
-                                    "originalSubType": None,
-                                    "styleTags": item_dict.get("style", []),
-                                    "occasionTags": item_dict.get("occasion", ["casual"]) if isinstance(item_dict.get("occasion"), list) else [item_dict.get("occasion", "casual")],
-                                    "brand": item_dict.get("brand", None),
-                                    "imageHash": None,
-                                    "colorAnalysis": {"dominant": [], "matching": []},
-                                    "basicMetadata": None,
-                                    "visualAttributes": None,
-                                    "itemMetadata": None,
-                                    "naturalDescription": None,
-                                    "temperatureCompatibility": None,
-                                    "materialCompatibility": None,
-                                    "bodyTypeCompatibility": None,
-                                    "skinToneCompatibility": None,
-                                    "outfitScoring": None
-                                }
-                            )
-                            clothing_items.append(clothing_item)
-                            logger.error(f"🔧 FALLBACK: Successfully converted item {clothing_item.name} ({clothing_item.type})")
-                            logger.error(f"🔧 FALLBACK: Item fields - imageUrl='{clothing_item.imageUrl}', userId='{clothing_item.userId}', createdAt={clothing_item.createdAt}")
-                        except Exception as item_error:
-                            logger.error(f"🔧 FALLBACK: Failed to convert item: {item_error}")
-                            logger.error(f"🔧 FALLBACK: Raw item data: {item_dict}")
-                            continue
+                # Use hydration utility to ensure all items have required fields
+                logger.error(f"🚨 FORCE REDEPLOY v8.0: Starting item hydration")
                 
-                # Check for preprocessing errors only if preprocessor was used
-                try:
-                    if preprocessor.has_errors():
-                        logger.warning(f"⚠️ Preprocessing completed with {len(preprocessor.get_conversion_errors())} errors")
-                        for error in preprocessor.get_conversion_errors():
-                            logger.warning(f"⚠️ {error}")
-                    else:
-                        logger.info(f"✅ Preprocessing completed successfully - all {len(clothing_items)} items converted")
-                except:
-                    logger.info(f"✅ Fallback conversion completed - {len(clothing_items)} items converted")
+                # First, hydrate the raw wardrobe items
+                from ..utils.item_hydration import hydrate_outfit_items
+                hydrated_items = hydrate_outfit_items(wardrobe_items)
+                logger.error(f"🚨 FORCE REDEPLOY v8.0: Hydrated {len(hydrated_items)} items")
+                
+                # Now convert to ClothingItem objects
+                from ..custom_types.wardrobe import ClothingItem
+                clothing_items = []
+                
+                for i, item_dict in enumerate(hydrated_items):
+                    try:
+                        clothing_item = ClothingItem(**item_dict)
+                        clothing_items.append(clothing_item)
+                        logger.error(f"🚨 FORCE REDEPLOY v8.0: Item {i}: {clothing_item.name}, imageUrl='{clothing_item.imageUrl}', userId='{clothing_item.userId}', createdAt={clothing_item.createdAt}")
+                    except Exception as item_error:
+                        logger.error(f"🔧 HYDRATION: Failed to convert item {i}: {item_error}")
+                        logger.error(f"🔧 HYDRATION: Item data: {item_dict}")
+                        continue
+                
+                logger.info(f"✅ Item hydration completed - {len(clothing_items)} items converted successfully")
                 
                 context = GenerationContext(
                     user_id=user_id,
@@ -1219,36 +1143,36 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         validation_result = await validation_service.validate_outfit_with_enhanced_rules(clothing_items, context)
         print(f"🔍 VALIDATION DEBUG: Validation completed, result keys: {validation_result.keys()}")
         print(f"🔍 VALIDATION DEBUG: Filtered items count: {len(validation_result.get('filtered_items', []))}")
+    
+    if validation_result.get("filtered_items"):
+        # Convert back to dict format
+        validated_outfit = []
+        for item in validation_result["filtered_items"]:
+            item_dict = {
+                "id": item.id,
+                "name": item.name,
+                "type": item.type,
+                "color": item.color,
+                "imageUrl": item.imageUrl,
+                "style": item.style,
+                "occasion": item.occasion,
+                "brand": item.brand,
+                "wearCount": item.wearCount,
+                "favorite_score": item.favorite_score,
+                "tags": item.tags,
+                "metadata": item.metadata
+            }
+            validated_outfit.append(item_dict)
         
-        if validation_result.get("filtered_items"):
-            # Convert back to dict format
-            validated_outfit = []
-            for item in validation_result["filtered_items"]:
-                item_dict = {
-                    "id": item.id,
-                    "name": item.name,
-                    "type": item.type,
-                    "color": item.color,
-                    "imageUrl": item.imageUrl,
-                    "style": item.style,
-                    "occasion": item.occasion,
-                    "brand": item.brand,
-                    "wearCount": item.wearCount,
-                    "favorite_score": item.favorite_score,
-                    "tags": item.tags,
-                    "metadata": item.metadata
-                }
-                validated_outfit.append(item_dict)
-            
-            logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
-            if validation_result.get("errors"):
-                logger.info(f"🔍 Validation errors: {validation_result['errors']}")
-            if validation_result.get("warnings"):
-                logger.info(f"🔍 Validation warnings: {validation_result['warnings']}")
-            
+        logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
+        if validation_result.get("errors"):
+            logger.info(f"🔍 Validation errors: {validation_result['errors']}")
+        if validation_result.get("warnings"):
+            logger.info(f"🔍 Validation warnings: {validation_result['warnings']}")
+        
             print(f"🔍 VALIDATION DEBUG: Returning {len(validated_outfit)} items")
-            return validated_outfit
-        else:
+        return validated_outfit
+                else:
             print(f"❌ VALIDATION DEBUG: No filtered items returned from enhanced validation!")
             print(f"❌ VALIDATION DEBUG: Validation result: {validation_result}")
             # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
@@ -5087,7 +5011,7 @@ async def generate_outfit(
                 logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
                 
                 # Run generation logic with robust service
-                outfit = await generate_outfit_logic(req, current_user_id)
+        outfit = await generate_outfit_logic(req, current_user_id)
                 
                 # NEW STRATEGY: Keep robust generator in control, don't auto-fallback
                 if outfit and outfit.get('items'):
