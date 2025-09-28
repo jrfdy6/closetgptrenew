@@ -774,15 +774,20 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: This should appear in Railway logs")
                 try:
                     from ..services.wardrobe_preprocessor import WardrobePreprocessor
-                    logger.error(f"🚨 FORCE REDEPLOY v4.0: WardrobePreprocessor imported successfully")
+                    logger.error(f"🚨 FORCE REDEPLOY v6.0: WardrobePreprocessor imported successfully")
                     
                     preprocessor = WardrobePreprocessor()
-                    logger.error(f"🚨 FORCE REDEPLOY v4.0: WardrobePreprocessor instantiated successfully")
+                    logger.error(f"🚨 FORCE REDEPLOY v6.0: WardrobePreprocessor instantiated successfully")
                     
                     clothing_items = preprocessor.preprocess_wardrobe(wardrobe_items, user_id)
-                    logger.error(f"🚨 FORCE REDEPLOY v4.0: Preprocessing completed, got {len(clothing_items)} items")
+                    logger.error(f"🚨 FORCE REDEPLOY v6.0: Preprocessing completed, got {len(clothing_items)} items")
+                    
+                    # Verify the items have all required fields
+                    for i, item in enumerate(clothing_items):
+                        logger.error(f"🚨 FORCE REDEPLOY v6.0: Item {i}: {item.name}, imageUrl='{item.imageUrl}', userId='{item.userId}', createdAt={item.createdAt}")
                 except Exception as e:
                     logger.error(f"🔧 DEBUG: WardrobePreprocessor failed: {e}")
+                    logger.error(f"🔧 DEBUG: Exception type: {type(e)}")
                     logger.error(f"🔧 DEBUG: Falling back to old conversion method")
                     # Fallback to old method - FIXED VERSION
                     from ..custom_types.wardrobe import ClothingItem
@@ -798,7 +803,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                             normalized_type = normalize_clothing_type(raw_type)
                             now = int(time.time() * 1000)
                             
-                            # Ensure all required fields are present with proper types
+                            # Ensure all required fields are present with proper types and defaults
                             clothing_item = ClothingItem(
                                 id=item_dict.get("id", f"fallback-{now}"),
                                 name=item_dict.get("name", "Unknown Item"),
@@ -843,6 +848,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                             )
                             clothing_items.append(clothing_item)
                             logger.error(f"🔧 FALLBACK: Successfully converted item {clothing_item.name} ({clothing_item.type})")
+                            logger.error(f"🔧 FALLBACK: Item fields - imageUrl='{clothing_item.imageUrl}', userId='{clothing_item.userId}', createdAt={clothing_item.createdAt}")
                         except Exception as item_error:
                             logger.error(f"🔧 FALLBACK: Failed to convert item: {item_error}")
                             logger.error(f"🔧 FALLBACK: Raw item data: {item_dict}")
