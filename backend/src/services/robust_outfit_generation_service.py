@@ -1037,7 +1037,7 @@ class RobustOutfitGenerationService:
         
         return compatible_items
     
-    async def _apply_body_type_optimization(self, items: List[Dict[str, Any]], body_type: str, height: str) -> List[Dict[str, Any]]:
+    async def _apply_body_type_optimization(self, items: List[ClothingItem], body_type: str, height: str) -> List[ClothingItem]:
         """Apply body type optimization to selected items"""
         # Simplified body type optimization
         optimized_items = items[:self.max_items]  # Limit to max items
@@ -1099,7 +1099,7 @@ class RobustOutfitGenerationService:
         
         return weather_appropriate[:self.max_items]
     
-    async def _select_basic_items(self, wardrobe: List[Dict[str, Any]], context: GenerationContext) -> List[Dict[str, Any]]:
+    async def _select_basic_items(self, wardrobe: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Select basic items for fallback generation with occasion filtering"""
         logger.info(f"🔍 BASIC_SELECT: Starting with {len(wardrobe)} wardrobe items")
         basic_items = []
