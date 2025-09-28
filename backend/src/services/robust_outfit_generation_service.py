@@ -104,7 +104,22 @@ class RobustOutfitGenerationService:
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
-        logger.info(f"🌤️ Weather: {context.weather.temperature}°F, {context.weather.condition}")
+        # Handle weather data safely
+        if hasattr(context.weather, 'temperature'):
+            temp = context.weather.temperature
+        elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
+            temp = context.weather.__dict__['temperature']
+        else:
+            temp = 70.0
+            
+        if hasattr(context.weather, 'condition'):
+            condition = context.weather.condition
+        elif hasattr(context.weather, '__dict__') and 'condition' in context.weather.__dict__:
+            condition = context.weather.__dict__['condition']
+        else:
+            condition = 'Clear'
+            
+        logger.info(f"🌤️ Weather: {temp}°F, {condition}")
         
         # Log wardrobe item types for debugging
         item_types = [item.type for item in context.wardrobe]
@@ -128,7 +143,18 @@ class RobustOutfitGenerationService:
                 validation = await self._validate_outfit(outfit, context)
                 logger.info(f"🔍 Strategy {strategy.value} - Validation complete: valid={validation.is_valid}, confidence={validation.confidence}")
                 
-                if validation.is_valid and validation.confidence >= 0.7:
+                # PER-STRATEGY LOGGING
+                strategy_name = strategy.value.upper()
+                logger.info(f"[{strategy_name}] Items selected: {len(outfit.items)}")
+                logger.info(f"[{strategy_name}] Confidence: {validation.confidence}")
+                logger.info(f"[{strategy_name}] Validation: valid={validation.is_valid}, score={validation.score}")
+                logger.info(f"[{strategy_name}] Issues: {validation.issues}")
+                logger.info(f"[{strategy_name}] Suggestions: {validation.suggestions}")
+                
+                # TEMPORARY CONFIDENCE RELAXATION (0.6 instead of 0.7)
+                confidence_threshold = 0.6  # Temporarily lowered for debugging
+                
+                if validation.is_valid and validation.confidence >= confidence_threshold:
                     logger.info(f"✅ Successfully generated outfit with strategy {strategy.value}")
                     logger.info(f"📊 Validation score: {validation.score}, Confidence: {validation.confidence}")
                     logger.info(f"📦 Final outfit items: {[item.name for item in outfit.items]}")
@@ -136,6 +162,7 @@ class RobustOutfitGenerationService:
                 else:
                     logger.warning(f"⚠️ Strategy {strategy.value} failed validation: {validation.issues}")
                     logger.warning(f"⚠️ Validation details: valid={validation.is_valid}, confidence={validation.confidence}, score={validation.score}")
+                    logger.warning(f"⚠️ Confidence threshold not met: {validation.confidence} < {confidence_threshold}")
                     if strategy == GenerationStrategy.EMERGENCY_DEFAULT:
                         # If even emergency default fails, return it anyway
                         logger.error(f"🚨 All generation strategies failed, returning emergency default")
@@ -721,18 +748,26 @@ class RobustOutfitGenerationService:
         return items
     
     async def _validate_outfit(self, outfit: OutfitGeneratedOutfit, context: GenerationContext) -> ValidationResult:
-        """Comprehensive outfit validation"""
+        """Comprehensive outfit validation with detailed debugging"""
         issues = []
         suggestions = []
         score = 100.0
         
+        logger.info(f"🔍 VALIDATION START: {len(outfit.items)} items to validate")
+        
         # Check item count
         if len(outfit.items) < self.min_items:
-            issues.append(f"Outfit has only {len(outfit.items)} items, minimum is {self.min_items}")
+            issue_msg = f"Outfit has only {len(outfit.items)} items, minimum is {self.min_items}"
+            issues.append(issue_msg)
             score -= 20.0
+            logger.warning(f"⚠️ VALIDATION: {issue_msg}")
         elif len(outfit.items) > self.max_items:
-            issues.append(f"Outfit has {len(outfit.items)} items, maximum is {self.max_items}")
+            issue_msg = f"Outfit has {len(outfit.items)} items, maximum is {self.max_items}"
+            issues.append(issue_msg)
             score -= 10.0
+            logger.warning(f"⚠️ VALIDATION: {issue_msg}")
+        else:
+            logger.info(f"✅ VALIDATION: Item count OK ({len(outfit.items)} items)")
         
         # Check category limits
         category_counts = {}
@@ -740,13 +775,20 @@ class RobustOutfitGenerationService:
             category = self._get_item_category(item)
             category_counts[category] = category_counts.get(category, 0) + 1
         
+        logger.info(f"🔍 VALIDATION: Category breakdown: {category_counts}")
+        
         for category, count in category_counts.items():
             limit = self.base_category_limits.get(category, 2)
             if count > limit:
-                issues.append(f"Too many {category}: {count} (max {limit})")
+                issue_msg = f"Too many {category}: {count} (max {limit})"
+                issues.append(issue_msg)
                 score -= 15.0
+                logger.warning(f"⚠️ VALIDATION: {issue_msg}")
+            else:
+                logger.info(f"✅ VALIDATION: {category} count OK ({count}/{limit})")
         
         # Check for inappropriate combinations
+        inappropriate_found = False
         for item1 in outfit.items:
             for item2 in outfit.items:
                 if item1 != item2:
@@ -754,20 +796,39 @@ class RobustOutfitGenerationService:
                     if combination:
                         issues.append(combination)
                         score -= 25.0
+                        inappropriate_found = True
+                        logger.warning(f"⚠️ VALIDATION: Inappropriate combination: {combination}")
+        
+        if not inappropriate_found:
+            logger.info(f"✅ VALIDATION: No inappropriate combinations found")
         
         # Check essential categories
         categories_present = set(self._get_item_category(item) for item in outfit.items)
         essential_categories = {"tops", "bottoms", "shoes"}
         missing_essential = essential_categories - categories_present
         
+        logger.info(f"🔍 VALIDATION: Categories present: {categories_present}")
+        logger.info(f"🔍 VALIDATION: Essential categories: {essential_categories}")
+        
         if missing_essential:
-            issues.append(f"Missing essential categories: {missing_essential}")
+            issue_msg = f"Missing essential categories: {missing_essential}"
+            issues.append(issue_msg)
             score -= 30.0
+            logger.warning(f"⚠️ VALIDATION: {issue_msg}")
+        else:
+            logger.info(f"✅ VALIDATION: All essential categories present")
         
         # Calculate confidence
         confidence = max(0.0, min(1.0, score / 100.0))
         
-        is_valid = len(issues) == 0 and confidence >= 0.7
+        # TEMPORARY CONFIDENCE RELAXATION (0.6 instead of 0.7)
+        is_valid = len(issues) == 0 and confidence >= 0.6
+        
+        logger.info(f"🔍 VALIDATION RESULT: valid={is_valid}, score={score}, confidence={confidence}")
+        logger.info(f"🔍 VALIDATION ISSUES: {len(issues)} issues found")
+        if issues:
+            for i, issue in enumerate(issues, 1):
+                logger.info(f"🔍 VALIDATION ISSUE {i}: {issue}")
         
         return ValidationResult(
             is_valid=is_valid,

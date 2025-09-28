@@ -768,13 +768,104 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     weather_data = SimpleNamespace(**weather_data)
                     logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
                 
+                # Convert wardrobe items to ClothingItem objects for robust service
+                from ..custom_types.wardrobe import ClothingItem
+                from ..utils.validation import normalize_clothing_type
+                import time
+                from datetime import datetime
+                
+                def firestore_to_clothing_item(raw: dict, user_id: str) -> ClothingItem:
+                    """
+                    Preprocessor that converts raw Firestore data to fully valid ClothingItem.
+                    Ensures all required fields are present with safe defaults.
+                    """
+                    # Normalize type to lowercase
+                    raw_type = raw.get("type", "other")
+                    if isinstance(raw_type, str):
+                        raw_type = raw_type.lower()
+                    
+                    # Normalize the type using the validation utility
+                    normalized_type = normalize_clothing_type(raw_type)
+                    
+                    # Get current timestamp
+                    now = int(time.time() * 1000)
+                    
+                    # Extract metadata with safe defaults
+                    metadata = raw.get("metadata", {})
+                    
+                    return ClothingItem(
+                        id=raw.get("id", ""),
+                        name=raw.get("name", "Unknown Item"),
+                        type=normalized_type,
+                        color=raw.get("color", "unknown"),
+                        imageUrl=raw.get("imageUrl", ""),
+                        style=raw.get("style", []),
+                        occasion=raw.get("occasion", ["casual"]),
+                        season=raw.get("season", ["all"]),
+                        userId=raw.get("userId", user_id),
+                        dominantColors=raw.get("dominantColors", []),
+                        matchingColors=raw.get("matchingColors", []),
+                        createdAt=raw.get("createdAt", now),
+                        updatedAt=raw.get("updatedAt", now),
+                        brand=raw.get("brand", None),
+                        wearCount=raw.get("wearCount", 0),
+                        favorite_score=raw.get("favorite_score", 0.0),
+                        tags=raw.get("tags", []),
+                        subType=raw.get("subType", None),
+                        colorName=raw.get("colorName", None),
+                        backgroundRemoved=raw.get("backgroundRemoved", None),
+                        embedding=raw.get("embedding", None),
+                        metadata={
+                            "analysisTimestamp": metadata.get("analysisTimestamp", now),
+                            "originalType": metadata.get("originalType", raw_type),
+                            "originalSubType": metadata.get("originalSubType", None),
+                            "styleTags": metadata.get("styleTags", raw.get("style", [])),
+                            "occasionTags": metadata.get("occasionTags", raw.get("occasion", ["casual"])),
+                            "brand": metadata.get("brand", raw.get("brand", None)),
+                            "imageHash": metadata.get("imageHash", None),
+                            "colorAnalysis": metadata.get("colorAnalysis", {
+                                "dominant": [],
+                                "matching": []
+                            }),
+                            "basicMetadata": metadata.get("basicMetadata", None),
+                            "visualAttributes": metadata.get("visualAttributes", None),
+                            "itemMetadata": metadata.get("itemMetadata", None),
+                            "naturalDescription": metadata.get("naturalDescription", None),
+                            "temperatureCompatibility": metadata.get("temperatureCompatibility", None),
+                            "materialCompatibility": metadata.get("materialCompatibility", None),
+                            "bodyTypeCompatibility": metadata.get("bodyTypeCompatibility", None),
+                            "skinToneCompatibility": metadata.get("skinToneCompatibility", None),
+                            "outfitScoring": metadata.get("outfitScoring", None)
+                        }
+                    )
+                
+                # Convert all wardrobe items using the preprocessor
+                clothing_items = []
+                conversion_errors = []
+                for item_dict in wardrobe_items:
+                    try:
+                        clothing_item = firestore_to_clothing_item(item_dict, user_id)
+                        clothing_items.append(clothing_item)
+                        logger.debug(f"✅ Converted item: {clothing_item.name} ({clothing_item.type})")
+                    except Exception as e:
+                        error_msg = f"Failed to convert item {item_dict.get('id', 'unknown')}: {e}"
+                        conversion_errors.append(error_msg)
+                        logger.warning(f"⚠️ {error_msg}")
+                        logger.warning(f"⚠️ Raw item data: {item_dict}")
+                        continue
+                
+                if conversion_errors:
+                    logger.warning(f"⚠️ {len(conversion_errors)} items failed conversion: {conversion_errors}")
+                
+                logger.info(f"🔧 FIRESTORE PREPROCESSOR: {len(wardrobe_items)} raw items -> {len(clothing_items)} valid ClothingItem objects")
+                
                 context = GenerationContext(
                     user_id=user_id,
                     occasion=req.occasion,
                     style=req.style,
                     mood=req.mood,
                     weather=weather_data,
-                    wardrobe=wardrobe_items,
+                    wardrobe=clothing_items,  # Use converted ClothingItem objects
                     user_profile=user_profile,
                     base_item_id=req.baseItemId
                 )
@@ -1038,26 +1129,51 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     clothing_items = []
     for item_dict in items:
         try:
-            # Create a basic ClothingItem from the dict
+            # Normalize the type using the validation utility
+            from ..utils.validation import normalize_clothing_type
+            normalized_type = normalize_clothing_type(item_dict.get('type', 'other'))
+            
+            # Create a basic ClothingItem from the dict with all required fields
             clothing_item = ClothingItem(
                 id=item_dict.get('id', ''),
                 name=item_dict.get('name', ''),
-                type=item_dict.get('type', 'item'),
-                color=item_dict.get('color', ''),
+                type=normalized_type,
+                color=item_dict.get('color', 'unknown'),
                 imageUrl=item_dict.get('imageUrl', ''),
                 style=item_dict.get('style', []),
-                occasion=item_dict.get('occasion', []),
+                occasion=item_dict.get('occasion', ['casual']),
                 season=item_dict.get('season', ['all']),
                 userId=item_dict.get('userId', 'unknown'),
                 dominantColors=item_dict.get('dominantColors', []),
                 matchingColors=item_dict.get('matchingColors', []),
                 createdAt=item_dict.get('createdAt', int(time.time() * 1000)),
                 updatedAt=item_dict.get('updatedAt', int(time.time() * 1000)),
-                brand=item_dict.get('brand', ''),
+                brand=item_dict.get('brand', None),
                 wearCount=item_dict.get('wearCount', 0),
                 favorite_score=item_dict.get('favorite_score', 0.0),
                 tags=item_dict.get('tags', []),
-                metadata=item_dict.get('metadata', {})
+                metadata=item_dict.get('metadata', {
+                    'analysisTimestamp': int(time.time() * 1000),
+                    'originalType': item_dict.get('type', 'other'),
+                    'originalSubType': None,
+                    'styleTags': item_dict.get('style', []),
+                    'occasionTags': item_dict.get('occasion', ['casual']),
+                    'brand': item_dict.get('brand', None),
+                    'imageHash': None,
+                    'colorAnalysis': {
+                        'dominant': [],
+                        'matching': []
+                    },
+                    'basicMetadata': None,
+                    'visualAttributes': None,
+                    'itemMetadata': None,
+                    'naturalDescription': None,
+                    'temperatureCompatibility': None,
+                    'materialCompatibility': None,
+                    'bodyTypeCompatibility': None,
+                    'skinToneCompatibility': None,
+                    'outfitScoring': None
+                })
             )
             clothing_items.append(clothing_item)
         except Exception as e:

@@ -84,7 +84,28 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
     colorName: null,
     backgroundRemoved: null,
     embedding: null,
-    metadata: {}
+    metadata: {
+      analysisTimestamp: now,
+      originalType: item.type,
+      originalSubType: null,
+      styleTags: normalizeToList(item.style) || [],
+      occasionTags: normalizeToList(item.occasion) || ['casual'],
+      brand: item.brand || null,
+      imageHash: null,
+      colorAnalysis: {
+        dominant: [],
+        matching: []
+      },
+      basicMetadata: null,
+      visualAttributes: null,
+      itemMetadata: null,
+      naturalDescription: null,
+      temperatureCompatibility: null,
+      materialCompatibility: null,
+      bodyTypeCompatibility: null,
+      skinToneCompatibility: null,
+      outfitScoring: null
+    }
   };
 }
 
@@ -128,32 +149,32 @@ function convertWeatherData(weather: FrontendWeatherData): any {
  */
 function normalizeClothingType(type: string): string {
   const typeMap: Record<string, string> = {
-    't-shirt': 'T_SHIRT',
-    'tshirt': 'T_SHIRT',
-    'shirt': 'SHIRT',
-    'blouse': 'BLOUSE',
-    'sweater': 'SWEATER',
-    'jacket': 'JACKET',
-    'blazer': 'BLAZER',
-    'pants': 'PANTS',
-    'jeans': 'JEANS',
-    'shorts': 'SHORTS',
-    'skirt': 'SKIRT',
-    'dress': 'DRESS',
-    'shoes': 'SHOES',
-    'sneakers': 'SNEAKERS',
-    'boots': 'BOOTS',
-    'sandals': 'SANDALS',
-    'heels': 'HEELS',
-    'accessory': 'ACCESSORY',
-    'belt': 'BELT',
-    'hat': 'HAT',
-    'scarf': 'SCARF',
-    'other': 'OTHER'
+    't-shirt': 't-shirt',
+    'tshirt': 't-shirt',
+    'shirt': 'shirt',
+    'blouse': 'blouse',
+    'sweater': 'sweater',
+    'jacket': 'jacket',
+    'blazer': 'blazer',
+    'pants': 'pants',
+    'jeans': 'jeans',
+    'shorts': 'shorts',
+    'skirt': 'skirt',
+    'dress': 'dress',
+    'shoes': 'shoes',
+    'sneakers': 'sneakers',
+    'boots': 'boots',
+    'sandals': 'sandals',
+    'heels': 'heels',
+    'accessory': 'accessory',
+    'belt': 'belt',
+    'hat': 'hat',
+    'scarf': 'scarf',
+    'other': 'other'
   };
   
   const normalized = type.toLowerCase().replace(/\s+/g, '_');
-  return typeMap[normalized] || 'OTHER';
+  return typeMap[normalized] || 'other';
 }
 
 /**
