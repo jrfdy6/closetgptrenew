@@ -768,17 +768,18 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     weather_data = SimpleNamespace(**weather_data)
                     logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
                 
-                # Use WardrobePreprocessor to ensure all items are valid ClothingItem objects
-                logger.info(f"🔧 DEBUG v3.0: About to import WardrobePreprocessor")
+                # FORCE RAILWAY REDEPLOY - WardrobePreprocessor v4.0
+                logger.error(f"🚨 FORCE REDEPLOY v4.0: Starting WardrobePreprocessor import")
+                logger.error(f"🚨 FORCE REDEPLOY v4.0: This should appear in Railway logs")
                 try:
                     from ..services.wardrobe_preprocessor import WardrobePreprocessor
-                    logger.info(f"🔧 DEBUG: WardrobePreprocessor imported successfully")
+                    logger.error(f"🚨 FORCE REDEPLOY v4.0: WardrobePreprocessor imported successfully")
                     
                     preprocessor = WardrobePreprocessor()
-                    logger.info(f"🔧 DEBUG: WardrobePreprocessor instantiated successfully")
+                    logger.error(f"🚨 FORCE REDEPLOY v4.0: WardrobePreprocessor instantiated successfully")
                     
                     clothing_items = preprocessor.preprocess_wardrobe(wardrobe_items, user_id)
-                    logger.info(f"🔧 DEBUG: Preprocessing completed, got {len(clothing_items)} items")
+                    logger.error(f"🚨 FORCE REDEPLOY v4.0: Preprocessing completed, got {len(clothing_items)} items")
                 except Exception as e:
                     logger.error(f"🔧 DEBUG: WardrobePreprocessor failed: {e}")
                     logger.error(f"🔧 DEBUG: Falling back to old conversion method")
