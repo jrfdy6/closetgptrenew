@@ -775,26 +775,26 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Use hydration utility to ensure all items have required fields
                 logger.error(f"🚨 FORCE REDEPLOY v8.0: Starting item hydration")
                 
-                # First, hydrate the raw wardrobe items
-                from ..utils.item_hydration import hydrate_outfit_items
-                hydrated_items = hydrate_outfit_items(wardrobe_items)
-                logger.error(f"🚨 FORCE REDEPLOY v8.0: Hydrated {len(hydrated_items)} items")
+                # Pre-Outfit-construction guard (fail-fast with logs)
+                logger.error(f"🚨 FORCE REDEPLOY v9.0: Starting pre-outfit-construction guard")
+                items_for_outfit = ensure_items_ready(wardrobe_items, db if firebase_initialized else None)
+                logger.error(f"🚨 FORCE REDEPLOY v9.0: Guard completed - {len(items_for_outfit)} items ready")
                 
                 # Now convert to ClothingItem objects
                 from ..custom_types.wardrobe import ClothingItem
                 clothing_items = []
                 
-                for i, item_dict in enumerate(hydrated_items):
+                for i, item_dict in enumerate(items_for_outfit):
                     try:
                         clothing_item = ClothingItem(**item_dict)
                         clothing_items.append(clothing_item)
                         logger.error(f"🚨 FORCE REDEPLOY v8.0: Item {i}: {clothing_item.name}, imageUrl='{clothing_item.imageUrl}', userId='{clothing_item.userId}', createdAt={clothing_item.createdAt}")
                     except Exception as item_error:
-                        logger.error(f"🔧 HYDRATION: Failed to convert item {i}: {item_error}")
-                        logger.error(f"🔧 HYDRATION: Item data: {item_dict}")
+                        logger.error(f"🔧 GUARD: Failed to convert item {i}: {item_error}")
+                        logger.error(f"🔧 GUARD: Item data: {item_dict}")
                         continue
                 
-                logger.info(f"✅ Item hydration completed - {len(clothing_items)} items converted successfully")
+                logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
                 
                 context = GenerationContext(
                     user_id=user_id,
