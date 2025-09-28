@@ -807,6 +807,20 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
                         print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
                         print(f"🚨 This means the robust service is working but failing internally")
+                        
+                        # Add detailed fallback reason logging
+                        fallback_reason = "Unknown - robust service returned fallback_simple strategy"
+                        if hasattr(robust_outfit, 'metadata'):
+                            failed_rules = robust_outfit.metadata.get('failed_rules', [])
+                            if failed_rules:
+                                fallback_reason = f"Failed validation rules: {failed_rules}"
+                            elif len(robust_outfit.items) == 0:
+                                fallback_reason = "Empty candidate pool - no items generated"
+                            elif len(robust_outfit.items) < 3:
+                                fallback_reason = f"Too few items generated: {len(robust_outfit.items)}"
+                        
+                        logger.warning(f"🔍 ROBUST FALLBACK REASON: {fallback_reason}")
+                        print(f"🚨 ROBUST FALLBACK REASON: {fallback_reason}")
                     
                 except Exception as e:
                     logger.error(f"[GENERATION][ROBUST][ERROR] {e}", exc_info=True)
@@ -849,6 +863,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Log generation strategy for monitoring
                 failed_rules = outfit.get('metadata', {}).get('failed_rules', [])
                 log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
+                
+                # Verify strategy is set correctly
+                final_strategy = outfit.get('metadata', {}).get('generation_strategy', 'unknown')
+                logger.info(f"🎯 FINAL STRATEGY: {final_strategy}")
+                print(f"🎯 FINAL STRATEGY: {final_strategy}")
+                
+                if final_strategy == 'fallback_simple':
+                    logger.warning(f"⚠️ WARNING: Robust path returned fallback_simple strategy")
+                    print(f"🚨 WARNING: Robust path returned fallback_simple strategy - this should be a robust strategy!")
                 
                 logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
             else:
@@ -949,7 +972,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         print(f"🚨 ROBUST TRACEBACK: {str(e)}")
         
         # FALLBACK RE-ENABLED - Root cause identified and fixed (weather data format)
-        print(f"🚨 FALLBACK RE-ENABLED - Weather data format issue fixed")
+        fallback_reason = f"Exception in robust generation: {type(e).__name__}: {e}"
+        logger.warning(f"🔍 ROBUST FALLBACK TRIGGERED: {fallback_reason}")
+        print(f"🚨 ROBUST FALLBACK TRIGGERED: {fallback_reason}")
         return await generate_fallback_outfit(req, user_id)
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
