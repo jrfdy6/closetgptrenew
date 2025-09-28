@@ -7,6 +7,17 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import startup module for version tracking and guarded imports
+try:
+    from src.app_start import COMMIT_SHA, WARDROBE_PREPROCESSOR_AVAILABLE, WardrobePreprocessor
+    logger.info(f"🚀 App startup module loaded - commit={COMMIT_SHA}")
+    logger.info(f"🔧 WardrobePreprocessor available: {WARDROBE_PREPROCESSOR_AVAILABLE}")
+except Exception as e:
+    logger.exception(f"❌ Failed to load startup module: {e}")
+    COMMIT_SHA = "unknown"
+    WARDROBE_PREPROCESSOR_AVAILABLE = False
+    WardrobePreprocessor = None
+
 # Startup logging removed to reduce Railway rate limiting
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status

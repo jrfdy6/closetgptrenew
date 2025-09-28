@@ -772,19 +772,26 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 print("🚨🚨🚨 FORCE REDEPLOY v5.0: MAJOR CHANGE - This should definitely appear!")
                 logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: Starting WardrobePreprocessor import")
                 logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: This should appear in Railway logs")
+                # Use guarded import from startup module
                 try:
-                    from ..services.wardrobe_preprocessor import WardrobePreprocessor
-                    logger.error(f"🚨 FORCE REDEPLOY v6.0: WardrobePreprocessor imported successfully")
+                    from ..app_start import WARDROBE_PREPROCESSOR_AVAILABLE, WardrobePreprocessor
                     
-                    preprocessor = WardrobePreprocessor()
-                    logger.error(f"🚨 FORCE REDEPLOY v6.0: WardrobePreprocessor instantiated successfully")
-                    
-                    clothing_items = preprocessor.preprocess_wardrobe(wardrobe_items, user_id)
-                    logger.error(f"🚨 FORCE REDEPLOY v6.0: Preprocessing completed, got {len(clothing_items)} items")
-                    
-                    # Verify the items have all required fields
-                    for i, item in enumerate(clothing_items):
-                        logger.error(f"🚨 FORCE REDEPLOY v6.0: Item {i}: {item.name}, imageUrl='{item.imageUrl}', userId='{item.userId}', createdAt={item.createdAt}")
+                    if WARDROBE_PREPROCESSOR_AVAILABLE and WardrobePreprocessor:
+                        logger.error(f"🚨 FORCE REDEPLOY v7.0: Using pre-imported WardrobePreprocessor")
+                        
+                        preprocessor = WardrobePreprocessor()
+                        logger.error(f"🚨 FORCE REDEPLOY v7.0: WardrobePreprocessor instantiated successfully")
+                        
+                        clothing_items = preprocessor.preprocess_wardrobe(wardrobe_items, user_id)
+                        logger.error(f"🚨 FORCE REDEPLOY v7.0: Preprocessing completed, got {len(clothing_items)} items")
+                        
+                        # Verify the items have all required fields
+                        for i, item in enumerate(clothing_items):
+                            logger.error(f"🚨 FORCE REDEPLOY v7.0: Item {i}: {item.name}, imageUrl='{item.imageUrl}', userId='{item.userId}', createdAt={item.createdAt}")
+                    else:
+                        logger.error(f"🔧 DEBUG: WardrobePreprocessor not available from startup module")
+                        raise ImportError("WardrobePreprocessor not available")
+                        
                 except Exception as e:
                     logger.error(f"🔧 DEBUG: WardrobePreprocessor failed: {e}")
                     logger.error(f"🔧 DEBUG: Exception type: {type(e)}")
