@@ -784,7 +784,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 except Exception as e:
                     logger.error(f"🔧 DEBUG: WardrobePreprocessor failed: {e}")
                     logger.error(f"🔧 DEBUG: Falling back to old conversion method")
-                    # Fallback to old method
+                    # Fallback to old method - FIXED VERSION
                     from ..custom_types.wardrobe import ClothingItem
                     from ..utils.validation import normalize_clothing_type
                     import time
@@ -798,15 +798,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                             normalized_type = normalize_clothing_type(raw_type)
                             now = int(time.time() * 1000)
                             
+                            # Ensure all required fields are present with proper types
                             clothing_item = ClothingItem(
-                                id=item_dict.get("id", ""),
+                                id=item_dict.get("id", f"fallback-{now}"),
                                 name=item_dict.get("name", "Unknown Item"),
                                 type=normalized_type,
                                 color=item_dict.get("color", "unknown"),
-                                imageUrl=item_dict.get("imageUrl", ""),
-                                style=item_dict.get("style", []),
-                                occasion=item_dict.get("occasion", ["casual"]),
-                                season=item_dict.get("season", ["all"]),
+                                imageUrl=item_dict.get("imageUrl", ""),  # Default to empty string
+                                style=item_dict.get("style", []),  # Ensure it's a list
+                                occasion=item_dict.get("occasion", ["casual"]) if isinstance(item_dict.get("occasion"), list) else [item_dict.get("occasion", "casual")],
+                                season=item_dict.get("season", ["all"]) if isinstance(item_dict.get("season"), list) else [item_dict.get("season", "all")],
                                 userId=item_dict.get("userId", user_id),
                                 dominantColors=item_dict.get("dominantColors", []),
                                 matchingColors=item_dict.get("matchingColors", []),
@@ -825,7 +826,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                                     "originalType": raw_type,
                                     "originalSubType": None,
                                     "styleTags": item_dict.get("style", []),
-                                    "occasionTags": item_dict.get("occasion", ["casual"]),
+                                    "occasionTags": item_dict.get("occasion", ["casual"]) if isinstance(item_dict.get("occasion"), list) else [item_dict.get("occasion", "casual")],
                                     "brand": item_dict.get("brand", None),
                                     "imageHash": None,
                                     "colorAnalysis": {"dominant": [], "matching": []},
@@ -841,8 +842,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                                 }
                             )
                             clothing_items.append(clothing_item)
+                            logger.error(f"🔧 FALLBACK: Successfully converted item {clothing_item.name} ({clothing_item.type})")
                         except Exception as item_error:
-                            logger.warning(f"⚠️ Failed to convert item: {item_error}")
+                            logger.error(f"🔧 FALLBACK: Failed to convert item: {item_error}")
+                            logger.error(f"🔧 FALLBACK: Raw item data: {item_dict}")
                             continue
                 
                 # Check for preprocessing errors only if preprocessor was used
