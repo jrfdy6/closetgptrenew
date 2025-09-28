@@ -778,7 +778,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[item.get('type', 'unknown') for item in wardrobe_items[:10]]}...")
                 
                 try:
+                    logger.info(f"🚀 CALLING ROBUST SERVICE: generate_outfit()")
+                    logger.info(f"🚀 ROBUST CONTEXT: user_id={context.user_id}, occasion={context.occasion}")
+                    logger.info(f"🚀 ROBUST WARDROBE: {len(context.wardrobe)} items")
+                    logger.info(f"🚀 ROBUST PROFILE: {context.user_profile}")
+                    
                     robust_outfit = await RobustOutfitGenerationService().generate_outfit(context)
+                    
+                    logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
+                    logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
                     
                     # Log the generation strategy used
                     strategy = robust_outfit.metadata.get('generation_strategy', 'unknown')
@@ -790,7 +798,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"[GENERATION][ROBUST][ERROR] {e}", exc_info=True)
                     logger.error(f"[GENERATION][ROBUST][ERROR] Context: user={user_id}, occasion={req.occasion}, style={req.style}")
                     logger.error(f"[GENERATION][ROBUST][ERROR] Wardrobe size: {len(wardrobe_items)}")
-                    print(f"🚨 ROBUST GENERATOR ERROR: {e}")
+                    logger.error(f"[GENERATION][ROBUST][ERROR] Exception type: {type(e).__name__}")
+                    print(f"🚨 ROBUST GENERATOR ERROR: {type(e).__name__}: {e}")
+                    print(f"🚨 ROBUST GENERATOR FULL TRACEBACK:")
+                    import traceback
+                    traceback.print_exc()
                     raise
                 
                 # Convert to expected format
@@ -914,14 +926,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         return outfit
         
     except Exception as e:
-        logger.error(f"⚠️ FALLBACK TRIGGERED: Outfit generation failed with exception: {e}")
-        logger.exception("Full traceback:")
-        print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
-        print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-        print(f"🚨 FALLBACK REASON: Exception - {type(e).__name__}: {e}")
-        print(f"🚨 FALLBACK TRACEBACK: {str(e)}")
-        # Fallback to basic generation if rule-based generation fails
-        return await generate_fallback_outfit(req, user_id)
+        logger.error(f"🚨 ROBUST GENERATION CRASHED: {e}")
+        logger.exception("Full robust generation traceback:")
+        print(f"🚨 ROBUST GENERATION CRASHED: {type(e).__name__}: {e}")
+        print(f"🚨 ROBUST CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+        print(f"🚨 ROBUST TRACEBACK: {str(e)}")
+        
+        # TEMPORARILY DISABLED FALLBACK - FORCE ROBUST PATH TO SUCCEED OR CRASH LOUDLY
+        print(f"🚨 FALLBACK DISABLED FOR DEBUGGING - SURFACING ERROR")
+        raise  # Surface the error, don't fallback
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
     """Validate if the requested style is appropriate for the user's gender."""
