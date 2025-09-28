@@ -575,9 +575,9 @@ class RobustOutfitGenerationService:
             if current_category_count < proportional_limit:
                 selected_items.append(item)
                 category_counts[item_category] += 1
-                logger.info(f"🎯 TARGET-DRIVEN: Added {item.get('name', 'Unknown')} ({item_category}) - {len(selected_items)}/{target_count} items (category: {current_category_count + 1}/{proportional_limit})")
+                logger.info(f"🎯 TARGET-DRIVEN: Added {getattr(item, 'name', 'Unknown')} ({item_category}) - {len(selected_items)}/{target_count} items (category: {current_category_count + 1}/{proportional_limit})")
             else:
-                logger.debug(f"🎯 TARGET-DRIVEN: Skipped {item.get('name', 'Unknown')} ({item_category}) - category limit reached ({current_category_count}/{proportional_limit})")
+                logger.debug(f"🎯 TARGET-DRIVEN: Skipped {getattr(item, 'name', 'Unknown')} ({item_category}) - category limit reached ({current_category_count}/{proportional_limit})")
         
         # STEP 7: Ensure we have at least the minimum essential categories
         essential_categories = ["tops", "bottoms", "shoes"]
@@ -603,7 +603,7 @@ class RobustOutfitGenerationService:
                     if self._get_item_category(item) == category:
                         selected_items.append(item)
                         category_counts[category] = category_counts.get(category, 0) + 1
-                        logger.info(f"🎯 TARGET-DRIVEN: Added essential {item.get('name', 'Unknown')} ({category}) - {len(selected_items)}/{target_count} items")
+                        logger.info(f"🎯 TARGET-DRIVEN: Added essential {getattr(item, 'name', 'Unknown')} ({category}) - {len(selected_items)}/{target_count} items")
                         break
         
         logger.info(f"🎯 TARGET-DRIVEN: Final selection: {len(selected_items)} items (target was {target_count})")
@@ -838,30 +838,30 @@ class RobustOutfitGenerationService:
             confidence=confidence
         )
     
-    def _is_occasion_compatible(self, item: Dict[str, Any], occasion: str) -> bool:
+    def _is_occasion_compatible(self, item: ClothingItem, occasion: str) -> bool:
         """Check if item is compatible with occasion"""
-        item_occasions = item.get('occasion', [])
+        item_occasions = getattr(item, 'occasion', [])
         if isinstance(item_occasions, str):
             item_occasions = [item_occasions]
         
         return occasion.lower() in [occ.lower() for occ in item_occasions]
     
-    def _is_style_compatible(self, item: Dict[str, Any], style: str) -> bool:
+    def _is_style_compatible(self, item: ClothingItem, style: str) -> bool:
         """Check if item is compatible with style"""
-        item_styles = item.get('style', [])
+        item_styles = getattr(item, 'style', [])
         if isinstance(item_styles, str):
             item_styles = [item_styles]
         
         return style.lower() in [s.lower() for s in item_styles]
     
-    async def _calculate_item_score(self, item: Dict[str, Any], context: GenerationContext) -> float:
+    async def _calculate_item_score(self, item: ClothingItem, context: GenerationContext) -> float:
         """Calculate preference score for item with formal occasion prioritization"""
         score = 50.0  # Base score
         
         # COMPREHENSIVE: Occasion-based prioritization for ALL occasions
         occasion_lower = context.occasion.lower()
-        item_name = item.get('name', '').lower()
-        item_type = item.get('type', '').lower()
+        item_name = getattr(item, 'name', '').lower()
+        item_type = getattr(item, 'type', '').lower()
         
         # FORMAL OCCASIONS (Business, Formal, Interview)
         if any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'interview']):
@@ -983,19 +983,19 @@ class RobustOutfitGenerationService:
             score += 15.0
         
         # Favorite score bonus
-        favorite_score = item.get('favorite_score', 0.0)
+        favorite_score = getattr(item, 'favorite_score', 0.0)
         score += favorite_score * 10.0
         
         # Wear count penalty (prefer less worn items)
-        wear_count = item.get('wearCount', 0)
+        wear_count = getattr(item, 'wearCount', 0)
         if wear_count > 10:
             score -= 5.0
         
         return score
     
-    def _get_item_category(self, item: Dict[str, Any]) -> str:
+    def _get_item_category(self, item: ClothingItem) -> str:
         """Get item category for validation"""
-        item_type = item.get('type', '').lower()
+        item_type = getattr(item, 'type', '').lower()
         
         # Map item types to categories
         if item_type in ['shirt', 'blouse', 'tank', 'sweater', 'hoodie', 'jacket']:
@@ -1009,10 +1009,10 @@ class RobustOutfitGenerationService:
         else:
             return 'accessories'
     
-    def _check_inappropriate_combination(self, item1: Dict[str, Any], item2: Dict[str, Any]) -> Optional[str]:
+    def _check_inappropriate_combination(self, item1: ClothingItem, item2: ClothingItem) -> Optional[str]:
         """Check for inappropriate item combinations"""
-        type1 = item1.get('type', '').lower()
-        type2 = item2.get('type', '').lower()
+        type1 = getattr(item1, 'type', '').lower()
+        type2 = getattr(item2, 'type', '').lower()
         
         # Check against inappropriate combinations
         for (type_a, type_b), message in self.inappropriate_combinations.items():
@@ -1021,16 +1021,16 @@ class RobustOutfitGenerationService:
         
         return None
     
-    async def _filter_by_body_type(self, wardrobe: List[Dict[str, Any]], body_type: str, height: str) -> List[Dict[str, Any]]:
+    async def _filter_by_body_type(self, wardrobe: List[ClothingItem], body_type: str, height: str) -> List[ClothingItem]:
         """Filter items based on body type compatibility"""
         # Simplified body type filtering logic
         compatible_items = []
         
         for item in wardrobe:
             # Basic body type compatibility rules
-            if body_type == 'tall' and item.get('type') == 'shorts':
+            if body_type == 'tall' and getattr(item, 'type', '') == 'shorts':
                 continue  # Skip shorts for tall people
-            elif body_type == 'petite' and item.get('type') == 'long_dress':
+            elif body_type == 'petite' and getattr(item, 'type', '') == 'long_dress':
                 continue  # Skip long dresses for petite people
             
             compatible_items.append(item)
@@ -1052,7 +1052,7 @@ class RobustOutfitGenerationService:
             # Return what we have if we can't complete
             return optimized_items
     
-    async def _filter_by_style_preferences(self, wardrobe: List[Dict[str, Any]], style_preferences: Dict, favorite_colors: List[str], preferred_brands: List[str]) -> List[Dict[str, Any]]:
+    async def _filter_by_style_preferences(self, wardrobe: List[ClothingItem], style_preferences: Dict, favorite_colors: List[str], preferred_brands: List[str]) -> List[ClothingItem]:
         """Filter items based on style preferences"""
         matched_items = []
         
@@ -1060,12 +1060,12 @@ class RobustOutfitGenerationService:
             score = 0
             
             # Color preference bonus
-            item_color = item.get('color', '').lower()
+            item_color = getattr(item, 'color', '').lower()
             if item_color in [color.lower() for color in favorite_colors]:
                 score += 10
             
             # Brand preference bonus
-            item_brand = item.get('brand', '').lower()
+            item_brand = getattr(item, 'brand', '').lower()
             if item_brand in [brand.lower() for brand in preferred_brands]:
                 score += 5
             
@@ -1074,13 +1074,13 @@ class RobustOutfitGenerationService:
         
         return matched_items[:self.max_items]
     
-    async def _filter_by_weather(self, wardrobe: List[Dict[str, Any]], weather: WeatherData) -> List[Dict[str, Any]]:
+    async def _filter_by_weather(self, wardrobe: List[ClothingItem], weather: WeatherData) -> List[ClothingItem]:
         """Filter items based on weather conditions"""
         weather_appropriate = []
         temperature = weather.temperature
         
         for item in wardrobe:
-            item_type = item.get('type', '').lower()
+            item_type = getattr(item, 'type', '').lower()
             
             # Temperature-based filtering
             if temperature < 60:  # Cold weather
@@ -1141,12 +1141,12 @@ class RobustOutfitGenerationService:
                 return item
         return None
     
-    async def _find_additional_item(self, wardrobe: List[Dict[str, Any]], existing_items: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    async def _find_additional_item(self, wardrobe: List[ClothingItem], existing_items: List[ClothingItem]) -> Optional[ClothingItem]:
         """Find an additional item to complete the outfit"""
-        existing_ids = {item.get('id') for item in existing_items}
+        existing_ids = {getattr(item, 'id', '') for item in existing_items}
         
         for item in wardrobe:
-            if item.get('id') not in existing_ids:
+            if getattr(item, 'id', '') not in existing_ids:
                 return item
         
         return None
