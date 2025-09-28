@@ -769,7 +769,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
                 
                 # Use WardrobePreprocessor to ensure all items are valid ClothingItem objects
-                logger.info(f"🔧 DEBUG: About to import WardrobePreprocessor")
+                logger.info(f"🔧 DEBUG v3.0: About to import WardrobePreprocessor")
                 try:
                     from ..services.wardrobe_preprocessor import WardrobePreprocessor
                     logger.info(f"🔧 DEBUG: WardrobePreprocessor imported successfully")
