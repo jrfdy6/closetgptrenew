@@ -768,9 +768,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     weather_data = SimpleNamespace(**weather_data)
                     logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
                 
-                # FORCE RAILWAY REDEPLOY - WardrobePreprocessor v4.0
-                logger.error(f"🚨 FORCE REDEPLOY v4.0: Starting WardrobePreprocessor import")
-                logger.error(f"🚨 FORCE REDEPLOY v4.0: This should appear in Railway logs")
+                # FORCE RAILWAY REDEPLOY - WardrobePreprocessor v5.0 - MAJOR CHANGE
+                print("🚨🚨🚨 FORCE REDEPLOY v5.0: MAJOR CHANGE - This should definitely appear!")
+                logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: Starting WardrobePreprocessor import")
+                logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: This should appear in Railway logs")
                 try:
                     from ..services.wardrobe_preprocessor import WardrobePreprocessor
                     logger.error(f"🚨 FORCE REDEPLOY v4.0: WardrobePreprocessor imported successfully")
@@ -3856,6 +3857,7 @@ async def outfits_health_check():
         "status": "healthy", 
         "router": "outfits", 
         "message": "Outfits router is working!",
+        "version": "v5.0-FORCE-REDEPLOY",
         "firebase_available": FIREBASE_AVAILABLE,
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False
     }
