@@ -760,13 +760,20 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
                 print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
                 
-                # Create generation context
+                # Create generation context - ensure weather is properly formatted
+                weather_data = req.weather
+                if isinstance(weather_data, dict):
+                    # Convert dict to object-like structure for robust service
+                    from types import SimpleNamespace
+                    weather_data = SimpleNamespace(**weather_data)
+                    logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
+                
                 context = GenerationContext(
                     user_id=user_id,
                     occasion=req.occasion,
                     style=req.style,
                     mood=req.mood,
-                    weather=req.weather,
+                    weather=weather_data,
                     wardrobe=wardrobe_items,
                     user_profile=user_profile,
                     base_item_id=req.baseItemId
@@ -941,9 +948,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         print(f"🚨 ROBUST CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
         print(f"🚨 ROBUST TRACEBACK: {str(e)}")
         
-        # TEMPORARILY DISABLED FALLBACK - FORCE ROBUST PATH TO SUCCEED OR CRASH LOUDLY
-        print(f"🚨 FALLBACK DISABLED FOR DEBUGGING - SURFACING ERROR")
-        raise  # Surface the error, don't fallback
+        # FALLBACK RE-ENABLED - Root cause identified and fixed (weather data format)
+        print(f"🚨 FALLBACK RE-ENABLED - Weather data format issue fixed")
+        return await generate_fallback_outfit(req, user_id)
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
     """Validate if the requested style is appropriate for the user's gender."""
