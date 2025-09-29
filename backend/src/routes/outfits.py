@@ -779,20 +779,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 print("🚨🚨🚨 FORCE REDEPLOY v5.0: MAJOR CHANGE - This should definitely appear!")
                 logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: Starting WardrobePreprocessor import")
                 logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: This should appear in Railway logs")
-                # Use hydration utility to ensure all items have required fields
-                logger.error(f"🚨 FORCE REDEPLOY v8.0: Starting item hydration")
                 
-                # Pre-Outfit-construction guard (fail-fast with logs)
-                logger.error(f"🚨 FORCE REDEPLOY v9.0: Starting pre-outfit-construction guard")
+                # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
+                logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
                 from ..utils.item_hydration import hydrate_outfit_items
-                items_for_outfit = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                logger.error(f"🚨 FORCE REDEPLOY v9.0: Guard completed - {len(items_for_outfit)} items ready")
+                hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
+                logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDRATED {len(hydrated_wardrobe_items)} items successfully")
                 
-                # Now convert to ClothingItem objects
-                from ..custom_types.wardrobe import ClothingItem
-                clothing_items = []
+                # Update wardrobe_items with hydrated items
+                wardrobe_items = hydrated_wardrobe_items
                 
-                for i, item_dict in enumerate(items_for_outfit):
+                for i, item_dict in enumerate(hydrated_wardrobe_items):
                     try:
                         clothing_item = ClothingItem(**item_dict)
                         clothing_items.append(clothing_item)
