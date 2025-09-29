@@ -73,6 +73,61 @@ PLACEHOLDERS = {
 
 CORE_FIELDS = ["imageUrl", "userId", "dominantColors", "matchingColors", "createdAt", "updatedAt", "metadata", "quality_score", "pairability_score"]
 
+def normalize_item_type_to_enum(item_type: str, item_name: str = "") -> str:
+    """Normalize item types to match ClothingType enum values."""
+    type_lower = item_type.lower()
+    name_lower = item_name.lower()
+    
+    # Map generic categories to specific enum values
+    if type_lower in ["tops", "top", "upper"]:
+        # Default to shirt for tops
+        return "shirt"
+    elif type_lower in ["bottoms", "bottom", "lower"]:
+        # Default to pants for bottoms
+        return "pants"
+    elif type_lower in ["footwear", "shoes"]:
+        # Default to shoes for footwear
+        return "shoes"
+    elif type_lower in ["outerwear", "jackets"]:
+        # Default to jacket for outerwear
+        return "jacket"
+    elif type_lower in ["accessories", "accessory"]:
+        # Default to accessory
+        return "accessory"
+    
+    # Map specific types that might be in the database
+    type_mappings = {
+        "t-shirt": "t-shirt",
+        "tshirt": "t-shirt", 
+        "dress_shirt": "dress_shirt",
+        "blouse": "blouse",
+        "sweater": "sweater",
+        "hoodie": "hoodie",
+        "polo": "polo",
+        "tank_top": "tank_top",
+        "jeans": "jeans",
+        "chinos": "chinos",
+        "slacks": "slacks",
+        "shorts": "shorts",
+        "joggers": "joggers",
+        "sweatpants": "sweatpants",
+        "skirt": "skirt",
+        "dress": "dress",
+        "blazer": "blazer",
+        "coat": "coat",
+        "sneakers": "sneakers",
+        "boots": "boots",
+        "sandals": "sandals",
+        "heels": "heels",
+        "flats": "flats",
+        "belt": "belt",
+        "hat": "hat",
+        "scarf": "scarf"
+    }
+    
+    # Return mapped value or original type if it matches enum
+    return type_mappings.get(type_lower, type_lower)
+
 # -------------------------------
 # Hydrator Function
 # -------------------------------
@@ -96,9 +151,9 @@ def hydrate_wardrobe_items(items: List[Dict[str, Any]]) -> List[ClothingItem]:
                 item_copy[field] = value
                 patched_fields.append(field)
 
-        # Normalize type field
+        # Normalize type field to match ClothingType enum
         if "type" in item_copy and item_copy["type"]:
-            item_copy["type"] = item_copy["type"].lower()
+            item_copy["type"] = normalize_item_type_to_enum(item_copy["type"], item_copy.get("name", ""))
 
         # Logging
         if patched_fields:
