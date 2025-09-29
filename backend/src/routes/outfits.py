@@ -1096,7 +1096,7 @@ async def validate_style_gender_compatibility(style: str, user_gender: str) -> D
             "suggested_alternatives": []
         }
 
-async def validate_outfit_composition(items: List[Dict], occasion: str, base_item: Optional[Dict] = None) -> List[Dict]:
+async def validate_outfit_composition(items: List[Dict], occasion: str, base_item: Optional[Dict] = None, style: str = "casual") -> List[Dict]:
     """Validate and ensure outfit has required components using enhanced validation."""
     # Validating outfit composition
     
@@ -1167,7 +1167,7 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         "occasion": occasion,
         "weather": {"temperature": 70, "condition": "clear"},  # Default weather
         "user_profile": {},
-        "style": "casual",
+        "style": style,  # Use actual request style instead of hardcoded "casual"
         "mood": None,
         "target_counts": {
             "min_items": 3,
@@ -2674,7 +2674,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # Validate and ensure complete outfit composition
         try:
             print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
-            validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj)
+            validated_items = await validate_outfit_composition(suitable_items, req.occasion, base_item_obj, req.style)
             print(f"✅ VALIDATION: Successfully validated outfit, got {len(validated_items)} items")
         except Exception as validation_error:
             print(f"❌ VALIDATION FAILED: {validation_error}")

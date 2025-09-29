@@ -909,48 +909,32 @@ class EnhancedOutfitValidator:
         self.validation_stats["total_validations"] += 1
         
         logger.info(f"🔍 Starting comprehensive outfit validation with {len(items)} items")
-        logger.info(f"📋 Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')}")
+        logger.info(f"📋 Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')} - {context.get('mood', 'unknown')}")
         
         # TEMPORARY DEBUG MODE: Bypass all filtering to see what we're working with
         logger.warning(f"🚨 DEBUG MODE: Bypassing strict validation to identify rejection reasons")
         
         try:
-            # DEBUG: Log all items and their metadata
-            logger.info(f"🔍 DEBUG: Analyzing all {len(items)} items for rejection patterns:")
+            # BATCH LOGGING: Reduce verbosity to prevent Railway rate limits
+            logger.info(f"🔍 DEBUG: Analyzing {len(items)} items for rejection patterns")
             
-            for i, item in enumerate(items[:10]):  # Log first 10 items in detail
+            # Batch analyze first 5 items only
+            metadata_issues = []
+            for i, item in enumerate(items[:5]):
                 item_id = item.get('id', f'item_{i}')
-                item_name = item.get('name', 'Unknown')
-                item_type = item.get('type', 'Unknown')
+                issues = []
+                if not item.get('color'): issues.append("missing_color")
+                if not item.get('season'): issues.append("missing_season")
+                if not item.get('style'): issues.append("missing_style")
+                if not item.get('occasion'): issues.append("missing_occasion")
                 
-                logger.info(f"🔍 DEBUG ITEM {i+1}: {item_id}")
-                logger.info(f"   Name: {item_name}")
-                logger.info(f"   Type: {item_type}")
-                logger.info(f"   Color: {item.get('color', 'MISSING')}")
-                logger.info(f"   Season: {item.get('season', 'MISSING')}")
-                logger.info(f"   Style: {item.get('style', 'MISSING')}")
-                logger.info(f"   Occasion: {item.get('occasion', 'MISSING')}")
-                logger.info(f"   Brand: {item.get('brand', 'MISSING')}")
-                logger.info(f"   Metadata: {item.get('metadata', 'MISSING')}")
-                
-                # Check for potential issues
-                potential_issues = []
-                if not item.get('color'):
-                    potential_issues.append("missing_color")
-                if not item.get('season'):
-                    potential_issues.append("missing_season")
-                if not item.get('style'):
-                    potential_issues.append("missing_style")
-                if not item.get('occasion'):
-                    potential_issues.append("missing_occasion")
-                
-                if potential_issues:
-                    logger.warning(f"   ⚠️ POTENTIAL ISSUES: {potential_issues}")
-                else:
-                    logger.info(f"   ✅ No obvious metadata gaps")
+                if issues:
+                    metadata_issues.append(f"{item_id}: {issues}")
             
-            if len(items) > 10:
-                logger.info(f"   ... and {len(items) - 10} more items")
+            if metadata_issues:
+                logger.warning(f"⚠️ METADATA ISSUES: {metadata_issues}")
+            else:
+                logger.info(f"✅ No obvious metadata gaps in sample")
             
             # TEMPORARY: Return all items as "valid" to bypass filtering
             logger.warning(f"🚨 DEBUG MODE: Returning ALL {len(items)} items as valid (bypassing filters)")
