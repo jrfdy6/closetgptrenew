@@ -705,6 +705,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         RobustOutfitGenerationService = None
         GenerationContext = None
     
+    # Import ClothingItem for validation
+    try:
+        from ..custom_types.wardrobe import ClothingItem
+        print(f"🔎 MAIN LOGIC: ClothingItem import successful")
+    except ImportError as e:
+        logger.error(f"🚨 FORCE REDEPLOY v12.0: ClothingItem import failed: {e}")
+        print(f"🚨 MAIN LOGIC: ClothingItem import FAILED: {e}")
+        ClothingItem = None
+    
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
     
     try:
@@ -795,15 +804,19 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Update wardrobe_items with hydrated items
                 wardrobe_items = hydrated_wardrobe_items
                 
-                for i, item_dict in enumerate(hydrated_wardrobe_items):
-                    try:
-                        clothing_item = ClothingItem(**item_dict)
-                        clothing_items.append(clothing_item)
-                        logger.error(f"🚨 FORCE REDEPLOY v8.0: Item {i}: {clothing_item.name}, imageUrl='{clothing_item.imageUrl}', userId='{clothing_item.userId}', createdAt={clothing_item.createdAt}")
-                    except Exception as item_error:
-                        logger.error(f"🔧 GUARD: Failed to convert item {i}: {item_error}")
-                        logger.error(f"🔧 GUARD: Item data: {item_dict}")
-                        continue
+                if ClothingItem is None:
+                    logger.error(f"🚨 FORCE REDEPLOY v14.0: ClothingItem not available, skipping validation")
+                    clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
+                else:
+                    for i, item_dict in enumerate(hydrated_wardrobe_items):
+                        try:
+                            clothing_item = ClothingItem(**item_dict)
+                            clothing_items.append(clothing_item)
+                            logger.error(f"🚨 FORCE REDEPLOY v8.0: Item {i}: {clothing_item.name}, imageUrl='{clothing_item.imageUrl}', userId='{clothing_item.userId}', createdAt={clothing_item.createdAt}")
+                        except Exception as item_error:
+                            logger.error(f"🔧 GUARD: Failed to convert item {i}: {item_error}")
+                            logger.error(f"🔧 GUARD: Item data: {item_dict}")
+                            continue
                 
                 logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
                 

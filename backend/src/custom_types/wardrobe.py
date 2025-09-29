@@ -449,16 +449,16 @@ class ClothingItem(BaseModel):
     type: ClothingType
     color: str
     season: List[str]
-    imageUrl: str
-    tags: List[str]
+    imageUrl: Optional[str] = "https://placeholder.com/image.jpg"
+    tags: List[str] = Field(default_factory=list)
     style: List[str] = Field(default_factory=list)
-    userId: str
-    dominantColors: List[Color]
-    matchingColors: List[Color]
-    occasion: List[str]
+    userId: Optional[str] = "unknown-user"
+    dominantColors: List[Color] = Field(default_factory=list)
+    matchingColors: List[Color] = Field(default_factory=list)
+    occasion: List[str] = Field(default_factory=list)
     brand: Optional[str] = None
-    createdAt: int
-    updatedAt: int
+    createdAt: Optional[int] = Field(default_factory=lambda: int(time.time() * 1000))
+    updatedAt: Optional[int] = Field(default_factory=lambda: int(time.time() * 1000))
     subType: Optional[str] = None
     colorName: Optional[str] = None
     backgroundRemoved: Optional[bool] = None

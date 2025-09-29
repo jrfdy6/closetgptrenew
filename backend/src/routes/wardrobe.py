@@ -694,9 +694,15 @@ async def get_wardrobe_items_with_slash(
                 if 'matchingColors' not in item_data:
                     item_data['matchingColors'] = []
                 if 'imageUrl' not in item_data:
-                    item_data['imageUrl'] = ''
+                    item_data['imageUrl'] = 'https://placeholder.com/image.jpg'
+                if 'userId' not in item_data:
+                    item_data['userId'] = current_user.id
                 if 'metadata' not in item_data:
-                    item_data['metadata'] = {}
+                    item_data['metadata'] = {
+                        'analysisTimestamp': int(time.time() * 1000),
+                        'originalType': item_data.get('type', 'other'),
+                        'colorAnalysis': {'dominant': [], 'matching': []}
+                    }
                 if 'favorite' not in item_data:
                     item_data['favorite'] = False
                 if 'wearCount' not in item_data:
