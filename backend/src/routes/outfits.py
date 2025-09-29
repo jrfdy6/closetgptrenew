@@ -377,23 +377,27 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
     })
     
     # Check for bridge rules first (before standard exclusions)
-    bridge_key = (style.lower(), 'athletic') if 'athletic' in item_text else None
-    if not bridge_key:
-        bridge_key = ('athletic', style.lower()) if style.lower() in ['classic', 'casual'] else None
-    
-    if bridge_key and bridge_key in bridge_rules:
-        bridge_rule = bridge_rules[bridge_key]
-        # Check if item matches bridge rule criteria
-        for keyword in bridge_rule['allowed_keywords']:
-            if keyword in item_text:
-                exclusion_debug.append({
-                    "item_name": item.get('name', 'unnamed'),
-                    "bridge_rule_applied": f"{bridge_key[0]} + {bridge_key[1]} allows {keyword}",
-                    "matched_keyword": keyword,
-                    "reason": "cross-style bridge rule"
-                })
-                print(f"🌉 BRIDGE RULE: Allowing {keyword} for {bridge_key[0]} + {bridge_key[1]} combination")
-                return None  # Allow item through bridge rule
+    try:
+        bridge_key = (style.lower(), 'athletic') if 'athletic' in item_text else None
+        if not bridge_key:
+            bridge_key = ('athletic', style.lower()) if style.lower() in ['classic', 'casual'] else None
+        
+        if bridge_key and bridge_key in bridge_rules:
+            bridge_rule = bridge_rules[bridge_key]
+            # Check if item matches bridge rule criteria
+            for keyword in bridge_rule['allowed_keywords']:
+                if keyword in item_text:
+                    exclusion_debug.append({
+                        "item_name": item.get('name', 'unnamed'),
+                        "bridge_rule_applied": f"{bridge_key[0]} + {bridge_key[1]} allows {keyword}",
+                        "matched_keyword": keyword,
+                        "reason": "cross-style bridge rule"
+                    })
+                    print(f"🌉 BRIDGE RULE: Allowing {keyword} for {bridge_key[0]} + {bridge_key[1]} combination")
+                    return None  # Allow item through bridge rule
+    except Exception as bridge_error:
+        logger.warning(f"⚠️ Bridge rule error: {bridge_error}")
+        # Continue with normal exclusion logic if bridge rules fail
     
     for category, indicators in rules.items():
         for indicator in indicators:
@@ -2753,9 +2757,15 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             logger.warning(f"🚨 SAFETY CHECK: {len(suitable_items)} suitable items but validation returned 0 - forcing minimum outfit")
             print(f"🚨 SAFETY CHECK: Creating minimum viable outfit from {len(suitable_items)} suitable items")
             
-            # Force create a basic outfit from suitable items
-            validated_items = _force_minimum_outfit(suitable_items, req.occasion, req.style)
-            logger.info(f"🔧 SAFETY CHECK: Created minimum outfit with {len(validated_items)} items")
+            try:
+                # Force create a basic outfit from suitable items
+                validated_items = _force_minimum_outfit(suitable_items, req.occasion, req.style)
+                logger.info(f"🔧 SAFETY CHECK: Created minimum outfit with {len(validated_items)} items")
+            except Exception as force_error:
+                logger.error(f"❌ SAFETY CHECK FAILED: {force_error}")
+                # Fallback to first few suitable items if force minimum fails
+                validated_items = suitable_items[:3] if len(suitable_items) >= 3 else suitable_items
+                logger.warning(f"🔧 SAFETY FALLBACK: Using first {len(validated_items)} suitable items")
         
         # DEBUG: After validation
         debug_rule_engine("after_validation", validated=validated_items)
