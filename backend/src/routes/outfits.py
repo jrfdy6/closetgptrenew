@@ -696,7 +696,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
         print(f"🔎 MAIN LOGIC: Robust generation service imports successful")
     except ImportError as e:
-        logger.warning(f"⚠️ Robust generation service import failed: {e}")
+        logger.error(f"🚨 FORCE REDEPLOY v12.0: Robust generation service import failed: {e}")
+        logger.error(f"🚨 FORCE REDEPLOY v12.0: Import error details: {type(e).__name__}: {e}")
         print(f"🚨 MAIN LOGIC: Robust generation service import FAILED: {e}")
         RobustOutfitGenerationService = None
         GenerationContext = None
@@ -753,6 +754,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.warning(f"⚠️ No weather data provided for outfit generation")
         
         print(f"🔎 MAIN LOGIC: About to call robust outfit generation service")
+        logger.error(f"🚨 FORCE REDEPLOY v12.0: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
+        logger.error(f"🚨 FORCE REDEPLOY v12.0: GenerationContext = {GenerationContext}")
+        logger.error(f"🚨 FORCE REDEPLOY v12.0: Both available = {RobustOutfitGenerationService is not None and GenerationContext is not None}")
         try:
             # Use robust outfit generation service if available (allow without Firebase for testing)
             if RobustOutfitGenerationService and GenerationContext:
@@ -1148,38 +1152,38 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
         validation_result = await validation_service.validate_outfit_with_enhanced_rules(clothing_items, context)
         print(f"🔍 VALIDATION DEBUG: Validation completed, result keys: {validation_result.keys()}")
         print(f"🔍 VALIDATION DEBUG: Filtered items count: {len(validation_result.get('filtered_items', []))}")
+    
+    if validation_result.get("filtered_items"):
+        # Convert back to dict format
+        validated_outfit = []
+        for item in validation_result["filtered_items"]:
+            item_dict = {
+                "id": item.id,
+                "name": item.name,
+                "type": item.type,
+                "color": item.color,
+                "imageUrl": item.imageUrl,
+                "style": item.style,
+                "occasion": item.occasion,
+                "brand": item.brand,
+                "wearCount": item.wearCount,
+                "favorite_score": item.favorite_score,
+                "tags": item.tags,
+                "metadata": item.metadata
+            }
+            validated_outfit.append(item_dict)
         
-        if validation_result.get("filtered_items"):
-            # Convert back to dict format
-            validated_outfit = []
-            for item in validation_result["filtered_items"]:
-                item_dict = {
-                    "id": item.id,
-                    "name": item.name,
-                    "type": item.type,
-                    "color": item.color,
-                    "imageUrl": item.imageUrl,
-                    "style": item.style,
-                    "occasion": item.occasion,
-                    "brand": item.brand,
-                    "wearCount": item.wearCount,
-                    "favorite_score": item.favorite_score,
-                    "tags": item.tags,
-                    "metadata": item.metadata
-                }
-                validated_outfit.append(item_dict)
-            
-            logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
-            if validation_result.get("errors"):
+        logger.info(f"✅ Enhanced validation completed: {len(validated_outfit)} items after filtering")
+        if validation_result.get("errors"):
                 errors = validation_result["errors"]
                 logger.info(f"🔍 Validation errors: {errors}")
-            if validation_result.get("warnings"):
+        if validation_result.get("warnings"):
                 warnings = validation_result["warnings"]
                 logger.info(f"🔍 Validation warnings: {warnings}")
-            
+        
             print(f"🔍 VALIDATION DEBUG: Returning {len(validated_outfit)} items")
-            return validated_outfit
-        else:
+        return validated_outfit
+                else:
             print(f"❌ VALIDATION DEBUG: No filtered items returned from enhanced validation!")
             print(f"❌ VALIDATION DEBUG: Validation result: {validation_result}")
             # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
@@ -5016,7 +5020,7 @@ async def generate_outfit(
                 logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
                 
                 # Run generation logic with robust service
-                outfit = await generate_outfit_logic(req, current_user_id)
+        outfit = await generate_outfit_logic(req, current_user_id)
                 
                 # NEW STRATEGY: Keep robust generator in control, don't auto-fallback
                 if outfit and outfit.get('items'):
