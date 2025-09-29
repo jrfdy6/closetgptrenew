@@ -781,7 +781,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 
                 # Pre-Outfit-construction guard (fail-fast with logs)
                 logger.error(f"🚨 FORCE REDEPLOY v9.0: Starting pre-outfit-construction guard")
-                items_for_outfit = ensure_items_ready(wardrobe_items, db if firebase_initialized else None)
+                from ..utils.item_hydration import hydrate_outfit_items
+                items_for_outfit = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
                 logger.error(f"🚨 FORCE REDEPLOY v9.0: Guard completed - {len(items_for_outfit)} items ready")
                 
                 # Now convert to ClothingItem objects
