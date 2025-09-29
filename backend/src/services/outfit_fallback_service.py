@@ -1200,8 +1200,8 @@ class OutfitFallbackService:
         cold_materials = ['cotton', 'linen', 'rayon', 'silk']
         hot_types = ['coat', 'sweater', 'jacket', 'hoodie', 'boots']
         cold_types = ['shorts', 'tank-top', 'sandals']
-        material = getattr(item, 'material', '').lower()
-        item_type = getattr(item, 'type', '').lower()
+        material = (getattr(item, 'material', '') or '').lower()
+        item_type = (getattr(item, 'type', '') or '').lower()
         
         # Too hot for heavy materials/types
         if temperature > 75:
@@ -1246,8 +1246,8 @@ class OutfitFallbackService:
         if not target_style or not item.style:
             return True
         
-        compatible_styles = self.style_compatibility.get(target_style.lower(), [])
-        return any(style.lower() in compatible_styles for style in item.style)
+        compatible_styles = self.style_compatibility.get((target_style or '').lower(), [])
+        return any((style or '').lower() in compatible_styles for style in (item.style or []))
 
     def _check_body_type_compatibility(self, item: ClothingItem, body_type: str) -> bool:
         """Check if an item is compatible with the user's body type using utility function."""
@@ -1269,7 +1269,7 @@ class OutfitFallbackService:
         is_very_cold = temperature < 32
         
         # Base counts for different occasions
-        occasion_lower = occasion.lower()
+        occasion_lower = (occasion or '').lower()
         
         if 'formal' in occasion_lower or 'business' in occasion_lower or 'interview' in occasion_lower:
             # Formal occasions - ALWAYS require blazer/suit jacket, then layer based on temperature
@@ -1373,7 +1373,7 @@ class OutfitFallbackService:
         
         # Style-based adjustments
         if style:
-            style_lower = style.lower()
+            style_lower = (style or '').lower()
             
             if 'minimalist' in style_lower or 'minimal' in style_lower:
                 # Minimalist styles - fewer items, cleaner look
@@ -1407,7 +1407,7 @@ class OutfitFallbackService:
                 
         # Mood-based adjustments
         if mood:
-            mood_lower = mood.lower()
+            mood_lower = (mood or '').lower()
             
             if 'bold' in mood_lower or 'dynamic' in mood_lower or 'energetic' in mood_lower:
                 # Bold moods - more items, statement pieces
@@ -1921,8 +1921,8 @@ class OutfitFallbackService:
         
         # Color compatibility
         if item1.dominantColors and item2.dominantColors:
-            color1 = item1.dominantColors[0].name.lower()
-            color2 = item2.dominantColors[0].name.lower()
+            color1 = (item1.dominantColors[0].name or '').lower()
+            color2 = (item2.dominantColors[0].name or '').lower()
             
             # Check if colors are complementary
             complementary_pairs = [
@@ -2261,7 +2261,7 @@ class OutfitFallbackService:
             'gym': 'casual',
             'workout': 'casual'
         }
-        constraints['formality'] = formality_mapping.get(occasion.lower(), 'casual')
+        constraints['formality'] = formality_mapping.get((occasion or '').lower(), 'casual')
         
         # Map occasion to style
         style_mapping = {
@@ -2276,7 +2276,7 @@ class OutfitFallbackService:
             'gym': 'athletic',
             'workout': 'athletic'
         }
-        constraints['style'] = style_mapping.get(occasion.lower(), 'casual')
+        constraints['style'] = style_mapping.get((occasion or '').lower(), 'casual')
         
         # Add weather constraints
         if weather_data:
