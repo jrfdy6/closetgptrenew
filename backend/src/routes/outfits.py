@@ -3168,7 +3168,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         
         # Use fallback service intelligent selection
         from ..services.outfit_fallback_service import DynamicHealingContext
-        healing_context = DynamicHealingContext()
+        healing_context = DynamicHealingContext(fallback_context)
         
         selected_clothing_items = await fallback_service._intelligent_item_selection(
             clothing_items, fallback_context, healing_context

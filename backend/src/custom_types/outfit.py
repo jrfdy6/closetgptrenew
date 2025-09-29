@@ -220,6 +220,7 @@ class OutfitGeneratedOutfit(BaseModel):
     description: str
     items: List[Union[str, ClothingItem]]  # Allow either strings (IDs) or full ClothingItem objects
     explanation: str
+    reasoning: str  # Add missing reasoning field
     pieces: List[OutfitPiece]
     styleTags: List[str]
     colorHarmony: str
