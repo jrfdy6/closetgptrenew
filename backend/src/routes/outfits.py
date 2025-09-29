@@ -14,6 +14,9 @@ from uuid import uuid4
 # Set up logger for generation tracking
 logger = logging.getLogger(__name__)
 
+# Debug logging for router loading
+logger.error("🚨 FORCE REDEPLOY v13.0: OUTFITS ROUTER LOADING - This should appear in Railway logs")
+
 def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unknown", 
                           generation_time: float = 0.0, validation_time: float = 0.0,
                           failed_rules: List[str] = None, fallback_reason: str = None):
