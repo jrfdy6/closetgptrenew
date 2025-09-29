@@ -150,6 +150,7 @@ ROUTERS = [
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
     ("src.routes.outfits", "/api/outfits"),          # Outfits router - mounted at /api/outfits for frontend compatibility
     ("src.routes.strategy_analytics", ""),           # Strategy analytics router - mounted at /api/strategy-analytics
+    ("src.routes.diversity_analytics", ""),          # Diversity analytics router - mounted at /api/diversity-analytics
     ("src.routes.outfits_with_embeddings", "/api/outfits-personalized"), # Embedding-based personalized outfit generation
     ("src.routes.lightweight_outfits", "/api/outfits-lightweight"), # Lightweight embeddings without external dependencies
     ("src.routes.validation_analytics", "/api/validation-analytics"), # Validation failure analytics and insights

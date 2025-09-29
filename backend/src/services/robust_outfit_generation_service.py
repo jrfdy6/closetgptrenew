@@ -22,6 +22,7 @@ from ..custom_types.weather import WeatherData
 from ..custom_types.profile import UserProfile
 from .robust_hydrator import ensure_items_safe_for_pydantic
 from .strategy_analytics_service import strategy_analytics, StrategyStatus
+from .diversity_filter_service import diversity_filter
 
 logger = logging.getLogger(__name__)
 
@@ -204,9 +205,53 @@ class RobustOutfitGenerationService:
                 confidence_threshold = 0.6  # Temporarily lowered for debugging
                 
                 if validation.is_valid and validation.confidence >= confidence_threshold:
+                    # Apply diversity filtering
+                    diversity_result = diversity_filter.check_outfit_diversity(
+                        user_id=context.user_id,
+                        new_outfit=outfit.items,
+                        occasion=context.occasion,
+                        style=context.style,
+                        mood=context.mood
+                    )
+                    
+                    logger.info(f"🎭 Diversity check: diverse={diversity_result['is_diverse']}, score={diversity_result['diversity_score']:.2f}")
+                    
+                    if not diversity_result['is_diverse']:
+                        logger.warning(f"⚠️ Outfit not diverse enough, trying diversity boost")
+                        
+                        # Apply diversity boost to items
+                        boosted_items = diversity_filter.apply_diversity_boost(
+                            items=outfit.items,
+                            user_id=context.user_id,
+                            occasion=context.occasion,
+                            style=context.style,
+                            mood=context.mood
+                        )
+                        
+                        # Re-select items with diversity boost
+                        if boosted_items:
+                            # Sort by diversity score and take top items
+                            boosted_items.sort(key=lambda x: x[1], reverse=True)
+                            diverse_items = [item for item, score in boosted_items[:len(outfit.items)]]
+                            
+                            # Update outfit with diverse items
+                            outfit.items = diverse_items
+                            
+                            # Re-validate with diverse items
+                            validation = await self._validate_outfit(outfit, context)
+                            logger.info(f"🎭 Re-validated with diverse items: valid={validation.is_valid}, confidence={validation.confidence}")
+                    
                     logger.info(f"✅ Successfully generated outfit with strategy {strategy.value}")
                     logger.info(f"📊 Validation score: {validation.score}, Confidence: {validation.confidence}")
                     logger.info(f"📦 Final outfit items: {[item.name for item in outfit.items]}")
+                    
+                    # Record outfit for diversity tracking
+                    diversity_filter.record_outfit_generation(
+                        user_id=context.user_id,
+                        outfit=outfit.__dict__,
+                        items=outfit.items
+                    )
+                    
                     return outfit
                 else:
                     logger.warning(f"⚠️ Strategy {strategy.value} failed validation: {validation.issues}")
