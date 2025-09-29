@@ -5,6 +5,7 @@ from enum import Enum
 from pydantic import validator
 from .style_engine import StyleAttributes, Fit, Silhouette, Material, Neckline, Detail, Accessory
 import re
+import time
 
 class Season(str, Enum):
     SPRING = "spring"

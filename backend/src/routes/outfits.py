@@ -804,6 +804,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Update wardrobe_items with hydrated items
                 wardrobe_items = hydrated_wardrobe_items
                 
+                # Initialize clothing_items list
+                clothing_items = []
+                
                 if ClothingItem is None:
                     logger.error(f"🚨 FORCE REDEPLOY v14.0: ClothingItem not available, skipping validation")
                     clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
@@ -3067,6 +3070,8 @@ def _select_priority_item(items: List[Dict[str, Any]], occasion: str, style: str
 
 async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Generate weather-aware fallback outfit when rule-based generation fails."""
+    import time  # Add time import for fallback function
+    
     logger.info(f"🔄 FALLBACK ACTIVATED: Generating weather-aware fallback outfit for {user_id}")
     print(f"🚨 FALLBACK EXECUTION: Starting fallback outfit generation")
     print(f"🚨 FALLBACK EXECUTION: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
@@ -3139,19 +3144,27 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                 clothing_item = ClothingItem(
                     id=item_dict.get('id', ''),
                     name=item_dict.get('name', ''),
-                    type=item_dict.get('type', ''),
-                    color=item_dict.get('color', ''),
-                    brand=item_dict.get('brand', ''),
-                    size=item_dict.get('size', ''),
-                    material=item_dict.get('material', ''),
-                    style=item_dict.get('style', ''),
-                    occasion=item_dict.get('occasion', ''),
-                    season=item_dict.get('season', ''),
+                    type=item_dict.get('type', 'other'),
+                    color=item_dict.get('color', 'unknown'),
+                    season=item_dict.get('season', ['all']),
+                    imageUrl=item_dict.get('imageUrl', 'https://placeholder.com/image.jpg'),
+                    tags=item_dict.get('tags', []),
+                    style=item_dict.get('style', []),
+                    userId=item_dict.get('userId', user_id),
+                    dominantColors=item_dict.get('dominantColors', []),
+                    matchingColors=item_dict.get('matchingColors', []),
+                    occasion=item_dict.get('occasion', []),
+                    brand=item_dict.get('brand'),
+                    createdAt=item_dict.get('createdAt', int(time.time() * 1000)),
+                    updatedAt=item_dict.get('updatedAt', int(time.time() * 1000)),
+                    subType=item_dict.get('subType'),
+                    colorName=item_dict.get('colorName'),
+                    backgroundRemoved=item_dict.get('backgroundRemoved'),
+                    embedding=item_dict.get('embedding'),
+                    metadata=item_dict.get('metadata'),
                     wearCount=item_dict.get('wearCount', 0),
                     lastWorn=item_dict.get('lastWorn'),
-                    favorite_score=item_dict.get('favorite_score', 0.0),
-                    tags=item_dict.get('tags', []),
-                    metadata=item_dict.get('metadata', {})
+                    favorite_score=item_dict.get('favorite_score', 0.0)
                 )
                 clothing_items.append(clothing_item)
             except Exception as e:
