@@ -312,7 +312,7 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
     logger.info(f"🎯 Style filtering for {style}: {len(filtered_items)}/{len(items)} items kept")
     return filtered_items
 
-def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]:
+def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None) -> Optional[str]:
     """Check if an item should be hard-excluded from a specific style."""
     item_name = item.get('name', '').lower()
     item_type = item.get('type', '').lower()
@@ -342,6 +342,11 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
             'casual_indicators': ['athletic', 'sport', 'gym', 'workout', 'casual', 'distressed'],
             'casual_materials': ['jersey', 'fleece', 'athletic'],
             'casual_types': ['hoodie', 'sweatshirt', 'joggers', 'sneakers', 't-shirt']
+        },
+        'classic': {
+            'athletic_indicators': ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball'],
+            'athletic_materials': ['jersey', 'fleece', 'athletic', 'mesh'],
+            'athletic_types': ['sneakers', 'athletic shoes', 'running shoes', 'basketball shoes', 'joggers', 'sweatpants']
         }
     }
     
@@ -354,6 +359,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     exclusion_debug.append({
         "item_name": item.get('name', 'unnamed'),
         "style": style,
+        "mood": mood,
         "item_text": item_text,
         "checking_indicators": list(rules.values())
     })
@@ -361,6 +367,20 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any]) -> Optional[str]
     for category, indicators in rules.items():
         for indicator in indicators:
             if indicator in item_text:
+                # BOLD MOOD EXCEPTION: Allow cross-style blending for fashion-forward looks
+                if mood and mood.lower() == 'bold':
+                    # Allow athletic items with Classic style for bold fashion statements
+                    if style == 'classic' and category in ['athletic_indicators', 'athletic_materials', 'athletic_types']:
+                        exclusion_debug.append({
+                            "item_name": item.get('name', 'unnamed'),
+                            "exclusion_bypassed": f"Bold mood allows {indicator} with {style}",
+                            "matched_indicator": indicator,
+                            "category": category,
+                            "reason": "fashion-forward bold styling"
+                        })
+                        print(f"🎨 BOLD EXCEPTION: Allowing {indicator} with {style} for bold fashion statement")
+                        continue  # Skip exclusion for bold mood
+                
                 exclusion_debug.append({
                     "item_name": item.get('name', 'unnamed'),
                     "exclusion_reason": f"{indicator} inappropriate for {style}",
@@ -715,6 +735,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         ClothingItem = None
     
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
+    logger.info(f"🔍 DATA HANDOFF: Request occasion='{req.occasion}', style='{req.style}', mood='{req.mood}'")
     
     try:
         # 1. Get wardrobe items (prefer request data, fallback to database)
@@ -1175,6 +1196,8 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
             "required_categories": ["top", "bottom", "shoes"]
         }
     }
+    
+    logger.info(f"🔍 DATA HANDOFF: Validation context created - occasion='{context['occasion']}', style='{context['style']}', mood='{context['mood']}'")
     
     # Run enhanced validation with inappropriate combination enforcement + simulation-based rules
     print(f"🔍 VALIDATION DEBUG: Starting validation with {len(clothing_items)} items")
@@ -2402,7 +2425,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             is_suitable = False
             
             # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
-            hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
+            hard_exclusions = get_hard_style_exclusions(req.style.lower(), item, req.mood)
             print(f"🔍 EXCLUSION CHECK: {item.get('name', 'unnamed')} for {req.style} - result: {hard_exclusions}")
             print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
             print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={item.get('id')}, isBaseItem={req.baseItemId and item.get('id') == req.baseItemId}")

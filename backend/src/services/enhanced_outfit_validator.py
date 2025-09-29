@@ -939,6 +939,14 @@ class EnhancedOutfitValidator:
             # TEMPORARY: Return all items as "valid" to bypass filtering
             logger.warning(f"🚨 DEBUG MODE: Returning ALL {len(items)} items as valid (bypassing filters)")
             
+            # BATCH LOG: Single summary instead of per-item logging
+            item_types_summary = {}
+            for item in items:
+                item_type = item.get('type', 'unknown')
+                item_types_summary[item_type] = item_types_summary.get(item_type, 0) + 1
+            
+            logger.info(f"📊 ITEM SUMMARY: {item_types_summary}")
+            
             # Create a mock visual harmony result
             from dataclasses import dataclass
             @dataclass
@@ -950,7 +958,27 @@ class EnhancedOutfitValidator:
             
             visual_harmony_result = MockVisualHarmony()
             
-            # Return success with all items
+            # OUTCOME CLARITY: Create detailed summary of what was validated
+            validation_summary = {
+                "debug_mode": True,
+                "bypassed_filters": True,
+                "original_item_count": len(items),
+                "returned_item_count": len(items),
+                "item_types_summary": item_types_summary,
+                "validation_context": {
+                    "occasion": context.get('occasion', 'unknown'),
+                    "style": context.get('style', 'unknown'),
+                    "mood": context.get('mood', 'unknown')
+                },
+                "selected_items_preview": [
+                    {
+                        "name": item.get('name', 'Unknown'),
+                        "type": item.get('type', 'unknown'),
+                        "color": item.get('color', 'unknown')
+                    } for item in items[:3]  # Show first 3 items
+                ]
+            }
+            
             return ValidationResult(
                 is_valid=True,
                 score=75.0,
@@ -958,12 +986,7 @@ class EnhancedOutfitValidator:
                 suggestions=["DEBUG MODE: All items passed validation"],
                 confidence_score=0.75,
                 filtered_items=items,  # Return ALL items
-                validation_details={
-                    "debug_mode": True,
-                    "bypassed_filters": True,
-                    "original_item_count": len(items),
-                    "returned_item_count": len(items)
-                }
+                validation_details=validation_summary
             )
             
         except Exception as e:
