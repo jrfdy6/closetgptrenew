@@ -473,6 +473,8 @@ class ClothingItem(BaseModel):
     lastWorn: Optional[float] = 0.0
     favorite_score: Optional[float] = 0.0
     seasonal_score: Optional[float] = 1.0  # Add seasonal_score field for testing
+    quality_score: Optional[float] = 0.5  # Add quality_score field for validation
+    pairability_score: Optional[float] = 0.5  # Add pairability_score field for validation
 
     @field_validator('style', mode='before')
     def convert_style_to_list(cls, v, info):

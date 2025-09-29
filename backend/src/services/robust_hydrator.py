@@ -67,9 +67,11 @@ PLACEHOLDERS = {
     "createdAt": lambda: int(datetime.utcnow().timestamp() * 1000),
     "updatedAt": lambda: int(datetime.utcnow().timestamp() * 1000),
     "metadata": Metadata(),  # default empty Metadata instance
+    "quality_score": 0.5,
+    "pairability_score": 0.5
 }
 
-CORE_FIELDS = ["imageUrl", "userId", "dominantColors", "matchingColors", "createdAt", "updatedAt", "metadata"]
+CORE_FIELDS = ["imageUrl", "userId", "dominantColors", "matchingColors", "createdAt", "updatedAt", "metadata", "quality_score", "pairability_score"]
 
 # -------------------------------
 # Hydrator Function
