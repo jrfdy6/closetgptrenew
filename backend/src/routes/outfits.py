@@ -899,7 +899,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     'items': robust_outfit.items,
                     'reasoning': robust_outfit.reasoning,
                     'createdAt': robust_outfit.createdAt,
-                    'userId': robust_outfit.userId,
+                    'userId': robust_outfit.user_id,
                     'weather_data': robust_outfit.weather,
                     'pieces': robust_outfit.pieces,
                     'explanation': robust_outfit.explanation,

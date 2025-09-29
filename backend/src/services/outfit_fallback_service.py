@@ -633,7 +633,7 @@ class OutfitFallbackService:
             if category_items:
                 # Sort by relevance score
                 category_items.sort(
-                    key=lambda x: self._calculate_relevance_score(x, context, healing_context),
+                    key=lambda x: self._calculate_relevance_score(x, context),
                     reverse=True
                 )
                 selected_items.extend(category_items[:count])
