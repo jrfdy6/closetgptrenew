@@ -350,6 +350,18 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
         }
     }
     
+    # BRIDGE RULES: Allow cross-style combinations for specific occasion/style pairs
+    bridge_rules = {
+        ('classic', 'athletic'): {
+            'allowed_athletic_items': ['sneakers', 'athletic shoes', 'polo shirt', 'chinos', 'joggers', 'athletic shorts'],
+            'allowed_keywords': ['polo', 'chino', 'sneaker', 'athletic', 'sport', 'running', 'tennis']
+        },
+        ('athletic', 'classic'): {
+            'allowed_classic_items': ['polo shirt', 'chinos', 'sneakers', 'athletic shoes', 'casual button-up'],
+            'allowed_keywords': ['polo', 'chino', 'sneaker', 'classic', 'casual', 'button']
+        }
+    }
+    
     if style not in exclusion_rules:
         return None
     
@@ -363,6 +375,25 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
         "item_text": item_text,
         "checking_indicators": list(rules.values())
     })
+    
+    # Check for bridge rules first (before standard exclusions)
+    bridge_key = (style.lower(), 'athletic') if 'athletic' in item_text else None
+    if not bridge_key:
+        bridge_key = ('athletic', style.lower()) if style.lower() in ['classic', 'casual'] else None
+    
+    if bridge_key and bridge_key in bridge_rules:
+        bridge_rule = bridge_rules[bridge_key]
+        # Check if item matches bridge rule criteria
+        for keyword in bridge_rule['allowed_keywords']:
+            if keyword in item_text:
+                exclusion_debug.append({
+                    "item_name": item.get('name', 'unnamed'),
+                    "bridge_rule_applied": f"{bridge_key[0]} + {bridge_key[1]} allows {keyword}",
+                    "matched_keyword": keyword,
+                    "reason": "cross-style bridge rule"
+                })
+                print(f"🌉 BRIDGE RULE: Allowing {keyword} for {bridge_key[0]} + {bridge_key[1]} combination")
+                return None  # Allow item through bridge rule
     
     for category, indicators in rules.items():
         for indicator in indicators:
@@ -379,6 +410,18 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
                             "reason": "fashion-forward bold styling"
                         })
                         print(f"🎨 BOLD EXCEPTION: Allowing {indicator} with {style} for bold fashion statement")
+                        continue  # Skip exclusion for bold mood
+                    
+                    # EXTENDED BOLD EXCEPTION: Allow cross-style items for any style combination
+                    if category in ['casual_indicators', 'casual_materials', 'casual_types', 'formal_indicators', 'formal_materials', 'formal_types']:
+                        exclusion_debug.append({
+                            "item_name": item.get('name', 'unnamed'),
+                            "exclusion_bypassed": f"Bold mood allows {indicator} with {style}",
+                            "matched_indicator": indicator,
+                            "category": category,
+                            "reason": "bold mood cross-style blending"
+                        })
+                        print(f"🎨 BOLD EXCEPTION: Allowing {indicator} with {style} for bold cross-style blending")
                         continue  # Skip exclusion for bold mood
                 
                 exclusion_debug.append({
@@ -2705,6 +2748,15 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
             validated_items = []
         
+        # FORCE MINIMUM VIABLE OUTFIT: If we have suitable items but validation failed
+        if len(suitable_items) > 0 and len(validated_items) == 0:
+            logger.warning(f"🚨 SAFETY CHECK: {len(suitable_items)} suitable items but validation returned 0 - forcing minimum outfit")
+            print(f"🚨 SAFETY CHECK: Creating minimum viable outfit from {len(suitable_items)} suitable items")
+            
+            # Force create a basic outfit from suitable items
+            validated_items = _force_minimum_outfit(suitable_items, req.occasion, req.style)
+            logger.info(f"🔧 SAFETY CHECK: Created minimum outfit with {len(validated_items)} items")
+        
         # DEBUG: After validation
         debug_rule_engine("after_validation", validated=validated_items)
         
@@ -2798,6 +2850,10 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             # Use fallback reasoning if generation fails
             intelligent_reasoning = f"Rule-based {req.style} outfit for {req.occasion} with {len(outfit_items)} items"
         
+        # FINAL DEBUG: Log outfit assembly results
+        logger.info(f"📊 FINAL OUTFIT: {len(outfit_items)} items selected out of {len(suitable_items)} suitable items")
+        print(f"📊 FINAL OUTFIT: {len(outfit_items)} items selected out of {len(suitable_items)} suitable items")
+        
         return {
             "name": outfit_name,
             "style": req.style,
@@ -2866,6 +2922,35 @@ def _pick_any_item_safe(wardrobe: List[Dict[str, Any]], category: str, occasion:
         return random.choice(wardrobe) if wardrobe else None
     
     return random.choice(candidates)
+
+def _force_minimum_outfit(suitable_items: List[Dict[str, Any]], occasion: str, style: str) -> List[Dict[str, Any]]:
+    """Force creation of a minimum viable outfit when validation fails but suitable items exist."""
+    logger.info(f"🔧 FORCE MINIMUM: Creating outfit from {len(suitable_items)} suitable items")
+    
+    minimum_outfit = []
+    essential_categories = ["tops", "bottoms", "shoes"]
+    
+    # Try to get one item from each essential category
+    for category in essential_categories:
+        category_items = [item for item in suitable_items if item.get('type', '').lower() == category]
+        if category_items:
+            # Take the first item from this category
+            minimum_outfit.append(category_items[0])
+            logger.info(f"🔧 FORCE MINIMUM: Added {category}: {category_items[0].get('name', 'Unknown')}")
+        else:
+            logger.warning(f"⚠️ FORCE MINIMUM: No {category} found in suitable items")
+    
+    # If we still don't have enough items, add any remaining suitable items
+    while len(minimum_outfit) < 3 and len(minimum_outfit) < len(suitable_items):
+        remaining_items = [item for item in suitable_items if item not in minimum_outfit]
+        if remaining_items:
+            minimum_outfit.append(remaining_items[0])
+            logger.info(f"🔧 FORCE MINIMUM: Added additional item: {remaining_items[0].get('name', 'Unknown')}")
+        else:
+            break
+    
+    logger.info(f"🔧 FORCE MINIMUM: Created outfit with {len(minimum_outfit)} items")
+    return minimum_outfit
 
 def _emergency_outfit(wardrobe: List[Dict[str, Any]], occasion: str) -> List[Dict[str, Any]]:
     """Generate emergency outfit that always passes validation rules."""
