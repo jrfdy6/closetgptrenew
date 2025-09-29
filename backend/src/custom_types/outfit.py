@@ -235,6 +235,7 @@ class OutfitGeneratedOutfit(BaseModel):
     wasSuccessful: Optional[bool] = True
     baseItemId: Optional[str] = None
     validationErrors: Optional[List[str]] = []
+    confidence: Optional[float] = 0.0
     userFeedback: Optional[Dict[str, Any]] = None
     user_id: Optional[str] = None  # 🚀 NEW: Add user_id field for filtering
     
