@@ -80,7 +80,6 @@ def hydrate_wardrobe_items(items: List[Dict[str, Any]]) -> List[ClothingItem]:
     Always patches core survival fields.
     Returns a new list of ClothingItem instances (immutable copies).
     """
-    logger.error(f"🚨 FORCE REDEPLOY v10.0: HYDRATE_ENTRY: Processing {len(items)} items")
     patched_items = []
 
     for raw_item in items:
@@ -121,7 +120,7 @@ def ensure_items_safe_for_pydantic(items: List[Dict[str, Any]]) -> List[Clothing
     Safety-net function to ensure all items are safe for Pydantic validation.
     This is the main entry point for the robust generator.
     """
-    logger.error(f"🚨 FORCE REDEPLOY v10.0: HYDRATOR ENTRY: Starting safety check for {len(items)} items")
+    logger.debug(f"🔧 ROBUST HYDRATOR: Starting safety check for {len(items)} items")
     safe_items = hydrate_wardrobe_items(items)
-    logger.error(f"🚨 FORCE REDEPLOY v10.0: HYDRATOR EXIT: {len(safe_items)} items validated and ready")
+    logger.info(f"✅ ROBUST HYDRATOR: {len(safe_items)} items validated and ready")
     return safe_items

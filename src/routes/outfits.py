@@ -25,6 +25,49 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["outfits"])
 security = HTTPBearer()
 
+# Pre-Outfit-construction guard (fail-fast with logs)
+REQUIRED_KEYS = [
+    'id', 'name', 'type', 'color', 'imageUrl', 'userId', 'dominantColors', 
+    'matchingColors', 'createdAt', 'updatedAt', 'metadata'
+]
+
+def validate_ready_for_pydantic(item_dict):
+    """Check if item dictionary has all required keys for ClothingItem Pydantic model."""
+    missing = [k for k in REQUIRED_KEYS if not item_dict.get(k)]
+    return missing
+
+def ensure_items_ready(items, firestore_client=None):
+    """Ensure all items are ready for Pydantic validation before outfit construction."""
+    corrected = []
+    for raw in items:
+        # if it's already a ClothingItem instance, convert to dict or get attrs
+        if hasattr(raw, "__dict__"):
+            d = raw.__dict__
+        else:
+            d = dict(raw)
+        
+        missing = validate_ready_for_pydantic(d)
+        if missing:
+            logging.debug("Item %s missing keys %s - hydrating/patching", d.get("id"), missing)
+            # try hydrate via DB if firestore_client is available
+            if firestore_client:
+                from ..utils.item_hydration import hydrate_item_ref
+                hydrated = hydrate_item_ref(d, firestore_client)
+            else:
+                # Use fallback conversion directly
+                from ..utils.item_hydration import fallback_convert_minimal_to_full
+                hydrated = fallback_convert_minimal_to_full(d)
+            
+            missing2 = validate_ready_for_pydantic(hydrated)
+            if missing2:
+                logging.warning("Still missing %s after hydration for item %s. Using fallback convert.", missing2, hydrated.get("id"))
+                from ..utils.item_hydration import fallback_convert_minimal_to_full
+                hydrated = fallback_convert_minimal_to_full(hydrated)
+            corrected.append(hydrated)
+        else:
+            corrected.append(d)
+    return corrected
+
 async def resolve_item_ids_to_objects(items: List[Any], user_id: str) -> List[Dict[str, Any]]:
     """
     Resolve item IDs to actual item objects from the wardrobe collection.

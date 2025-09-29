@@ -107,15 +107,20 @@ class RobustOutfitGenerationService:
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
         # Safety-net hydration at start of pipeline
-        logger.info(f"🔧 ROBUST HYDRATOR: Starting safety check for wardrobe items")
-        if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
-            # Convert raw wardrobe items to ClothingItem objects with safety net
-            safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
-            logger.info(f"✅ ROBUST HYDRATOR: {len(safe_wardrobe)} items validated and ready")
-            # Update context with safe wardrobe
-            context.wardrobe = safe_wardrobe
-        else:
-            logger.info(f"✅ ROBUST HYDRATOR: Wardrobe items already ClothingItem objects, skipping hydration")
+        logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: Starting safety check for wardrobe items")
+        try:
+            if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
+                logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: Calling ensure_items_safe_for_pydantic with {len(context.wardrobe)} items")
+                # Convert raw wardrobe items to ClothingItem objects with safety net
+                safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
+                logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: {len(safe_wardrobe)} items validated and ready")
+                # Update context with safe wardrobe
+                context.wardrobe = safe_wardrobe
+            else:
+                logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: Wardrobe items already ClothingItem objects, skipping hydration")
+        except Exception as hydrator_error:
+            logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR ERROR: {hydrator_error}")
+            logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR TRACEBACK: {hydrator_error.__class__.__name__}")
         
         # Handle weather data safely
         if hasattr(context.weather, 'temperature'):
