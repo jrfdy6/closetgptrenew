@@ -21,6 +21,7 @@ from ..custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
 from ..custom_types.weather import WeatherData
 from ..custom_types.profile import UserProfile
 from .robust_hydrator import ensure_items_safe_for_pydantic
+from .strategy_analytics_service import strategy_analytics, StrategyStatus
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,14 @@ class RobustOutfitGenerationService:
         
         # Try each generation strategy in order
         logger.info(f"🔄 Available strategies: {[s.value for s in self.generation_strategies]}")
+        session_id = f"session_{int(time.time())}_{context.user_id}"
+        
         for strategy in self.generation_strategies:
+            strategy_start_time = time.time()
+            validation_start_time = 0
+            validation_time = 0
+            generation_time = 0
+            
             try:
                 logger.info(f"🔄 Trying generation strategy: {strategy.value}")
                 context.generation_strategy = strategy
@@ -154,12 +162,34 @@ class RobustOutfitGenerationService:
                 # Log strategy-specific context
                 logger.info(f"🔍 Strategy {strategy.value} - Starting generation...")
                 outfit = await self._generate_with_strategy(context)
+                generation_time = time.time() - strategy_start_time
                 logger.info(f"🔍 Strategy {strategy.value} - Generated outfit with {len(outfit.items)} items")
                 
                 # Validate the generated outfit
+                validation_start_time = time.time()
                 logger.info(f"🔍 Strategy {strategy.value} - Starting validation...")
                 validation = await self._validate_outfit(outfit, context)
+                validation_time = time.time() - validation_start_time
                 logger.info(f"🔍 Strategy {strategy.value} - Validation complete: valid={validation.is_valid}, confidence={validation.confidence}")
+                
+                # ENHANCED STRATEGY ANALYTICS TRACKING
+                strategy_analytics.record_strategy_execution(
+                    strategy=strategy.value,
+                    user_id=context.user_id,
+                    occasion=context.occasion,
+                    style=context.style,
+                    mood=context.mood,
+                    status=StrategyStatus.SUCCESS if validation.is_valid else StrategyStatus.FAILED,
+                    confidence=validation.confidence,
+                    validation_score=validation.score,
+                    generation_time=generation_time,
+                    validation_time=validation_time,
+                    items_selected=len(outfit.items),
+                    items_available=len(context.wardrobe),
+                    failed_rules=validation.issues if not validation.is_valid else [],
+                    fallback_reason=None,
+                    session_id=session_id
+                )
                 
                 # PER-STRATEGY LOGGING
                 strategy_name = strategy.value.upper()
@@ -168,6 +198,7 @@ class RobustOutfitGenerationService:
                 logger.info(f"[{strategy_name}] Validation: valid={validation.is_valid}, score={validation.score}")
                 logger.info(f"[{strategy_name}] Issues: {validation.issues}")
                 logger.info(f"[{strategy_name}] Suggestions: {validation.suggestions}")
+                logger.info(f"[{strategy_name}] Timing: {generation_time:.3f}s generation, {validation_time:.3f}s validation")
                 
                 # TEMPORARY CONFIDENCE RELAXATION (0.6 instead of 0.7)
                 confidence_threshold = 0.6  # Temporarily lowered for debugging
@@ -187,8 +218,28 @@ class RobustOutfitGenerationService:
                         return outfit
                         
             except Exception as e:
+                generation_time = time.time() - strategy_start_time
                 logger.error(f"❌ Strategy {strategy.value} failed with error: {e}", exc_info=True)
                 logger.error(f"❌ Strategy {strategy.value} error context: user={context.user_id}, occasion={context.occasion}")
+                
+                # Track strategy failure
+                strategy_analytics.record_strategy_execution(
+                    strategy=strategy.value,
+                    user_id=context.user_id,
+                    occasion=context.occasion,
+                    style=context.style,
+                    mood=context.mood,
+                    status=StrategyStatus.FAILED,
+                    confidence=0.0,
+                    validation_score=0.0,
+                    generation_time=generation_time,
+                    validation_time=0.0,
+                    items_selected=0,
+                    items_available=len(context.wardrobe),
+                    failed_rules=[f"strategy_exception: {str(e)}"],
+                    fallback_reason=f"Strategy execution failed: {str(e)}",
+                    session_id=session_id
+                )
                 continue
         
         # This should never be reached due to emergency default

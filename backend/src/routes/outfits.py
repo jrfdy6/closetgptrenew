@@ -784,21 +784,18 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     weather_data = SimpleNamespace(**weather_data)
                     logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
                 
-                # FORCE RAILWAY REDEPLOY - WardrobePreprocessor v5.0 - MAJOR CHANGE
-                print("🚨🚨🚨 FORCE REDEPLOY v5.0: MAJOR CHANGE - This should definitely appear!")
-                logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: Starting WardrobePreprocessor import")
-                logger.error(f"🚨🚨🚨 FORCE REDEPLOY v5.0: This should appear in Railway logs")
+                # WardrobePreprocessor integration
+                logger.info(f"🔧 Starting WardrobePreprocessor integration")
                 
                 # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
-                logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+                logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
                 try:
                     from ..utils.item_hydration import hydrate_outfit_items
-                    logger.error(f"🚨 FORCE REDEPLOY v14.0: Successfully imported hydrate_outfit_items")
                     hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                    logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+                    logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
                 except Exception as hydrator_error:
-                    logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDATOR ERROR: {hydrator_error}")
-                    logger.error(f"🚨 FORCE REDEPLOY v14.0: Using original wardrobe_items as fallback")
+                    logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
+                    logger.info(f"🔄 Using original wardrobe_items as fallback")
                     hydrated_wardrobe_items = wardrobe_items
                 
                 # Update wardrobe_items with hydrated items
@@ -808,17 +805,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 clothing_items = []
                 
                 if ClothingItem is None:
-                    logger.error(f"🚨 FORCE REDEPLOY v14.0: ClothingItem not available, skipping validation")
+                    logger.warning(f"⚠️ ClothingItem not available, skipping validation")
                     clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
                 else:
                     for i, item_dict in enumerate(hydrated_wardrobe_items):
                         try:
                             clothing_item = ClothingItem(**item_dict)
                             clothing_items.append(clothing_item)
-                            logger.error(f"🚨 FORCE REDEPLOY v8.0: Item {i}: {clothing_item.name}, imageUrl='{clothing_item.imageUrl}', userId='{clothing_item.userId}', createdAt={clothing_item.createdAt}")
                         except Exception as item_error:
-                            logger.error(f"🔧 GUARD: Failed to convert item {i}: {item_error}")
-                            logger.error(f"🔧 GUARD: Item data: {item_dict}")
+                            logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
                             continue
                 
                 logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
