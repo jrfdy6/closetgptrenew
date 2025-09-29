@@ -782,9 +782,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 
                 # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
                 logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
-                from ..utils.item_hydration import hydrate_outfit_items
-                hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+                try:
+                    from ..utils.item_hydration import hydrate_outfit_items
+                    logger.error(f"🚨 FORCE REDEPLOY v14.0: Successfully imported hydrate_outfit_items")
+                    hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
+                    logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+                except Exception as hydrator_error:
+                    logger.error(f"🚨 FORCE REDEPLOY v14.0: HYDATOR ERROR: {hydrator_error}")
+                    logger.error(f"🚨 FORCE REDEPLOY v14.0: Using original wardrobe_items as fallback")
+                    hydrated_wardrobe_items = wardrobe_items
                 
                 # Update wardrobe_items with hydrated items
                 wardrobe_items = hydrated_wardrobe_items
