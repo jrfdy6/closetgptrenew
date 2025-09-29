@@ -458,6 +458,8 @@ class ClothingItem(BaseModel):
     matchingColors: List[Color] = Field(default_factory=list)
     occasion: List[str] = Field(default_factory=list)
     brand: Optional[str] = None
+    size: Optional[str] = None  # Add missing size field
+    material: Optional[str] = None  # Add missing material field
     createdAt: Optional[int] = Field(default_factory=lambda: int(time.time() * 1000))
     updatedAt: Optional[int] = Field(default_factory=lambda: int(time.time() * 1000))
     subType: Optional[str] = None
