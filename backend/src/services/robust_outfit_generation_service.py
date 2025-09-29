@@ -23,6 +23,7 @@ from ..custom_types.profile import UserProfile
 from .robust_hydrator import ensure_items_safe_for_pydantic
 from .strategy_analytics_service import strategy_analytics, StrategyStatus
 from .diversity_filter_service import diversity_filter
+from .adaptive_tuning_service import adaptive_tuning, PerformanceMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -146,6 +147,14 @@ class RobustOutfitGenerationService:
         type_counts = {item_type: item_types.count(item_type) for item_type in set(item_types)}
         logger.info(f"📊 Wardrobe breakdown: {type_counts}")
         
+        # Get current tuned parameters
+        tuned_params = adaptive_tuning.get_current_parameters()
+        confidence_threshold = tuned_params.get('confidence_threshold', 0.6)
+        max_items = int(tuned_params.get('max_items_per_outfit', 6))
+        min_items = int(tuned_params.get('min_items_per_outfit', 3))
+        
+        logger.info(f"🎛️ Using tuned parameters: confidence={confidence_threshold:.2f}, items={min_items}-{max_items}")
+        
         # Try each generation strategy in order
         logger.info(f"🔄 Available strategies: {[s.value for s in self.generation_strategies]}")
         session_id = f"session_{int(time.time())}_{context.user_id}"
@@ -201,8 +210,8 @@ class RobustOutfitGenerationService:
                 logger.info(f"[{strategy_name}] Suggestions: {validation.suggestions}")
                 logger.info(f"[{strategy_name}] Timing: {generation_time:.3f}s generation, {validation_time:.3f}s validation")
                 
-                # TEMPORARY CONFIDENCE RELAXATION (0.6 instead of 0.7)
-                confidence_threshold = 0.6  # Temporarily lowered for debugging
+                # Use adaptive confidence threshold
+                # confidence_threshold is already set from tuned parameters above
                 
                 if validation.is_valid and validation.confidence >= confidence_threshold:
                     # Apply diversity filtering
@@ -252,11 +261,36 @@ class RobustOutfitGenerationService:
                         items=outfit.items
                     )
                     
+                    # Record performance metrics for adaptive tuning
+                    self._record_generation_performance(
+                        context=context,
+                        strategy=strategy.value,
+                        success=True,
+                        confidence=validation.confidence,
+                        generation_time=generation_time,
+                        validation_time=validation_time,
+                        items_selected=len(outfit.items),
+                        diversity_score=diversity_result['diversity_score']
+                    )
+                    
                     return outfit
                 else:
                     logger.warning(f"⚠️ Strategy {strategy.value} failed validation: {validation.issues}")
                     logger.warning(f"⚠️ Validation details: valid={validation.is_valid}, confidence={validation.confidence}, score={validation.score}")
                     logger.warning(f"⚠️ Confidence threshold not met: {validation.confidence} < {confidence_threshold}")
+                    
+                    # Record failed attempt
+                    self._record_generation_performance(
+                        context=context,
+                        strategy=strategy.value,
+                        success=False,
+                        confidence=validation.confidence,
+                        generation_time=generation_time,
+                        validation_time=validation_time,
+                        items_selected=len(outfit.items),
+                        diversity_score=0.0
+                    )
+                    
                     if strategy == GenerationStrategy.EMERGENCY_DEFAULT:
                         # If even emergency default fails, return it anyway
                         logger.error(f"🚨 All generation strategies failed, returning emergency default")
@@ -289,6 +323,36 @@ class RobustOutfitGenerationService:
         
         # This should never be reached due to emergency default
         raise Exception("All outfit generation strategies failed")
+    
+    def _record_generation_performance(self, context: GenerationContext, strategy: str, 
+                                    success: bool, confidence: float, generation_time: float,
+                                    validation_time: float, items_selected: int, 
+                                    diversity_score: float) -> None:
+        """Record performance metrics for adaptive tuning"""
+        try:
+            # Calculate fallback rate (simplified - would need more context in real implementation)
+            fallback_rate = 0.0 if success else 1.0
+            
+            # Create performance metrics
+            metrics = PerformanceMetrics(
+                success_rate=1.0 if success else 0.0,
+                avg_confidence=confidence,
+                avg_generation_time=generation_time,
+                avg_validation_time=validation_time,
+                diversity_score=diversity_score,
+                user_satisfaction=confidence,  # Use confidence as proxy for satisfaction
+                fallback_rate=fallback_rate,
+                sample_size=1,
+                time_window_hours=int(time.time())
+            )
+            
+            # Record with adaptive tuning service
+            adaptive_tuning.record_performance(metrics)
+            
+            logger.debug(f"📊 Recorded performance: success={success}, confidence={confidence:.2f}, time={generation_time:.3f}s")
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to record performance metrics: {e}")
     
     async def _generate_with_strategy(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate outfit using specific strategy"""
