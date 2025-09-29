@@ -818,7 +818,12 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🚀 ROBUST WARDROBE: {len(context.wardrobe)} items")
                     logger.info(f"🚀 ROBUST PROFILE: {context.user_profile}")
                     
-                    robust_outfit = await RobustOutfitGenerationService().generate_outfit(context)
+                    logger.error(f"🚨 FORCE REDEPLOY v11.0: About to instantiate RobustOutfitGenerationService")
+                    robust_service = RobustOutfitGenerationService()
+                    logger.error(f"🚨 FORCE REDEPLOY v11.0: RobustOutfitGenerationService instantiated successfully")
+                    logger.error(f"🚨 FORCE REDEPLOY v11.0: About to call generate_outfit with context")
+                    robust_outfit = await robust_service.generate_outfit(context)
+                    logger.error(f"🚨 FORCE REDEPLOY v11.0: generate_outfit completed successfully")
                     
                     logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
                     logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
