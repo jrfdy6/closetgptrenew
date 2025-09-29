@@ -387,6 +387,11 @@ class RobustOutfitGenerationService:
         # Ensure outfit completeness and appropriateness
         complete_outfit = await self._ensure_outfit_completeness(selected_items, context)
         
+        # AGGRESSIVE COMPLETENESS CHECK - Force complete outfits
+        if len(complete_outfit) < 3:
+            logger.warning(f"⚠️ COHESIVE: Outfit incomplete ({len(complete_outfit)} items), forcing completion")
+            complete_outfit = await self._force_complete_outfit(context.wardrobe, context)
+        
         # Create outfit response
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
@@ -1005,8 +1010,10 @@ class RobustOutfitGenerationService:
         # Calculate confidence
         confidence = max(0.0, min(1.0, score / 100.0))
         
-        # TEMPORARY CONFIDENCE RELAXATION (0.6 instead of 0.7)
-        is_valid = len(issues) == 0 and confidence >= 0.6
+        # RELAXED VALIDATION - Allow outfits with minor issues to pass
+        # Only fail if there are critical issues (missing essential categories or too few items)
+        critical_issues = [issue for issue in issues if "Missing essential categories" in issue or "only" in issue and "items" in issue]
+        is_valid = len(critical_issues) == 0 and confidence >= 0.4  # Lowered from 0.6
         
         logger.info(f"🔍 VALIDATION RESULT: valid={is_valid}, score={score}, confidence={confidence}")
         logger.info(f"🔍 VALIDATION ISSUES: {len(issues)} issues found")
@@ -1334,6 +1341,34 @@ class RobustOutfitGenerationService:
                 return item
         
         return None
+    
+    async def _force_complete_outfit(self, wardrobe: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
+        """Force creation of a complete outfit with all essential categories"""
+        logger.info(f"🔧 FORCE COMPLETE: Creating complete outfit from {len(wardrobe)} items")
+        
+        outfit_items = []
+        essential_categories = ["tops", "bottoms", "shoes"]
+        
+        # Force add one item from each essential category
+        for category in essential_categories:
+            category_item = await self._find_item_for_category(wardrobe, category)
+            if category_item:
+                outfit_items.append(category_item)
+                logger.info(f"🔧 FORCE COMPLETE: Added {category}: {getattr(category_item, 'name', 'Unknown')}")
+            else:
+                logger.warning(f"⚠️ FORCE COMPLETE: No {category} found in wardrobe")
+        
+        # Add additional items to reach minimum count
+        while len(outfit_items) < self.min_items and len(outfit_items) < len(wardrobe):
+            additional_item = await self._find_additional_item(wardrobe, outfit_items)
+            if additional_item:
+                outfit_items.append(additional_item)
+                logger.info(f"🔧 FORCE COMPLETE: Added additional item: {getattr(additional_item, 'name', 'Unknown')}")
+            else:
+                break
+        
+        logger.info(f"🔧 FORCE COMPLETE: Created outfit with {len(outfit_items)} items")
+        return outfit_items
     
     def _determine_season_from_weather(self, weather: WeatherData) -> str:
         """Determine season from weather data"""
