@@ -231,6 +231,7 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"{context.style} {context.occasion} Outfit",
+            description=f"Carefully curated {context.style} outfit optimized for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
@@ -274,6 +275,7 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"Body-Optimized {context.style} Outfit",
+            description=f"Body-optimized {context.style} outfit for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
@@ -317,6 +319,7 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"Style-Matched {context.style} Outfit",
+            description=f"Style-matched {context.style} outfit for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
@@ -353,6 +356,7 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"Weather-Adapted {context.style} Outfit",
+            description=f"Weather-adapted {context.style} outfit for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
@@ -390,6 +394,7 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"Simple {context.style} Outfit",
+            description=f"Simple {context.style} outfit for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
@@ -468,6 +473,7 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"Emergency Default Outfit",
+            description=f"Emergency default outfit for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
