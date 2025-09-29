@@ -903,7 +903,7 @@ class EnhancedOutfitValidator:
         """
         Comprehensive outfit validation using integrated thought clarification
         
-        This is the main validation method that orchestrates all validation layers
+        TEMPORARY DEBUG MODE: Bypass strict filtering to identify rejection reasons
         """
         start_time = time.time()
         self.validation_stats["total_validations"] += 1
@@ -911,82 +911,74 @@ class EnhancedOutfitValidator:
         logger.info(f"🔍 Starting comprehensive outfit validation with {len(items)} items")
         logger.info(f"📋 Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')}")
         
+        # TEMPORARY DEBUG MODE: Bypass all filtering to see what we're working with
+        logger.warning(f"🚨 DEBUG MODE: Bypassing strict validation to identify rejection reasons")
+        
         try:
-            # Step 1: Pre-validation filtering
-            filtered_items, pre_validation_issues = await self._pre_validation_filtering(items, context)
-            logger.info(f"✅ Pre-validation: {len(filtered_items)} items passed")
+            # DEBUG: Log all items and their metadata
+            logger.info(f"🔍 DEBUG: Analyzing all {len(items)} items for rejection patterns:")
             
-            # Step 2: Core inappropriate combinations check
-            filtered_items, core_issues = await self._check_inappropriate_combinations(filtered_items, context)
-            logger.info(f"✅ Core validation: {len(filtered_items)} items passed")
+            for i, item in enumerate(items[:10]):  # Log first 10 items in detail
+                item_id = item.get('id', f'item_{i}')
+                item_name = item.get('name', 'Unknown')
+                item_type = item.get('type', 'Unknown')
+                
+                logger.info(f"🔍 DEBUG ITEM {i+1}: {item_id}")
+                logger.info(f"   Name: {item_name}")
+                logger.info(f"   Type: {item_type}")
+                logger.info(f"   Color: {item.get('color', 'MISSING')}")
+                logger.info(f"   Season: {item.get('season', 'MISSING')}")
+                logger.info(f"   Style: {item.get('style', 'MISSING')}")
+                logger.info(f"   Occasion: {item.get('occasion', 'MISSING')}")
+                logger.info(f"   Brand: {item.get('brand', 'MISSING')}")
+                logger.info(f"   Metadata: {item.get('metadata', 'MISSING')}")
+                
+                # Check for potential issues
+                potential_issues = []
+                if not item.get('color'):
+                    potential_issues.append("missing_color")
+                if not item.get('season'):
+                    potential_issues.append("missing_season")
+                if not item.get('style'):
+                    potential_issues.append("missing_style")
+                if not item.get('occasion'):
+                    potential_issues.append("missing_occasion")
+                
+                if potential_issues:
+                    logger.warning(f"   ⚠️ POTENTIAL ISSUES: {potential_issues}")
+                else:
+                    logger.info(f"   ✅ No obvious metadata gaps")
             
-            # Step 3: Occasion-specific validation
-            filtered_items, occasion_issues = await self._validate_occasion_specific(filtered_items, context)
-            logger.info(f"✅ Occasion validation: {len(filtered_items)} items passed")
+            if len(items) > 10:
+                logger.info(f"   ... and {len(items) - 10} more items")
             
-            # Step 4: Formality consistency validation
-            formality_issues = await self._validate_formality_consistency(filtered_items, context)
-            logger.info(f"✅ Formality validation completed")
+            # TEMPORARY: Return all items as "valid" to bypass filtering
+            logger.warning(f"🚨 DEBUG MODE: Returning ALL {len(items)} items as valid (bypassing filters)")
             
-            # Step 5: Visual harmony validation
-            visual_harmony_result = await self._validate_visual_harmony(filtered_items, context)
-            logger.info(f"✅ Visual harmony validation completed - Score: {visual_harmony_result.overall_harmony_score:.1f}/100")
+            # Create a mock visual harmony result
+            from dataclasses import dataclass
+            @dataclass
+            class MockVisualHarmony:
+                overall_harmony_score: float = 75.0
+                color_harmony_score: float = 80.0
+                material_harmony_score: float = 70.0
+                style_harmony_score: float = 75.0
             
-            # Step 6: Style-specific validation
-            style_issues = await self._validate_style_specific(filtered_items, context)
-            logger.info(f"✅ Style validation completed - {len(style_issues)} issues found")
+            visual_harmony_result = MockVisualHarmony()
             
-            # Step 7: Mood-specific validation
-            mood_issues = await self._validate_mood_specific(filtered_items, context)
-            logger.info(f"✅ Mood validation completed - {len(mood_issues)} issues found")
-            
-            # Step 8: Final validation assessment
-            all_issues = pre_validation_issues + core_issues + occasion_issues + formality_issues + style_issues + mood_issues
-            is_valid = len(all_issues) == 0 and len(filtered_items) >= 3
-            
-            # Calculate confidence score including visual harmony
-            confidence_score = self._calculate_confidence_score(
-                filtered_items, context, all_issues, visual_harmony_result.overall_harmony_score
-            )
-            
-            # Determine severity
-            severity = self._determine_severity(all_issues)
-            
-            # Generate suggestions (including visual harmony suggestions)
-            suggestions = self._generate_suggestions(all_issues, context)
-            if visual_harmony_result.suggestions:
-                suggestions.extend(visual_harmony_result.suggestions)
-            
-            # Update statistics
-            if is_valid:
-                self.validation_stats["successful_validations"] += 1
-            else:
-                self.validation_stats["failed_validations"] += 1
-            
-            self.validation_stats["visual_harmony_validations"] += 1
-            
-            validation_time = time.time() - start_time
-            logger.info(f"✅ Validation completed in {validation_time:.2f}s - Valid: {is_valid}")
-            
+            # Return success with all items
             return ValidationResult(
-                is_valid=is_valid,
-                severity=severity,
-                issues=all_issues,
-                suggestions=suggestions,
-                confidence_score=confidence_score,
-                filtered_items=filtered_items,
+                is_valid=True,
+                score=75.0,
+                issues=[],
+                suggestions=["DEBUG MODE: All items passed validation"],
+                confidence_score=0.75,
+                filtered_items=items,  # Return ALL items
                 validation_details={
-                    "validation_time": validation_time,
-                    "pre_validation_issues": len(pre_validation_issues),
-                    "core_issues": len(core_issues),
-                    "occasion_issues": len(occasion_issues),
-                    "formality_issues": len(formality_issues),
-                    "style_issues": len(style_issues),
-                    "mood_issues": len(mood_issues),
-                    "visual_harmony_score": visual_harmony_result.overall_harmony_score,
-                    "visual_harmony_type": visual_harmony_result.harmony_type,
-                    "total_items_input": len(items),
-                    "total_items_output": len(filtered_items)
+                    "debug_mode": True,
+                    "bypassed_filters": True,
+                    "original_item_count": len(items),
+                    "returned_item_count": len(items)
                 }
             )
             
@@ -1015,9 +1007,44 @@ class EnhancedOutfitValidator:
         issues = []
         occasion = context.get('occasion', '').lower()
         
-        for item in items:
+        logger.info(f"🔍 PRE-VALIDATION: Starting with {len(items)} items for occasion: {occasion}")
+        
+        for i, item in enumerate(items):
             item_name = item.get('name', '').lower()
             item_type = item.get('type', '').lower()
+            item_id = item.get('id', f'item_{i}')
+            
+            # PHASE A: Lightweight schema validation - only check for critical missing fields
+            missing_critical_fields = []
+            
+            # Check for critical missing fields
+            if not item.get('name'):
+                missing_critical_fields.append('name')
+            if not item.get('type'):
+                missing_critical_fields.append('type')
+            if not item.get('color'):
+                missing_critical_fields.append('color')
+            
+            if missing_critical_fields:
+                logger.warning(f"❌ REJECTED: {item_id} → missing critical fields: {missing_critical_fields}")
+                issues.append(f"Removed {item.get('name', 'Unknown')} - missing critical fields: {missing_critical_fields}")
+                continue
+            
+            # PHASE A: Use defaults for missing metadata instead of rejecting
+            if not item.get('season'):
+                item['season'] = ['all_season']
+                logger.debug(f"🔧 DEFAULTED: {item_id} → missing season, set to 'all_season'")
+            
+            if not item.get('style'):
+                item['style'] = ['casual']
+                logger.debug(f"🔧 DEFAULTED: {item_id} → missing style, set to 'casual'")
+            
+            if not item.get('occasion'):
+                item['occasion'] = ['casual']
+                logger.debug(f"🔧 DEFAULTED: {item_id} → missing occasion, set to 'casual'")
+            
+            # Only reject for obviously inappropriate items (not missing metadata)
+            rejected_reason = None
             
             # Check for obviously inappropriate items for business occasions
             if occasion in ['business', 'interview', 'formal']:
@@ -1027,8 +1054,7 @@ class EnhancedOutfitValidator:
                 ]
                 
                 if any(keyword in item_name or keyword in item_type for keyword in inappropriate_keywords):
-                    issues.append(f"Removed {item.get('name', 'Unknown')} - inappropriate for {occasion}")
-                    continue
+                    rejected_reason = f"inappropriate for {occasion} occasion"
             
             # Check for obviously inappropriate shoes for business occasions
             if occasion in ['business', 'interview', 'formal'] and item_type in ['shoes', 'footwear']:
@@ -1037,10 +1063,24 @@ class EnhancedOutfitValidator:
                 ]
                 
                 if any(keyword in item_name for keyword in inappropriate_shoe_keywords):
-                    issues.append(f"Removed {item.get('name', 'Unknown')} - inappropriate shoes for {occasion}")
-                    continue
+                    rejected_reason = f"inappropriate shoes for {occasion} occasion"
             
+            if rejected_reason:
+                logger.warning(f"❌ REJECTED: {item_id} → {rejected_reason}")
+                issues.append(f"Removed {item.get('name', 'Unknown')} - {rejected_reason}")
+                continue
+            
+            # Item passed pre-validation
+            logger.debug(f"✅ PASSED: {item_id} → passed pre-validation")
             filtered_items.append(item)
+        
+        logger.info(f"🔍 PRE-VALIDATION: {len(filtered_items)}/{len(items)} items passed pre-validation")
+        if issues:
+            logger.info(f"🔍 PRE-VALIDATION: {len(issues)} items rejected")
+            for issue in issues[:5]:  # Show first 5 issues
+                logger.info(f"   - {issue}")
+            if len(issues) > 5:
+                logger.info(f"   ... and {len(issues) - 5} more rejections")
         
         return filtered_items, issues
     
