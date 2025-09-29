@@ -765,10 +765,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     try:
         from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
         print(f"🔎 MAIN LOGIC: Robust generation service imports successful")
+        logger.info(f"✅ ROBUST IMPORT: Successfully imported RobustOutfitGenerationService and GenerationContext")
     except ImportError as e:
-        logger.error(f"🚨 FORCE REDEPLOY v12.0: Robust generation service import failed: {e}")
-        logger.error(f"🚨 FORCE REDEPLOY v12.0: Import error details: {type(e).__name__}: {e}")
+        logger.error(f"🚨 FORCE REDEPLOY v13.0: Robust generation service import failed: {e}")
+        logger.error(f"🚨 FORCE REDEPLOY v13.0: Import error details: {type(e).__name__}: {e}")
         print(f"🚨 MAIN LOGIC: Robust generation service import FAILED: {e}")
+        RobustOutfitGenerationService = None
+        GenerationContext = None
+    except Exception as e:
+        logger.error(f"🚨 FORCE REDEPLOY v13.0: Unexpected error importing robust service: {e}")
+        logger.error(f"🚨 FORCE REDEPLOY v13.0: Error type: {type(e).__name__}")
+        print(f"🚨 MAIN LOGIC: Robust generation service import FAILED with unexpected error: {e}")
         RobustOutfitGenerationService = None
         GenerationContext = None
     
@@ -1015,7 +1022,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.warning("⚠️ Robust service not available, falling back to rule-based generation")
                 print(f"🚨 ROBUST SERVICE NOT AVAILABLE: RobustOutfitGenerationService or GenerationContext is None")
                 print(f"🚨 This means the robust service import failed or is not properly configured")
-            outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
+                
+                try:
+                    logger.info(f"🔄 FALLBACK: Starting rule-based generation with {len(wardrobe_items)} items")
+                    outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
+                    logger.info(f"✅ FALLBACK: Rule-based generation completed with {len(outfit.get('items', []))} items")
+                except Exception as rule_error:
+                    logger.error(f"❌ FALLBACK FAILED: Rule-based generation crashed: {rule_error}")
+                    logger.error(f"❌ FALLBACK ERROR TYPE: {type(rule_error).__name__}")
+                    logger.error(f"❌ FALLBACK TRACEBACK: {str(rule_error)}")
+                    print(f"🚨 RULE-BASED GENERATION CRASHED: {rule_error}")
+                    raise rule_error
             
             # Add weather data to outfit for base item validation
             if req.weather:
