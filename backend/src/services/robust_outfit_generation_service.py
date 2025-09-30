@@ -61,6 +61,16 @@ def ensure_items_safe_for_pydantic(items):
 class MockService:
     """Mock service with all required methods"""
     
+    def __getattr__(self, name):
+        """Catch any missing method calls"""
+        print(f"🔧 MOCK SERVICE: Called missing method '{name}' - returning default")
+        if name.startswith('get_') or name.startswith('is_') or name.startswith('has_'):
+            return lambda *args, **kwargs: None
+        elif name.startswith('set_') or name.startswith('update_') or name.startswith('record_'):
+            return lambda *args, **kwargs: None
+        else:
+            return lambda *args, **kwargs: {}
+    
     def get_current_parameters(self):
         return {
             'confidence_threshold': 0.3,
