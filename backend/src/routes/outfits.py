@@ -3459,6 +3459,30 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     occasion_requirements_met = True
     validation_applied = True
     
+    # Define occasion requirements for fallback validation
+    occasion_requirements = {
+        'business': {
+            'required': ['shirt', 'pants', 'shoes'],
+            'optional': ['blazer', 'tie', 'jacket'],
+            'forbidden': ['shorts', 'flip-flops', 'tank-top']
+        },
+        'casual': {
+            'required': ['shirt OR t-shirt', 'pants OR shorts', 'shoes'],
+            'optional': ['jacket', 'sweater'],
+            'forbidden': ['tie', 'formal-shoes']
+        },
+        'athletic': {
+            'required': ['athletic-appropriate footwear', 'athletic-appropriate bottoms', 'athletic-appropriate top'],
+            'optional': ['athletic-jacket', 'athletic-accessories'],
+            'forbidden': ['dress-shoes', 'formal-wear', 'high-heels']
+        },
+        'formal': {
+            'required': ['dress-shirt', 'dress-pants', 'dress-shoes'],
+            'optional': ['suit-jacket', 'tie', 'blazer'],
+            'forbidden': ['sneakers', 'shorts', 'casual-wear']
+        }
+    }
+    
     # Check if we have occasion requirements and apply semantic validation
     occasion_lower = req.occasion.lower()
     if occasion_lower in occasion_requirements:
