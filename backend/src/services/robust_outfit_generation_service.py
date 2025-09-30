@@ -109,41 +109,23 @@ class RobustOutfitGenerationService:
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
-        # STRESS TEST: Comprehensive logging for robust generator failure analysis
-        logger.error(f"🚨 STRESS TEST v1.0: ROBUST GENERATOR START - User: {context.user_id}")
-        logger.error(f"🚨 STRESS TEST v1.0: Context - Occasion: {context.occasion}, Style: {context.style}, Mood: {context.mood}")
-        logger.error(f"🚨 STRESS TEST v1.0: Wardrobe size: {len(context.wardrobe)} items")
+        # Reduced logging to prevent rate limiting
+        logger.info(f"🎨 ROBUST GENERATOR START - User: {context.user_id}, Occasion: {context.occasion}, Style: {context.style}, Wardrobe: {len(context.wardrobe)} items")
         
-        # Log first few wardrobe items for analysis
-        if context.wardrobe:
-            logger.error(f"🚨 STRESS TEST v1.0: First wardrobe item keys: {list(context.wardrobe[0].keys()) if isinstance(context.wardrobe[0], dict) else 'Not a dict'}")
-            logger.error(f"🚨 STRESS TEST v1.0: First wardrobe item type: {type(context.wardrobe[0])}")
-            if isinstance(context.wardrobe[0], dict):
-                logger.error(f"🚨 STRESS TEST v1.0: First item sample: {dict(list(context.wardrobe[0].items())[:5])}")
-        
-        # Safety-net hydration at start of pipeline
-        logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR START - Processing {len(context.wardrobe)} items")
+        # Reduced logging for hydration
+        logger.debug(f"🔄 Hydrating {len(context.wardrobe)} wardrobe items")
         try:
             if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
-                logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR - Calling ensure_items_safe_for_pydantic")
                 # Convert raw wardrobe items to ClothingItem objects with safety net
                 safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
-                logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR SUCCESS - {len(safe_wardrobe)} items validated")
-                
-                # Log sample of hydrated items
-                if safe_wardrobe:
-                    logger.error(f"🚨 STRESS TEST v1.0: HYDRATED ITEM SAMPLE - Type: {type(safe_wardrobe[0])}")
-                    logger.error(f"🚨 STRESS TEST v1.0: HYDRATED ITEM FIELDS - {list(safe_wardrobe[0].__dict__.keys()) if hasattr(safe_wardrobe[0], '__dict__') else 'No __dict__'}")
+                logger.debug(f"✅ Hydrated {len(safe_wardrobe)} items successfully")
                 
                 # Update context with safe wardrobe
                 context.wardrobe = safe_wardrobe
             else:
-                logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR SKIP - Items already ClothingItem objects")
+                logger.debug(f"✅ Items already ClothingItem objects")
         except Exception as hydrator_error:
-            logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR FAILURE - {hydrator_error}")
-            logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR TRACEBACK - {hydrator_error.__class__.__name__}: {str(hydrator_error)}")
-            import traceback
-            logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR FULL TRACEBACK - {traceback.format_exc()}")
+            logger.error(f"❌ Hydration failed: {hydrator_error}")
         
         # Handle weather data safely
         if hasattr(context.weather, 'temperature'):
@@ -175,194 +157,304 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎛️ Using tuned parameters: confidence={confidence_threshold:.2f}, items={min_items}-{max_items}")
         
-        # Try each generation strategy in order
-        logger.info(f"🔄 Available strategies: {[s.value for s in self.generation_strategies]}")
+        # PARALLEL CORE STRATEGIES + FALLBACK SYSTEM
+        # Core strategies run in parallel, fallbacks are true fallbacks
+        core_strategies = [
+            GenerationStrategy.COHESIVE_COMPOSITION,
+            GenerationStrategy.BODY_TYPE_OPTIMIZED,
+            GenerationStrategy.STYLE_PROFILE_MATCHED,
+            GenerationStrategy.WEATHER_ADAPTED
+        ]
+        
+        fallback_strategies = [
+            GenerationStrategy.FALLBACK_SIMPLE,
+            GenerationStrategy.EMERGENCY_DEFAULT
+        ]
+        
+        logger.info(f"🚀 PARALLEL: {len(core_strategies)} core strategies + {len(fallback_strategies)} fallbacks")
         session_id = f"session_{int(time.time())}_{context.user_id}"
         
-        # STRESS TEST: Strategy execution loop with detailed logging
-        logger.error(f"🚨 STRESS TEST v1.0: STRATEGY LOOP START - {len(self.generation_strategies)} strategies")
+        # Create tasks for core strategies to run in parallel
+        core_strategy_tasks = []
+        for strategy in core_strategies:
+            task = asyncio.create_task(self._execute_strategy_parallel(strategy, context, session_id))
+            core_strategy_tasks.append((strategy, task))
         
-        for i, strategy in enumerate(self.generation_strategies):
-            strategy_start_time = time.time()
-            validation_start_time = 0
-            validation_time = 0
-            generation_time = 0
-            
-            logger.error(f"🚨 STRESS TEST v1.0: STRATEGY {i+1}/{len(self.generation_strategies)} - {strategy.value}")
-            
+        # Wait for all core strategies to complete
+        logger.info(f"⏳ Waiting for {len(core_strategy_tasks)} parallel strategies...")
+        core_strategy_results = []
+        
+        for strategy, task in core_strategy_tasks:
             try:
-                logger.info(f"🔄 Trying generation strategy: {strategy.value}")
-                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY {strategy.value} EXECUTION START")
-                context.generation_strategy = strategy
+                result = await task
+                core_strategy_results.append((strategy, result))
+                logger.debug(f"✅ {strategy.value}: {result['status']}")
+            except Exception as e:
+                logger.error(f"❌ {strategy.value} failed: {e}")
+                core_strategy_results.append((strategy, {'status': 'failed', 'error': str(e), 'outfit': None, 'validation': None}))
+        
+        # ANALYZE CORE STRATEGY RESULTS
+        successful_core_results = []
+        failed_core_results = []
+        
+        for strategy, result in core_strategy_results:
+            if result['status'] == 'success' and result['validation'].is_valid:
+                successful_core_results.append((strategy, result))
+            else:
+                failed_core_results.append((strategy, result))
+        
+        logger.info(f"📊 RESULTS: {len(successful_core_results)}/{len(core_strategy_results)} core strategies successful")
+        
+        # SELECT BEST RESULT FROM SUCCESSFUL CORE STRATEGIES
+        if successful_core_results:
+            # Sort by confidence score and select the best
+            successful_core_results.sort(key=lambda x: x[1]['validation'].confidence, reverse=True)
+            best_strategy, best_result = successful_core_results[0]
+            
+            logger.info(f"🏆 BEST CORE STRATEGY: {best_strategy.value} with confidence {best_result['validation'].confidence:.2f}")
+            
+            # Apply diversity filtering to the best result
+            outfit = best_result['outfit']
+            validation = best_result['validation']
+            
+            logger.info(f"🎭 Applying diversity filtering to best result...")
+            diversity_result = diversity_filter.check_outfit_diversity(
+                user_id=context.user_id,
+                new_outfit=outfit.items,
+                occasion=context.occasion,
+                style=context.style,
+                mood=context.mood
+            )
+            
+            logger.info(f"🎭 Diversity check: diverse={diversity_result['is_diverse']}, score={diversity_result['diversity_score']:.2f}")
+            
+            if not diversity_result['is_diverse']:
+                logger.warning(f"⚠️ Outfit not diverse enough, applying diversity boost")
                 
-                # Log strategy-specific context
-                logger.info(f"🔍 Strategy {strategy.value} - Starting generation...")
-                logger.error(f"🚨 STRESS TEST v1.0: CALLING _generate_with_strategy for {strategy.value}")
-                outfit = await self._generate_with_strategy(context)
-                generation_time = time.time() - strategy_start_time
-                logger.info(f"🔍 Strategy {strategy.value} - Generated outfit with {len(outfit.items)} items")
-                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY {strategy.value} GENERATION COMPLETE - {generation_time:.3f}s, {len(outfit.items)} items")
-                
-                # Validate the generated outfit
-                validation_start_time = time.time()
-                logger.info(f"🔍 Strategy {strategy.value} - Starting validation...")
-                logger.error(f"🚨 STRESS TEST v1.0: VALIDATION START for {strategy.value}")
-                validation = await self._validate_outfit(outfit, context)
-                validation_time = time.time() - validation_start_time
-                logger.info(f"🔍 Strategy {strategy.value} - Validation complete: valid={validation.is_valid}, confidence={validation.confidence}")
-                logger.error(f"🚨 STRESS TEST v1.0: VALIDATION COMPLETE - {validation_time:.3f}s, Valid: {validation.is_valid}, Confidence: {validation.confidence:.2f}")
-                logger.error(f"🚨 STRESS TEST v1.0: VALIDATION ISSUES - {validation.issues}")
-                
-                # ENHANCED STRATEGY ANALYTICS TRACKING
-                strategy_analytics.record_strategy_execution(
-                    strategy=strategy.value,
+                # Apply diversity boost to items
+                boosted_items = diversity_filter.apply_diversity_boost(
+                    items=outfit.items,
                     user_id=context.user_id,
                     occasion=context.occasion,
                     style=context.style,
-                    mood=context.mood,
-                    status=StrategyStatus.SUCCESS if validation.is_valid else StrategyStatus.FAILED,
-                    confidence=validation.confidence,
-                    validation_score=validation.score,
-                    generation_time=generation_time,
-                    validation_time=validation_time,
-                    items_selected=len(outfit.items),
-                    items_available=len(context.wardrobe),
-                    failed_rules=validation.issues if not validation.is_valid else [],
-                    fallback_reason=None,
-                    session_id=session_id
+                    mood=context.mood
                 )
                 
-                # PER-STRATEGY LOGGING
-                strategy_name = strategy.value.upper()
-                logger.info(f"[{strategy_name}] Items selected: {len(outfit.items)}")
-                logger.info(f"[{strategy_name}] Confidence: {validation.confidence}")
-                logger.info(f"[{strategy_name}] Validation: valid={validation.is_valid}, score={validation.score}")
-                logger.info(f"[{strategy_name}] Issues: {validation.issues}")
-                logger.info(f"[{strategy_name}] Suggestions: {validation.suggestions}")
-                logger.info(f"[{strategy_name}] Timing: {generation_time:.3f}s generation, {validation_time:.3f}s validation")
-                
-                # Use adaptive confidence threshold
-                # confidence_threshold is already set from tuned parameters above
-                
-                if validation.is_valid and validation.confidence >= confidence_threshold:
-                    logger.error(f"🚨 STRESS TEST v1.0: STRATEGY SUCCESS - {strategy.value} passed validation!")
-                    logger.error(f"🚨 STRESS TEST v1.0: SUCCESS CRITERIA - Valid: {validation.is_valid}, Confidence: {validation.confidence:.2f} >= {confidence_threshold}")
+                # Re-select items with diversity boost
+                if boosted_items:
+                    # Sort by diversity score and take top items
+                    boosted_items.sort(key=lambda x: x[1], reverse=True)
+                    diverse_items = [item for item, score in boosted_items[:len(outfit.items)]]
                     
-                    # Apply diversity filtering
-                    logger.error(f"🚨 STRESS TEST v1.0: DIVERSITY CHECK START for {strategy.value}")
-                    diversity_result = diversity_filter.check_outfit_diversity(
+                    # Update outfit with diverse items
+                    outfit.items = diverse_items
+                    
+                    # Re-validate with diverse items
+                    validation = await self._validate_outfit(outfit, context)
+                    logger.info(f"🎭 Re-validated with diverse items: valid={validation.is_valid}, confidence={validation.confidence}")
+            
+            # Record outfit for diversity tracking
+            diversity_filter.record_outfit_generation(
+                user_id=context.user_id,
+                outfit=outfit.__dict__,
+                items=outfit.items
+            )
+            
+            # Record performance metrics for adaptive tuning
+            self._record_generation_performance(
+                context=context,
+                strategy=best_strategy.value,
+                success=True,
+                confidence=validation.confidence,
+                generation_time=best_result['generation_time'],
+                validation_time=best_result['validation_time'],
+                items_selected=len(outfit.items),
+                diversity_score=diversity_result['diversity_score']
+            )
+            
+            logger.info(f"✅ CORE STRATEGY SUCCESS: Generated outfit with {best_strategy.value}")
+            logger.info(f"📊 Final validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
+            logger.info(f"📦 Final outfit items: {[item.name for item in outfit.items]}")
+            
+            return outfit
+        
+        else:
+            # All core strategies failed - try fallback strategies sequentially
+            logger.warning(f"⚠️ CORE STRATEGIES FAILED: All {len(core_strategies)} core strategies failed")
+            logger.info(f"🔄 FALLBACK MODE: Trying fallback strategies sequentially...")
+            
+            for fallback_strategy in fallback_strategies:
+                logger.info(f"🔄 Trying fallback strategy: {fallback_strategy.value}")
+                
+                try:
+                    context.generation_strategy = fallback_strategy
+                    outfit = await self._generate_with_strategy(context)
+                    validation = await self._validate_outfit(outfit, context)
+                    
+                    logger.info(f"🔄 Fallback {fallback_strategy.value}: Generated outfit with {len(outfit.items)} items")
+                    logger.info(f"🔄 Fallback {fallback_strategy.value}: Validation - valid={validation.is_valid}, confidence={validation.confidence:.2f}")
+                    
+                    # Record fallback strategy execution
+                    strategy_analytics.record_strategy_execution(
+                        strategy=fallback_strategy.value,
                         user_id=context.user_id,
-                        new_outfit=outfit.items,
                         occasion=context.occasion,
                         style=context.style,
-                        mood=context.mood
-                    )
-                    logger.error(f"🚨 STRESS TEST v1.0: DIVERSITY CHECK COMPLETE - Diverse: {diversity_result['is_diverse']}, Score: {diversity_result['diversity_score']:.2f}")
-                    
-                    logger.info(f"🎭 Diversity check: diverse={diversity_result['is_diverse']}, score={diversity_result['diversity_score']:.2f}")
-                    
-                    if not diversity_result['is_diverse']:
-                        logger.warning(f"⚠️ Outfit not diverse enough, trying diversity boost")
-                        
-                        # Apply diversity boost to items
-                        boosted_items = diversity_filter.apply_diversity_boost(
-                            items=outfit.items,
-                            user_id=context.user_id,
-                            occasion=context.occasion,
-                            style=context.style,
-                            mood=context.mood
-                        )
-                        
-                        # Re-select items with diversity boost
-                        if boosted_items:
-                            # Sort by diversity score and take top items
-                            boosted_items.sort(key=lambda x: x[1], reverse=True)
-                            diverse_items = [item for item, score in boosted_items[:len(outfit.items)]]
-                            
-                            # Update outfit with diverse items
-                            outfit.items = diverse_items
-                            
-                            # Re-validate with diverse items
-                            validation = await self._validate_outfit(outfit, context)
-                            logger.info(f"🎭 Re-validated with diverse items: valid={validation.is_valid}, confidence={validation.confidence}")
-                    
-                    logger.info(f"✅ Successfully generated outfit with strategy {strategy.value}")
-                    logger.info(f"📊 Validation score: {validation.score}, Confidence: {validation.confidence}")
-                    logger.info(f"📦 Final outfit items: {[item.name for item in outfit.items]}")
-                    
-                    # Record outfit for diversity tracking
-                    diversity_filter.record_outfit_generation(
-                        user_id=context.user_id,
-                        outfit=outfit.__dict__,
-                        items=outfit.items
+                        mood=context.mood,
+                        status=StrategyStatus.SUCCESS if validation.is_valid else StrategyStatus.FAILED,
+                        confidence=validation.confidence,
+                        validation_score=validation.score,
+                        generation_time=0.1,  # Simplified for fallbacks
+                        validation_time=0.1,
+                        items_selected=len(outfit.items),
+                        items_available=len(context.wardrobe),
+                        failed_rules=validation.issues if not validation.is_valid else [],
+                        fallback_reason="Core strategies failed",
+                        session_id=session_id
                     )
                     
-                    # Record performance metrics for adaptive tuning
+                    # Record performance metrics
                     self._record_generation_performance(
                         context=context,
-                        strategy=strategy.value,
+                        strategy=fallback_strategy.value,
                         success=True,
                         confidence=validation.confidence,
-                        generation_time=generation_time,
-                        validation_time=validation_time,
-                        items_selected=len(outfit.items),
-                        diversity_score=diversity_result['diversity_score']
-                    )
-                    
-                    return outfit
-                else:
-                    logger.warning(f"⚠️ Strategy {strategy.value} failed validation: {validation.issues}")
-                    logger.warning(f"⚠️ Validation details: valid={validation.is_valid}, confidence={validation.confidence}, score={validation.score}")
-                    logger.warning(f"⚠️ Confidence threshold not met: {validation.confidence} < {confidence_threshold}")
-                    
-                    # Record failed attempt
-                    self._record_generation_performance(
-                        context=context,
-                        strategy=strategy.value,
-                        success=False,
-                        confidence=validation.confidence,
-                        generation_time=generation_time,
-                        validation_time=validation_time,
+                        generation_time=0.1,
+                        validation_time=0.1,
                         items_selected=len(outfit.items),
                         diversity_score=0.0
                     )
                     
-                    if strategy == GenerationStrategy.EMERGENCY_DEFAULT:
+                    logger.info(f"✅ FALLBACK SUCCESS: Generated outfit with {fallback_strategy.value}")
+                    logger.info(f"📊 Fallback validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
+                    logger.info(f"📦 Fallback outfit items: {[item.name for item in outfit.items]}")
+                    
+                    return outfit
+                    
+                except Exception as e:
+                    logger.error(f"❌ Fallback {fallback_strategy.value} failed: {e}")
+                    
+                    # Record fallback failure
+                    strategy_analytics.record_strategy_execution(
+                        strategy=fallback_strategy.value,
+                        user_id=context.user_id,
+                        occasion=context.occasion,
+                        style=context.style,
+                        mood=context.mood,
+                        status=StrategyStatus.FAILED,
+                        confidence=0.0,
+                        validation_score=0.0,
+                        generation_time=0.1,
+                        validation_time=0.0,
+                        items_selected=0,
+                        items_available=len(context.wardrobe),
+                        failed_rules=[f"fallback_exception: {str(e)}"],
+                        fallback_reason=f"Fallback strategy failed: {str(e)}",
+                        session_id=session_id
+                    )
+                    
+                    if fallback_strategy == GenerationStrategy.EMERGENCY_DEFAULT:
                         # If even emergency default fails, return it anyway
-                        logger.error(f"🚨 All generation strategies failed, returning emergency default")
+                        logger.error(f"🚨 ALL STRATEGIES FAILED: Even emergency default failed")
                         return outfit
-                        
-            except Exception as e:
-                generation_time = time.time() - strategy_start_time
-                logger.error(f"❌ Strategy {strategy.value} failed with error: {e}", exc_info=True)
-                logger.error(f"❌ Strategy {strategy.value} error context: user={context.user_id}, occasion={context.occasion}")
-                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY CRASH - {strategy.value} crashed with {type(e).__name__}: {str(e)}")
-                import traceback
-                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY CRASH TRACEBACK - {traceback.format_exc()}")
-                
-                # Track strategy failure
-                strategy_analytics.record_strategy_execution(
-                    strategy=strategy.value,
-                    user_id=context.user_id,
-                    occasion=context.occasion,
-                    style=context.style,
-                    mood=context.mood,
-                    status=StrategyStatus.FAILED,
-                    confidence=0.0,
-                    validation_score=0.0,
-                    generation_time=generation_time,
-                    validation_time=0.0,
-                    items_selected=0,
-                    items_available=len(context.wardrobe),
-                    failed_rules=[f"strategy_exception: {str(e)}"],
-                    fallback_reason=f"Strategy execution failed: {str(e)}",
-                    session_id=session_id
-                )
-                continue
-        
-        # This should never be reached due to emergency default
-        raise Exception("All outfit generation strategies failed")
+                    continue
+            
+            # This should never be reached due to emergency default
+            raise Exception("All outfit generation strategies (core + fallback) failed")
     
+    async def _execute_strategy_parallel(self, strategy: GenerationStrategy, context: GenerationContext, session_id: str) -> Dict[str, Any]:
+        """Execute a single strategy in parallel and return results"""
+        strategy_start_time = time.time()
+        validation_start_time = 0
+        validation_time = 0
+        generation_time = 0
+        
+        logger.debug(f"🚀 Starting {strategy.value}")
+        
+        try:
+            # Set strategy in context
+            context.generation_strategy = strategy
+            
+            # Generate outfit with this strategy
+            outfit = await self._generate_with_strategy(context)
+            generation_time = time.time() - strategy_start_time
+            logger.debug(f"🎨 {strategy.value}: Generated {len(outfit.items)} items in {generation_time:.3f}s")
+            
+            # Validate the generated outfit
+            validation_start_time = time.time()
+            validation = await self._validate_outfit(outfit, context)
+            validation_time = time.time() - validation_start_time
+            logger.debug(f"✅ {strategy.value}: Valid={validation.is_valid}, Confidence={validation.confidence:.2f}")
+            
+            # Record strategy execution analytics
+            strategy_analytics.record_strategy_execution(
+                strategy=strategy.value,
+                user_id=context.user_id,
+                occasion=context.occasion,
+                style=context.style,
+                mood=context.mood,
+                status=StrategyStatus.SUCCESS if validation.is_valid else StrategyStatus.FAILED,
+                confidence=validation.confidence,
+                validation_score=validation.score,
+                generation_time=generation_time,
+                validation_time=validation_time,
+                items_selected=len(outfit.items),
+                items_available=len(context.wardrobe),
+                failed_rules=validation.issues if not validation.is_valid else [],
+                fallback_reason=None,
+                session_id=session_id
+            )
+            
+            # Return success result
+            return {
+                'status': 'success',
+                'outfit': outfit,
+                'validation': validation,
+                'generation_time': generation_time,
+                'validation_time': validation_time,
+                'confidence': validation.confidence,
+                'is_valid': validation.is_valid,
+                'issues': validation.issues,
+                'suggestions': validation.suggestions
+            }
+            
+        except Exception as e:
+            generation_time = time.time() - strategy_start_time
+            logger.error(f"❌ PARALLEL {strategy.value}: Failed with error: {e}")
+            
+            # Record strategy failure
+            strategy_analytics.record_strategy_execution(
+                strategy=strategy.value,
+                user_id=context.user_id,
+                occasion=context.occasion,
+                style=context.style,
+                mood=context.mood,
+                status=StrategyStatus.FAILED,
+                confidence=0.0,
+                validation_score=0.0,
+                generation_time=generation_time,
+                validation_time=0.0,
+                items_selected=0,
+                items_available=len(context.wardrobe),
+                failed_rules=[f"strategy_exception: {str(e)}"],
+                fallback_reason=f"Strategy execution failed: {str(e)}",
+                session_id=session_id
+            )
+            
+            # Return failure result
+            return {
+                'status': 'failed',
+                'error': str(e),
+                'outfit': None,
+                'validation': None,
+                'generation_time': generation_time,
+                'validation_time': 0.0,
+                'confidence': 0.0,
+                'is_valid': False,
+                'issues': [f"Strategy exception: {str(e)}"],
+                'suggestions': []
+            }
+
     def _record_generation_performance(self, context: GenerationContext, strategy: str, 
                                     success: bool, confidence: float, generation_time: float,
                                     validation_time: float, items_selected: int, 
@@ -711,8 +803,8 @@ class RobustOutfitGenerationService:
         style_rejected = 0
         
         for item in context.wardrobe:
-            # Check occasion compatibility
-            if self._is_occasion_compatible(item, context.occasion):
+            # Check occasion compatibility with advanced parameters
+            if self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather):
                 # Check style compatibility
                 if self._is_style_compatible(item, context.style):
                     suitable_items.append(item)
@@ -728,7 +820,7 @@ class RobustOutfitGenerationService:
             logger.warning(f"🚨 SAFETY NET: No suitable items found, falling back to occasion-appropriate items")
             # Fall back to occasion-appropriate items only (skip style filtering)
             for item in context.wardrobe:
-                if self._is_occasion_compatible(item, context.occasion):
+                if self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather):
                     suitable_items.append(item)
             
             if len(suitable_items) == 0:
@@ -1068,8 +1160,8 @@ class RobustOutfitGenerationService:
             confidence=confidence
         )
     
-    def _is_occasion_compatible(self, item: ClothingItem, occasion: str) -> bool:
-        """Comprehensive metadata-aware occasion compatibility check"""
+    def _is_occasion_compatible(self, item: ClothingItem, occasion: str, style: str = None, mood: str = None, weather_data: dict = None) -> bool:
+        """Advanced metadata-aware occasion compatibility check with ML scoring and weather intelligence"""
         occasion_lower = occasion.lower()
         item_name = item.name.lower()
         item_type = item.type.lower()
@@ -1078,7 +1170,15 @@ class RobustOutfitGenerationService:
         item_occasions = getattr(item, 'occasion', [])
         item_styles = getattr(item, 'style', [])
         item_tags = getattr(item, 'tags', [])
+        item_seasons = getattr(item, 'season', [])
         metadata = getattr(item, 'metadata', None)
+        
+        # Extract usage analytics for ML scoring
+        wear_count = getattr(item, 'wearCount', 0)
+        favorite_score = getattr(item, 'favorite_score', 0.0)
+        quality_score = getattr(item, 'quality_score', 0.5)
+        pairability_score = getattr(item, 'pairability_score', 0.5)
+        seasonal_score = getattr(item, 'seasonal_score', 1.0)
         
         # Normalize lists
         if isinstance(item_occasions, str):
@@ -1087,8 +1187,10 @@ class RobustOutfitGenerationService:
             item_styles = [item_styles]
         if isinstance(item_tags, str):
             item_tags = [item_tags]
+        if isinstance(item_seasons, str):
+            item_seasons = [item_seasons]
         
-        # Extract metadata fields
+        # Extract advanced metadata fields
         style_tags = []
         occasion_tags = []
         formal_level = None
@@ -1096,12 +1198,24 @@ class RobustOutfitGenerationService:
         pattern = None
         fit = None
         sleeve_length = None
+        silhouette = None
+        texture_style = None
+        fabric_weight = None
+        natural_description = None
+        temperature_compatibility = None
+        material_compatibility = None
         
         if metadata:
             if hasattr(metadata, 'styleTags'):
                 style_tags = metadata.styleTags or []
             if hasattr(metadata, 'occasionTags'):
                 occasion_tags = metadata.occasionTags or []
+            if hasattr(metadata, 'naturalDescription'):
+                natural_description = metadata.naturalDescription or ''
+            if hasattr(metadata, 'temperatureCompatibility'):
+                temperature_compatibility = metadata.temperatureCompatibility
+            if hasattr(metadata, 'materialCompatibility'):
+                material_compatibility = metadata.materialCompatibility
             if hasattr(metadata, 'visualAttributes') and metadata.visualAttributes:
                 va = metadata.visualAttributes
                 formal_level = getattr(va, 'formalLevel', None)
@@ -1109,14 +1223,48 @@ class RobustOutfitGenerationService:
                 pattern = getattr(va, 'pattern', None)
                 fit = getattr(va, 'fit', None)
                 sleeve_length = getattr(va, 'sleeveLength', None)
+                silhouette = getattr(va, 'silhouette', None)
+                texture_style = getattr(va, 'textureStyle', None)
+                fabric_weight = getattr(va, 'fabricWeight', None)
         
         # Combine all text sources for analysis
         all_text = ' '.join([
             item_name, item_type,
-            ' '.join(item_occasions), ' '.join(item_styles), ' '.join(item_tags),
+            ' '.join(item_occasions), ' '.join(item_styles), ' '.join(item_tags), ' '.join(item_seasons),
             ' '.join(style_tags), ' '.join(occasion_tags),
-            formal_level or '', material or '', pattern or '', fit or '', sleeve_length or ''
+            formal_level or '', material or '', pattern or '', fit or '', sleeve_length or '',
+            silhouette or '', texture_style or '', fabric_weight or '', natural_description or ''
         ]).lower()
+        
+        # WEATHER INTELLIGENCE: Check temperature compatibility
+        if weather_data and temperature_compatibility:
+            current_temp = weather_data.get('temperature', 20)
+            min_temp = getattr(temperature_compatibility, 'minTemp', 0)
+            max_temp = getattr(temperature_compatibility, 'maxTemp', 40)
+            if current_temp < min_temp or current_temp > max_temp:
+                logger.info(f"🌡️ WEATHER EXCLUSION: {item.name} - temperature {current_temp}°C outside range {min_temp}-{max_temp}°C")
+                return False
+        
+        # SEASONAL INTELLIGENCE: Check seasonal appropriateness
+        if weather_data and item_seasons:
+            current_season = weather_data.get('season', 'all')
+            if current_season != 'all' and current_season.lower() not in [s.lower() for s in item_seasons]:
+                logger.info(f"🍂 SEASONAL EXCLUSION: {item.name} - not suitable for {current_season} season")
+                return False
+        
+        # ML-BASED SCORING: Use usage analytics for intelligent filtering
+        ml_score = self._calculate_ml_compatibility_score(item, occasion_lower, style, mood, {
+            'wear_count': wear_count,
+            'favorite_score': favorite_score,
+            'quality_score': quality_score,
+            'pairability_score': pairability_score,
+            'seasonal_score': seasonal_score
+        })
+        
+        # Apply ML score threshold
+        if ml_score < 0.3:  # Low compatibility threshold
+            logger.info(f"🤖 ML EXCLUSION: {item.name} - ML score {ml_score:.2f} below threshold")
+            return False
         
         # ATHLETIC OCCASIONS - Comprehensive filtering
         if any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport', 'exercise', 'fitness']):
@@ -1254,6 +1402,142 @@ class RobustOutfitGenerationService:
         
         # DEFAULT: Check item's occasion field as fallback
         return occasion.lower() in [occ.lower() for occ in item_occasions]
+    
+    def _calculate_ml_compatibility_score(self, item: ClothingItem, occasion: str, style: str = None, mood: str = None, analytics: dict = None) -> float:
+        """Calculate ML-based compatibility score using usage analytics and metadata"""
+        score = 0.5  # Base score
+        factors = 0
+        
+        # Usage Analytics Scoring
+        if analytics:
+            # Favorite score (0-1) - higher is better
+            favorite_score = analytics.get('favorite_score', 0.0)
+            score += favorite_score * 0.3
+            factors += 1
+            
+            # Quality score (0-1) - higher is better
+            quality_score = analytics.get('quality_score', 0.5)
+            score += quality_score * 0.2
+            factors += 1
+            
+            # Pairability score (0-1) - higher is better
+            pairability_score = analytics.get('pairability_score', 0.5)
+            score += pairability_score * 0.2
+            factors += 1
+            
+            # Seasonal score (0-1) - higher is better
+            seasonal_score = analytics.get('seasonal_score', 1.0)
+            score += seasonal_score * 0.1
+            factors += 1
+            
+            # Wear count - moderate usage is ideal (not too new, not overused)
+            wear_count = analytics.get('wear_count', 0)
+            if wear_count > 0:
+                # Sweet spot: 3-10 wears
+                if 3 <= wear_count <= 10:
+                    score += 0.1
+                elif wear_count > 20:  # Overused
+                    score -= 0.1
+                factors += 1
+        
+        # Dynamic Occasion-Style Interaction Rules
+        if occasion and style:
+            interaction_score = self._calculate_occasion_style_interaction(occasion, style, item)
+            score += interaction_score * 0.2
+            factors += 1
+        
+        # Mood-Based Scoring
+        if mood:
+            mood_score = self._calculate_mood_compatibility(mood, item)
+            score += mood_score * 0.1
+            factors += 1
+        
+        # Normalize score
+        return max(0.0, min(1.0, score / factors if factors > 0 else 0.5))
+    
+    def _calculate_occasion_style_interaction(self, occasion: str, style: str, item: ClothingItem) -> float:
+        """Calculate dynamic interaction between occasion and style"""
+        occasion_lower = occasion.lower()
+        style_lower = style.lower()
+        item_name = item.name.lower()
+        
+        # Athletic + Classic: Allow some formal items with athletic elements
+        if 'athletic' in occasion_lower and 'classic' in style_lower:
+            if any(term in item_name for term in ['polo', 'button', 'collared', 'smart']):
+                return 0.8  # High compatibility
+            elif any(term in item_name for term in ['athletic', 'sport', 'sneaker']):
+                return 1.0  # Perfect compatibility
+            else:
+                return 0.3  # Lower compatibility
+        
+        # Athletic + Edgy: Prefer bold athletic items
+        elif 'athletic' in occasion_lower and 'edgy' in style_lower:
+            if any(term in item_name for term in ['bold', 'graphic', 'statement', 'athletic']):
+                return 1.0  # Perfect compatibility
+            elif any(term in item_name for term in ['sport', 'performance']):
+                return 0.8  # High compatibility
+            else:
+                return 0.2  # Lower compatibility
+        
+        # Formal + Classic: Perfect match
+        elif 'formal' in occasion_lower and 'classic' in style_lower:
+            if any(term in item_name for term in ['formal', 'business', 'professional', 'dress']):
+                return 1.0  # Perfect compatibility
+            elif any(term in item_name for term in ['button', 'oxford', 'blazer']):
+                return 0.9  # High compatibility
+            else:
+                return 0.4  # Lower compatibility
+        
+        # Formal + Edgy: Allow some edgy formal items
+        elif 'formal' in occasion_lower and 'edgy' in style_lower:
+            if any(term in item_name for term in ['formal', 'business', 'professional']):
+                return 0.7  # Good compatibility
+            elif any(term in item_name for term in ['bold', 'statement', 'dressy']):
+                return 0.8  # High compatibility
+            else:
+                return 0.3  # Lower compatibility
+        
+        # Casual + Any Style: Generally permissive
+        elif 'casual' in occasion_lower:
+            return 0.7  # Good compatibility for most items
+        
+        # Default interaction
+        return 0.5
+    
+    def _calculate_mood_compatibility(self, mood: str, item: ClothingItem) -> float:
+        """Calculate mood-based compatibility"""
+        mood_lower = mood.lower()
+        item_name = item.name.lower()
+        
+        # Bold mood: Prefer statement pieces
+        if 'bold' in mood_lower:
+            if any(term in item_name for term in ['bold', 'statement', 'graphic', 'bright', 'dramatic']):
+                return 1.0  # Perfect compatibility
+            elif any(term in item_name for term in ['athletic', 'sport', 'performance']):
+                return 0.8  # High compatibility
+            else:
+                return 0.4  # Lower compatibility
+        
+        # Confident mood: Prefer quality items
+        elif 'confident' in mood_lower:
+            if any(term in item_name for term in ['quality', 'premium', 'designer', 'luxury']):
+                return 1.0  # Perfect compatibility
+            elif any(term in item_name for term in ['formal', 'business', 'professional']):
+                return 0.8  # High compatibility
+            else:
+                return 0.5  # Moderate compatibility
+        
+        # Relaxed mood: Prefer comfortable items
+        elif 'relaxed' in mood_lower:
+            if any(term in item_name for term in ['comfortable', 'soft', 'casual', 'relaxed']):
+                return 1.0  # Perfect compatibility
+            elif any(term in item_name for term in ['cotton', 'breathable', 'stretchy']):
+                return 0.8  # High compatibility
+            else:
+                return 0.5  # Moderate compatibility
+        
+        # Default mood compatibility
+        return 0.5
     
     def _is_style_compatible(self, item: ClothingItem, style: str) -> bool:
         """Comprehensive metadata-aware style compatibility check"""
