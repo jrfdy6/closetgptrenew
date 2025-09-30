@@ -1028,33 +1028,9 @@ class RobustOutfitGenerationService:
         return False
     
     async def _ensure_outfit_completeness(self, items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
-        """Ensure outfit has essential categories and is complete"""
-        # Check for essential categories
-        categories_present = set(self._get_item_category(item) for item in items)
-        essential_categories = {"tops", "bottoms", "shoes"}
-        
-        missing_categories = essential_categories - categories_present
-        
-        # If missing essential categories, try to add them
-        if missing_categories:
-            logger.warning(f"⚠️ Missing essential categories: {missing_categories}")
-            # Try to find items for missing categories
-            for category in missing_categories:
-                category_item = await self._find_item_for_category(context.wardrobe, category)
-                if category_item:
-                    items.append(category_item)
-        
-        # Final validation
-        if len(items) < self.min_items:
-            logger.warning(f"⚠️ Outfit has only {len(items)} items, minimum is {self.min_items}")
-            # Add more items if needed
-            while len(items) < self.min_items:
-                additional_item = await self._find_additional_item(context.wardrobe, items)
-                if additional_item:
-                    items.append(additional_item)
-                else:
-                    break
-        
+        """Ensure outfit has essential categories and is complete - NO FALLBACKS"""
+        # Just return the items as-is, no adding back inappropriate items
+        logger.info(f"📋 COMPLETENESS: Outfit has {len(items)} items - no fallbacks added")
         return items
     
     async def _validate_outfit(self, outfit: OutfitGeneratedOutfit, context: GenerationContext) -> ValidationResult:
