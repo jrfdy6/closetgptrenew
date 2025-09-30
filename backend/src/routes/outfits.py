@@ -207,30 +207,51 @@ security = HTTPBearer()
 
 def clean_for_firestore(obj):
     """Convert Pydantic or nested objects into Firestore-safe dicts."""
-    if hasattr(obj, "dict"):  # Pydantic model
+    # Handle Pydantic models
+    if hasattr(obj, "dict"):  # Pydantic v1
         obj = obj.dict()
     elif hasattr(obj, "model_dump"):  # Pydantic v2
         obj = obj.model_dump()
     
+    # Handle different data types
     if isinstance(obj, dict):
         safe = {}
         for k, v in obj.items():
+            # Skip None values
+            if v is None:
+                continue
+                
+            # Handle datetime objects
             if isinstance(v, datetime):
                 safe[k] = v  # Firestore can store datetime directly
-            elif hasattr(v, "dict"):  # Nested Pydantic v1
+            # Handle nested Pydantic objects
+            elif hasattr(v, "dict"):  # Pydantic v1
                 safe[k] = clean_for_firestore(v.dict())
-            elif hasattr(v, "model_dump"):  # Nested Pydantic v2
+            elif hasattr(v, "model_dump"):  # Pydantic v2
                 safe[k] = clean_for_firestore(v.model_dump())
+            # Handle nested dictionaries
             elif isinstance(v, dict):
                 safe[k] = clean_for_firestore(v)
+            # Handle lists
             elif isinstance(v, list):
-                safe[k] = [clean_for_firestore(i) for i in v]
-            else:
+                safe[k] = [clean_for_firestore(i) for i in v if i is not None]
+            # Handle basic types that Firebase supports
+            elif isinstance(v, (str, int, float, bool)):
                 safe[k] = v
+            # Skip complex objects that Firebase can't handle
+            else:
+                logger.warning(f"Skipping non-serializable field {k}: {type(v)}")
+                continue
         return safe
     elif isinstance(obj, list):
-        return [clean_for_firestore(i) for i in obj]
-    return obj
+        return [clean_for_firestore(i) for i in obj if i is not None]
+    # Handle basic types
+    elif isinstance(obj, (str, int, float, bool)):
+        return obj
+    # Skip complex objects
+    else:
+        logger.warning(f"Skipping non-serializable object: {type(obj)}")
+        return str(obj)  # Convert to string as fallback
 
 # Firebase imports moved inside functions to prevent import-time crashes
 # from ..config.firebase import db, firebase_initialized
