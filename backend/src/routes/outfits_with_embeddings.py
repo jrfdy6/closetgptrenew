@@ -22,7 +22,7 @@ from pydantic import BaseModel
 from ..services.outfit_generation_with_embeddings import OutfitGenerationWithEmbeddings, PersonalizedOutfitResult
 from ..services.embedding_service import UserInteraction
 from ..custom_types.profile import UserProfile
-from ..custom_types.outfit_rules import OutfitRequest, OutfitResponse
+from ..custom_types.outfit import OutfitGenerationRequest as OutfitRequest, OutfitResponse
 from ..auth.auth_service import get_current_user_id
 
 logger = logging.getLogger(__name__)

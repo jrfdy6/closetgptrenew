@@ -21,7 +21,7 @@ from pydantic import BaseModel
 
 from ..services.lightweight_outfit_generation import LightweightOutfitGeneration, LightweightOutfitResult
 from ..services.lightweight_embedding_service import UserInteraction
-from ..custom_types.outfit_rules import OutfitRequest, OutfitResponse
+from ..custom_types.outfit import OutfitGenerationRequest as OutfitRequest, OutfitResponse
 from ..auth.auth_service import get_current_user_id
 
 logger = logging.getLogger(__name__)

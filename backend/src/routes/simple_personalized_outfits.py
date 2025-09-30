@@ -23,7 +23,7 @@ from ..services.simple_personalization_integration import SimplePersonalizationI
 from ..services.lightweight_embedding_service import UserInteraction
 
 # Import types
-from ..custom_types.outfit_rules import OutfitRequest, OutfitResponse
+from ..custom_types.outfit import OutfitGenerationRequest as OutfitRequest, OutfitResponse
 
 # Import auth
 from ..auth.auth_service import get_current_user_id
