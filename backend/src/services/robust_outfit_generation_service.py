@@ -1069,36 +1069,98 @@ class RobustOutfitGenerationService:
         )
     
     def _is_occasion_compatible(self, item: ClothingItem, occasion: str) -> bool:
-        """Check if item is compatible with occasion - enhanced with name/type analysis"""
+        """Comprehensive metadata-aware occasion compatibility check"""
         occasion_lower = occasion.lower()
         item_name = item.name.lower()
         item_type = item.type.lower()
         
-        # ATHLETIC OCCASIONS - Strict filtering
-        if any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
+        # Extract all available metadata
+        item_occasions = getattr(item, 'occasion', [])
+        item_styles = getattr(item, 'style', [])
+        item_tags = getattr(item, 'tags', [])
+        metadata = getattr(item, 'metadata', None)
+        
+        # Normalize lists
+        if isinstance(item_occasions, str):
+            item_occasions = [item_occasions]
+        if isinstance(item_styles, str):
+            item_styles = [item_styles]
+        if isinstance(item_tags, str):
+            item_tags = [item_tags]
+        
+        # Extract metadata fields
+        style_tags = []
+        occasion_tags = []
+        formal_level = None
+        material = None
+        pattern = None
+        fit = None
+        sleeve_length = None
+        
+        if metadata:
+            if hasattr(metadata, 'styleTags'):
+                style_tags = metadata.styleTags or []
+            if hasattr(metadata, 'occasionTags'):
+                occasion_tags = metadata.occasionTags or []
+            if hasattr(metadata, 'visualAttributes') and metadata.visualAttributes:
+                va = metadata.visualAttributes
+                formal_level = getattr(va, 'formalLevel', None)
+                material = getattr(va, 'material', None)
+                pattern = getattr(va, 'pattern', None)
+                fit = getattr(va, 'fit', None)
+                sleeve_length = getattr(va, 'sleeveLength', None)
+        
+        # Combine all text sources for analysis
+        all_text = ' '.join([
+            item_name, item_type,
+            ' '.join(item_occasions), ' '.join(item_styles), ' '.join(item_tags),
+            ' '.join(style_tags), ' '.join(occasion_tags),
+            formal_level or '', material or '', pattern or '', fit or '', sleeve_length or ''
+        ]).lower()
+        
+        # ATHLETIC OCCASIONS - Comprehensive filtering
+        if any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport', 'exercise', 'fitness']):
             # EXCLUDE formal items completely
-            if any(formal_term in item_name or formal_term in item_type for formal_term in [
+            formal_indicators = [
+                # Name/type patterns
                 'oxford', 'dress', 'suit', 'blazer', 'formal', 'business', 'professional',
                 'loafer', 'heels', 'dress shirt', 'dress pants', 'sport coat', 'button up',
                 'button-up', 'button down', 'button-down', 'long sleeve', 'long-sleeve',
                 'button up shirt', 'button-up shirt', 'button down shirt', 'button-down shirt',
-                'dress shirt', 'business shirt', 'formal shirt', 'professional shirt'
-            ]):
+                'dress shirt', 'business shirt', 'formal shirt', 'professional shirt',
+                'tuxedo', 'evening', 'wedding', 'ceremony', 'cocktail', 'black tie',
+                # Metadata indicators
+                'formal', 'business', 'professional', 'dressy', 'elegant', 'sophisticated',
+                'tailored', 'structured', 'conservative', 'traditional'
+            ]
+            
+            if any(indicator in all_text for indicator in formal_indicators):
                 logger.info(f"🚫 ATHLETIC EXCLUSION: {item.name} - formal item not suitable for athletic")
                 return False
             
             # INCLUDE athletic items
-            if any(athletic_term in item_name or athletic_term in item_type for athletic_term in [
+            athletic_indicators = [
+                # Name/type patterns
                 'athletic', 'sport', 'gym', 'workout', 'sneaker', 'running', 'basketball',
-                'jersey', 'tank', 'shorts', 'athletic shoes', 'track', 'tennis'
-            ]):
+                'jersey', 'tank', 'shorts', 'athletic shoes', 'track', 'tennis', 'soccer',
+                'football', 'baseball', 'volleyball', 'swimming', 'cycling', 'yoga',
+                'pilates', 'crossfit', 'marathon', 'training', 'performance', 'active',
+                # Metadata indicators
+                'athletic', 'sporty', 'active', 'performance', 'technical', 'moisture-wicking',
+                'breathable', 'flexible', 'stretchy', 'comfortable', 'casual'
+            ]
+            
+            if any(indicator in all_text for indicator in athletic_indicators):
                 logger.info(f"✅ ATHLETIC INCLUSION: {item.name} - athletic item suitable")
                 return True
             
             # INCLUDE casual items that work for athletic activities
-            if any(casual_term in item_name or casual_term in item_type for casual_term in [
-                't-shirt', 't shirt', 'polo', 'jeans', 'casual', 'comfortable'
-            ]):
+            casual_athletic_indicators = [
+                't-shirt', 't shirt', 'polo', 'jeans', 'casual', 'comfortable', 'relaxed',
+                'everyday', 'basic', 'simple', 'cotton', 'soft', 'breathable'
+            ]
+            
+            if any(indicator in all_text for indicator in casual_athletic_indicators):
                 logger.info(f"✅ ATHLETIC CASUAL: {item.name} - casual item suitable for athletic")
                 return True
             
@@ -1106,35 +1168,57 @@ class RobustOutfitGenerationService:
             logger.info(f"🚫 ATHLETIC EXCLUSION: {item.name} - not suitable for athletic")
             return False
         
-        # FORMAL OCCASIONS - Strict filtering
-        elif any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'professional']):
+        # FORMAL OCCASIONS - Comprehensive filtering
+        elif any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'professional', 'corporate', 'office', 'meeting', 'presentation']):
             # EXCLUDE casual/athletic items
-            if any(casual_term in item_name or casual_term in item_type for casual_term in [
-                'sneaker', 'athletic', 'casual', 't-shirt', 'tank', 'shorts', 'jeans'
-            ]):
+            casual_indicators = [
+                # Name/type patterns
+                'sneaker', 'athletic', 'casual', 't-shirt', 'tank', 'shorts', 'jeans',
+                'hoodie', 'sweatpants', 'flip-flops', 'sandals', 'canvas', 'denim',
+                'graphic', 'logo', 'streetwear', 'urban', 'relaxed', 'comfortable',
+                # Metadata indicators
+                'casual', 'relaxed', 'comfortable', 'everyday', 'street', 'urban',
+                'athletic', 'sporty', 'informal', 'laid-back'
+            ]
+            
+            if any(indicator in all_text for indicator in casual_indicators):
                 logger.info(f"🚫 FORMAL EXCLUSION: {item.name} - casual item not suitable for formal")
                 return False
             
             # INCLUDE formal items
-            if any(formal_term in item_name or formal_term in item_type for formal_term in [
-                'dress', 'suit', 'blazer', 'formal', 'business', 'professional', 'oxford'
-            ]):
+            formal_indicators = [
+                # Name/type patterns
+                'dress', 'suit', 'blazer', 'formal', 'business', 'professional', 'oxford',
+                'loafer', 'heels', 'dress shirt', 'dress pants', 'sport coat', 'tuxedo',
+                'evening', 'wedding', 'ceremony', 'cocktail', 'black tie',
+                # Metadata indicators
+                'formal', 'business', 'professional', 'dressy', 'elegant', 'sophisticated',
+                'tailored', 'structured', 'conservative', 'traditional', 'polished'
+            ]
+            
+            if any(indicator in all_text for indicator in formal_indicators):
                 logger.info(f"✅ FORMAL INCLUSION: {item.name} - formal item suitable")
                 return True
             
             # INCLUDE business casual items
-            if any(bc_term in item_name or bc_term in item_type for bc_term in [
-                'button', 'polo', 'khaki', 'dress shirt'
-            ]):
+            business_casual_indicators = [
+                'button', 'polo', 'khaki', 'dress shirt', 'chinos', 'slacks', 'blouse',
+                'cardigan', 'sweater', 'collared', 'dressy casual', 'smart casual'
+            ]
+            
+            if any(indicator in all_text for indicator in business_casual_indicators):
                 logger.info(f"✅ FORMAL BUSINESS CASUAL: {item.name} - business casual suitable")
                 return True
         
         # CASUAL OCCASIONS - More permissive
-        elif any(casual_term in occasion_lower for casual_term in ['casual', 'everyday', 'relaxed']):
+        elif any(casual_term in occasion_lower for casual_term in ['casual', 'everyday', 'relaxed', 'weekend', 'informal']):
             # EXCLUDE only very formal items
-            if any(formal_term in item_name or formal_term in item_type for formal_term in [
-                'suit', 'formal', 'tuxedo', 'evening'
-            ]):
+            very_formal_indicators = [
+                'suit', 'formal', 'tuxedo', 'evening', 'wedding', 'ceremony', 'cocktail',
+                'black tie', 'white tie', 'ball gown', 'evening gown'
+            ]
+            
+            if any(indicator in all_text for indicator in very_formal_indicators):
                 logger.info(f"🚫 CASUAL EXCLUSION: {item.name} - too formal for casual")
                 return False
             
@@ -1142,19 +1226,198 @@ class RobustOutfitGenerationService:
             logger.info(f"✅ CASUAL INCLUSION: {item.name} - suitable for casual")
             return True
         
-        # DEFAULT: Check item's occasion field as fallback
-        item_occasions = getattr(item, 'occasion', [])
-        if isinstance(item_occasions, str):
-            item_occasions = [item_occasions]
+        # PARTY OCCASIONS - Special handling
+        elif any(party_term in occasion_lower for party_term in ['party', 'night out', 'club', 'bar', 'social', 'celebration']):
+            # EXCLUDE very casual items
+            very_casual_indicators = [
+                'athletic', 'sport', 'gym', 'workout', 'sweatpants', 'hoodie', 'flip-flops',
+                'sandals', 'canvas', 'basic', 'plain', 'simple'
+            ]
+            
+            if any(indicator in all_text for indicator in very_casual_indicators):
+                logger.info(f"🚫 PARTY EXCLUSION: {item.name} - too casual for party")
+                return False
+            
+            # INCLUDE party-appropriate items
+            party_indicators = [
+                'dressy', 'elegant', 'stylish', 'trendy', 'fashionable', 'chic', 'glamorous',
+                'sexy', 'bold', 'statement', 'eye-catching', 'dramatic'
+            ]
+            
+            if any(indicator in all_text for indicator in party_indicators):
+                logger.info(f"✅ PARTY INCLUSION: {item.name} - party-appropriate item")
+                return True
+            
+            # INCLUDE most other items for parties
+            logger.info(f"✅ PARTY INCLUSION: {item.name} - suitable for party")
+            return True
         
+        # DEFAULT: Check item's occasion field as fallback
         return occasion.lower() in [occ.lower() for occ in item_occasions]
     
     def _is_style_compatible(self, item: ClothingItem, style: str) -> bool:
-        """Check if item is compatible with style"""
+        """Comprehensive metadata-aware style compatibility check"""
+        style_lower = style.lower()
+        item_name = item.name.lower()
+        item_type = item.type.lower()
+        
+        # Extract all available metadata
         item_styles = getattr(item, 'style', [])
+        item_tags = getattr(item, 'tags', [])
+        metadata = getattr(item, 'metadata', None)
+        
+        # Normalize lists
         if isinstance(item_styles, str):
             item_styles = [item_styles]
+        if isinstance(item_tags, str):
+            item_tags = [item_tags]
         
+        # Extract metadata fields
+        style_tags = []
+        material = None
+        pattern = None
+        fit = None
+        
+        if metadata:
+            if hasattr(metadata, 'styleTags'):
+                style_tags = metadata.styleTags or []
+            if hasattr(metadata, 'visualAttributes') and metadata.visualAttributes:
+                va = metadata.visualAttributes
+                material = getattr(va, 'material', None)
+                pattern = getattr(va, 'pattern', None)
+                fit = getattr(va, 'fit', None)
+        
+        # Combine all text sources for analysis
+        all_text = ' '.join([
+            item_name, item_type,
+            ' '.join(item_styles), ' '.join(item_tags), ' '.join(style_tags),
+            material or '', pattern or '', fit or ''
+        ]).lower()
+        
+        # CLASSIC STYLE - Comprehensive filtering
+        if style_lower in ['classic', 'traditional', 'timeless', 'conservative']:
+            # INCLUDE classic items
+            classic_indicators = [
+                # Name/type patterns
+                'classic', 'traditional', 'timeless', 'conservative', 'elegant', 'sophisticated',
+                'button', 'polo', 'oxford', 'blazer', 'suit', 'dress shirt', 'khaki', 'chinos',
+                'loafer', 'heels', 'pearl', 'navy', 'black', 'white', 'beige', 'gray',
+                # Metadata indicators
+                'classic', 'traditional', 'timeless', 'conservative', 'elegant', 'sophisticated',
+                'tailored', 'structured', 'polished', 'refined', 'understated'
+            ]
+            
+            if any(indicator in all_text for indicator in classic_indicators):
+                logger.info(f"✅ CLASSIC INCLUSION: {item.name} - classic style suitable")
+                return True
+            
+            # EXCLUDE trendy/modern items
+            trendy_indicators = [
+                'trendy', 'modern', 'contemporary', 'edgy', 'bold', 'statement', 'graphic',
+                'logo', 'streetwear', 'urban', 'hipster', 'vintage', 'retro', 'distressed'
+            ]
+            
+            if any(indicator in all_text for indicator in trendy_indicators):
+                logger.info(f"🚫 CLASSIC EXCLUSION: {item.name} - too trendy for classic")
+                return False
+            
+            # INCLUDE most other items for classic style
+            logger.info(f"✅ CLASSIC INCLUSION: {item.name} - suitable for classic")
+            return True
+        
+        # MODERN STYLE - Comprehensive filtering
+        elif style_lower in ['modern', 'contemporary', 'trendy', 'fashionable']:
+            # INCLUDE modern items
+            modern_indicators = [
+                # Name/type patterns
+                'modern', 'contemporary', 'trendy', 'fashionable', 'stylish', 'chic',
+                'minimalist', 'clean', 'sleek', 'sophisticated', 'designer', 'luxury',
+                # Metadata indicators
+                'modern', 'contemporary', 'trendy', 'fashionable', 'stylish', 'chic',
+                'minimalist', 'clean', 'sleek', 'sophisticated', 'designer', 'luxury'
+            ]
+            
+            if any(indicator in all_text for indicator in modern_indicators):
+                logger.info(f"✅ MODERN INCLUSION: {item.name} - modern style suitable")
+                return True
+            
+            # EXCLUDE very traditional items
+            traditional_indicators = [
+                'traditional', 'conservative', 'old-fashioned', 'outdated', 'vintage',
+                'retro', 'classic', 'timeless'
+            ]
+            
+            if any(indicator in all_text for indicator in traditional_indicators):
+                logger.info(f"🚫 MODERN EXCLUSION: {item.name} - too traditional for modern")
+                return False
+            
+            # INCLUDE most other items for modern style
+            logger.info(f"✅ MODERN INCLUSION: {item.name} - suitable for modern")
+            return True
+        
+        # CASUAL STYLE - Comprehensive filtering
+        elif style_lower in ['casual', 'relaxed', 'comfortable', 'everyday']:
+            # INCLUDE casual items
+            casual_indicators = [
+                # Name/type patterns
+                'casual', 'relaxed', 'comfortable', 'everyday', 'basic', 'simple',
+                't-shirt', 'jeans', 'sneakers', 'hoodie', 'sweater', 'cardigan',
+                'cotton', 'soft', 'breathable', 'stretchy',
+                # Metadata indicators
+                'casual', 'relaxed', 'comfortable', 'everyday', 'basic', 'simple',
+                'soft', 'breathable', 'stretchy', 'easy-care'
+            ]
+            
+            if any(indicator in all_text for indicator in casual_indicators):
+                logger.info(f"✅ CASUAL INCLUSION: {item.name} - casual style suitable")
+                return True
+            
+            # EXCLUDE very formal items
+            formal_indicators = [
+                'formal', 'business', 'professional', 'dressy', 'elegant', 'sophisticated',
+                'suit', 'tuxedo', 'evening', 'wedding', 'ceremony', 'cocktail'
+            ]
+            
+            if any(indicator in all_text for indicator in formal_indicators):
+                logger.info(f"🚫 CASUAL EXCLUSION: {item.name} - too formal for casual")
+                return False
+            
+            # INCLUDE most other items for casual style
+            logger.info(f"✅ CASUAL INCLUSION: {item.name} - suitable for casual")
+            return True
+        
+        # EDGY STYLE - Comprehensive filtering
+        elif style_lower in ['edgy', 'bold', 'dramatic', 'statement', 'trendy']:
+            # INCLUDE edgy items
+            edgy_indicators = [
+                # Name/type patterns
+                'edgy', 'bold', 'dramatic', 'statement', 'trendy', 'fashionable',
+                'graphic', 'logo', 'distressed', 'ripped', 'studded', 'leather',
+                'metallic', 'sequin', 'glitter', 'bold', 'bright', 'neon',
+                # Metadata indicators
+                'edgy', 'bold', 'dramatic', 'statement', 'trendy', 'fashionable',
+                'graphic', 'distressed', 'metallic', 'bold', 'bright'
+            ]
+            
+            if any(indicator in all_text for indicator in edgy_indicators):
+                logger.info(f"✅ EDGY INCLUSION: {item.name} - edgy style suitable")
+                return True
+            
+            # EXCLUDE conservative items
+            conservative_indicators = [
+                'conservative', 'traditional', 'classic', 'timeless', 'understated',
+                'basic', 'simple', 'plain', 'neutral'
+            ]
+            
+            if any(indicator in all_text for indicator in conservative_indicators):
+                logger.info(f"🚫 EDGY EXCLUSION: {item.name} - too conservative for edgy")
+                return False
+            
+            # INCLUDE most other items for edgy style
+            logger.info(f"✅ EDGY INCLUSION: {item.name} - suitable for edgy")
+            return True
+        
+        # DEFAULT: Check item's style field as fallback
         return style.lower() in [s.lower() for s in item_styles]
     
     async def _calculate_item_score(self, item: ClothingItem, context: GenerationContext) -> float:
