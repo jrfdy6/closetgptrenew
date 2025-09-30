@@ -619,7 +619,7 @@ def check_item_weather_appropriateness(item: Dict[str, Any], weather_data: Dict[
         logger.warning(f"Error checking weather appropriateness: {e}")
         return True  # Default to appropriate if check fails
 
-def attach_weather_context_to_items(items: List[Dict], weather_data: Dict[str, Any]) -> List[Dict]:
+def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -> List:
     """Attach weather context and appropriateness analysis to each item."""
     try:
         if not weather_data or not items:
@@ -631,19 +631,31 @@ def attach_weather_context_to_items(items: List[Dict], weather_data: Dict[str, A
         
         enhanced_items = []
         for item in items:
-            enhanced_item = item.copy()
-            
-            # Analyze weather appropriateness
-            item_type = item.get('type', '').lower()
-            item_name = item.get('name', '').lower()
-            material = ""
-            metadata = item.get('metadata', {})
-            if isinstance(metadata, dict):
-                visual_attrs = metadata.get('visualAttributes', {})
-                if isinstance(visual_attrs, dict):
-                    material = visual_attrs.get('material', '').lower()
-            
-            color = item.get('color', '').title()
+            # Handle both dict and Pydantic ClothingItem objects
+            if hasattr(item, 'dict'):  # Pydantic object
+                enhanced_item = item.dict()
+                item_type = getattr(item, 'type', '').lower()
+                item_name = getattr(item, 'name', '').lower()
+                material = ""
+                metadata = getattr(item, 'metadata', {})
+                if hasattr(metadata, 'dict'):  # Pydantic metadata
+                    metadata = metadata.dict()
+                if isinstance(metadata, dict):
+                    visual_attrs = metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        material = visual_attrs.get('material', '').lower()
+                color = getattr(item, 'color', '').title()
+            else:  # Dictionary
+                enhanced_item = item.copy()
+                item_type = item.get('type', '').lower()
+                item_name = item.get('name', '').lower()
+                material = ""
+                metadata = item.get('metadata', {})
+                if isinstance(metadata, dict):
+                    visual_attrs = metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        material = visual_attrs.get('material', '').lower()
+                color = item.get('color', '').title()
             
             # Temperature appropriateness analysis
             temp_appropriateness = "excellent"
@@ -1089,13 +1101,18 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # ENHANCED: Attach weather context to each item
         if req.weather:
-            weather_data = {
-                'temperature': getattr(req.weather, 'temperature', 70),
-                'condition': getattr(req.weather, 'condition', 'clear'),
-                'precipitation': getattr(req.weather, 'precipitation', 0)
-            }
-            outfit['items'] = attach_weather_context_to_items(outfit.get('items', []), weather_data)
-            logger.info(f"🌤️ Attached weather context to {len(outfit.get('items', []))} items")
+            try:
+                weather_data = {
+                    'temperature': getattr(req.weather, 'temperature', 70),
+                    'condition': getattr(req.weather, 'condition', 'clear'),
+                    'precipitation': getattr(req.weather, 'precipitation', 0)
+                }
+                outfit['items'] = attach_weather_context_to_items(outfit.get('items', []), weather_data)
+                logger.info(f"🌤️ Attached weather context to {len(outfit.get('items', []))} items")
+            except Exception as weather_error:
+                logger.warning(f"⚠️ Weather context attachment failed: {weather_error}")
+                logger.warning(f"⚠️ Item types: {[type(item) for item in outfit.get('items', [])]}")
+                # Continue without weather context rather than crashing
         
         # ENHANCED: Add weather combination validation
         if req.weather:
@@ -3406,13 +3423,17 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     
     # Attach weather context to fallback items
     if req.weather and selected_items:
-        weather_data = {
-            'temperature': getattr(req.weather, 'temperature', 70),
-            'condition': getattr(req.weather, 'condition', 'clear'),
-            'precipitation': getattr(req.weather, 'precipitation', 0)
-        }
-        selected_items = attach_weather_context_to_items(selected_items, weather_data)
-        logger.info(f"🌤️ Attached weather context to {len(selected_items)} fallback items")
+        try:
+            weather_data = {
+                'temperature': getattr(req.weather, 'temperature', 70),
+                'condition': getattr(req.weather, 'condition', 'clear'),
+                'precipitation': getattr(req.weather, 'precipitation', 0)
+            }
+            selected_items = attach_weather_context_to_items(selected_items, weather_data)
+            logger.info(f"🌤️ Attached weather context to {len(selected_items)} fallback items")
+        except Exception as fallback_weather_error:
+            logger.warning(f"⚠️ Fallback weather context attachment failed: {fallback_weather_error}")
+            # Continue without weather context rather than crashing
     
     # FINAL SAFETY NET: Ensure we have at least some items
     if len(selected_items) == 0:
