@@ -6,14 +6,20 @@ from typing import List, Dict, Any
 from pydantic import BaseModel, Field, ValidationError
 
 # Import the main ClothingItem model to ensure consistency
+logger = logging.getLogger(__name__)
+
 try:
+    # Try relative import first
     from ..custom_types.wardrobe import ClothingItem
-    logger = logging.getLogger(__name__)
     logger.info("✅ Using main ClothingItem model from custom_types.wardrobe")
-except ImportError as e:
-    logger = logging.getLogger(__name__)
-    logger.error(f"❌ Failed to import main ClothingItem model: {e}")
-    logger.error("🔄 Falling back to local ClothingItem model")
+except ImportError:
+    try:
+        # Try absolute import
+        from custom_types.wardrobe import ClothingItem
+        logger.info("✅ Using main ClothingItem model from custom_types.wardrobe (absolute)")
+    except ImportError as e:
+        logger.error(f"❌ Failed to import main ClothingItem model: {e}")
+        logger.error("🔄 Falling back to local ClothingItem model")
     
     # Fallback to local model if import fails
     class BasicMetadata(BaseModel):
