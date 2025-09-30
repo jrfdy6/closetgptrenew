@@ -5,56 +5,45 @@ import logging
 from typing import List, Dict, Any
 from pydantic import BaseModel, Field, ValidationError
 
-# -------------------------------
-# Logging Configuration
-# -------------------------------
-def setup_hydrator_logger(debug: bool = False):
-    logger = logging.getLogger("WardrobeHydrator")
-    logger.handlers.clear()  # clear previous handlers
-    logger.setLevel(logging.DEBUG if debug else logging.WARNING)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG if debug else logging.WARNING)
-    formatter = logging.Formatter("%(levelname)s: %(message)s")
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-    return logger
+# Import the main ClothingItem model to ensure consistency
+try:
+    from ..custom_types.wardrobe import ClothingItem
+    logger = logging.getLogger(__name__)
+    logger.info("✅ Using main ClothingItem model from custom_types.wardrobe")
+except ImportError as e:
+    logger = logging.getLogger(__name__)
+    logger.error(f"❌ Failed to import main ClothingItem model: {e}")
+    logger.error("🔄 Falling back to local ClothingItem model")
+    
+    # Fallback to local model if import fails
+    class BasicMetadata(BaseModel):
+        analysisTimestamp: int = Field(default_factory=lambda: int(datetime.utcnow().timestamp() * 1000))
+        originalType: str | None = None
+        originalSubType: str | None = None
 
-# Use environment variable to control debug mode
-import os
-debug_mode = os.getenv("HYDRATOR_DEBUG", "false").lower() == "true"
-logger = setup_hydrator_logger(debug=debug_mode)
+    class Metadata(BaseModel):
+        basicMetadata: BasicMetadata = Field(default_factory=BasicMetadata)
+        visualAttributes: dict | None = None
+        itemMetadata: dict | None = None
+        colorAnalysis: dict = Field(default_factory=lambda: {"dominant": [], "matching": []})
 
-# -------------------------------
-# Pydantic Models
-# -------------------------------
-class BasicMetadata(BaseModel):
-    analysisTimestamp: int = Field(default_factory=lambda: int(datetime.utcnow().timestamp() * 1000))
-    originalType: str | None = None
-    originalSubType: str | None = None
+    class ClothingItem(BaseModel):
+        id: str
+        type: str
+        imageUrl: str
+        userId: str
+        dominantColors: List[str]
+        matchingColors: List[str]
+        createdAt: int
+        updatedAt: int
+        metadata: Metadata = Field(default_factory=Metadata)
 
-class Metadata(BaseModel):
-    basicMetadata: BasicMetadata = Field(default_factory=BasicMetadata)
-    visualAttributes: dict | None = None
-    itemMetadata: dict | None = None
-    colorAnalysis: dict = Field(default_factory=lambda: {"dominant": [], "matching": []})
-
-class ClothingItem(BaseModel):
-    id: str
-    type: str
-    imageUrl: str
-    userId: str
-    dominantColors: List[str]
-    matchingColors: List[str]
-    createdAt: int
-    updatedAt: int
-    metadata: Metadata = Field(default_factory=Metadata)
-
-    # Optional style/business fields (not patched)
-    style: list | None = None
-    occasion: list | None = None
-    season: list | None = None
-    formalityLevel: str | None = None
-    fit: str | None = None
+        # Optional style/business fields (not patched)
+        style: list | None = None
+        occasion: list | None = None
+        season: list | None = None
+        formalityLevel: str | None = None
+        fit: str | None = None
 
 # -------------------------------
 # Synthetic placeholder values
