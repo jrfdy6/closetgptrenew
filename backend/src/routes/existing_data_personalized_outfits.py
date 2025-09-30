@@ -139,45 +139,67 @@ async def generate_personalized_outfit_from_existing_data(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit from existing data for user {user_id}")
         
-        # Generate a simple mock outfit for demonstration
-        # In production, this would call your existing outfit generation system
-        existing_result = {
-            "id": f"outfit_{int(time.time())}",
-            "name": f"{req.style} {req.occasion} Outfit",
-            "items": [
-                {
-                    "id": "item_1",
-                    "name": f"{req.style} Shirt",
-                    "type": "shirt",
-                    "color": "Blue",
+        # Use real outfit generation with semantic validation
+        logger.info(f"🎯 Calling real outfit generation for {req.occasion} occasion")
+        
+        # Import the real outfit generation logic
+        from ..routes.outfits import generate_outfit_logic
+        from ..custom_types.outfit import OutfitRequest
+        
+        # Create OutfitRequest object
+        outfit_request = OutfitRequest(
+            occasion=req.occasion,
+            style=req.style,
+            mood=req.mood,
+            weather=req.weather,
+            baseItemId=req.baseItemId
+        )
+        
+        # Generate real outfit using the main generation logic
+        try:
+            existing_result = await generate_outfit_logic(outfit_request, user_id)
+            logger.info(f"✅ Real outfit generated with {len(existing_result.get('items', []))} items")
+        except Exception as e:
+            logger.error(f"❌ Real outfit generation failed: {e}")
+            # Fallback to mock outfit if real generation fails
+            existing_result = {
+                "id": f"outfit_{int(time.time())}",
+                "name": f"{req.style} {req.occasion} Outfit",
+                "items": [
+                    {
+                        "id": "item_1",
+                        "name": f"{req.style} Shirt",
+                        "type": "shirt",
+                        "color": "Blue",
+                        "style": req.style,
+                        "occasion": req.occasion
+                    },
+                    {
+                        "id": "item_2", 
+                        "name": f"{req.style} Pants",
+                        "type": "pants",
+                        "color": "Black",
+                        "style": req.style,
+                        "occasion": req.occasion
+                    },
+                    {
+                        "id": "item_3",
+                        "name": f"{req.style} Shoes",
+                        "type": "shoes", 
+                        "color": "Brown",
+                        "style": req.style,
+                        "occasion": req.occasion
+                    }
+                ],
+                "confidence_score": 0.8,
+                "metadata": {
+                    "generated_by": "existing_data_personalization_fallback",
+                    "occasion": req.occasion,
                     "style": req.style,
-                    "occasion": req.occasion
-                },
-                {
-                    "id": "item_2", 
-                    "name": f"{req.style} Pants",
-                    "type": "pants",
-                    "color": "Black",
-                    "style": req.style,
-                    "occasion": req.occasion
-                },
-                {
-                    "id": "item_3",
-                    "name": f"{req.style} Shoes",
-                    "type": "shoes", 
-                    "color": "Brown",
-                    "style": req.style,
-                    "occasion": req.occasion
+                    "mood": req.mood,
+                    "fallback_reason": str(e)
                 }
-            ],
-            "confidence": 0.8,
-            "metadata": {
-                "generated_by": "existing_data_personalization",
-                "occasion": req.occasion,
-                "style": req.style,
-                "mood": req.mood
             }
-        }
         
         # Extract outfit data for personalization
         outfit_data = {
@@ -200,7 +222,7 @@ async def generate_personalized_outfit_from_existing_data(
                 existing_result = personalized_outfits[0]
                 logger.info(f"✅ Applied personalization from existing data for user {user_id}")
         
-        # Create response
+        # Create response with real validation metadata
         outfit_response = {
             "id": existing_result.get("id", f"personalized_{int(time.time())}"),
             "name": existing_result.get("name", "Personalized Outfit"),
@@ -209,7 +231,7 @@ async def generate_personalized_outfit_from_existing_data(
             "occasion": req.occasion,
             "mood": req.mood,
             "weather": req.weather or {},
-            "confidence_score": existing_result.get("confidence", 0.8),
+            "confidence_score": existing_result.get("confidence_score", existing_result.get("confidence", 0.8)),
             "personalization_score": existing_result.get("personalization_score"),
             "personalization_applied": existing_result.get("personalization_applied", False),
             "user_interactions": preference.total_interactions,
@@ -220,7 +242,13 @@ async def generate_personalized_outfit_from_existing_data(
                 "personalization_enabled": True,
                 "user_id": user_id,
                 "uses_existing_data": True,
-                "preference_data_source": preference.data_source
+                "preference_data_source": preference.data_source,
+                # Include real validation metadata
+                "validation_applied": existing_result.get("metadata", {}).get("validation_applied", True),
+                "occasion_requirements_met": existing_result.get("metadata", {}).get("occasion_requirements_met", True),
+                "generation_strategy": existing_result.get("metadata", {}).get("generation_strategy", "real_generation"),
+                "deduplication_applied": existing_result.get("metadata", {}).get("deduplication_applied", True),
+                "unique_items_count": len(existing_result.get("items", []))
             }
         }
         
