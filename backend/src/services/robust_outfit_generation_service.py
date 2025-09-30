@@ -359,7 +359,7 @@ class RobustOutfitGenerationService:
             
             logger.info(f"✅ CORE STRATEGY SUCCESS: Generated outfit with {best_strategy.value}")
             logger.info(f"📊 Final validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
-            logger.info(f"📦 Final outfit items: {[getattr(item, 'name', item.get('name', 'Unknown')) for item in outfit.items]}")
+            logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
             
             return outfit
         
@@ -412,7 +412,7 @@ class RobustOutfitGenerationService:
                     
                     logger.info(f"✅ FALLBACK SUCCESS: Generated outfit with {fallback_strategy.value}")
                     logger.info(f"📊 Fallback validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
-                    logger.info(f"📦 Fallback outfit items: {[getattr(item, 'name', item.get('name', 'Unknown')) for item in outfit.items]}")
+                    logger.info(f"📦 Fallback outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
                     
                     return outfit
                     
