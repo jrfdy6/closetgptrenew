@@ -176,10 +176,9 @@ class RobustOutfitGenerationService:
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with comprehensive validation and fallback strategies"""
-        try:
-            logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
-            logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
-            logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
+        logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
+        logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
+        logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
         # Reduced logging to prevent rate limiting
         logger.info(f"🎨 ROBUST GENERATOR START - User: {context.user_id}, Occasion: {context.occasion}, Style: {context.style}, Wardrobe: {len(context.wardrobe)} items")
