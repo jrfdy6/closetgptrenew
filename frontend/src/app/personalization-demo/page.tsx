@@ -804,7 +804,7 @@ export default function PersonalizationDemoPage() {
                         </div>
                         <div className="flex justify-between">
                           <span>Confidence:</span>
-                          <span className="font-medium">{generatedOutfit.confidence ? `${Math.round(generatedOutfit.confidence * 100)}%` : 'N/A'}</span>
+                          <span className="font-medium">{generatedOutfit.confidence_score ? `${Math.round(generatedOutfit.confidence_score * 100)}%` : 'N/A'}</span>
                         </div>
                         {generatedOutfit.metadata && (
                           <>
