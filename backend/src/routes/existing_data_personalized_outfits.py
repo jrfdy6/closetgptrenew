@@ -53,7 +53,7 @@ class OutfitResponse(BaseModel):
     occasion: str
     mood: str
     weather: Dict[str, Any]
-    confidence: float
+    confidence_score: float
     personalization_score: Optional[float] = None
     personalization_applied: bool = False
     user_interactions: int = 0
@@ -209,7 +209,7 @@ async def generate_personalized_outfit_from_existing_data(
             "occasion": req.occasion,
             "mood": req.mood,
             "weather": req.weather or {},
-            "confidence": existing_result.get("confidence", 0.8),
+            "confidence_score": existing_result.get("confidence", 0.8),
             "personalization_score": existing_result.get("personalization_score"),
             "personalization_applied": existing_result.get("personalization_applied", False),
             "user_interactions": preference.total_interactions,
