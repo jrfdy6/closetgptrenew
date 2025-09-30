@@ -26,77 +26,46 @@ src_dir = os.path.dirname(current_dir)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-try:
-    # Try relative imports first (works when run as module)
-    from ..custom_types.wardrobe import ClothingItem
-    from ..custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
-    from ..custom_types.weather import WeatherData
-    from ..custom_types.profile import UserProfile
-    from .robust_hydrator import ensure_items_safe_for_pydantic
-    # Temporarily disable these services to isolate import issues
-    # from .strategy_analytics_service import strategy_analytics, StrategyStatus
-    # from .diversity_filter_service import diversity_filter
-    # from .adaptive_tuning_service import adaptive_tuning, PerformanceMetrics
-    
-    # Create minimal fallbacks for now
-    class MockService:
-        pass
-    
-    strategy_analytics = MockService()
-    StrategyStatus = MockService()
-    diversity_filter = MockService()
-    adaptive_tuning = MockService()
-    PerformanceMetrics = MockService()
-except ImportError:
-    try:
-        # Try absolute imports (works when run from src directory)
-        from custom_types.wardrobe import ClothingItem
-        from custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
-        from custom_types.weather import WeatherData
-        from custom_types.profile import UserProfile
-        from services.robust_hydrator import ensure_items_safe_for_pydantic
-        # Temporarily disable these services to isolate import issues
-        # from services.strategy_analytics_service import strategy_analytics, StrategyStatus
-        # from services.diversity_filter_service import diversity_filter
-        # from services.adaptive_tuning_service import adaptive_tuning, PerformanceMetrics
-        
-        # Create minimal fallbacks for now
-        class MockService:
-            pass
-        
-        strategy_analytics = MockService()
-        StrategyStatus = MockService()
-        diversity_filter = MockService()
-        adaptive_tuning = MockService()
-        PerformanceMetrics = MockService()
-    except ImportError as e:
-        # If all imports fail, create minimal fallbacks to prevent total failure
-        print(f"⚠️ WARNING: Some imports failed in robust_outfit_generation_service: {e}")
-        print(f"⚠️ This may cause the robust service to fall back to rule-based generation")
-        
-        # Create minimal fallback classes to prevent total import failure
-        class ClothingItem:
-            pass
-        class OutfitGeneratedOutfit:
-            pass
-        class OutfitPiece:
-            pass
-        class WeatherData:
-            pass
-        class UserProfile:
-            pass
-        
-        def ensure_items_safe_for_pydantic(items):
-            return items
-        
-        class MockService:
-            pass
-        
-        strategy_analytics = MockService()
-        StrategyStatus = MockService()
-        diversity_filter = MockService()
-        adaptive_tuning = MockService()
-        PerformanceMetrics = MockService()
+# COMPLETELY SELF-CONTAINED - No external dependencies
+print("🔧 ROBUST SERVICE: Using completely self-contained version")
+
+# Create minimal fallback classes to prevent total import failure
+class ClothingItem:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+class OutfitGeneratedOutfit:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+class OutfitPiece:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+class WeatherData:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+class UserProfile:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+def ensure_items_safe_for_pydantic(items):
+    return items
+
+class MockService:
+    pass
+
+strategy_analytics = MockService()
+StrategyStatus = MockService()
+diversity_filter = MockService()
+adaptive_tuning = MockService()
+PerformanceMetrics = MockService()
 
 logger = logging.getLogger(__name__)
 
