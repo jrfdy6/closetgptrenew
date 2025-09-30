@@ -209,13 +209,18 @@ def clean_for_firestore(obj):
     """Convert Pydantic or nested objects into Firestore-safe dicts."""
     if hasattr(obj, "dict"):  # Pydantic model
         obj = obj.dict()
+    elif hasattr(obj, "model_dump"):  # Pydantic v2
+        obj = obj.model_dump()
+    
     if isinstance(obj, dict):
         safe = {}
         for k, v in obj.items():
             if isinstance(v, datetime):
                 safe[k] = v  # Firestore can store datetime directly
-            elif hasattr(v, "dict"):  # Nested Pydantic
+            elif hasattr(v, "dict"):  # Nested Pydantic v1
                 safe[k] = clean_for_firestore(v.dict())
+            elif hasattr(v, "model_dump"):  # Nested Pydantic v2
+                safe[k] = clean_for_firestore(v.model_dump())
             elif isinstance(v, dict):
                 safe[k] = clean_for_firestore(v)
             elif isinstance(v, list):
@@ -223,6 +228,8 @@ def clean_for_firestore(obj):
             else:
                 safe[k] = v
         return safe
+    elif isinstance(obj, list):
+        return [clean_for_firestore(i) for i in obj]
     return obj
 
 # Firebase imports moved inside functions to prevent import-time crashes
