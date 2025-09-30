@@ -59,7 +59,26 @@ def ensure_items_safe_for_pydantic(items):
     return items
 
 class MockService:
-    pass
+    """Mock service with all required methods"""
+    
+    def get_current_parameters(self):
+        return {
+            'confidence_threshold': 0.3,
+            'max_items': 8,
+            'min_items': 3
+        }
+    
+    def record_strategy_execution(self, **kwargs):
+        pass
+    
+    def get_performance_metrics(self):
+        return {}
+    
+    def get_diversity_suggestions(self, **kwargs):
+        return []
+    
+    def record_performance(self, **kwargs):
+        pass
 
 strategy_analytics = MockService()
 StrategyStatus = MockService()
@@ -147,9 +166,10 @@ class RobustOutfitGenerationService:
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with comprehensive validation and fallback strategies"""
-        logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
-        logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
-        logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
+        try:
+            logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
+            logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
+            logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
         # Reduced logging to prevent rate limiting
         logger.info(f"🎨 ROBUST GENERATOR START - User: {context.user_id}, Occasion: {context.occasion}, Style: {context.style}, Wardrobe: {len(context.wardrobe)} items")
