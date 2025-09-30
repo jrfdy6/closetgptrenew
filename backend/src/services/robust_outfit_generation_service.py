@@ -94,7 +94,12 @@ strategy_analytics = MockService()
 StrategyStatus = MockService()
 diversity_filter = MockService()
 adaptive_tuning = MockService()
-PerformanceMetrics = MockService()
+
+class PerformanceMetrics:
+    """Mock PerformanceMetrics class"""
+    def __init__(self, **kwargs):
+        self.confidence = kwargs.get('confidence', 0.5)
+        self.diversity_score = kwargs.get('diversity_score', 0.0)
 
 logger = logging.getLogger(__name__)
 
@@ -345,7 +350,7 @@ class RobustOutfitGenerationService:
             
             logger.info(f"✅ CORE STRATEGY SUCCESS: Generated outfit with {best_strategy.value}")
             logger.info(f"📊 Final validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
-            logger.info(f"📦 Final outfit items: {[item.name for item in outfit.items]}")
+            logger.info(f"📦 Final outfit items: {[getattr(item, 'name', item.get('name', 'Unknown')) for item in outfit.items]}")
             
             return outfit
         
@@ -398,7 +403,7 @@ class RobustOutfitGenerationService:
                     
                     logger.info(f"✅ FALLBACK SUCCESS: Generated outfit with {fallback_strategy.value}")
                     logger.info(f"📊 Fallback validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
-                    logger.info(f"📦 Fallback outfit items: {[item.name for item in outfit.items]}")
+                    logger.info(f"📦 Fallback outfit items: {[getattr(item, 'name', item.get('name', 'Unknown')) for item in outfit.items]}")
                     
                     return outfit
                     
@@ -1964,7 +1969,21 @@ class RobustOutfitGenerationService:
     async def _filter_by_weather(self, wardrobe: List[ClothingItem], weather: WeatherData) -> List[ClothingItem]:
         """Filter items based on weather conditions"""
         weather_appropriate = []
-        temperature = weather.temperature
+        
+        # Safely extract weather data
+        if hasattr(weather, 'temperature'):
+            temperature = weather.temperature
+        elif hasattr(weather, '__dict__') and 'temperature' in weather.__dict__:
+            temperature = weather.__dict__['temperature']
+        else:
+            temperature = 70.0
+            
+        if hasattr(weather, 'condition'):
+            condition = weather.condition
+        elif hasattr(weather, '__dict__') and 'condition' in weather.__dict__:
+            condition = weather.__dict__['condition']
+        else:
+            condition = 'Clear'
         
         for item in wardrobe:
             item_type = getattr(item, 'type', '').lower()
@@ -1978,8 +1997,8 @@ class RobustOutfitGenerationService:
                     continue
             
             # Weather condition filtering
-            condition = weather.condition.lower()
-            if 'rain' in condition and item_type in ['suede', 'leather']:
+            condition_lower = condition.lower() if condition else 'clear'
+            if 'rain' in condition_lower and item_type in ['suede', 'leather']:
                 continue  # Avoid suede/leather in rain
             
             weather_appropriate.append(item)
