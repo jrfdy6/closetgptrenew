@@ -1079,7 +1079,10 @@ class RobustOutfitGenerationService:
             # EXCLUDE formal items completely
             if any(formal_term in item_name or formal_term in item_type for formal_term in [
                 'oxford', 'dress', 'suit', 'blazer', 'formal', 'business', 'professional',
-                'loafer', 'heels', 'dress shirt', 'dress pants', 'sport coat'
+                'loafer', 'heels', 'dress shirt', 'dress pants', 'sport coat', 'button up',
+                'button-up', 'button down', 'button-down', 'long sleeve', 'long-sleeve',
+                'button up shirt', 'button-up shirt', 'button down shirt', 'button-down shirt',
+                'dress shirt', 'business shirt', 'formal shirt', 'professional shirt'
             ]):
                 logger.info(f"🚫 ATHLETIC EXCLUSION: {item.name} - formal item not suitable for athletic")
                 return False
