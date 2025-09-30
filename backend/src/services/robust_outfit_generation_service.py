@@ -89,6 +89,9 @@ class MockService:
     
     def record_performance(self, **kwargs):
         pass
+    
+    def is_diverse(self, **kwargs):
+        return True
 
 strategy_analytics = MockService()
 StrategyStatus = MockService()
