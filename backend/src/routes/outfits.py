@@ -121,6 +121,10 @@ def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unk
     mood = outfit_response.get("mood", "unknown")
     item_count = len(outfit_response.get("items", []))
     
+    # CRITICAL DEBUG: Log what strategy we're about to log
+    logger.info(f"🔍 DEBUG LOG_GENERATION_STRATEGY: About to log strategy = {strategy}")
+    print(f"🔍 DEBUG LOG_GENERATION_STRATEGY: About to log strategy = {strategy}")
+    
     # Define which strategies are considered "complex" vs "fallback"
     complex_strategies = ["cohesive_composition", "body_type_optimized", "style_profile_matched", "weather_adapted", "rule_based"]
     fallback_strategies = ["fallback_simple", "emergency_default"]
@@ -207,6 +211,12 @@ security = HTTPBearer()
 
 def clean_for_firestore(obj):
     """Convert Pydantic or nested objects into Firestore-safe dicts."""
+    # CRITICAL DEBUG: Log strategy before cleaning
+    if isinstance(obj, dict) and 'metadata' in obj:
+        strategy_before = obj.get('metadata', {}).get('generation_strategy', 'unknown')
+        logger.info(f"🔍 DEBUG CLEAN_FOR_FIRESTORE BEFORE: strategy = {strategy_before}")
+        print(f"🔍 DEBUG CLEAN_FOR_FIRESTORE BEFORE: strategy = {strategy_before}")
+    
     # Handle Pydantic models
     if hasattr(obj, "dict"):  # Pydantic v1
         obj = obj.dict()
@@ -242,6 +252,11 @@ def clean_for_firestore(obj):
             else:
                 logger.warning(f"Skipping non-serializable field {k}: {type(v)}")
                 continue
+        # CRITICAL DEBUG: Log strategy after cleaning
+        if 'metadata' in safe:
+            strategy_after = safe.get('metadata', {}).get('generation_strategy', 'unknown')
+            logger.info(f"🔍 DEBUG CLEAN_FOR_FIRESTORE AFTER: strategy = {strategy_after}")
+            print(f"🔍 DEBUG CLEAN_FOR_FIRESTORE AFTER: strategy = {strategy_after}")
         return safe
     elif isinstance(obj, list):
         return [clean_for_firestore(i) for i in obj if i is not None]
@@ -1144,6 +1159,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 final_strategy = outfit.get('metadata', {}).get('generation_strategy', 'unknown')
                 logger.info(f"🎯 FINAL STRATEGY: {final_strategy}")
                 print(f"🎯 FINAL STRATEGY: {final_strategy}")
+                
+                # CRITICAL DEBUG: Log outfit metadata before any post-processing
+                logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {outfit.get('metadata', {})}")
+                print(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {outfit.get('metadata', {})}")
                 
                 if final_strategy == 'fallback_simple':
                     logger.warning(f"⚠️ WARNING: Robust path returned fallback_simple strategy")
@@ -5373,9 +5392,17 @@ async def generate_outfit(
                 if outfit and outfit.get('items'):
                     occasion_lower = req.occasion.lower()
                     
+                    # CRITICAL DEBUG: Log strategy before category limits
+                    logger.info(f"🔍 DEBUG BEFORE CATEGORY LIMITS: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                    print(f"🔍 DEBUG BEFORE CATEGORY LIMITS: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                    
                     # Step 1: Apply category limits and subtype tracking INSIDE robust logic
                     original_items = outfit['items'].copy()
                     outfit['items'] = deduplicate_items_with_limits(outfit['items'], req.occasion)
+                    
+                    # CRITICAL DEBUG: Log strategy after category limits
+                    logger.info(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                    print(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
                     
                     # Step 2: If validation fails, retry with relaxed rules instead of falling back
                     validation_passed = True
@@ -5387,11 +5414,19 @@ async def generate_outfit(
                             logger.warning(f"⚠️ VALIDATION FAILED: Missing {missing_required} - retrying with relaxed rules")
                             validation_passed = False
                             
+                            # CRITICAL DEBUG: Log strategy before relaxed rules
+                            logger.info(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                            print(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                            
                             # Retry with relaxed rules instead of falling back
                             outfit['items'] = retry_with_relaxed_rules(original_items, req.occasion, requirements)
                             
                             # Re-apply category limits to relaxed outfit
                             outfit['items'] = deduplicate_items_with_limits(outfit['items'], req.occasion)
+                            
+                            # CRITICAL DEBUG: Log strategy after relaxed rules
+                            logger.info(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                            print(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
                             
                             logger.info(f"🔄 Retried with relaxed rules - final items: {len(outfit['items'])}")
                     
@@ -5404,6 +5439,10 @@ async def generate_outfit(
                     else:
                         logger.info(f"🎯 Preserving robust generator confidence: {outfit['confidence_score']}")
                     
+                    # CRITICAL DEBUG: Log strategy before metadata modification
+                    logger.info(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                    print(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                    
                     # Ensure metadata exists
                     if 'metadata' not in outfit:
                         outfit['metadata'] = {}
@@ -5411,6 +5450,10 @@ async def generate_outfit(
                     outfit['metadata']['confidence_calculated'] = True
                     outfit['metadata']['validation_passed'] = validation_passed
                     outfit['metadata']['retry_with_relaxed_rules'] = not validation_passed
+                    
+                    # CRITICAL DEBUG: Log strategy after metadata modification
+                    logger.info(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
+                    print(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {outfit.get('metadata', {}).get('generation_strategy', 'unknown')}")
                     
                     # Update metadata with processing status (simplified)
                     if 'metadata' not in outfit:
@@ -5613,6 +5656,12 @@ async def generate_outfit(
         # Apply final cleaning
         clean_outfit_record = clean_for_firestore(outfit_record_cleaned)
         logger.info(f"🧹 Cleaned outfit record: {clean_outfit_record}")
+        
+        # CRITICAL DEBUG: Log strategy right before saving to Firebase
+        final_strategy = clean_outfit_record.get('metadata', {}).get('generation_strategy', 'unknown')
+        logger.info(f"🔍 DEBUG FINAL SAVE: strategy = {final_strategy}")
+        print(f"🔍 DEBUG FINAL SAVE: strategy = {final_strategy}")
+        
         save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
         logger.info(f"💾 Save operation result: {save_result}")
         
