@@ -3580,7 +3580,15 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     occasion_lower = req.occasion.lower()
     if occasion_lower in occasion_requirements:
         requirements = occasion_requirements[occasion_lower]
-        missing_required = validate_outfit_completeness(selected_items, requirements, req.occasion)
+        logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION START - Calling validate_outfit_completeness")
+        try:
+            missing_required = validate_outfit_completeness(selected_items, requirements, req.occasion)
+            logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION SUCCESS - {len(missing_required)} missing items")
+        except Exception as e:
+            logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION ERROR - {type(e).__name__}: {str(e)}")
+            import traceback
+            logger.error(f"🚨 STRESS TEST v1.0: FALLBACK VALIDATION TRACEBACK - {traceback.format_exc()}")
+            missing_required = []
         
         if len(missing_required) > 0:
             logger.warning(f"⚠️ FALLBACK VALIDATION FAILED: Missing {missing_required}")
