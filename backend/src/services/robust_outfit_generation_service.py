@@ -109,21 +109,41 @@ class RobustOutfitGenerationService:
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
+        # STRESS TEST: Comprehensive logging for robust generator failure analysis
+        logger.error(f"🚨 STRESS TEST v1.0: ROBUST GENERATOR START - User: {context.user_id}")
+        logger.error(f"🚨 STRESS TEST v1.0: Context - Occasion: {context.occasion}, Style: {context.style}, Mood: {context.mood}")
+        logger.error(f"🚨 STRESS TEST v1.0: Wardrobe size: {len(context.wardrobe)} items")
+        
+        # Log first few wardrobe items for analysis
+        if context.wardrobe:
+            logger.error(f"🚨 STRESS TEST v1.0: First wardrobe item keys: {list(context.wardrobe[0].keys()) if isinstance(context.wardrobe[0], dict) else 'Not a dict'}")
+            logger.error(f"🚨 STRESS TEST v1.0: First wardrobe item type: {type(context.wardrobe[0])}")
+            if isinstance(context.wardrobe[0], dict):
+                logger.error(f"🚨 STRESS TEST v1.0: First item sample: {dict(list(context.wardrobe[0].items())[:5])}")
+        
         # Safety-net hydration at start of pipeline
-        logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: Starting safety check for wardrobe items")
+        logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR START - Processing {len(context.wardrobe)} items")
         try:
             if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
-                logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: Calling ensure_items_safe_for_pydantic with {len(context.wardrobe)} items")
+                logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR - Calling ensure_items_safe_for_pydantic")
                 # Convert raw wardrobe items to ClothingItem objects with safety net
                 safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
-                logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: {len(safe_wardrobe)} items validated and ready")
+                logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR SUCCESS - {len(safe_wardrobe)} items validated")
+                
+                # Log sample of hydrated items
+                if safe_wardrobe:
+                    logger.error(f"🚨 STRESS TEST v1.0: HYDRATED ITEM SAMPLE - Type: {type(safe_wardrobe[0])}")
+                    logger.error(f"🚨 STRESS TEST v1.0: HYDRATED ITEM FIELDS - {list(safe_wardrobe[0].__dict__.keys()) if hasattr(safe_wardrobe[0], '__dict__') else 'No __dict__'}")
+                
                 # Update context with safe wardrobe
                 context.wardrobe = safe_wardrobe
             else:
-                logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR: Wardrobe items already ClothingItem objects, skipping hydration")
+                logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR SKIP - Items already ClothingItem objects")
         except Exception as hydrator_error:
-            logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR ERROR: {hydrator_error}")
-            logger.error(f"🚨 FORCE REDEPLOY v10.0: ROBUST HYDRATOR TRACEBACK: {hydrator_error.__class__.__name__}")
+            logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR FAILURE - {hydrator_error}")
+            logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR TRACEBACK - {hydrator_error.__class__.__name__}: {str(hydrator_error)}")
+            import traceback
+            logger.error(f"🚨 STRESS TEST v1.0: HYDRATOR FULL TRACEBACK - {traceback.format_exc()}")
         
         # Handle weather data safely
         if hasattr(context.weather, 'temperature'):
@@ -159,28 +179,39 @@ class RobustOutfitGenerationService:
         logger.info(f"🔄 Available strategies: {[s.value for s in self.generation_strategies]}")
         session_id = f"session_{int(time.time())}_{context.user_id}"
         
-        for strategy in self.generation_strategies:
+        # STRESS TEST: Strategy execution loop with detailed logging
+        logger.error(f"🚨 STRESS TEST v1.0: STRATEGY LOOP START - {len(self.generation_strategies)} strategies")
+        
+        for i, strategy in enumerate(self.generation_strategies):
             strategy_start_time = time.time()
             validation_start_time = 0
             validation_time = 0
             generation_time = 0
             
+            logger.error(f"🚨 STRESS TEST v1.0: STRATEGY {i+1}/{len(self.generation_strategies)} - {strategy.value}")
+            
             try:
                 logger.info(f"🔄 Trying generation strategy: {strategy.value}")
+                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY {strategy.value} EXECUTION START")
                 context.generation_strategy = strategy
                 
                 # Log strategy-specific context
                 logger.info(f"🔍 Strategy {strategy.value} - Starting generation...")
+                logger.error(f"🚨 STRESS TEST v1.0: CALLING _generate_with_strategy for {strategy.value}")
                 outfit = await self._generate_with_strategy(context)
                 generation_time = time.time() - strategy_start_time
                 logger.info(f"🔍 Strategy {strategy.value} - Generated outfit with {len(outfit.items)} items")
+                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY {strategy.value} GENERATION COMPLETE - {generation_time:.3f}s, {len(outfit.items)} items")
                 
                 # Validate the generated outfit
                 validation_start_time = time.time()
                 logger.info(f"🔍 Strategy {strategy.value} - Starting validation...")
+                logger.error(f"🚨 STRESS TEST v1.0: VALIDATION START for {strategy.value}")
                 validation = await self._validate_outfit(outfit, context)
                 validation_time = time.time() - validation_start_time
                 logger.info(f"🔍 Strategy {strategy.value} - Validation complete: valid={validation.is_valid}, confidence={validation.confidence}")
+                logger.error(f"🚨 STRESS TEST v1.0: VALIDATION COMPLETE - {validation_time:.3f}s, Valid: {validation.is_valid}, Confidence: {validation.confidence:.2f}")
+                logger.error(f"🚨 STRESS TEST v1.0: VALIDATION ISSUES - {validation.issues}")
                 
                 # ENHANCED STRATEGY ANALYTICS TRACKING
                 strategy_analytics.record_strategy_execution(
@@ -214,7 +245,11 @@ class RobustOutfitGenerationService:
                 # confidence_threshold is already set from tuned parameters above
                 
                 if validation.is_valid and validation.confidence >= confidence_threshold:
+                    logger.error(f"🚨 STRESS TEST v1.0: STRATEGY SUCCESS - {strategy.value} passed validation!")
+                    logger.error(f"🚨 STRESS TEST v1.0: SUCCESS CRITERIA - Valid: {validation.is_valid}, Confidence: {validation.confidence:.2f} >= {confidence_threshold}")
+                    
                     # Apply diversity filtering
+                    logger.error(f"🚨 STRESS TEST v1.0: DIVERSITY CHECK START for {strategy.value}")
                     diversity_result = diversity_filter.check_outfit_diversity(
                         user_id=context.user_id,
                         new_outfit=outfit.items,
@@ -222,6 +257,7 @@ class RobustOutfitGenerationService:
                         style=context.style,
                         mood=context.mood
                     )
+                    logger.error(f"🚨 STRESS TEST v1.0: DIVERSITY CHECK COMPLETE - Diverse: {diversity_result['is_diverse']}, Score: {diversity_result['diversity_score']:.2f}")
                     
                     logger.info(f"🎭 Diversity check: diverse={diversity_result['is_diverse']}, score={diversity_result['diversity_score']:.2f}")
                     
@@ -300,6 +336,9 @@ class RobustOutfitGenerationService:
                 generation_time = time.time() - strategy_start_time
                 logger.error(f"❌ Strategy {strategy.value} failed with error: {e}", exc_info=True)
                 logger.error(f"❌ Strategy {strategy.value} error context: user={context.user_id}, occasion={context.occasion}")
+                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY CRASH - {strategy.value} crashed with {type(e).__name__}: {str(e)}")
+                import traceback
+                logger.error(f"🚨 STRESS TEST v1.0: STRATEGY CRASH TRACEBACK - {traceback.format_exc()}")
                 
                 # Track strategy failure
                 strategy_analytics.record_strategy_execution(
