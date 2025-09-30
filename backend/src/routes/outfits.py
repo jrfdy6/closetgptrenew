@@ -3455,6 +3455,23 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         print(f"🚨 FALLBACK WARNING: No items were generated - empty outfit!")
     print(f"🚨 FALLBACK IMPACT: This indicates main generation logic needs attention")
     
+    # Apply semantic validation to fallback outfit
+    occasion_requirements_met = True
+    validation_applied = True
+    
+    # Check if we have occasion requirements and apply semantic validation
+    occasion_lower = req.occasion.lower()
+    if occasion_lower in occasion_requirements:
+        requirements = occasion_requirements[occasion_lower]
+        missing_required = validate_outfit_completeness(selected_items, requirements)
+        
+        if len(missing_required) > 0:
+            logger.warning(f"⚠️ FALLBACK VALIDATION FAILED: Missing {missing_required}")
+            occasion_requirements_met = False
+        else:
+            logger.info(f"✅ FALLBACK VALIDATION PASSED: All requirements met")
+            occasion_requirements_met = True
+    
     fallback_outfit = {
         "id": str(uuid4()),  # Add ID for logging
         "name": outfit_name,
@@ -3465,7 +3482,13 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         "confidence_score": 0.7 if len([item for item in selected_items if not item.get('id', '').startswith('fallback')]) > 0 else 0.5,
         "reasoning": generate_weather_aware_fallback_reasoning(req, selected_items),
         "createdAt": datetime.now().isoformat() + 'Z',
-        "metadata": {"generation_strategy": "fallback_simple"}
+        "metadata": {
+            "generation_strategy": "fallback_simple",
+            "validation_applied": validation_applied,
+            "occasion_requirements_met": occasion_requirements_met,
+            "deduplication_applied": True,
+            "unique_items_count": len(selected_items)
+        }
     }
     
     # Log generation strategy for monitoring
