@@ -92,6 +92,12 @@ class MockService:
     
     def is_diverse(self, **kwargs):
         return True
+    
+    def check_outfit_diversity(self, **kwargs):
+        return {
+            'is_diverse': True,
+            'diversity_score': 0.8
+        }
 
 strategy_analytics = MockService()
 StrategyStatus = MockService()
