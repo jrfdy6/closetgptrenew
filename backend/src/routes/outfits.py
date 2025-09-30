@@ -5562,7 +5562,65 @@ async def generate_outfit(
 
         # 3. Clean and save to Firestore
         logger.info(f"🔄 About to save generated outfit {outfit_id}")
-        clean_outfit_record = clean_for_firestore(outfit_record)
+        
+        # AGGRESSIVE CLEANING: Remove problematic fields that cause Firebase serialization issues
+        outfit_record_cleaned = {
+            "id": outfit_record.get("id"),
+            "user_id": outfit_record.get("user_id"),
+            "generated_at": outfit_record.get("generated_at"),
+            "name": outfit_record.get("name"),
+            "occasion": outfit_record.get("occasion"),
+            "style": outfit_record.get("style"),
+            "mood": outfit_record.get("mood"),
+            "confidence_score": outfit_record.get("confidence_score"),
+            "reasoning": outfit_record.get("reasoning"),
+            "createdAt": outfit_record.get("createdAt"),
+            "userId": outfit_record.get("userId"),
+            "explanation": outfit_record.get("explanation"),
+            "styleTags": outfit_record.get("styleTags", []),
+            "colorHarmony": outfit_record.get("colorHarmony"),
+            "styleNotes": outfit_record.get("styleNotes"),
+            "season": outfit_record.get("season"),
+            "updatedAt": outfit_record.get("updatedAt"),
+            "wasSuccessful": outfit_record.get("wasSuccessful"),
+            "baseItemId": outfit_record.get("baseItemId")
+        }
+        
+        # Clean items array - convert ClothingItem objects to simple dicts
+        items_cleaned = []
+        for item in outfit_record.get("items", []):
+            if hasattr(item, "dict"):
+                items_cleaned.append(item.dict())
+            elif hasattr(item, "model_dump"):
+                items_cleaned.append(item.model_dump())
+            elif isinstance(item, dict):
+                items_cleaned.append(item)
+            else:
+                logger.warning(f"Skipping non-serializable item: {type(item)}")
+        outfit_record_cleaned["items"] = items_cleaned
+        
+        # Clean pieces array - convert to simple dicts or skip if problematic
+        pieces_cleaned = []
+        for piece in outfit_record.get("pieces", []):
+            if hasattr(piece, "dict"):
+                pieces_cleaned.append(piece.dict())
+            elif hasattr(piece, "model_dump"):
+                pieces_cleaned.append(piece.model_dump())
+            elif isinstance(piece, dict):
+                pieces_cleaned.append(piece)
+            else:
+                logger.warning(f"Skipping non-serializable piece: {type(piece)}")
+        outfit_record_cleaned["pieces"] = pieces_cleaned
+        
+        # Clean metadata - ensure it's a simple dict
+        metadata = outfit_record.get("metadata", {})
+        if isinstance(metadata, dict):
+            outfit_record_cleaned["metadata"] = metadata
+        else:
+            outfit_record_cleaned["metadata"] = {}
+        
+        # Apply final cleaning
+        clean_outfit_record = clean_for_firestore(outfit_record_cleaned)
         logger.info(f"🧹 Cleaned outfit record: {clean_outfit_record}")
         save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
         logger.info(f"💾 Save operation result: {save_result}")
