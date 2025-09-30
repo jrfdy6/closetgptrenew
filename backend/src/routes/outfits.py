@@ -935,11 +935,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Handle empty wardrobe case
         if not wardrobe_items:
-            logger.warning(f"⚠️ FALLBACK TRIGGERED: No wardrobe items available")
-            print(f"🚨 FALLBACK ALERT: Empty wardrobe detected")
-            print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-            print(f"🚨 FALLBACK REASON: No wardrobe items found for user")
-            return await generate_fallback_outfit(req, user_id)
+            # NO FALLBACKS - Force proper wardrobe items
+            logger.error(f"🚨 NO WARDROBE ITEMS - NO FALLBACKS ALLOWED")
+            print(f"🚨 NO WARDROBE ITEMS: User={user_id} has no wardrobe items")
+            raise Exception("No wardrobe items available - no fallbacks allowed. User must have wardrobe items.")
         
         # 2. Get user's style profile (with caching)
         # Getting user profile
@@ -1152,20 +1151,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 
                 logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
             else:
-                logger.warning("⚠️ Robust service not available, falling back to rule-based generation")
+                # NO FALLBACKS - Force robust service to work
+                logger.error("🚨 ROBUST SERVICE NOT AVAILABLE - NO FALLBACKS ALLOWED")
                 print(f"🚨 ROBUST SERVICE NOT AVAILABLE: RobustOutfitGenerationService or GenerationContext is None")
                 print(f"🚨 This means the robust service import failed or is not properly configured")
-                
-                try:
-                    logger.info(f"🔄 FALLBACK: Starting rule-based generation with {len(wardrobe_items)} items")
-                    outfit = await generate_rule_based_outfit(wardrobe_items, user_profile, req)
-                    logger.info(f"✅ FALLBACK: Rule-based generation completed with {len(outfit.get('items', []))} items")
-                except Exception as rule_error:
-                    logger.error(f"❌ FALLBACK FAILED: Rule-based generation crashed: {rule_error}")
-                    logger.error(f"❌ FALLBACK ERROR TYPE: {type(rule_error).__name__}")
-                    logger.error(f"❌ FALLBACK TRACEBACK: {str(rule_error)}")
-                    print(f"🚨 RULE-BASED GENERATION CRASHED: {rule_error}")
-                    raise rule_error
+                raise Exception("RobustOutfitGenerationService not available - no fallbacks allowed. Fix the robust service import.")
             
             # Add weather data to outfit for base item validation
             if req.weather:
@@ -1209,10 +1199,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.error(f"❌ FALLBACK TRIGGERED: Rule-based generation produced no items")
             logger.error(f"🔍 FALLBACK DEBUG: Outfit data: {outfit}")
-            print(f"🚨 FALLBACK ALERT: Rule-based generation failed - no items generated")
-            print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-            print(f"🚨 FALLBACK REASON: Empty outfit items array")
-            return await generate_fallback_outfit(req, user_id)
+            # NO FALLBACKS - Force proper generation
+            print(f"🚨 NO ITEMS GENERATED - NO FALLBACKS ALLOWED")
+            print(f"🚨 CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+            raise Exception("No items generated - no fallbacks allowed. Fix the generation logic.")
         
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
         # Rule-based outfit completed
@@ -1268,10 +1258,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.exception("Full traceback:")
         print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
         print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-        print(f"🚨 FALLBACK REASON: Exception - {type(e).__name__}: {e}")
-        print(f"🚨 FALLBACK TRACEBACK: {str(e)}")
-        # Fallback to basic generation if rule-based generation fails
-        return await generate_fallback_outfit(req, user_id)
+        print(f"🚨 GENERATION FAILED - NO FALLBACKS ALLOWED")
+        print(f"🚨 ERROR: {type(e).__name__}: {e}")
+        print(f"🚨 TRACEBACK: {str(e)}")
+        # NO FALLBACKS - Force proper error handling
+        raise e
 
 async def validate_style_gender_compatibility(style: str, user_gender: str) -> Dict[str, Any]:
     """Validate if the requested style is appropriate for the user's gender."""
@@ -3036,9 +3027,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
     except Exception as e:
         logger.error(f"❌ Rule-based outfit generation failed: {e}")
         logger.exception("Full rule-based generation traceback:")
-        logger.warning(f"🔄 Falling back to basic generation for user: {user_profile.get('id', 'unknown') if user_profile else 'unknown'}")
-        # Fall back to basic generation with proper user_id
-        return await generate_fallback_outfit(req, user_profile.get('id', 'unknown') if user_profile else 'unknown')
+        # NO FALLBACKS - Force proper error handling
+        logger.error(f"🚨 RULE-BASED GENERATION FAILED - NO FALLBACKS ALLOWED")
+        raise Exception(f"Rule-based generation failed: {e}")
 
 def _pick_any_item_safe(wardrobe: List[Dict[str, Any]], category: str, occasion: str) -> Dict[str, Any]:
     """Pick any item safely with occasion-aware filtering to prevent validation failures."""
