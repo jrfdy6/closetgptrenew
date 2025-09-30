@@ -518,10 +518,9 @@ class RobustOutfitGenerationService:
         # Ensure outfit completeness and appropriateness
         complete_outfit = await self._ensure_outfit_completeness(selected_items, context)
         
-        # AGGRESSIVE COMPLETENESS CHECK - Force complete outfits
+        # NO FORCE COMPLETION: Let validation handle incomplete outfits
         if len(complete_outfit) < 3:
-            logger.warning(f"⚠️ COHESIVE: Outfit incomplete ({len(complete_outfit)} items), forcing completion")
-            complete_outfit = await self._force_complete_outfit(context.wardrobe, context)
+            logger.warning(f"⚠️ COHESIVE: Outfit incomplete ({len(complete_outfit)} items), will use emergency default")
         
         # Create outfit response
         outfit = OutfitGeneratedOutfit(
@@ -815,18 +814,9 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
-        # SAFETY NET: Prevent empty filtered lists
+        # NO FALLBACK: If no suitable items found, let emergency default handle it
         if len(suitable_items) == 0:
-            logger.warning(f"🚨 SAFETY NET: No suitable items found, falling back to occasion-appropriate items")
-            # Fall back to occasion-appropriate items only (skip style filtering)
-            for item in context.wardrobe:
-                if self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather):
-                    suitable_items.append(item)
-            
-            if len(suitable_items) == 0:
-                logger.warning(f"🚨 SAFETY NET: Still no occasion-appropriate items, using all items")
-                # Last resort: use all items
-                suitable_items = context.wardrobe[:]
+            logger.warning(f"🚨 NO SUITABLE ITEMS: Will use emergency default instead of inappropriate items")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
@@ -835,10 +825,10 @@ class RobustOutfitGenerationService:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
         selected_items = []
         
-        # SAFETY NET: Ensure we have items to work with
+        # NO FALLBACK: If no suitable items, let emergency default handle it
         if len(suitable_items) == 0:
-            logger.warning(f"🚨 SAFETY NET: No suitable items for intelligent selection, using all wardrobe items")
-            suitable_items = context.wardrobe[:]
+            logger.warning(f"🚨 NO SUITABLE ITEMS: Will use emergency default instead of inappropriate items")
+            return []
         
         # STEP 1: Compute dynamic target count FIRST (primary goal)
         target_count = self._get_target_item_count(context)
