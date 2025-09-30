@@ -1069,7 +1069,77 @@ class RobustOutfitGenerationService:
         )
     
     def _is_occasion_compatible(self, item: ClothingItem, occasion: str) -> bool:
-        """Check if item is compatible with occasion"""
+        """Check if item is compatible with occasion - enhanced with name/type analysis"""
+        occasion_lower = occasion.lower()
+        item_name = item.name.lower()
+        item_type = item.type.lower()
+        
+        # ATHLETIC OCCASIONS - Strict filtering
+        if any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport']):
+            # EXCLUDE formal items completely
+            if any(formal_term in item_name or formal_term in item_type for formal_term in [
+                'oxford', 'dress', 'suit', 'blazer', 'formal', 'business', 'professional',
+                'loafer', 'heels', 'dress shirt', 'dress pants', 'sport coat'
+            ]):
+                logger.info(f"🚫 ATHLETIC EXCLUSION: {item.name} - formal item not suitable for athletic")
+                return False
+            
+            # INCLUDE athletic items
+            if any(athletic_term in item_name or athletic_term in item_type for athletic_term in [
+                'athletic', 'sport', 'gym', 'workout', 'sneaker', 'running', 'basketball',
+                'jersey', 'tank', 'shorts', 'athletic shoes', 'track', 'tennis'
+            ]):
+                logger.info(f"✅ ATHLETIC INCLUSION: {item.name} - athletic item suitable")
+                return True
+            
+            # INCLUDE casual items that work for athletic activities
+            if any(casual_term in item_name or casual_term in item_type for casual_term in [
+                't-shirt', 't shirt', 'polo', 'jeans', 'casual', 'comfortable'
+            ]):
+                logger.info(f"✅ ATHLETIC CASUAL: {item.name} - casual item suitable for athletic")
+                return True
+            
+            # EXCLUDE everything else for athletic occasions
+            logger.info(f"🚫 ATHLETIC EXCLUSION: {item.name} - not suitable for athletic")
+            return False
+        
+        # FORMAL OCCASIONS - Strict filtering
+        elif any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'professional']):
+            # EXCLUDE casual/athletic items
+            if any(casual_term in item_name or casual_term in item_type for casual_term in [
+                'sneaker', 'athletic', 'casual', 't-shirt', 'tank', 'shorts', 'jeans'
+            ]):
+                logger.info(f"🚫 FORMAL EXCLUSION: {item.name} - casual item not suitable for formal")
+                return False
+            
+            # INCLUDE formal items
+            if any(formal_term in item_name or formal_term in item_type for formal_term in [
+                'dress', 'suit', 'blazer', 'formal', 'business', 'professional', 'oxford'
+            ]):
+                logger.info(f"✅ FORMAL INCLUSION: {item.name} - formal item suitable")
+                return True
+            
+            # INCLUDE business casual items
+            if any(bc_term in item_name or bc_term in item_type for bc_term in [
+                'button', 'polo', 'khaki', 'dress shirt'
+            ]):
+                logger.info(f"✅ FORMAL BUSINESS CASUAL: {item.name} - business casual suitable")
+                return True
+        
+        # CASUAL OCCASIONS - More permissive
+        elif any(casual_term in occasion_lower for casual_term in ['casual', 'everyday', 'relaxed']):
+            # EXCLUDE only very formal items
+            if any(formal_term in item_name or formal_term in item_type for formal_term in [
+                'suit', 'formal', 'tuxedo', 'evening'
+            ]):
+                logger.info(f"🚫 CASUAL EXCLUSION: {item.name} - too formal for casual")
+                return False
+            
+            # INCLUDE most other items
+            logger.info(f"✅ CASUAL INCLUSION: {item.name} - suitable for casual")
+            return True
+        
+        # DEFAULT: Check item's occasion field as fallback
         item_occasions = getattr(item, 'occasion', [])
         if isinstance(item_occasions, str):
             item_occasions = [item_occasions]
