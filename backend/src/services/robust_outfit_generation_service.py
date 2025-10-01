@@ -403,12 +403,13 @@ class RobustOutfitGenerationService:
             }
         
         # Run all analyzers in parallel
-        logger.info(f"🚀 Running 3 analyzers in parallel... (user feedback temporarily disabled)")
+        logger.info(f"🚀 Running 0 analyzers in parallel... (all temporarily disabled for testing)")
         
         analyzer_tasks = [
-            asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
-            asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
-            asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
+            # TEMPORARILY DISABLED ALL ANALYZERS TO TEST:
+            # asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
+            # asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
+            # asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
             # TEMPORARILY DISABLED: asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # NEW!
         ]
         
@@ -418,13 +419,8 @@ class RobustOutfitGenerationService:
         # Calculate composite scores
         logger.info(f"🧮 Calculating composite scores...")
         for item_id, scores in item_scores.items():
-            # Weighted average of all scores including user feedback
-            composite = (
-                scores['body_type_score'] * 0.35 +
-                scores['style_profile_score'] * 0.40 +
-                scores['weather_score'] * 0.25
-                # TEMPORARILY DISABLED: scores.get('user_feedback_score', 0.5) * 0.25  # NEW! 25% weight on user feedback
-            )
+            # Since all analyzers are disabled, use equal scores
+            composite = 0.5  # Neutral score for all items
             scores['composite_score'] = composite
         
         # Log top scored items
