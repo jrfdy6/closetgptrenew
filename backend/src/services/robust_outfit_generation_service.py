@@ -356,7 +356,7 @@ class RobustOutfitGenerationService:
             logger.error(f"🚨 ERROR: weather is a list: {context.weather}")
             return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "weather_is_list"})
         
-        # Handle weather data safely with defaults
+        # Smart weather defaults - dynamic based on context
         temp = 70.0  # Default temperature
         condition = 'clear'  # Default condition
         
@@ -364,21 +364,70 @@ class RobustOutfitGenerationService:
             temp = safe_get(context.weather, 'temperature', 70.0)
             condition = safe_get(context.weather, 'condition', 'clear')
         else:
-            logger.warning(f"⚠️ Missing weather data, using defaults: {temp}°F, {condition}")
+            # Smart default: use occasion-appropriate weather
+            if context.occasion.lower() in ['business', 'formal']:
+                temp = 72.0  # Slightly warmer for professional settings
+                condition = 'clear'
+            elif context.occasion.lower() in ['party', 'evening']:
+                temp = 68.0  # Slightly cooler for evening events
+                condition = 'clear'
+            elif context.occasion.lower() == 'athletic':
+                temp = 75.0  # Warmer for athletic activities
+                condition = 'clear'
+            else:
+                temp = 70.0  # Neutral default
+                condition = 'clear'
+            
+            logger.warning(f"⚠️ Missing weather data, using SMART DEFAULT: {temp}°F, {condition} (occasion: {context.occasion})")
+            # Log for learning system
+            logger.info(f"📊 DEFAULT_APPLIED: weather_default_occasion_{context.occasion.lower()}_temp_{temp}")
         
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
         
-        # Handle missing user profile gracefully
+        # Smart user profile defaults - context-aware
         if not context.user_profile:
-            logger.warning(f"⚠️ Missing user profile, using defaults")
-            context.user_profile = {
-                'bodyType': 'Average',
-                'height': 'Average', 
-                'weight': 'Average',
-                'gender': 'Unspecified',
-                'skinTone': 'Medium',
-                'stylePreferences': {}
-            }
+            logger.warning(f"⚠️ Missing user profile, using SMART DEFAULTS")
+            # Smart defaults based on occasion/style
+            if context.occasion.lower() in ['business', 'formal']:
+                context.user_profile = {
+                    'bodyType': 'Average',
+                    'height': 'Average', 
+                    'weight': 'Average',
+                    'gender': 'Unspecified',
+                    'skinTone': 'Medium',
+                    'stylePreferences': {'preferredStyles': ['classic', 'professional']}
+                }
+            elif context.occasion.lower() in ['party', 'evening']:
+                context.user_profile = {
+                    'bodyType': 'Average',
+                    'height': 'Average', 
+                    'weight': 'Average',
+                    'gender': 'Unspecified',
+                    'skinTone': 'Medium',
+                    'stylePreferences': {'preferredStyles': ['elegant', 'trendy']}
+                }
+            elif context.occasion.lower() == 'athletic':
+                context.user_profile = {
+                    'bodyType': 'Athletic',
+                    'height': 'Average', 
+                    'weight': 'Average',
+                    'gender': 'Unspecified',
+                    'skinTone': 'Medium',
+                    'stylePreferences': {'preferredStyles': ['athletic', 'casual']}
+                }
+            else:
+                context.user_profile = {
+                    'bodyType': 'Average',
+                    'height': 'Average', 
+                    'weight': 'Average',
+                    'gender': 'Unspecified',
+                    'skinTone': 'Medium',
+                    'stylePreferences': {}
+                }
+            
+            logger.info(f"🎯 SMART PROFILE DEFAULT: {context.user_profile['bodyType']} body type for {context.occasion} occasion")
+            # Log for learning system
+            logger.info(f"📊 DEFAULT_APPLIED: profile_default_occasion_{context.occasion.lower()}_body_{context.user_profile['bodyType'].lower()}")
         
         # Log wardrobe breakdown
         item_types = [item.type for item in context.wardrobe]
@@ -2128,11 +2177,22 @@ class RobustOutfitGenerationService:
         """Analyze and score each item based on weather appropriateness"""
         logger.info(f"🌤️ WEATHER ANALYZER: Scoring {len(item_scores)} items")
         
-        # Extract weather data with better None handling
+        # Extract weather data with smart defaults
         if context.weather is None:
-            temp = 70.0
-            condition = 'clear'
-            logger.warning(f"⚠️ WEATHER ANALYZER: Missing weather data, using defaults")
+            # Smart default: use occasion-appropriate weather
+            if context.occasion.lower() in ['business', 'formal']:
+                temp = 72.0
+                condition = 'clear'
+            elif context.occasion.lower() in ['party', 'evening']:
+                temp = 68.0
+                condition = 'clear'
+            elif context.occasion.lower() == 'athletic':
+                temp = 75.0
+                condition = 'clear'
+            else:
+                temp = 70.0
+                condition = 'clear'
+            logger.warning(f"⚠️ WEATHER ANALYZER: Missing weather data, using SMART DEFAULT: {temp}°F, {condition}")
         elif hasattr(context.weather, 'temperature'):
             temp = context.weather.temperature
         elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
