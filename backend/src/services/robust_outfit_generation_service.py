@@ -1280,7 +1280,7 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
-        # TEMPORARY FALLBACK: If no suitable items found, use basic filtering
+        # FALLBACK: If no suitable items found, use basic filtering
         if len(suitable_items) == 0:
             logger.warning(f"🚨 NO SUITABLE ITEMS: Using basic fallback filtering")
             # Basic fallback: just filter by type, ignore occasion/style restrictions
@@ -1288,6 +1288,8 @@ class RobustOutfitGenerationService:
                 if hasattr(item, 'type') and item.type in ['shirt', 'pants', 'shoes', 'jacket']:
                     suitable_items.append(item)
                     logger.info(f"🔄 FALLBACK: Added {getattr(item, 'name', 'Unknown')} (type: {getattr(item, 'type', 'unknown')})")
+            
+            logger.info(f"🔄 FALLBACK: Total items after fallback: {len(suitable_items)}")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
