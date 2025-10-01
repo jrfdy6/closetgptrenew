@@ -884,20 +884,32 @@ class RobustOutfitGenerationService:
     async def _filter_suitable_items(self, context: GenerationContext) -> List[ClothingItem]:
         """Filter wardrobe items suitable for the occasion and style"""
         logger.info(f"🔍 FILTER: Starting filtering for occasion={context.occasion}, style={context.style}")
+        logger.info(f"🔍 FILTER: Wardrobe has {len(context.wardrobe)} items")
         suitable_items = []
         occasion_rejected = 0
         style_rejected = 0
         
-        for item in context.wardrobe:
+        for i, item in enumerate(context.wardrobe):
+            logger.info(f"🔍 FILTER: Item {i+1}: {getattr(item, 'name', 'Unknown')} (type: {getattr(item, 'type', 'unknown')})")
+            
             # Check occasion compatibility with advanced parameters
-            if self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather):
+            occasion_compatible = self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather)
+            logger.info(f"🔍 FILTER: Item {i+1} occasion compatible: {occasion_compatible}")
+            
+            if occasion_compatible:
                 # Check style compatibility
-                if self._is_style_compatible(item, context.style):
+                style_compatible = self._is_style_compatible(item, context.style)
+                logger.info(f"🔍 FILTER: Item {i+1} style compatible: {style_compatible}")
+                
+                if style_compatible:
                     suitable_items.append(item)
+                    logger.info(f"✅ FILTER: Item {i+1} ACCEPTED")
                 else:
                     style_rejected += 1
+                    logger.info(f"❌ FILTER: Item {i+1} REJECTED by style")
             else:
                 occasion_rejected += 1
+                logger.info(f"❌ FILTER: Item {i+1} REJECTED by occasion")
         
         logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
