@@ -11,7 +11,8 @@ import asyncio
 import logging
 import time
 import uuid
-from typing import Dict, List, Any, Optional, Tuple
+import traceback
+from typing import Dict, List, Any, Optional, Tuple, Union
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from enum import Enum
@@ -160,6 +161,68 @@ class PerformanceMetrics:
 
 logger = logging.getLogger(__name__)
 
+# ═══════════════════════════════════════════════════════════════════════
+# SAFE HELPER FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════
+
+def safe_get(obj: Any, key: str, default: Any = None) -> Any:
+    """
+    Safely get a value from an object, handling dict, list, and object formats.
+    
+    Args:
+        obj: Object to get value from (dict, list, or object)
+        key: Key/attribute name to retrieve
+        default: Default value if key not found
+    
+    Returns:
+        Value from object or default
+    """
+    try:
+        # Handle list objects (skip them)
+        if isinstance(obj, list):
+            logger.warning(f"⚠️ SAFE_GET: Object is a list, cannot get '{key}', returning default: {default}")
+            return default
+        
+        # Handle dict objects
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        
+        # Handle objects with attributes
+        return getattr(obj, key, default)
+    
+    except Exception as e:
+        logger.warning(f"⚠️ SAFE_GET: Error getting '{key}' from {type(obj)}: {e}, returning default: {default}")
+        return default
+
+def safe_item_access(item: Any, key: str, default: Any = None) -> Any:
+    """
+    Safely access item attributes, specifically designed for wardrobe items.
+    
+    Args:
+        item: Item object (ClothingItem, dict, or list)
+        key: Attribute name to access
+        default: Default value if not found
+    
+    Returns:
+        Item attribute value or default
+    """
+    try:
+        # Handle list items (skip them)
+        if isinstance(item, list):
+            logger.warning(f"⚠️ SAFE_ITEM_ACCESS: Item is a list, cannot access '{key}', returning default: {default}")
+            return default
+        
+        # Handle dict items
+        if isinstance(item, dict):
+            return item.get(key, default)
+        
+        # Handle object items
+        return getattr(item, key, default)
+    
+    except Exception as e:
+        logger.warning(f"⚠️ SAFE_ITEM_ACCESS: Error accessing '{key}' from {type(item)}: {e}, returning default: {default}")
+        return default
+
 class GenerationStrategy(Enum):
     """Outfit generation strategies with fallback order"""
     COHESIVE_COMPOSITION = "cohesive_composition"
@@ -241,6 +304,35 @@ class RobustOutfitGenerationService:
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # EXCEPTION WRAPPER WITH FULL TRACEBACK LOGGING
+        # ═══════════════════════════════════════════════════════════════════════
+        try:
+            return await self._generate_outfit_internal(context)
+        except Exception as e:
+            logger.error(f"❌ ROBUST SERVICE FAILED: {str(e)}", exc_info=True)
+            logger.error(f"❌ FULL TRACEBACK:", exc_info=True)
+            
+            # Return a fallback outfit instead of crashing
+            logger.warning(f"⚠️ FALLBACK: Returning emergency outfit due to robust service failure")
+            return OutfitGeneratedOutfit(
+                items=[],
+                confidence=0.1,
+                metadata={
+                    "generation_strategy": "emergency_fallback",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "fallback_reason": "robust_service_exception"
+                }
+            )
+    
+    async def _generate_outfit_internal(self, context: GenerationContext) -> OutfitGeneratedOutfit:
+        """Internal outfit generation logic with full error handling"""
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # HYDRATION & CONTEXT VALIDATION
+        # ═══════════════════════════════════════════════════════════════════════
         
         # Hydrate wardrobe items
         logger.debug(f"🔄 Hydrating {len(context.wardrobe)} wardrobe items")
@@ -600,13 +692,9 @@ class RobustOutfitGenerationService:
             logger.error(f"🚨 ERROR: user_profile is a list: {context.user_profile}")
             return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "body_type_optimized", "error": "user_profile_is_list"})
         
-        # Get user's body type information (with safety check)
-        if not isinstance(context.user_profile, dict):
-            logger.error(f"🚨 ERROR: user_profile is not a dict, it's {type(context.user_profile)}: {context.user_profile}")
-            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "body_type_optimized", "error": "user_profile_not_dict"})
-        
-        body_type = context.user_profile.get('bodyType', 'average')
-        height = context.user_profile.get('height', 'average')
+        # Get user's body type information (with safe_get)
+        body_type = safe_get(context.user_profile, 'bodyType', 'average')
+        height = safe_get(context.user_profile, 'height', 'average')
         
         # Filter items based on body type compatibility
         suitable_items = await self._filter_by_body_type(context.wardrobe, body_type, height)
@@ -1602,17 +1690,13 @@ class RobustOutfitGenerationService:
         
         target_style = context.style.lower()
         
-        # Safety check for user_profile
-        if not isinstance(context.user_profile, dict):
-            logger.error(f"🚨 ERROR: user_profile is not a dict, it's {type(context.user_profile)}: {context.user_profile}")
-            return
-        
-        user_style_prefs = context.user_profile.get('stylePreferences', {})
-        favorite_colors = user_style_prefs.get('favoriteColors', [])
-        preferred_brands = user_style_prefs.get('preferredBrands', [])
+        # Get user style preferences (with safe_get)
+        user_style_prefs = safe_get(context.user_profile, 'stylePreferences', {})
+        favorite_colors = safe_get(user_style_prefs, 'favoriteColors', [])
+        preferred_brands = safe_get(user_style_prefs, 'preferredBrands', [])
         
         # Get skin tone for color theory matching
-        skin_tone = context.user_profile.get('skinTone', 'Medium')
+        skin_tone = safe_get(context.user_profile, 'skinTone', 'Medium')
         logger.info(f"🎨 COLOR THEORY: Using skin tone '{skin_tone}' for color matching")
         
         # Color theory rules based on skin tone
@@ -1876,15 +1960,8 @@ class RobustOutfitGenerationService:
                 outfit_items = outfit_data.get('items', [])
                 
                 for item in outfit_items:
-                    # Handle dict, object, and list formats
-                    if isinstance(item, dict):
-                        item_id = item.get('id')
-                    elif isinstance(item, list):
-                        # Skip if item is a list (shouldn't happen but safety check)
-                        continue
-                    else:
-                        item_id = getattr(item, 'id', None)
-                    
+                    # Use safe_item_access to handle all formats
+                    item_id = safe_item_access(item, 'id')
                     if not item_id:
                         continue
                     
@@ -2435,15 +2512,8 @@ class RobustOutfitGenerationService:
                 # Track color preferences
                 outfit_items = outfit_data.get('items', [])
                 for outfit_item in outfit_items:
-                    # Handle dict, object, and list formats
-                    if isinstance(outfit_item, dict):
-                        color = outfit_item.get('color', '').lower()
-                    elif isinstance(outfit_item, list):
-                        # Skip if outfit_item is a list (shouldn't happen but safety check)
-                        continue
-                    else:
-                        color = getattr(outfit_item, 'color', '').lower() if hasattr(outfit_item, 'color') else ''
-                    
+                    # Use safe_item_access to handle all formats
+                    color = safe_item_access(outfit_item, 'color', '').lower()
                     if color:
                         if color not in color_ratings_over_time:
                             color_ratings_over_time[color] = []
