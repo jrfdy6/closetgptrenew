@@ -10,6 +10,16 @@ import logging
 logger = logging.getLogger(__name__)
 # Router loaded
 
+# Import safe_get helper
+try:
+    from ..services.robust_outfit_generation_service import safe_get
+except ImportError:
+    def safe_get(obj, key, default=None):
+        """Fallback safe_get if import fails"""
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
 # Optional imports with graceful fallbacks
 try:
     from ..custom_types.wardrobe import ClothingItem, ClothingType, Color
@@ -140,23 +150,23 @@ async def get_top_worn_items(
             items.append(item_data)
         
         # Sort by wear count (descending) and take top items
-        items.sort(key=lambda x: x.get('wearCount', 0), reverse=True)
+        items.sort(key=lambda x: safe_get(x, 'wearCount', 0), reverse=True)
         top_items = items[:limit]
         
         # Calculate statistics
         total_items = len(items)
-        total_wear_count = sum(item.get('wearCount', 0) for item in items)
+        total_wear_count = sum(safe_get(item, 'wearCount', 0) for item in items)
         avg_wear_count = total_wear_count / total_items if total_items > 0 else 0
         
         # Get items with no wear (unworn items)
-        unworn_items = [item for item in items if item.get('wearCount', 0) == 0]
+        unworn_items = [item for item in items if safe_get(item, 'wearCount', 0) == 0]
         
         # Get items worn this week (last 7 days)
         from datetime import datetime, timedelta, timezone
         week_ago = datetime.now(timezone.utc) - timedelta(days=7)
         recent_items = []
         for item in items:
-            last_worn = item.get('lastWorn')
+            last_worn = safe_get(item, 'lastWorn')
             if last_worn:
                 try:
                     if isinstance(last_worn, datetime):
@@ -188,13 +198,13 @@ async def get_top_worn_items(
             "top_worn_items": [
                 {
                     "id": item['id'],
-                    "name": item.get('name', 'Unknown'),
-                    "type": item.get('type', 'Unknown'),
-                    "color": item.get('color', 'Unknown'),
-                    "wear_count": item.get('wearCount', 0),
-                    "last_worn": item.get('lastWorn'),
-                    "is_favorite": item.get('isFavorite', False),
-                    "image_url": item.get('imageUrl') or item.get('image_url') or item.get('image')
+                    "name": safe_get(item, 'name', 'Unknown'),
+                    "type": safe_get(item, 'type', 'Unknown'),
+                    "color": safe_get(item, 'color', 'Unknown'),
+                    "wear_count": safe_get(item, 'wearCount', 0),
+                    "last_worn": safe_get(item, 'lastWorn'),
+                    "is_favorite": safe_get(item, 'isFavorite', False),
+                    "image_url": safe_get(item, 'imageUrl') or safe_get(item, 'image_url') or safe_get(item, 'image')
                 }
                 for item in top_items
             ]

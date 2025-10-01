@@ -448,8 +448,22 @@ class RobustOutfitGenerationService:
             logger.error(f"🚨 CRITICAL: No items scored - all items filtered out!")
             return await self._emergency_fallback_with_progressive_filtering(context)
         
+        # Check if items have reasonable scores
+        total_items = len(item_scores)
+        items_with_scores = len([s for s in item_scores.values() if s.get('composite_score', 0) > 0.1])
+        logger.info(f"🔍 SCORE CHECK: {total_items} total items, {items_with_scores} with scores > 0.1")
+        
+        if items_with_scores == 0:
+            logger.warning(f"⚠️ WARNING: All items have very low scores, may need progressive filtering")
+            # Don't return here, let cohesive composition try first
+        
         # Pass scored items to cohesive composition
         outfit = await self._cohesive_composition_with_scores(context, item_scores)
+        
+        # Check if cohesive composition failed to generate items
+        if not outfit.items or len(outfit.items) == 0:
+            logger.warning(f"⚠️ COHESIVE COMPOSITION FAILED: No items generated, triggering progressive filtering")
+            return await self._emergency_fallback_with_progressive_filtering(context)
         
         logger.info(f"✅ ROBUST GENERATION SUCCESS: Generated outfit with {len(outfit.items)} items")
         logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
