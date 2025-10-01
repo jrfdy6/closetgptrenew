@@ -360,9 +360,11 @@ class RobustOutfitGenerationService:
         temp = 70.0  # Default temperature
         condition = 'clear'  # Default condition
         
-        if context.weather:
+        if context.weather is not None:
             temp = safe_get(context.weather, 'temperature', 70.0)
             condition = safe_get(context.weather, 'condition', 'clear')
+        else:
+            logger.warning(f"⚠️ Missing weather data, using defaults: {temp}°F, {condition}")
         
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
         
@@ -2126,8 +2128,12 @@ class RobustOutfitGenerationService:
         """Analyze and score each item based on weather appropriateness"""
         logger.info(f"🌤️ WEATHER ANALYZER: Scoring {len(item_scores)} items")
         
-        # Extract weather data
-        if hasattr(context.weather, 'temperature'):
+        # Extract weather data with better None handling
+        if context.weather is None:
+            temp = 70.0
+            condition = 'clear'
+            logger.warning(f"⚠️ WEATHER ANALYZER: Missing weather data, using defaults")
+        elif hasattr(context.weather, 'temperature'):
             temp = context.weather.temperature
         elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
             temp = context.weather.__dict__['temperature']
