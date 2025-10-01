@@ -913,9 +913,14 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
-        # NO FALLBACK: If no suitable items found, let emergency default handle it
+        # TEMPORARY FALLBACK: If no suitable items found, use basic filtering
         if len(suitable_items) == 0:
-            logger.warning(f"🚨 NO SUITABLE ITEMS: Will use emergency default instead of inappropriate items")
+            logger.warning(f"🚨 NO SUITABLE ITEMS: Using basic fallback filtering")
+            # Basic fallback: just filter by type, ignore occasion/style restrictions
+            for item in context.wardrobe:
+                if hasattr(item, 'type') and item.type in ['shirt', 'pants', 'shoes', 'jacket']:
+                    suitable_items.append(item)
+                    logger.info(f"🔄 FALLBACK: Added {getattr(item, 'name', 'Unknown')} (type: {getattr(item, 'type', 'unknown')})")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
@@ -1226,187 +1231,63 @@ class RobustOutfitGenerationService:
         )
     
     def _is_occasion_compatible(self, item: ClothingItem, occasion: str, style: str = None, mood: str = None, weather_data: dict = None) -> bool:
-        """Advanced metadata-aware occasion compatibility check with ML scoring and weather intelligence"""
+        """Balanced occasion compatibility check - not too strict, not too loose"""
         occasion_lower = occasion.lower()
         item_name = item.name.lower()
-        item_type = item.type.lower()
         
-        # Extract all available metadata
+        # If no occasion information available, be permissive
         item_occasions = getattr(item, 'occasion', [])
-        item_styles = getattr(item, 'style', [])
-        item_tags = getattr(item, 'tags', [])
-        item_seasons = getattr(item, 'season', [])
-        metadata = getattr(item, 'metadata', None)
+        if not item_occasions:
+            logger.info(f"🔍 OCCASION: No occasion metadata for {item_name}, allowing")
+            return True
         
-        # Extract usage analytics for ML scoring
-        wear_count = getattr(item, 'wearCount', 0)
-        favorite_score = getattr(item, 'favorite_score', 0.0)
-        quality_score = getattr(item, 'quality_score', 0.5)
-        pairability_score = getattr(item, 'pairability_score', 0.5)
-        seasonal_score = getattr(item, 'seasonal_score', 1.0)
-        
-        # Normalize lists
+        # Normalize occasions list
         if isinstance(item_occasions, str):
             item_occasions = [item_occasions]
-        if isinstance(item_styles, str):
-            item_styles = [item_styles]
-        if isinstance(item_tags, str):
-            item_tags = [item_tags]
-        if isinstance(item_seasons, str):
-            item_seasons = [item_seasons]
+        item_occasions_lower = [occ.lower() for occ in item_occasions]
         
-        # Extract advanced metadata fields
-        style_tags = []
-        occasion_tags = []
-        formal_level = None
-        material = None
-        pattern = None
-        fit = None
-        sleeve_length = None
-        silhouette = None
-        texture_style = None
-        fabric_weight = None
-        natural_description = None
-        temperature_compatibility = None
-        material_compatibility = None
+        # Check if item occasions include the requested occasion
+        if occasion_lower in item_occasions_lower:
+            logger.info(f"✅ OCCASION: {item_name} explicitly matches {occasion_lower}")
+            return True
         
-        if metadata:
-            if hasattr(metadata, 'styleTags'):
-                style_tags = metadata.styleTags or []
-            if hasattr(metadata, 'occasionTags'):
-                occasion_tags = metadata.occasionTags or []
-            if hasattr(metadata, 'naturalDescription'):
-                natural_description = metadata.naturalDescription or ''
-            if hasattr(metadata, 'temperatureCompatibility'):
-                temperature_compatibility = metadata.temperatureCompatibility
-            if hasattr(metadata, 'materialCompatibility'):
-                material_compatibility = metadata.materialCompatibility
-            if hasattr(metadata, 'visualAttributes') and metadata.visualAttributes:
-                va = metadata.visualAttributes
-                formal_level = getattr(va, 'formalLevel', None)
-                material = getattr(va, 'material', None)
-                pattern = getattr(va, 'pattern', None)
-                fit = getattr(va, 'fit', None)
-                sleeve_length = getattr(va, 'sleeveLength', None)
-                silhouette = getattr(va, 'silhouette', None)
-                texture_style = getattr(va, 'textureStyle', None)
-                fabric_weight = getattr(va, 'fabricWeight', None)
+        # Check for broad compatibility patterns
+        compatibility_patterns = {
+            'athletic': ['casual', 'athletic', 'sport'],
+            'business': ['business', 'formal', 'professional'],
+            'casual': ['casual', 'everyday', 'relaxed'],
+            'formal': ['formal', 'business', 'professional'],
+            'party': ['party', 'casual', 'evening'],
+            'wedding': ['formal', 'wedding', 'special'],
+            'vacation': ['casual', 'vacation', 'relaxed']
+        }
         
-        # Combine all text sources for analysis
-        all_text = ' '.join([
-            item_name, item_type,
-            ' '.join(item_occasions), ' '.join(item_styles), ' '.join(item_tags), ' '.join(item_seasons),
-            ' '.join(style_tags), ' '.join(occasion_tags),
-            formal_level or '', material or '', pattern or '', fit or '', sleeve_length or '',
-            silhouette or '', texture_style or '', fabric_weight or '', natural_description or ''
-        ]).lower()
+        if occasion_lower in compatibility_patterns:
+            compatible_occasions = compatibility_patterns[occasion_lower]
+            for compatible in compatible_occasions:
+                if compatible in item_occasions_lower:
+                    logger.info(f"✅ OCCASION: {item_name} broadly compatible with {occasion_lower} via {compatible}")
+                    return True
         
-        # WEATHER INTELLIGENCE: Check temperature compatibility
-        if weather_data and temperature_compatibility:
-            # Handle both dict and SimpleNamespace weather data
-            if hasattr(weather_data, 'get'):
-                current_temp = weather_data.get('temperature', 20)
-            elif hasattr(weather_data, 'temperature'):
-                current_temp = weather_data.temperature
-            else:
-                current_temp = 20
-            
-            min_temp = getattr(temperature_compatibility, 'minTemp', 0)
-            max_temp = getattr(temperature_compatibility, 'maxTemp', 40)
-            if current_temp < min_temp or current_temp > max_temp:
-                logger.info(f"🌡️ WEATHER EXCLUSION: {item.name} - temperature {current_temp}°C outside range {min_temp}-{max_temp}°C")
-                return False
+        # Only exclude obviously inappropriate items
+        all_text = ' '.join([item_name, getattr(item, 'type', ''), ' '.join(item_occasions)]).lower()
         
-        # SEASONAL INTELLIGENCE: Check seasonal appropriateness
-        if weather_data and item_seasons:
-            # Handle both dict and SimpleNamespace weather data
-            if hasattr(weather_data, 'get'):
-                current_season = weather_data.get('season', 'all')
-            elif hasattr(weather_data, 'season'):
-                current_season = weather_data.season
-            else:
-                current_season = 'all'
-                
-            if current_season != 'all' and current_season.lower() not in [s.lower() for s in item_seasons]:
-                logger.info(f"🍂 SEASONAL EXCLUSION: {item.name} - not suitable for {current_season} season")
-                return False
+        inappropriate_patterns = {
+            'athletic': ['evening gown', 'tuxedo', 'wedding dress', 'high heels'],
+            'business': ['bikini', 'swimwear', 'pajamas', 'underwear'],
+            'formal': ['gym shorts', 'tank top', 'flip flops', 'sweatpants'],
+            'party': ['work uniform', 'scrubs', 'lab coat']
+        }
         
-        # ML-BASED SCORING: Use usage analytics for intelligent filtering
-        ml_score = self._calculate_ml_compatibility_score(item, occasion_lower, style, mood, {
-            'wear_count': wear_count,
-            'favorite_score': favorite_score,
-            'quality_score': quality_score,
-            'pairability_score': pairability_score,
-            'seasonal_score': seasonal_score
-        })
+        if occasion_lower in inappropriate_patterns:
+            for inappropriate in inappropriate_patterns[occasion_lower]:
+                if inappropriate in all_text:
+                    logger.info(f"❌ OCCASION: {item_name} inappropriate for {occasion_lower} (contains '{inappropriate}')")
+                    return False
         
-        # Apply ML score threshold
-        if ml_score < 0.3:  # Low compatibility threshold
-            logger.info(f"🤖 ML EXCLUSION: {item.name} - ML score {ml_score:.2f} below threshold")
-            return False
-        
-        # ATHLETIC OCCASIONS - Comprehensive filtering
-        if any(athletic_term in occasion_lower for athletic_term in ['athletic', 'gym', 'workout', 'sport', 'exercise', 'fitness']):
-            # EXCLUDE formal items completely
-            formal_indicators = [
-                # Name/type patterns
-                'oxford', 'dress', 'suit', 'blazer', 'formal', 'business', 'professional',
-                'loafer', 'heels', 'dress shirt', 'dress pants', 'sport coat', 'button up',
-                'button-up', 'button down', 'button-down', 'long sleeve', 'long-sleeve',
-                'button up shirt', 'button-up shirt', 'button down shirt', 'button-down shirt',
-                'dress shirt', 'business shirt', 'formal shirt', 'professional shirt',
-                'tuxedo', 'evening', 'wedding', 'ceremony', 'cocktail', 'black tie',
-                # Metadata indicators
-                'formal', 'business', 'professional', 'dressy', 'elegant', 'sophisticated',
-                'tailored', 'structured', 'conservative', 'traditional'
-            ]
-            
-            if any(indicator in all_text for indicator in formal_indicators):
-                logger.info(f"🚫 ATHLETIC EXCLUSION: {item.name} - formal item not suitable for athletic")
-                return False
-            
-            # INCLUDE athletic items
-            athletic_indicators = [
-                # Name/type patterns
-                'athletic', 'sport', 'gym', 'workout', 'sneaker', 'running', 'basketball',
-                'jersey', 'tank', 'shorts', 'athletic shoes', 'track', 'tennis', 'soccer',
-                'football', 'baseball', 'volleyball', 'swimming', 'cycling', 'yoga',
-                'pilates', 'crossfit', 'marathon', 'training', 'performance', 'active',
-                # Metadata indicators
-                'athletic', 'sporty', 'active', 'performance', 'technical', 'moisture-wicking',
-                'breathable', 'flexible', 'stretchy', 'comfortable', 'casual'
-            ]
-            
-            if any(indicator in all_text for indicator in athletic_indicators):
-                logger.info(f"✅ ATHLETIC INCLUSION: {item.name} - athletic item suitable")
-                return True
-            
-            # INCLUDE casual items that work for athletic activities
-            casual_athletic_indicators = [
-                't-shirt', 't shirt', 'polo', 'jeans', 'casual', 'comfortable', 'relaxed',
-                'everyday', 'basic', 'simple', 'cotton', 'soft', 'breathable'
-            ]
-            
-            if any(indicator in all_text for indicator in casual_athletic_indicators):
-                logger.info(f"✅ ATHLETIC CASUAL: {item.name} - casual item suitable for athletic")
-                return True
-            
-            # EXCLUDE everything else for athletic occasions
-            logger.info(f"🚫 ATHLETIC EXCLUSION: {item.name} - not suitable for athletic")
-            return False
-        
-        # FORMAL OCCASIONS - Comprehensive filtering
-        elif any(formal_term in occasion_lower for formal_term in ['formal', 'business', 'professional', 'corporate', 'office', 'meeting', 'presentation']):
-            # EXCLUDE casual/athletic items
-            casual_indicators = [
-                # Name/type patterns
-                'sneaker', 'athletic', 'casual', 't-shirt', 'tank', 'shorts', 'jeans',
-                'hoodie', 'sweatpants', 'flip-flops', 'sandals', 'canvas', 'denim',
-                'graphic', 'logo', 'streetwear', 'urban', 'relaxed', 'comfortable',
-                # Metadata indicators
-                'casual', 'relaxed', 'comfortable', 'everyday', 'street', 'urban',
-                'athletic', 'sporty', 'informal', 'laid-back'
-            ]
+        # Default: Allow the item (be permissive)
+        logger.info(f"✅ OCCASION: {item_name} allowed for {occasion_lower}")
+        return True
             
             if any(indicator in all_text for indicator in casual_indicators):
                 logger.info(f"🚫 FORMAL EXCLUSION: {item.name} - casual item not suitable for formal")
@@ -1619,7 +1500,7 @@ class RobustOutfitGenerationService:
         return 0.5
     
     def _is_style_compatible(self, item: ClothingItem, style: str) -> bool:
-        """Comprehensive metadata-aware style compatibility check"""
+        """Balanced style compatibility check - not too strict, not too loose"""
         style_lower = style.lower()
         item_name = item.name.lower()
         item_type = item.type.lower()
@@ -1628,6 +1509,11 @@ class RobustOutfitGenerationService:
         item_styles = getattr(item, 'style', [])
         item_tags = getattr(item, 'tags', [])
         metadata = getattr(item, 'metadata', None)
+        
+        # If no style information available, be permissive
+        if not item_styles and not item_tags and not metadata:
+            logger.info(f"🔍 STYLE: No style metadata for {item_name}, allowing")
+            return True
         
         # Normalize lists
         if isinstance(item_styles, str):
