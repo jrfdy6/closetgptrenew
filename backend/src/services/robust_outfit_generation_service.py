@@ -1539,7 +1539,7 @@ class RobustOutfitGenerationService:
                 weight_lower = str(weight).lower()
                 
                 # Plus size considerations
-                if any(w in weight_lower for h in ["201", "225", "250", "plus"]):
+                if any(w in weight_lower for w in ["201", "225", "250", "plus"]):
                     # Favor items with structure and flow
                     if 'structured' in item_name_lower or 'tailored' in item_name_lower:
                         base_score += 0.10
@@ -1850,9 +1850,12 @@ class RobustOutfitGenerationService:
                 outfit_items = outfit_data.get('items', [])
                 
                 for item in outfit_items:
-                    # Handle both dict and object formats
+                    # Handle dict, object, and list formats
                     if isinstance(item, dict):
                         item_id = item.get('id')
+                    elif isinstance(item, list):
+                        # Skip if item is a list (shouldn't happen but safety check)
+                        continue
                     else:
                         item_id = getattr(item, 'id', None)
                     
@@ -2406,9 +2409,12 @@ class RobustOutfitGenerationService:
                 # Track color preferences
                 outfit_items = outfit_data.get('items', [])
                 for outfit_item in outfit_items:
-                    # Handle both dict and object formats
+                    # Handle dict, object, and list formats
                     if isinstance(outfit_item, dict):
                         color = outfit_item.get('color', '').lower()
+                    elif isinstance(outfit_item, list):
+                        # Skip if outfit_item is a list (shouldn't happen but safety check)
+                        continue
                     else:
                         color = getattr(outfit_item, 'color', '').lower() if hasattr(outfit_item, 'color') else ''
                     
