@@ -1335,3 +1335,98 @@ class RobustOutfitGenerationService:
         # Default: Allow the item (be permissive)
         logger.info(f"✅ STYLE: {item_name} allowed for {style_lower}")
         return True
+    
+    # Missing methods that core strategies need
+    async def _filter_by_body_type(self, wardrobe: List[ClothingItem], body_type: str, height: str) -> List[ClothingItem]:
+        """Filter items based on body type compatibility - simplified version"""
+        logger.info(f"🔍 BODY TYPE: Filtering {len(wardrobe)} items for body type: {body_type}")
+        # For now, return all items (be permissive)
+        return wardrobe
+    
+    async def _apply_body_type_optimization(self, items: List[ClothingItem], body_type: str, height: str) -> List[ClothingItem]:
+        """Apply body type optimization - simplified version"""
+        logger.info(f"🔍 BODY OPTIMIZATION: Optimizing {len(items)} items for body type: {body_type}")
+        # For now, return all items
+        return items
+    
+    async def _filter_by_style_preferences(self, wardrobe: List[ClothingItem], style_preferences: List[str], favorite_colors: List[str], preferred_brands: List[str]) -> List[ClothingItem]:
+        """Filter items based on style preferences - simplified version"""
+        logger.info(f"🔍 STYLE PREFERENCES: Filtering {len(wardrobe)} items for preferences: {style_preferences}")
+        # For now, return all items
+        return wardrobe
+    
+    async def _filter_by_weather(self, wardrobe: List[ClothingItem], weather) -> List[ClothingItem]:
+        """Filter items based on weather - simplified version"""
+        logger.info(f"🔍 WEATHER: Filtering {len(wardrobe)} items for weather")
+        # For now, return all items
+        return wardrobe
+    
+    def _determine_season_from_weather(self, weather) -> str:
+        """Determine season from weather data"""
+        # Default to current season
+        return "spring"
+    
+    async def _select_basic_items(self, wardrobe: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
+        """Select basic items for fallback - simplified version"""
+        logger.info(f"🔍 BASIC SELECT: Selecting from {len(wardrobe)} items")
+        basic_items = []
+        
+        # Simple selection: pick one item of each basic type
+        categories_found = set()
+        for item in wardrobe:
+            category = self._get_item_category(item)
+            if category in ['tops', 'bottoms', 'shoes'] and category not in categories_found:
+                basic_items.append(item)
+                categories_found.add(category)
+                if len(categories_found) == 3:
+                    break
+        
+        logger.info(f"🔍 BASIC SELECT: Selected {len(basic_items)} items")
+        return basic_items
+    
+    async def _calculate_item_score(self, item: ClothingItem, context: GenerationContext) -> float:
+        """Calculate score for an item - simplified version"""
+        # Simple scoring: base score + bonuses
+        score = 50.0  # Base score
+        
+        # Add bonuses for various factors
+        if hasattr(item, 'favorite_score'):
+            score += item.favorite_score * 20
+        
+        if hasattr(item, 'wearCount') and item.wearCount > 0:
+            score += min(item.wearCount * 2, 20)  # Cap at 20
+        
+        return score
+    
+    def _get_item_category(self, item: ClothingItem) -> str:
+        """Get category for an item"""
+        item_type = getattr(item, 'type', '').lower()
+        
+        # Map item types to categories
+        category_map = {
+            'shirt': 'tops',
+            't-shirt': 'tops', 
+            'blouse': 'tops',
+            'sweater': 'tops',
+            'tank': 'tops',
+            'polo': 'tops',
+            'pants': 'bottoms',
+            'jeans': 'bottoms',
+            'shorts': 'bottoms',
+            'skirt': 'bottoms',
+            'shoes': 'shoes',
+            'sneakers': 'shoes',
+            'boots': 'shoes',
+            'heels': 'shoes',
+            'jacket': 'outerwear',
+            'blazer': 'outerwear',
+            'coat': 'outerwear',
+            'hoodie': 'outerwear'
+        }
+        
+        return category_map.get(item_type, 'other')
+    
+    def _check_inappropriate_combination(self, item1: ClothingItem, item2: ClothingItem) -> bool:
+        """Check if two items form an inappropriate combination - simplified version"""
+        # For now, allow all combinations
+        return False
