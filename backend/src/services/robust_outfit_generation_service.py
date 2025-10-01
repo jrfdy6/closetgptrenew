@@ -189,23 +189,17 @@ class RobustOutfitGenerationService:
         }
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
-        """Generate an outfit with comprehensive validation and fallback strategies"""
+        """Generate an outfit with multi-layered scoring system"""
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
-        # Reduced logging to prevent rate limiting
-        logger.info(f"🎨 ROBUST GENERATOR START - User: {context.user_id}, Occasion: {context.occasion}, Style: {context.style}, Wardrobe: {len(context.wardrobe)} items")
-        
-        # Reduced logging for hydration
+        # Hydrate wardrobe items
         logger.debug(f"🔄 Hydrating {len(context.wardrobe)} wardrobe items")
         try:
             if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
-                # Convert raw wardrobe items to ClothingItem objects with safety net
                 safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
                 logger.debug(f"✅ Hydrated {len(safe_wardrobe)} items successfully")
-                
-                # Update context with safe wardrobe
                 context.wardrobe = safe_wardrobe
             else:
                 logger.debug(f"✅ Items already ClothingItem objects")
@@ -229,223 +223,109 @@ class RobustOutfitGenerationService:
             
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
         
-        # Log wardrobe item types for debugging
+        # Log wardrobe breakdown
         item_types = [item.type for item in context.wardrobe]
         type_counts = {item_type: item_types.count(item_type) for item_type in set(item_types)}
         logger.info(f"📊 Wardrobe breakdown: {type_counts}")
         
-        # Get current tuned parameters
-        tuned_params = adaptive_tuning.get_current_parameters()
-        confidence_threshold = tuned_params.get('confidence_threshold', 0.6)
-        max_items = int(tuned_params.get('max_items_per_outfit', 6))
-        min_items = int(tuned_params.get('min_items_per_outfit', 3))
+        # ═══════════════════════════════════════════════════════════
+        # MULTI-LAYERED SCORING SYSTEM
+        # Each analyzer scores items, then cohesive composition uses all scores
+        # ═══════════════════════════════════════════════════════════
         
-        logger.info(f"🎛️ Using tuned parameters: confidence={confidence_threshold:.2f}, items={min_items}-{max_items}")
+        logger.info(f"🔬 PHASE 1: Multi-Layered Analysis & Scoring")
         
-        # PARALLEL CORE STRATEGIES + FALLBACK SYSTEM
-        # Core strategies run in parallel, fallbacks are true fallbacks
-        core_strategies = [
-            GenerationStrategy.COHESIVE_COMPOSITION,
-            GenerationStrategy.BODY_TYPE_OPTIMIZED,
-            GenerationStrategy.STYLE_PROFILE_MATCHED,
-            GenerationStrategy.WEATHER_ADAPTED
+        # Create scoring dictionary for each item
+        item_scores = {}
+        for item in context.wardrobe:
+            item_scores[item.id] = {
+                'item': item,
+                'body_type_score': 0.0,
+                'style_profile_score': 0.0,
+                'weather_score': 0.0,
+                'composite_score': 0.0
+            }
+        
+        # Run all analyzers in parallel
+        logger.info(f"🚀 Running 3 analyzers in parallel...")
+        
+        analyzer_tasks = [
+            asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
+            asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
+            asyncio.create_task(self._analyze_weather_scores(context, item_scores))
         ]
+        
+        # Wait for all analyzers to complete
+        await asyncio.gather(*analyzer_tasks)
+        
+        # Calculate composite scores
+        logger.info(f"🧮 Calculating composite scores...")
+        for item_id, scores in item_scores.items():
+            # Weighted average of all scores
+            composite = (
+                scores['body_type_score'] * 0.3 +
+                scores['style_profile_score'] * 0.4 +
+                scores['weather_score'] * 0.3
+            )
+            scores['composite_score'] = composite
+        
+        # Log top scored items
+        sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
+        logger.info(f"🏆 Top 5 scored items:")
+        for i, (item_id, scores) in enumerate(sorted_items[:5]):
+            logger.info(f"  {i+1}. {scores['item'].name}: composite={scores['composite_score']:.2f} (body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f})")
+        
+        # ═══════════════════════════════════════════════════════════
+        # PHASE 2: Cohesive Composition with Multi-Layered Scores
+        # ═══════════════════════════════════════════════════════════
+        
+        logger.info(f"🎨 PHASE 2: Cohesive Composition with Scored Items")
+        
+        # Pass scored items to cohesive composition
+        outfit = await self._cohesive_composition_with_scores(context, item_scores)
+        
+        logger.info(f"✅ ROBUST GENERATION SUCCESS: Generated outfit with {len(outfit.items)} items")
+        logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
+        
+        return outfit
+    
+    async def _fallback_generation(self, context: GenerationContext) -> OutfitGeneratedOutfit:
+        """Fallback generation if multi-layered system fails"""
+        logger.warning(f"🔄 FALLBACK: Multi-layered system failed, using fallback")
         
         fallback_strategies = [
             GenerationStrategy.FALLBACK_SIMPLE,
             GenerationStrategy.EMERGENCY_DEFAULT
         ]
         
-        logger.info(f"🚀 PARALLEL: {len(core_strategies)} core strategies + {len(fallback_strategies)} fallbacks")
-        session_id = f"session_{int(time.time())}_{context.user_id}"
-        
-        # Create tasks for core strategies to run in parallel
-        core_strategy_tasks = []
-        for strategy in core_strategies:
-            task = asyncio.create_task(self._execute_strategy_parallel(strategy, context, session_id))
-            core_strategy_tasks.append((strategy, task))
-        
-        # Wait for all core strategies to complete
-        logger.info(f"⏳ Waiting for {len(core_strategy_tasks)} parallel strategies...")
-        core_strategy_results = []
-        
-        for strategy, task in core_strategy_tasks:
+        for fallback_strategy in fallback_strategies:
+            logger.info(f"🔄 Trying fallback strategy: {fallback_strategy.value}")
+            
             try:
-                result = await task
-                core_strategy_results.append((strategy, result))
-                logger.debug(f"✅ {strategy.value}: {result['status']}")
+                context.generation_strategy = fallback_strategy
+                outfit = await self._generate_with_strategy(context)
+                validation = await self._validate_outfit(outfit, context)
+                
+                logger.info(f"🔄 Fallback {fallback_strategy.value}: Generated outfit with {len(outfit.items)} items")
+                logger.info(f"🔄 Fallback {fallback_strategy.value}: Validation - valid={validation.is_valid}, confidence={validation.confidence:.2f}")
+                
+                logger.info(f"✅ FALLBACK SUCCESS: Generated outfit with {fallback_strategy.value}")
+                logger.info(f"📊 Fallback validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
+                logger.info(f"📦 Fallback outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
+                
+                return outfit
+                
             except Exception as e:
-                logger.error(f"❌ {strategy.value} failed: {e}")
-                core_strategy_results.append((strategy, {'status': 'failed', 'error': str(e), 'outfit': None, 'validation': None}))
-        
-        # ANALYZE CORE STRATEGY RESULTS
-        successful_core_results = []
-        failed_core_results = []
-        
-        for strategy, result in core_strategy_results:
-            if result['status'] == 'success' and result['validation'].is_valid:
-                successful_core_results.append((strategy, result))
-            else:
-                failed_core_results.append((strategy, result))
-        
-        logger.info(f"📊 RESULTS: {len(successful_core_results)}/{len(core_strategy_results)} core strategies successful")
-        
-        # SELECT BEST RESULT FROM SUCCESSFUL CORE STRATEGIES
-        if successful_core_results:
-            # Sort by confidence score and select the best
-            successful_core_results.sort(key=lambda x: x[1]['validation'].confidence, reverse=True)
-            best_strategy, best_result = successful_core_results[0]
-            
-            logger.info(f"🏆 BEST CORE STRATEGY: {best_strategy.value} with confidence {best_result['validation'].confidence:.2f}")
-            
-            # Apply diversity filtering to the best result
-            outfit = best_result['outfit']
-            validation = best_result['validation']
-            
-            logger.info(f"🎭 Applying diversity filtering to best result...")
-            diversity_result = diversity_filter.check_outfit_diversity(
-                user_id=context.user_id,
-                new_outfit=outfit.items,
-                occasion=context.occasion,
-                style=context.style,
-                mood=context.mood
-            )
-            
-            logger.info(f"🎭 Diversity check: diverse={diversity_result['is_diverse']}, score={diversity_result['diversity_score']:.2f}")
-            
-            if not diversity_result['is_diverse']:
-                logger.warning(f"⚠️ Outfit not diverse enough, applying diversity boost")
+                logger.error(f"❌ Fallback {fallback_strategy.value} failed: {e}")
                 
-                # Apply diversity boost to items
-                boosted_items = diversity_filter.apply_diversity_boost(
-                    items=outfit.items,
-                    user_id=context.user_id,
-                    occasion=context.occasion,
-                    style=context.style,
-                    mood=context.mood
-                )
-                
-                # Re-select items with diversity boost
-                if boosted_items:
-                    # Sort by diversity score and take top items
-                    boosted_items.sort(key=lambda x: x[1], reverse=True)
-                    diverse_items = [item for item, score in boosted_items[:len(outfit.items)]]
-                    
-                    # Update outfit with diverse items
-                    outfit.items = diverse_items
-                    
-                    # Re-validate with diverse items
-                    validation = await self._validate_outfit(outfit, context)
-                    logger.info(f"🎭 Re-validated with diverse items: valid={validation.is_valid}, confidence={validation.confidence}")
-            
-            # Record outfit for diversity tracking
-            diversity_filter.record_outfit_generation(
-                user_id=context.user_id,
-                outfit=outfit.__dict__,
-                items=outfit.items
-            )
-            
-            # Record performance metrics for adaptive tuning
-            self._record_generation_performance(
-                context=context,
-                strategy=best_strategy.value,
-                success=True,
-                confidence=validation.confidence,
-                generation_time=best_result['generation_time'],
-                validation_time=best_result['validation_time'],
-                items_selected=len(outfit.items),
-                diversity_score=diversity_result['diversity_score']
-            )
-            
-            logger.info(f"✅ CORE STRATEGY SUCCESS: Generated outfit with {best_strategy.value}")
-            logger.info(f"📊 Final validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
-            logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
-            
-            return outfit
+                if fallback_strategy == GenerationStrategy.EMERGENCY_DEFAULT:
+                    # If even emergency default fails, return basic outfit
+                    logger.error(f"🚨 ALL STRATEGIES FAILED: Even emergency default failed")
+                    raise Exception("All strategies failed including emergency default")
+                continue
         
-        else:
-            # All core strategies failed - try fallback strategies sequentially
-            logger.warning(f"⚠️ CORE STRATEGIES FAILED: All {len(core_strategies)} core strategies failed")
-            logger.info(f"🔄 FALLBACK MODE: Trying fallback strategies sequentially...")
-            
-            for fallback_strategy in fallback_strategies:
-                logger.info(f"🔄 Trying fallback strategy: {fallback_strategy.value}")
-                
-                try:
-                    context.generation_strategy = fallback_strategy
-                    outfit = await self._generate_with_strategy(context)
-                    validation = await self._validate_outfit(outfit, context)
-                    
-                    logger.info(f"🔄 Fallback {fallback_strategy.value}: Generated outfit with {len(outfit.items)} items")
-                    logger.info(f"🔄 Fallback {fallback_strategy.value}: Validation - valid={validation.is_valid}, confidence={validation.confidence:.2f}")
-                    
-                    # Record fallback strategy execution
-                    strategy_analytics.record_strategy_execution(
-                        strategy=fallback_strategy.value,
-                        user_id=context.user_id,
-                        occasion=context.occasion,
-                        style=context.style,
-                        mood=context.mood,
-                        status=StrategyStatus.SUCCESS if validation.is_valid else StrategyStatus.FAILED,
-                        confidence=validation.confidence,
-                        validation_score=validation.score,
-                        generation_time=0.1,  # Simplified for fallbacks
-                        validation_time=0.1,
-                        items_selected=len(outfit.items),
-                        items_available=len(context.wardrobe),
-                        failed_rules=validation.issues if not validation.is_valid else [],
-                        fallback_reason="Core strategies failed",
-                        session_id=session_id
-                    )
-                    
-                    # Record performance metrics
-                    self._record_generation_performance(
-                        context=context,
-                        strategy=fallback_strategy.value,
-                        success=True,
-                        confidence=validation.confidence,
-                        generation_time=0.1,
-                        validation_time=0.1,
-                        items_selected=len(outfit.items),
-                        diversity_score=0.0
-                    )
-                    
-                    logger.info(f"✅ FALLBACK SUCCESS: Generated outfit with {fallback_strategy.value}")
-                    logger.info(f"📊 Fallback validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
-                    logger.info(f"📦 Fallback outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
-                    
-                    return outfit
-                    
-                except Exception as e:
-                    logger.error(f"❌ Fallback {fallback_strategy.value} failed: {e}")
-                    
-                    # Record fallback failure
-                    strategy_analytics.record_strategy_execution(
-                        strategy=fallback_strategy.value,
-                        user_id=context.user_id,
-                        occasion=context.occasion,
-                        style=context.style,
-                        mood=context.mood,
-                        status=StrategyStatus.FAILED,
-                        confidence=0.0,
-                        validation_score=0.0,
-                        generation_time=0.1,
-                        validation_time=0.0,
-                        items_selected=0,
-                        items_available=len(context.wardrobe),
-                        failed_rules=[f"fallback_exception: {str(e)}"],
-                        fallback_reason=f"Fallback strategy failed: {str(e)}",
-                        session_id=session_id
-                    )
-                    
-                    if fallback_strategy == GenerationStrategy.EMERGENCY_DEFAULT:
-                        # If even emergency default fails, return it anyway
-                        logger.error(f"🚨 ALL STRATEGIES FAILED: Even emergency default failed")
-                        return outfit
-                    continue
-            
-            # This should never be reached due to emergency default
-            raise Exception("All outfit generation strategies (core + fallback) failed")
+        # This should never be reached due to emergency default
+        raise Exception("All outfit generation strategies (core + fallback) failed")
     
     async def _execute_strategy_parallel(self, strategy: GenerationStrategy, context: GenerationContext, session_id: str) -> Dict[str, Any]:
         """Execute a single strategy in parallel and return results"""
@@ -609,6 +489,15 @@ class RobustOutfitGenerationService:
         if len(complete_outfit) < 3:
             logger.warning(f"⚠️ COHESIVE: Outfit incomplete ({len(complete_outfit)} items), will use emergency default")
         
+        # Dynamic confidence based on context - cohesive composition is best for style-focused occasions
+        base_confidence = 0.85
+        if context.occasion.lower() in ['party', 'date', 'wedding']:
+            base_confidence = 0.92  # High for style-focused occasions
+        elif context.occasion.lower() in ['business', 'formal']:
+            base_confidence = 0.88  # Good but body type might be better
+        elif context.occasion.lower() in ['casual', 'vacation']:
+            base_confidence = 0.87  # Good but weather might be better
+        
         # Create outfit response
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
@@ -617,7 +506,7 @@ class RobustOutfitGenerationService:
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
-            confidence=0.95,
+            confidence=base_confidence,
             items=complete_outfit,
             reasoning=f"Cohesive {context.style} outfit for {context.occasion} with {context.mood} mood",
             createdAt=int(time.time()),
@@ -642,6 +531,7 @@ class RobustOutfitGenerationService:
     async def _body_type_optimized_generation(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate outfit optimized for user's body type"""
         logger.info("👤 Using body type optimized generation")
+        logger.info(f"👤 BODY TYPE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Get user's body type information
         body_type = context.user_profile.get('bodyType', 'average')
@@ -649,9 +539,26 @@ class RobustOutfitGenerationService:
         
         # Filter items based on body type compatibility
         suitable_items = await self._filter_by_body_type(context.wardrobe, body_type, height)
+        logger.info(f"👤 BODY TYPE: After body type filtering, {len(suitable_items)} suitable items")
+        
+        # Apply additional filtering for occasion/style
+        filtered_items = await self._filter_suitable_items(context)
+        logger.info(f"👤 BODY TYPE: After occasion/style filtering, {len(filtered_items)} items")
         
         # Apply body type optimization rules
-        optimized_items = await self._apply_body_type_optimization(suitable_items, body_type, height)
+        optimized_items = await self._apply_body_type_optimization(filtered_items, body_type, height)
+        logger.info(f"👤 BODY TYPE: After optimization, {len(optimized_items)} items")
+        
+        # SELECT SPECIFIC ITEMS FOR THE OUTFIT (this was missing!)
+        selected_items = await self._intelligent_item_selection(optimized_items, context)
+        logger.info(f"👤 BODY TYPE: After intelligent selection, {len(selected_items)} selected items")
+        
+        # Ensure outfit completeness
+        complete_outfit = await self._ensure_outfit_completeness(selected_items, context)
+        logger.info(f"👤 BODY TYPE: Final outfit has {len(complete_outfit)} items")
+        
+        if len(complete_outfit) < 3:
+            logger.warning(f"⚠️ BODY TYPE: Outfit incomplete ({len(complete_outfit)} items)")
         
         # Create outfit with body type considerations
         outfit = OutfitGeneratedOutfit(
@@ -662,7 +569,7 @@ class RobustOutfitGenerationService:
             style=context.style,
             mood=context.mood,
             confidence=0.90,
-            items=optimized_items,
+            items=complete_outfit,
             reasoning=f"Body-type optimized {context.style} outfit for {context.occasion}",
             createdAt=int(time.time()),
             userId=context.user_id,
@@ -686,6 +593,7 @@ class RobustOutfitGenerationService:
     async def _style_profile_matched_generation(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate outfit matched to user's style profile"""
         logger.info("🎭 Using style profile matched generation")
+        logger.info(f"🎭 STYLE PROFILE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Get user's style preferences
         style_preferences = context.user_profile.get('stylePreferences', {})
@@ -696,6 +604,22 @@ class RobustOutfitGenerationService:
         style_matched_items = await self._filter_by_style_preferences(
             context.wardrobe, style_preferences, favorite_colors, preferred_brands
         )
+        logger.info(f"🎭 STYLE PROFILE: After style preference filtering, {len(style_matched_items)} items")
+        
+        # Apply additional filtering for occasion/style
+        filtered_items = await self._filter_suitable_items(context)
+        logger.info(f"🎭 STYLE PROFILE: After occasion/style filtering, {len(filtered_items)} items")
+        
+        # SELECT SPECIFIC ITEMS FOR THE OUTFIT (this was missing!)
+        selected_items = await self._intelligent_item_selection(filtered_items, context)
+        logger.info(f"🎭 STYLE PROFILE: After intelligent selection, {len(selected_items)} selected items")
+        
+        # Ensure outfit completeness
+        complete_outfit = await self._ensure_outfit_completeness(selected_items, context)
+        logger.info(f"🎭 STYLE PROFILE: Final outfit has {len(complete_outfit)} items")
+        
+        if len(complete_outfit) < 3:
+            logger.warning(f"⚠️ STYLE PROFILE: Outfit incomplete ({len(complete_outfit)} items)")
         
         # Create outfit with style profile matching
         outfit = OutfitGeneratedOutfit(
@@ -706,7 +630,7 @@ class RobustOutfitGenerationService:
             style=context.style,
             mood=context.mood,
             confidence=0.88,
-            items=style_matched_items,
+            items=complete_outfit,
             reasoning=f"Style profile matched {context.style} outfit for {context.occasion}",
             createdAt=int(time.time()),
             userId=context.user_id,
@@ -730,9 +654,26 @@ class RobustOutfitGenerationService:
     async def _weather_adapted_generation(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate outfit adapted to weather conditions"""
         logger.info("🌤️ Using weather adapted generation")
+        logger.info(f"🌤️ WEATHER: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Filter items based on weather
         weather_appropriate_items = await self._filter_by_weather(context.wardrobe, context.weather)
+        logger.info(f"🌤️ WEATHER: After weather filtering, {len(weather_appropriate_items)} items")
+        
+        # Apply additional filtering for occasion/style
+        filtered_items = await self._filter_suitable_items(context)
+        logger.info(f"🌤️ WEATHER: After occasion/style filtering, {len(filtered_items)} items")
+        
+        # SELECT SPECIFIC ITEMS FOR THE OUTFIT (this was missing!)
+        selected_items = await self._intelligent_item_selection(filtered_items, context)
+        logger.info(f"🌤️ WEATHER: After intelligent selection, {len(selected_items)} selected items")
+        
+        # Ensure outfit completeness
+        complete_outfit = await self._ensure_outfit_completeness(selected_items, context)
+        logger.info(f"🌤️ WEATHER: Final outfit has {len(complete_outfit)} items")
+        
+        if len(complete_outfit) < 3:
+            logger.warning(f"⚠️ WEATHER: Outfit incomplete ({len(complete_outfit)} items)")
         
         # Create weather-appropriate outfit
         outfit = OutfitGeneratedOutfit(
@@ -743,7 +684,7 @@ class RobustOutfitGenerationService:
             style=context.style,
             mood=context.mood,
             confidence=0.92,
-            items=weather_appropriate_items,
+            items=complete_outfit,
             reasoning=f"Weather-adapted {context.style} outfit for {context.occasion}",
             createdAt=int(time.time()),
             userId=context.user_id,
@@ -1430,3 +1371,565 @@ class RobustOutfitGenerationService:
         """Check if two items form an inappropriate combination - simplified version"""
         # For now, allow all combinations
         return False
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # MULTI-LAYERED SCORING ANALYZERS
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    async def _analyze_body_type_scores(self, context: GenerationContext, item_scores: dict) -> None:
+        """Analyze and score each item based on body type, height, weight, gender, and skin tone"""
+        logger.info(f"👤 BODY TYPE ANALYZER: Scoring {len(item_scores)} items")
+        
+        # Extract ALL user physical attributes
+        body_type = context.user_profile.get('bodyType', 'Average').lower()
+        height = context.user_profile.get('height', 'Average')
+        weight = context.user_profile.get('weight', 'Average')
+        gender = context.user_profile.get('gender', 'Unspecified').lower()
+        skin_tone = context.user_profile.get('skinTone', 'Medium')
+        
+        logger.info(f"👤 User profile: body_type={body_type}, height={height}, weight={weight}, gender={gender}, skin_tone={skin_tone}")
+        
+        # Body type scoring rules
+        body_type_rules = {
+            'hourglass': {
+                'tops': {'fitted': 0.9, 'wrap': 0.9, 'vneck': 0.8, 'loose': 0.4},
+                'bottoms': {'high_waist': 0.9, 'fitted': 0.8, 'straight': 0.7},
+                'dresses': {'fitted': 0.9, 'wrap': 0.9, 'a_line': 0.8}
+            },
+            'pear': {
+                'tops': {'structured': 0.9, 'detailed': 0.8, 'bright': 0.8},
+                'bottoms': {'dark': 0.9, 'straight': 0.8, 'bootcut': 0.8, 'skinny': 0.3}
+            },
+            'apple': {
+                'tops': {'empire': 0.9, 'vneck': 0.9, 'flowing': 0.8},
+                'bottoms': {'fitted': 0.7, 'straight': 0.8, 'defined': 0.7}
+            },
+            'rectangle': {
+                'tops': {'peplum': 0.9, 'ruffled': 0.8, 'belted': 0.8},
+                'bottoms': {'curved': 0.8, 'flared': 0.8, 'detailed': 0.7}
+            },
+            'inverted_triangle': {
+                'tops': {'simple': 0.8, 'dark': 0.8, 'vneck': 0.7},
+                'bottoms': {'flared': 0.9, 'wide_leg': 0.8, 'detailed': 0.8}
+            },
+            'oval': {
+                'tops': {'structured': 0.8, 'vneck': 0.9, 'vertical_lines': 0.8},
+                'bottoms': {'straight': 0.8, 'dark': 0.8, 'high_waist': 0.7}
+            },
+            'average': {
+                'tops': {'fitted': 0.8, 'structured': 0.7, 'casual': 0.7},
+                'bottoms': {'straight': 0.8, 'fitted': 0.7, 'casual': 0.7}
+            }
+        }
+        
+        rules = body_type_rules.get(body_type, body_type_rules['average'])
+        
+        for item_id, scores in item_scores.items():
+            item = scores['item']
+            base_score = 0.5  # Default neutral score
+            
+            # Get item category
+            category = self._get_item_category(item)
+            
+            # Check if item has body-flattering attributes
+            item_name_lower = item.name.lower()
+            
+            if category in rules:
+                for attribute, score_boost in rules[category].items():
+                    if attribute in item_name_lower:
+                        base_score = max(base_score, score_boost)
+            
+            # Additional scoring based on fit
+            if hasattr(item, 'metadata') and item.metadata:
+                if hasattr(item.metadata, 'visualAttributes') and item.metadata.visualAttributes:
+                    fit = getattr(item.metadata.visualAttributes, 'fit', '')
+                    if fit:
+                        fit_lower = fit.lower()
+                        # Adjust based on body type preferences
+                        if body_type in ['hourglass', 'pear'] and 'fitted' in fit_lower:
+                            base_score += 0.1
+                        elif body_type in ['apple', 'rectangle'] and 'loose' in fit_lower:
+                            base_score += 0.1
+            
+            # ═══════════════════════════════════════════════════════════
+            # HEIGHT SCORING - Proportions and lengths
+            # ═══════════════════════════════════════════════════════════
+            if height and height != 'Average':
+                height_lower = str(height).lower()
+                
+                # Short height (under 5'4")
+                if any(h in height_lower for h in ["5'0", "5'1", "5'2", "5'3", "under"]):
+                    # Favor items that elongate
+                    if 'high waist' in item_name_lower or 'high-waist' in item_name_lower:
+                        base_score += 0.15
+                    if 'crop' in item_name_lower or 'short' in item_name_lower:
+                        base_score += 0.10
+                    if 'vertical' in item_name_lower or 'stripe' in item_name_lower:
+                        base_score += 0.10
+                    # Avoid overwhelming items
+                    if 'oversized' in item_name_lower or 'maxi' in item_name_lower:
+                        base_score -= 0.10
+                
+                # Tall height (over 5'9")
+                elif any(h in height_lower for h in ["5'10", "5'11", "6'", "over"]):
+                    # Can wear longer items well
+                    if 'long' in item_name_lower or 'maxi' in item_name_lower:
+                        base_score += 0.10
+                    if 'midi' in item_name_lower:
+                        base_score += 0.05
+                    # Avoid items that are too short
+                    if 'crop' in item_name_lower and category == 'tops':
+                        base_score -= 0.05
+            
+            # ═══════════════════════════════════════════════════════════
+            # WEIGHT SCORING - Fit and comfort
+            # ═══════════════════════════════════════════════════════════
+            if weight and weight != 'Average':
+                weight_lower = str(weight).lower()
+                
+                # Plus size considerations
+                if any(w in weight_lower for h in ["201", "225", "250", "plus"]):
+                    # Favor items with structure and flow
+                    if 'structured' in item_name_lower or 'tailored' in item_name_lower:
+                        base_score += 0.10
+                    if 'wrap' in item_name_lower or 'empire' in item_name_lower:
+                        base_score += 0.10
+                    if 'vneck' in item_name_lower or 'v-neck' in item_name_lower:
+                        base_score += 0.08
+                    # Avoid unflattering cuts
+                    if 'tight' in item_name_lower or 'bodycon' in item_name_lower:
+                        base_score -= 0.10
+            
+            # ═══════════════════════════════════════════════════════════
+            # GENDER SCORING - Style appropriateness
+            # ═══════════════════════════════════════════════════════════
+            if gender and gender != 'unspecified':
+                if hasattr(item, 'metadata') and item.metadata:
+                    if hasattr(item.metadata, 'visualAttributes') and item.metadata.visualAttributes:
+                        gender_target = getattr(item.metadata.visualAttributes, 'genderTarget', '').lower()
+                        
+                        # If item has gender target, check match
+                        if gender_target:
+                            if gender in gender_target or 'unisex' in gender_target:
+                                base_score += 0.05  # Small boost for appropriate gender
+                        
+                        # Also check item name for gender indicators
+                        if gender == 'male':
+                            if any(kw in item_name_lower for kw in ['mens', "men's", 'masculine']):
+                                base_score += 0.05
+                        elif gender == 'female':
+                            if any(kw in item_name_lower for kw in ['womens', "women's", 'feminine']):
+                                base_score += 0.05
+            
+            item_scores[item_id]['body_type_score'] = min(1.0, max(0.0, base_score))
+        
+        logger.info(f"👤 BODY TYPE ANALYZER: Completed scoring")
+    
+    async def _analyze_style_profile_scores(self, context: GenerationContext, item_scores: dict) -> None:
+        """Analyze and score each item based on user's style profile and COLOR THEORY matching with skin tone"""
+        logger.info(f"🎭 STYLE PROFILE ANALYZER: Scoring {len(item_scores)} items")
+        
+        target_style = context.style.lower()
+        user_style_prefs = context.user_profile.get('stylePreferences', {})
+        favorite_colors = user_style_prefs.get('favoriteColors', [])
+        preferred_brands = user_style_prefs.get('preferredBrands', [])
+        
+        # Get skin tone for color theory matching
+        skin_tone = context.user_profile.get('skinTone', 'Medium')
+        logger.info(f"🎨 COLOR THEORY: Using skin tone '{skin_tone}' for color matching")
+        
+        # Color theory rules based on skin tone
+        # Warm skin tones (yellow, peachy, golden undertones)
+        warm_skin_colors = {
+            'excellent': ['warm red', 'coral', 'peach', 'orange', 'golden yellow', 'olive', 'warm brown', 'camel', 'rust', 'terracotta', 'warm beige'],
+            'good': ['cream', 'ivory', 'khaki', 'warm gray', 'chocolate'],
+            'avoid': ['bright white', 'cool pink', 'icy blue', 'purple', 'cool gray']
+        }
+        
+        # Cool skin tones (pink, red, bluish undertones)
+        cool_skin_colors = {
+            'excellent': ['cool blue', 'navy', 'cool pink', 'magenta', 'purple', 'emerald', 'cool red', 'burgundy', 'charcoal', 'true white', 'icy tones'],
+            'good': ['silver', 'gray', 'black', 'cool green', 'lavender'],
+            'avoid': ['orange', 'warm yellow', 'gold', 'warm brown', 'rust']
+        }
+        
+        # Neutral skin tones (balanced undertones)
+        neutral_skin_colors = {
+            'excellent': ['soft white', 'gray', 'taupe', 'dusty pink', 'jade', 'soft blue', 'mauve', 'true red', 'navy'],
+            'good': ['most colors work well'],
+            'avoid': ['extremely bright or neon colors']
+        }
+        
+        # Deep skin tones
+        deep_skin_colors = {
+            'excellent': ['rich jewel tones', 'emerald', 'sapphire', 'ruby', 'gold', 'copper', 'warm earth tones', 'bright white', 'rich purple', 'fuchsia'],
+            'good': ['cobalt', 'burgundy', 'forest green', 'chocolate', 'mustard'],
+            'avoid': ['pale pastels', 'beige', 'pale yellow']
+        }
+        
+        # Light skin tones
+        light_skin_colors = {
+            'excellent': ['soft pastels', 'powder blue', 'blush pink', 'lavender', 'soft gray', 'mint', 'cream'],
+            'good': ['navy', 'burgundy', 'emerald', 'charcoal'],
+            'avoid': ['neon colors', 'very bright colors']
+        }
+        
+        # Determine which color palette to use
+        skin_tone_lower = str(skin_tone).lower()
+        color_palette = neutral_skin_colors  # Default
+        
+        if 'warm' in skin_tone_lower or skin_tone in ['79', '80', '81', '82', '83', '84']:  # Warm medium tones
+            color_palette = warm_skin_colors
+        elif 'cool' in skin_tone_lower or skin_tone in ['20', '21', '22', '23', '24', '25']:  # Cool light tones
+            color_palette = cool_skin_colors
+        elif 'deep' in skin_tone_lower or 'dark' in skin_tone_lower or skin_tone in ['95', '96', '97', '98', '99', '100']:
+            color_palette = deep_skin_colors
+        elif 'light' in skin_tone_lower or 'fair' in skin_tone_lower or skin_tone in ['10', '11', '12', '13', '14', '15']:
+            color_palette = light_skin_colors
+        
+        logger.info(f"🎨 COLOR THEORY: Using color palette for skin tone category")
+        
+        for item_id, scores in item_scores.items():
+            item = scores['item']
+            base_score = 0.5  # Default neutral score
+            
+            # Score based on style match
+            item_styles = getattr(item, 'style', [])
+            if isinstance(item_styles, str):
+                item_styles = [item_styles]
+            
+            item_styles_lower = [s.lower() for s in item_styles]
+            
+            # Direct style match
+            if target_style in item_styles_lower:
+                base_score += 0.3
+            
+            # Compatible style match
+            compatible_styles = self.style_compatibility.get(target_style, [])
+            for compat_style in compatible_styles:
+                if compat_style in item_styles_lower:
+                    base_score += 0.2
+                    break
+            
+            # ═══════════════════════════════════════════════════════════
+            # COLOR THEORY MATCHING WITH SKIN TONE
+            # ═══════════════════════════════════════════════════════════
+            item_color = item.color.lower() if item.color else ''
+            item_name_lower = item.name.lower()
+            
+            # Check if color is excellent for skin tone
+            for excellent_color in color_palette.get('excellent', []):
+                if excellent_color in item_color or excellent_color in item_name_lower:
+                    base_score += 0.25  # Significant boost for excellent colors
+                    logger.debug(f"  🎨 {item.name}: Excellent color match for skin tone (+0.25)")
+                    break
+            
+            # Check if color is good for skin tone
+            for good_color in color_palette.get('good', []):
+                if good_color in item_color or good_color in item_name_lower:
+                    base_score += 0.15  # Moderate boost for good colors
+                    logger.debug(f"  🎨 {item.name}: Good color match for skin tone (+0.15)")
+                    break
+            
+            # Penalize colors to avoid for skin tone
+            for avoid_color in color_palette.get('avoid', []):
+                if avoid_color in item_color or avoid_color in item_name_lower:
+                    base_score -= 0.15  # Penalty for unflattering colors
+                    logger.debug(f"  🎨 {item.name}: Avoid color for skin tone (-0.15)")
+                    break
+            
+            # Favorite color bonus (user preference still matters)
+            if favorite_colors:
+                for fav_color in favorite_colors:
+                    if fav_color.lower() in item_color:
+                        base_score += 0.10  # Slightly less than color theory match
+                        break
+            
+            # Preferred brand bonus
+            if preferred_brands:
+                item_brand = getattr(item, 'brand', '') or ''
+                for pref_brand in preferred_brands:
+                    if pref_brand and pref_brand.lower() in item_brand.lower():
+                        base_score += 0.10
+                        break
+            
+            # Occasion appropriateness
+            item_occasions = getattr(item, 'occasion', [])
+            if isinstance(item_occasions, str):
+                item_occasions = [item_occasions]
+            
+            item_occasions_lower = [occ.lower() for occ in item_occasions]
+            if context.occasion.lower() in item_occasions_lower:
+                base_score += 0.2
+            
+            item_scores[item_id]['style_profile_score'] = min(1.0, max(0.0, base_score))
+        
+        logger.info(f"🎭 STYLE PROFILE ANALYZER: Completed scoring with color theory matching")
+    
+    async def _analyze_weather_scores(self, context: GenerationContext, item_scores: dict) -> None:
+        """Analyze and score each item based on weather appropriateness"""
+        logger.info(f"🌤️ WEATHER ANALYZER: Scoring {len(item_scores)} items")
+        
+        # Extract weather data
+        if hasattr(context.weather, 'temperature'):
+            temp = context.weather.temperature
+        elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
+            temp = context.weather.__dict__['temperature']
+        else:
+            temp = 70.0
+        
+        if hasattr(context.weather, 'condition'):
+            condition = context.weather.condition.lower() if context.weather.condition else 'clear'
+        elif hasattr(context.weather, '__dict__') and 'condition' in context.weather.__dict__:
+            condition = context.weather.__dict__['condition'].lower() if context.weather.__dict__['condition'] else 'clear'
+        else:
+            condition = 'clear'
+        
+        # Determine season from temperature
+        if temp < 40:
+            season = 'winter'
+        elif temp < 60:
+            season = 'fall'
+        elif temp < 75:
+            season = 'spring'
+        else:
+            season = 'summer'
+        
+        logger.info(f"🌤️ Weather analysis: {temp}°F, {condition}, season={season}")
+        
+        for item_id, scores in item_scores.items():
+            item = scores['item']
+            base_score = 0.5  # Default neutral score
+            
+            # Season match
+            item_seasons = getattr(item, 'season', [])
+            if isinstance(item_seasons, str):
+                item_seasons = [item_seasons]
+            
+            item_seasons_lower = [s.lower() for s in item_seasons]
+            if season in item_seasons_lower:
+                base_score += 0.3
+            
+            # Temperature compatibility
+            if hasattr(item, 'temperatureCompatibility'):
+                temp_compat = item.temperatureCompatibility
+                if temp_compat and hasattr(temp_compat, 'minTemp') and hasattr(temp_compat, 'maxTemp'):
+                    if temp_compat.minTemp <= temp <= temp_compat.maxTemp:
+                        base_score += 0.2
+            
+            # Material appropriateness for weather
+            item_name_lower = item.name.lower()
+            item_type_lower = str(item.type).lower()
+            
+            # Cold weather items
+            if temp < 50:
+                cold_keywords = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots']
+                for keyword in cold_keywords:
+                    if keyword in item_name_lower or keyword in item_type_lower:
+                        base_score += 0.15
+                        break
+            
+            # Hot weather items
+            elif temp > 75:
+                hot_keywords = ['cotton', 'linen', 'short sleeve', 'shorts', 'sandals', 'tank', 'light']
+                for keyword in hot_keywords:
+                    if keyword in item_name_lower or keyword in item_type_lower:
+                        base_score += 0.15
+                        break
+            
+            # Rainy weather
+            if 'rain' in condition or 'storm' in condition:
+                rain_keywords = ['waterproof', 'raincoat', 'boots']
+                for keyword in rain_keywords:
+                    if keyword in item_name_lower:
+                        base_score += 0.2
+                        break
+            
+            item_scores[item_id]['weather_score'] = min(1.0, base_score)
+        
+        logger.info(f"🌤️ WEATHER ANALYZER: Completed scoring")
+    
+    async def _cohesive_composition_with_scores(self, context: GenerationContext, item_scores: dict) -> OutfitGeneratedOutfit:
+        """Generate cohesive outfit using multi-layered scores with intelligent layering"""
+        logger.info(f"🎨 COHESIVE COMPOSITION: Using scored items to create outfit")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # INTELLIGENT ITEM COUNT & LAYERING DECISION
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Extract weather data for layering decisions
+        if hasattr(context.weather, 'temperature'):
+            temp = context.weather.temperature
+        elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
+            temp = context.weather.__dict__['temperature']
+        else:
+            temp = 70.0
+        
+        occasion_lower = context.occasion.lower()
+        
+        # Check if user prefers minimalistic outfits
+        style_lower = context.style.lower()
+        mood_lower = context.mood.lower() if context.mood else ''
+        is_minimalistic = 'minimal' in style_lower or 'minimal' in mood_lower or style_lower == 'minimalist'
+        
+        # Determine recommended item count based on weather and occasion
+        min_items = 3  # Always need top, bottom, shoes
+        max_items = 4 if is_minimalistic else 6  # Minimalist = fewer items, regular = more options
+        recommended_layers = 0  # Additional layering pieces
+        
+        logger.info(f"🌡️ LAYERING ANALYSIS: Temperature={temp}°F, Occasion={occasion_lower}, Style={context.style}")
+        
+        if is_minimalistic:
+            logger.info(f"  ✨ MINIMALISTIC style detected → Max items reduced to {max_items}, layers conservative")
+        
+        # Temperature-based layering
+        if temp < 30:
+            recommended_layers = 3 if not is_minimalistic else 2  # Heavy layering
+            logger.info(f"  🥶 Very cold ({temp}°F) → {recommended_layers} additional layers")
+        elif temp < 50:
+            recommended_layers = 2 if not is_minimalistic else 1  # Moderate layering
+            logger.info(f"  ❄️ Cold ({temp}°F) → {recommended_layers} additional layers")
+        elif temp < 65:
+            recommended_layers = 1  # Light layering (one outer layer)
+            logger.info(f"  🍂 Cool ({temp}°F) → 1 additional layer (light jacket/cardigan)")
+        elif temp <= 80:  # Extended range - light jacket can work up to 80°F
+            # Light jacket optional for A/C, evening, or style preference
+            recommended_layers = 1 if not is_minimalistic else 0
+            logger.info(f"  ☀️ Mild ({temp}°F) → Light jacket optional (A/C, evening, style)")
+        else:
+            recommended_layers = 0  # Hot weather, no layering
+            logger.info(f"  🔥 Hot ({temp}°F) → No additional layers needed")
+        
+        # Occasion-based adjustments
+        if occasion_lower in ['business', 'formal', 'wedding']:
+            recommended_layers += 1  # Add blazer/jacket for formality
+            logger.info(f"  👔 Formal occasion → +1 layer for professionalism")
+        elif occasion_lower in ['athletic', 'gym']:
+            recommended_layers = max(0, recommended_layers - 1)  # Reduce layers for movement
+            logger.info(f"  🏃 Athletic occasion → Reduce layers for mobility")
+        
+        target_items = min(min_items + recommended_layers, max_items)
+        logger.info(f"🎯 TARGET: {target_items} items (min={min_items}, max={max_items}, layers={recommended_layers})")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # LAYERING CATEGORIES & PRIORITIES
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        layering_order = [
+            'base',      # Base layer (t-shirt, tank, etc.)
+            'tops',      # Main top
+            'bottoms',   # Pants, skirts, etc.
+            'shoes',     # Footwear
+            'mid',       # Mid-layer (sweater, cardigan)
+            'outerwear', # Outer layer (jacket, coat)
+            'accessories' # Accessories (scarf, hat, etc.)
+        ]
+        
+        # Sort items by composite score
+        sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
+        
+        # Select items with intelligent layering
+        selected_items = []
+        categories_filled = {}
+        
+        # Phase 1: Fill essential categories (tops, bottoms, shoes)
+        logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
+        for item_id, score_data in sorted_items:
+            item = score_data['item']
+            category = self._get_item_category(item)
+            item_name_lower = item.name.lower()
+            
+            # Determine layering level
+            layer_level = 'tops'  # Default
+            if category == 'tops':
+                if any(kw in item_name_lower for kw in ['tank', 'cami', 'base', 'undershirt']):
+                    layer_level = 'base'
+                elif any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'hoodie']):
+                    layer_level = 'mid'
+            elif category == 'outerwear':
+                layer_level = 'outerwear'
+            elif category == 'accessories':
+                layer_level = 'accessories'
+            else:
+                layer_level = category
+            
+            # Essential categories first
+            if category in ['tops', 'bottoms', 'shoes']:
+                if category not in categories_filled:
+                    selected_items.append(item)
+                    categories_filled[category] = True
+                    logger.info(f"  ✅ Essential {category}: {item.name} (score={score_data['composite_score']:.2f})")
+        
+        # Phase 2: Add layering pieces based on target count
+        logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
+        for item_id, score_data in sorted_items:
+            if len(selected_items) >= target_items:
+                break
+            
+            item = score_data['item']
+            if item in selected_items:
+                continue
+            
+            category = self._get_item_category(item)
+            item_name_lower = item.name.lower()
+            
+            # Determine layering appropriateness
+            if category == 'outerwear' and score_data['composite_score'] > 0.6:
+                # Check if we need outerwear
+                if temp < 65 or occasion_lower in ['business', 'formal']:
+                    selected_items.append(item)
+                    logger.info(f"  ✅ Outerwear: {item.name} (score={score_data['composite_score']:.2f})")
+            
+            elif category == 'tops' and score_data['composite_score'] > 0.6:
+                # Additional top layer (sweater, cardigan)
+                if temp < 70 and any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'vest']):
+                    selected_items.append(item)
+                    logger.info(f"  ✅ Mid-layer: {item.name} (score={score_data['composite_score']:.2f})")
+            
+            elif category == 'accessories' and score_data['composite_score'] > 0.7:
+                # High-scoring accessories
+                if temp < 50 or occasion_lower in ['formal', 'business']:
+                    selected_items.append(item)
+                    logger.info(f"  ✅ Accessory: {item.name} (score={score_data['composite_score']:.2f})")
+        
+        # Ensure minimum items
+        if len(selected_items) < min_items:
+            logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
+            for item_id, score_data in sorted_items:
+                if score_data['item'] not in selected_items and len(selected_items) < min_items:
+                    selected_items.append(score_data['item'])
+                    logger.info(f"  ➕ Filler: {score_data['item'].name}")
+        
+        logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
+        
+        # Create outfit
+        outfit = OutfitGeneratedOutfit(
+            id=str(uuid.uuid4()),
+            name=f"{context.style} {context.occasion} Outfit",
+            description=f"Multi-layered scored outfit optimized for {context.occasion}",
+            occasion=context.occasion,
+            style=context.style,
+            mood=context.mood,
+            confidence=0.92,  # High confidence due to comprehensive scoring
+            items=selected_items,
+            reasoning=f"Created using body type, style profile, and weather analysis",
+            createdAt=int(time.time()),
+            userId=context.user_id,
+            weather=context.weather.__dict__ if context.weather else {},
+            pieces=[],
+            explanation=f"Optimized outfit using multi-layered scoring system",
+            styleTags=[context.style.lower().replace(' ', '_'), 'multi_layered'],
+            colorHarmony="balanced",
+            styleNotes=f"Scored across body type, style profile, and weather",
+            season="current",
+            updatedAt=int(time.time()),
+            metadata={"generation_strategy": "multi_layered_cohesive_composition"},
+            wasSuccessful=True,
+            baseItemId=context.base_item_id,
+            validationErrors=[],
+            userFeedback=None
+        )
+        
+        logger.info(f"🎨 COHESIVE COMPOSITION: Created outfit with {len(selected_items)} items")
+        
+        return outfit
