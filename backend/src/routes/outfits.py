@@ -1254,12 +1254,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # CRITICAL: Final validation check to guarantee 99% prevention
         outfit = _apply_final_outfit_validation(outfit)
         
-        # Add metadata for logging (rule-based generation)
+        # PRESERVE ROBUST SERVICE STRATEGY - Don't overwrite it!
+        # The robust service already set the correct strategy (emergency_default, body_type_optimized, etc.)
+        # DO NOT set it to 'rule_based' here as that overwrites the robust service's strategy
+        
+        # Ensure metadata exists
         if 'metadata' not in outfit:
             outfit['metadata'] = {}
-        outfit['metadata']['generation_strategy'] = 'rule_based'
         
-        # Log generation strategy for monitoring
+        # Log generation strategy for monitoring (WITHOUT changing it)
         failed_rules = outfit.get('metadata', {}).get('failed_rules', [])
         log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
         
