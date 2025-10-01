@@ -1284,26 +1284,36 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
-        # PROGRESSIVE RELAXATION: If no suitable items found, gradually relax restrictions
+        # PROGRESSIVE RELAXATION: If no suitable items found, stage the pruning
         if len(suitable_items) == 0:
-            logger.warning(f"🚨 NO SUITABLE ITEMS: Using progressive relaxation")
+            logger.warning(f"🚨 NO SUITABLE ITEMS: Using staged progressive relaxation")
             
-            # Level 1: Relax occasion filtering only
-            logger.info(f"🔄 LEVEL 1: Relaxing occasion filtering...")
+            # Stage 1: Relax style filtering only (keep occasion strict)
+            logger.info(f"🔄 STAGE 1: Relaxing style filtering (keeping occasion strict)...")
             for item in context.wardrobe:
-                if self._is_style_compatible(item, context.style):
+                # Only check occasion compatibility, ignore style
+                if self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather):
                     suitable_items.append(item)
-                    logger.info(f"🔄 RELAXED: Added {getattr(item, 'name', 'Unknown')} (occasion relaxed)")
+                    logger.info(f"🔄 STAGE 1: Added {getattr(item, 'name', 'Unknown')} (style relaxed)")
             
-            # Level 2: If still no items, relax style filtering too
+            # Stage 2: If still no items, relax occasion filtering with category awareness
             if len(suitable_items) == 0:
-                logger.info(f"🔄 LEVEL 2: Relaxing style filtering...")
+                logger.info(f"🔄 STAGE 2: Relaxing occasion filtering with category awareness...")
                 for item in context.wardrobe:
-                    if hasattr(item, 'type') and item.type in ['shirt', 'pants', 'shoes', 'jacket']:
+                    # Category awareness: allow generic items to stand in when tagged items unavailable
+                    item_type = getattr(item, 'type', '').lower()
+                    if item_type in ['shirt', 'pants', 'shoes', 'jacket', 'blouse', 'top', 'bottom', 'sweater', 'dress']:
                         suitable_items.append(item)
-                        logger.info(f"🔄 RELAXED: Added {getattr(item, 'name', 'Unknown')} (style relaxed)")
+                        logger.info(f"🔄 STAGE 2: Added {getattr(item, 'name', 'Unknown')} (category: {item_type}, occasion relaxed)")
             
-            logger.info(f"🔄 PROGRESSIVE RELAXATION: Total items after relaxation: {len(suitable_items)}")
+            # Stage 3: If still no items, use neutral pool (any item)
+            if len(suitable_items) == 0:
+                logger.info(f"🔄 STAGE 3: Using neutral pool (any item)...")
+                for item in context.wardrobe:
+                    suitable_items.append(item)
+                    logger.info(f"🔄 STAGE 3: Added {getattr(item, 'name', 'Unknown')} (neutral pool)")
+            
+            logger.info(f"🔄 STAGED RELAXATION: Total items after relaxation: {len(suitable_items)}")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
@@ -1618,10 +1628,10 @@ class RobustOutfitGenerationService:
         occasion_lower = occasion.lower()
         item_name = item.name.lower()
         
-        # If no occasion information available, be permissive
+        # NEUTRAL DEFAULT: If no occasion information available, treat as flexible/neutral
         item_occasions = getattr(item, 'occasion', [])
         if not item_occasions:
-            logger.info(f"🔍 OCCASION: No occasion metadata for {item_name}, allowing (versatile item)")
+            logger.info(f"🔍 OCCASION: No occasion metadata for {item_name}, treating as FLEXIBLE/NEUTRAL")
             return True
         
         # Normalize occasions list
@@ -1634,15 +1644,16 @@ class RobustOutfitGenerationService:
             logger.info(f"✅ OCCASION: {item_name} explicitly matches {occasion_lower}")
             return True
         
-        # Check for broad compatibility patterns
+        # Check for broad compatibility patterns - very permissive
         compatibility_patterns = {
             'athletic': ['casual', 'athletic', 'sport'],
-            'business': ['business', 'formal', 'professional', 'casual'],  # Added casual
-            'casual': ['casual', 'everyday', 'relaxed', 'business'],  # Added business
-            'formal': ['formal', 'business', 'professional', 'casual'],  # Added casual
-            'party': ['party', 'casual', 'evening', 'business'],  # Added business
-            'wedding': ['formal', 'wedding', 'special'],
-            'vacation': ['casual', 'vacation', 'relaxed']
+            'business': ['business', 'formal', 'professional', 'casual', 'everyday'],  # Added everyday
+            'casual': ['casual', 'everyday', 'relaxed', 'business', 'formal'],  # Added formal
+            'formal': ['formal', 'business', 'professional', 'casual', 'elegant'],  # Added elegant
+            'party': ['party', 'casual', 'evening', 'business', 'formal'],  # Added formal
+            'elegant': ['formal', 'business', 'professional', 'party'],  # Added for formal+elegant
+            'wedding': ['formal', 'wedding', 'special', 'business'],  # Added business
+            'vacation': ['casual', 'vacation', 'relaxed', 'business']  # Added business
         }
         
         if occasion_lower in compatibility_patterns:
@@ -1681,9 +1692,9 @@ class RobustOutfitGenerationService:
         item_styles = getattr(item, 'style', [])
         item_tags = getattr(item, 'tags', [])
         
-        # If no style information available, be permissive
+        # NEUTRAL DEFAULT: If no style information available, treat as flexible/neutral
         if not item_styles and not item_tags:
-            logger.info(f"🔍 STYLE: No style metadata for {item_name}, allowing (versatile item)")
+            logger.info(f"🔍 STYLE: No style metadata for {item_name}, treating as FLEXIBLE/NEUTRAL")
             return True
         
         # Normalize styles list
