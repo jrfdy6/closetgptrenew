@@ -404,6 +404,8 @@ class RobustOutfitGenerationService:
             }
         
         logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
+        logger.info(f"🔍 DEBUG: First item ID: {list(item_scores.keys())[0] if item_scores else 'NONE'}")
+        logger.info(f"🔍 DEBUG: First item type: {type(list(item_scores.values())[0]['item']) if item_scores else 'NONE'}")
         
         # Run all analyzers in parallel
         logger.info(f"🚀 Running 1 analyzer in parallel... (body type only - testing)")
@@ -2410,6 +2412,12 @@ class RobustOutfitGenerationService:
     async def _cohesive_composition_with_scores(self, context: GenerationContext, item_scores: dict) -> OutfitGeneratedOutfit:
         """Generate cohesive outfit using multi-layered scores with intelligent layering"""
         logger.info(f"🎨 COHESIVE COMPOSITION: Using scored items to create outfit")
+        logger.info(f"🔍 DEBUG: Received {len(item_scores)} scored items")
+        logger.info(f"🔍 DEBUG: Context occasion: {context.occasion}, style: {context.style}")
+        
+        if not item_scores:
+            logger.error(f"❌ COHESIVE COMPOSITION: No scored items received!")
+            raise Exception("No scored items provided to cohesive composition")
         
         # ═══════════════════════════════════════════════════════════════════════
         # INTELLIGENT ITEM COUNT & LAYERING DECISION
