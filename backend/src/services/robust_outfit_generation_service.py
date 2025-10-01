@@ -381,6 +381,15 @@ class RobustOutfitGenerationService:
             logger.warning(f"⚠️ Missing weather data, using SMART DEFAULT: {temp}°F, {condition} (occasion: {context.occasion})")
             # Log for learning system
             logger.info(f"📊 DEFAULT_APPLIED: weather_default_occasion_{context.occasion.lower()}_temp_{temp}")
+            
+            # Create a mock weather object for consistency
+            class MockWeather:
+                def __init__(self, temp, condition):
+                    self.temperature = temp
+                    self.condition = condition
+            
+            context.weather = MockWeather(temp, condition)
+            logger.info(f"🔧 Created mock weather object: {context.weather.temperature}°F, {context.weather.condition}")
         
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
         
@@ -502,7 +511,24 @@ class RobustOutfitGenerationService:
         # Check if we have any scored items
         if not item_scores:
             logger.error(f"🚨 CRITICAL: No items scored - all items filtered out!")
-            raise Exception(f"No items available for scoring - wardrobe or filtering issue")
+            logger.error(f"🔍 DEBUG: Wardrobe size: {len(context.wardrobe)}")
+            logger.error(f"🔍 DEBUG: Suitable items: {len(suitable_items)}")
+            logger.error(f"🔍 DEBUG: Occasion: {context.occasion}, Style: {context.style}")
+            
+            # Emergency fallback: use any available items
+            if context.wardrobe:
+                logger.warning(f"🚨 EMERGENCY: Using any available items as fallback")
+                for item in context.wardrobe:
+                    item_id = safe_item_access(item, 'id', f"emergency_{len(item_scores)}")
+                    item_scores[item_id] = {
+                        'body_type_score': 0.5,
+                        'style_profile_score': 0.5,
+                        'weather_score': 0.5,
+                        'composite_score': 0.5
+                    }
+                logger.info(f"🚨 EMERGENCY: Created {len(item_scores)} emergency scores")
+            else:
+                raise Exception(f"No items available for scoring - wardrobe or filtering issue")
         
         # Check if items have reasonable scores
         total_items = len(item_scores)
