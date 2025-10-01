@@ -393,7 +393,8 @@ class RobustOutfitGenerationService:
         # Create scoring dictionary for each item
         item_scores = {}
         for item in context.wardrobe:
-            item_scores[item.id] = {
+            item_id = safe_item_access(item, 'id', f"item_{len(item_scores)}")
+            item_scores[item_id] = {
                 'item': item,
                 'body_type_score': 0.0,
                 'style_profile_score': 0.0,
@@ -401,6 +402,8 @@ class RobustOutfitGenerationService:
                 'user_feedback_score': 0.0,  # NEW!
                 'composite_score': 0.0
             }
+        
+        logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
         
         # Run all analyzers in parallel
         logger.info(f"🚀 Running 0 analyzers in parallel... (all temporarily disabled for testing)")
