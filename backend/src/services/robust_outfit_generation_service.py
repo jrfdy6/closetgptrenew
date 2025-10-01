@@ -306,13 +306,13 @@ class RobustOutfitGenerationService:
             }
         
         # Run all analyzers in parallel
-        logger.info(f"🚀 Running 4 analyzers in parallel...")
+        logger.info(f"🚀 Running 3 analyzers in parallel... (user feedback temporarily disabled)")
         
         analyzer_tasks = [
             asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
             asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
             asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
-            asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # NEW!
+            # TEMPORARILY DISABLED: asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # NEW!
         ]
         
         # Wait for all analyzers to complete
@@ -323,10 +323,10 @@ class RobustOutfitGenerationService:
         for item_id, scores in item_scores.items():
             # Weighted average of all scores including user feedback
             composite = (
-                scores['body_type_score'] * 0.25 +
-                scores['style_profile_score'] * 0.30 +
-                scores['weather_score'] * 0.20 +
-                scores.get('user_feedback_score', 0.5) * 0.25  # NEW! 25% weight on user feedback
+                scores['body_type_score'] * 0.35 +
+                scores['style_profile_score'] * 0.40 +
+                scores['weather_score'] * 0.25
+                # TEMPORARILY DISABLED: scores.get('user_feedback_score', 0.5) * 0.25  # NEW! 25% weight on user feedback
             )
             scores['composite_score'] = composite
         
@@ -334,7 +334,7 @@ class RobustOutfitGenerationService:
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
         logger.info(f"🏆 Top 5 scored items:")
         for i, (item_id, scores) in enumerate(sorted_items[:5]):
-            logger.info(f"  {i+1}. {scores['item'].name}: composite={scores['composite_score']:.2f} (body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores.get('user_feedback_score', 0.5):.2f})")
+            logger.info(f"  {i+1}. {scores['item'].name}: composite={scores['composite_score']:.2f} (body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f})")
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: Cohesive Composition with Multi-Layered Scores
