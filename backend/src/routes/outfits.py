@@ -40,8 +40,17 @@ def _is_semantically_appropriate(outfit_items, required_item, occasion):
     occasion_lower = occasion.lower()
     
     for item in outfit_items:
-        item_type = item.get('type', '').lower()
-        item_name = item.get('name', '').lower()
+        # Safety check: handle list, dict, and object formats
+        if isinstance(item, list):
+            # Skip if item is a list (shouldn't happen but safety check)
+            continue
+        elif isinstance(item, dict):
+            item_type = item.get('type', '').lower()
+            item_name = item.get('name', '').lower()
+        else:
+            # Handle object format
+            item_type = getattr(item, 'type', '').lower()
+            item_name = getattr(item, 'name', '').lower()
         
         # Direct match first
         if required_item in item_type or required_item in item_name:
@@ -414,9 +423,19 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
     
     filtered_items = []
     for item in items:
-        item_name = item.get('name', '').lower()
-        item_type = item.get('type', '').lower()
-        item_description = item.get('description', '').lower()
+        # Safety check: handle list, dict, and object formats
+        if isinstance(item, list):
+            # Skip if item is a list (shouldn't happen but safety check)
+            continue
+        elif isinstance(item, dict):
+            item_name = item.get('name', '').lower()
+            item_type = item.get('type', '').lower()
+            item_description = item.get('description', '').lower()
+        else:
+            # Handle object format
+            item_name = getattr(item, 'name', '').lower()
+            item_type = getattr(item, 'type', '').lower()
+            item_description = getattr(item, 'description', '').lower()
         
         # Combine all text fields for keyword matching
         all_text = f"{item_name} {item_type} {item_description}"
@@ -424,7 +443,8 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
         # Check if item should be excluded
         should_exclude = any(exclude_word in all_text for exclude_word in filter_criteria['exclude_keywords'])
         if should_exclude:
-            logger.info(f"🚫 Excluding {item.get('name', 'unnamed')} from {style} style (contains excluded keywords)")
+            item_name_for_log = item_name if isinstance(item, dict) else getattr(item, 'name', 'unnamed')
+            logger.info(f"🚫 Excluding {item_name_for_log} from {style} style (contains excluded keywords)")
             continue
         
         # Check if item should be included (preferred types or include keywords)
@@ -435,15 +455,18 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
         
         if should_include:
             filtered_items.append(item)
-            logger.info(f"✅ Including {item.get('name', 'unnamed')} for {style} style")
+            item_name_for_log = item_name if isinstance(item, dict) else getattr(item, 'name', 'unnamed')
+            logger.info(f"✅ Including {item_name_for_log} for {style} style")
         else:
             # For athleisure, be more restrictive - only include items that explicitly match
             if style_lower == 'athleisure':
-                logger.info(f"⚠️ Skipping {item.get('name', 'unnamed')} for athleisure (not explicitly athletic)")
+                item_name_for_log = item_name if isinstance(item, dict) else getattr(item, 'name', 'unnamed')
+                logger.info(f"⚠️ Skipping {item_name_for_log} for athleisure (not explicitly athletic)")
             else:
                 # For other styles, include items that don't explicitly conflict
                 filtered_items.append(item)
-                logger.info(f"➕ Including {item.get('name', 'unnamed')} for {style} style (no conflicts)")
+                item_name_for_log = item_name if isinstance(item, dict) else getattr(item, 'name', 'unnamed')
+                logger.info(f"➕ Including {item_name_for_log} for {style} style (no conflicts)")
     
     logger.info(f"🎯 Style filtering for {style}: {len(filtered_items)}/{len(items)} items kept")
     return filtered_items
