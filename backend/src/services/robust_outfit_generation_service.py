@@ -454,22 +454,24 @@ class RobustOutfitGenerationService:
         validation_time = 0
         generation_time = 0
         
-        logger.debug(f"🚀 Starting {strategy.value}")
+        logger.info(f"🚀 PARALLEL START: {strategy.value}")
         
         try:
             # Set strategy in context
             context.generation_strategy = strategy
             
             # Generate outfit with this strategy
+            logger.info(f"🎨 PARALLEL GENERATING: {strategy.value} with {len(context.wardrobe)} items")
             outfit = await self._generate_with_strategy(context)
             generation_time = time.time() - strategy_start_time
-            logger.debug(f"🎨 {strategy.value}: Generated {len(outfit.items)} items in {generation_time:.3f}s")
+            logger.info(f"🎨 PARALLEL GENERATED: {strategy.value} - {len(outfit.items)} items in {generation_time:.3f}s")
             
             # Validate the generated outfit
             validation_start_time = time.time()
+            logger.info(f"🔍 PARALLEL VALIDATING: {strategy.value} outfit with {len(outfit.items)} items")
             validation = await self._validate_outfit(outfit, context)
             validation_time = time.time() - validation_start_time
-            logger.debug(f"✅ {strategy.value}: Valid={validation.is_valid}, Confidence={validation.confidence:.2f}")
+            logger.info(f"🔍 PARALLEL VALIDATED: {strategy.value} - Valid={validation.is_valid}, Confidence={validation.confidence:.2f}")
             
             # Record strategy execution analytics
             strategy_analytics.record_strategy_execution(
@@ -1289,7 +1291,14 @@ class RobustOutfitGenerationService:
         
         # WEATHER INTELLIGENCE: Check temperature compatibility
         if weather_data and temperature_compatibility:
-            current_temp = weather_data.get('temperature', 20)
+            # Handle both dict and SimpleNamespace weather data
+            if hasattr(weather_data, 'get'):
+                current_temp = weather_data.get('temperature', 20)
+            elif hasattr(weather_data, 'temperature'):
+                current_temp = weather_data.temperature
+            else:
+                current_temp = 20
+            
             min_temp = getattr(temperature_compatibility, 'minTemp', 0)
             max_temp = getattr(temperature_compatibility, 'maxTemp', 40)
             if current_temp < min_temp or current_temp > max_temp:
@@ -1298,7 +1307,14 @@ class RobustOutfitGenerationService:
         
         # SEASONAL INTELLIGENCE: Check seasonal appropriateness
         if weather_data and item_seasons:
-            current_season = weather_data.get('season', 'all')
+            # Handle both dict and SimpleNamespace weather data
+            if hasattr(weather_data, 'get'):
+                current_season = weather_data.get('season', 'all')
+            elif hasattr(weather_data, 'season'):
+                current_season = weather_data.season
+            else:
+                current_season = 'all'
+                
             if current_season != 'all' and current_season.lower() not in [s.lower() for s in item_seasons]:
                 logger.info(f"🍂 SEASONAL EXCLUSION: {item.name} - not suitable for {current_season} season")
                 return False
