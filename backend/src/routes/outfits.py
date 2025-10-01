@@ -1014,6 +1014,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.error(f"🚨 FORCE REDEPLOY v12.0: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
         logger.error(f"🚨 FORCE REDEPLOY v12.0: GenerationContext = {GenerationContext}")
         logger.error(f"🚨 FORCE REDEPLOY v12.0: Both available = {RobustOutfitGenerationService is not None and GenerationContext is not None}")
+        
+        # DEBUG: Check if robust service is None
+        if RobustOutfitGenerationService is None:
+            logger.error(f"🚨 CRITICAL: RobustOutfitGenerationService is None - import failed!")
+            raise Exception("RobustOutfitGenerationService import failed - check import paths")
+        
+        if GenerationContext is None:
+            logger.error(f"🚨 CRITICAL: GenerationContext is None - import failed!")
+            raise Exception("GenerationContext import failed - check import paths")
         try:
             # Use robust outfit generation service if available (allow without Firebase for testing)
             if RobustOutfitGenerationService and GenerationContext:
@@ -1089,6 +1098,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     robust_service = RobustOutfitGenerationService()
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: RobustOutfitGenerationService instantiated successfully")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: About to call generate_outfit with context")
+                    logger.error(f"🚨 FORCE REDEPLOY v11.0: Context has {len(context.wardrobe)} wardrobe items")
+                    logger.error(f"🚨 FORCE REDEPLOY v11.0: Context occasion: {context.occasion}, style: {context.style}")
                     robust_outfit = await robust_service.generate_outfit(context)
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: generate_outfit completed successfully")
                     
