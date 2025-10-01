@@ -2010,28 +2010,20 @@ class RobustOutfitGenerationService:
                     logger.debug(f"  🔄 {item.name}: Worn {len(recent_wears)} times this week → -0.10")
             
             # ─────────────────────────────────────────────────────────────
-            # 6. STYLE EVOLUTION TRACKING
+            # 6. ADVANCED STYLE EVOLUTION TRACKING (Netflix/Spotify-style)
             # ─────────────────────────────────────────────────────────────
-            # Check if item's style aligns with user's evolving preferences
-            # (Items from recently high-rated outfits in this style get boost)
-            item_styles = getattr(item, 'style', [])
-            if isinstance(item_styles, str):
-                item_styles = [item_styles]
             
-            # Check recent outfit ratings for this style
-            style_evolution_bonus = 0.0
-            for style in item_styles:
-                # If user has been rating outfits with this style highly recently,
-                # this indicates style evolution/preference
-                # (Simplified for now - could be enhanced with time-weighted analysis)
-                if item_id in outfit_ratings and len(outfit_ratings[item_id]) >= 2:
-                    recent_ratings = outfit_ratings[item_id][-3:]  # Last 3 ratings
-                    if sum(recent_ratings) / len(recent_ratings) >= 4.0:
-                        style_evolution_bonus = 0.15
-                        logger.debug(f"  📈 {item.name}: Style evolution detected (+0.15)")
-                        break
+            # Build comprehensive preference profile for this item
+            evolution_score = await self._calculate_style_evolution_score(
+                item=item,
+                user_id=user_id,
+                current_time=current_time,
+                outfit_ratings=outfit_ratings,
+                context=context,
+                db=db
+            )
             
-            base_score += style_evolution_bonus
+            base_score += evolution_score
             
             # Ensure score stays in valid range
             item_scores[item_id]['user_feedback_score'] = min(1.0, max(0.0, base_score))
@@ -2334,3 +2326,222 @@ class RobustOutfitGenerationService:
         logger.info(f"📊 Final confidence: {final_confidence:.2f}, Avg composite score: {avg_composite_score:.2f}")
         
         return outfit
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # NETFLIX/SPOTIFY-STYLE LEARNING ALGORITHMS
+    # ═══════════════════════════════════════════════════════════════════════════
+    
+    async def _calculate_style_evolution_score(
+        self, 
+        item, 
+        user_id: str, 
+        current_time: float,
+        outfit_ratings: dict,
+        context,
+        db
+    ) -> float:
+        """
+        Calculate style evolution score using Netflix/Spotify-style algorithm
+        
+        This implements:
+        - Time-weighted ratings (recent ratings matter more)
+        - Occasion-specific learning (learns per context)
+        - Color pattern detection (trending colors)
+        - Seasonal preference tracking
+        - Style trajectory analysis (is user moving toward/away from this style?)
+        """
+        evolution_score = 0.0
+        
+        try:
+            # ═══════════════════════════════════════════════════════════════
+            # 1. TIME-WEIGHTED RATING ANALYSIS (Netflix-style)
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Fetch ALL user outfit ratings with timestamps
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(50)
+            outfits = outfits_ref.stream()
+            
+            # Build time-weighted style preference matrix
+            style_ratings_over_time = {}  # style -> [(timestamp, rating), ...]
+            occasion_ratings_over_time = {}  # occasion -> [(timestamp, rating), ...]
+            color_ratings_over_time = {}  # color -> [(timestamp, rating), ...]
+            
+            for outfit_doc in outfits:
+                outfit_data = outfit_doc.to_dict()
+                rating = outfit_data.get('rating')
+                if not rating:
+                    continue
+                
+                # Get timestamp
+                created_at = outfit_data.get('createdAt')
+                if hasattr(created_at, 'timestamp'):
+                    timestamp = created_at.timestamp()
+                elif isinstance(created_at, str):
+                    try:
+                        timestamp = float(created_at)
+                    except:
+                        timestamp = current_time
+                else:
+                    timestamp = current_time
+                
+                # Track style preferences over time
+                outfit_style = outfit_data.get('style', '').lower()
+                if outfit_style:
+                    if outfit_style not in style_ratings_over_time:
+                        style_ratings_over_time[outfit_style] = []
+                    style_ratings_over_time[outfit_style].append((timestamp, rating))
+                
+                # Track occasion preferences
+                outfit_occasion = outfit_data.get('occasion', '').lower()
+                if outfit_occasion:
+                    if outfit_occasion not in occasion_ratings_over_time:
+                        occasion_ratings_over_time[outfit_occasion] = []
+                    occasion_ratings_over_time[outfit_occasion].append((timestamp, rating))
+                
+                # Track color preferences
+                outfit_items = outfit_data.get('items', [])
+                for outfit_item in outfit_items:
+                    color = outfit_item.get('color', '').lower()
+                    if color:
+                        if color not in color_ratings_over_time:
+                            color_ratings_over_time[color] = []
+                        color_ratings_over_time[color].append((timestamp, rating))
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 2. CALCULATE TIME-WEIGHTED SCORES (exponential decay)
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Recent ratings matter MUCH more (exponential time decay)
+            # Netflix uses ~30 day half-life, we'll use 14 days
+            half_life_days = 14
+            half_life_seconds = half_life_days * 24 * 60 * 60
+            
+            def calculate_weighted_average(ratings_with_time):
+                """Calculate time-weighted average (recent matters more)"""
+                if not ratings_with_time:
+                    return None
+                
+                weighted_sum = 0.0
+                weight_total = 0.0
+                
+                for timestamp, rating in ratings_with_time:
+                    age = current_time - timestamp
+                    # Exponential decay: weight = 0.5^(age / half_life)
+                    weight = 0.5 ** (age / half_life_seconds)
+                    weighted_sum += rating * weight
+                    weight_total += weight
+                
+                return weighted_sum / weight_total if weight_total > 0 else None
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 3. STYLE TRAJECTORY ANALYSIS
+            # ═══════════════════════════════════════════════════════════════
+            
+            item_styles = getattr(item, 'style', [])
+            if isinstance(item_styles, str):
+                item_styles = [item_styles]
+            
+            for style in item_styles:
+                style_lower = style.lower()
+                
+                if style_lower in style_ratings_over_time:
+                    weighted_avg = calculate_weighted_average(style_ratings_over_time[style_lower])
+                    
+                    if weighted_avg:
+                        # Map 1-5 rating to bonus/penalty (-0.2 to +0.2)
+                        style_bonus = ((weighted_avg - 3.0) / 2.0) * 0.2
+                        evolution_score += style_bonus
+                        
+                        # Check if style is trending UP or DOWN
+                        ratings = style_ratings_over_time[style_lower]
+                        if len(ratings) >= 3:
+                            old_ratings = [r for t, r in ratings if t < (current_time - 30*24*60*60)]
+                            recent_ratings = [r for t, r in ratings if t >= (current_time - 30*24*60*60)]
+                            
+                            if old_ratings and recent_ratings:
+                                old_avg = sum(old_ratings) / len(old_ratings)
+                                recent_avg = sum(recent_ratings) / len(recent_ratings)
+                                trend = recent_avg - old_avg
+                                
+                                if trend > 0.5:
+                                    evolution_score += 0.15  # Style trending UP
+                                    logger.debug(f"  📈 {item.name}: {style} TRENDING UP (+0.15)")
+                                elif trend < -0.5:
+                                    evolution_score -= 0.10  # Style trending DOWN
+                                    logger.debug(f"  📉 {item.name}: {style} trending down (-0.10)")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 4. OCCASION-SPECIFIC LEARNING
+            # ═══════════════════════════════════════════════════════════════
+            
+            current_occasion = context.occasion.lower()
+            
+            # Check if this item's occasions align with user's ratings for this occasion
+            item_occasions = getattr(item, 'occasion', [])
+            if isinstance(item_occasions, str):
+                item_occasions = [item_occasions]
+            
+            for occasion in item_occasions:
+                occasion_lower = occasion.lower()
+                
+                if occasion_lower == current_occasion and occasion_lower in occasion_ratings_over_time:
+                    weighted_avg = calculate_weighted_average(occasion_ratings_over_time[occasion_lower])
+                    
+                    if weighted_avg and weighted_avg >= 4.0:
+                        evolution_score += 0.15  # User loves outfits for this occasion
+                        logger.debug(f"  🎯 {item.name}: User loves {occasion_lower} outfits (+0.15)")
+                    elif weighted_avg and weighted_avg <= 2.5:
+                        evolution_score -= 0.10  # User dislikes outfits for this occasion
+                        logger.debug(f"  ⚠️ {item.name}: User dislikes {occasion_lower} outfits (-0.10)")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 5. COLOR PATTERN LEARNING
+            # ═══════════════════════════════════════════════════════════════
+            
+            item_color = item.color.lower() if item.color else ''
+            
+            if item_color and item_color in color_ratings_over_time:
+                weighted_avg = calculate_weighted_average(color_ratings_over_time[item_color])
+                
+                if weighted_avg:
+                    # Recent color preference
+                    color_bonus = ((weighted_avg - 3.0) / 2.0) * 0.15
+                    evolution_score += color_bonus
+                    
+                    if weighted_avg >= 4.0:
+                        logger.debug(f"  🎨 {item.name}: {item_color} is trending color (+{color_bonus:.2f})")
+            
+            # ═══════════════════════════════════════════════════════════════
+            # 6. SEASONAL PREFERENCE DETECTION
+            # ═══════════════════════════════════════════════════════════════
+            
+            # Determine current season
+            current_month = datetime.now().month
+            if current_month in [12, 1, 2]:
+                current_season = 'winter'
+            elif current_month in [3, 4, 5]:
+                current_season = 'spring'
+            elif current_month in [6, 7, 8]:
+                current_season = 'summer'
+            else:
+                current_season = 'fall'
+            
+            # Check if user rates this item's style highly in this season
+            item_seasons = getattr(item, 'season', [])
+            if isinstance(item_seasons, str):
+                item_seasons = [item_seasons]
+            
+            if current_season in [s.lower() for s in item_seasons]:
+                # Item is appropriate for current season
+                # Check historical ratings for this style in this season
+                # (Simplified - could track season-specific style preferences)
+                evolution_score += 0.05
+                logger.debug(f"  🍂 {item.name}: Seasonal match for {current_season} (+0.05)")
+            
+            logger.debug(f"  📊 {item.name}: Total evolution score = +{evolution_score:.2f}")
+            
+            return evolution_score
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Style evolution calculation failed: {e}")
+            return 0.0  # Neutral score on error
