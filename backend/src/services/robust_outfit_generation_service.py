@@ -254,6 +254,16 @@ class RobustOutfitGenerationService:
         except Exception as hydrator_error:
             logger.error(f"❌ Hydration failed: {hydrator_error}")
         
+        # DEBUG: Check context types after hydration
+        logger.info(f"🔍 DEBUG: After hydration - user_profile type: {type(context.user_profile)}")
+        logger.info(f"🔍 DEBUG: After hydration - weather type: {type(context.weather)}")
+        if isinstance(context.user_profile, list):
+            logger.error(f"🚨 ERROR: user_profile is a list: {context.user_profile}")
+            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "user_profile_is_list"})
+        if isinstance(context.weather, list):
+            logger.error(f"🚨 ERROR: weather is a list: {context.weather}")
+            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "weather_is_list"})
+        
         # Handle weather data safely
         if hasattr(context.weather, 'temperature'):
             temp = context.weather.temperature
@@ -583,6 +593,12 @@ class RobustOutfitGenerationService:
         """Generate outfit optimized for user's body type"""
         logger.info("👤 Using body type optimized generation")
         logger.info(f"👤 BODY TYPE: Starting with {len(context.wardrobe)} wardrobe items")
+        
+        # DEBUG: Check if user_profile is a list
+        logger.info(f"🔍 DEBUG: user_profile type: {type(context.user_profile)}")
+        if isinstance(context.user_profile, list):
+            logger.error(f"🚨 ERROR: user_profile is a list: {context.user_profile}")
+            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "body_type_optimized", "error": "user_profile_is_list"})
         
         # Get user's body type information
         body_type = context.user_profile.get('bodyType', 'average')
