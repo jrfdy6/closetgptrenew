@@ -1503,23 +1503,48 @@ class RobustOutfitGenerationService:
         """Balanced style compatibility check - not too strict, not too loose"""
         style_lower = style.lower()
         item_name = item.name.lower()
-        item_type = item.type.lower()
         
-        # Extract all available metadata
+        # Extract style information
         item_styles = getattr(item, 'style', [])
         item_tags = getattr(item, 'tags', [])
-        metadata = getattr(item, 'metadata', None)
         
         # If no style information available, be permissive
-        if not item_styles and not item_tags and not metadata:
+        if not item_styles and not item_tags:
             logger.info(f"🔍 STYLE: No style metadata for {item_name}, allowing")
             return True
         
-        # Normalize lists
+        # Normalize styles list
         if isinstance(item_styles, str):
             item_styles = [item_styles]
         if isinstance(item_tags, str):
             item_tags = [item_tags]
+        
+        # Check if item styles include the requested style
+        all_styles = [s.lower() for s in item_styles + item_tags]
+        if style_lower in all_styles:
+            logger.info(f"✅ STYLE: {item_name} explicitly matches {style_lower}")
+            return True
+        
+        # Check for broad style compatibility
+        style_compatibility = {
+            'classic': ['formal', 'business', 'professional', 'traditional'],
+            'athletic': ['sporty', 'active', 'casual', 'comfortable'],
+            'casual': ['relaxed', 'everyday', 'comfortable', 'informal'],
+            'formal': ['classic', 'business', 'professional', 'elegant'],
+            'streetwear': ['urban', 'trendy', 'casual', 'edgy'],
+            'edgy': ['streetwear', 'urban', 'trendy', 'alternative']
+        }
+        
+        if style_lower in style_compatibility:
+            compatible_styles = style_compatibility[style_lower]
+            for compatible in compatible_styles:
+                if compatible in all_styles:
+                    logger.info(f"✅ STYLE: {item_name} broadly compatible with {style_lower} via {compatible}")
+                    return True
+        
+        # Default: Allow the item (be permissive)
+        logger.info(f"✅ STYLE: {item_name} allowed for {style_lower}")
+        return True
         
         # Extract metadata fields
         style_tags = []
