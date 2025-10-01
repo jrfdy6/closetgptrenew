@@ -408,13 +408,13 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG: First item type: {type(list(item_scores.values())[0]['item']) if item_scores else 'NONE'}")
         
         # Run all analyzers in parallel
-        logger.info(f"🚀 Running 1 analyzer in parallel... (body type only - testing)")
+        logger.info(f"🚀 Running 3 analyzers in parallel... (body type + style profile + weather)")
         
         analyzer_tasks = [
-            # RE-ENABLING ANALYZERS ONE BY ONE TO FIND THE ISSUE:
+            # RE-ENABLING ANALYZERS: Body type + Style profile + Weather
             asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
-            # asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
-            # asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
+            asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
+            asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
             # TEMPORARILY DISABLED: asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # NEW!
         ]
         
@@ -424,8 +424,12 @@ class RobustOutfitGenerationService:
         # Calculate composite scores
         logger.info(f"🧮 Calculating composite scores...")
         for item_id, scores in item_scores.items():
-            # Only body type analyzer is enabled
-            composite = scores['body_type_score'] * 1.0  # 100% body type for now
+            # Multi-layered scoring with all analyzers
+            composite = (
+                scores['body_type_score'] * 0.35 +
+                scores['style_profile_score'] * 0.40 +
+                scores['weather_score'] * 0.25
+            )
             scores['composite_score'] = composite
         
         # Log top scored items
