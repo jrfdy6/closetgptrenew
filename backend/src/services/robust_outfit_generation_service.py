@@ -2203,35 +2203,39 @@ class RobustOutfitGenerationService:
         """Analyze and score each item based on weather appropriateness"""
         logger.info(f"🌤️ WEATHER ANALYZER: Scoring {len(item_scores)} items")
         
-        # Extract weather data with smart defaults
-        if context.weather is None:
-            # Smart default: use occasion-appropriate weather
-            if context.occasion.lower() in ['business', 'formal']:
-                temp = 72.0
-                condition = 'clear'
-            elif context.occasion.lower() in ['party', 'evening']:
-                temp = 68.0
-                condition = 'clear'
-            elif context.occasion.lower() == 'athletic':
-                temp = 75.0
-                condition = 'clear'
+        try:
+            # Extract weather data with smart defaults
+            if context.weather is None:
+                # Smart default: use occasion-appropriate weather
+                if context.occasion.lower() in ['business', 'formal']:
+                    temp = 72.0
+                    condition = 'clear'
+                elif context.occasion.lower() in ['party', 'evening']:
+                    temp = 68.0
+                    condition = 'clear'
+                elif context.occasion.lower() == 'athletic':
+                    temp = 75.0
+                    condition = 'clear'
+                else:
+                    temp = 70.0
+                    condition = 'clear'
+                logger.warning(f"⚠️ WEATHER ANALYZER: Missing weather data, using SMART DEFAULT: {temp}°F, {condition}")
+            elif hasattr(context.weather, 'temperature'):
+                temp = context.weather.temperature
+                logger.info(f"🌤️ WEATHER ANALYZER: Got temperature from weather object: {temp}°F")
+            elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
+                temp = context.weather.__dict__['temperature']
+                logger.info(f"🌤️ WEATHER ANALYZER: Got temperature from weather.__dict__: {temp}°F")
             else:
                 temp = 70.0
+                logger.warning(f"⚠️ WEATHER ANALYZER: Could not extract temperature, using default: {temp}°F")
+            
+            if hasattr(context.weather, 'condition'):
+                condition = context.weather.condition.lower() if context.weather.condition else 'clear'
+            elif hasattr(context.weather, '__dict__') and 'condition' in context.weather.__dict__:
+                condition = context.weather.__dict__['condition'].lower() if context.weather.__dict__['condition'] else 'clear'
+            else:
                 condition = 'clear'
-            logger.warning(f"⚠️ WEATHER ANALYZER: Missing weather data, using SMART DEFAULT: {temp}°F, {condition}")
-        elif hasattr(context.weather, 'temperature'):
-            temp = context.weather.temperature
-        elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
-            temp = context.weather.__dict__['temperature']
-        else:
-            temp = 70.0
-        
-        if hasattr(context.weather, 'condition'):
-            condition = context.weather.condition.lower() if context.weather.condition else 'clear'
-        elif hasattr(context.weather, '__dict__') and 'condition' in context.weather.__dict__:
-            condition = context.weather.__dict__['condition'].lower() if context.weather.__dict__['condition'] else 'clear'
-        else:
-            condition = 'clear'
         
         # Determine season from temperature
         if temp < 40:
@@ -2295,7 +2299,17 @@ class RobustOutfitGenerationService:
             
             item_scores[item_id]['weather_score'] = min(1.0, base_score)
         
-        logger.info(f"🌤️ WEATHER ANALYZER: Completed scoring")
+            logger.info(f"🌤️ WEATHER ANALYZER: Completed scoring")
+            
+        except Exception as e:
+            logger.error(f"❌ WEATHER ANALYZER FAILED: {str(e)}", exc_info=True)
+            logger.warning(f"⚠️ WEATHER ANALYZER: Using emergency fallback scoring")
+            
+            # Emergency fallback: assign neutral scores
+            for item_id in item_scores:
+                item_scores[item_id]['weather_score'] = 0.5
+                
+            logger.info(f"🚨 WEATHER ANALYZER: Emergency fallback applied - all items scored 0.5")
     
     async def _analyze_user_feedback_scores(self, context: GenerationContext, item_scores: dict) -> None:
         """
