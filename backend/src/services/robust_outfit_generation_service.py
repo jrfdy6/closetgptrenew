@@ -26,10 +26,28 @@ src_dir = os.path.dirname(current_dir)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-# COMPLETELY SELF-CONTAINED - No external dependencies
-print("🔧 ROBUST SERVICE: Using completely self-contained version")
-
-# Create minimal fallback classes to prevent total import failure
+# Import real services - try relative imports first, then absolute
+try:
+    from ..custom_types.wardrobe import ClothingItem
+    from ..custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
+    from ..custom_types.weather import WeatherData
+    from ..custom_types.user_profile import UserProfile
+    from .robust_hydrator import ensure_items_safe_for_pydantic
+    print("✅ ROBUST SERVICE: Using relative imports")
+except (ImportError, ValueError) as e:
+    print(f"⚠️ Relative imports failed: {e}")
+    try:
+        from custom_types.wardrobe import ClothingItem
+        from custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
+        from custom_types.weather import WeatherData
+        from custom_types.user_profile import UserProfile
+        from services.robust_hydrator import ensure_items_safe_for_pydantic
+        print("✅ ROBUST SERVICE: Using absolute imports")
+    except ImportError as e2:
+        print(f"⚠️ Absolute imports failed: {e2}")
+        print("🔧 ROBUST SERVICE: Using fallback minimal classes")
+        
+        # Create minimal fallback classes to prevent total import failure
 class ClothingItem:
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
@@ -99,10 +117,40 @@ class MockService:
             'diversity_score': 0.8
         }
 
-strategy_analytics = MockService()
-StrategyStatus = MockService()
-diversity_filter = MockService()
-adaptive_tuning = MockService()
+# Import REAL services for diversity filtering and strategy analytics
+try:
+    from .diversity_filter_service import DiversityFilterService
+    diversity_filter = DiversityFilterService()
+    print("✅ DIVERSITY FILTER: Real service loaded")
+except ImportError as e:
+    print(f"⚠️ DiversityFilterService import failed: {e}")
+    diversity_filter = MockService()
+    print("🔧 DIVERSITY FILTER: Using mock service")
+
+try:
+    from .strategy_analytics_service import StrategyAnalyticsService, StrategyStatus
+    strategy_analytics = StrategyAnalyticsService()
+    print("✅ STRATEGY ANALYTICS: Real service loaded")
+except ImportError as e:
+    print(f"⚠️ StrategyAnalyticsService import failed: {e}")
+    
+    # Define StrategyStatus enum if import fails
+    class StrategyStatus(Enum):
+        SUCCESS = "success"
+        FAILED = "failed"
+        PARTIAL = "partial"
+    
+    strategy_analytics = MockService()
+    print("🔧 STRATEGY ANALYTICS: Using mock service")
+
+try:
+    from .adaptive_tuning_service import AdaptiveTuningService
+    adaptive_tuning = AdaptiveTuningService()
+    print("✅ ADAPTIVE TUNING: Real service loaded")
+except ImportError as e:
+    print(f"⚠️ AdaptiveTuningService import failed: {e}")
+    adaptive_tuning = MockService()
+    print("🔧 ADAPTIVE TUNING: Using mock service")
 
 class PerformanceMetrics:
     """Mock PerformanceMetrics class"""
@@ -1902,6 +1950,110 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
         
+        # ═══════════════════════════════════════════════════════════════════════
+        # PHASE 3: DIVERSITY FILTERING
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        logger.info(f"🎭 PHASE 3: Applying diversity filtering...")
+        
+        # Check outfit diversity
+        diversity_result = diversity_filter.check_outfit_diversity(
+            user_id=context.user_id,
+            new_outfit=selected_items,
+            occasion=context.occasion,
+            style=context.style,
+            mood=context.mood
+        )
+        
+        logger.info(f"🎭 Diversity check: is_diverse={diversity_result.get('is_diverse', True)}, score={diversity_result.get('diversity_score', 0.8):.2f}")
+        
+        # If not diverse enough, apply diversity boost
+        if not diversity_result.get('is_diverse', True):
+            logger.warning(f"⚠️ Outfit not diverse enough, applying diversity boost...")
+            
+            # Get diversity suggestions
+            diversity_suggestions = diversity_filter.get_diversity_suggestions(
+                user_id=context.user_id,
+                current_items=selected_items,
+                occasion=context.occasion,
+                style=context.style
+            )
+            
+            if diversity_suggestions:
+                logger.info(f"🎭 Got {len(diversity_suggestions)} diversity suggestions")
+                
+                # Try to swap out overused items with diverse alternatives
+                for suggestion in diversity_suggestions[:2]:  # Limit to 2 swaps
+                    item_to_replace = suggestion.get('item_to_replace')
+                    alternative = suggestion.get('alternative')
+                    
+                    if item_to_replace and alternative:
+                        # Replace in selected items
+                        selected_items = [alternative if item.id == item_to_replace.id else item 
+                                        for item in selected_items]
+                        logger.info(f"  🔄 Swapped {item_to_replace.name} → {alternative.name}")
+        
+        # Record outfit for diversity tracking
+        diversity_filter.record_outfit_generation(
+            user_id=context.user_id,
+            outfit={'items': selected_items, 'occasion': context.occasion},
+            items=selected_items
+        )
+        
+        logger.info(f"✅ Diversity filtering complete")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # PHASE 4: ANALYTICS & PERFORMANCE TRACKING
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Calculate final confidence based on composite scores
+        avg_composite_score = sum(item_scores[item.id]['composite_score'] for item in selected_items) / len(selected_items)
+        final_confidence = min(0.95, avg_composite_score)
+        
+        logger.info(f"📊 ANALYTICS: Recording strategy execution...")
+        
+        # Record strategy analytics
+        try:
+            strategy_analytics.record_strategy_execution(
+                strategy="multi_layered_cohesive_composition",
+                user_id=context.user_id,
+                occasion=context.occasion,
+                style=context.style,
+                mood=context.mood,
+                status=StrategyStatus.SUCCESS,
+                confidence=final_confidence,
+                validation_score=final_confidence,
+                generation_time=0.5,  # Will be calculated properly
+                validation_time=0.1,
+                items_selected=len(selected_items),
+                items_available=len(context.wardrobe),
+                failed_rules=[],
+                fallback_reason=None,
+                session_id=f"ml_session_{int(time.time())}"
+            )
+            logger.info(f"✅ Strategy analytics recorded")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to record strategy analytics: {e}")
+        
+        # Record performance metrics for adaptive tuning
+        try:
+            metrics = PerformanceMetrics(
+                success_rate=1.0,
+                avg_confidence=final_confidence,
+                avg_generation_time=0.5,
+                avg_validation_time=0.1,
+                diversity_score=diversity_result.get('diversity_score', 0.8),
+                user_satisfaction=final_confidence,
+                fallback_rate=0.0,
+                sample_size=1,
+                time_window_hours=int(time.time())
+            )
+            
+            adaptive_tuning.record_performance(metrics)
+            logger.info(f"✅ Performance metrics recorded")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to record performance metrics: {e}")
+        
         # Create outfit
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
@@ -1910,20 +2062,26 @@ class RobustOutfitGenerationService:
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
-            confidence=0.92,  # High confidence due to comprehensive scoring
+            confidence=final_confidence,  # Use calculated confidence
             items=selected_items,
-            reasoning=f"Created using body type, style profile, and weather analysis",
+            reasoning=f"Created using body type, style profile, and weather analysis with color theory",
             createdAt=int(time.time()),
             userId=context.user_id,
             weather=context.weather.__dict__ if context.weather else {},
             pieces=[],
-            explanation=f"Optimized outfit using multi-layered scoring system",
+            explanation=f"Optimized outfit using multi-layered scoring system (body: 30%, style+color: 40%, weather: 30%)",
             styleTags=[context.style.lower().replace(' ', '_'), 'multi_layered'],
-            colorHarmony="balanced",
-            styleNotes=f"Scored across body type, style profile, and weather",
+            colorHarmony="color_theory_optimized",
+            styleNotes=f"Scored across body type (height/weight/gender), style profile (skin tone color theory), and weather",
             season="current",
             updatedAt=int(time.time()),
-            metadata={"generation_strategy": "multi_layered_cohesive_composition"},
+            metadata={
+                "generation_strategy": "multi_layered_cohesive_composition",
+                "avg_composite_score": avg_composite_score,
+                "diversity_score": diversity_result.get('diversity_score', 0.8),
+                "color_theory_applied": True,
+                "analyzers_used": ["body_type", "style_profile", "weather"]
+            },
             wasSuccessful=True,
             baseItemId=context.base_item_id,
             validationErrors=[],
@@ -1931,5 +2089,6 @@ class RobustOutfitGenerationService:
         )
         
         logger.info(f"🎨 COHESIVE COMPOSITION: Created outfit with {len(selected_items)} items")
+        logger.info(f"📊 Final confidence: {final_confidence:.2f}, Avg composite score: {avg_composite_score:.2f}")
         
         return outfit
