@@ -512,7 +512,7 @@ class RobustOutfitGenerationService:
         if not item_scores:
             logger.error(f"🚨 CRITICAL: No items scored - all items filtered out!")
             logger.error(f"🔍 DEBUG: Wardrobe size: {len(context.wardrobe)}")
-            logger.error(f"🔍 DEBUG: Suitable items: {len(suitable_items)}")
+            logger.error(f"🔍 DEBUG: Suitable items: N/A (filtering failed)")
             logger.error(f"🔍 DEBUG: Occasion: {context.occasion}, Style: {context.style}")
             
             # Emergency fallback: use any available items
@@ -2237,21 +2237,21 @@ class RobustOutfitGenerationService:
             else:
                 condition = 'clear'
         
-        # Determine season from temperature
-        if temp < 40:
-            season = 'winter'
-        elif temp < 60:
-            season = 'fall'
-        elif temp < 75:
-            season = 'spring'
-        else:
-            season = 'summer'
-        
-        logger.info(f"🌤️ Weather analysis: {temp}°F, {condition}, season={season}")
-        
-        for item_id, scores in item_scores.items():
-            item = scores['item']
-            base_score = 0.5  # Default neutral score
+            # Determine season from temperature
+            if temp < 40:
+                season = 'winter'
+            elif temp < 60:
+                season = 'fall'
+            elif temp < 75:
+                season = 'spring'
+            else:
+                season = 'summer'
+            
+            logger.info(f"🌤️ Weather analysis: {temp}°F, {condition}, season={season}")
+            
+            for item_id, scores in item_scores.items():
+                item = scores['item']
+                base_score = 0.5  # Default neutral score
             
             # Season match
             item_seasons = getattr(item, 'season', [])
