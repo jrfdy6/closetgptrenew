@@ -356,22 +356,27 @@ class RobustOutfitGenerationService:
             logger.error(f"🚨 ERROR: weather is a list: {context.weather}")
             return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "weather_is_list"})
         
-        # Handle weather data safely
-        if hasattr(context.weather, 'temperature'):
-            temp = context.weather.temperature
-        elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
-            temp = context.weather.__dict__['temperature']
-        else:
-            temp = 70.0
-            
-        if hasattr(context.weather, 'condition'):
-            condition = context.weather.condition
-        elif hasattr(context.weather, '__dict__') and 'condition' in context.weather.__dict__:
-            condition = context.weather.__dict__['condition']
-        else:
-            condition = 'Clear'
-            
+        # Handle weather data safely with defaults
+        temp = 70.0  # Default temperature
+        condition = 'clear'  # Default condition
+        
+        if context.weather:
+            temp = safe_get(context.weather, 'temperature', 70.0)
+            condition = safe_get(context.weather, 'condition', 'clear')
+        
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
+        
+        # Handle missing user profile gracefully
+        if not context.user_profile:
+            logger.warning(f"⚠️ Missing user profile, using defaults")
+            context.user_profile = {
+                'bodyType': 'Average',
+                'height': 'Average', 
+                'weight': 'Average',
+                'gender': 'Unspecified',
+                'skinTone': 'Medium',
+                'stylePreferences': {}
+            }
         
         # Log wardrobe breakdown
         item_types = [item.type for item in context.wardrobe]
@@ -434,6 +439,15 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎨 PHASE 2: Cohesive Composition with Scored Items")
         
+        # ═══════════════════════════════════════════════════════════════════════
+        # PROGRESSIVE FALLBACK FILTERING
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Check if we have any scored items
+        if not item_scores:
+            logger.error(f"🚨 CRITICAL: No items scored - all items filtered out!")
+            return await self._emergency_fallback_with_progressive_filtering(context)
+        
         # Pass scored items to cohesive composition
         outfit = await self._cohesive_composition_with_scores(context, item_scores)
         
@@ -441,6 +455,244 @@ class RobustOutfitGenerationService:
         logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
         
         return outfit
+    
+    async def _emergency_fallback_with_progressive_filtering(self, context: GenerationContext) -> OutfitGeneratedOutfit:
+        """Emergency fallback with progressive filter relaxation"""
+        logger.warning(f"🆘 EMERGENCY FALLBACK: All items filtered out, using progressive relaxation")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # PROGRESSIVE FILTER RELAXATION
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Start with all wardrobe items
+        all_items = context.wardrobe.copy()
+        logger.info(f"🔄 PROGRESSIVE FILTERING: Starting with {len(all_items)} items")
+        
+        # Level 1: Relax occasion filtering
+        logger.info(f"🔄 LEVEL 1: Relaxing occasion filtering...")
+        relaxed_items = await self._relax_occasion_filtering(all_items, context.occasion)
+        if relaxed_items:
+            logger.info(f"✅ LEVEL 1 SUCCESS: {len(relaxed_items)} items after relaxing occasion")
+            return await self._create_outfit_from_items(relaxed_items, context, "progressive_occasion_relaxed")
+        
+        # Level 2: Relax style filtering
+        logger.info(f"🔄 LEVEL 2: Relaxing style filtering...")
+        relaxed_items = await self._relax_style_filtering(all_items, context.style)
+        if relaxed_items:
+            logger.info(f"✅ LEVEL 2 SUCCESS: {len(relaxed_items)} items after relaxing style")
+            return await self._create_outfit_from_items(relaxed_items, context, "progressive_style_relaxed")
+        
+        # Level 3: Relax weather filtering
+        logger.info(f"🔄 LEVEL 3: Relaxing weather filtering...")
+        relaxed_items = await self._relax_weather_filtering(all_items, context.weather)
+        if relaxed_items:
+            logger.info(f"✅ LEVEL 3 SUCCESS: {len(relaxed_items)} items after relaxing weather")
+            return await self._create_outfit_from_items(relaxed_items, context, "progressive_weather_relaxed")
+        
+        # Level 4: Use all items (no filtering)
+        logger.warning(f"🆘 LEVEL 4: Using all items without any filtering")
+        return await self._create_outfit_from_items(all_items, context, "progressive_no_filtering")
+    
+    async def _relax_occasion_filtering(self, items: List[Any], occasion: str) -> List[Any]:
+        """Relax occasion filtering - allow more flexible occasion matching"""
+        if not occasion:
+            return items
+        
+        relaxed_items = []
+        occasion_lower = occasion.lower()
+        
+        for item in items:
+            # Get item occasions
+            item_occasions = safe_item_access(item, 'occasion', [])
+            if isinstance(item_occasions, str):
+                item_occasions = [item_occasions]
+            
+            # Relaxed occasion matching
+            item_occasions_lower = [occ.lower() for occ in item_occasions]
+            
+            # Allow if item explicitly matches occasion
+            if occasion_lower in item_occasions_lower:
+                relaxed_items.append(item)
+                continue
+            
+            # Allow if item has no occasion restrictions (versatile items)
+            if not item_occasions:
+                relaxed_items.append(item)
+                continue
+            
+            # Allow broad compatibility patterns
+            broad_compatibility = {
+                'business': ['casual', 'formal', 'smart casual'],
+                'casual': ['business', 'athletic', 'party'],
+                'formal': ['business', 'wedding', 'special'],
+                'athletic': ['casual', 'athletic'],
+                'party': ['casual', 'evening']
+            }
+            
+            if occasion_lower in broad_compatibility:
+                compatible_occasions = broad_compatibility[occasion_lower]
+                if any(comp in item_occasions_lower for comp in compatible_occasions):
+                    relaxed_items.append(item)
+                    continue
+            
+            # Allow items that aren't explicitly inappropriate
+            item_name = safe_item_access(item, 'name', '').lower()
+            inappropriate_patterns = {
+                'business': ['bikini', 'swimwear', 'pajamas'],
+                'formal': ['gym shorts', 'tank top', 'flip flops'],
+                'athletic': ['evening gown', 'tuxedo', 'wedding dress']
+            }
+            
+            if occasion_lower in inappropriate_patterns:
+                if not any(pattern in item_name for pattern in inappropriate_patterns[occasion_lower]):
+                    relaxed_items.append(item)
+        
+        return relaxed_items
+    
+    async def _relax_style_filtering(self, items: List[Any], style: str) -> List[Any]:
+        """Relax style filtering - allow more flexible style matching"""
+        if not style:
+            return items
+        
+        relaxed_items = []
+        style_lower = style.lower()
+        
+        for item in items:
+            # Get item styles
+            item_styles = safe_item_access(item, 'style', [])
+            if isinstance(item_styles, str):
+                item_styles = [item_styles]
+            
+            item_styles_lower = [s.lower() for s in item_styles]
+            
+            # Allow if item explicitly matches style
+            if style_lower in item_styles_lower:
+                relaxed_items.append(item)
+                continue
+            
+            # Allow if item has no style restrictions (versatile items)
+            if not item_styles:
+                relaxed_items.append(item)
+                continue
+            
+            # Allow compatible styles
+            style_compatibility = {
+                'classic': ['formal', 'business', 'professional', 'traditional'],
+                'casual': ['relaxed', 'everyday', 'comfortable', 'informal'],
+                'athletic': ['sporty', 'active', 'casual', 'comfortable'],
+                'formal': ['classic', 'business', 'professional', 'elegant'],
+                'streetwear': ['urban', 'trendy', 'casual', 'edgy']
+            }
+            
+            if style_lower in style_compatibility:
+                compatible_styles = style_compatibility[style_lower]
+                if any(comp in item_styles_lower for comp in compatible_styles):
+                    relaxed_items.append(item)
+                    continue
+            
+            # Allow items that aren't explicitly incompatible
+            item_name = safe_item_access(item, 'name', '').lower()
+            incompatible_patterns = {
+                'formal': ['sweatpants', 'hoodie', 'sneakers'],
+                'athletic': ['dress shoes', 'heels', 'suit'],
+                'casual': ['tuxedo', 'evening gown', 'wedding dress']
+            }
+            
+            if style_lower in incompatible_patterns:
+                if not any(pattern in item_name for pattern in incompatible_patterns[style_lower]):
+                    relaxed_items.append(item)
+        
+        return relaxed_items
+    
+    async def _relax_weather_filtering(self, items: List[Any], weather: Any) -> List[Any]:
+        """Relax weather filtering - allow more flexible weather matching"""
+        relaxed_items = []
+        
+        # Extract temperature safely
+        temp = 70.0  # Default
+        if weather:
+            temp = safe_get(weather, 'temperature', 70.0)
+        
+        for item in items:
+            # Get item seasonal info
+            item_seasons = safe_item_access(item, 'season', [])
+            if isinstance(item_seasons, str):
+                item_seasons = [item_seasons]
+            
+            item_name = safe_item_access(item, 'name', '').lower()
+            
+            # Allow items with no seasonal restrictions
+            if not item_seasons:
+                relaxed_items.append(item)
+                continue
+            
+            # Relaxed seasonal matching
+            current_season = self._determine_season_from_temperature(temp)
+            
+            # Allow items for current season
+            if current_season in item_seasons:
+                relaxed_items.append(item)
+                continue
+            
+            # Allow items that work in multiple seasons
+            multi_season_items = ['shirt', 'pants', 'jeans', 'blouse', 'top']
+            if any(season_item in item_name for season_item in multi_season_items):
+                relaxed_items.append(item)
+                continue
+            
+            # Allow items that aren't extremely seasonal
+            extreme_seasonal = ['winter coat', 'heavy jacket', 'swimwear', 'bikini', 'shorts']
+            if not any(extreme in item_name for extreme in extreme_seasonal):
+                relaxed_items.append(item)
+        
+        return relaxed_items
+    
+    def _determine_season_from_temperature(self, temp: float) -> str:
+        """Determine season from temperature"""
+        if temp < 40:
+            return 'winter'
+        elif temp < 60:
+            return 'fall'
+        elif temp < 80:
+            return 'spring'
+        else:
+            return 'summer'
+    
+    async def _create_outfit_from_items(self, items: List[Any], context: GenerationContext, strategy: str) -> OutfitGeneratedOutfit:
+        """Create a basic outfit from available items"""
+        logger.info(f"🎯 Creating outfit from {len(items)} items using strategy: {strategy}")
+        
+        # Simple item selection - pick one of each essential type
+        selected_items = []
+        
+        # Find essential categories
+        essential_types = ['shirt', 'top', 'blouse', 'pants', 'shorts', 'shoes']
+        
+        for essential_type in essential_types:
+            for item in items:
+                item_type = safe_item_access(item, 'type', '').lower()
+                if essential_type in item_type and item not in selected_items:
+                    selected_items.append(item)
+                    break
+        
+        # If we don't have enough items, add any remaining items
+        if len(selected_items) < 3:
+            for item in items:
+                if item not in selected_items:
+                    selected_items.append(item)
+                    if len(selected_items) >= 4:  # Reasonable outfit size
+                        break
+        
+        return OutfitGeneratedOutfit(
+            items=selected_items,
+            confidence=0.6,  # Moderate confidence for fallback
+            metadata={
+                "generation_strategy": strategy,
+                "fallback_reason": "progressive_filtering",
+                "original_occasion": context.occasion,
+                "original_style": context.style
+            }
+        )
     
     async def _fallback_generation(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Fallback generation if multi-layered system fails"""
