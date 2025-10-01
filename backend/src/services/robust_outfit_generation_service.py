@@ -600,7 +600,11 @@ class RobustOutfitGenerationService:
             logger.error(f"🚨 ERROR: user_profile is a list: {context.user_profile}")
             return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "body_type_optimized", "error": "user_profile_is_list"})
         
-        # Get user's body type information
+        # Get user's body type information (with safety check)
+        if not isinstance(context.user_profile, dict):
+            logger.error(f"🚨 ERROR: user_profile is not a dict, it's {type(context.user_profile)}: {context.user_profile}")
+            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "body_type_optimized", "error": "user_profile_not_dict"})
+        
         body_type = context.user_profile.get('bodyType', 'average')
         height = context.user_profile.get('height', 'average')
         
@@ -1597,6 +1601,12 @@ class RobustOutfitGenerationService:
         logger.info(f"🎭 STYLE PROFILE ANALYZER: Scoring {len(item_scores)} items")
         
         target_style = context.style.lower()
+        
+        # Safety check for user_profile
+        if not isinstance(context.user_profile, dict):
+            logger.error(f"🚨 ERROR: user_profile is not a dict, it's {type(context.user_profile)}: {context.user_profile}")
+            return
+        
         user_style_prefs = context.user_profile.get('stylePreferences', {})
         favorite_colors = user_style_prefs.get('favoriteColors', [])
         preferred_brands = user_style_prefs.get('preferredBrands', [])
