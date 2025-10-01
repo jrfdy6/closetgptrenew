@@ -1239,12 +1239,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Check if outfit generation was successful
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
-            logger.error(f"❌ FALLBACK TRIGGERED: Rule-based generation produced no items")
-            logger.error(f"🔍 FALLBACK DEBUG: Outfit data: {outfit}")
-            # NO FALLBACKS - Force proper generation
-            print(f"🚨 NO ITEMS GENERATED - NO FALLBACKS ALLOWED")
-            print(f"🚨 CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-            raise Exception("No items generated - no fallbacks allowed. Fix the generation logic.")
+            logger.error(f"❌ GENERATION FAILED: No items generated")
+            logger.error(f"🔍 DEBUG: Outfit data: {outfit}")
+            logger.error(f"🔍 CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+            raise Exception("Generation failed - no items produced. System needs fixing.")
         
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
         # Rule-based outfit completed

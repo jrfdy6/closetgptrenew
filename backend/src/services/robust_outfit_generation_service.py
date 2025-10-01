@@ -406,11 +406,11 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
         
         # Run all analyzers in parallel
-        logger.info(f"🚀 Running 0 analyzers in parallel... (all temporarily disabled for testing)")
+        logger.info(f"🚀 Running 1 analyzer in parallel... (body type only - testing)")
         
         analyzer_tasks = [
-            # TEMPORARILY DISABLED ALL ANALYZERS TO TEST:
-            # asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
+            # RE-ENABLING ANALYZERS ONE BY ONE TO FIND THE ISSUE:
+            asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
             # asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
             # asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
             # TEMPORARILY DISABLED: asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # NEW!
@@ -422,8 +422,8 @@ class RobustOutfitGenerationService:
         # Calculate composite scores
         logger.info(f"🧮 Calculating composite scores...")
         for item_id, scores in item_scores.items():
-            # Since all analyzers are disabled, use equal scores
-            composite = 0.5  # Neutral score for all items
+            # Only body type analyzer is enabled
+            composite = scores['body_type_score'] * 1.0  # 100% body type for now
             scores['composite_score'] = composite
         
         # Log top scored items
@@ -445,7 +445,7 @@ class RobustOutfitGenerationService:
         # Check if we have any scored items
         if not item_scores:
             logger.error(f"🚨 CRITICAL: No items scored - all items filtered out!")
-            return await self._emergency_fallback_with_progressive_filtering(context)
+            raise Exception(f"No items available for scoring - wardrobe or filtering issue")
         
         # Check if items have reasonable scores
         total_items = len(item_scores)
@@ -461,8 +461,8 @@ class RobustOutfitGenerationService:
         
         # Check if cohesive composition failed to generate items
         if not outfit.items or len(outfit.items) == 0:
-            logger.warning(f"⚠️ COHESIVE COMPOSITION FAILED: No items generated, triggering progressive filtering")
-            return await self._emergency_fallback_with_progressive_filtering(context)
+            logger.error(f"❌ COHESIVE COMPOSITION FAILED: No items generated - this should not happen")
+            raise Exception(f"Cohesive composition failed to generate items - system needs fixing")
         
         logger.info(f"✅ ROBUST GENERATION SUCCESS: Generated outfit with {len(outfit.items)} items")
         logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
