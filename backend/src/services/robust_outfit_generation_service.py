@@ -1850,7 +1850,12 @@ class RobustOutfitGenerationService:
                 outfit_items = outfit_data.get('items', [])
                 
                 for item in outfit_items:
-                    item_id = item.get('id')
+                    # Handle both dict and object formats
+                    if isinstance(item, dict):
+                        item_id = item.get('id')
+                    else:
+                        item_id = getattr(item, 'id', None)
+                    
                     if not item_id:
                         continue
                     
@@ -2401,7 +2406,12 @@ class RobustOutfitGenerationService:
                 # Track color preferences
                 outfit_items = outfit_data.get('items', [])
                 for outfit_item in outfit_items:
-                    color = outfit_item.get('color', '').lower()
+                    # Handle both dict and object formats
+                    if isinstance(outfit_item, dict):
+                        color = outfit_item.get('color', '').lower()
+                    else:
+                        color = getattr(outfit_item, 'color', '').lower() if hasattr(outfit_item, 'color') else ''
+                    
                     if color:
                         if color not in color_ratings_over_time:
                             color_ratings_over_time[color] = []
