@@ -291,16 +291,18 @@ class RobustOutfitGenerationService:
                 'body_type_score': 0.0,
                 'style_profile_score': 0.0,
                 'weather_score': 0.0,
+                'user_feedback_score': 0.0,  # NEW!
                 'composite_score': 0.0
             }
         
         # Run all analyzers in parallel
-        logger.info(f"🚀 Running 3 analyzers in parallel...")
+        logger.info(f"🚀 Running 4 analyzers in parallel...")
         
         analyzer_tasks = [
             asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
             asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
-            asyncio.create_task(self._analyze_weather_scores(context, item_scores))
+            asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
+            asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # NEW!
         ]
         
         # Wait for all analyzers to complete
@@ -309,11 +311,12 @@ class RobustOutfitGenerationService:
         # Calculate composite scores
         logger.info(f"🧮 Calculating composite scores...")
         for item_id, scores in item_scores.items():
-            # Weighted average of all scores
+            # Weighted average of all scores including user feedback
             composite = (
-                scores['body_type_score'] * 0.3 +
-                scores['style_profile_score'] * 0.4 +
-                scores['weather_score'] * 0.3
+                scores['body_type_score'] * 0.25 +
+                scores['style_profile_score'] * 0.30 +
+                scores['weather_score'] * 0.20 +
+                scores.get('user_feedback_score', 0.5) * 0.25  # NEW! 25% weight on user feedback
             )
             scores['composite_score'] = composite
         
@@ -321,7 +324,7 @@ class RobustOutfitGenerationService:
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
         logger.info(f"🏆 Top 5 scored items:")
         for i, (item_id, scores) in enumerate(sorted_items[:5]):
-            logger.info(f"  {i+1}. {scores['item'].name}: composite={scores['composite_score']:.2f} (body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f})")
+            logger.info(f"  {i+1}. {scores['item'].name}: composite={scores['composite_score']:.2f} (body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores.get('user_feedback_score', 0.5):.2f})")
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: Cohesive Composition with Multi-Layered Scores
@@ -1796,6 +1799,245 @@ class RobustOutfitGenerationService:
             item_scores[item_id]['weather_score'] = min(1.0, base_score)
         
         logger.info(f"🌤️ WEATHER ANALYZER: Completed scoring")
+    
+    async def _analyze_user_feedback_scores(self, context: GenerationContext, item_scores: dict) -> None:
+        """
+        Analyze and score items based on user feedback - Netflix/Spotify style learning
+        
+        Considers:
+        - Outfit ratings (1-5 stars) from outfits containing this item
+        - Likes/Dislikes (same weight as ratings)
+        - Wear counts (alternate between boosting rarely-worn and popular items)
+        - Favorited items (prioritize if not worn this week)
+        - Style evolution over time
+        """
+        logger.info(f"⭐ USER FEEDBACK ANALYZER: Scoring {len(item_scores)} items with learning algorithm")
+        
+        # Import Firebase for fetching user feedback data
+        try:
+            from ..config.firebase import db
+        except ImportError:
+            logger.warning("⚠️ Firebase not available, skipping user feedback scoring")
+            return
+        
+        user_id = context.user_id
+        current_time = time.time()
+        one_week_ago = current_time - (7 * 24 * 60 * 60)
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # FETCH USER FEEDBACK DATA
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Fetch outfit ratings and feedback
+        outfit_ratings = {}  # item_id -> list of ratings
+        outfit_likes = {}    # item_id -> (likes, dislikes)
+        item_wear_history = {}  # item_id -> list of wear timestamps
+        favorited_items = set()  # Set of favorited item IDs
+        
+        try:
+            # Get user's outfit history with ratings
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(100)
+            outfits = outfits_ref.stream()
+            
+            for outfit_doc in outfits:
+                outfit_data = outfit_doc.to_dict()
+                rating = outfit_data.get('rating')
+                is_liked = outfit_data.get('isLiked', False)
+                is_disliked = outfit_data.get('isDisliked', False)
+                worn_at = outfit_data.get('wornAt')
+                
+                # Get items in this outfit
+                outfit_items = outfit_data.get('items', [])
+                
+                for item in outfit_items:
+                    item_id = item.get('id')
+                    if not item_id:
+                        continue
+                    
+                    # Track ratings
+                    if rating:
+                        if item_id not in outfit_ratings:
+                            outfit_ratings[item_id] = []
+                        outfit_ratings[item_id].append(rating)
+                    
+                    # Track likes/dislikes
+                    if is_liked or is_disliked:
+                        if item_id not in outfit_likes:
+                            outfit_likes[item_id] = {'likes': 0, 'dislikes': 0}
+                        if is_liked:
+                            outfit_likes[item_id]['likes'] += 1
+                        if is_disliked:
+                            outfit_likes[item_id]['dislikes'] += 1
+                    
+                    # Track wear history
+                    if worn_at:
+                        if item_id not in item_wear_history:
+                            item_wear_history[item_id] = []
+                        
+                        # Convert worn_at to timestamp
+                        if hasattr(worn_at, 'timestamp'):
+                            wear_time = worn_at.timestamp()
+                        elif isinstance(worn_at, (int, float)):
+                            wear_time = float(worn_at)
+                        else:
+                            wear_time = current_time
+                        
+                        item_wear_history[item_id].append(wear_time)
+            
+            # Get favorited items from wardrobe
+            wardrobe_ref = db.collection('wardrobe').where('userId', '==', user_id)
+            wardrobe_docs = wardrobe_ref.stream()
+            
+            for wardrobe_doc in wardrobe_docs:
+                item_data = wardrobe_doc.to_dict()
+                if item_data.get('isFavorite') or item_data.get('favorite_score', 0) > 0.7:
+                    favorited_items.add(item_data.get('id'))
+            
+            logger.info(f"📊 Feedback data loaded: {len(outfit_ratings)} rated items, {len(favorited_items)} favorites")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to load user feedback data: {e}")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # ALTERNATING WEAR COUNT STRATEGY (like Netflix's explore/exploit)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Determine if this generation should boost rarely-worn or popular items
+        # Alternate based on user_id + current day to ensure variety
+        day_of_year = datetime.now().timetuple().tm_yday
+        user_hash = hash(user_id) % 2
+        boost_rare = (day_of_year + user_hash) % 2 == 0  # Alternate every day per user
+        
+        if boost_rare:
+            logger.info(f"🔄 WEAR COUNT STRATEGY: Boosting rarely-worn items (diversity mode)")
+        else:
+            logger.info(f"🔄 WEAR COUNT STRATEGY: Boosting popular items (favorites mode)")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # SCORE EACH ITEM BASED ON USER FEEDBACK
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        for item_id, scores in item_scores.items():
+            item = scores['item']
+            base_score = 0.5  # Neutral starting point
+            
+            # ─────────────────────────────────────────────────────────────
+            # 1. OUTFIT RATING INFLUENCE (items from highly-rated outfits)
+            # ─────────────────────────────────────────────────────────────
+            if item_id in outfit_ratings:
+                ratings = outfit_ratings[item_id]
+                avg_rating = sum(ratings) / len(ratings)
+                
+                # Normalize to 0-1 scale (5-star scale)
+                rating_score = (avg_rating - 1) / 4  # Maps 1-5 to 0-1
+                base_score += rating_score * 0.3  # Up to +0.3 for perfect ratings
+                
+                logger.debug(f"  ⭐ {item.name}: Avg outfit rating {avg_rating:.1f} → +{rating_score * 0.3:.2f}")
+            
+            # ─────────────────────────────────────────────────────────────
+            # 2. LIKES/DISLIKES (same weight as ratings)
+            # ─────────────────────────────────────────────────────────────
+            if item_id in outfit_likes:
+                likes = outfit_likes[item_id]['likes']
+                dislikes = outfit_likes[item_id]['dislikes']
+                total_feedback = likes + dislikes
+                
+                if total_feedback > 0:
+                    like_ratio = likes / total_feedback
+                    like_score = like_ratio  # 0-1 scale
+                    base_score += like_score * 0.3  # Up to +0.3 (same weight as ratings)
+                    
+                    logger.debug(f"  👍 {item.name}: {likes}L/{dislikes}D (ratio={like_ratio:.2f}) → +{like_score * 0.3:.2f}")
+                    
+                    # Penalty for heavily disliked items
+                    if dislikes > likes and dislikes >= 2:
+                        base_score -= 0.2
+                        logger.debug(f"  👎 {item.name}: Heavily disliked → -0.20")
+            
+            # ─────────────────────────────────────────────────────────────
+            # 3. FAVORITED ITEMS (prioritize if not worn this week)
+            # ─────────────────────────────────────────────────────────────
+            if item_id in favorited_items:
+                # Check if worn this week
+                worn_this_week = False
+                if item_id in item_wear_history:
+                    recent_wears = [w for w in item_wear_history[item_id] if w > one_week_ago]
+                    worn_this_week = len(recent_wears) > 0
+                
+                if not worn_this_week:
+                    # PRIORITIZE: Big boost for favorited items not worn this week
+                    base_score += 0.4
+                    logger.info(f"  ⭐💎 {item.name}: FAVORITE not worn this week → +0.40 (PRIORITY)")
+                else:
+                    # Still boost, but less
+                    base_score += 0.15
+                    logger.debug(f"  ⭐ {item.name}: Favorite (worn this week) → +0.15")
+            
+            # ─────────────────────────────────────────────────────────────
+            # 4. WEAR COUNT ALTERNATION (explore vs exploit)
+            # ─────────────────────────────────────────────────────────────
+            item_wear_count = getattr(item, 'wearCount', 0)
+            
+            if boost_rare:
+                # BOOST RARELY-WORN ITEMS (discovery/diversity mode)
+                if item_wear_count == 0:
+                    base_score += 0.25  # Never worn - high boost
+                    logger.debug(f"  🆕 {item.name}: Never worn → +0.25 (discovery)")
+                elif item_wear_count <= 3:
+                    base_score += 0.15  # Lightly worn - moderate boost
+                    logger.debug(f"  🌱 {item.name}: Lightly worn ({item_wear_count}) → +0.15")
+                elif item_wear_count > 15:
+                    base_score -= 0.10  # Overused - penalty
+                    logger.debug(f"  🔁 {item.name}: Overused ({item_wear_count}) → -0.10")
+            else:
+                # BOOST POPULAR ITEMS (reliability/favorites mode)
+                if item_wear_count >= 5 and item_wear_count <= 15:
+                    base_score += 0.20  # Sweet spot - proven favorites
+                    logger.debug(f"  🌟 {item.name}: Popular ({item_wear_count} wears) → +0.20")
+                elif item_wear_count > 15:
+                    base_score += 0.10  # Very popular - still boost but less
+                    logger.debug(f"  ⭐ {item.name}: Very popular ({item_wear_count}) → +0.10")
+                elif item_wear_count == 0:
+                    base_score -= 0.05  # Never worn - small penalty in favorites mode
+            
+            # ─────────────────────────────────────────────────────────────
+            # 5. RECENCY BIAS (recently worn items slight penalty)
+            # ─────────────────────────────────────────────────────────────
+            if item_id in item_wear_history:
+                recent_wears = [w for w in item_wear_history[item_id] if w > one_week_ago]
+                if len(recent_wears) >= 2:
+                    base_score -= 0.10  # Worn 2+ times this week - give it a rest
+                    logger.debug(f"  🔄 {item.name}: Worn {len(recent_wears)} times this week → -0.10")
+            
+            # ─────────────────────────────────────────────────────────────
+            # 6. STYLE EVOLUTION TRACKING
+            # ─────────────────────────────────────────────────────────────
+            # Check if item's style aligns with user's evolving preferences
+            # (Items from recently high-rated outfits in this style get boost)
+            item_styles = getattr(item, 'style', [])
+            if isinstance(item_styles, str):
+                item_styles = [item_styles]
+            
+            # Check recent outfit ratings for this style
+            style_evolution_bonus = 0.0
+            for style in item_styles:
+                # If user has been rating outfits with this style highly recently,
+                # this indicates style evolution/preference
+                # (Simplified for now - could be enhanced with time-weighted analysis)
+                if item_id in outfit_ratings and len(outfit_ratings[item_id]) >= 2:
+                    recent_ratings = outfit_ratings[item_id][-3:]  # Last 3 ratings
+                    if sum(recent_ratings) / len(recent_ratings) >= 4.0:
+                        style_evolution_bonus = 0.15
+                        logger.debug(f"  📈 {item.name}: Style evolution detected (+0.15)")
+                        break
+            
+            base_score += style_evolution_bonus
+            
+            # Ensure score stays in valid range
+            item_scores[item_id]['user_feedback_score'] = min(1.0, max(0.0, base_score))
+        
+        logger.info(f"⭐ USER FEEDBACK ANALYZER: Completed scoring with learning algorithm")
+        logger.info(f"   Mode: {'🔍 Discovery (boost rarely-worn)' if boost_rare else '⭐ Favorites (boost popular)'}")
     
     async def _cohesive_composition_with_scores(self, context: GenerationContext, item_scores: dict) -> OutfitGeneratedOutfit:
         """Generate cohesive outfit using multi-layered scores with intelligent layering"""
