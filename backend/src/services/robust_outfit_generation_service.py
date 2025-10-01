@@ -1280,16 +1280,26 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
         
-        # FALLBACK: If no suitable items found, use basic filtering
+        # PROGRESSIVE RELAXATION: If no suitable items found, gradually relax restrictions
         if len(suitable_items) == 0:
-            logger.warning(f"🚨 NO SUITABLE ITEMS: Using basic fallback filtering")
-            # Basic fallback: just filter by type, ignore occasion/style restrictions
-            for item in context.wardrobe:
-                if hasattr(item, 'type') and item.type in ['shirt', 'pants', 'shoes', 'jacket']:
-                    suitable_items.append(item)
-                    logger.info(f"🔄 FALLBACK: Added {getattr(item, 'name', 'Unknown')} (type: {getattr(item, 'type', 'unknown')})")
+            logger.warning(f"🚨 NO SUITABLE ITEMS: Using progressive relaxation")
             
-            logger.info(f"🔄 FALLBACK: Total items after fallback: {len(suitable_items)}")
+            # Level 1: Relax occasion filtering only
+            logger.info(f"🔄 LEVEL 1: Relaxing occasion filtering...")
+            for item in context.wardrobe:
+                if self._is_style_compatible(item, context.style):
+                    suitable_items.append(item)
+                    logger.info(f"🔄 RELAXED: Added {getattr(item, 'name', 'Unknown')} (occasion relaxed)")
+            
+            # Level 2: If still no items, relax style filtering too
+            if len(suitable_items) == 0:
+                logger.info(f"🔄 LEVEL 2: Relaxing style filtering...")
+                for item in context.wardrobe:
+                    if hasattr(item, 'type') and item.type in ['shirt', 'pants', 'shoes', 'jacket']:
+                        suitable_items.append(item)
+                        logger.info(f"🔄 RELAXED: Added {getattr(item, 'name', 'Unknown')} (style relaxed)")
+            
+            logger.info(f"🔄 PROGRESSIVE RELAXATION: Total items after relaxation: {len(suitable_items)}")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         return suitable_items
@@ -1607,7 +1617,7 @@ class RobustOutfitGenerationService:
         # If no occasion information available, be permissive
         item_occasions = getattr(item, 'occasion', [])
         if not item_occasions:
-            logger.info(f"🔍 OCCASION: No occasion metadata for {item_name}, allowing")
+            logger.info(f"🔍 OCCASION: No occasion metadata for {item_name}, allowing (versatile item)")
             return True
         
         # Normalize occasions list
@@ -1623,10 +1633,10 @@ class RobustOutfitGenerationService:
         # Check for broad compatibility patterns
         compatibility_patterns = {
             'athletic': ['casual', 'athletic', 'sport'],
-            'business': ['business', 'formal', 'professional'],
-            'casual': ['casual', 'everyday', 'relaxed'],
-            'formal': ['formal', 'business', 'professional'],
-            'party': ['party', 'casual', 'evening'],
+            'business': ['business', 'formal', 'professional', 'casual'],  # Added casual
+            'casual': ['casual', 'everyday', 'relaxed', 'business'],  # Added business
+            'formal': ['formal', 'business', 'professional', 'casual'],  # Added casual
+            'party': ['party', 'casual', 'evening', 'business'],  # Added business
             'wedding': ['formal', 'wedding', 'special'],
             'vacation': ['casual', 'vacation', 'relaxed']
         }
@@ -1669,7 +1679,7 @@ class RobustOutfitGenerationService:
         
         # If no style information available, be permissive
         if not item_styles and not item_tags:
-            logger.info(f"🔍 STYLE: No style metadata for {item_name}, allowing")
+            logger.info(f"🔍 STYLE: No style metadata for {item_name}, allowing (versatile item)")
             return True
         
         # Normalize styles list
@@ -1684,12 +1694,13 @@ class RobustOutfitGenerationService:
             logger.info(f"✅ STYLE: {item_name} explicitly matches {style_lower}")
             return True
         
-        # Check for broad style compatibility
+        # Check for broad style compatibility - more permissive
         style_compatibility = {
-            'classic': ['formal', 'business', 'professional', 'traditional'],
+            'classic': ['formal', 'business', 'professional', 'traditional', 'casual'],  # Added casual
             'athletic': ['sporty', 'active', 'casual', 'comfortable'],
-            'casual': ['relaxed', 'everyday', 'comfortable', 'informal'],
-            'formal': ['classic', 'business', 'professional', 'elegant'],
+            'casual': ['relaxed', 'everyday', 'comfortable', 'informal', 'classic', 'business'],  # Added classic, business
+            'formal': ['classic', 'business', 'professional', 'elegant', 'casual'],  # Added casual
+            'elegant': ['formal', 'classic', 'business', 'professional'],  # Added for formal+elegant
             'streetwear': ['urban', 'trendy', 'casual', 'edgy'],
             'edgy': ['streetwear', 'urban', 'trendy', 'alternative']
         }
