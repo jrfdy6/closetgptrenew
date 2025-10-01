@@ -3127,102 +3127,7 @@ def _force_minimum_outfit(suitable_items: List[Dict[str, Any]], occasion: str, s
     logger.info(f"🔧 FORCE MINIMUM: Created outfit with {len(minimum_outfit)} items")
     return minimum_outfit
 
-def _emergency_outfit(wardrobe: List[Dict[str, Any]], occasion: str) -> List[Dict[str, Any]]:
-    """Generate emergency outfit that always passes validation rules."""
-    logger.warning(f"🚨 EMERGENCY OUTFIT: Generating guaranteed valid outfit for {occasion}")
-    
-    emergency_items = []
-    occasion_lower = occasion.lower()
-    
-    def find_first_item(wardrobe: List[Dict[str, Any]], category: str, style_keywords: List[str]) -> Dict[str, Any]:
-        """Find first item matching category and style keywords."""
-        for item in wardrobe:
-            item_type = item.get('type', '').lower()
-            item_name = item.get('name', '').lower()
-            
-            # Check if item matches category
-            category_types = {
-                'tops': ['shirt', 'blouse', 't-shirt', 'top', 'tank', 'sweater', 'hoodie', 'sweatshirt'],
-                'bottoms': ['pants', 'jeans', 'shorts', 'skirt', 'bottom', 'leggings', 'joggers', 'sweatpants'],
-                'shoes': ['shoes', 'sneakers', 'boots', 'sandals', 'athletic shoes']
-            }
-            
-            if item_type in category_types.get(category, []):
-                # Check if item matches style keywords
-                if any(keyword in item_name for keyword in style_keywords):
-                    return item
-        
-        # If no match found, return any item from category
-        for item in wardrobe:
-            item_type = item.get('type', '').lower()
-            if item_type in category_types.get(category, []):
-                return item
-        
-        # Last resort: return any item
-        return wardrobe[0] if wardrobe else None
-    
-    if 'athletic' in occasion_lower or 'gym' in occasion_lower or 'workout' in occasion_lower:
-        # Athletic → sneakers + shorts + athletic top
-        top = find_first_item(wardrobe, 'tops', ['athletic', 'sport', 'gym', 'workout', 'jersey', 'tank'])
-        bottom = find_first_item(wardrobe, 'bottoms', ['athletic', 'sport', 'gym', 'workout', 'shorts', 'joggers'])
-        shoes = find_first_item(wardrobe, 'shoes', ['sneaker', 'athletic', 'sport', 'gym', 'workout'])
-        
-        if top:
-            emergency_items.append(top)
-        if bottom:
-            emergency_items.append(bottom)
-        if shoes:
-            emergency_items.append(shoes)
-            
-        logger.info(f"🚨 EMERGENCY ATHLETIC: Selected {len(emergency_items)} athletic items")
-    
-    elif 'business' in occasion_lower or 'formal' in occasion_lower or 'interview' in occasion_lower:
-        # Business → oxford + blazer + slacks
-        top = find_first_item(wardrobe, 'tops', ['dress shirt', 'button down', 'button-up', 'blazer', 'suit jacket'])
-        bottom = find_first_item(wardrobe, 'bottoms', ['dress pant', 'suit pant', 'trouser', 'slack', 'formal pant'])
-        shoes = find_first_item(wardrobe, 'shoes', ['dress shoe', 'oxford', 'loafer', 'derby', 'wingtip', 'brogue'])
-        
-        if top:
-            emergency_items.append(top)
-        if bottom:
-            emergency_items.append(bottom)
-        if shoes:
-            emergency_items.append(shoes)
-            
-        logger.info(f"🚨 EMERGENCY FORMAL: Selected {len(emergency_items)} formal items")
-    
-    elif 'casual' in occasion_lower or 'weekend' in occasion_lower:
-        # Casual → jeans + tee + sneakers
-        top = find_first_item(wardrobe, 'tops', ['t-shirt', 'tee', 'casual', 'sweater', 'hoodie'])
-        bottom = find_first_item(wardrobe, 'bottoms', ['jeans', 'casual', 'pants', 'shorts'])
-        shoes = find_first_item(wardrobe, 'shoes', ['sneaker', 'casual', 'canvas'])
-        
-        if top:
-            emergency_items.append(top)
-        if bottom:
-            emergency_items.append(bottom)
-        if shoes:
-            emergency_items.append(shoes)
-            
-        logger.info(f"🚨 EMERGENCY CASUAL: Selected {len(emergency_items)} casual items")
-    
-    else:
-        # Default fallback for other occasions
-        logger.warning(f"🚨 EMERGENCY DEFAULT: Unknown occasion {occasion}, using safe defaults")
-        for category in ['tops', 'bottoms', 'shoes']:
-            item = find_first_item(wardrobe, category, [])
-            if item:
-                emergency_items.append(item)
-    
-    # Ensure we have at least 3 items
-    if len(emergency_items) < 3:
-        logger.warning(f"🚨 EMERGENCY INCOMPLETE: Only {len(emergency_items)} items, adding more")
-        for item in wardrobe:
-            if item not in emergency_items and len(emergency_items) < 3:
-                emergency_items.append(item)
-    
-    logger.info(f"🚨 EMERGENCY COMPLETE: Generated {len(emergency_items)} items for {occasion}")
-    return emergency_items
+# REMOVED: _emergency_outfit function - was overwriting robust service strategy
 
 def _select_priority_item(items: List[Dict[str, Any]], occasion: str, style: str, category: str) -> Dict[str, Any]:
     """Select the highest priority item for the given occasion and category."""
@@ -3568,12 +3473,9 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     
     # FINAL SAFETY NET: Ensure we have at least some items
     if len(selected_items) == 0:
-        logger.warning(f"🚨 FINAL SAFETY NET: No items selected, using emergency fallback")
-        print(f"🚨 EMERGENCY FALLBACK: No items selected, using emergency fallback")
-        
-        # Use guaranteed validation-pass emergency outfit
-        selected_items = _emergency_outfit(wardrobe_items, req.occasion)
-        logger.info(f"🚨 EMERGENCY FALLBACK: Generated {len(selected_items)} guaranteed valid items")
+        logger.error(f"🚨 NO ITEMS SELECTED: Rule-based generation failed to select any items")
+        print(f"🚨 NO ITEMS SELECTED: Rule-based generation failed to select any items")
+        # NO EMERGENCY FALLBACK - let the robust service handle this
     
     # FALLBACK COMPLETION SUMMARY
     print(f"🚨 FALLBACK COMPLETED: Generated fallback outfit with {len(selected_items)} items")
@@ -5501,38 +5403,11 @@ async def generate_outfit(
                                     await asyncio.sleep(1)  # Brief delay before retry
                                     continue
                                 else:
-                                    # Final attempt failed validation - use emergency outfit
-                                    logger.warning(f"⚠️ VALIDATION FAILURE: Using guaranteed validation-pass emergency outfit")
-                                    print(f"🚨 VALIDATION FAILURE: Using guaranteed validation-pass emergency outfit")
-                                    emergency_items = _emergency_outfit(wardrobe_items, req.occasion)
-                                    
-                                    # Create emergency outfit response
-                                    outfit = {
-                                        'id': str(uuid4()),
-                                        'name': f"Emergency {req.style} {req.occasion} Outfit",
-                                        'occasion': req.occasion,
-                                        'style': req.style,
-                                        'mood': req.mood,
-                                        'confidence': 0.3,  # Low confidence for emergency outfit
-                                        'items': emergency_items,
-                                        'reasoning': f"Emergency outfit generated after {max_attempts} validation failures. This outfit is guaranteed to pass validation rules.",
-                                        'createdAt': datetime.now().isoformat() + 'Z',
-                                        'userId': current_user_id,
-                                        'weather_data': req.weather.__dict__ if hasattr(req.weather, '__dict__') else req.weather,
-                                        'pieces': len(emergency_items),
-                                        'explanation': f"Emergency generation for {req.occasion} occasion",
-                                        'styleTags': [req.style] if req.style else [],
-                                        'colorHarmony': {"score": 50, "notes": "Emergency outfit - basic color harmony"},
-                                        'styleNotes': f"Emergency outfit for {req.occasion} - guaranteed validation pass",
-                                        'season': "all",
-                                        'updatedAt': datetime.now().isoformat() + 'Z',
-                                        'metadata': {"generation_strategy": "emergency_validation_pass"},
-                                        'wasSuccessful': True,
-                                        'baseItemId': req.baseItemId,
-                                        'validationErrors': [],
-                                        'userFeedback': None
-                                    }
-                                    break
+                                    # Final attempt failed validation - NO EMERGENCY FALLBACK
+                                    logger.error(f"❌ VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                    print(f"🚨 VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                    # NO EMERGENCY FALLBACK - let the robust service handle this
+                                    raise Exception(f"Validation failed after {max_attempts} attempts")
                                 
                     except Exception as validation_error:
                         logger.warning(f"⚠️ Validation pipeline failed: {validation_error}, continuing with outfit")
@@ -6830,54 +6705,7 @@ def _apply_final_outfit_validation(outfit: Dict[str, Any]) -> Dict[str, Any]:
                    item_name in ['shoes', 'sneakers', 'boots', 'sandals', 'heels', 'flip-flops', 'slides', 'mules', 'espadrilles', 'oxford', 'loafers', 'dress shoes', 'pumps', 'ankle boots', 'knee high boots', 'chelsea boots', 'combat boots', 'running shoes', 'training shoes', 'high top sneakers', 'low top sneakers']
                    for item_type, item_name in zip(final_item_types, final_item_names))
     
-    # If any essential category is missing, add fallback items
-    if not has_top:
-        final_items.append({
-            'id': 'fallback_top',
-            'name': 'Basic Top',
-            'type': 't-shirt',
-            'color': 'white',
-            'imageUrl': '',
-            'style': 'casual',
-            'occasion': 'casual',
-            'brand': '',
-            'wearCount': 0,
-            'favorite_score': 0,
-            'tags': [],
-            'metadata': {}
-        })
-    
-    if not has_bottom:
-        final_items.append({
-            'id': 'fallback_bottom',
-            'name': 'Basic Pants',
-            'type': 'pants',
-            'color': 'black',
-            'imageUrl': '',
-            'style': 'casual',
-            'occasion': 'casual',
-            'brand': '',
-            'wearCount': 0,
-            'favorite_score': 0,
-            'tags': [],
-            'metadata': {}
-        })
-    
-    if not has_shoes:
-        final_items.append({
-            'id': 'fallback_shoes',
-            'name': 'Basic Shoes',
-            'type': 'sneakers',
-            'color': 'white',
-            'imageUrl': '',
-            'style': 'casual',
-            'occasion': 'casual',
-            'brand': '',
-            'wearCount': 0,
-            'favorite_score': 0,
-            'tags': [],
-            'metadata': {}
-        })
+    # NO FALLBACK ITEMS - let the robust service handle missing categories
     
     outfit['items'] = final_items
     
