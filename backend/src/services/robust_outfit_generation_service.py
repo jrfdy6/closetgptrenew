@@ -1793,10 +1793,13 @@ class RobustOutfitGenerationService:
                 mood_mappings = {
                     'professional': ['serious', 'business', 'formal'],
                     'relaxed': ['comfortable', 'casual', 'easy'],
-                    'bold': ['dramatic', 'striking', 'confident'],
+                    'bold': ['dramatic', 'striking', 'confident', 'energetic', 'motivated', 'active'],  # Added athletic moods
                     'comfortable': ['relaxed', 'easy', 'casual'],
                     'sophisticated': ['elegant', 'refined', 'classic'],
-                    'energetic': ['active', 'dynamic', 'vibrant']
+                    'energetic': ['active', 'dynamic', 'vibrant', 'motivated', 'bold'],  # Added bold
+                    'confident': ['bold', 'energetic', 'motivated', 'active'],  # Added athletic moods
+                    'motivated': ['energetic', 'active', 'bold', 'confident'],  # Added athletic moods
+                    'active': ['energetic', 'motivated', 'bold', 'confident']  # Added athletic moods
                 }
                 
                 if mood_lower in mood_mappings:
@@ -1903,9 +1906,10 @@ class RobustOutfitGenerationService:
         
         # Check for broad style compatibility - more permissive
         style_compatibility = {
-            'classic': ['formal', 'business', 'professional', 'traditional', 'casual'],  # Added casual
-            'athletic': ['sporty', 'active', 'casual', 'comfortable'],
-            'casual': ['relaxed', 'everyday', 'comfortable', 'informal', 'classic', 'business'],  # Added classic, business
+            'classic': ['formal', 'business', 'professional', 'traditional', 'casual', 'sporty', 'athletic'],  # Added sporty, athletic
+            'athletic': ['sporty', 'active', 'casual', 'comfortable', 'classic'],  # Added classic
+            'sporty': ['athletic', 'active', 'casual', 'comfortable', 'classic'],  # Added classic
+            'casual': ['relaxed', 'everyday', 'comfortable', 'informal', 'classic', 'business', 'athletic', 'sporty'],  # Added athletic, sporty
             'formal': ['classic', 'business', 'professional', 'elegant', 'casual'],  # Added casual
             'elegant': ['formal', 'classic', 'business', 'professional'],  # Added for formal+elegant
             'streetwear': ['urban', 'trendy', 'casual', 'edgy'],
