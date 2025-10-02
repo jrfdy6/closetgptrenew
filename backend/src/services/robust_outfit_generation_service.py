@@ -523,18 +523,25 @@ class RobustOutfitGenerationService:
         
         for item_id, scores in item_scores.items():
             # Multi-layered scoring with dynamic weights
-            composite = (
+            base_score = (
                 scores['body_type_score'] * body_weight +
                 scores['style_profile_score'] * style_weight +
                 scores['weather_score'] * weather_weight
             )
-            scores['composite_score'] = composite
+            
+            # Apply soft constraint penalties/bonuses
+            soft_penalty = self._soft_score(scores['item'], context.occasion, context.style)
+            final_score = base_score + soft_penalty
+            
+            scores['composite_score'] = final_score
+            scores['soft_penalty'] = soft_penalty
+            scores['base_score'] = base_score
         
         # Log top scored items
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
         logger.info(f"🏆 Top 5 scored items:")
         for i, (item_id, scores) in enumerate(sorted_items[:5]):
-            logger.info(f"  {i+1}. {scores['item'].name}: composite={scores['composite_score']:.2f} (body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f})")
+            logger.info(f"  {i+1}. {scores['item'].name}: final={scores['composite_score']:.2f} (base={scores['base_score']:.2f}, penalty={scores['soft_penalty']:.2f}) [body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}]")
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: Cohesive Composition with Multi-Layered Scores
@@ -1384,36 +1391,25 @@ class RobustOutfitGenerationService:
         return outfit
     
     async def _filter_suitable_items(self, context: GenerationContext) -> List[ClothingItem]:
-        """Filter wardrobe items suitable for the occasion and style"""
-        logger.info(f"🔍 FILTER: Starting filtering for occasion={context.occasion}, style={context.style}")
-        logger.info(f"🔍 FILTER: Wardrobe has {len(context.wardrobe)} items")
+        """Apply hard filters to remove contextually impossible items"""
+        logger.info(f"🔍 HARD FILTER: Starting hard filtering for occasion={context.occasion}, style={context.style}")
+        logger.info(f"🔍 HARD FILTER: Wardrobe has {len(context.wardrobe)} items")
+        
         suitable_items = []
-        occasion_rejected = 0
-        style_rejected = 0
+        hard_rejected = 0
         
         for i, item in enumerate(context.wardrobe):
-            logger.info(f"🔍 FILTER: Item {i+1}: {getattr(item, 'name', 'Unknown')} (type: {getattr(item, 'type', 'unknown')})")
+            logger.info(f"🔍 HARD FILTER: Item {i+1}: {getattr(item, 'name', 'Unknown')} (type: {getattr(item, 'type', 'unknown')})")
             
-            # Check occasion compatibility with advanced parameters
-            occasion_compatible = self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather)
-            logger.info(f"🔍 FILTER: Item {i+1} occasion compatible: {occasion_compatible}")
-            
-            if occasion_compatible:
-                # Check style compatibility
-                style_compatible = self._is_style_compatible(item, context.style)
-                logger.info(f"🔍 FILTER: Item {i+1} style compatible: {style_compatible}")
-                
-                if style_compatible:
-                    suitable_items.append(item)
-                    logger.info(f"✅ FILTER: Item {i+1} ACCEPTED")
-                else:
-                    style_rejected += 1
-                    logger.info(f"❌ FILTER: Item {i+1} REJECTED by style")
+            # Apply hard constraints - contextually impossible mappings
+            if self._hard_filter(item, context.occasion, context.style):
+                suitable_items.append(item)
+                logger.info(f"✅ HARD FILTER: Item {i+1} PASSED hard constraints")
             else:
-                occasion_rejected += 1
-                logger.info(f"❌ FILTER: Item {i+1} REJECTED by occasion")
+                hard_rejected += 1
+                logger.info(f"❌ HARD FILTER: Item {i+1} REJECTED by hard constraints")
         
-        logger.info(f"🔍 FILTER: Results - {len(suitable_items)} suitable, {occasion_rejected} rejected by occasion, {style_rejected} rejected by style")
+        logger.info(f"🔍 HARD FILTER: Results - {len(suitable_items)} passed hard filters, {hard_rejected} rejected")
         
         # PROGRESSIVE RELAXATION: If no suitable items found, stage the pruning
         if len(suitable_items) == 0:
@@ -1483,6 +1479,106 @@ class RobustOutfitGenerationService:
         logger.info(f"🌤️ HARD WEATHER FILTER: Weather rejections: {weather_rejected}")
         
         return weather_appropriate_items
+    
+    def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
+        """Hard constraints - contextually impossible mappings that should always reject"""
+        item_name = item.name.lower()
+        item_type = str(getattr(item, 'type', '')).lower()
+        occasion_lower = occasion.lower()
+        style_lower = style.lower()
+        
+        # Hard constraints - contextually impossible combinations
+        hard_constraints = [
+            # Athletic constraints
+            (item_type == 'tuxedo' and occasion_lower == 'athletic'),
+            (item_type == 'evening_gown' and occasion_lower == 'athletic'),
+            (item_type == 'high_heels' and occasion_lower == 'athletic'),
+            ('bikini' in item_name and occasion_lower == 'business'),
+            ('swimwear' in item_name and occasion_lower == 'business'),
+            ('pajamas' in item_name and occasion_lower in ['business', 'formal']),
+            ('underwear' in item_name and occasion_lower in ['business', 'formal']),
+            
+            # Business constraints  
+            ('workout' in item_name and occasion_lower == 'formal'),
+            ('gym' in item_name and occasion_lower == 'formal'),
+            ('sweatpants' in item_name and occasion_lower == 'formal'),
+            
+            # Weather constraints (extreme cases)
+            ('winter_coat' in item_name and occasion_lower == 'beach'),
+            ('parka' in item_name and occasion_lower == 'beach'),
+            ('shorts' in item_name and occasion_lower == 'formal' and 'athletic' not in item_name),
+        ]
+        
+        # If any hard constraint is violated, reject
+        for constraint in hard_constraints:
+            if constraint:
+                logger.info(f"❌ HARD CONSTRAINT: {item_name} violates hard constraint for {occasion_lower}")
+                return False
+        
+        # If no hard constraints violated, allow through
+        logger.info(f"✅ HARD CONSTRAINT: {item_name} passes hard constraints for {occasion_lower}")
+        return True
+    
+    def _soft_score(self, item: ClothingItem, occasion: str, style: str) -> float:
+        """Soft constraint scoring - penalties/bonuses for semi-compatible items"""
+        item_name = item.name.lower()
+        item_type = str(getattr(item, 'type', '')).lower()
+        occasion_lower = occasion.lower()
+        style_lower = style.lower()
+        
+        # Soft penalty matrix - configurable penalties for semi-compatible items
+        penalty_matrix = {
+            # Athletic occasion penalties
+            ('oxford', 'athletic'): -0.3,
+            ('loafer', 'athletic'): -0.3,
+            ('dress_shoe', 'athletic'): -0.3,
+            ('button_up', 'athletic'): -0.2,
+            ('dress_shirt', 'athletic'): -0.2,
+            ('dress_pants', 'athletic'): -0.4,
+            ('slacks', 'athletic'): -0.4,
+            ('blazer', 'athletic'): -0.3,
+            ('suit', 'athletic'): -0.5,
+            
+            # Business occasion penalties
+            ('tank', 'business'): -0.2,
+            ('athletic_shorts', 'business'): -0.4,
+            ('gym_shorts', 'business'): -0.4,
+            ('sweatpants', 'business'): -0.3,
+            ('sneaker', 'business'): -0.1,  # Less penalty - sneakers can be business casual
+            
+            # Formal occasion penalties
+            ('t_shirt', 'formal'): -0.3,
+            ('jeans', 'formal'): -0.2,
+            ('sneaker', 'formal'): -0.2,
+            ('casual_shirt', 'formal'): -0.1,
+        }
+        
+        # Check for penalties based on item characteristics
+        penalty = 0.0
+        
+        # Check item type penalties
+        for (item_pattern, occasion_pattern), penalty_value in penalty_matrix.items():
+            if item_pattern in item_name or item_pattern in item_type:
+                if occasion_pattern == occasion_lower:
+                    penalty += penalty_value
+                    logger.info(f"🎯 SOFT PENALTY: {item_name} gets {penalty_value} penalty for {occasion_lower}")
+        
+        # Check style penalties
+        style_penalty_matrix = {
+            ('athletic', 'formal'): -0.3,
+            ('sporty', 'formal'): -0.2,
+            ('casual', 'formal'): -0.1,
+            ('formal', 'athletic'): -0.2,
+            ('business', 'athletic'): -0.2,
+        }
+        
+        for (style_pattern, target_occasion), penalty_value in style_penalty_matrix.items():
+            if style_pattern in item_name or style_pattern in item_type:
+                if target_occasion == occasion_lower:
+                    penalty += penalty_value
+                    logger.info(f"🎯 STYLE PENALTY: {item_name} gets {penalty_value} style penalty for {occasion_lower}")
+        
+        return penalty
     
     async def _intelligent_item_selection(self, suitable_items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
