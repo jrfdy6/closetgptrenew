@@ -1456,76 +1456,60 @@ class RobustOutfitGenerationService:
         return weather_appropriate_items
     
     def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
-        """Hard constraints using compatibility matrix"""
-        try:
-            # Import compatibility matrix service
-            try:
-                from .compatibility_matrix import CompatibilityMatrixService
-            except ImportError:
-                from services.compatibility_matrix import CompatibilityMatrixService
-            compatibility_service = CompatibilityMatrixService()
-            
-            # Check compatibility (hard incompatibilities will return False)
-            result = compatibility_service.check_compatibility(
-                item, occasion, style, "Professional"  # Default mood for hard filtering
-            )
-            
-            return result.is_compatible
-            
-        except ImportError:
-            # Fallback to basic hard constraints if compatibility service not available
-            item_name = item.name.lower()
-            item_type = str(getattr(item, 'type', '')).lower()
-            occasion_lower = occasion.lower()
-            
-            # Basic hard constraints
-            hard_constraints = [
-                (item_type == 'tuxedo' and occasion_lower == 'athletic'),
-                (item_type == 'evening_gown' and occasion_lower == 'athletic'),
-                ('bikini' in item_name and occasion_lower == 'business'),
-                ('swimwear' in item_name and occasion_lower == 'business'),
-            ]
-            
-            for constraint in hard_constraints:
-                if constraint:
-                    return False
-            
-            return True
+        """Hard constraints - temporarily using basic approach for stability"""
+        # TEMPORARILY DISABLED: Compatibility matrix causing 502 errors
+        # TODO: Debug and re-enable compatibility matrix
+        
+        item_name = item.name.lower()
+        item_type = str(getattr(item, 'type', '')).lower()
+        occasion_lower = occasion.lower()
+        
+        # Basic hard constraints
+        hard_constraints = [
+            (item_type == 'tuxedo' and occasion_lower == 'athletic'),
+            (item_type == 'evening_gown' and occasion_lower == 'athletic'),
+            ('bikini' in item_name and occasion_lower == 'business'),
+            ('swimwear' in item_name and occasion_lower == 'business'),
+        ]
+        
+        for constraint in hard_constraints:
+            if constraint:
+                return False
+        
+        return True
     
     def _soft_score(self, item: ClothingItem, occasion: str, style: str, mood: str = "Professional") -> float:
-        """Soft constraint scoring using compatibility matrix"""
-        try:
-            # Import compatibility matrix service
-            try:
-                from .compatibility_matrix import CompatibilityMatrixService
-            except ImportError:
-                from services.compatibility_matrix import CompatibilityMatrixService
-            compatibility_service = CompatibilityMatrixService()
-            
-            # Get compatibility score from matrix
-            result = compatibility_service.check_compatibility(item, occasion, style, mood)
-            
-            if result.is_compatible:
-                # Convert matrix score (0-1) to penalty/bonus (-0.5 to +0.5)
-                # Matrix score 1.0 = +0.5 bonus, 0.0 = -0.5 penalty, 0.5 = neutral
-                penalty = (result.score - 0.5) * 1.0  # Scale to -0.5 to +0.5 range
-                return penalty
-            else:
-                return -0.5  # Hard rejection penalty
-                
-        except ImportError:
-            # Fallback to basic string matching if compatibility service not available
-            item_name = item.name.lower()
-            occasion_lower = occasion.lower()
-            
-            # Basic fallback penalties
-            if occasion_lower == 'athletic':
-                if any(word in item_name for word in ['button', 'dress', 'formal', 'business']):
-                    return -0.3
-                elif any(word in item_name for word in ['athletic', 'sport', 'gym', 'running']):
-                    return +0.3
-            
-            return 0.0  # Neutral
+        """Soft constraint scoring - temporarily using string matching for stability"""
+        # TEMPORARILY DISABLED: Compatibility matrix causing 502 errors
+        # TODO: Debug and re-enable compatibility matrix
+        
+        item_name = item.name.lower()
+        occasion_lower = occasion.lower()
+        
+        # Enhanced string matching with actual wardrobe patterns
+        if occasion_lower == 'athletic':
+            # Penalize business items
+            if any(word in item_name for word in ['button', 'dress', 'formal', 'business', 'polo ralph lauren', 'dockers']):
+                return -0.3
+            # Penalize dress shoes
+            elif any(word in item_name for word in ['smooth toe', 'oxford', 'loafer', 'dress shoe']):
+                return -0.3
+            # Penalize dress pants
+            elif any(word in item_name for word in ['slim fit pants', 'dress pants', 'slacks']):
+                return -0.4
+            # Boost athletic items
+            elif any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank', 'sneaker']):
+                return +0.3
+        
+        elif occasion_lower == 'business':
+            # Penalize athletic items
+            if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank']):
+                return -0.3
+            # Boost business items
+            elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
+                return +0.3
+        
+        return 0.0  # Neutral
     
     async def _intelligent_item_selection(self, suitable_items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
