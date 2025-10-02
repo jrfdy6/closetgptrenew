@@ -1459,7 +1459,10 @@ class RobustOutfitGenerationService:
         """Hard constraints using compatibility matrix"""
         try:
             # Import compatibility matrix service
-            from .compatibility_matrix import CompatibilityMatrixService
+            try:
+                from .compatibility_matrix import CompatibilityMatrixService
+            except ImportError:
+                from services.compatibility_matrix import CompatibilityMatrixService
             compatibility_service = CompatibilityMatrixService()
             
             # Check compatibility (hard incompatibilities will return False)
@@ -1493,7 +1496,10 @@ class RobustOutfitGenerationService:
         """Soft constraint scoring using compatibility matrix"""
         try:
             # Import compatibility matrix service
-            from .compatibility_matrix import CompatibilityMatrixService
+            try:
+                from .compatibility_matrix import CompatibilityMatrixService
+            except ImportError:
+                from services.compatibility_matrix import CompatibilityMatrixService
             compatibility_service = CompatibilityMatrixService()
             
             # Get compatibility score from matrix
