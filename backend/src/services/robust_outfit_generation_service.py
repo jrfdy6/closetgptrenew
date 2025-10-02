@@ -2813,7 +2813,27 @@ class RobustOutfitGenerationService:
             # DEBUG: Add more detailed error info
             error_msg = f"DEBUG: No scored items received. Context has {len(context.wardrobe)} items. Item scores dict: {item_scores}"
             logger.error(f"🚨 {error_msg}")
-            raise Exception(f"No scored items provided to cohesive composition. {error_msg}")
+            
+            # Create detailed debug response
+            debug_info = {
+                "context_wardrobe_count": len(context.wardrobe),
+                "item_scores_count": len(item_scores) if item_scores else 0,
+                "item_scores_keys": list(item_scores.keys()) if item_scores else [],
+                "context_occasion": context.occasion,
+                "context_style": context.style,
+                "context_mood": context.mood,
+                "context_user_id": context.user_id,
+                "wardrobe_items": [
+                    {
+                        "id": getattr(item, 'id', 'NO_ID'),
+                        "name": getattr(item, 'name', 'NO_NAME'),
+                        "type": str(getattr(item, 'type', 'NO_TYPE')),
+                        "color": getattr(item, 'color', 'NO_COLOR')
+                    } for item in context.wardrobe[:3]  # First 3 items
+                ]
+            }
+            
+            raise Exception(f"No scored items provided to cohesive composition. DEBUG: {debug_info}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # INTELLIGENT ITEM COUNT & LAYERING DECISION
