@@ -1438,20 +1438,20 @@ class RobustOutfitGenerationService:
             item_name_lower = item.name.lower()
             item_type_lower = str(getattr(item, 'type', '')).lower()
             
-            # Hard filter for extreme weather
-            if temp >= 85:  # Extreme heat
+            # BALANCED weather filtering - less aggressive
+            if temp >= 90:  # Extreme heat only
                 hot_inappropriate = ['wool', 'fleece', 'sweater', 'jacket', 'coat', 'heavy', 'long sleeve']
                 if any(keyword in item_name_lower or keyword in item_type_lower for keyword in hot_inappropriate):
                     logger.warning(f"🔥 HARD FILTER: {item.name} REMOVED for {temp}°F extreme heat")
                     weather_rejected += 1
                     continue
-            elif temp >= 75:  # Hot weather
+            elif temp >= 80:  # Hot weather - more permissive
                 hot_inappropriate = ['wool', 'fleece', 'sweater', 'jacket', 'coat', 'heavy']
                 if any(keyword in item_name_lower or keyword in item_type_lower for keyword in hot_inappropriate):
                     logger.warning(f"🌡️ HARD FILTER: {item.name} REMOVED for {temp}°F hot weather")
                     weather_rejected += 1
                     continue
-            elif temp < 45:  # Cold weather
+            elif temp < 40:  # Cold weather - more permissive
                 cold_inappropriate = ['shorts', 'sandals', 'tank', 'light', 'summer']
                 if any(keyword in item_name_lower or keyword in item_type_lower for keyword in cold_inappropriate):
                     logger.warning(f"❄️ HARD FILTER: {item.name} REMOVED for {temp}°F cold weather")
@@ -1774,6 +1774,40 @@ class RobustOutfitGenerationService:
         """Balanced occasion compatibility check - not too strict, not too loose"""
         occasion_lower = occasion.lower()
         item_name = item.name.lower()
+        
+        # MOOD COMPATIBILITY CHECK (NEW)
+        if mood:
+            mood_lower = mood.lower()
+            item_moods = getattr(item, 'mood', [])
+            if isinstance(item_moods, str):
+                item_moods = [item_moods]
+            item_moods_lower = [m.lower() for m in item_moods]
+            
+            # Check for mood compatibility
+            mood_compatible = False
+            if mood_lower in item_moods_lower:
+                mood_compatible = True
+                logger.info(f"✅ MOOD: {item_name} matches mood {mood_lower}")
+            else:
+                # Flexible mood matching for common mood combinations
+                mood_mappings = {
+                    'professional': ['serious', 'business', 'formal'],
+                    'relaxed': ['comfortable', 'casual', 'easy'],
+                    'bold': ['dramatic', 'striking', 'confident'],
+                    'comfortable': ['relaxed', 'easy', 'casual'],
+                    'sophisticated': ['elegant', 'refined', 'classic'],
+                    'energetic': ['active', 'dynamic', 'vibrant']
+                }
+                
+                if mood_lower in mood_mappings:
+                    compatible_moods = mood_mappings[mood_lower]
+                    if any(compat_mood in item_moods_lower for compat_mood in compatible_moods):
+                        mood_compatible = True
+                        logger.info(f"✅ MOOD FLEXIBLE: {item_name} compatible with {mood_lower} via mood mapping")
+                
+                if not mood_compatible:
+                    logger.info(f"❌ MOOD: {item_name} not compatible with mood {mood_lower}")
+                    return False
         
         # NEUTRAL DEFAULT: If no occasion information available, treat as flexible/neutral
         item_occasions = getattr(item, 'occasion', [])
@@ -2374,40 +2408,40 @@ class RobustOutfitGenerationService:
                             base_score += 0.15
                             break
                 
-                # Hot weather items - PROGRESSIVE PENALTIES
-                elif temp > 70:  # Lower threshold for hot weather penalties
+                # Hot weather items - BALANCED PENALTIES
+                elif temp > 75:  # Higher threshold for hot weather penalties
                     hot_keywords = ['cotton', 'linen', 'short sleeve', 'shorts', 'sandals', 'tank', 'light']
                     hot_appropriate = False
                     for keyword in hot_keywords:
                         if keyword in item_name_lower or keyword in item_type_lower:
-                            base_score += 0.25  # Strong boost for hot weather appropriate items
+                            base_score += 0.2  # Boost for hot weather appropriate items
                             hot_appropriate = True
                             break
                     
-                    # PROGRESSIVE PENALTIES based on temperature
+                    # BALANCED PENALTIES based on temperature
                     hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots', 'heavy']
                     for keyword in hot_inappropriate:
                         if keyword in item_name_lower or keyword in item_type_lower:
-                            if temp >= 85:  # Extreme heat - HARD FILTER
-                                base_score = 0.0  # Complete elimination for extreme heat
-                                logger.warning(f"🔥 HARD FILTER: {item_name} eliminated for {temp}°F extreme heat")
-                            elif temp >= 75:  # Hot weather - STRONG PENALTY
-                                base_score -= 0.4  # Much stronger penalty for hot weather
-                                logger.info(f"🌡️ HOT PENALTY: {item_name} heavily penalized for {temp}°F")
-                            else:  # Warm weather (70-75°F)
-                                base_score -= 0.2  # Moderate penalty
+                            if temp >= 90:  # Extreme heat - STRONG PENALTY
+                                base_score -= 0.3  # Strong penalty but don't eliminate completely
+                                logger.warning(f"🔥 HOT PENALTY: {item_name} penalized for {temp}°F extreme heat")
+                            elif temp >= 80:  # Hot weather - MODERATE PENALTY
+                                base_score -= 0.2  # Moderate penalty for hot weather
+                                logger.info(f"🌡️ HOT PENALTY: {item_name} penalized for {temp}°F hot weather")
+                            else:  # Warm weather (75-80°F)
+                                base_score -= 0.1  # Light penalty
                             break
                 
-                # Moderate weather (50-70°F) - neutral scoring with minimal penalties
+                # Moderate weather (40-75°F) - neutral scoring with minimal penalties
                 else:
                     # Very light penalty for extreme weather items in moderate weather
-                    if temp > 60:
+                    if temp > 70:
                         hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater']
                         for keyword in hot_inappropriate:
                             if keyword in item_name_lower or keyword in item_type_lower:
                                 base_score -= 0.05  # Very small penalty
                                 break
-                    elif temp < 55:
+                    elif temp < 50:
                         cold_inappropriate = ['shorts', 'sandals', 'tank']
                         for keyword in cold_inappropriate:
                             if keyword in item_name_lower or keyword in item_type_lower:
