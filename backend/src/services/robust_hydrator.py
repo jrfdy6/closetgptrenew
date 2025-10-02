@@ -80,6 +80,36 @@ CORE_FIELDS = ["imageUrl", "userId", "dominantColors", "matchingColors", "create
 
 def normalize_item_type_to_enum(item_type: str, item_name: str = "") -> str:
     """Normalize item types to match ClothingType enum values."""
+    
+    # Handle ClothingType enum format (e.g., "ClothingType.SHIRT" -> "shirt")
+    if 'clothingtype.' in item_type.lower():
+        enum_value = item_type.split('.')[-1].lower()
+        # Map enum values to valid ClothingType enum strings
+        enum_mappings = {
+            'shirt': 'shirt',
+            'pants': 'pants', 
+            'shoes': 'shoes',
+            'jacket': 'jacket',
+            'dress': 'dress',
+            'sweater': 'sweater',
+            'blouse': 'blouse',
+            'hoodie': 'hoodie',
+            'polo': 'polo',
+            'jeans': 'jeans',
+            'shorts': 'shorts',
+            'skirt': 'skirt',
+            'boots': 'boots',
+            'sneakers': 'sneakers',
+            'heels': 'heels',
+            'blazer': 'blazer',
+            'coat': 'coat',
+            'accessory': 'accessory'
+        }
+        if enum_value in enum_mappings:
+            return enum_mappings[enum_value]
+        else:
+            return "shirt"  # Default fallback
+    
     type_lower = item_type.lower()
     name_lower = item_name.lower()
     
