@@ -351,10 +351,36 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG: After hydration - weather type: {type(context.weather)}")
         if isinstance(context.user_profile, list):
             logger.error(f"🚨 ERROR: user_profile is a list: {context.user_profile}")
-            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "user_profile_is_list"})
+            debug_info = {
+                "pipeline_stage": "early_return_user_profile_list",
+                "context_wardrobe_count": len(context.wardrobe),
+                "user_profile_type": str(type(context.user_profile)),
+                "user_profile_value": str(context.user_profile)[:200],
+                "wardrobe_items": [
+                    {
+                        "id": getattr(item, 'id', 'NO_ID'),
+                        "name": getattr(item, 'name', 'NO_NAME'),
+                        "type": str(getattr(item, 'type', 'NO_TYPE'))
+                    } for item in context.wardrobe[:3]
+                ]
+            }
+            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "user_profile_is_list", "debug_info": debug_info})
         if isinstance(context.weather, list):
             logger.error(f"🚨 ERROR: weather is a list: {context.weather}")
-            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "weather_is_list"})
+            debug_info = {
+                "pipeline_stage": "early_return_weather_list",
+                "context_wardrobe_count": len(context.wardrobe),
+                "weather_type": str(type(context.weather)),
+                "weather_value": str(context.weather)[:200],
+                "wardrobe_items": [
+                    {
+                        "id": getattr(item, 'id', 'NO_ID'),
+                        "name": getattr(item, 'name', 'NO_NAME'),
+                        "type": str(getattr(item, 'type', 'NO_TYPE'))
+                    } for item in context.wardrobe[:3]
+                ]
+            }
+            return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "weather_is_list", "debug_info": debug_info})
         
         # Smart weather defaults - dynamic based on context
         temp = 70.0  # Default temperature
