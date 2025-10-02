@@ -914,6 +914,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     print(f"🔎 MAIN LOGIC ENTRY: Starting generation for user {user_id}")
     print(f"🔎 MAIN LOGIC ENTRY: Request - style: {req.style}, mood: {req.mood}, occasion: {req.occasion}")
     
+    # DEBUG: Log detailed request information
+    print(f"🔍 DEBUG INPUT: Wardrobe has {len(req.wardrobe) if req.wardrobe else 0} items")
+    if req.wardrobe:
+        for i, item in enumerate(req.wardrobe[:3]):  # Log first 3 items
+            print(f"🔍 DEBUG INPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')} - {getattr(item, 'type', 'NO_TYPE')}")
+    
+    print(f"🔍 DEBUG INPUT: Weather data: {req.weather}")
+    print(f"🔍 DEBUG INPUT: Base item ID: {req.baseItemId}")
+    
     # Import Firebase inside function to prevent import-time crashes
     try:
         from ..config.firebase import db, firebase_initialized
@@ -1100,8 +1109,30 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: About to call generate_outfit with context")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context has {len(context.wardrobe)} wardrobe items")
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: Context occasion: {context.occasion}, style: {context.style}")
+                    
+                    # DEBUG: Log detailed context before robust generation
+                    print(f"🔍 DEBUG ROBUST INPUT: Context wardrobe count: {len(context.wardrobe)}")
+                    print(f"🔍 DEBUG ROBUST INPUT: Context occasion: {context.occasion}, style: {context.style}, mood: {context.mood}")
+                    print(f"🔍 DEBUG ROBUST INPUT: Context user_id: {context.user_id}")
+                    if context.wardrobe:
+                        for i, item in enumerate(context.wardrobe[:3]):
+                            print(f"🔍 DEBUG ROBUST INPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')}")
+                    
                     robust_outfit = await robust_service.generate_outfit(context)
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: generate_outfit completed successfully")
+                    
+                    # DEBUG: Log robust generation result
+                    print(f"🔍 DEBUG ROBUST OUTPUT: Outfit type: {type(robust_outfit)}")
+                    print(f"🔍 DEBUG ROBUST OUTPUT: Has items attr: {hasattr(robust_outfit, 'items')}")
+                    if hasattr(robust_outfit, 'items'):
+                        print(f"🔍 DEBUG ROBUST OUTPUT: Items count: {len(robust_outfit.items)}")
+                        if robust_outfit.items:
+                            for i, item in enumerate(robust_outfit.items[:3]):
+                                print(f"🔍 DEBUG ROBUST OUTPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')}")
+                        else:
+                            print(f"🔍 DEBUG ROBUST OUTPUT: Items list is empty!")
+                    else:
+                        print(f"🔍 DEBUG ROBUST OUTPUT: No items attribute!")
                     
                     logger.info(f"🚀 ROBUST SERVICE RETURNED: {type(robust_outfit)}")
                     logger.info(f"🚀 ROBUST OUTFIT ITEMS: {len(robust_outfit.items) if hasattr(robust_outfit, 'items') else 'NO ITEMS ATTR'}")
@@ -1149,6 +1180,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🔄 Converting robust outfit to expected format...")
                     logger.info(f"🔄 Robust outfit type: {type(robust_outfit)}")
                     logger.info(f"🔄 Robust outfit attributes: {dir(robust_outfit)}")
+                    
+                    # DEBUG: Log robust outfit attributes before conversion
+                    print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
+                    print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
+                    print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
+                    if hasattr(robust_outfit, 'items'):
+                        print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
+                        print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
+                        if robust_outfit.items:
+                            print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
                     
                     outfit = {
                         'id': getattr(robust_outfit, 'id', 'unknown'),
@@ -1249,11 +1290,30 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # Outfit generated successfully
         
         # Check if outfit generation was successful
+        print(f"🔍 DEBUG FINAL CHECK: Outfit type: {type(outfit)}")
+        print(f"🔍 DEBUG FINAL CHECK: Outfit keys: {list(outfit.keys()) if isinstance(outfit, dict) else 'NOT A DICT'}")
+        print(f"🔍 DEBUG FINAL CHECK: Has 'items' key: {'items' in outfit if isinstance(outfit, dict) else 'N/A'}")
+        if isinstance(outfit, dict) and 'items' in outfit:
+            print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
+            print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
+            print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
+        
         if not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.error(f"❌ GENERATION FAILED: No items generated")
             logger.error(f"🔍 DEBUG: Outfit data: {outfit}")
             logger.error(f"🔍 CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-            raise Exception("Generation failed - no items produced. System needs fixing.")
+            
+            # DEBUG: Add detailed failure information
+            failure_info = {
+                "outfit_type": str(type(outfit)),
+                "outfit_keys": list(outfit.keys()) if isinstance(outfit, dict) else "Not a dict",
+                "items_value": outfit.get('items') if isinstance(outfit, dict) else "N/A",
+                "items_type": str(type(outfit.get('items'))) if isinstance(outfit, dict) else "N/A",
+                "items_length": len(outfit.get('items', [])) if isinstance(outfit, dict) and outfit.get('items') else 0,
+                "request_wardrobe_size": len(req.wardrobe) if req.wardrobe else 0
+            }
+            
+            raise Exception(f"Generation failed - no items produced. System needs fixing. DEBUG: {failure_info}")
         
         logger.info(f"✅ Rule-based generation successful with {len(outfit['items'])} items")
         # Rule-based outfit completed
