@@ -35,11 +35,14 @@ except ImportError:
 
     class ClothingItem(BaseModel):
         id: str
+        name: str  # CRITICAL: Added missing required field
         type: str
+        color: str  # CRITICAL: Added missing required field
+        season: List[str]  # CRITICAL: Made required field
         imageUrl: str
         userId: str
-        dominantColors: List[str]
-        matchingColors: List[str]
+        dominantColors: List[str]  # Will be converted by validator
+        matchingColors: List[str]  # Will be converted by validator
         createdAt: int
         updatedAt: int
         metadata: Metadata = Field(default_factory=Metadata)
@@ -47,7 +50,7 @@ except ImportError:
         # Optional style/business fields (not patched)
         style: list | None = None
         occasion: list | None = None
-        season: list | None = None
+        tags: list | None = None
         formalityLevel: str | None = None
         fit: str | None = None
 
@@ -57,16 +60,23 @@ except ImportError:
 PLACEHOLDERS = {
     "imageUrl": "https://placeholder.com/wardrobe-item.png",
     "userId": "unknown-user",
-    "dominantColors": ["unknown"],
-    "matchingColors": ["unknown"],
+    "dominantColors": [],  # Empty list - will be filled by Color validator
+    "matchingColors": [],  # Empty list - will be filled by Color validator
     "createdAt": lambda: int(datetime.utcnow().timestamp() * 1000),
     "updatedAt": lambda: int(datetime.utcnow().timestamp() * 1000),
     "metadata": Metadata(),  # default empty Metadata instance
     "quality_score": 0.5,
-    "pairability_score": 0.5
+    "pairability_score": 0.5,
+    # CRITICAL MISSING FIELDS:
+    "name": "Unknown Item",
+    "color": "unknown",
+    "season": ["spring", "summer", "fall", "winter"],  # Default to all seasons
+    "tags": [],
+    "style": [],
+    "occasion": []
 }
 
-CORE_FIELDS = ["imageUrl", "userId", "dominantColors", "matchingColors", "createdAt", "updatedAt", "metadata", "quality_score", "pairability_score"]
+CORE_FIELDS = ["imageUrl", "userId", "dominantColors", "matchingColors", "createdAt", "updatedAt", "metadata", "quality_score", "pairability_score", "name", "color", "season", "tags", "style", "occasion"]
 
 def normalize_item_type_to_enum(item_type: str, item_name: str = "") -> str:
     """Normalize item types to match ClothingType enum values."""
