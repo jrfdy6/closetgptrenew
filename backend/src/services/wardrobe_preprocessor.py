@@ -1,146 +1,275 @@
 #!/usr/bin/env python3
 """
-Wardrobe Preprocessor Service
-============================
+Wardrobe Preprocessor: Convert Complex Metadata to System Format
 
-Ensures all wardrobe items are properly converted to valid ClothingItem objects
-before being passed to the robust outfit generation service.
+This service converts your 28-field complex wardrobe metadata into the format
+that the robust outfit generation system expects, enabling sophisticated
+personalization without breaking the core system.
 """
 
 import logging
-import time
-from typing import Dict, List, Any, Optional
+from typing import List, Dict, Any, Optional
 from datetime import datetime
-
-from ..custom_types.wardrobe import ClothingItem
-from ..utils.validation import normalize_clothing_type
 
 logger = logging.getLogger(__name__)
 
 class WardrobePreprocessor:
-    """Preprocessor that guarantees all wardrobe items are valid ClothingItem objects"""
+    """
+    Preprocesses complex wardrobe metadata for the outfit generation system
+    
+    Converts your 28-field complex metadata into the 9-field format that
+    the system expects, while preserving sophisticated personalization data.
+    """
     
     def __init__(self):
-        self.conversion_errors = []
+        self.logger = logger
     
-    def preprocess_wardrobe(self, raw_wardrobe: List[Dict[str, Any]], user_id: str) -> List[ClothingItem]:
+    def preprocess_wardrobe(self, complex_wardrobe: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        Convert raw wardrobe data to valid ClothingItem objects with safe defaults.
+        Convert complex wardrobe metadata to system format
         
         Args:
-            raw_wardrobe: List of raw wardrobe item dictionaries
-            user_id: User ID for default assignment
+            complex_wardrobe: List of wardrobe items with 28 metadata fields
             
         Returns:
-            List of valid ClothingItem objects
+            List of wardrobe items in 9-field system format with enhanced data
         """
-        logger.info(f"🔧 WARDROBE PREPROCESSOR: Starting preprocessing of {len(raw_wardrobe)} items - v2.0")
+        self.logger.info(f"🔄 PREPROCESSING: Converting {len(complex_wardrobe)} complex wardrobe items")
         
-        clothing_items = []
-        self.conversion_errors = []
+        processed_items = []
         
-        for i, raw_item in enumerate(raw_wardrobe):
+        for item in complex_wardrobe:
             try:
-                clothing_item = self._convert_to_clothing_item(raw_item, user_id, i)
-                clothing_items.append(clothing_item)
-                logger.debug(f"✅ Preprocessed item {i+1}: {clothing_item.name} ({clothing_item.type})")
-                
+                processed_item = self._preprocess_item(item)
+                processed_items.append(processed_item)
+                self.logger.debug(f"✅ Processed: {processed_item.get('name', 'Unknown')}")
             except Exception as e:
-                error_msg = f"Failed to preprocess item {i+1}: {e}"
-                self.conversion_errors.append(error_msg)
-                logger.warning(f"⚠️ {error_msg}")
-                logger.warning(f"⚠️ Raw item data: {raw_item}")
-                continue
+                self.logger.error(f"❌ Failed to process item: {e}")
+                # Add fallback item to prevent complete failure
+                processed_items.append(self._create_fallback_item(item))
         
-        if self.conversion_errors:
-            logger.warning(f"⚠️ {len(self.conversion_errors)} items failed preprocessing: {self.conversion_errors}")
-        
-        logger.info(f"🔧 WARDROBE PREPROCESSOR: {len(raw_wardrobe)} raw items -> {len(clothing_items)} valid ClothingItem objects")
-        
-        return clothing_items
+        self.logger.info(f"✅ PREPROCESSING COMPLETE: {len(processed_items)} items processed")
+        return processed_items
     
-    def _convert_to_clothing_item(self, raw: Dict[str, Any], user_id: str, item_index: int) -> ClothingItem:
+    def _preprocess_item(self, complex_item: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Convert a single raw wardrobe item to a valid ClothingItem with safe defaults.
+        Preprocess a single complex wardrobe item
         
         Args:
-            raw: Raw wardrobe item dictionary
-            user_id: User ID for default assignment
-            item_index: Index of item for error reporting
+            complex_item: Item with 28 metadata fields
             
         Returns:
-            Valid ClothingItem object
+            Item in 9-field system format with enhanced data
         """
-        # Get current timestamp
-        now = int(time.time() * 1000)
+        # Extract core fields (required)
+        processed = {
+            'id': complex_item.get('id', 'unknown'),
+            'name': complex_item.get('name', 'Unknown Item'),
+            'type': complex_item.get('type', 'unknown'),
+            'color': complex_item.get('color', 'Unknown'),
+            'imageUrl': complex_item.get('imageUrl', ''),
+            'userId': complex_item.get('userId', 'unknown'),
+        }
         
-        # Normalize type to lowercase
-        raw_type = raw.get("type", "other")
-        if isinstance(raw_type, str):
-            raw_type = raw_type.lower()
+        # Process occasion field (enhanced with complex metadata)
+        processed['occasion'] = self._enhance_occasion_field(complex_item)
         
-        # Normalize the type using the validation utility
-        normalized_type = normalize_clothing_type(raw_type)
+        # Process style field (enhanced with complex metadata)
+        processed['style'] = self._enhance_style_field(complex_item)
         
-        # Extract metadata with safe defaults
-        metadata = raw.get("metadata", {})
+        # Process tags field (enhanced with complex metadata)
+        processed['tags'] = self._enhance_tags_field(complex_item)
         
-        # Ensure all required fields have safe defaults
-        return ClothingItem(
-            # Required fields with safe defaults
-            id=raw.get("id", f"item_{item_index}_{now}"),
-            name=raw.get("name", "Unknown Item"),
-            type=normalized_type,
-            color=raw.get("color", "unknown"),
-            imageUrl=raw.get("imageUrl", ""),
-            userId=raw.get("userId", user_id),
-            dominantColors=raw.get("dominantColors", []),
-            matchingColors=raw.get("matchingColors", []),
-            createdAt=raw.get("createdAt", now),
-            updatedAt=raw.get("updatedAt", now),
-            
-            # Optional fields with safe defaults
-            style=raw.get("style", []),
-            occasion=raw.get("occasion", ["casual"]),
-            season=raw.get("season", ["all"]),
-            tags=raw.get("tags", []),
-            brand=raw.get("brand", None),
-            wearCount=raw.get("wearCount", 0),
-            favorite_score=raw.get("favorite_score", 0.0),
-            subType=raw.get("subType", None),
-            colorName=raw.get("colorName", None),
-            backgroundRemoved=raw.get("backgroundRemoved", None),
-            embedding=raw.get("embedding", None),
-            
-            # Metadata with all required fields
-            metadata={
-                "analysisTimestamp": metadata.get("analysisTimestamp", now),
-                "originalType": metadata.get("originalType", raw_type),
-                "originalSubType": metadata.get("originalSubType", None),
-                "styleTags": metadata.get("styleTags", raw.get("style", [])),
-                "occasionTags": metadata.get("occasionTags", raw.get("occasion", ["casual"])),
-                "brand": metadata.get("brand", raw.get("brand", None)),
-                "imageHash": metadata.get("imageHash", None),
-                "colorAnalysis": metadata.get("colorAnalysis", {
-                    "dominant": [],
-                    "matching": []
-                }),
-                "basicMetadata": metadata.get("basicMetadata", None),
-                "visualAttributes": metadata.get("visualAttributes", None),
-                "itemMetadata": metadata.get("itemMetadata", None),
-                "naturalDescription": metadata.get("naturalDescription", None),
-                "temperatureCompatibility": metadata.get("temperatureCompatibility", None),
-                "materialCompatibility": metadata.get("materialCompatibility", None),
-                "bodyTypeCompatibility": metadata.get("bodyTypeCompatibility", None),
-                "skinToneCompatibility": metadata.get("skinToneCompatibility", None),
-                "outfitScoring": metadata.get("outfitScoring", None)
-            }
-        )
+        # Add sophisticated metadata as custom fields for future use
+        processed['_complex_metadata'] = self._extract_complex_metadata(complex_item)
+        
+        return processed
     
-    def get_conversion_errors(self) -> List[str]:
-        """Get list of conversion errors from the last preprocessing run"""
-        return self.conversion_errors.copy()
+    def _enhance_occasion_field(self, complex_item: Dict[str, Any]) -> List[str]:
+        """
+        Enhance occasion field with complex metadata analysis
+        
+        Uses brand, season, mood, and usage data to create more sophisticated
+        occasion recommendations.
+        """
+        base_occasions = complex_item.get('occasion', [])
+        if isinstance(base_occasions, str):
+            base_occasions = base_occasions.split()
+        
+        # Conservative occasion enhancement - don't over-enhance
+        enhanced_occasions = base_occasions.copy()
+        
+        # Only add occasions if they make logical sense
+        brand = complex_item.get('brand', '').lower()
+        season = complex_item.get('season', [])
+        if isinstance(season, str):
+            season = season.split()
+        mood = complex_item.get('mood', [])
+        if isinstance(mood, str):
+            mood = mood.split()
+        
+        # Conservative brand-based enhancement
+        if any(b in brand for b in ['brooks', 'hugo', 'calvin', 'ralph']) and 'formal' not in enhanced_occasions:
+            enhanced_occasions.append('formal')
+        
+        # Conservative usage-based enhancement (only for truly versatile items)
+        usage_count = complex_item.get('usage_count', 0)
+        wear_count = complex_item.get('wearCount', 0)
+        total_usage = usage_count + wear_count
+        
+        # Only add 'everyday' if item is truly versatile (high usage + casual style)
+        if total_usage > 15 and 'casual' in enhanced_occasions and 'everyday' not in enhanced_occasions:
+            enhanced_occasions.append('everyday')
+        
+        # DON'T add 'party' to winter items - this was causing issues
+        # DON'T add broad occasions that don't make sense
+        
+        return list(set(enhanced_occasions))  # Remove duplicates
     
-    def has_errors(self) -> bool:
-        """Check if there were any conversion errors in the last preprocessing run"""
-        return len(self.conversion_errors) > 0
+    def _enhance_style_field(self, complex_item: Dict[str, Any]) -> List[str]:
+        """
+        Enhance style field with complex metadata analysis
+        
+        Uses brand, mood, season, and usage data to create more sophisticated
+        style recommendations.
+        """
+        base_styles = complex_item.get('style', [])
+        if isinstance(base_styles, str):
+            base_styles = base_styles.split()
+        
+        enhanced_styles = base_styles.copy()
+        
+        # Conservative style enhancement - avoid contradictory styles
+        brand = complex_item.get('brand', '').lower()
+        mood = complex_item.get('mood', [])
+        if isinstance(mood, str):
+            mood = mood.split()
+        season = complex_item.get('season', [])
+        if isinstance(season, str):
+            season = season.split()
+        
+        # Conservative brand-based enhancement
+        if 'abercrombie' in brand and 'preppy' not in enhanced_styles:
+            enhanced_styles.append('preppy')
+        elif 'brooks' in brand and 'professional' not in enhanced_styles:
+            enhanced_styles.append('professional')
+        elif 'levi' in brand and 'vintage' not in enhanced_styles:
+            enhanced_styles.append('vintage')
+        
+        # Conservative mood-based enhancement
+        if 'professional' in mood and 'business' not in enhanced_styles:
+            enhanced_styles.append('business')
+        if 'relaxed' in mood and 'comfortable' not in enhanced_styles:
+            enhanced_styles.append('comfortable')
+        
+        # Conservative season-based enhancement
+        if 'winter' in season and 'layered' not in enhanced_styles:
+            enhanced_styles.append('layered')
+        if 'summer' in season and 'light' not in enhanced_styles:
+            enhanced_styles.append('light')
+        
+        # DON'T add contradictory styles like 'formal' + 'casual'
+        # DON'T add 'cozy' to all winter items
+        
+        return list(set(enhanced_styles))  # Remove duplicates
+    
+    def _enhance_tags_field(self, complex_item: Dict[str, Any]) -> List[str]:
+        """
+        Enhance tags field with complex metadata analysis
+        
+        Combines original tags with sophisticated metadata-derived tags.
+        """
+        base_tags = complex_item.get('tags', [])
+        if isinstance(base_tags, str):
+            base_tags = base_tags.split()
+        
+        enhanced_tags = base_tags.copy()
+        
+        # Add sophisticated tags based on complex metadata
+        brand = complex_item.get('brand', '').lower()
+        if brand:
+            enhanced_tags.append(f'brand_{brand.replace(" ", "_")}')
+        
+        # Usage-based tags
+        usage_count = complex_item.get('usage_count', 0)
+        wear_count = complex_item.get('wearCount', 0)
+        total_usage = usage_count + wear_count
+        
+        if total_usage > 15:
+            enhanced_tags.append('highly_worn')
+        elif total_usage == 0:
+            enhanced_tags.append('never_worn')
+        
+        # Favorite status
+        if complex_item.get('favorite', False):
+            enhanced_tags.append('favorite')
+        
+        # Season tags
+        season = complex_item.get('season', [])
+        if isinstance(season, str):
+            season = season.split()
+        
+        for s in season:
+            enhanced_tags.append(f'season_{s}')
+        
+        # Mood tags
+        mood = complex_item.get('mood', [])
+        if isinstance(mood, str):
+            mood = mood.split()
+        
+        for m in mood:
+            enhanced_tags.append(f'mood_{m}')
+        
+        return list(set(enhanced_tags))  # Remove duplicates
+    
+    def _extract_complex_metadata(self, complex_item: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Extract and preserve complex metadata for future sophisticated features
+        
+        Returns a dictionary with all the complex metadata fields that aren't
+        directly used in the current system but could be used for future
+        sophisticated personalization.
+        """
+        return {
+            'brand': complex_item.get('brand', ''),
+            'season': complex_item.get('season', []),
+            'mood': complex_item.get('mood', []),
+            'gender': complex_item.get('gender', ''),
+            'matchingColors': complex_item.get('matchingColors', []),
+            'dominantColors': complex_item.get('dominantColors', []),
+            'colorName': complex_item.get('colorName', ''),
+            'subType': complex_item.get('subType', ''),
+            'bodyTypeCompatibility': complex_item.get('bodyTypeCompatibility', []),
+            'weatherCompatibility': complex_item.get('weatherCompatibility', []),
+            'favorite': complex_item.get('favorite', False),
+            'usage_count': complex_item.get('usage_count', 0),
+            'wearCount': complex_item.get('wearCount', 0),
+            'lastWorn': complex_item.get('lastWorn', None),
+            'last_used_at': complex_item.get('last_used_at', None),
+            'createdAt': complex_item.get('createdAt', None),
+            'updatedAt': complex_item.get('updatedAt', None),
+            'backgroundRemoved': complex_item.get('backgroundRemoved', False),
+            'metadata': complex_item.get('metadata', {})
+        }
+    
+    def _create_fallback_item(self, complex_item: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Create a fallback item if preprocessing fails
+        
+        Ensures the system always has a working item to prevent complete failure.
+        """
+        return {
+            'id': complex_item.get('id', 'fallback'),
+            'name': complex_item.get('name', 'Fallback Item'),
+            'type': complex_item.get('type', 'unknown'),
+            'color': complex_item.get('color', 'Unknown'),
+            'imageUrl': complex_item.get('imageUrl', ''),
+            'userId': complex_item.get('userId', 'unknown'),
+            'occasion': ['casual', 'everyday'],
+            'style': ['casual'],
+            'tags': ['fallback'],
+            '_complex_metadata': {}
+        }
+
+# Global preprocessor instance
+wardrobe_preprocessor = WardrobePreprocessor()
