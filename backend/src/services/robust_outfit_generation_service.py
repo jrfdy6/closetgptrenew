@@ -2281,37 +2281,37 @@ class RobustOutfitGenerationService:
                             base_score += 0.15
                             break
                 
-                # Hot weather items - PENALIZE inappropriate items
+                # Hot weather items - BALANCED scoring
                 elif temp > 75:
                     hot_keywords = ['cotton', 'linen', 'short sleeve', 'shorts', 'sandals', 'tank', 'light']
                     hot_appropriate = False
                     for keyword in hot_keywords:
                         if keyword in item_name_lower or keyword in item_type_lower:
-                            base_score += 0.15
+                            base_score += 0.2  # Boost for hot weather appropriate items
                             hot_appropriate = True
                             break
                     
-                    # PENALIZE hot weather inappropriate items
+                    # LIGHT PENALTY for hot weather inappropriate items (don't eliminate completely)
                     hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots', 'heavy']
                     for keyword in hot_inappropriate:
                         if keyword in item_name_lower or keyword in item_type_lower:
-                            base_score -= 0.3  # Penalty for hot weather inappropriate items
+                            base_score -= 0.15  # Reduced penalty - don't eliminate items completely
                             break
                 
-                # Moderate weather (50-75°F) - neutral scoring
+                # Moderate weather (50-75°F) - neutral scoring with minimal penalties
                 else:
-                    # Light penalty for extreme weather items in moderate weather
+                    # Very light penalty for extreme weather items in moderate weather
                     if temp > 65:
                         hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater']
                         for keyword in hot_inappropriate:
                             if keyword in item_name_lower or keyword in item_type_lower:
-                                base_score -= 0.1  # Small penalty
+                                base_score -= 0.05  # Very small penalty
                                 break
                     elif temp < 60:
                         cold_inappropriate = ['shorts', 'sandals', 'tank']
                         for keyword in cold_inappropriate:
                             if keyword in item_name_lower or keyword in item_type_lower:
-                                base_score -= 0.1  # Small penalty
+                                base_score -= 0.05  # Very small penalty
                                 break
                 
                 # Rainy weather
