@@ -483,12 +483,31 @@ class RobustOutfitGenerationService:
         
         # Calculate composite scores
         logger.info(f"🧮 Calculating composite scores...")
+        # Calculate composite scores with dynamic weights based on weather
+        temp = safe_get(context.weather, 'temperature', 70.0)
+        
+        # Dynamic weight adjustment for extreme weather
+        if temp > 75:  # Hot weather - increase weather weight
+            weather_weight = 0.4
+            style_weight = 0.35
+            body_weight = 0.25
+        elif temp < 50:  # Cold weather - increase weather weight
+            weather_weight = 0.4
+            style_weight = 0.35
+            body_weight = 0.25
+        else:  # Moderate weather - standard weights
+            weather_weight = 0.25
+            style_weight = 0.40
+            body_weight = 0.35
+        
+        logger.info(f"🎯 DYNAMIC WEIGHTS: Weather={weather_weight}, Style={style_weight}, Body={body_weight} (temp={temp}°F)")
+        
         for item_id, scores in item_scores.items():
-            # Multi-layered scoring with all analyzers
+            # Multi-layered scoring with dynamic weights
             composite = (
-                scores['body_type_score'] * 0.35 +
-                scores['style_profile_score'] * 0.40 +
-                scores['weather_score'] * 0.25
+                scores['body_type_score'] * body_weight +
+                scores['style_profile_score'] * style_weight +
+                scores['weather_score'] * weather_weight
             )
             scores['composite_score'] = composite
         
@@ -514,6 +533,22 @@ class RobustOutfitGenerationService:
             logger.error(f"🔍 DEBUG: Wardrobe size: {len(context.wardrobe)}")
             logger.error(f"🔍 DEBUG: Suitable items: N/A (filtering failed)")
             logger.error(f"🔍 DEBUG: Occasion: {context.occasion}, Style: {context.style}")
+            
+            # EXTREME WEATHER SAFETY CHECK
+            temp = safe_get(context.weather, 'temperature', 70.0)
+            if temp > 80:  # Extreme heat
+                logger.warning(f"🔥 EXTREME HEAT: {temp}°F - emergency relaxation of weather penalties")
+                # Emergency: create minimal scores for any available items
+                for item in context.wardrobe:
+                    item_id = safe_item_access(item, 'id', f"emergency_{len(item_scores)}")
+                    item_scores[item_id] = {
+                        'item': item,
+                        'body_type_score': 0.5,
+                        'style_profile_score': 0.5,
+                        'weather_score': 0.3,  # Minimum score for extreme heat
+                        'composite_score': 0.43  # Weighted average
+                    }
+                logger.info(f"🚨 EMERGENCY: Created {len(item_scores)} emergency scores for extreme heat")
             
             # Emergency fallback: use any available items
             if context.wardrobe:
