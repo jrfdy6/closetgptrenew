@@ -130,6 +130,7 @@ except Exception as e:
 # Router loading section - removed outer try-catch to allow individual routers to load
 ROUTERS = [
     ("src.routes.test_simple", ""),      # Simple test router to verify loading works
+    ("src.routes.test_category", "/api/test"),  # Test category mapping fix
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
     ("src.routes.wardrobe_analysis", "/api/wardrobe"), # Router mounted at /api/wardrobe - ENABLED for wardrobe-stats
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
