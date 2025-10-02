@@ -3024,6 +3024,14 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
         
+        # EMERGENCY BYPASS: If no items selected, force select the first item
+        if len(selected_items) == 0 and sorted_items:
+            logger.warning(f"🚨 EMERGENCY BYPASS: No items selected in Phase 1, forcing selection of first item")
+            first_item = sorted_items[0][1]['item']
+            selected_items.append(first_item)
+            categories_filled['tops'] = True  # Assume it's a top
+            logger.info(f"🚨 EMERGENCY BYPASS: Forced selection of {first_item.name}")
+        
         # Phase 2: Add layering pieces based on target count
         logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
         for item_id, score_data in sorted_items:
