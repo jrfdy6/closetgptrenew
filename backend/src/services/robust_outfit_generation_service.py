@@ -483,8 +483,6 @@ class RobustOutfitGenerationService:
             }
         
         logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
-        logger.info(f"🔍 DEBUG: First item ID: {list(item_scores.keys())[0] if item_scores else 'NONE'}")
-        logger.info(f"🔍 DEBUG: First item type: {type(list(item_scores.values())[0]['item']) if item_scores else 'NONE'}")
         
         # Run all analyzers in parallel on filtered items
         logger.info(f"🚀 Running 3 analyzers in parallel on {len(suitable_items)} filtered items... (body type + style profile + weather)")
@@ -537,11 +535,11 @@ class RobustOutfitGenerationService:
             scores['soft_penalty'] = soft_penalty
             scores['base_score'] = base_score
         
-        # Log top scored items
+        # Log top scored items (reduced verbosity)
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
-        logger.info(f"🏆 Top 5 scored items:")
-        for i, (item_id, scores) in enumerate(sorted_items[:5]):
-            logger.info(f"  {i+1}. {scores['item'].name}: final={scores['composite_score']:.2f} (base={scores['base_score']:.2f}, penalty={scores['soft_penalty']:.2f}) [body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}]")
+        logger.info(f"🏆 Top 3 scored items:")
+        for i, (item_id, scores) in enumerate(sorted_items[:3]):
+            logger.info(f"  {i+1}. {scores['item'].name}: {scores['composite_score']:.2f}")
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: Cohesive Composition with Multi-Layered Scores
@@ -1399,15 +1397,11 @@ class RobustOutfitGenerationService:
         hard_rejected = 0
         
         for i, item in enumerate(context.wardrobe):
-            logger.info(f"🔍 HARD FILTER: Item {i+1}: {getattr(item, 'name', 'Unknown')} (type: {getattr(item, 'type', 'unknown')})")
-            
             # Apply hard constraints - contextually impossible mappings
             if self._hard_filter(item, context.occasion, context.style):
                 suitable_items.append(item)
-                logger.info(f"✅ HARD FILTER: Item {i+1} PASSED hard constraints")
             else:
                 hard_rejected += 1
-                logger.info(f"❌ HARD FILTER: Item {i+1} REJECTED by hard constraints")
         
         logger.info(f"🔍 HARD FILTER: Results - {len(suitable_items)} passed hard filters, {hard_rejected} rejected")
         
@@ -1493,11 +1487,9 @@ class RobustOutfitGenerationService:
         # If any hard constraint is violated, reject
         for constraint in hard_constraints:
             if constraint:
-                logger.info(f"❌ HARD CONSTRAINT: {item_name} violates hard constraint for {occasion_lower}")
                 return False
         
         # If no hard constraints violated, allow through
-        logger.info(f"✅ HARD CONSTRAINT: {item_name} passes hard constraints for {occasion_lower}")
         return True
     
     def _soft_score(self, item: ClothingItem, occasion: str, style: str) -> float:
@@ -1542,7 +1534,6 @@ class RobustOutfitGenerationService:
             if item_pattern in item_name or item_pattern in item_type:
                 if occasion_pattern == occasion_lower:
                     penalty += penalty_value
-                    logger.info(f"🎯 SOFT PENALTY: {item_name} gets {penalty_value} penalty for {occasion_lower}")
         
         # Check style penalties
         style_penalty_matrix = {
@@ -1557,7 +1548,6 @@ class RobustOutfitGenerationService:
             if style_pattern in item_name or style_pattern in item_type:
                 if target_occasion == occasion_lower:
                     penalty += penalty_value
-                    logger.info(f"🎯 STYLE PENALTY: {item_name} gets {penalty_value} style penalty for {occasion_lower}")
         
         return penalty
     
