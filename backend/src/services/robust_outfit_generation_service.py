@@ -1506,11 +1506,17 @@ class RobustOutfitGenerationService:
             ('loafer', 'athletic'): -0.3,
             ('dress_shoe', 'athletic'): -0.3,
             ('button_up', 'athletic'): -0.2,
+            ('button up', 'athletic'): -0.2,  # Actual pattern from user's wardrobe
+            ('dress_shirt', 'athletic'): -0.2,
             ('dress_shirt', 'athletic'): -0.2,
             ('dress_pants', 'athletic'): -0.4,
+            ('dress pants', 'athletic'): -0.4,  # Actual pattern from user's wardrobe
             ('slacks', 'athletic'): -0.4,
+            ('slim fit pants', 'athletic'): -0.4,  # Actual pattern from user's wardrobe
             ('blazer', 'athletic'): -0.3,
             ('suit', 'athletic'): -0.5,
+            ('smooth toe', 'athletic'): -0.3,  # Actual pattern from user's wardrobe
+            ('polo ralph lauren', 'athletic'): -0.2,  # Brand-specific penalty
             
             # Business occasion penalties
             ('tank', 'business'): -0.2,
