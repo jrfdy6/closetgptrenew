@@ -528,7 +528,7 @@ class RobustOutfitGenerationService:
             )
             
             # Apply soft constraint penalties/bonuses
-            soft_penalty = self._soft_score(scores['item'], context.occasion, context.style)
+            soft_penalty = self._soft_score(scores['item'], context.occasion, context.style, context.mood)
             final_score = base_score + soft_penalty
             
             scores['composite_score'] = final_score
@@ -1456,106 +1456,70 @@ class RobustOutfitGenerationService:
         return weather_appropriate_items
     
     def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
-        """Hard constraints - contextually impossible mappings that should always reject"""
-        item_name = item.name.lower()
-        item_type = str(getattr(item, 'type', '')).lower()
-        occasion_lower = occasion.lower()
-        style_lower = style.lower()
-        
-        # Hard constraints - contextually impossible combinations
-        hard_constraints = [
-            # Athletic constraints
-            (item_type == 'tuxedo' and occasion_lower == 'athletic'),
-            (item_type == 'evening_gown' and occasion_lower == 'athletic'),
-            (item_type == 'high_heels' and occasion_lower == 'athletic'),
-            ('bikini' in item_name and occasion_lower == 'business'),
-            ('swimwear' in item_name and occasion_lower == 'business'),
-            ('pajamas' in item_name and occasion_lower in ['business', 'formal']),
-            ('underwear' in item_name and occasion_lower in ['business', 'formal']),
+        """Hard constraints using compatibility matrix"""
+        try:
+            # Import compatibility matrix service
+            from .compatibility_matrix import CompatibilityMatrixService
+            compatibility_service = CompatibilityMatrixService()
             
-            # Business constraints  
-            ('workout' in item_name and occasion_lower == 'formal'),
-            ('gym' in item_name and occasion_lower == 'formal'),
-            ('sweatpants' in item_name and occasion_lower == 'formal'),
+            # Check compatibility (hard incompatibilities will return False)
+            result = compatibility_service.check_compatibility(
+                item, occasion, style, "Professional"  # Default mood for hard filtering
+            )
             
-            # Weather constraints (extreme cases)
-            ('winter_coat' in item_name and occasion_lower == 'beach'),
-            ('parka' in item_name and occasion_lower == 'beach'),
-            ('shorts' in item_name and occasion_lower == 'formal' and 'athletic' not in item_name),
-        ]
-        
-        # If any hard constraint is violated, reject
-        for constraint in hard_constraints:
-            if constraint:
-                return False
-        
-        # If no hard constraints violated, allow through
-        return True
+            return result.is_compatible
+            
+        except ImportError:
+            # Fallback to basic hard constraints if compatibility service not available
+            item_name = item.name.lower()
+            item_type = str(getattr(item, 'type', '')).lower()
+            occasion_lower = occasion.lower()
+            
+            # Basic hard constraints
+            hard_constraints = [
+                (item_type == 'tuxedo' and occasion_lower == 'athletic'),
+                (item_type == 'evening_gown' and occasion_lower == 'athletic'),
+                ('bikini' in item_name and occasion_lower == 'business'),
+                ('swimwear' in item_name and occasion_lower == 'business'),
+            ]
+            
+            for constraint in hard_constraints:
+                if constraint:
+                    return False
+            
+            return True
     
-    def _soft_score(self, item: ClothingItem, occasion: str, style: str) -> float:
-        """Soft constraint scoring - penalties/bonuses for semi-compatible items"""
-        item_name = item.name.lower()
-        item_type = str(getattr(item, 'type', '')).lower()
-        occasion_lower = occasion.lower()
-        style_lower = style.lower()
-        
-        # Soft penalty matrix - configurable penalties for semi-compatible items
-        penalty_matrix = {
-            # Athletic occasion penalties
-            ('oxford', 'athletic'): -0.3,
-            ('loafer', 'athletic'): -0.3,
-            ('dress_shoe', 'athletic'): -0.3,
-            ('button_up', 'athletic'): -0.2,
-            ('button up', 'athletic'): -0.2,  # Actual pattern from user's wardrobe
-            ('dress_shirt', 'athletic'): -0.2,
-            ('dress_shirt', 'athletic'): -0.2,
-            ('dress_pants', 'athletic'): -0.4,
-            ('dress pants', 'athletic'): -0.4,  # Actual pattern from user's wardrobe
-            ('slacks', 'athletic'): -0.4,
-            ('slim fit pants', 'athletic'): -0.4,  # Actual pattern from user's wardrobe
-            ('blazer', 'athletic'): -0.3,
-            ('suit', 'athletic'): -0.5,
-            ('smooth toe', 'athletic'): -0.3,  # Actual pattern from user's wardrobe
-            ('polo ralph lauren', 'athletic'): -0.2,  # Brand-specific penalty
+    def _soft_score(self, item: ClothingItem, occasion: str, style: str, mood: str = "Professional") -> float:
+        """Soft constraint scoring using compatibility matrix"""
+        try:
+            # Import compatibility matrix service
+            from .compatibility_matrix import CompatibilityMatrixService
+            compatibility_service = CompatibilityMatrixService()
             
-            # Business occasion penalties
-            ('tank', 'business'): -0.2,
-            ('athletic_shorts', 'business'): -0.4,
-            ('gym_shorts', 'business'): -0.4,
-            ('sweatpants', 'business'): -0.3,
-            ('sneaker', 'business'): -0.1,  # Less penalty - sneakers can be business casual
+            # Get compatibility score from matrix
+            result = compatibility_service.check_compatibility(item, occasion, style, mood)
             
-            # Formal occasion penalties
-            ('t_shirt', 'formal'): -0.3,
-            ('jeans', 'formal'): -0.2,
-            ('sneaker', 'formal'): -0.2,
-            ('casual_shirt', 'formal'): -0.1,
-        }
-        
-        # Check for penalties based on item characteristics
-        penalty = 0.0
-        
-        # Check item type penalties
-        for (item_pattern, occasion_pattern), penalty_value in penalty_matrix.items():
-            if item_pattern in item_name or item_pattern in item_type:
-                if occasion_pattern == occasion_lower:
-                    penalty += penalty_value
-        
-        # Check style penalties
-        style_penalty_matrix = {
-            ('athletic', 'formal'): -0.3,
-            ('sporty', 'formal'): -0.2,
-            ('casual', 'formal'): -0.1,
-            ('formal', 'athletic'): -0.2,
-            ('business', 'athletic'): -0.2,
-        }
-        
-        for (style_pattern, target_occasion), penalty_value in style_penalty_matrix.items():
-            if style_pattern in item_name or style_pattern in item_type:
-                if target_occasion == occasion_lower:
-                    penalty += penalty_value
-        
-        return penalty
+            if result.is_compatible:
+                # Convert matrix score (0-1) to penalty/bonus (-0.5 to +0.5)
+                # Matrix score 1.0 = +0.5 bonus, 0.0 = -0.5 penalty, 0.5 = neutral
+                penalty = (result.score - 0.5) * 1.0  # Scale to -0.5 to +0.5 range
+                return penalty
+            else:
+                return -0.5  # Hard rejection penalty
+                
+        except ImportError:
+            # Fallback to basic string matching if compatibility service not available
+            item_name = item.name.lower()
+            occasion_lower = occasion.lower()
+            
+            # Basic fallback penalties
+            if occasion_lower == 'athletic':
+                if any(word in item_name for word in ['button', 'dress', 'formal', 'business']):
+                    return -0.3
+                elif any(word in item_name for word in ['athletic', 'sport', 'gym', 'running']):
+                    return +0.3
+            
+            return 0.0  # Neutral
     
     async def _intelligent_item_selection(self, suitable_items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
