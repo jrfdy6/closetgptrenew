@@ -2353,12 +2353,14 @@ class RobustOutfitGenerationService:
                     hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots', 'heavy']
                     for keyword in hot_inappropriate:
                         if keyword in item_name_lower or keyword in item_type_lower:
-                            if temp >= 85:  # Extreme heat
-                                base_score -= 0.2  # Strong penalty but don't eliminate
-                            elif temp >= 75:  # Hot weather
-                                base_score -= 0.25  # Stronger penalty for hot weather
+                            if temp >= 85:  # Extreme heat - HARD FILTER
+                                base_score = 0.0  # Complete elimination for extreme heat
+                                logger.warning(f"🔥 HARD FILTER: {item_name} eliminated for {temp}°F extreme heat")
+                            elif temp >= 75:  # Hot weather - STRONG PENALTY
+                                base_score -= 0.4  # Much stronger penalty for hot weather
+                                logger.info(f"🌡️ HOT PENALTY: {item_name} heavily penalized for {temp}°F")
                             else:  # Warm weather (70-75°F)
-                                base_score -= 0.15  # Moderate penalty
+                                base_score -= 0.2  # Moderate penalty
                             break
                 
                 # Moderate weather (50-70°F) - neutral scoring with minimal penalties
