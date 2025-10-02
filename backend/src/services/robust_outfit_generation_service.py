@@ -608,7 +608,41 @@ class RobustOutfitGenerationService:
         # Check if cohesive composition failed to generate items
         if not outfit.items or len(outfit.items) == 0:
             logger.error(f"❌ COHESIVE COMPOSITION FAILED: No items generated - this should not happen")
-            raise Exception(f"Cohesive composition failed to generate items - system needs fixing")
+            
+            # Collect detailed debug information for the error
+            debug_info = {
+                "pipeline_stage": "cohesive_composition",
+                "context_wardrobe_count": len(context.wardrobe),
+                "suitable_items_count": len(suitable_items),
+                "item_scores_count": len(item_scores),
+                "items_with_scores": len([s for s in item_scores.values() if s.get('composite_score', 0) > 0.1]),
+                "context_occasion": context.occasion,
+                "context_style": context.style,
+                "context_mood": context.mood,
+                "wardrobe_items": [
+                    {
+                        "id": getattr(item, 'id', 'NO_ID'),
+                        "name": getattr(item, 'name', 'NO_NAME'),
+                        "type": str(getattr(item, 'type', 'NO_TYPE'))
+                    } for item in context.wardrobe[:3]
+                ],
+                "suitable_items": [
+                    {
+                        "id": getattr(item, 'id', 'NO_ID'),
+                        "name": getattr(item, 'name', 'NO_NAME'),
+                        "type": str(getattr(item, 'type', 'NO_TYPE'))
+                    } for item in suitable_items[:3]
+                ],
+                "top_scored_items": [
+                    {
+                        "id": item_id,
+                        "name": getattr(scores['item'], 'name', 'Unknown'),
+                        "composite_score": scores.get('composite_score', 0)
+                    } for item_id, scores in sorted(item_scores.items(), key=lambda x: x[1].get('composite_score', 0), reverse=True)[:3]
+                ] if item_scores else []
+            }
+            
+            raise Exception(f"Cohesive composition failed to generate items - system needs fixing. DEBUG: {debug_info}")
         
         logger.info(f"✅ ROBUST GENERATION SUCCESS: Generated outfit with {len(outfit.items)} items")
         logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
@@ -2816,6 +2850,7 @@ class RobustOutfitGenerationService:
             
             # Create detailed debug response
             debug_info = {
+                "pipeline_stage": "cohesive_composition_no_scores",
                 "context_wardrobe_count": len(context.wardrobe),
                 "item_scores_count": len(item_scores) if item_scores else 0,
                 "item_scores_keys": list(item_scores.keys()) if item_scores else [],
