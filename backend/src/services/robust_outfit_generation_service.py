@@ -2139,7 +2139,19 @@ class RobustOutfitGenerationService:
     
     def _get_item_category(self, item: ClothingItem) -> str:
         """Get category for an item"""
-        item_type = getattr(item, 'type', '').lower()
+        item_type = getattr(item, 'type', '')
+        
+        # Handle enum types (e.g., ClothingType.SHIRT)
+        if hasattr(item_type, 'value'):
+            item_type = item_type.value.lower()
+        elif hasattr(item_type, 'name'):
+            item_type = item_type.name.lower()
+        else:
+            item_type = str(item_type).lower()
+        
+        # Handle ClothingType enum format (e.g., "ClothingType.SHIRT" -> "shirt")
+        if 'clothingtype.' in item_type:
+            item_type = item_type.split('.')[-1]
         
         # Map item types to categories
         category_map = {
@@ -2977,10 +2989,13 @@ class RobustOutfitGenerationService:
         
         # Phase 1: Fill essential categories (tops, bottoms, shoes)
         logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
+        logger.info(f"🔍 DEBUG PHASE 1: Starting with {len(sorted_items)} scored items")
         for item_id, score_data in sorted_items:
             item = score_data['item']
             category = self._get_item_category(item)
             item_name_lower = item.name.lower()
+            
+            logger.info(f"🔍 DEBUG PHASE 1: Processing item {item.name} - category: {category}, score: {score_data['composite_score']:.2f}")
             
             # Determine layering level
             layer_level = 'tops'  # Default
@@ -3002,6 +3017,12 @@ class RobustOutfitGenerationService:
                     selected_items.append(item)
                     categories_filled[category] = True
                     logger.info(f"  ✅ Essential {category}: {item.name} (score={score_data['composite_score']:.2f})")
+                else:
+                    logger.info(f"  ⏭️ Essential {category}: {item.name} skipped - category already filled")
+            else:
+                logger.info(f"  ⏭️ Non-essential {category}: {item.name} - will check in Phase 2")
+        
+        logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
         
         # Phase 2: Add layering pieces based on target count
         logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
@@ -3148,6 +3169,15 @@ class RobustOutfitGenerationService:
             logger.info(f"✅ Performance metrics recorded")
         except Exception as e:
             logger.warning(f"⚠️ Failed to record performance metrics: {e}")
+        
+        # DEBUG: Log selected items before creating outfit
+        logger.info(f"🔍 DEBUG FINAL SELECTION: About to create outfit with {len(selected_items)} selected items")
+        logger.info(f"🔍 DEBUG FINAL SELECTION: Selected items: {[getattr(item, 'name', 'Unknown') for item in selected_items]}")
+        logger.info(f"🔍 DEBUG FINAL SELECTION: Target items was: {target_items}, min_items: {min_items}, max_items: {max_items}")
+        logger.info(f"🔍 DEBUG FINAL SELECTION: Categories filled: {categories_filled}")
+        logger.info(f"🔍 DEBUG FINAL SELECTION: Item scores count: {len(item_scores)}")
+        if item_scores:
+            logger.info(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, scores.get('composite_score', 0)) for item_id, scores in list(item_scores.items())[:3]]}")
         
         # Create outfit
         outfit = OutfitGeneratedOutfit(
