@@ -1841,14 +1841,16 @@ class RobustOutfitGenerationService:
         if not item_occasions:
             logger.info(f"🔍 OCCASION: No occasion metadata for {item_name}, treating as FLEXIBLE/NEUTRAL")
             
-            # ATHLETIC OCCASION LOGIC: For athletic occasions, prefer athletic items even without metadata
+            # ATHLETIC OCCASION LOGIC: For athletic occasions, be more strict about what's appropriate
             if occasion_lower == 'athletic':
                 item_type_lower = str(getattr(item, 'type', '')).lower()
                 item_category_lower = str(getattr(item, 'category', '')).lower()
                 
-                # Athletic item indicators
-                athletic_indicators = ['tank', 'athletic', 'sport', 'gym', 'workout', 'running', 'sneaker', 'shorts', 'legging']
-                business_indicators = ['dress', 'button', 'formal', 'suit', 'tie', 'blazer', 'dress shoe']
+                # Athletic item indicators (items that are clearly athletic)
+                athletic_indicators = ['tank', 'athletic', 'sport', 'gym', 'workout', 'running', 'sneaker', 'shorts', 'legging', 'jersey', 'mesh']
+                
+                # Business/formal indicators (items that should be avoided for athletic)
+                business_indicators = ['dress', 'button', 'formal', 'suit', 'tie', 'blazer', 'dress shoe', 'oxford', 'loafer', 'dress shirt', 'dress pants', 'slacks']
                 
                 # Check if item is clearly athletic
                 if any(indicator in item_name or indicator in item_type_lower or indicator in item_category_lower 
@@ -1862,7 +1864,7 @@ class RobustOutfitGenerationService:
                     logger.info(f"❌ ATHLETIC: {item_name} is business item, not suitable for athletic")
                     return False
                 
-                # For neutral items (like basic t-shirts, jeans), allow them
+                # For neutral items (like basic t-shirts, jeans), allow them but log as neutral
                 logger.info(f"✅ ATHLETIC: {item_name} is neutral item, allowing for athletic")
                 return True
             
@@ -1889,9 +1891,9 @@ class RobustOutfitGenerationService:
             
             return True
         
-        # Check for broad compatibility patterns - very permissive
+        # Check for broad compatibility patterns - more strict for athletic
         compatibility_patterns = {
-            'athletic': ['casual', 'athletic', 'sport'],
+            'athletic': ['athletic', 'sport', 'gym', 'workout'],  # Removed 'casual' - too permissive
             'business': ['business', 'formal', 'professional', 'casual', 'everyday'],  # Added everyday
             'casual': ['casual', 'everyday', 'relaxed', 'business', 'formal'],  # Added formal
             'formal': ['formal', 'business', 'professional', 'casual', 'elegant'],  # Added elegant
