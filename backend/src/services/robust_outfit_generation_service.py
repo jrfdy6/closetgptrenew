@@ -1719,6 +1719,17 @@ class RobustOutfitGenerationService:
         # Check if item occasions include the requested occasion
         if occasion_lower in item_occasions_lower:
             logger.info(f"✅ OCCASION: {item_name} explicitly matches {occasion_lower}")
+            
+            # ENHANCED: For formal/business occasions, prioritize items with appropriate types
+            if occasion_lower in ['formal', 'business']:
+                item_type_lower = str(getattr(item, 'type', '')).lower()
+                if item_type_lower in ['shirt', 'blouse', 'dress']:
+                    logger.info(f"✅ OCCASION ENHANCED: {item_name} is perfect for {occasion_lower} (type: {item_type_lower})")
+                    return True
+                elif item_type_lower in ['sweater', 'jacket']:
+                    logger.info(f"⚠️ OCCASION WARNING: {item_name} acceptable for {occasion_lower} but not ideal (type: {item_type_lower})")
+                    return True
+            
             return True
         
         # Check for broad compatibility patterns - very permissive
@@ -1958,6 +1969,18 @@ class RobustOutfitGenerationService:
         for item_id, scores in item_scores.items():
             item = scores['item']
             base_score = 0.5  # Default neutral score
+            
+            # OCCASION-BASED SCORING BOOST
+            requested_occasion = context.occasion.lower()
+            item_type_lower = str(getattr(item, 'type', '')).lower()
+            
+            # Boost appropriate item types for specific occasions
+            if requested_occasion in ['formal', 'business'] and item_type_lower in ['shirt', 'blouse']:
+                base_score += 0.3  # Strong boost for shirts in formal/business
+                logger.debug(f"🎯 OCCASION BOOST: +0.3 for {item_type_lower} in {requested_occasion}")
+            elif requested_occasion == 'casual' and item_type_lower in ['t-shirt', 'polo', 'tank']:
+                base_score += 0.2  # Boost for casual tops in casual occasions
+                logger.debug(f"🎯 OCCASION BOOST: +0.2 for {item_type_lower} in {requested_occasion}")
             
             # Get item category
             category = self._get_item_category(item)
@@ -2281,33 +2304,38 @@ class RobustOutfitGenerationService:
                             base_score += 0.15
                             break
                 
-                # Hot weather items - BALANCED scoring
-                elif temp > 75:
+                # Hot weather items - PROGRESSIVE PENALTIES
+                elif temp > 70:  # Lower threshold for hot weather penalties
                     hot_keywords = ['cotton', 'linen', 'short sleeve', 'shorts', 'sandals', 'tank', 'light']
                     hot_appropriate = False
                     for keyword in hot_keywords:
                         if keyword in item_name_lower or keyword in item_type_lower:
-                            base_score += 0.2  # Boost for hot weather appropriate items
+                            base_score += 0.25  # Strong boost for hot weather appropriate items
                             hot_appropriate = True
                             break
                     
-                    # LIGHT PENALTY for hot weather inappropriate items (don't eliminate completely)
+                    # PROGRESSIVE PENALTIES based on temperature
                     hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots', 'heavy']
                     for keyword in hot_inappropriate:
                         if keyword in item_name_lower or keyword in item_type_lower:
-                            base_score -= 0.15  # Reduced penalty - don't eliminate items completely
+                            if temp >= 85:  # Extreme heat
+                                base_score -= 0.2  # Strong penalty but don't eliminate
+                            elif temp >= 75:  # Hot weather
+                                base_score -= 0.25  # Stronger penalty for hot weather
+                            else:  # Warm weather (70-75°F)
+                                base_score -= 0.15  # Moderate penalty
                             break
                 
-                # Moderate weather (50-75°F) - neutral scoring with minimal penalties
+                # Moderate weather (50-70°F) - neutral scoring with minimal penalties
                 else:
                     # Very light penalty for extreme weather items in moderate weather
-                    if temp > 65:
+                    if temp > 60:
                         hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater']
                         for keyword in hot_inappropriate:
                             if keyword in item_name_lower or keyword in item_type_lower:
                                 base_score -= 0.05  # Very small penalty
                                 break
-                    elif temp < 60:
+                    elif temp < 55:
                         cold_inappropriate = ['shorts', 'sandals', 'tank']
                         for keyword in cold_inappropriate:
                             if keyword in item_name_lower or keyword in item_type_lower:
