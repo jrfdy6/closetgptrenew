@@ -471,8 +471,10 @@ class RobustOutfitGenerationService:
         
         # Create scoring dictionary for each suitable item
         item_scores = {}
-        for item in suitable_items:
+        logger.info(f"🔍 DEBUG SCORING: Starting to create scores for {len(suitable_items)} suitable items")
+        for i, item in enumerate(suitable_items):
             item_id = safe_item_access(item, 'id', f"item_{len(item_scores)}")
+            logger.info(f"🔍 DEBUG SCORING: Creating score for item {i+1}: {item_id} - {getattr(item, 'name', 'Unknown')}")
             item_scores[item_id] = {
                 'item': item,
                 'body_type_score': 0.0,
@@ -481,6 +483,8 @@ class RobustOutfitGenerationService:
                 'user_feedback_score': 0.0,  # NEW!
                 'composite_score': 0.0
             }
+        
+        logger.info(f"🔍 DEBUG SCORING: Created {len(item_scores)} item scores")
         
         logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
         
@@ -2806,7 +2810,10 @@ class RobustOutfitGenerationService:
         
         if not item_scores:
             logger.error(f"❌ COHESIVE COMPOSITION: No scored items received!")
-            raise Exception("No scored items provided to cohesive composition")
+            # DEBUG: Add more detailed error info
+            error_msg = f"DEBUG: No scored items received. Context has {len(context.wardrobe)} items. Item scores dict: {item_scores}"
+            logger.error(f"🚨 {error_msg}")
+            raise Exception(f"No scored items provided to cohesive composition. {error_msg}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # INTELLIGENT ITEM COUNT & LAYERING DECISION
