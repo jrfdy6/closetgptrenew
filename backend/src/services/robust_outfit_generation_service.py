@@ -49,33 +49,33 @@ except (ImportError, ValueError) as e:
         print("🔧 ROBUST SERVICE: Using fallback minimal classes")
         
         # Create minimal fallback classes to prevent total import failure
-class ClothingItem:
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        class ClothingItem:
+            def __init__(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
 
-class OutfitGeneratedOutfit:
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        class OutfitGeneratedOutfit:
+            def __init__(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
 
-class OutfitPiece:
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        class OutfitPiece:
+            def __init__(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
 
-class WeatherData:
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        class WeatherData:
+            def __init__(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
 
-class UserProfile:
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        class UserProfile:
+            def __init__(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
 
-def ensure_items_safe_for_pydantic(items):
-    return items
+        def ensure_items_safe_for_pydantic(items):
+            return items
 
 class MockService:
     """Mock service with all required methods"""
