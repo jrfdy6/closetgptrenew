@@ -2252,52 +2252,77 @@ class RobustOutfitGenerationService:
             for item_id, scores in item_scores.items():
                 item = scores['item']
                 base_score = 0.5  # Default neutral score
-            
-            # Season match
-            item_seasons = getattr(item, 'season', [])
-            if isinstance(item_seasons, str):
-                item_seasons = [item_seasons]
-            
-            item_seasons_lower = [s.lower() for s in item_seasons]
-            if season in item_seasons_lower:
-                base_score += 0.3
-            
-            # Temperature compatibility
-            if hasattr(item, 'temperatureCompatibility'):
-                temp_compat = item.temperatureCompatibility
-                if temp_compat and hasattr(temp_compat, 'minTemp') and hasattr(temp_compat, 'maxTemp'):
-                    if temp_compat.minTemp <= temp <= temp_compat.maxTemp:
-                        base_score += 0.2
-            
-            # Material appropriateness for weather
-            item_name_lower = item.name.lower()
-            item_type_lower = str(item.type).lower()
-            
-            # Cold weather items
-            if temp < 50:
-                cold_keywords = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots']
-                for keyword in cold_keywords:
-                    if keyword in item_name_lower or keyword in item_type_lower:
-                        base_score += 0.15
-                        break
-            
-            # Hot weather items
-            elif temp > 75:
-                hot_keywords = ['cotton', 'linen', 'short sleeve', 'shorts', 'sandals', 'tank', 'light']
-                for keyword in hot_keywords:
-                    if keyword in item_name_lower or keyword in item_type_lower:
-                        base_score += 0.15
-                        break
-            
-            # Rainy weather
-            if 'rain' in condition or 'storm' in condition:
-                rain_keywords = ['waterproof', 'raincoat', 'boots']
-                for keyword in rain_keywords:
-                    if keyword in item_name_lower:
-                        base_score += 0.2
-                        break
-            
-            item_scores[item_id]['weather_score'] = min(1.0, base_score)
+                
+                # Season match
+                item_seasons = getattr(item, 'season', [])
+                if isinstance(item_seasons, str):
+                    item_seasons = [item_seasons]
+                
+                item_seasons_lower = [s.lower() for s in item_seasons]
+                if season in item_seasons_lower:
+                    base_score += 0.3
+                
+                # Temperature compatibility
+                if hasattr(item, 'temperatureCompatibility'):
+                    temp_compat = item.temperatureCompatibility
+                    if temp_compat and hasattr(temp_compat, 'minTemp') and hasattr(temp_compat, 'maxTemp'):
+                        if temp_compat.minTemp <= temp <= temp_compat.maxTemp:
+                            base_score += 0.2
+                
+                # Material appropriateness for weather
+                item_name_lower = item.name.lower()
+                item_type_lower = str(item.type).lower()
+                
+                # Cold weather items
+                if temp < 50:
+                    cold_keywords = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots']
+                    for keyword in cold_keywords:
+                        if keyword in item_name_lower or keyword in item_type_lower:
+                            base_score += 0.15
+                            break
+                
+                # Hot weather items - PENALIZE inappropriate items
+                elif temp > 75:
+                    hot_keywords = ['cotton', 'linen', 'short sleeve', 'shorts', 'sandals', 'tank', 'light']
+                    hot_appropriate = False
+                    for keyword in hot_keywords:
+                        if keyword in item_name_lower or keyword in item_type_lower:
+                            base_score += 0.15
+                            hot_appropriate = True
+                            break
+                    
+                    # PENALIZE hot weather inappropriate items
+                    hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots', 'heavy']
+                    for keyword in hot_inappropriate:
+                        if keyword in item_name_lower or keyword in item_type_lower:
+                            base_score -= 0.3  # Penalty for hot weather inappropriate items
+                            break
+                
+                # Moderate weather (50-75°F) - neutral scoring
+                else:
+                    # Light penalty for extreme weather items in moderate weather
+                    if temp > 65:
+                        hot_inappropriate = ['wool', 'fleece', 'coat', 'jacket', 'sweater']
+                        for keyword in hot_inappropriate:
+                            if keyword in item_name_lower or keyword in item_type_lower:
+                                base_score -= 0.1  # Small penalty
+                                break
+                    elif temp < 60:
+                        cold_inappropriate = ['shorts', 'sandals', 'tank']
+                        for keyword in cold_inappropriate:
+                            if keyword in item_name_lower or keyword in item_type_lower:
+                                base_score -= 0.1  # Small penalty
+                                break
+                
+                # Rainy weather
+                if 'rain' in condition or 'storm' in condition:
+                    rain_keywords = ['waterproof', 'raincoat', 'boots']
+                    for keyword in rain_keywords:
+                        if keyword in item_name_lower:
+                            base_score += 0.2
+                            break
+                
+                item_scores[item_id]['weather_score'] = min(1.0, max(0.0, base_score))  # Clamp between 0 and 1
         
             logger.info(f"🌤️ WEATHER ANALYZER: Completed scoring")
             
