@@ -1428,7 +1428,42 @@ class RobustOutfitGenerationService:
             logger.info(f"🔄 STAGED RELAXATION: Total items after relaxation: {len(suitable_items)}")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
-        return suitable_items
+        
+        # HARD WEATHER FILTER - Remove completely inappropriate items
+        temp = safe_get(context.weather, 'temperature', 70.0)
+        weather_appropriate_items = []
+        weather_rejected = 0
+        
+        for item in suitable_items:
+            item_name_lower = item.name.lower()
+            item_type_lower = str(getattr(item, 'type', '')).lower()
+            
+            # Hard filter for extreme weather
+            if temp >= 85:  # Extreme heat
+                hot_inappropriate = ['wool', 'fleece', 'sweater', 'jacket', 'coat', 'heavy', 'long sleeve']
+                if any(keyword in item_name_lower or keyword in item_type_lower for keyword in hot_inappropriate):
+                    logger.warning(f"🔥 HARD FILTER: {item.name} REMOVED for {temp}°F extreme heat")
+                    weather_rejected += 1
+                    continue
+            elif temp >= 75:  # Hot weather
+                hot_inappropriate = ['wool', 'fleece', 'sweater', 'jacket', 'coat', 'heavy']
+                if any(keyword in item_name_lower or keyword in item_type_lower for keyword in hot_inappropriate):
+                    logger.warning(f"🌡️ HARD FILTER: {item.name} REMOVED for {temp}°F hot weather")
+                    weather_rejected += 1
+                    continue
+            elif temp < 45:  # Cold weather
+                cold_inappropriate = ['shorts', 'sandals', 'tank', 'light', 'summer']
+                if any(keyword in item_name_lower or keyword in item_type_lower for keyword in cold_inappropriate):
+                    logger.warning(f"❄️ HARD FILTER: {item.name} REMOVED for {temp}°F cold weather")
+                    weather_rejected += 1
+                    continue
+            
+            weather_appropriate_items.append(item)
+        
+        logger.info(f"🌤️ HARD WEATHER FILTER: {len(weather_appropriate_items)} items remain after weather filtering")
+        logger.info(f"🌤️ HARD WEATHER FILTER: Weather rejections: {weather_rejected}")
+        
+        return weather_appropriate_items
     
     async def _intelligent_item_selection(self, suitable_items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
