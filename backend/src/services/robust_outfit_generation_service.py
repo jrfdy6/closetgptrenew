@@ -1783,39 +1783,70 @@ class RobustOutfitGenerationService:
                 item_moods = [item_moods]
             item_moods_lower = [m.lower() for m in item_moods]
             
-            # Check for mood compatibility
-            mood_compatible = False
-            if mood_lower in item_moods_lower:
-                mood_compatible = True
-                logger.info(f"✅ MOOD: {item_name} matches mood {mood_lower}")
+            # NEUTRAL DEFAULT: If no mood information available, treat as flexible/neutral
+            if not item_moods_lower:
+                logger.info(f"🔍 MOOD: No mood metadata for {item_name}, treating as FLEXIBLE/NEUTRAL")
+                # Continue to occasion check - don't return False
             else:
-                # Flexible mood matching for common mood combinations
-                mood_mappings = {
-                    'professional': ['serious', 'business', 'formal'],
-                    'relaxed': ['comfortable', 'casual', 'easy'],
-                    'bold': ['dramatic', 'striking', 'confident', 'energetic', 'motivated', 'active'],  # Added athletic moods
-                    'comfortable': ['relaxed', 'easy', 'casual'],
-                    'sophisticated': ['elegant', 'refined', 'classic'],
-                    'energetic': ['active', 'dynamic', 'vibrant', 'motivated', 'bold'],  # Added bold
-                    'confident': ['bold', 'energetic', 'motivated', 'active'],  # Added athletic moods
-                    'motivated': ['energetic', 'active', 'bold', 'confident'],  # Added athletic moods
-                    'active': ['energetic', 'motivated', 'bold', 'confident']  # Added athletic moods
-                }
-                
-                if mood_lower in mood_mappings:
-                    compatible_moods = mood_mappings[mood_lower]
-                    if any(compat_mood in item_moods_lower for compat_mood in compatible_moods):
-                        mood_compatible = True
-                        logger.info(f"✅ MOOD FLEXIBLE: {item_name} compatible with {mood_lower} via mood mapping")
-                
-                if not mood_compatible:
-                    logger.info(f"❌ MOOD: {item_name} not compatible with mood {mood_lower}")
-                    return False
+                # Check for mood compatibility
+                mood_compatible = False
+                if mood_lower in item_moods_lower:
+                    mood_compatible = True
+                    logger.info(f"✅ MOOD: {item_name} matches mood {mood_lower}")
+                else:
+                    # Flexible mood matching for common mood combinations
+                    mood_mappings = {
+                        'professional': ['serious', 'business', 'formal'],
+                        'relaxed': ['comfortable', 'casual', 'easy'],
+                        'bold': ['dramatic', 'striking', 'confident', 'energetic', 'motivated', 'active'],  # Added athletic moods
+                        'comfortable': ['relaxed', 'easy', 'casual'],
+                        'sophisticated': ['elegant', 'refined', 'classic'],
+                        'energetic': ['active', 'dynamic', 'vibrant', 'motivated', 'bold'],  # Added bold
+                        'confident': ['bold', 'energetic', 'motivated', 'active'],  # Added athletic moods
+                        'motivated': ['energetic', 'active', 'bold', 'confident'],  # Added athletic moods
+                        'active': ['energetic', 'motivated', 'bold', 'confident']  # Added athletic moods
+                    }
+                    
+                    if mood_lower in mood_mappings:
+                        compatible_moods = mood_mappings[mood_lower]
+                        if any(compat_mood in item_moods_lower for compat_mood in compatible_moods):
+                            mood_compatible = True
+                            logger.info(f"✅ MOOD FLEXIBLE: {item_name} compatible with {mood_lower} via mood mapping")
+                    
+                    if not mood_compatible:
+                        logger.info(f"❌ MOOD: {item_name} not compatible with mood {mood_lower}")
+                        return False
         
         # NEUTRAL DEFAULT: If no occasion information available, treat as flexible/neutral
         item_occasions = getattr(item, 'occasion', [])
         if not item_occasions:
             logger.info(f"🔍 OCCASION: No occasion metadata for {item_name}, treating as FLEXIBLE/NEUTRAL")
+            
+            # ATHLETIC OCCASION LOGIC: For athletic occasions, prefer athletic items even without metadata
+            if occasion_lower == 'athletic':
+                item_type_lower = str(getattr(item, 'type', '')).lower()
+                item_category_lower = str(getattr(item, 'category', '')).lower()
+                
+                # Athletic item indicators
+                athletic_indicators = ['tank', 'athletic', 'sport', 'gym', 'workout', 'running', 'sneaker', 'shorts', 'legging']
+                business_indicators = ['dress', 'button', 'formal', 'suit', 'tie', 'blazer', 'dress shoe']
+                
+                # Check if item is clearly athletic
+                if any(indicator in item_name or indicator in item_type_lower or indicator in item_category_lower 
+                      for indicator in athletic_indicators):
+                    logger.info(f"✅ ATHLETIC: {item_name} is athletic item (no metadata)")
+                    return True
+                
+                # Check if item is clearly business/formal (should be avoided for athletic)
+                if any(indicator in item_name or indicator in item_type_lower or indicator in item_category_lower 
+                      for indicator in business_indicators):
+                    logger.info(f"❌ ATHLETIC: {item_name} is business item, not suitable for athletic")
+                    return False
+                
+                # For neutral items (like basic t-shirts, jeans), allow them
+                logger.info(f"✅ ATHLETIC: {item_name} is neutral item, allowing for athletic")
+                return True
+            
             return True
         
         # Normalize occasions list
