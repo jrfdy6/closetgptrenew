@@ -1411,36 +1411,17 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🔍 HARD FILTER: Results - {len(suitable_items)} passed hard filters, {hard_rejected} rejected")
         
-        # PROGRESSIVE RELAXATION: If no suitable items found, stage the pruning
+        # PROGRESSIVE RELAXATION: If no suitable items found, use emergency fallback
         if len(suitable_items) == 0:
-            logger.warning(f"🚨 NO SUITABLE ITEMS: Using staged progressive relaxation")
+            logger.warning(f"🚨 NO SUITABLE ITEMS: All items rejected by hard filters - using emergency fallback")
             
-            # Stage 1: Relax style filtering only (keep occasion strict)
-            logger.info(f"🔄 STAGE 1: Relaxing style filtering (keeping occasion strict)...")
+            # Emergency: Use any available items (hard filters were too strict)
+            logger.info(f"🆘 EMERGENCY: Using all wardrobe items as fallback")
             for item in context.wardrobe:
-                # Only check occasion compatibility, ignore style
-                if self._is_occasion_compatible(item, context.occasion, context.style, context.mood, context.weather):
-                    suitable_items.append(item)
-                    logger.info(f"🔄 STAGE 1: Added {getattr(item, 'name', 'Unknown')} (style relaxed)")
+                suitable_items.append(item)
+                logger.info(f"🆘 EMERGENCY: Added {getattr(item, 'name', 'Unknown')} (emergency fallback)")
             
-            # Stage 2: If still no items, relax occasion filtering with category awareness
-            if len(suitable_items) == 0:
-                logger.info(f"🔄 STAGE 2: Relaxing occasion filtering with category awareness...")
-                for item in context.wardrobe:
-                    # Category awareness: allow generic items to stand in when tagged items unavailable
-                    item_type = getattr(item, 'type', '').lower()
-                    if item_type in ['shirt', 'pants', 'shoes', 'jacket', 'blouse', 'top', 'bottom', 'sweater', 'dress']:
-                        suitable_items.append(item)
-                        logger.info(f"🔄 STAGE 2: Added {getattr(item, 'name', 'Unknown')} (category: {item_type}, occasion relaxed)")
-            
-            # Stage 3: If still no items, use neutral pool (any item)
-            if len(suitable_items) == 0:
-                logger.info(f"🔄 STAGE 3: Using neutral pool (any item)...")
-                for item in context.wardrobe:
-                    suitable_items.append(item)
-                    logger.info(f"🔄 STAGE 3: Added {getattr(item, 'name', 'Unknown')} (neutral pool)")
-            
-            logger.info(f"🔄 STAGED RELAXATION: Total items after relaxation: {len(suitable_items)}")
+            logger.info(f"🆘 EMERGENCY FALLBACK: Total items after emergency: {len(suitable_items)}")
         
         logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
         
