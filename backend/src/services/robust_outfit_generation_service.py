@@ -448,11 +448,30 @@ class RobustOutfitGenerationService:
         # Each analyzer scores items, then cohesive composition uses all scores
         # ═══════════════════════════════════════════════════════════
         
-        logger.info(f"🔬 PHASE 1: Multi-Layered Analysis & Scoring")
+        logger.info(f"🔬 PHASE 1: Filtering & Multi-Layered Analysis & Scoring")
         
-        # Create scoring dictionary for each item
+        # ═══════════════════════════════════════════════════════════
+        # STEP 1: FILTER SUITABLE ITEMS FIRST
+        # ═══════════════════════════════════════════════════════════
+        
+        logger.info(f"🔍 FILTERING: Starting item filtering for {context.occasion} occasion")
+        suitable_items = await self._filter_suitable_items(context)
+        logger.info(f"🔍 FILTERING: {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
+        
+        if len(suitable_items) == 0:
+            logger.error(f"🚨 CRITICAL: No suitable items found after filtering!")
+            logger.error(f"🔍 DEBUG: Occasion: {context.occasion}, Style: {context.style}, Mood: {context.mood}")
+            raise Exception(f"No suitable items found for {context.occasion} occasion")
+        
+        # ═══════════════════════════════════════════════════════════
+        # STEP 2: MULTI-LAYERED SCORING ON FILTERED ITEMS
+        # ═══════════════════════════════════════════════════════════
+        
+        logger.info(f"🔬 SCORING: Starting multi-layered scoring on {len(suitable_items)} filtered items")
+        
+        # Create scoring dictionary for each suitable item
         item_scores = {}
-        for item in context.wardrobe:
+        for item in suitable_items:
             item_id = safe_item_access(item, 'id', f"item_{len(item_scores)}")
             item_scores[item_id] = {
                 'item': item,
@@ -467,8 +486,8 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG: First item ID: {list(item_scores.keys())[0] if item_scores else 'NONE'}")
         logger.info(f"🔍 DEBUG: First item type: {type(list(item_scores.values())[0]['item']) if item_scores else 'NONE'}")
         
-        # Run all analyzers in parallel
-        logger.info(f"🚀 Running 3 analyzers in parallel... (body type + style profile + weather)")
+        # Run all analyzers in parallel on filtered items
+        logger.info(f"🚀 Running 3 analyzers in parallel on {len(suitable_items)} filtered items... (body type + style profile + weather)")
         
         analyzer_tasks = [
             # RE-ENABLING ANALYZERS: Body type + Style profile + Weather
