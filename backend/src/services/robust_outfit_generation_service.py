@@ -1393,15 +1393,20 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 HARD FILTER: Starting hard filtering for occasion={context.occasion}, style={context.style}")
         logger.info(f"🔍 HARD FILTER: Wardrobe has {len(context.wardrobe)} items")
         
+        # DEBUG: Log hydrated items before filtering
+        logger.info(f"🔍 DEBUG HYDRATED ITEMS: {len(context.wardrobe)} items received")
+        for i, item in enumerate(context.wardrobe[:3]):  # Log first 3 items
+            logger.info(f"🔍 DEBUG ITEM {i+1}: name='{getattr(item, 'name', 'NO_NAME')}', type='{getattr(item, 'type', 'NO_TYPE')}', color='{getattr(item, 'color', 'NO_COLOR')}'")
+        
         suitable_items = []
         hard_rejected = 0
         
+        # TEMPORARY DEBUG: Bypass hard filter to isolate the issue
+        logger.warning(f"🚨 DEBUG: BYPASSING HARD FILTER FOR TESTING")
         for i, item in enumerate(context.wardrobe):
-            # Apply hard constraints - contextually impossible mappings
-            if self._hard_filter(item, context.occasion, context.style):
-                suitable_items.append(item)
-            else:
-                hard_rejected += 1
+            suitable_items.append(item)
+            logger.info(f"🚨 DEBUG: Added item {i+1} without hard filter: {getattr(item, 'name', 'Unknown')}")
+        hard_rejected = 0
         
         logger.info(f"🔍 HARD FILTER: Results - {len(suitable_items)} passed hard filters, {hard_rejected} rejected")
         
@@ -2790,6 +2795,14 @@ class RobustOutfitGenerationService:
         logger.info(f"🎨 COHESIVE COMPOSITION: Using scored items to create outfit")
         logger.info(f"🔍 DEBUG: Received {len(item_scores)} scored items")
         logger.info(f"🔍 DEBUG: Context occasion: {context.occasion}, style: {context.style}")
+        
+        # DEBUG: Log item scores details
+        if item_scores:
+            logger.info(f"🔍 DEBUG SCORES: First 3 item scores:")
+            for i, (item_id, score) in enumerate(list(item_scores.items())[:3]):
+                logger.info(f"🔍 DEBUG SCORE {i+1}: {item_id} = {score}")
+        else:
+            logger.error(f"🚨 DEBUG: item_scores is empty or None!")
         
         if not item_scores:
             logger.error(f"❌ COHESIVE COMPOSITION: No scored items received!")
