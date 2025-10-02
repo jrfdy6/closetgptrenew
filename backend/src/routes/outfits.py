@@ -5484,10 +5484,19 @@ async def generate_outfit(
             print(f"🚨 FINAL IMPACT: User will receive HTTP 500 error - no outfit generated")
             if last_error:
                 print(f"🚨 FINAL ERROR: {type(last_error).__name__}: {str(last_error)}")
-                raise HTTPException(
-                    status_code=500, 
-                    detail=f"Outfit generation failed after {max_attempts} attempts: {str(last_error)}"
-                )
+                # Preserve debug information from our debug logging
+                error_detail = str(last_error)
+                if "DEBUG:" in error_detail:
+                    # Our debug information is in the error message
+                    raise HTTPException(
+                        status_code=500, 
+                        detail=error_detail  # Return full debug information
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=500, 
+                        detail=f"Outfit generation failed after {max_attempts} attempts: {error_detail}"
+                    )
             else:
                 print(f"🚨 FINAL ERROR: No specific error - unable to generate valid outfit")
                 raise HTTPException(
