@@ -37,6 +37,8 @@ try:
     print("✅ ROBUST SERVICE: Using relative imports")
 except (ImportError, ValueError) as e:
     print(f"⚠️ Relative imports failed: {e}")
+    import traceback
+    print(f"⚠️ Relative import traceback: {traceback.format_exc()}")
     try:
         from custom_types.wardrobe import ClothingItem
         from custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
@@ -46,6 +48,7 @@ except (ImportError, ValueError) as e:
         print("✅ ROBUST SERVICE: Using absolute imports")
     except ImportError as e2:
         print(f"⚠️ Absolute imports failed: {e2}")
+        print(f"⚠️ Absolute import traceback: {traceback.format_exc()}")
         print("🔧 ROBUST SERVICE: Using fallback minimal classes")
         
         # Create minimal fallback classes to prevent total import failure
