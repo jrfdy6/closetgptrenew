@@ -911,60 +911,29 @@ class EnhancedOutfitValidator:
         logger.info(f"🔍 Starting comprehensive outfit validation with {len(items)} items")
         logger.info(f"📋 Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')} - {context.get('mood', 'unknown')}")
         
-        # TEMPORARY DEBUG MODE: Bypass all filtering to see what we're working with
-        logger.warning(f"🚨 DEBUG MODE: Bypassing strict validation to identify rejection reasons")
+        # Apply proper validation rules
+        logger.info(f"🔍 Starting comprehensive outfit validation with {len(items)} items")
+        logger.info(f"📋 Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')} - {context.get('mood', 'unknown')}")
         
         try:
-            # BATCH LOGGING: Reduce verbosity to prevent Railway rate limits
-            logger.info(f"🔍 DEBUG: Analyzing {len(items)} items for rejection patterns")
+            # Apply real validation logic
+            valid_items = []
+            rejected_items = []
             
-            # Batch analyze first 5 items only
-            metadata_issues = []
-            for i, item in enumerate(items[:5]):
-                item_id = item.get('id', f'item_{i}')
-                issues = []
-                if not item.get('color'): issues.append("missing_color")
-                if not item.get('season'): issues.append("missing_season")
-                if not item.get('style'): issues.append("missing_style")
-                if not item.get('occasion'): issues.append("missing_occasion")
-                
-                if issues:
-                    metadata_issues.append(f"{item_id}: {issues}")
-            
-            if metadata_issues:
-                logger.warning(f"⚠️ METADATA ISSUES: {metadata_issues}")
-            else:
-                logger.info(f"✅ No obvious metadata gaps in sample")
-            
-            # TEMPORARY: Return all items as "valid" to bypass filtering
-            logger.warning(f"🚨 DEBUG MODE: Returning ALL {len(items)} items as valid (bypassing filters)")
-            
-            # BATCH LOG: Single summary instead of per-item logging
-            item_types_summary = {}
             for item in items:
-                item_type = item.get('type', 'unknown')
-                item_types_summary[item_type] = item_types_summary.get(item_type, 0) + 1
+                if self._is_item_valid_for_context(item, context):
+                    valid_items.append(item)
+                else:
+                    rejected_items.append(item)
             
-            logger.info(f"📊 ITEM SUMMARY: {item_types_summary}")
+            logger.info(f"✅ VALIDATION COMPLETE: {len(valid_items)} valid items, {len(rejected_items)} rejected")
             
-            # Create a mock visual harmony result
-            from dataclasses import dataclass
-            @dataclass
-            class MockVisualHarmony:
-                overall_harmony_score: float = 75.0
-                color_harmony_score: float = 80.0
-                material_harmony_score: float = 70.0
-                style_harmony_score: float = 75.0
-            
-            visual_harmony_result = MockVisualHarmony()
-            
-            # OUTCOME CLARITY: Create detailed summary of what was validated
+            # Create proper validation summary
             validation_summary = {
-                "debug_mode": True,
-                "bypassed_filters": True,
+                "validation_mode": "strict",
                 "original_item_count": len(items),
-                "returned_item_count": len(items),
-                "item_types_summary": item_types_summary,
+                "valid_item_count": len(valid_items),
+                "rejected_item_count": len(rejected_items),
                 "validation_context": {
                     "occasion": context.get('occasion', 'unknown'),
                     "style": context.get('style', 'unknown'),
@@ -980,12 +949,12 @@ class EnhancedOutfitValidator:
             }
             
             return ValidationResult(
-                is_valid=True,
-                score=75.0,
-                issues=[],
-                suggestions=["DEBUG MODE: All items passed validation"],
-                confidence_score=0.75,
-                filtered_items=items,  # Return ALL items
+                is_valid=len(valid_items) > 0,
+                score=len(valid_items) / len(items) * 100 if items else 0.0,
+                issues=[] if len(valid_items) > 0 else ["No valid items found for context"],
+                suggestions=[] if len(valid_items) > 0 else ["Try different items or relax occasion/style requirements"],
+                confidence_score=len(valid_items) / len(items) if items else 0.0,
+                filtered_items=valid_items,  # Return only valid items
                 validation_details=validation_summary
             )
             
@@ -1003,6 +972,85 @@ class EnhancedOutfitValidator:
                 filtered_items=[],
                 validation_details={"error": str(e)}
             )
+    
+    def _is_item_valid_for_context(self, item: dict, context: dict) -> bool:
+        """Check if an item is valid for the given context (occasion, style, mood)."""
+        occasion = context.get('occasion', '').lower()
+        style = context.get('style', '').lower()
+        mood = context.get('mood', '').lower()
+        
+        item_name = item.get('name', '').lower()
+        item_type = item.get('type', '').lower()
+        item_occasion = item.get('occasion', [])
+        item_style = item.get('style', [])
+        
+        # Convert lists to lowercase for comparison
+        if isinstance(item_occasion, list):
+            item_occasion = [occ.lower() for occ in item_occasion]
+        elif isinstance(item_occasion, str):
+            item_occasion = [item_occasion.lower()]
+        else:
+            item_occasion = []
+            
+        if isinstance(item_style, list):
+            item_style = [sty.lower() for sty in item_style]
+        elif isinstance(item_style, str):
+            item_style = [item_style.lower()]
+        else:
+            item_style = []
+        
+        # Business/Formal occasion validation
+        if 'business' in occasion or 'formal' in occasion:
+            # Check for explicitly forbidden items
+            forbidden_patterns = [
+                't-shirt', 't shirt', 'tshirt', 'tank', 'tank top',
+                'polo shirt', 'polo', 'hoodie', 'sweatshirt', 'sweatpants',
+                'shorts', 'sneakers', 'athletic', 'sport', 'gym', 'basketball',
+                'flip flops', 'sandals', 'canvas', 'running shoes'
+            ]
+            
+            for pattern in forbidden_patterns:
+                if pattern in item_name or pattern in item_type:
+                    return False
+            
+            # Check if item has appropriate occasion tags
+            if item_occasion:
+                appropriate_occasions = ['business', 'formal', 'professional', 'work', 'office']
+                if not any(occ in appropriate_occasions for occ in item_occasion):
+                    return False
+        
+        # Athletic occasion validation
+        elif 'athletic' in occasion or 'gym' in occasion:
+            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball', 'exercise']
+            if not any(pattern in item_name or pattern in item_type for pattern in athletic_patterns):
+                return False
+        
+        # Casual occasion - more lenient but still check basic appropriateness
+        elif 'casual' in occasion:
+            # Avoid formal items for casual occasions
+            formal_patterns = ['tuxedo', 'evening gown', 'wedding dress', 'suit jacket']
+            if any(pattern in item_name or pattern in item_type for pattern in formal_patterns):
+                return False
+        
+        # Style validation
+        if style and item_style:
+            style_match = False
+            style_mappings = {
+                'classic': ['classic', 'traditional', 'timeless', 'conservative'],
+                'modern': ['modern', 'contemporary', 'sleek', 'minimalist'],
+                'casual': ['casual', 'relaxed', 'comfortable', 'everyday'],
+                'formal': ['formal', 'business', 'professional', 'elegant']
+            }
+            
+            if style in style_mappings:
+                valid_styles = style_mappings[style]
+                if any(valid_style in item_style for valid_style in valid_styles):
+                    style_match = True
+            
+            if not style_match:
+                return False
+        
+        return True
     
     async def _pre_validation_filtering(
         self, 
