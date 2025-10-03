@@ -92,8 +92,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Request body:', body);
     
-    // Call the real backend to generate outfit
-    const fullBackendUrl = `${backendUrl}/api/outfits-simple-minimal/generate-personalized`;
+    // Call the real backend to generate outfit using robust service
+    const fullBackendUrl = `${backendUrl}/api/outfits/generate`;
     console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
