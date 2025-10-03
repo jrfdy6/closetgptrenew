@@ -141,6 +141,37 @@ def normalize_clothing_type(item_type: str, sub_type: Optional[str] = None) -> C
         logger.warning("Empty type string, defaulting to OTHER")
         return ClothingType.OTHER
 
+    # Handle ClothingType enum format (e.g., "ClothingType.SHIRT" -> "shirt")
+    if 'clothingtype.' in item_type.lower():
+        enum_value = item_type.split('.')[-1].lower()
+        # Map enum values to valid ClothingType enum values
+        enum_mappings = {
+            'shirt': ClothingType.SHIRT,
+            'pants': ClothingType.PANTS, 
+            'shoes': ClothingType.SHOES,
+            'jacket': ClothingType.JACKET,
+            'dress': ClothingType.DRESS,
+            'sweater': ClothingType.SWEATER,
+            'blouse': ClothingType.BLOUSE,
+            'hoodie': ClothingType.HOODIE,
+            'polo': ClothingType.POLO,
+            'jeans': ClothingType.JEANS,
+            'shorts': ClothingType.SHORTS,
+            'skirt': ClothingType.SKIRT,
+            'boots': ClothingType.BOOTS,
+            'sneakers': ClothingType.SNEAKERS,
+            'heels': ClothingType.HEELS,
+            'blazer': ClothingType.BLAZER,
+            'coat': ClothingType.COAT,
+            'accessory': ClothingType.ACCESSORY,
+            'other': ClothingType.OTHER
+        }
+        if enum_value in enum_mappings:
+            return enum_mappings[enum_value]
+        else:
+            logger.warning(f"Unknown enum value {enum_value}, defaulting to OTHER")
+            return ClothingType.OTHER
+
     # Convert to lowercase for case-insensitive matching
     type_lower = item_type.lower()
     sub_type_lower = sub_type.lower() if sub_type else None
