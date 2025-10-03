@@ -1131,7 +1131,22 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         }
                     }
                     
-                    robust_outfit = await robust_service.generate_outfit(context)
+                    # DEBUG: Log wardrobe item types before robust service call
+                print(f"🔍 DEBUG WARDROBE ITEMS: About to call robust service")
+                if hasattr(context, 'wardrobe') and context.wardrobe:
+                    print(f"🔍 DEBUG WARDROBE ITEMS: Wardrobe has {len(context.wardrobe)} items")
+                    for i, item in enumerate(context.wardrobe):
+                        item_type = getattr(item, 'type', 'NO_TYPE')
+                        item_name = getattr(item, 'name', 'NO_NAME')
+                        print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
+                        if hasattr(item_type, 'value'):
+                            print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
+                        if hasattr(item_type, 'name'):
+                            print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
+                else:
+                    print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
+                
+                robust_outfit = await robust_service.generate_outfit(context)
                     logger.error(f"🚨 FORCE REDEPLOY v11.0: generate_outfit completed successfully")
                     
                     # DEBUG: Collect robust generation result
