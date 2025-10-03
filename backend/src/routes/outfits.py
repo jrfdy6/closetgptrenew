@@ -945,22 +945,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         OutfitGeneratedOutfit = None
     
     # Import robust generation service separately (doesn't require Firebase)
-    try:
-        from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
-        print(f"🔎 MAIN LOGIC: Robust generation service imports successful")
-        logger.info(f"✅ ROBUST IMPORT: Successfully imported RobustOutfitGenerationService and GenerationContext")
-    except ImportError as e:
-        logger.error(f"🚨 FORCE REDEPLOY v13.0: Robust generation service import failed: {e}")
-        logger.error(f"🚨 FORCE REDEPLOY v13.0: Import error details: {type(e).__name__}: {e}")
-        print(f"🚨 MAIN LOGIC: Robust generation service import FAILED: {e}")
-        RobustOutfitGenerationService = None
-        GenerationContext = None
-    except Exception as e:
-        logger.error(f"🚨 FORCE REDEPLOY v13.0: Unexpected error importing robust service: {e}")
-        logger.error(f"🚨 FORCE REDEPLOY v13.0: Error type: {type(e).__name__}")
-        print(f"🚨 MAIN LOGIC: Robust generation service import FAILED with unexpected error: {e}")
-        RobustOutfitGenerationService = None
-        GenerationContext = None
+    # TEMPORARILY DISABLED FOR TESTING
+    print(f"🚨 MAIN LOGIC: Robust generation service import TEMPORARILY DISABLED for testing")
+    logger.info(f"🚨 ROBUST IMPORT: Robust generation service import TEMPORARILY DISABLED for testing")
+    RobustOutfitGenerationService = None
+    GenerationContext = None
     
     # Import ClothingItem for validation
     try:
