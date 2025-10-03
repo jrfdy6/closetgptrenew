@@ -945,11 +945,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         OutfitGeneratedOutfit = None
     
     # Import robust generation service separately (doesn't require Firebase)
-    # TEMPORARILY DISABLED FOR TESTING
-    print(f"🚨 MAIN LOGIC: Robust generation service import TEMPORARILY DISABLED for testing")
-    logger.info(f"🚨 ROBUST IMPORT: Robust generation service import TEMPORARILY DISABLED for testing")
-    RobustOutfitGenerationService = None
-    GenerationContext = None
+    try:
+        from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
+        print(f"🔎 MAIN LOGIC: Robust generation service import successful")
+        logger.info(f"✅ ROBUST IMPORT: Robust generation service imported successfully")
+    except ImportError as e:
+        logger.error(f"🚨 ROBUST IMPORT FAILED: {e}")
+        print(f"🚨 MAIN LOGIC: Robust generation service import FAILED: {e}")
+        import traceback
+        print(f"🚨 ROBUST IMPORT TRACEBACK: {traceback.format_exc()}")
+        RobustOutfitGenerationService = None
+        GenerationContext = None
     
     # Import ClothingItem for validation
     try:
@@ -1034,9 +1040,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.error(f"🚨 DEBUG: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
             logger.error(f"🚨 DEBUG: GenerationContext = {GenerationContext}")
             logger.error(f"🚨 DEBUG: Condition result = {RobustOutfitGenerationService and GenerationContext}")
-            logger.error(f"🚨 DEBUG: FORCE BYPASS IS ACTIVE - should go to else branch")
-            # FORCE BYPASS ROBUST SERVICE FOR TESTING
-            if False:  # RobustOutfitGenerationService and GenerationContext:
+            logger.error(f"🚨 DEBUG: Checking robust service availability")
+            # RE-ENABLE ROBUST SERVICE
+            if RobustOutfitGenerationService and GenerationContext:
                 logger.info("🚀 Using robust outfit generation service")
                 print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
                 print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
@@ -1328,11 +1334,6 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"✅ Simple fallback generated outfit with {len(outfit.get('items', []))} items")
                     logger.error(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
                     print(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
-                    
-                    # FORCE RETURN - bypass retry loop
-                    logger.error(f"🚨 DEBUG: FORCING RETURN - bypassing retry loop")
-                    print(f"🚨 DEBUG: FORCING RETURN - bypassing retry loop")
-                    return outfit
                     
                 except Exception as fallback_error:
                     logger.error(f"❌ Simple fallback failed: {fallback_error}")
