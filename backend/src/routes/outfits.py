@@ -1021,6 +1021,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         if RobustOutfitGenerationService is None:
             logger.error(f"🚨 CRITICAL: RobustOutfitGenerationService is None - import failed!")
             logger.error(f"🚨 TESTING: Skipping robust service check for testing")
+            logger.error(f"🚨 TESTING: This should NOT throw an exception anymore")
             # raise Exception("RobustOutfitGenerationService import failed - check import paths")
         
         if GenerationContext is None:
