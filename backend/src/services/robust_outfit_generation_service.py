@@ -32,7 +32,7 @@ try:
     from ..custom_types.wardrobe import ClothingItem
     from ..custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
     from ..custom_types.weather import WeatherData
-    from ..custom_types.user_profile import UserProfile
+    from ..custom_types.profile import UserProfile
     from .robust_hydrator import ensure_items_safe_for_pydantic
     print("✅ ROBUST SERVICE: Using relative imports")
 except (ImportError, ValueError) as e:
@@ -41,7 +41,7 @@ except (ImportError, ValueError) as e:
         from custom_types.wardrobe import ClothingItem
         from custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
         from custom_types.weather import WeatherData
-        from custom_types.user_profile import UserProfile
+        from custom_types.profile import UserProfile
         from services.robust_hydrator import ensure_items_safe_for_pydantic
         print("✅ ROBUST SERVICE: Using absolute imports")
     except ImportError as e2:
