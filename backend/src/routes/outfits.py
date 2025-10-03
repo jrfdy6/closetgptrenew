@@ -1282,6 +1282,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # raise Exception("RobustOutfitGenerationService not available - no fallbacks allowed. Fix the robust service import.")
                 
                 # Use simple fallback service for testing
+                logger.error("🚨 DEBUG: ENTERING SIMPLE FALLBACK PATH")
+                print(f"🚨 DEBUG: ENTERING SIMPLE FALLBACK PATH")
                 logger.info("🚀 Using simple fallback service for testing")
                 from uuid import uuid4
                 from datetime import datetime
