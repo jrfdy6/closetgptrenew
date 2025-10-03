@@ -214,6 +214,15 @@ def include_router_safe(module_name: str, prefix: str):
 # Router loading
 # Router loading process
 
+# Direct import test to force visibility of import errors
+try:
+    from src.routes import outfits
+    print("✅ outfits.py imported successfully")
+except Exception as e:
+    import traceback
+    print("❌ outfits.py import failed")
+    traceback.print_exc()
+
 for mod, prefix in ROUTERS:
     # Processing router
     include_router_safe(mod, prefix)
