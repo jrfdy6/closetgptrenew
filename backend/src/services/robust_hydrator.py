@@ -12,14 +12,17 @@ try:
     # Try relative import first
     from ..custom_types.wardrobe import ClothingItem
     logger.info("✅ Using main ClothingItem model from custom_types.wardrobe")
+    USING_FALLBACK_CLASSES = False
 except ImportError:
     try:
         # Try absolute import
         from custom_types.wardrobe import ClothingItem
         logger.info("✅ Using main ClothingItem model from custom_types.wardrobe (absolute)")
+        USING_FALLBACK_CLASSES = False
     except ImportError as e:
         logger.error(f"❌ Failed to import main ClothingItem model: {e}")
         logger.error("🔄 Falling back to local ClothingItem model")
+        USING_FALLBACK_CLASSES = True
     
     # Fallback to local model if import fails
     class BasicMetadata(BaseModel):
@@ -64,7 +67,7 @@ PLACEHOLDERS = {
     "matchingColors": [],  # Empty list - will be filled by Color validator
     "createdAt": lambda: int(datetime.utcnow().timestamp() * 1000),
     "updatedAt": lambda: int(datetime.utcnow().timestamp() * 1000),
-    "metadata": Metadata(),  # default empty Metadata instance
+    "metadata": Metadata() if not USING_FALLBACK_CLASSES else {"basicMetadata": {"analysisTimestamp": int(datetime.utcnow().timestamp() * 1000)}},  # default empty Metadata instance
     "quality_score": 0.5,
     "pairability_score": 0.5,
     # CRITICAL MISSING FIELDS:
