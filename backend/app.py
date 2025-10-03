@@ -221,7 +221,11 @@ for mod, prefix in ROUTERS:
 # Router loading complete
 
 # Debug: Print all registered routes (as requested)
-print("✅ ROUTES REGISTERED:", [f"{r.path} {r.methods}" if hasattr(r, 'path') and hasattr(r, 'methods') else str(r) for r in app.routes])
+registered_routes = [f"{r.path} {r.methods}" if hasattr(r, 'path') and hasattr(r, 'methods') else str(r) for r in app.routes]
+print("✅ ROUTES REGISTERED:", registered_routes)
+
+# Store routes for debugging endpoint
+REGISTERED_ROUTES = registered_routes
 
 # Debug: Log all registered routes
 import logging
@@ -482,6 +486,15 @@ async def simple_health_check():
 @app.get("/api/health")
 async def api_health():
     return {"status": "ok", "api": "working", "features": ["gpt4_vision", "wardrobe", "outfits", "weather", "analytics"]}
+
+@app.get("/debug/routes")
+async def debug_routes():
+    """Debug endpoint to show all registered routes"""
+    return {
+        "total_routes": len(app.routes),
+        "registered_routes": REGISTERED_ROUTES,
+        "outfits_routes": [f"{r.path} {r.methods}" for r in app.routes if hasattr(r, 'path') and '/outfits' in r.path]
+    }
 
 @app.get("/api/health/dependencies")
 async def check_dependencies():
