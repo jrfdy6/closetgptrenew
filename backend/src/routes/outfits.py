@@ -1034,6 +1034,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.error(f"🚨 DEBUG: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
             logger.error(f"🚨 DEBUG: GenerationContext = {GenerationContext}")
             logger.error(f"🚨 DEBUG: Condition result = {RobustOutfitGenerationService and GenerationContext}")
+            logger.error(f"🚨 DEBUG: FORCE BYPASS IS ACTIVE - should go to else branch")
             # FORCE BYPASS ROBUST SERVICE FOR TESTING
             if False:  # RobustOutfitGenerationService and GenerationContext:
                 logger.info("🚀 Using robust outfit generation service")
@@ -1327,6 +1328,12 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"✅ Simple fallback generated outfit with {len(outfit.get('items', []))} items")
                     logger.error(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
                     print(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
+                    
+                    # FORCE RETURN - bypass retry loop
+                    logger.error(f"🚨 DEBUG: FORCING RETURN - bypassing retry loop")
+                    print(f"🚨 DEBUG: FORCING RETURN - bypassing retry loop")
+                    return outfit
+                    
                 except Exception as fallback_error:
                     logger.error(f"❌ Simple fallback failed: {fallback_error}")
                     print(f"🚨 DEBUG: Simple fallback FAILED: {fallback_error}")
@@ -1336,6 +1343,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     raise fallback_error
             
             # Add weather data to outfit for base item validation
+            logger.error(f"🚨 DEBUG: About to add weather data - req.weather = {req.weather}")
             if req.weather:
                 try:
                     # Handle both dict and object weather data
