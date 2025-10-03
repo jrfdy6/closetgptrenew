@@ -712,6 +712,63 @@ class RobustOutfitGenerationService:
         logger.warning(f"🆘 LEVEL 4: Using all items without any filtering")
         return await self._create_outfit_from_items(all_items, context, "progressive_no_filtering")
     
+    def _is_item_suitable_for_occasion(self, item: Any, occasion: str, style: str) -> bool:
+        """Check if an item is suitable for the given occasion and style."""
+        if not occasion:
+            return True
+            
+        occasion_lower = occasion.lower()
+        item_name = safe_item_access(item, 'name', '').lower()
+        item_type = safe_item_access(item, 'type', '').lower()
+        
+        # Business/Formal occasion - strict filtering
+        if 'business' in occasion_lower or 'formal' in occasion_lower:
+            # Explicitly forbidden items for business/formal
+            forbidden_patterns = [
+                't-shirt', 't shirt', 'tshirt', 'tank', 'tank top',
+                'polo shirt', 'polo', 'hoodie', 'sweatshirt', 'sweatpants',
+                'shorts', 'sneakers', 'athletic', 'sport', 'gym', 'basketball',
+                'flip flops', 'sandals', 'canvas', 'running shoes'
+            ]
+            
+            # Check if item contains forbidden patterns
+            for pattern in forbidden_patterns:
+                if pattern in item_name or pattern in item_type:
+                    return False
+            
+            # Prefer business-appropriate items
+            business_patterns = [
+                'dress shirt', 'button up', 'button-up', 'oxford shirt',
+                'dress pants', 'slacks', 'trousers', 'dress skirt',
+                'blazer', 'suit jacket', 'sport coat', 'dress coat',
+                'dress shoes', 'oxford', 'loafers', 'heels', 'pumps'
+            ]
+            
+            # Allow if it's explicitly business-appropriate
+            for pattern in business_patterns:
+                if pattern in item_name or pattern in item_type:
+                    return True
+            
+            # For business, reject casual items that don't have business patterns
+            casual_patterns = ['shirt', 'pants', 'shoes']
+            if any(casual in item_type for casual in casual_patterns):
+                # If it's a basic shirt/pants/shoes without business indicators, reject
+                return False
+            
+            return True
+        
+        # Casual occasion - more lenient
+        elif 'casual' in occasion_lower:
+            return True  # Most items are suitable for casual
+        
+        # Athletic occasion
+        elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball']
+            return any(pattern in item_name or pattern in item_type for pattern in athletic_patterns)
+        
+        # Default: allow most items
+        return True
+    
     async def _relax_occasion_filtering(self, items: List[Any], occasion: str) -> List[Any]:
         """Relax occasion filtering - allow more flexible occasion matching"""
         if not occasion:
@@ -1465,12 +1522,13 @@ class RobustOutfitGenerationService:
         suitable_items = []
         hard_rejected = 0
         
-        # TEMPORARY DEBUG: Bypass hard filter to isolate the issue
-        logger.warning(f"🚨 DEBUG: BYPASSING HARD FILTER FOR TESTING")
-        for i, item in enumerate(context.wardrobe):
-            suitable_items.append(item)
-            logger.info(f"🚨 DEBUG: Added item {i+1} without hard filter: {getattr(item, 'name', 'Unknown')}")
-        hard_rejected = 0
+        # Apply proper hard filtering for occasion appropriateness
+        for item in context.wardrobe:
+            if self._is_item_suitable_for_occasion(item, context.occasion, context.style):
+                suitable_items.append(item)
+            else:
+                hard_rejected += 1
+                logger.debug(f"🔍 HARD FILTER: Rejected {getattr(item, 'name', 'Unknown')} for {context.occasion}")
         
         logger.info(f"🔍 HARD FILTER: Results - {len(suitable_items)} passed hard filters, {hard_rejected} rejected")
         
