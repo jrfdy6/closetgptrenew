@@ -9,8 +9,14 @@ WORKDIR /app
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip first to avoid network issues
+RUN python -m pip install --upgrade pip
+
+# Install large packages separately to avoid BrokenPipeError
+RUN pip install --no-cache-dir --default-timeout=100 onnxruntime==1.22.1 opencv-python-headless==4.12.0.88 || pip install --no-cache-dir --default-timeout=100 onnxruntime==1.22.1 opencv-python-headless==4.12.0.88
+
+# Install remaining dependencies with retry logic
+RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt || pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
 # Copy the app.py file and necessary directories
 COPY app.py ./
