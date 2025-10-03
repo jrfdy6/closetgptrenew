@@ -1034,7 +1034,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.error(f"🚨 DEBUG: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
             logger.error(f"🚨 DEBUG: GenerationContext = {GenerationContext}")
             logger.error(f"🚨 DEBUG: Condition result = {RobustOutfitGenerationService and GenerationContext}")
-            if RobustOutfitGenerationService and GenerationContext:
+            # FORCE BYPASS ROBUST SERVICE FOR TESTING
+            if False:  # RobustOutfitGenerationService and GenerationContext:
                 logger.info("🚀 Using robust outfit generation service")
                 print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
                 print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
