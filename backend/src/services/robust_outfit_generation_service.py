@@ -77,6 +77,11 @@ except (ImportError, ValueError) as e:
                 for key, value in kwargs.items():
                     setattr(self, key, value)
 
+        class Metadata:
+            def __init__(self, **kwargs):
+                for key, value in kwargs.items():
+                    setattr(self, key, value)
+
         def ensure_items_safe_for_pydantic(items):
             return items
 
