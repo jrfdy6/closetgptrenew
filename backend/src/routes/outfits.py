@@ -1285,44 +1285,55 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 logger.error("🚨 DEBUG: ENTERING SIMPLE FALLBACK PATH")
                 print(f"🚨 DEBUG: ENTERING SIMPLE FALLBACK PATH")
                 logger.info("🚀 Using simple fallback service for testing")
-                from uuid import uuid4
-                from datetime import datetime
                 
-                # Ensure we have at least 3 items for validation
-                items = []
-                if req.wardrobe and len(req.wardrobe) >= 3:
-                    items = req.wardrobe[:3]
-                elif req.wardrobe and len(req.wardrobe) > 0:
-                    # Use all available items and pad with duplicates if needed
-                    items = list(req.wardrobe)
-                    while len(items) < 3:
-                        items.append(req.wardrobe[0])  # Duplicate first item
-                else:
-                    # Create mock items if no wardrobe provided
-                    items = [
-                        {'id': 'mock-1', 'name': 'Mock Shirt', 'type': 'shirt', 'color': 'white'},
-                        {'id': 'mock-2', 'name': 'Mock Pants', 'type': 'pants', 'color': 'black'},
-                        {'id': 'mock-3', 'name': 'Mock Shoes', 'type': 'shoes', 'color': 'brown'}
-                    ]
-                
-                outfit = {
-                    'id': f'outfit-{uuid4()}',
-                    'name': f'{req.occasion} Outfit',
-                    'occasion': req.occasion,
-                    'style': req.style,
-                    'mood': req.mood,
-                    'confidence_score': 0.8,
-                    'items': items,
-                    'generated_at': datetime.now().isoformat(),
-                    'strategy': 'simple_fallback',
-                    'validation': {
-                        'is_valid': True,
-                        'score': 80.0,
-                        'issues': [],
-                        'suggestions': []
+                try:
+                    from uuid import uuid4
+                    from datetime import datetime
+                    
+                    # Ensure we have at least 3 items for validation
+                    items = []
+                    if req.wardrobe and len(req.wardrobe) >= 3:
+                        items = req.wardrobe[:3]
+                    elif req.wardrobe and len(req.wardrobe) > 0:
+                        # Use all available items and pad with duplicates if needed
+                        items = list(req.wardrobe)
+                        while len(items) < 3:
+                            items.append(req.wardrobe[0])  # Duplicate first item
+                    else:
+                        # Create mock items if no wardrobe provided
+                        items = [
+                            {'id': 'mock-1', 'name': 'Mock Shirt', 'type': 'shirt', 'color': 'white'},
+                            {'id': 'mock-2', 'name': 'Mock Pants', 'type': 'pants', 'color': 'black'},
+                            {'id': 'mock-3', 'name': 'Mock Shoes', 'type': 'shoes', 'color': 'brown'}
+                        ]
+                    
+                    outfit = {
+                        'id': f'outfit-{uuid4()}',
+                        'name': f'{req.occasion} Outfit',
+                        'occasion': req.occasion,
+                        'style': req.style,
+                        'mood': req.mood,
+                        'confidence_score': 0.8,
+                        'items': items,
+                        'generated_at': datetime.now().isoformat(),
+                        'strategy': 'simple_fallback',
+                        'validation': {
+                            'is_valid': True,
+                            'score': 80.0,
+                            'issues': [],
+                            'suggestions': []
+                        }
                     }
-                }
-                logger.info(f"✅ Simple fallback generated outfit with {len(outfit.get('items', []))} items")
+                    logger.info(f"✅ Simple fallback generated outfit with {len(outfit.get('items', []))} items")
+                    logger.error(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
+                    print(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
+                except Exception as fallback_error:
+                    logger.error(f"❌ Simple fallback failed: {fallback_error}")
+                    print(f"🚨 DEBUG: Simple fallback FAILED: {fallback_error}")
+                    import traceback
+                    logger.error(f"❌ Simple fallback traceback: {traceback.format_exc()}")
+                    print(f"🚨 DEBUG: Simple fallback traceback: {traceback.format_exc()}")
+                    raise fallback_error
             
             # Add weather data to outfit for base item validation
             if req.weather:
