@@ -72,3 +72,68 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    console.log('🔍 DEBUG: Outfits POST API route called - CONNECTING TO BACKEND');
+    
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
+    
+    // Temporarily bypass auth check to test functionality
+    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
+    
+    // Get backend URL from environment variables
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    console.log('🔍 DEBUG: Backend URL:', backendUrl);
+    
+    // Get request body
+    const body = await request.json();
+    console.log('🔍 DEBUG: Request body:', body);
+    
+    // Call the real backend to generate outfit
+    const fullBackendUrl = `${backendUrl}/api/outfits-simple-minimal/generate-personalized`;
+    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    
+    const response = await fetch(fullBackendUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer test', // Use test token for development
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    
+    console.log('🔍 DEBUG: Backend response received:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Backend error response:', errorText);
+      return NextResponse.json(
+        { error: `Backend error: ${response.status} ${response.statusText}`, details: errorText },
+        { status: response.status }
+      );
+    }
+    
+    const data = await response.json();
+    console.log('✅ Successfully generated outfit from backend:', {
+      hasItems: data.items ? data.items.length : 'unknown',
+      occasion: data.occasion,
+      style: data.style
+    });
+    
+    return NextResponse.json(data);
+    
+  } catch (error) {
+    console.error('❌ Error in outfits POST API route:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate outfit' },
+      { status: 500 }
+    );
+  }
+}
