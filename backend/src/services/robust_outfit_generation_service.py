@@ -515,14 +515,14 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
         
         # Run all analyzers in parallel on filtered items
-        logger.info(f"🚀 Running 3 analyzers in parallel on {len(suitable_items)} filtered items... (body type + style profile + weather)")
+        logger.info(f"🚀 Running 4 analyzers in parallel on {len(suitable_items)} filtered items... (body type + style profile + weather + user feedback)")
         
         analyzer_tasks = [
-            # RE-ENABLING ANALYZERS: Body type + Style profile + Weather
+            # RE-ENABLING ANALYZERS: Body type + Style profile + Weather + User Feedback
             asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
             asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
             asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
-            # TEMPORARILY DISABLED: asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # NEW!
+            asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # RE-ENABLED!
         ]
         
         # Wait for all analyzers to complete
@@ -535,26 +535,30 @@ class RobustOutfitGenerationService:
         
         # Dynamic weight adjustment for extreme weather
         if temp > 75:  # Hot weather - increase weather weight
-            weather_weight = 0.4
-            style_weight = 0.35
-            body_weight = 0.25
+            weather_weight = 0.3
+            style_weight = 0.25
+            body_weight = 0.2
+            user_feedback_weight = 0.25
         elif temp < 50:  # Cold weather - increase weather weight
-            weather_weight = 0.4
-            style_weight = 0.35
-            body_weight = 0.25
+            weather_weight = 0.3
+            style_weight = 0.25
+            body_weight = 0.2
+            user_feedback_weight = 0.25
         else:  # Moderate weather - standard weights
-            weather_weight = 0.25
-            style_weight = 0.40
-            body_weight = 0.35
+            weather_weight = 0.2
+            style_weight = 0.3
+            body_weight = 0.25
+            user_feedback_weight = 0.25
         
-        logger.info(f"🎯 DYNAMIC WEIGHTS: Weather={weather_weight}, Style={style_weight}, Body={body_weight} (temp={temp}°F)")
+        logger.info(f"🎯 DYNAMIC WEIGHTS: Weather={weather_weight}, Style={style_weight}, Body={body_weight}, UserFeedback={user_feedback_weight} (temp={temp}°F)")
         
         for item_id, scores in item_scores.items():
-            # Multi-layered scoring with dynamic weights
+            # Multi-layered scoring with dynamic weights including user feedback
             base_score = (
                 scores['body_type_score'] * body_weight +
                 scores['style_profile_score'] * style_weight +
-                scores['weather_score'] * weather_weight
+                scores['weather_score'] * weather_weight +
+                scores['user_feedback_score'] * user_feedback_weight
             )
             
             # Apply soft constraint penalties/bonuses
@@ -1583,15 +1587,34 @@ class RobustOutfitGenerationService:
         return weather_appropriate_items
     
     def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
-        """Hard constraints - temporarily using basic approach for stability"""
-        # TEMPORARILY DISABLED: Compatibility matrix causing 502 errors
-        # TODO: Debug and re-enable compatibility matrix
+        """Hard constraints - using compatibility matrix for semantic filtering"""
+        # Re-enabled compatibility matrix with proper error handling
         
         item_name = item.name.lower()
         item_type = str(getattr(item, 'type', '')).lower()
         occasion_lower = occasion.lower()
         
-        # Basic hard constraints
+        # Use compatibility matrix for semantic filtering
+        try:
+            from ..services.compatibility_matrix import CompatibilityMatrix
+            compat_matrix = CompatibilityMatrix()
+            
+            # Check semantic compatibility
+            is_compatible = compat_matrix.is_compatible(
+                item_type=item_type,
+                item_name=item_name,
+                target_occasion=occasion,
+                target_style=style
+            )
+            
+            if not is_compatible:
+                return False
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Compatibility matrix failed, using fallback: {e}")
+            # Fallback to basic constraints if matrix fails
+        
+        # Basic hard constraints (fallback)
         hard_constraints = [
             (item_type == 'tuxedo' and occasion_lower == 'athletic'),
             (item_type == 'evening_gown' and occasion_lower == 'athletic'),
