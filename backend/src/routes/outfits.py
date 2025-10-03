@@ -1030,6 +1030,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # raise Exception("GenerationContext import failed - check import paths")
         try:
             # Use robust outfit generation service if available (allow without Firebase for testing)
+            logger.error(f"🚨 DEBUG: About to check robust service availability")
+            logger.error(f"🚨 DEBUG: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
+            logger.error(f"🚨 DEBUG: GenerationContext = {GenerationContext}")
+            logger.error(f"🚨 DEBUG: Condition result = {RobustOutfitGenerationService and GenerationContext}")
             if RobustOutfitGenerationService and GenerationContext:
                 logger.info("🚀 Using robust outfit generation service")
                 print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
