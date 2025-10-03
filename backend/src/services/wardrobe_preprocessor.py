@@ -67,8 +67,8 @@ class WardrobePreprocessor:
             'name': complex_item.get('name', 'Unknown Item'),
             'type': complex_item.get('type', 'unknown'),
             'color': complex_item.get('color', 'Unknown'),
-            'imageUrl': complex_item.get('imageUrl', ''),
-            'userId': complex_item.get('userId', 'unknown'),
+            'imageUrl': complex_item.get('imageUrl', 'https://example.com/placeholder.jpg'),
+            'userId': complex_item.get('userId', 'test_user'),
         }
         
         # Process occasion field (enhanced with complex metadata)
@@ -79,6 +79,9 @@ class WardrobePreprocessor:
         
         # Process tags field (enhanced with complex metadata)
         processed['tags'] = self._enhance_tags_field(complex_item)
+        
+        # Preserve mood field (critical for mood filtering)
+        processed['mood'] = self._preserve_mood_field(complex_item)
         
         # Add sophisticated metadata as custom fields for future use
         processed['_complex_metadata'] = self._extract_complex_metadata(complex_item)
@@ -221,6 +224,34 @@ class WardrobePreprocessor:
             enhanced_tags.append(f'mood_{m}')
         
         return list(set(enhanced_tags))  # Remove duplicates
+    
+    def _preserve_mood_field(self, complex_item: Dict[str, Any]) -> List[str]:
+        """
+        Preserve mood field from complex metadata
+        
+        Args:
+            complex_item: Item with complex metadata
+            
+        Returns:
+            List of mood values
+        """
+        mood = complex_item.get('mood', [])
+        
+        # Handle both string and list formats
+        if isinstance(mood, str):
+            if mood.strip():
+                mood = mood.split()
+            else:
+                mood = []
+        
+        # Ensure it's a list
+        if not isinstance(mood, list):
+            mood = []
+        
+        # Remove empty strings and duplicates
+        mood = list(set([m.strip() for m in mood if m.strip()]))
+        
+        return mood
     
     def _extract_complex_metadata(self, complex_item: Dict[str, Any]) -> Dict[str, Any]:
         """

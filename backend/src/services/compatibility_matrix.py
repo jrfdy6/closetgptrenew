@@ -252,3 +252,4 @@ class CompatibilityMatrixService:
         
         # Default neutral score
         return 0.5
+

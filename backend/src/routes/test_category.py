@@ -166,3 +166,4 @@ async def test_category_mapping_get():
     )
     
     return await test_category_mapping(default_test_item)
+# Force redeploy Thu Oct  2 20:11:02 EDT 2025
