@@ -220,6 +220,9 @@ for mod, prefix in ROUTERS:
 
 # Router loading complete
 
+# Debug: Print all registered routes (as requested)
+print("✅ ROUTES REGISTERED:", [f"{r.path} {r.methods}" if hasattr(r, 'path') and hasattr(r, 'methods') else str(r) for r in app.routes])
+
 # Debug: Log all registered routes
 import logging
 logging.basicConfig(level=logging.INFO)
