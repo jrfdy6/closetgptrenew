@@ -231,7 +231,19 @@ def ensure_items_safe_for_pydantic(items: List[Dict[str, Any]]) -> List[Clothing
     Safety-net function to ensure all items are safe for Pydantic validation.
     This is the main entry point for the robust generator.
     """
-    logger.error(f"🚨 FORCE REDEPLOY v10.0: HYDRATOR ENTRY: Starting safety check for {len(items)} items")
-    safe_items = hydrate_wardrobe_items(items)
-    logger.error(f"🚨 FORCE REDEPLOY v10.0: HYDRATOR EXIT: {len(safe_items)} items validated and ready")
-    return safe_items
+    logger.error(f"🚨 FORCE REDEPLOY v11.0: HYDRATOR ENTRY: Starting safety check for {len(items)} items")
+    print(f"🔍 HYDRATOR DEBUG: items type = {type(items)}")
+    print(f"🔍 HYDRATOR DEBUG: items length = {len(items) if items else 'None'}")
+    if items:
+        print(f"🔍 HYDRATOR DEBUG: first item = {items[0]}")
+        print(f"🔍 HYDRATOR DEBUG: first item type = {type(items[0])}")
+    try:
+        safe_items = hydrate_wardrobe_items(items)
+        logger.error(f"🚨 FORCE REDEPLOY v11.0: HYDRATOR EXIT: {len(safe_items)} items validated and ready")
+        return safe_items
+    except Exception as e:
+        logger.error(f"❌ HYDRATOR FAILED: {e}")
+        print(f"🚨 HYDRATOR ERROR: {e}")
+        import traceback
+        print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
+        raise
