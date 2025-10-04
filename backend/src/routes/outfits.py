@@ -433,9 +433,9 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
             # Skip if item is a list (shouldn't happen but safety check)
             continue
         elif isinstance(item, dict):
-        item_name = (item.get('name', '') if item else '').lower()
-        item_type = (item.get('type', '') if item else '').lower()
-        item_description = (item.get('description', '') if item else '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            item_description = (item.get('description', '') if item else '').lower()
         else:
             # Handle object format
             item_name = getattr(item, 'name', '').lower()
@@ -686,13 +686,13 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
     if weather_data:
         is_weather_appropriate = check_item_weather_appropriateness(base_item, weather_data)
         if not is_weather_appropriate:
-        logger.warning(f"⚠️ Base item {(base_item.get('name', 'unnamed') if base_item else 'unnamed')} may not be weather-appropriate")
+            logger.warning(f"⚠️ Base item {(base_item.get('name', 'unnamed') if base_item else 'unnamed')} may not be weather-appropriate")
             # Add weather warning to outfit reasoning
-        current_reasoning = (outfit.get('reasoning', '') if outfit else '')
+            current_reasoning = (outfit.get('reasoning', '') if outfit else '')
             
             # Generate specific warning based on weather conditions
-        temp = (weather_data.get('temperature', 70) if weather_data else 70)
-        condition = (weather_data.get('condition', '') if weather_data else '').lower()
+            temp = (weather_data.get('temperature', 70) if weather_data else 70)
+            condition = (weather_data.get('condition', '') if weather_data else '').lower()
         item_name = (base_item.get('name', 'item') if base_item else 'item')
             
             # Get item details for specific warnings
