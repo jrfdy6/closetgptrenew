@@ -163,7 +163,7 @@ class CompatibilityMatrixService:
                 
                 # Check against hard incompatibilities
                 for incompatible_category, rules in self.hard_incompatibilities.items():
-                    if target_occasion in rules.get("not_allowed", []):
+                    if rules and target_occasion in rules.get("not_allowed", []):
                         # Check if item matches the incompatible category
                         if (style.lower() in incompatible_category.lower() or 
                             occasion.lower() in incompatible_category.lower() or
