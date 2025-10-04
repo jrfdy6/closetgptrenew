@@ -1372,7 +1372,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
             print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
         
-        if not outfit.get('items') or len(outfit.get('items', [])) == 0:
+        if not outfit or not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.error(f"❌ GENERATION FAILED: No items generated")
             logger.error(f"🔍 DEBUG: Outfit data: {outfit}")
             logger.error(f"🔍 CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
@@ -1416,7 +1416,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             outfit = validate_weather_outfit_combinations(outfit, req.weather)
         
         logger.info(f"✅ Final outfit: {len(outfit.get('items', []))} items")
-        logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in outfit.get('items', [])]}")
+        logger.info(f"🔍 Final item IDs: {[item.get('id', 'no-id') for item in outfit.get('items', []) if item]}")
         
         # CRITICAL: Final validation check to guarantee 99% prevention
         outfit = _apply_final_outfit_validation(outfit)
@@ -1729,14 +1729,14 @@ async def validate_color_material_harmony(items: List[Dict], style: str, mood: s
     
     for item in items:
         # Extract colors (handle different field names)
-        item_colors = item.get('dominantColors', []) or item.get('colors', []) or item.get('color', [])
+        item_colors = (item.get('dominantColors', []) or item.get('colors', []) or item.get('color', [])) if item else []
         if isinstance(item_colors, str):
             item_colors = [item_colors]
         elif not isinstance(item_colors, list):
             item_colors = []
         
         # Extract materials (handle different field names)
-        item_material = item.get('material', '') or item.get('fabric', '') or ''
+        item_material = (item.get('material', '') or item.get('fabric', '') or '') if item else ''
         
         if item_colors:
             all_colors.extend([color.lower() if isinstance(color, str) else str(color).lower() for color in item_colors])
