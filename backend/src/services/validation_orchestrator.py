@@ -123,7 +123,7 @@ class ValidationOrchestrator:
         errors = []
         warnings = []
         
-        occasion = context.get("occasion", "").lower()
+        occasion = context.get("occasion", "").lower() if context else ""
         
         # Define occasion-specific rules - make them more lenient
         occasion_rules = {
@@ -171,7 +171,7 @@ class ValidationOrchestrator:
                         break
                 
                 # Check if item has preferred attributes - make this optional
-                has_preferred = any(preferred in item_attributes for preferred in rules.get("preferred", []))
+                has_preferred = any(preferred in item_attributes for preferred in (rules.get("preferred", []) if rules else []))
                 if not has_preferred:
                     warnings.append(f"Item '{item.name}' may not be ideal for {occasion} occasion")  # Keep as warning, not error
         
@@ -181,7 +181,7 @@ class ValidationOrchestrator:
             is_valid=len(errors) == 0,
             errors=errors,
             warnings=warnings,
-            metadata={"occasion": occasion, "rules_applied": occasion_rules.get(occasion, {})},
+            metadata={"occasion": occasion, "rules_applied": occasion_rules.get(occasion, {}) if occasion_rules else {}},
             duration=duration
         )
     
@@ -195,14 +195,14 @@ class ValidationOrchestrator:
         errors = []
         warnings = []
         
-        weather = context.get("weather", {})
+        weather = context.get("weather", {}) if context else {}
         # Handle both WeatherData objects and dictionaries
         if hasattr(weather, 'temperature'):
             temperature = weather.temperature
             condition = weather.condition.lower()
         else:
-            temperature = weather.get("temperature", 70)
-            condition = weather.get("condition", "clear").lower()
+            temperature = weather.get("temperature", 70) if weather else 70
+            condition = weather.get("condition", "clear").lower() if weather else "clear"
         
         # Ensure temperature is a float
         if isinstance(temperature, str):
@@ -254,7 +254,7 @@ class ValidationOrchestrator:
         errors = []
         warnings = []
         
-        style = context.get("style", "").lower()
+        style = context.get("style", "").lower() if context else ""
         
         # Collect all styles from items
         item_styles = []
@@ -300,7 +300,7 @@ class ValidationOrchestrator:
         errors = []
         warnings = []
         
-        user_profile = context.get("user_profile", {})
+        user_profile = context.get("user_profile", {}) if context else {}
         # body_type = user_profile.get("body_type", "").lower()
         body_type = getattr(user_profile, 'bodyType', '') or ''
         body_type = body_type.lower()
@@ -343,7 +343,7 @@ class ValidationOrchestrator:
             is_valid=len(errors) == 0,
             errors=errors,
             warnings=warnings,
-            metadata={"body_type": body_type, "rules_applied": body_type_rules.get(body_type, {})},
+            metadata={"body_type": body_type, "rules_applied": body_type_rules.get(body_type, {}) if body_type_rules else {}},
             duration=duration
         )
     
