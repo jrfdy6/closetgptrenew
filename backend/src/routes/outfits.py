@@ -965,6 +965,12 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     
     try:
         # 1. Get wardrobe items (prefer request data, fallback to database)
+        logger.error(f"🚨 DEBUG: req.wardrobe = {req.wardrobe}")
+        logger.error(f"🚨 DEBUG: req.wardrobeItems = {req.wardrobeItems}")
+        logger.error(f"🚨 DEBUG: req.resolved_wardrobe = {req.resolved_wardrobe}")
+        print(f"🚨 DEBUG: req.wardrobe = {req.wardrobe}")
+        print(f"🚨 DEBUG: req.wardrobeItems = {req.wardrobeItems}")
+        print(f"🚨 DEBUG: req.resolved_wardrobe = {req.resolved_wardrobe}")
         wardrobe_items = req.resolved_wardrobe
         if not wardrobe_items:
             logger.info(f"📦 No wardrobe in request, fetching from database for user {user_id}")
