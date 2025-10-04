@@ -821,25 +821,25 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                         material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
         color = (item.get('color', '') if item else '').title()
             
-            # Temperature appropriateness analysis
-            temp_appropriateness = "excellent"
-            temp_note = ""
+        # Temperature appropriateness analysis
+        temp_appropriateness = "excellent"
+        temp_note = ""
             
-            if temp >= 85:  # Very hot weather
-                if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
-                    temp_appropriateness = "too warm"
-                    temp_note = f"may be too warm for {temp}°F weather"
-                elif 'shorts' in item_type or 'tank' in item_type:
-                    temp_appropriateness = "excellent"
-                    temp_note = f"perfect for {temp}°F hot weather"
-                elif 'cotton' in material or 'linen' in material:
-                    temp_appropriateness = "excellent"
-                    temp_note = f"breathable fabric ideal for {temp}°F weather"
-                else:
-                    temp_appropriateness = "good"
-                    temp_note = f"suitable for {temp}°F warm weather"
+        if temp >= 85:  # Very hot weather
+            if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
+                temp_appropriateness = "too warm"
+                temp_note = f"may be too warm for {temp}°F weather"
+            elif 'shorts' in item_type or 'tank' in item_type:
+                temp_appropriateness = "excellent"
+                temp_note = f"perfect for {temp}°F hot weather"
+            elif 'cotton' in material or 'linen' in material:
+                temp_appropriateness = "excellent"
+                temp_note = f"breathable fabric ideal for {temp}°F weather"
+            else:
+                temp_appropriateness = "good"
+                temp_note = f"suitable for {temp}°F warm weather"
                     
-            elif temp >= 75:  # Warm weather
+        elif temp >= 75:  # Warm weather
                 if 'shorts' in item_type or 'tank' in item_type:
                     temp_appropriateness = "excellent"
                     temp_note = f"comfortable for {temp}°F warm weather"
