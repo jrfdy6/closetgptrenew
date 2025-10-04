@@ -744,19 +744,9 @@ class RobustOutfitGenerationService:
         item_name = safe_item_access(item, 'name', '').lower()
         item_type = safe_item_access(item, 'type', '').lower()
         
-        # Business/Formal occasion - intelligent filtering
+        # Business/Formal occasion - RELIABLE TYPE-BASED FILTERING
         if 'business' in occasion_lower or 'formal' in occasion_lower:
-            # Check item's occasion field first (if populated)
-            item_occasions = safe_item_access(item, 'occasion', [])
-            if isinstance(item_occasions, str):
-                item_occasions = [item_occasions]
-            item_occasions_lower = [occ.lower() for occ in item_occasions]
-            
-            # Allow if item explicitly has business occasion
-            if 'business' in item_occasions_lower or 'formal' in item_occasions_lower:
-                return True
-            
-            # INTELLIGENT TYPE-BASED FILTERING for business occasions
+            # ONLY use type-based filtering - don't rely on AI metadata
             # Explicitly forbidden items for business/formal
             forbidden_patterns = [
                 't-shirt', 't shirt', 'tshirt', 'tank', 'tank top',
@@ -771,7 +761,7 @@ class RobustOutfitGenerationService:
                     return False
             
             # Allow business-appropriate basic items
-            business_appropriate_types = ['shirt', 'pants', 'shoes', 'blouse', 'skirt', 'dress']
+            business_appropriate_types = ['shirt', 'pants', 'shoes', 'blouse', 'skirt', 'dress', 'jacket', 'blazer']
             if item_type in business_appropriate_types:
                 return True
             
@@ -795,35 +785,25 @@ class RobustOutfitGenerationService:
         elif 'casual' in occasion_lower:
             return True  # Most items are suitable for casual
         
-        # Athletic occasion
+        # Athletic occasion - RELIABLE TYPE-BASED FILTERING
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            # Check item's occasion field first (if populated)
-            item_occasions = safe_item_access(item, 'occasion', [])
-            if isinstance(item_occasions, str):
-                item_occasions = [item_occasions]
-            item_occasions_lower = [occ.lower() for occ in item_occasions]
-            
-            # Allow if item explicitly has athletic occasion
-            if 'athletic' in item_occasions_lower or 'gym' in item_occasions_lower:
-                return True
-            
-            # INTELLIGENT TYPE-BASED FILTERING for athletic occasions
+            # ONLY use type-based filtering - don't rely on AI metadata
             # Allow basic athletic-appropriate items
-            athletic_types = ['shirt', 'pants', 'shorts', 'shoes', 'sneakers', 'tank', 'hoodie', 'sweatshirt']
+            athletic_types = ['shirt', 'pants', 'shorts', 'shoes', 'sneakers', 'tank', 'hoodie', 'sweatshirt', 'jacket']
             if item_type in athletic_types:
                 return True
             
             # Allow items with athletic keywords in name/type
-            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball', 'tennis', 'yoga']
+            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball', 'tennis', 'yoga', 'nike', 'adidas', 'puma', 'under armour']
             if any(pattern in item_name or pattern in item_type for pattern in athletic_patterns):
                 return True
             
             # Reject obviously non-athletic items
-            formal_patterns = ['dress', 'suit', 'blazer', 'heels', 'oxford', 'loafers']
+            formal_patterns = ['dress', 'suit', 'blazer', 'heels', 'oxford', 'loafers', 'tie', 'bow tie']
             if any(pattern in item_name or pattern in item_type for pattern in formal_patterns):
                 return False
             
-            # Default: allow for athletic (most items can work)
+            # Default: allow for athletic (most items can work for athletic activities)
             return True
         
         # Default: allow most items
