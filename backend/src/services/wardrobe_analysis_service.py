@@ -275,7 +275,7 @@ class WardrobeAnalysisService:
             # Print summary of raw data
             # print(f"DEBUG: Raw data summary:")
             for i, raw_data in enumerate(raw_data_list[:5]):  # Show first 5 items
-                # print(f"DEBUG:   Item {i+1}: type={((raw_data.get('type', 'N/A') if raw_data else 'N/A') if raw_data else 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
+                print(f"DEBUG:   Item {i+1}: type={((raw_data.get('type', 'N/A') if raw_data else 'N/A') if raw_data else 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
             
             # Also check if there are any items without userId field
             all_wardrobe_ref = self.db.collection('wardrobe')

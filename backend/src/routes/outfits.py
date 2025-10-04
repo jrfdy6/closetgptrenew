@@ -1117,7 +1117,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     # print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
                     # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
                     if item is None:
-                        # print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
+                        print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
                 
                 context = GenerationContext(
                     user_id=user_id,
