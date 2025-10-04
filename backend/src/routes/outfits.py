@@ -918,13 +918,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     """Real outfit generation logic using user's wardrobe and AI recommendations."""
     print(f"🔎 MAIN LOGIC ENTRY: Starting generation for user {user_id}")
     print(f"🔎 MAIN LOGIC ENTRY: Request - style: {req.style}, mood: {req.mood}, occasion: {req.occasion}")
-    
+
     # DEBUG: Log detailed request information
     print(f"🔍 DEBUG INPUT: Wardrobe has {len(req.wardrobe) if req.wardrobe else 0} items")
+    print(f"🔍 DEBUG INPUT: req.wardrobe type = {type(req.wardrobe)}")
+    print(f"🔍 DEBUG INPUT: req.resolved_wardrobe = {req.resolved_wardrobe}")
+    print(f"🔍 DEBUG INPUT: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
+    
     if req.wardrobe:
         for i, item in enumerate(req.wardrobe[:3]):  # Log first 3 items
             print(f"🔍 DEBUG INPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')} - {getattr(item, 'type', 'NO_TYPE')}")
-    
+
     print(f"🔍 DEBUG INPUT: Weather data: {req.weather}")
     print(f"🔍 DEBUG INPUT: Base item ID: {req.baseItemId}")
     
