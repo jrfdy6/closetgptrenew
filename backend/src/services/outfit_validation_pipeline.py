@@ -242,8 +242,8 @@ class WeatherValidator(BaseValidator):
         suggestions = []
         
         temp = context.temperature
-        condition = context.(weather.get('condition', 'clear') if weather else 'clear')
-        precipitation = context.(weather.get('precipitation', 0) if weather else 0)
+        condition = (context.weather.get('condition', 'clear') if context.weather else 'clear')
+        precipitation = (context.weather.get('precipitation', 0) if context.weather else 0)
         
         items = (outfit.get('items', []) if outfit else [])
         
