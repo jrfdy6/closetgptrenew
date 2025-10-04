@@ -909,11 +909,11 @@ class EnhancedOutfitValidator:
         self.validation_stats["total_validations"] += 1
         
         logger.info(f"🔍 Starting comprehensive outfit validation with {len(items)} items")
-        logger.info(f"📋 Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')} - {context.get('mood', 'unknown')}")
+        logger.info(f"📋 Context: {context.get('occasion', 'unknown') if context else 'unknown'} - {context.get('style', 'unknown') if context else 'unknown'} - {context.get('mood', 'unknown') if context else 'unknown'}")
         
         # Apply proper validation rules
         logger.info(f"🔍 Starting comprehensive outfit validation with {len(items)} items")
-        logger.info(f"📋 Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')} - {context.get('mood', 'unknown')}")
+        logger.info(f"📋 Context: {context.get('occasion', 'unknown') if context else 'unknown'} - {context.get('style', 'unknown') if context else 'unknown'} - {context.get('mood', 'unknown') if context else 'unknown'}")
         
         try:
             # Apply real validation logic
@@ -935,15 +935,15 @@ class EnhancedOutfitValidator:
                 "valid_item_count": len(valid_items),
                 "rejected_item_count": len(rejected_items),
                 "validation_context": {
-                    "occasion": context.get('occasion', 'unknown'),
-                    "style": context.get('style', 'unknown'),
-                    "mood": context.get('mood', 'unknown')
+                    "occasion": context.get('occasion', 'unknown') if context else 'unknown',
+                    "style": context.get('style', 'unknown') if context else 'unknown',
+                    "mood": context.get('mood', 'unknown') if context else 'unknown'
                 },
                 "selected_items_preview": [
                     {
-                        "name": item.get('name', 'Unknown'),
-                        "type": item.get('type', 'unknown'),
-                        "color": item.get('color', 'unknown')
+                        "name": item.get('name', 'Unknown') if item else 'Unknown',
+                        "type": item.get('type', 'unknown') if item else 'unknown',
+                        "color": item.get('color', 'unknown') if item else 'unknown'
                     } for item in items[:3]  # Show first 3 items
                 ]
             }
@@ -975,13 +975,13 @@ class EnhancedOutfitValidator:
     
     def _is_item_valid_for_context(self, item: dict, context: dict) -> bool:
         """Check if an item is valid for the given context (occasion, style, mood)."""
-        occasion = context.get('occasion', '').lower()
-        style = context.get('style', '').lower()
-        mood = context.get('mood', '').lower()
+        occasion = context.get('occasion', '').lower() if context else ''
+        style = context.get('style', '').lower() if context else ''
+        mood = context.get('mood', '').lower() if context else ''
         
-        item_name = item.get('name', '').lower()
-        item_type = item.get('type', '').lower()
-        item_occasion = item.get('occasion', [])
+        item_name = item.get('name', '').lower() if item else ''
+        item_type = item.get('type', '').lower() if item else ''
+        item_occasion = item.get('occasion', []) if item else []
         item_style = item.get('style', [])
         
         # Convert lists to lowercase for comparison
