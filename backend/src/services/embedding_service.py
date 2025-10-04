@@ -410,7 +410,7 @@ class EmbeddingService:
     
     def get_user_embedding_stats(self, user_id: str) -> Dict[str, Any]:
         """Get statistics about user's embedding and interactions"""
-        user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
+        user_embedding = user_embeddings.get(user_id) if user_embeddings else None
         user_interactions = [i for i in self.user_interactions if i.user_id == user_id]
         
         return {
