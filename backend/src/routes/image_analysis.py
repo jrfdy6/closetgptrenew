@@ -299,7 +299,7 @@ async def analyze_single_image(
             # Handle regular URL (Firebase Storage, S3, etc.)
             print(f"Processing regular URL: {image_url}")
             try:
-                response = (requests.get(image_url, timeout=30) if requests else timeout=30)
+                response = requests.get(image_url, timeout=30)
                 response.raise_for_status()
                 print(f"Successfully downloaded image from URL, size: {len(response.content)} bytes")
                 

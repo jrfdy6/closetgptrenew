@@ -35,7 +35,7 @@ class ForgottenGemsResponse(BaseModel):
     data: Dict[str, Any]
     message: str
 
-@(router.get("/forgotten-gems", response_model=ForgottenGemsResponse) if router else response_model=ForgottenGemsResponse)
+@router.get("/forgotten-gems", response_model=ForgottenGemsResponse)
 async def get_forgotten_gems(
     days_threshold: int = 30,
     min_rediscovery_potential: float = 20.0,

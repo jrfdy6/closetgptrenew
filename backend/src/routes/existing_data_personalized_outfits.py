@@ -278,7 +278,7 @@ async def generate_personalized_outfit_from_existing_data(
         
         # Create response with real validation metadata
         outfit_response = {
-            "id": (existing_result.get("id", f"personalized_{int(time.time() if existing_result else f"personalized_{int(time.time())}"),
+            "id": (existing_result.get("id", f"personalized_{int(time.time())}") if existing_result else f"personalized_{int(time.time())}"),
             "name": (existing_result.get("name", "Personalized Outfit") if existing_result else "Personalized Outfit"),
             "items": (existing_result.get("items", []) if existing_result else []),
             "style": req.style,

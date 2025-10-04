@@ -109,7 +109,7 @@ async def generate_personalized_outfit(
             
             # Create outfit response
             outfit_response = {
-                "id": (main_outfit.get("id", f"personalized_{int(time.time() if main_outfit else f"personalized_{int(time.time())}"),
+                "id": (main_outfit.get("id", f"personalized_{int(time.time())}") if main_outfit else f"personalized_{int(time.time())}"),
                 "name": (main_outfit.get("name", "Personalized Outfit") if main_outfit else "Personalized Outfit"),
                 "items": (main_outfit.get("items", []) if main_outfit else []),
                 "style": req.style,
