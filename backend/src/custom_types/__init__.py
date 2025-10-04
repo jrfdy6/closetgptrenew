@@ -1,28 +1,17 @@
 # This file makes the types directory a Python package
-from .profile import UserProfile
-from .outfit import WeatherData, OutfitContext, OutfitGeneratedOutfit, OutfitPiece
-from .wardrobe import (
-    ClothingType,
-    Season,
-    StyleTag,
-    Color,
-    VisualAttributes,
-    ItemMetadata,
-    BasicMetadata,
-    ColorAnalysis,
-    Metadata,
-    ClothingItem,
-    Outfit,
-    GeneratedOutfit as WardrobeGeneratedOutfit
-)
-from .weather import WeatherData
+# Removed automatic imports to prevent circular dependencies
+# Import specific classes as needed in individual modules
 
 __all__ = [
+    # Profile types
     'UserProfile',
+    # Weather types  
     'WeatherData',
+    # Outfit types
     'OutfitContext',
-    'OutfitGeneratedOutfit',
+    'OutfitGeneratedOutfit', 
     'OutfitPiece',
+    # Wardrobe types
     'ClothingItem',
     'ClothingType',
     'Season',
