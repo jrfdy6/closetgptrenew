@@ -1015,8 +1015,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             try:
                 # Handle both dict and object weather data
                 if isinstance(req.weather, dict):
-                    temp = req.(weather.get('temperature', 'unknown') if weather else 'unknown')
-                    condition = req.(weather.get('condition', 'unknown') if weather else 'unknown')
+                    temp = req.weather.get('temperature', 'unknown') if req.weather else 'unknown'
+                    condition = req.weather.get('condition', 'unknown') if req.weather else 'unknown'
                 else:
                     temp = getattr(req.weather, 'temperature', 'unknown')
                     condition = getattr(req.weather, 'condition', 'unknown')
@@ -1235,7 +1235,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🚀 ROBUST METADATA: {robust_outfit.metadata if hasattr(robust_outfit, 'metadata') else 'NO METADATA ATTR'}")
                     
                     # Log the generation strategy used
-                    strategy = robust_outfit.(metadata.get('generation_strategy', 'unknown') if metadata else 'unknown')
+                    metadata = getattr(robust_outfit, 'metadata', None)
+                    strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
                     logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
                     logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
                     print(f"🎯 GENERATION STRATEGY: {strategy}")
@@ -1249,7 +1250,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         # Add detailed fallback reason logging
                         fallback_reason = "Unknown - robust service returned fallback_simple strategy"
                         if hasattr(robust_outfit, 'metadata'):
-                            failed_rules = robust_outfit.(metadata.get('failed_rules', []) if metadata else [])
+                            metadata = getattr(robust_outfit, 'metadata', None)
+                            failed_rules = metadata.get('failed_rules', []) if metadata else []
                             if failed_rules:
                                 fallback_reason = f"Failed validation rules: {failed_rules}"
                             elif len(robust_outfit.items) == 0:
@@ -1352,11 +1354,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     # Handle both dict and object weather data
                     if isinstance(req.weather, dict):
                         outfit['weather_data'] = {
-                            'temperature': req.(weather.get('temperature', 70) if weather else 70),
-                            'condition': req.(weather.get('condition', 'clear') if weather else 'clear'),
-                            'humidity': req.(weather.get('humidity', 65) if weather else 65),
-                            'wind_speed': req.(weather.get('wind_speed', 5) if weather else 5),
-                            'precipitation': req.(weather.get('precipitation', 0) if weather else 0)
+                            'temperature': req.weather.get('temperature', 70) if req.weather else 70,
+                            'condition': req.weather.get('condition', 'clear') if req.weather else 'clear',
+                            'humidity': req.weather.get('humidity', 65) if req.weather else 65,
+                            'wind_speed': req.weather.get('wind_speed', 5) if req.weather else 5,
+                            'precipitation': req.weather.get('precipitation', 0) if req.weather else 0
                         }
                     else:
                         outfit['weather_data'] = {
@@ -1548,8 +1550,8 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
                 userId=(item_dict.get('userId', 'unknown') if item_dict else 'unknown'),
                 dominantColors=(item_dict.get('dominantColors', []) if item_dict else []),
                 matchingColors=(item_dict.get('matchingColors', []) if item_dict else []),
-                createdAt=(item_dict.get('createdAt', int(time.time() if item_dict else int(time.time() * 1000)),
-                updatedAt=(item_dict.get('updatedAt', int(time.time() if item_dict else int(time.time() * 1000)),
+                createdAt=(item_dict.get('createdAt', int(time.time() * 1000)) if item_dict else int(time.time() * 1000)),
+                updatedAt=(item_dict.get('updatedAt', int(time.time() * 1000)) if item_dict else int(time.time() * 1000)),
                 brand=(item_dict.get('brand', None) if item_dict else None),
                 wearCount=(item_dict.get('wearCount', 0) if item_dict else 0),
                 favorite_score=(item_dict.get('favorite_score', 0.0) if item_dict else 0.0),
@@ -3479,9 +3481,9 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         if (req.weather if req else None) and wardrobe_items:
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.(weather.get('temperature', 70) if weather else 70)
-                condition = req.(weather.get('condition', 'clear') if weather else 'clear')
-                precipitation = req.(weather.get('precipitation', 0) if weather else 0)
+                temp = req.weather.get('temperature', 70) if req.weather else 70
+                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
+                precipitation = req.weather.get('precipitation', 0) if req.weather else 0
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
@@ -3515,7 +3517,7 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
         temperature = 70.0
         if (req.weather if req else None):
             if isinstance(req.weather, dict):
-                temperature = req.(weather.get('temperature', 70.0) if weather else 70.0)
+                temperature = req.weather.get('temperature', 70.0) if req.weather else 70.0
             else:
                 temperature = getattr(req.weather, 'temperature', 70.0)
         
@@ -3543,8 +3545,8 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
                     matchingColors=(item_dict.get('matchingColors', []) if item_dict else []),
                     occasion=(item_dict.get('occasion', []) if item_dict else []),
                     brand=(item_dict.get('brand') if item_dict else None),
-                    createdAt=(item_dict.get('createdAt', int(time.time() if item_dict else int(time.time() * 1000)),
-                    updatedAt=(item_dict.get('updatedAt', int(time.time() if item_dict else int(time.time() * 1000)),
+                    createdAt=(item_dict.get('createdAt', int(time.time() * 1000)) if item_dict else int(time.time() * 1000)),
+                    updatedAt=(item_dict.get('updatedAt', int(time.time() * 1000)) if item_dict else int(time.time() * 1000)),
                     subType=(item_dict.get('subType') if item_dict else None),
                     colorName=(item_dict.get('colorName') if item_dict else None),
                     backgroundRemoved=(item_dict.get('backgroundRemoved') if item_dict else None),
@@ -3810,7 +3812,7 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.(weather.get('temperature', 70) if weather else 70)
+                temp = req.weather.get('temperature', 70) if req.weather else 70
             else:
                 temp = getattr(req.weather, 'temperature', 70)
             sentences.append(f"Each item has been chosen to ensure comfort in {temp}°F conditions while maintaining your desired {req.style} style.")
@@ -3826,8 +3828,8 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.(weather.get('temperature', 70) if weather else 70)
-                condition = req.(weather.get('condition', 'clear') if weather else 'clear')
+                temp = req.weather.get('temperature', 70) if req.weather else 70
+                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
@@ -4276,7 +4278,7 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
         return []
 
 # Health and debug endpoints (MUST be before parameterized routes)
-@(router.get("/health", response_model=dict) if router else response_model=dict)
+@router.get("/health", response_model=dict)
 async def outfits_health_check():
     """Health check for outfits router."""
     logger.info("🔍 DEBUG: Outfits health check called")
@@ -4289,7 +4291,7 @@ async def outfits_health_check():
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False
     }
 
-@(router.get("/debug", response_model=dict) if router else response_model=dict)
+@router.get("/debug", response_model=dict)
 async def outfits_debug():
     """Debug endpoint for outfits router."""
     logger.info("🔍 DEBUG: Outfits debug endpoint called")
@@ -4325,7 +4327,7 @@ async def debug_rule_engine_data():
 # REMOVED: Duplicate endpoint that was causing 500 errors
 # The generate_outfit endpoint below handles this functionality
 
-@(router.get("/outfit-save-test", response_model=dict) if router else response_model=dict)
+@router.get("/outfit-save-test", response_model=dict)
 async def outfit_save_test():
     """Test saving to the outfits collection specifically."""
     logger.info("🔍 DEBUG: Outfit save test called")
@@ -4379,7 +4381,7 @@ async def outfit_save_test():
         "results": test_results
     }
 
-@(router.get("/firebase-test", response_model=dict) if router else response_model=dict)
+@router.get("/firebase-test", response_model=dict)
 async def firebase_connectivity_test():
     """Test Firebase write/read operations."""
     logger.info("🔍 DEBUG: Firebase connectivity test called")
@@ -4432,7 +4434,7 @@ async def firebase_connectivity_test():
         "results": test_results
     }
 
-@(router.get("/check-outfits-db", response_model=dict) if router else response_model=dict)
+@router.get("/check-outfits-db", response_model=dict)
 async def check_outfits_database():
     """Check what outfits are actually in the database."""
     logger.info("🔍 DEBUG: Checking outfits in database")
@@ -4483,7 +4485,7 @@ async def check_outfits_database():
         "results": check_results
     }
 
-@(router.get("/debug-retrieval", response_model=dict) if router else response_model=dict)
+@router.get("/debug-retrieval", response_model=dict)
 async def debug_outfit_retrieval():
     """Debug the outfit retrieval process step by step."""
     logger.info("🔍 DEBUG: Debug retrieval endpoint called")
@@ -4539,7 +4541,7 @@ async def debug_outfit_retrieval():
         "debug_info": debug_info
     }
 
-@(router.get("/debug-specific/{outfit_id}", response_model=dict) if router else response_model=dict)
+@router.get("/debug-specific/{outfit_id}", response_model=dict)
 async def debug_specific_outfit(outfit_id: str):
     """Debug endpoint to check if a specific outfit exists in Firestore."""
     debug_info = {
@@ -5058,7 +5060,7 @@ async def mark_outfit_as_worn(
         logger.error(f"❌ Failed to mark outfit {outfit_id} as worn: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to mark outfit as worn: {str(e)}")
 
-@(router.get("/debug-user", response_model=dict) if router else response_model=dict)
+@router.get("/debug-user", response_model=dict)
 async def debug_user_outfits(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -5145,11 +5147,6 @@ async def generate_outfit(
     fallback strategies, body type optimization, and style profile integration.
     """
     # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
-    try:
-        start_time = time.time()
-        generation_attempts = 0
-        max_attempts = 3
-    
     # DEBUG: Log request details at endpoint start
     print(f"🔍 DEBUG ENDPOINT START: req = {req}")
     print(f"🔍 DEBUG ENDPOINT START: (req.wardrobe if req else []) = {req.wardrobe}")
@@ -5157,6 +5154,9 @@ async def generate_outfit(
     print(f"🔍 DEBUG ENDPOINT START: current_user_id = {current_user_id}")
     
     try:
+        start_time = time.time()
+        generation_attempts = 0
+        max_attempts = 3
         # Enhanced authentication validation
         if not current_user_id:
             logger.error("❌ Authentication failed: No current user ID")
@@ -6235,7 +6235,7 @@ async def _update_item_analytics_from_outfit_rating(
 
 # ⚠️ PARAMETERIZED ROUTE - MUST BE FIRST TO AVOID ROUTE CONFLICTS!
 # This route MUST come BEFORE the root route to avoid catching it
-@(router.get("/{outfit_id}", response_model=OutfitResponse) if router else response_model=OutfitResponse)
+@router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(outfit_id: str):
     """Get a specific outfit by ID. MUST BE FIRST ROUTE TO AVOID CONFLICTS."""
     logger.info(f"🔍 DEBUG: Get outfit {outfit_id} endpoint called")
@@ -6275,7 +6275,7 @@ async def get_outfit(outfit_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to get outfit: {e}")
 
 # ✅ Retrieve Outfit History (dual endpoints for trailing slash compatibility)
-@(router.get("/", response_model=List[OutfitResponse]) if router else response_model=List[OutfitResponse])
+@router.get("/", response_model=List[OutfitResponse])
 async def list_outfits_with_slash(
     limit: int = 50,
     offset: int = 0,
@@ -6314,7 +6314,7 @@ async def list_outfits_with_slash(
         # Fallback to mock data on error
         raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
 
-@(router.get("", include_in_schema=False, response_model=List[OutfitResponse]) if router else response_model=List[OutfitResponse])
+@router.get("", include_in_schema=False, response_model=List[OutfitResponse])
 async def list_outfits_no_slash(
     limit: int = 50,
     offset: int = 0,
@@ -6417,7 +6417,7 @@ async def get_outfit_stats(
         )
 
 # 🔍 DEBUG: List all registered routes for this router
-@(router.get("/debug-routes", response_model=dict) if router else response_model=dict)
+@router.get("/debug-routes", response_model=dict)
 async def debug_routes():
     """Debug endpoint to show all registered routes in this router"""
     routes = []
@@ -6580,8 +6580,8 @@ async def generate_intelligent_reasoning(items: List[Dict], req: OutfitRequest, 
         if (req.weather if req else None):
             # Handle both dict and object weather data
             if isinstance(req.weather, dict):
-                temp = req.(weather.get('temperature', 70) if weather else 70)
-                condition = req.(weather.get('condition', 'clear') if weather else 'clear')
+                temp = req.weather.get('temperature', 70) if req.weather else 70
+                condition = req.weather.get('condition', 'clear') if req.weather else 'clear'
             else:
                 temp = getattr(req.weather, 'temperature', 70)
                 condition = getattr(req.weather, 'condition', 'clear')
