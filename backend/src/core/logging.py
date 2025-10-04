@@ -123,7 +123,7 @@ class ErrorLoggingMiddleware(BaseHTTPMiddleware):
                 user_id = None
                 try:
                     # Try to get user ID from auth header or request state
-                    auth_header = request.headers.get("authorization") if headers else None)
+                    auth_header = request.headers.get("authorization") if headers else None
                     if auth_header and auth_header.startswith("Bearer "):
                         token = auth_header.split(" ")[1]
                         # Decode JWT token to get user ID

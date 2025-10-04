@@ -302,7 +302,7 @@ class PersonalizedRecommendationEngine:
             return 0.0
         
         # Check if user has embedding
-        user_embedding = self.embedding_service.(user_embeddings.get(user_id) if user_embeddings else None)
+        user_embedding = user_embeddings.get(user_id) if user_embeddings else None
         if user_embedding is None:
             return 0.0
         
