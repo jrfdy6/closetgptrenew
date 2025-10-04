@@ -1175,11 +1175,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                             item_name = getattr(item, 'name', 'NO_NAME')
                             # print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
                             if hasattr(item_type, 'value'):
-                                # print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
+                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
                             if hasattr(item_type, 'name'):
-                                # print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
+                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
                     else:
-                        # print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
+                        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
                     
                     # print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
                     # print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
@@ -1287,7 +1287,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
                         # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
                         if robust_outfit.items:
-                            # print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
+                            print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
                     
                     outfit = {
                         'id': getattr(robust_outfit, 'id', 'unknown'),
@@ -1395,9 +1395,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # print(f"🔍 DEBUG FINAL CHECK: Outfit keys: {list(outfit.keys()) if isinstance(outfit, dict) else 'NOT A DICT'}")
         # print(f"🔍 DEBUG FINAL CHECK: Has 'items' key: {'items' in outfit if isinstance(outfit, dict) else 'N/A'}")
         if isinstance(outfit, dict) and 'items' in outfit:
-            # print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
-            # print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
-            # print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
+            print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
+            print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
+            print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
         
         if not outfit or not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.error(f"❌ GENERATION FAILED: No items generated")
@@ -2795,13 +2795,13 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # DEBUG: Before scoring loop
         def debug_scores(stage: str, items):
             try:
-#                 print("🎯 SCORING DEBUG:", {
+                print("🎯 SCORING DEBUG:", {
                     "stage": stage,
                     "input_items": [i.get("id") for i in items] if items else None,
                     "input_count": len(items) if items else 0,
                 })
             except Exception as e:
-#                 print("⚠️ SCORE DEBUG ERROR:", e)
+                print("⚠️ SCORE DEBUG ERROR:", e)
         
         debug_scores("before_scoring_loop", wardrobe_items)
         
@@ -2852,9 +2852,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 continue
                 # print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
             elif hard_exclusions:
-#                 print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
+                print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
             else:
-                # print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
+                print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
             
             # 1. Core Style Matching (Primary filter - must pass)
             # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
