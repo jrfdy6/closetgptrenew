@@ -944,12 +944,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         UserProfile = None
         OutfitGeneratedOutfit = None
     
-    # Import robust generation service separately (doesn't require Firebase)
-    # TEMPORARILY DISABLED DUE TO IMPORT ISSUES
-    print(f"🚨 MAIN LOGIC: Robust generation service TEMPORARILY DISABLED due to import issues")
-    logger.info(f"🚨 ROBUST IMPORT: Robust generation service TEMPORARILY DISABLED due to import issues")
-    RobustOutfitGenerationService = None
-    GenerationContext = None
+    # Import robust generation service - NO FALLBACKS ALLOWED
+    from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
+    print(f"✅ MAIN LOGIC: Robust generation service imported successfully")
+    logger.info(f"✅ ROBUST IMPORT: Robust generation service imported successfully")
     
     # Import ClothingItem for validation
     try:
@@ -1022,34 +1020,22 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.error(f"🚨 FORCE REDEPLOY v12.0: GenerationContext = {GenerationContext}")
         logger.error(f"🚨 FORCE REDEPLOY v12.0: Both available = {RobustOutfitGenerationService is not None and GenerationContext is not None}")
         
-        # DEBUG: Check if robust service is None
-        # TEMPORARILY DISABLED FOR TESTING
-        if RobustOutfitGenerationService is None:
-            logger.error(f"🚨 CRITICAL: RobustOutfitGenerationService is None - import failed!")
-            logger.error(f"🚨 TESTING: Skipping robust service check for testing")
-            logger.error(f"🚨 TESTING: This should NOT throw an exception anymore")
-            # raise Exception("RobustOutfitGenerationService import failed - check import paths")
-        
-        if GenerationContext is None:
-            logger.error(f"🚨 CRITICAL: GenerationContext is None - import failed!")
-            logger.error(f"🚨 TESTING: Skipping GenerationContext check for testing")
-            # raise Exception("GenerationContext import failed - check import paths")
+        # Robust service is required - no fallbacks allowed
         try:
-            # Use robust outfit generation service if available (allow without Firebase for testing)
-            logger.error(f"🚨 DEBUG: STARTING TRY BLOCK")
-            print(f"🚨 DEBUG: STARTING TRY BLOCK")
-            logger.error(f"🚨 DEBUG: About to check robust service availability")
-            logger.error(f"🚨 DEBUG: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
-            logger.error(f"🚨 DEBUG: GenerationContext = {GenerationContext}")
-            logger.error(f"🚨 DEBUG: Condition result = {RobustOutfitGenerationService and GenerationContext}")
-            logger.error(f"🚨 DEBUG: Checking robust service availability")
-            # RE-ENABLE ROBUST SERVICE
-            if RobustOutfitGenerationService and GenerationContext:
-                logger.info("🚀 Using robust outfit generation service")
-                print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
-                print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
-                
-                # Create generation context - ensure weather is properly formatted
+            # Use robust outfit generation service - NO FALLBACKS ALLOWED
+            logger.info("🚀 Using robust outfit generation service - NO FALLBACKS ALLOWED")
+            print(f"🚀 ROBUST SERVICE: Starting robust outfit generation")
+            
+            # Ensure robust service is available
+            if not RobustOutfitGenerationService or not GenerationContext:
+                raise Exception("RobustOutfitGenerationService or GenerationContext is None - import failed!")
+            
+            # Use robust service
+            logger.info("🚀 Using robust outfit generation service")
+            print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
+            print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
+            
+            # Create generation context - ensure weather is properly formatted
                 weather_data = req.weather
                 if isinstance(weather_data, dict):
                     # Convert dict to object-like structure for robust service
@@ -1282,70 +1268,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.warning(f"⚠️ WARNING: Robust path returned fallback_simple strategy")
                     print(f"🚨 WARNING: Robust path returned fallback_simple strategy - this should be a robust strategy!")
                 
-                logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
-            else:
-                logger.error(f"🚨 DEBUG: ENTERING ELSE BRANCH - ROBUST SERVICE NOT AVAILABLE")
-                print(f"🚨 DEBUG: ENTERING ELSE BRANCH - ROBUST SERVICE NOT AVAILABLE")
-                # TEMPORARILY ALLOW FALLBACKS FOR TESTING
-                logger.error("🚨 ROBUST SERVICE NOT AVAILABLE - USING FALLBACK FOR TESTING")
-                print(f"🚨 ROBUST SERVICE NOT AVAILABLE: RobustOutfitGenerationService or GenerationContext is None")
-                print(f"🚨 TESTING: Using fallback service for testing")
-                # raise Exception("RobustOutfitGenerationService not available - no fallbacks allowed. Fix the robust service import.")
-                
-                # Use simple fallback service for testing
-                logger.error("🚨 DEBUG: ENTERING SIMPLE FALLBACK PATH")
-                print(f"🚨 DEBUG: ENTERING SIMPLE FALLBACK PATH")
-                logger.info("🚀 Using simple fallback service for testing")
-                
-                try:
-                    from uuid import uuid4
-                    from datetime import datetime
-                    
-                    # Ensure we have at least 3 items for validation
-                    items = []
-                    if req.wardrobe and len(req.wardrobe) >= 3:
-                        items = req.wardrobe[:3]
-                    elif req.wardrobe and len(req.wardrobe) > 0:
-                        # Use all available items and pad with duplicates if needed
-                        items = list(req.wardrobe)
-                        while len(items) < 3:
-                            items.append(req.wardrobe[0])  # Duplicate first item
-                    else:
-                        # Create mock items if no wardrobe provided
-                        items = [
-                            {'id': 'mock-1', 'name': 'Mock Shirt', 'type': 'shirt', 'color': 'white'},
-                            {'id': 'mock-2', 'name': 'Mock Pants', 'type': 'pants', 'color': 'black'},
-                            {'id': 'mock-3', 'name': 'Mock Shoes', 'type': 'shoes', 'color': 'brown'}
-                        ]
-                    
-                    outfit = {
-                        'id': f'outfit-{uuid4()}',
-                        'name': f'{req.occasion} Outfit',
-                        'occasion': req.occasion,
-                        'style': req.style,
-                        'mood': req.mood,
-                        'confidence_score': 0.8,
-                        'items': items,
-                        'generated_at': datetime.now().isoformat(),
-                        'strategy': 'simple_fallback',
-                        'validation': {
-                            'is_valid': True,
-                            'score': 80.0,
-                            'issues': [],
-                            'suggestions': []
-                        }
-                    }
-                    logger.info(f"✅ Simple fallback generated outfit with {len(outfit.get('items', []))} items")
-                    logger.error(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
-                    print(f"🚨 DEBUG: Simple fallback SUCCESS - outfit has {len(outfit.get('items', []))} items")
-                    
-                except Exception as fallback_error:
-                    logger.error(f"❌ Simple fallback failed: {fallback_error}")
-                    print(f"🚨 DEBUG: Simple fallback FAILED: {fallback_error}")
-                    import traceback
-                    logger.error(f"❌ Simple fallback traceback: {traceback.format_exc()}")
-                    print(f"🚨 DEBUG: Simple fallback traceback: {traceback.format_exc()}")
-                    raise fallback_error
+            logger.info(f"✅ Robust generation successful with {len(outfit.get('items', []))} items")
             
             # Add weather data to outfit for base item validation
             logger.error(f"🚨 DEBUG: About to add weather data - req.weather = {req.weather}")
