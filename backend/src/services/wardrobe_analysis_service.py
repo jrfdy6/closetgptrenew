@@ -442,7 +442,7 @@ class WardrobeAnalysisService:
             else:
                 # print("✅ Successfully retrieved real trends!")
                 for i, trend in enumerate(trending_styles[:3], 1):
-#                     print(f"   {i}. {trend['name']} ({trend['popularity']}%)")
+                    print(f"   {i}. {trend['name']} ({trend['popularity']}%)")
             
             return trending_styles
         except Exception as e:
