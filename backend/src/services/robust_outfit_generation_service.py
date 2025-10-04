@@ -1302,7 +1302,7 @@ class RobustOutfitGenerationService:
         logger.info(f"🎭 STYLE PROFILE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Get user's style preferences
-        style_preferences = context.user_profile.get('stylePreferences', {})
+        style_preferences = context.user_profile.get('stylePreferences', {}) if context.user_profile else {}
         favorite_colors = style_preferences.get('favoriteColors', [])
         preferred_brands = style_preferences.get('preferredBrands', [])
         
@@ -1851,7 +1851,7 @@ class RobustOutfitGenerationService:
             if hasattr(context.weather, 'temperature'):
                 temperature = context.weather.temperature
             elif isinstance(context.weather, dict):
-                temperature = context.weather.get('temperature', 70.0)
+                temperature = context.weather.get('temperature', 70.0) if context.weather else 70.0
         
         occasion_lower = context.occasion.lower()
         style_lower = context.style.lower() if context.style else ""
@@ -2287,11 +2287,11 @@ class RobustOutfitGenerationService:
         logger.info(f"👤 BODY TYPE ANALYZER: Scoring {len(item_scores)} items")
         
         # Extract ALL user physical attributes
-        body_type = context.user_profile.get('bodyType', 'Average').lower()
-        height = context.user_profile.get('height', 'Average')
-        weight = context.user_profile.get('weight', 'Average')
-        gender = context.user_profile.get('gender', 'Unspecified').lower()
-        skin_tone = context.user_profile.get('skinTone', 'Medium')
+        body_type = context.user_profile.get('bodyType', 'Average').lower() if context.user_profile else 'average'
+        height = context.user_profile.get('height', 'Average') if context.user_profile else 'Average'
+        weight = context.user_profile.get('weight', 'Average') if context.user_profile else 'Average'
+        gender = context.user_profile.get('gender', 'Unspecified').lower() if context.user_profile else 'unspecified'
+        skin_tone = context.user_profile.get('skinTone', 'Medium') if context.user_profile else 'Medium'
         
         logger.info(f"👤 User profile: body_type={body_type}, height={height}, weight={weight}, gender={gender}, skin_tone={skin_tone}")
         
