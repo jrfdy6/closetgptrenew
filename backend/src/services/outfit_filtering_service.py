@@ -34,19 +34,19 @@ class OutfitFilteringService:
         
         # Style filtering
         before = len(filtered)
-        filtered = self._filter_by_style_strict(filtered, context.get("style"), context.get("style_matrix", {}))
+        filtered = self._filter_by_style_strict(filtered, context.get("style") if context else None, context.get("style_matrix", {}) if context else {})
         after = len(filtered)
         print(f"🔍 DEBUG: _apply_strict_filtering - After style filtering: {after} items (removed {before - after})")
         
         # Preferences filtering
         before = len(filtered)
-        filtered = self._filter_by_personal_preferences(filtered, context.get("user_profile"))
+        filtered = self._filter_by_personal_preferences(filtered, context.get("user_profile") if context else None)
         after = len(filtered)
         print(f"🔍 DEBUG: _apply_strict_filtering - After preferences filtering: {after} items (removed {before - after})")
         
         # Mood filtering
         before = len(filtered)
-        filtered = self._filter_by_mood_strict(filtered, context.get("mood_rule"), context.get("base_item"))
+        filtered = self._filter_by_mood_strict(filtered, context.get("mood_rule") if context else None, context.get("base_item") if context else None)
         after = len(filtered)
         print(f"🔍 DEBUG: _apply_strict_filtering - After mood filtering: {after} items (removed {before - after})")
         
@@ -65,7 +65,7 @@ class OutfitFilteringService:
         
         # Basic occasion filtering to prevent obviously inappropriate items
         before = len(filtered)
-        filtered = self._filter_by_occasion_light(filtered, context.get("occasion", ""))
+        filtered = self._filter_by_occasion_light(filtered, context.get("occasion", "") if context else "")
         after = len(filtered)
         print(f"🔍 DEBUG: apply_light_filtering - After occasion filtering: {after} items (removed {before - after})")
         
