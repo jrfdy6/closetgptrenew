@@ -3271,9 +3271,7 @@ class RobustOutfitGenerationService:
             # Get diversity suggestions
             diversity_suggestions = diversity_filter.get_diversity_suggestions(
                 user_id=context.user_id,
-                current_items=selected_items,
-                occasion=context.occasion,
-                style=context.style
+                current_outfit=selected_items
             )
             
             if diversity_suggestions:
