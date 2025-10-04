@@ -1,0 +1,3498 @@
+{
+  "timestamp": "20251001_213324",
+  "duration_seconds": 260.639905,
+  "total_tests": 102,
+  "successful_tests": 9,
+  "failed_tests": 93,
+  "success_rate": 8.823529411764707,
+  "categories": {
+    "temperature": {
+      "total": 12,
+      "success": 0
+    },
+    "occasion": {
+      "total": 6,
+      "success": 1
+    },
+    "style": {
+      "total": 6,
+      "success": 1
+    },
+    "mood": {
+      "total": 6,
+      "success": 0
+    },
+    "weather": {
+      "total": 8,
+      "success": 0
+    },
+    "combination": {
+      "total": 32,
+      "success": 5
+    },
+    "edge_case": {
+      "total": 20,
+      "success": 2
+    },
+    "user_profile": {
+      "total": 12,
+      "success": 0
+    }
+  },
+  "strategies": {
+    "multi_layered_cohesive_composition": 9
+  },
+  "error_types": {
+    "HTTP 500": 90,
+    "HTTP 422": 3
+  },
+  "detailed_results": [
+    {
+      "scenario": "Temperature 10\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 20\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 30\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 40\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 50\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 60\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 70\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 75\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 80\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 85\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 90\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Temperature 95\u00b0F Test",
+      "category": "temperature",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Business Occasion Test",
+      "category": "occasion",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Casual Occasion Test",
+      "category": "occasion",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Formal Occasion Test",
+      "category": "occasion",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 4,
+      "outfit_items": [
+        {
+          "id": "shirt_white_formal",
+          "name": "Classic White Button-Down Shirt",
+          "type": "shirt",
+          "color": "White",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_clean",
+            "season_summer",
+            "mood_professional",
+            "brand_brooks_brothers",
+            "season_winter",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "light",
+            "professional",
+            "classic",
+            "business",
+            "layered"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368583632,
+          "updatedAt": 1759368583632,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368583632,
+            "originalType": "shirt",
+            "originalSubType": null,
+            "styleTags": [
+              "light",
+              "professional",
+              "classic",
+              "business",
+              "layered"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "classic and adaptable",
+            "color": "White",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "pants_dress_black",
+          "name": "Black Dress Pants",
+          "type": "pants",
+          "color": "Black",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "season_winter",
+            "mood_formal",
+            "highly_worn",
+            "season_fall",
+            "brand_hugo_boss",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368583632,
+          "updatedAt": 1759368583632,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368583632,
+            "originalType": "pants",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Black",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_oxford_brown",
+          "name": "Brown Oxford Dress Shoes",
+          "type": "shoes",
+          "color": "Brown",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "brand_cole_haan",
+            "season_winter",
+            "mood_formal",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368583632,
+          "updatedAt": 1759368583632,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368583632,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Brown",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "blazer_navy",
+          "name": "Navy Blue Blazer",
+          "type": "jacket",
+          "color": "Navy Blue",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "season_winter",
+            "brand_calvin_klein",
+            "mood_sophisticated",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "elegant",
+            "professional",
+            "classic",
+            "business",
+            "layered"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "party",
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368583632,
+          "updatedAt": 1759368583632,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368583632,
+            "originalType": "jacket",
+            "originalSubType": null,
+            "styleTags": [
+              "elegant",
+              "professional",
+              "classic",
+              "business",
+              "layered"
+            ],
+            "occasionTags": [
+              "party",
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Navy Blue",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Party Occasion Test",
+      "category": "occasion",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Athletic Occasion Test",
+      "category": "occasion",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Everyday Occasion Test",
+      "category": "occasion",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Classic Style Test",
+      "category": "style",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Casual Style Test",
+      "category": "style",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Trendy Style Test",
+      "category": "style",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Elegant Style Test",
+      "category": "style",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 3,
+      "outfit_items": [
+        {
+          "id": "sweater_cashmere",
+          "name": "Cashmere Sweater",
+          "type": "sweater",
+          "color": "Gray",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_warm",
+            "season_winter",
+            "mood_sophisticated",
+            "brand_brunello_cucinelli",
+            "season_fall",
+            "favorite"
+          ],
+          "style": [
+            "luxury",
+            "layered",
+            "elegant",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368600996,
+          "updatedAt": 1759368600996,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368600996,
+            "originalType": "sweater",
+            "originalSubType": null,
+            "styleTags": [
+              "luxury",
+              "layered",
+              "elegant",
+              "classic"
+            ],
+            "occasionTags": [
+              "casual",
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "cozy and layered",
+            "color": "Gray",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "pants_dress_gray",
+          "name": "Charcoal Gray Dress Pants",
+          "type": "pants",
+          "color": "Gray",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "mood_serious",
+            "brand_brooks_brothers",
+            "season_winter",
+            "highly_worn",
+            "season_fall",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368600996,
+          "updatedAt": 1759368600996,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368600996,
+            "originalType": "pants",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Gray",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_sneakers_white",
+          "name": "White Sneakers",
+          "type": "shoes",
+          "color": "White",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "brand_nike",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "light",
+            "athletic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368600996,
+          "updatedAt": 1759368600996,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368600996,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "light",
+              "athletic"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "White",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Professional Style Test",
+      "category": "style",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Relaxed Style Test",
+      "category": "style",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Professional Mood Test",
+      "category": "mood",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Relaxed Mood Test",
+      "category": "mood",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Bold Mood Test",
+      "category": "mood",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Comfortable Mood Test",
+      "category": "mood",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Sophisticated Mood Test",
+      "category": "mood",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Energetic Mood Test",
+      "category": "mood",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Clear Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Cloudy Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Sunny Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Rainy Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Snowy Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Windy Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Hot Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Cold Weather Test",
+      "category": "weather",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 1: Business + Classic + 65\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 2: Business + Professional + 75\u00b0F",
+      "category": "combination",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 4,
+      "outfit_items": [
+        {
+          "id": "shirt_white_formal",
+          "name": "Classic White Button-Down Shirt",
+          "type": "shirt",
+          "color": "White",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_clean",
+            "season_summer",
+            "mood_professional",
+            "brand_brooks_brothers",
+            "season_winter",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "light",
+            "professional",
+            "classic",
+            "business",
+            "layered"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368648692,
+          "updatedAt": 1759368648692,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368648692,
+            "originalType": "shirt",
+            "originalSubType": null,
+            "styleTags": [
+              "light",
+              "professional",
+              "classic",
+              "business",
+              "layered"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "classic and adaptable",
+            "color": "White",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "pants_dress_black",
+          "name": "Black Dress Pants",
+          "type": "pants",
+          "color": "Black",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "season_winter",
+            "mood_formal",
+            "highly_worn",
+            "season_fall",
+            "brand_hugo_boss",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368648692,
+          "updatedAt": 1759368648692,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368648692,
+            "originalType": "pants",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Black",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_oxford_brown",
+          "name": "Brown Oxford Dress Shoes",
+          "type": "shoes",
+          "color": "Brown",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "brand_cole_haan",
+            "season_winter",
+            "mood_formal",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368648692,
+          "updatedAt": 1759368648692,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368648692,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Brown",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "blazer_navy",
+          "name": "Navy Blue Blazer",
+          "type": "jacket",
+          "color": "Navy Blue",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "season_winter",
+            "brand_calvin_klein",
+            "mood_sophisticated",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "elegant",
+            "professional",
+            "classic",
+            "business",
+            "layered"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "party",
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368648692,
+          "updatedAt": 1759368648692,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368648692,
+            "originalType": "jacket",
+            "originalSubType": null,
+            "styleTags": [
+              "elegant",
+              "professional",
+              "classic",
+              "business",
+              "layered"
+            ],
+            "occasionTags": [
+              "party",
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Navy Blue",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Combo 3: Business + Elegant + 55\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 4: Formal + Elegant + 60\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 5: Formal + Classic + 50\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 6: Formal + Professional + 45\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 7: Casual + Casual + 80\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 8: Casual + Relaxed + 75\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 9: Casual + Trendy + 85\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 10: Athletic + Sporty + 70\u00b0F",
+      "category": "combination",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 3,
+      "outfit_items": [
+        {
+          "id": "shirt_athletic_moisture",
+          "name": "Moisture-Wicking Athletic Shirt",
+          "type": "shirt",
+          "color": "Black",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "season_summer",
+            "mood_energetic",
+            "brand_under_armour",
+            "highly_worn",
+            "season_fall",
+            "mood_active",
+            "season_spring"
+          ],
+          "style": [
+            "sporty",
+            "light",
+            "athletic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368668875,
+          "updatedAt": 1759368668875,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368668875,
+            "originalType": "shirt",
+            "originalSubType": null,
+            "styleTags": [
+              "sporty",
+              "light",
+              "athletic"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "classic and adaptable",
+            "color": "Black",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shorts_athletic",
+          "name": "Athletic Running Shorts",
+          "type": "shorts",
+          "color": "Navy",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "season_summer",
+            "mood_energetic",
+            "brand_nike",
+            "highly_worn",
+            "season_fall",
+            "mood_active",
+            "season_spring"
+          ],
+          "style": [
+            "sporty",
+            "light",
+            "athletic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368668875,
+          "updatedAt": 1759368668875,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368668875,
+            "originalType": "shorts",
+            "originalSubType": null,
+            "styleTags": [
+              "sporty",
+              "light",
+              "athletic"
+            ],
+            "occasionTags": [
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Navy",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_running",
+          "name": "Running Shoes",
+          "type": "shoes",
+          "color": "Blue",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "season_summer",
+            "mood_energetic",
+            "season_winter",
+            "highly_worn",
+            "season_fall",
+            "mood_active",
+            "season_spring",
+            "brand_brooks"
+          ],
+          "style": [
+            "athletic",
+            "sporty",
+            "light",
+            "professional",
+            "layered"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "formal",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368668875,
+          "updatedAt": 1759368668875,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368668875,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "athletic",
+              "sporty",
+              "light",
+              "professional",
+              "layered"
+            ],
+            "occasionTags": [
+              "formal",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Blue",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Combo 11: Athletic + Athletic + 80\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 12: Athletic + Active + 65\u00b0F",
+      "category": "combination",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 3,
+      "outfit_items": [
+        {
+          "id": "shirt_tshirt_gray",
+          "name": "Light Gray Cotton T-Shirt",
+          "type": "shirt",
+          "color": "Gray",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "brand_uniqlo",
+            "season_spring"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "minimalist",
+            "light"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368672480,
+          "updatedAt": 1759368672480,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368672480,
+            "originalType": "shirt",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "minimalist",
+              "light"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "classic and adaptable",
+            "color": "Gray",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shorts_athletic",
+          "name": "Athletic Running Shorts",
+          "type": "shorts",
+          "color": "Navy",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "season_summer",
+            "mood_energetic",
+            "brand_nike",
+            "highly_worn",
+            "season_fall",
+            "mood_active",
+            "season_spring"
+          ],
+          "style": [
+            "sporty",
+            "light",
+            "athletic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368672480,
+          "updatedAt": 1759368672480,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368672480,
+            "originalType": "shorts",
+            "originalSubType": null,
+            "styleTags": [
+              "sporty",
+              "light",
+              "athletic"
+            ],
+            "occasionTags": [
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Navy",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_sneakers_white",
+          "name": "White Sneakers",
+          "type": "shoes",
+          "color": "White",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "brand_nike",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "light",
+            "athletic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368672480,
+          "updatedAt": 1759368672480,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368672480,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "light",
+              "athletic"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "White",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Combo 13: Party + Elegant + 65\u00b0F",
+      "category": "combination",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 3,
+      "outfit_items": [
+        {
+          "id": "sweater_cashmere",
+          "name": "Cashmere Sweater",
+          "type": "sweater",
+          "color": "Gray",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_warm",
+            "season_winter",
+            "mood_sophisticated",
+            "brand_brunello_cucinelli",
+            "season_fall",
+            "favorite"
+          ],
+          "style": [
+            "luxury",
+            "layered",
+            "elegant",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368673384,
+          "updatedAt": 1759368673384,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368673384,
+            "originalType": "sweater",
+            "originalSubType": null,
+            "styleTags": [
+              "luxury",
+              "layered",
+              "elegant",
+              "classic"
+            ],
+            "occasionTags": [
+              "casual",
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "cozy and layered",
+            "color": "Gray",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "pants_dress_gray",
+          "name": "Charcoal Gray Dress Pants",
+          "type": "pants",
+          "color": "Gray",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "mood_serious",
+            "brand_brooks_brothers",
+            "season_winter",
+            "highly_worn",
+            "season_fall",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368673384,
+          "updatedAt": 1759368673384,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368673384,
+            "originalType": "pants",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Gray",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_oxford_brown",
+          "name": "Brown Oxford Dress Shoes",
+          "type": "shoes",
+          "color": "Brown",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "brand_cole_haan",
+            "season_winter",
+            "mood_formal",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368673384,
+          "updatedAt": 1759368673384,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368673384,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Brown",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Combo 14: Party + Trendy + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 15: Party + Bold + 60\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 16: Everyday + Casual + 72\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 17: Everyday + Comfortable + 68\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 18: Everyday + Relaxed + 76\u00b0F",
+      "category": "combination",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 3,
+      "outfit_items": [
+        {
+          "id": "jeans_light_blue",
+          "name": "Light Blue Denim Jeans",
+          "type": "pants",
+          "color": "Light Blue",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "brand_levi's",
+            "season_spring"
+          ],
+          "style": [
+            "casual",
+            "relaxed",
+            "comfortable",
+            "light",
+            "vintage"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368685385,
+          "updatedAt": 1759368685385,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368685385,
+            "originalType": "pants",
+            "originalSubType": null,
+            "styleTags": [
+              "casual",
+              "relaxed",
+              "comfortable",
+              "light",
+              "vintage"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Light Blue",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shirt_tshirt_gray",
+          "name": "Light Gray Cotton T-Shirt",
+          "type": "shirt",
+          "color": "Gray",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "brand_uniqlo",
+            "season_spring"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "minimalist",
+            "light"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368685385,
+          "updatedAt": 1759368685385,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368685385,
+            "originalType": "shirt",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "minimalist",
+              "light"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "classic and adaptable",
+            "color": "Gray",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_sandals",
+          "name": "Leather Sandals",
+          "type": "shoes",
+          "color": "Brown",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "mood_comfortable",
+            "brand_birkenstock"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "light"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368685385,
+          "updatedAt": 1759368685385,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368685385,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "light"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Brown",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Combo 19: Casual + Casual + 95\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 20: Casual + Casual + 15\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 21: Business + Professional + 90\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 22: Formal + Elegant + 20\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 23: Business + Casual + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 24: Casual + Formal + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 25: Athletic + Elegant + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 26: Party + Professional + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 27: Formal + Athletic + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 28: Everyday + Trendy + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 29: Casual + Sophisticated + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 30: Business + Relaxed + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 31: Athletic + Casual + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Combo 32: Party + Casual + 70\u00b0F",
+      "category": "combination",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Missing Weather Data",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Missing User Profile",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Empty Occasion",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 422: {\"detail\":\"Invalid request: Occasion is required\"}"
+    },
+    {
+      "scenario": "Empty Style",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 422: {\"detail\":\"Invalid request: Style is required\"}"
+    },
+    {
+      "scenario": "Empty Mood",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 422: {\"detail\":\"Invalid request: Mood is required\"}"
+    },
+    {
+      "scenario": "Invalid Temperature (-50\u00b0F)",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Invalid Temperature (150\u00b0F)",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Unknown Occasion",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Unknown Style",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Unknown Mood",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Business + Athletic + Hot",
+      "category": "edge_case",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 4,
+      "outfit_items": [
+        {
+          "id": "shoes_sneakers_white",
+          "name": "White Sneakers",
+          "type": "shoes",
+          "color": "White",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "brand_nike",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "light",
+            "athletic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368747652,
+          "updatedAt": 1759368747652,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368747652,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "light",
+              "athletic"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "White",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shirt_blue_business",
+          "name": "Navy Blue Business Shirt",
+          "type": "shirt",
+          "color": "Navy Blue",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "mood_serious",
+            "season_winter",
+            "highly_worn",
+            "season_fall",
+            "brand_hugo_boss",
+            "season_spring"
+          ],
+          "style": [
+            "layered",
+            "business",
+            "professional",
+            "classic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368747652,
+          "updatedAt": 1759368747652,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368747652,
+            "originalType": "shirt",
+            "originalSubType": null,
+            "styleTags": [
+              "layered",
+              "business",
+              "professional",
+              "classic"
+            ],
+            "occasionTags": [
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "classic and adaptable",
+            "color": "Navy Blue",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "blazer_navy",
+          "name": "Navy Blue Blazer",
+          "type": "jacket",
+          "color": "Navy Blue",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_professional",
+            "season_winter",
+            "brand_calvin_klein",
+            "mood_sophisticated",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "elegant",
+            "professional",
+            "classic",
+            "business",
+            "layered"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "party",
+            "business",
+            "formal"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368747652,
+          "updatedAt": 1759368747652,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368747652,
+            "originalType": "jacket",
+            "originalSubType": null,
+            "styleTags": [
+              "elegant",
+              "professional",
+              "classic",
+              "business",
+              "layered"
+            ],
+            "occasionTags": [
+              "party",
+              "business",
+              "formal"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Navy Blue",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "pants_replacement",
+          "name": "Black Pants",
+          "type": "pants",
+          "color": "black",
+          "imageUrl": "",
+          "style": "casual",
+          "occasion": "casual",
+          "brand": "",
+          "wearCount": 0,
+          "favorite_score": 0,
+          "tags": [],
+          "metadata": {}
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Formal + Casual + Cold",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Party + Professional + Rain",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Athletic + Elegant + Snow",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Boundary Hot (74\u00b0F)",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Boundary Hot (76\u00b0F)",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Boundary Cold (44\u00b0F)",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Boundary Cold (46\u00b0F)",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "Special Chars in Occasion",
+      "category": "edge_case",
+      "success": true,
+      "strategy": "multi_layered_cohesive_composition",
+      "items_count": 3,
+      "outfit_items": [
+        {
+          "id": "shirt_tshirt_gray",
+          "name": "Light Gray Cotton T-Shirt",
+          "type": "shirt",
+          "color": "Gray",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "brand_uniqlo",
+            "season_spring"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "minimalist",
+            "light"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368768082,
+          "updatedAt": 1759368768082,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368768082,
+            "originalType": "shirt",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "minimalist",
+              "light"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "classic and adaptable",
+            "color": "Gray",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "jeans_dark_blue",
+          "name": "Dark Blue Denim Jeans",
+          "type": "pants",
+          "color": "Dark Blue",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "mood_comfortable",
+            "season_winter",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "brand_levi's",
+            "season_spring"
+          ],
+          "style": [
+            "casual",
+            "comfortable",
+            "light",
+            "classic",
+            "vintage",
+            "layered"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368768082,
+          "updatedAt": 1759368768082,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368768082,
+            "originalType": "pants",
+            "originalSubType": null,
+            "styleTags": [
+              "casual",
+              "comfortable",
+              "light",
+              "classic",
+              "vintage",
+              "layered"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "Dark Blue",
+            "overall_suitability": "excellent"
+          }
+        },
+        {
+          "id": "shoes_sneakers_white",
+          "name": "White Sneakers",
+          "type": "shoes",
+          "color": "White",
+          "season": [
+            "all"
+          ],
+          "imageUrl": "",
+          "tags": [
+            "mood_relaxed",
+            "season_summer",
+            "brand_nike",
+            "mood_comfortable",
+            "highly_worn",
+            "season_fall",
+            "favorite",
+            "season_spring"
+          ],
+          "style": [
+            "comfortable",
+            "casual",
+            "light",
+            "athletic"
+          ],
+          "userId": "unknown",
+          "dominantColors": [],
+          "matchingColors": [],
+          "occasion": [
+            "casual",
+            "everyday",
+            "athletic"
+          ],
+          "brand": null,
+          "size": null,
+          "material": null,
+          "createdAt": 1759368768082,
+          "updatedAt": 1759368768082,
+          "subType": null,
+          "colorName": null,
+          "backgroundRemoved": null,
+          "embedding": null,
+          "metadata": {
+            "analysisTimestamp": 1759368768082,
+            "originalType": "shoes",
+            "originalSubType": null,
+            "styleTags": [
+              "comfortable",
+              "casual",
+              "light",
+              "athletic"
+            ],
+            "occasionTags": [
+              "casual",
+              "everyday",
+              "athletic"
+            ],
+            "brand": null,
+            "imageHash": null,
+            "colorAnalysis": {
+              "dominant": [],
+              "matching": []
+            },
+            "basicMetadata": null,
+            "visualAttributes": null,
+            "itemMetadata": null,
+            "naturalDescription": null,
+            "temperatureCompatibility": null,
+            "materialCompatibility": null,
+            "bodyTypeCompatibility": null,
+            "skinToneCompatibility": null,
+            "outfitScoring": null
+          },
+          "wearCount": 0,
+          "lastWorn": 0.0,
+          "favorite_score": 0.0,
+          "seasonal_score": 1.0,
+          "quality_score": 0.5,
+          "pairability_score": 0.5,
+          "weather_context": {
+            "temperature_appropriateness": "excellent",
+            "temperature_note": "ideal for 70\u00b0F mild weather",
+            "fabric_note": "",
+            "style_note": "",
+            "color": "White",
+            "overall_suitability": "excellent"
+          }
+        }
+      ],
+      "error": null
+    },
+    {
+      "scenario": "Numbers in Style",
+      "category": "edge_case",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 1: Bodytype = Petite",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 2: Bodytype = Tall",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 3: Bodytype = Athletic",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 4: Bodytype = Curvy",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 5: Skintone = Fair",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 6: Skintone = Dark",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 7: Gender = Male",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 8: Gender = Female",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 9: Height = Very Short",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 10: Height = Very Tall",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 11: Weight = Underweight",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    },
+    {
+      "scenario": "User Profile 12: Weight = Overweight",
+      "category": "user_profile",
+      "success": false,
+      "strategy": null,
+      "items_count": 0,
+      "outfit_items": [],
+      "error": "HTTP 500: {\"detail\":\"Outfit generation failed after 3 attempts: Generation failed - no items produced. System needs fixing.\"}"
+    }
+  ]
+}

@@ -52,7 +52,7 @@ export class RobustApiClient {
 
   private constructor(config: Partial<ApiClientConfig> = {}) {
     this.config = {
-      baseUrl: config.baseUrl || process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app',
+      baseUrl: config.baseUrl || '/api',
       timeout: config.timeout || 30000,
       maxRetries: config.maxRetries || 3,
       retryDelay: config.retryDelay || 1000,
@@ -375,7 +375,7 @@ export class RobustApiClient {
 export async function generateOutfit(requestData: any, authToken?: string): Promise<any> {
   const client = RobustApiClient.getInstance();
   
-  console.log('🔍 DEBUG: Making API call to ROBUST endpoint with converted data', `${process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/outfit/generate`);
+  console.log('🔍 DEBUG: Making API call to ROBUST endpoint with converted data', `/api/outfit/generate`);
   
   return await client.request({
     method: 'POST',

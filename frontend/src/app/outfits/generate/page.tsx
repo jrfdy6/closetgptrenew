@@ -178,8 +178,8 @@ export default function OutfitGenerationPage() {
     }
   }, [user]);
   
-  // Backend API base URL
-  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+  // Use Next.js API routes instead of direct backend calls
+  const API_BASE = '/api';
   const [formData, setFormData] = useState<OutfitGenerationForm>({
     occasion: '',
     style: '',
@@ -534,8 +534,8 @@ export default function OutfitGenerationPage() {
           
           const saveToken = await user.getIdToken();
           
-          // Call the backend creation endpoint directly to ensure proper saving
-          const saveResponse = await fetch('https://closetgptrenew-backend-production.up.railway.app/api/outfits', {
+          // Call the Next.js API route to ensure proper saving
+          const saveResponse = await fetch('/api/outfits', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${saveToken}`,

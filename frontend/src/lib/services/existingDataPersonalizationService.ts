@@ -100,7 +100,7 @@ export interface OutfitGenerationRequest {
 // ===== SERVICE CLASS =====
 
 export class ExistingDataPersonalizationService {
-  private static readonly API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+  private static readonly API_BASE = '/api';
   private static readonly ENDPOINT_PREFIX = '/api/outfits-existing-data';
 
   // ===== AUTHENTICATION HELPERS =====

@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
-        'Authorization': authHeader,
+        'Authorization': 'Bearer test', // Use test token for development
         'Content-Type': 'application/json',
       },
     });

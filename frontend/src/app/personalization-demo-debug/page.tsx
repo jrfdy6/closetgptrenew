@@ -58,7 +58,7 @@ export default function PersonalizationDemoDebugPage() {
 
       // Test 3: Test API connectivity
       try {
-        const response = await fetch('https://closetgptrenew-backend-production.up.railway.app/api/outfits-existing-data/health');
+        const response = await fetch('/api/outfits-existing-data/health');
         if (response.ok) {
           const data = await response.json();
           addTestResult(`✅ Health check passed: ${data.status}`);
@@ -72,7 +72,7 @@ export default function PersonalizationDemoDebugPage() {
       // Test 4: Test authentication with token
       try {
         const token = await user.getIdToken();
-        const response = await fetch('https://closetgptrenew-backend-production.up.railway.app/api/outfits-existing-data/personalization-status', {
+        const response = await fetch('/api/outfits-existing-data/personalization-status', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

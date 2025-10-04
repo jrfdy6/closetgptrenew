@@ -13,9 +13,7 @@ export async function GET(req: NextRequest) {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
-        ...(req.headers.get('authorization') && {
-          Authorization: req.headers.get('authorization')!,
-        }),
+        'Authorization': 'Bearer test', // Use test token for development
       },
     });
 

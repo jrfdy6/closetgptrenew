@@ -1,7 +1,7 @@
 import { ClothingItem, WardrobeFilters } from '@/lib/hooks/useWardrobe';
 
-// Force HTTPS to prevent mixed content errors
-const API_BASE_URL = 'https://closetgptrenew-backend-production.up.railway.app';
+// Use Next.js API routes instead of direct backend calls
+const API_BASE_URL = '/api';
 
 export interface WardrobeResponse {
   success: boolean;
