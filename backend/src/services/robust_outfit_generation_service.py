@@ -2515,6 +2515,17 @@ class RobustOutfitGenerationService:
         
         target_style = (context.style if context else "unknown").lower()
         
+        # Define style compatibility matrix
+        style_compatibility = {
+            'casual': ['weekend', 'relaxed', 'comfortable'],
+            'formal': ['business', 'professional', 'elegant'],
+            'athletic': ['sporty', 'active', 'gym'],
+            'business': ['professional', 'formal', 'corporate'],
+            'streetwear': ['urban', 'edgy', 'trendy'],
+            'vintage': ['retro', 'classic', 'timeless'],
+            'modern': ['contemporary', 'trendy', 'fashion-forward']
+        }
+        
         # Get user style preferences (with safe_get)
         user_style_prefs = safe_get(context.user_profile, 'stylePreferences', {})
         favorite_colors = safe_get(user_style_prefs, 'favoriteColors', [])
