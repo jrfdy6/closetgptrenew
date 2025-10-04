@@ -206,12 +206,13 @@ def hydrate_wardrobe_items(items: List[Dict[str, Any]]) -> List[ClothingItem]:
 
         # Normalize type field to match ClothingType enum
         if "type" in item_copy and item_copy["type"]:
-            item_copy["type"] = normalize_item_type_to_enum(item_copy["type"], item_copy.get("name", ""))
+            item_copy["type"] = normalize_item_type_to_enum(item_copy["type"], item_copy.get("name", "") if item_copy else "")
 
         # Logging
         if patched_fields:
-            logger.warning(f"⚠️ Item {item_copy.get('id', '<unknown>')} required emergency hydration")
-            logger.debug(f"🔧 EMERGENCY HYDRATION: Item {item_copy.get('id', '<unknown>')} patched fields: {patched_fields}")
+            item_id = item_copy.get('id', '<unknown>') if item_copy else '<unknown>'
+            logger.warning(f"⚠️ Item {item_id} required emergency hydration")
+            logger.debug(f"🔧 EMERGENCY HYDRATION: Item {item_id} patched fields: {patched_fields}")
 
         # Convert to Pydantic model
         try:
