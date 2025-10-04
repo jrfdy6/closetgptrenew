@@ -168,9 +168,9 @@ class OutfitValidationPipeline:
                                     "weather": context.weather
                                 },
                                 outfit_items=(outfit.get("items", []) if outfit else []),
-                                user_id=context.(user_profile.get("id", "unknown") if user_profile else "unknown"),
+                                user_id=(context.user_profile.get("id", "unknown") if context.user_profile else "unknown"),
                                 validation_duration=duration,
-                                outfit_id=(outfit.get("id", f"outfit_{int(time.time() if outfit else f"outfit_{int(time.time())}"),
+                                outfit_id=(outfit.get("id", f"outfit_{int(time.time())}") if outfit else f"outfit_{int(time.time())}"),
                                 generation_request_id=f"req_{int(time.time())}",
                                 retry_attempt=0
                             )
