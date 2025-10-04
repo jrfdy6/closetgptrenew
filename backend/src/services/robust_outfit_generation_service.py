@@ -736,78 +736,121 @@ class RobustOutfitGenerationService:
         return await self._create_outfit_from_items(all_items, context, "progressive_no_filtering")
     
     def _is_item_suitable_for_occasion(self, item: Any, occasion: str, style: str) -> bool:
-        """Check if an item is suitable for the given occasion and style."""
+        """
+        Check if an item is suitable for the given occasion and style.
+        METADATA-FIRST FILTERING: Uses structured data as primary filter, names only as tertiary helper.
+        """
         if not occasion:
             return True
             
         occasion_lower = occasion.lower()
-        item_name = safe_item_access(item, 'name', '').lower()
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # PRIMARY FILTER: Use structured metadata (occasion[], style[], type, brand)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # 1. Check occasion[] field from AI analysis (PRIMARY)
+        item_occasions = safe_item_access(item, 'occasion', [])
+        if isinstance(item_occasions, list) and item_occasions:
+            # If item has explicit occasion tags, use them
+            item_occasions_lower = [occ.lower() for occ in item_occasions]
+            if occasion_lower in item_occasions_lower:
+                return True  # Item explicitly tagged for this occasion
+        
+        # 2. Check style[] field from AI analysis (PRIMARY)
+        item_styles = safe_item_access(item, 'style', [])
+        if isinstance(item_styles, list) and item_styles:
+            # If item has explicit style tags, use them
+            item_styles_lower = [s.lower() for s in item_styles]
+            if occasion_lower in item_styles_lower:  # Some occasions map to styles
+                return True
+        
+        # 3. Check item type (SECONDARY - more reliable than names)
         item_type = safe_item_access(item, 'type', '').lower()
-        
-        # Business/Formal occasion - RELIABLE TYPE-BASED FILTERING
-        if 'business' in occasion_lower or 'formal' in occasion_lower:
-            # ONLY use type-based filtering - don't rely on AI metadata
-            # Explicitly forbidden items for business/formal
-            forbidden_patterns = [
-                't-shirt', 't shirt', 'tshirt', 'tank', 'tank top',
-                'polo shirt', 'polo', 'hoodie', 'sweatshirt', 'sweatpants',
-                'shorts', 'sneakers', 'athletic', 'sport', 'gym', 'basketball',
-                'flip flops', 'sandals', 'canvas', 'running shoes'
-            ]
-            
-            # Check if item contains forbidden patterns
-            for pattern in forbidden_patterns:
-                if pattern in item_name or pattern in item_type:
-                    return False
-            
-            # Allow business-appropriate basic items
-            business_appropriate_types = ['shirt', 'pants', 'shoes', 'blouse', 'skirt', 'dress', 'jacket', 'blazer']
-            if item_type in business_appropriate_types:
+        if item_type:
+            # Type-based filtering for obvious mismatches
+            if self._is_type_suitable_for_occasion(item_type, occasion_lower):
                 return True
-            
-            # Allow items with business keywords
-            business_patterns = [
-                'dress shirt', 'button up', 'button-up', 'oxford shirt',
-                'dress pants', 'slacks', 'trousers', 'dress skirt',
-                'blazer', 'suit jacket', 'sport coat', 'dress coat',
-                'dress shoes', 'oxford', 'loafers', 'heels', 'pumps'
-            ]
-            
-            # Allow if it's explicitly business-appropriate
-            for pattern in business_patterns:
-                if pattern in item_name or pattern in item_type:
-                    return True
-            
-            # Default: allow for business (let scoring handle preference)
-            return True
-        
-        # Casual occasion - more lenient
-        elif 'casual' in occasion_lower:
-            return True  # Most items are suitable for casual
-        
-        # Athletic occasion - RELIABLE TYPE-BASED FILTERING
-        elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            # ONLY use type-based filtering - don't rely on AI metadata
-            # Allow basic athletic-appropriate items
-            athletic_types = ['shirt', 'pants', 'shorts', 'shoes', 'sneakers', 'tank', 'hoodie', 'sweatshirt', 'jacket']
-            if item_type in athletic_types:
-                return True
-            
-            # Allow items with athletic keywords in name/type
-            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball', 'tennis', 'yoga', 'nike', 'adidas', 'puma', 'under armour']
-            if any(pattern in item_name or pattern in item_type for pattern in athletic_patterns):
-                return True
-            
-            # Reject obviously non-athletic items
-            formal_patterns = ['dress', 'suit', 'blazer', 'heels', 'oxford', 'loafers', 'tie', 'bow tie']
-            if any(pattern in item_name or pattern in item_type for pattern in formal_patterns):
+            elif self._is_type_unsuitable_for_occasion(item_type, occasion_lower):
                 return False
-            
-            # Default: allow for athletic (most items can work for athletic activities)
-            return True
         
-        # Default: allow most items
-        return True
+        # 4. Check brand (SECONDARY - reliable for athletic/formal brands)
+        item_brand = safe_item_access(item, 'brand', '').lower()
+        if item_brand:
+            if self._is_brand_suitable_for_occasion(item_brand, occasion_lower):
+                return True
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # TERTIARY FILTER: Use item names only as fallback helper (LAST RESORT)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        item_name = safe_item_access(item, 'name', '').lower()
+        if item_name:
+            # Only use name patterns for obvious mismatches when metadata is missing
+            if self._is_name_obviously_unsuitable(item_name, occasion_lower):
+                return False
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # DEFAULT: Allow items (let scoring system handle preferences)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        return True  # Conservative approach - allow items, let scoring decide
+    
+    def _is_type_suitable_for_occasion(self, item_type: str, occasion_lower: str) -> bool:
+        """Check if item type is suitable for occasion (SECONDARY filter)"""
+        if 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            athletic_types = ['shirt', 'pants', 'shorts', 'shoes', 'sneakers', 'tank', 'hoodie', 'sweatshirt', 'jacket']
+            return item_type in athletic_types
+        
+        elif 'business' in occasion_lower or 'formal' in occasion_lower:
+            business_types = ['shirt', 'pants', 'shoes', 'blouse', 'skirt', 'dress', 'jacket', 'blazer']
+            return item_type in business_types
+        
+        elif 'casual' in occasion_lower:
+            return True  # Most types work for casual
+        
+        return True  # Default: allow most types
+    
+    def _is_type_unsuitable_for_occasion(self, item_type: str, occasion_lower: str) -> bool:
+        """Check if item type is obviously unsuitable for occasion (SECONDARY filter)"""
+        if 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            formal_types = ['dress', 'suit', 'blazer', 'heels', 'oxford', 'loafers']
+            return item_type in formal_types
+        
+        elif 'business' in occasion_lower or 'formal' in occasion_lower:
+            casual_types = ['tank', 'shorts', 'flip flops', 'sandals']
+            return item_type in casual_types
+        
+        return False  # Default: don't reject based on type
+    
+    def _is_brand_suitable_for_occasion(self, item_brand: str, occasion_lower: str) -> bool:
+        """Check if brand is suitable for occasion (SECONDARY filter)"""
+        if 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            athletic_brands = ['nike', 'adidas', 'puma', 'under armour', 'reebok', 'new balance']
+            return any(brand in item_brand for brand in athletic_brands)
+        
+        elif 'business' in occasion_lower or 'formal' in occasion_lower:
+            formal_brands = ['brooks brothers', 'ralph lauren', 'hugo boss', 'calvin klein', 'tommy hilfiger']
+            return any(brand in item_brand for brand in formal_brands)
+        
+        return False  # Default: don't accept based on brand alone
+    
+    def _is_name_obviously_unsuitable(self, item_name: str, occasion_lower: str) -> bool:
+        """
+        Check if item name is obviously unsuitable for occasion (TERTIARY filter only).
+        This is the ONLY place where names are used for filtering, and only for obvious mismatches.
+        """
+        if 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            # Only reject if name explicitly contains formal terms
+            formal_terms = ['dress shoes', 'suit', 'blazer', 'heels', 'oxford', 'loafers', 'tie']
+            return any(term in item_name for term in formal_terms)
+        
+        elif 'business' in occasion_lower or 'formal' in occasion_lower:
+            # Only reject if name explicitly contains casual/athletic terms
+            casual_terms = ['tank top', 'flip flops', 'sweatpants', 'basketball shoes']
+            return any(term in item_name for term in casual_terms)
+        
+        return False  # Default: don't reject based on name
     
     async def _relax_occasion_filtering(self, items: List[Any], occasion: str) -> List[Any]:
         """Relax occasion filtering - allow more flexible occasion matching"""

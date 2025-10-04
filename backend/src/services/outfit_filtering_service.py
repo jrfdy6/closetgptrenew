@@ -346,32 +346,86 @@ class OutfitFilteringService:
         return filtered_items
     
     def _item_matches_style(self, item: ClothingItem, style: str) -> bool:
-        """Check if item matches the specified style."""
-        item_type = item.type.lower()
-        item_name = item.name.lower()
+        """
+        Check if item matches the specified style.
+        METADATA-FIRST FILTERING: Uses structured data as primary filter, names only as tertiary helper.
+        """
+        style_lower = style.lower()
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # PRIMARY FILTER: Use structured metadata (style[], type, brand)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # 1. Check style[] field from AI analysis (PRIMARY)
         item_styles = [s.lower() for s in getattr(item, 'style', [])]
+        if item_styles and style_lower in item_styles:
+            return True  # Item explicitly tagged for this style
         
-        # Define style keywords
-        style_keywords = {
-            'casual': ['t-shirt', 'jeans', 'sneakers', 'casual', 'comfortable'],
-            'formal': ['shirt', 'pants', 'dress', 'blazer', 'suit', 'formal', 'professional'],
-            'athletic': ['shirt', 'pants', 'shorts', 'sneakers', 'athletic', 'sports'],
-            'streetwear': ['hoodie', 'sneakers', 'jeans', 'street', 'urban'],
-            'vintage': ['vintage', 'retro', 'classic'],
-            'modern': ['modern', 'contemporary', 'trendy', 'fashion-forward']
-        }
-        
-        # Check if the style matches any of the item's style tags
-        if style in item_styles:
+        # 2. Check item type (SECONDARY - more reliable than names)
+        item_type = item.type.lower()
+        if self._is_type_suitable_for_style(item_type, style_lower):
             return True
         
-        # Check if the style keywords match the item type or name
-        if style in style_keywords:
-            return any(keyword in item_type or keyword in item_name 
-                      for keyword in style_keywords[style])
+        # 3. Check brand (SECONDARY - reliable for certain styles)
+        item_brand = getattr(item, 'brand', '').lower()
+        if item_brand and self._is_brand_suitable_for_style(item_brand, style_lower):
+            return True
         
-        # If style not recognized, include all items
-        return True
+        # ═══════════════════════════════════════════════════════════════════════
+        # TERTIARY FILTER: Use item names only as fallback helper (LAST RESORT)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        item_name = item.name.lower()
+        if self._is_name_obviously_unsuitable_for_style(item_name, style_lower):
+            return False
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # DEFAULT: Allow items (let scoring system handle preferences)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        return True  # Conservative approach - allow items, let scoring decide
+    
+    def _is_type_suitable_for_style(self, item_type: str, style_lower: str) -> bool:
+        """Check if item type is suitable for style (SECONDARY filter)"""
+        style_type_mappings = {
+            'casual': ['shirt', 'pants', 'shoes', 'jeans', 'sneakers', 'hoodie', 'sweatshirt'],
+            'formal': ['shirt', 'pants', 'shoes', 'dress', 'blazer', 'suit', 'heels', 'loafers'],
+            'athletic': ['shirt', 'pants', 'shorts', 'shoes', 'sneakers', 'tank', 'hoodie'],
+            'streetwear': ['hoodie', 'sneakers', 'jeans', 'shirt', 'pants'],
+            'vintage': ['shirt', 'pants', 'dress', 'shoes', 'jacket'],
+            'modern': ['shirt', 'pants', 'dress', 'shoes', 'jacket']
+        }
+        
+        suitable_types = style_type_mappings.get(style_lower, [])
+        return item_type in suitable_types
+    
+    def _is_brand_suitable_for_style(self, item_brand: str, style_lower: str) -> bool:
+        """Check if brand is suitable for style (SECONDARY filter)"""
+        style_brand_mappings = {
+            'athletic': ['nike', 'adidas', 'puma', 'under armour', 'reebok', 'new balance'],
+            'formal': ['brooks brothers', 'ralph lauren', 'hugo boss', 'calvin klein', 'tommy hilfiger'],
+            'streetwear': ['supreme', 'off-white', 'yeezy', 'nike', 'adidas'],
+            'vintage': ['levis', 'champion', 'nike', 'adidas'],
+            'modern': ['everlane', 'allbirds', 'reformation', 'outdoor voices']
+        }
+        
+        suitable_brands = style_brand_mappings.get(style_lower, [])
+        return any(brand in item_brand for brand in suitable_brands)
+    
+    def _is_name_obviously_unsuitable_for_style(self, item_name: str, style_lower: str) -> bool:
+        """
+        Check if item name is obviously unsuitable for style (TERTIARY filter only).
+        This is the ONLY place where names are used for filtering, and only for obvious mismatches.
+        """
+        unsuitable_terms = {
+            'athletic': ['dress shoes', 'suit', 'blazer', 'heels', 'oxford', 'loafers'],
+            'formal': ['tank top', 'flip flops', 'sweatpants', 'basketball shoes'],
+            'casual': ['tuxedo', 'evening gown', 'wedding dress'],
+            'streetwear': ['business suit', 'formal dress', 'dress shoes']
+        }
+        
+        terms_to_check = unsuitable_terms.get(style_lower, [])
+        return any(term in item_name for term in terms_to_check)
     
     def _filter_by_personal_preferences(self, items: List[ClothingItem], user_profile: UserProfile) -> List[ClothingItem]:
         """Filter items based on user preferences."""
