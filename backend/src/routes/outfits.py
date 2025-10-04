@@ -1383,7 +1383,11 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             print(f"🔎 MAIN LOGIC: Rule-based generation FAILED with exception: {rule_exception}")
             logger.error(f"🔎 MAIN LOGIC: Rule-based generation FAILED: {rule_exception}")
             raise rule_exception
-        logger.info(f"✨ Generated outfit: {outfit['name']}")
+        if outfit:
+            logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
+        else:
+            logger.error("❌ Generated outfit is None - this should not happen")
+            raise Exception("Outfit generation failed - outfit is None")
         # Outfit generated successfully
         
         # Check if outfit generation was successful
