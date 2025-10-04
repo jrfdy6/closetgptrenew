@@ -1036,26 +1036,26 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
             
             # Create generation context - ensure weather is properly formatted
-                weather_data = req.weather
-                if isinstance(weather_data, dict):
-                    # Convert dict to object-like structure for robust service
-                    from types import SimpleNamespace
-                    weather_data = SimpleNamespace(**weather_data)
-                    logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
-                
-                # WardrobePreprocessor integration
-                logger.info(f"🔧 Starting WardrobePreprocessor integration")
-                
-                # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
-                logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
-                try:
-                    from ..utils.item_hydration import hydrate_outfit_items
-                    hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                    logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
-                except Exception as hydrator_error:
-                    logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
-                    logger.info(f"🔄 Using original wardrobe_items as fallback")
-                    hydrated_wardrobe_items = wardrobe_items
+            weather_data = req.weather
+            if isinstance(weather_data, dict):
+                # Convert dict to object-like structure for robust service
+                from types import SimpleNamespace
+                weather_data = SimpleNamespace(**weather_data)
+                logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
+            
+            # WardrobePreprocessor integration
+            logger.info(f"🔧 Starting WardrobePreprocessor integration")
+            
+            # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
+            logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+            try:
+                from ..utils.item_hydration import hydrate_outfit_items
+                hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
+                logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+            except Exception as hydrator_error:
+                logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
+                logger.info(f"🔄 Using original wardrobe_items as fallback")
+                hydrated_wardrobe_items = wardrobe_items
                 
                 # Update wardrobe_items with hydrated items
                 wardrobe_items = hydrated_wardrobe_items
