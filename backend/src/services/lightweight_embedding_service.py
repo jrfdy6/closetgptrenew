@@ -221,7 +221,7 @@ class LightweightEmbeddingService:
             embedding = self._create_lightweight_embedding(outfit_text, "outfit")
             
             # Store embedding
-            outfit_id = (outfit.get('id', f"outfit_{int(time.time() if outfit else f"outfit_{int(time.time())}")
+            outfit_id = (outfit.get('id', f"outfit_{int(time.time())}") if outfit else f"outfit_{int(time.time())}")
             self.embeddings[outfit_id] = LightweightEmbedding(
                 id=outfit_id,
                 type=EmbeddingType.OUTFIT,

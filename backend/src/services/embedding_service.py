@@ -222,7 +222,7 @@ class EmbeddingService:
         """
         try:
             # Get user embedding
-            user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
+            user_embedding = user_embeddings.get(user_id) if user_embeddings else None
             if user_embedding is None:
                 logger.warning(f"No user embedding found for {user_id}")
                 return candidate_outfits[:top_k]

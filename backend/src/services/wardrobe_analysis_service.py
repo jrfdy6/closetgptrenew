@@ -202,7 +202,7 @@ class WardrobeAnalysisService:
                                     colors.append(Color(
                                         name=(color_data.get('name', 'Unknown') if color_data else 'Unknown'),
                                         hex=(color_data.get('hex', '#000000') if color_data else '#000000'),
-                                        rgb=(color_data.get('rgb', [0, 0, 0]) if color_data else 0])
+                                        rgb=(color_data.get('rgb', [0, 0, 0]) if color_data else [0, 0, 0])
                                     ))
                                 elif isinstance(color_data, str):
                                     colors.append(Color.from_string(color_data))
