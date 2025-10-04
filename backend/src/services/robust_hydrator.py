@@ -183,7 +183,18 @@ def hydrate_wardrobe_items(items: List[Dict[str, Any]]) -> List[ClothingItem]:
     patched_items = []
 
     for raw_item in items:
+        # Skip None items
+        if raw_item is None:
+            logger.warning(f"⚠️ Skipping None item in wardrobe")
+            continue
+            
         item_copy = deepcopy(raw_item)
+        
+        # Check if deepcopy returned None (shouldn't happen, but just in case)
+        if item_copy is None:
+            logger.warning(f"⚠️ deepcopy returned None for item, skipping")
+            continue
+            
         patched_fields = []
 
         # Patch core survival fields
