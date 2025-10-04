@@ -240,8 +240,8 @@ class OutfitValidationService:
         return {
             "is_valid": len(all_errors) == 0,
             "errors": all_errors,
-            "warnings": result["warnings"],
-            "details": result.get("details", {}),
+            "warnings": result["warnings"] if result else [],
+            "details": result.get("details", {}) if result else {},
             "filtered_items": filtered_items
         }
     
@@ -255,8 +255,8 @@ class OutfitValidationService:
         
         # Check each inappropriate combination rule
         for rule_name, rule in self.inappropriate_combinations.items():
-            keep_items = rule.get("keep_items", [])
-            remove_items = rule.get("remove_items", [])
+            keep_items = rule.get("keep_items", []) if rule else []
+            remove_items = rule.get("remove_items", []) if rule else []
             
             # Find items that should be kept (formal items)
             has_formal_items = False
@@ -460,8 +460,8 @@ class OutfitValidationService:
         if not items:
             return {"is_valid": False, "errors": ["No items selected"], "warnings": []}
         
-        min_items = target_counts.get("min_items", 3)
-        max_items = target_counts.get("max_items", 6)
+        min_items = target_counts.get("min_items", 3) if target_counts else 3
+        max_items = target_counts.get("max_items", 6) if target_counts else 6
         
         errors = []
         warnings = []
@@ -558,7 +558,7 @@ class OutfitValidationService:
             logger.info(f"✅ ENHANCED VALIDATION: Completed - Valid: {result['is_valid']}")
             logger.info(f"📊 ENHANCED VALIDATION: Filtered items: {len(result['filtered_items'])}")
             
-            if result.get('issues'):
+            if result and result.get('issues'):
                 logger.info("🔍 ENHANCED VALIDATION: Issues found:")
                 for issue in result['issues']:
                     logger.info(f"   - {issue}")
@@ -602,14 +602,14 @@ class OutfitValidationService:
         # Sort rules by priority (critical > high > normal) and frequency
         sorted_rules = sorted(self.enhanced_rules.items(), 
                              key=lambda x: (
-                                 x[1].get("priority") == "critical",  # Critical rules first
-                                 x[1].get("priority") == "high",      # Then high priority
-                                 x[1].get("frequency", 0)            # Then by frequency
+                                 x[1].get("priority") == "critical" if x[1] else False,  # Critical rules first
+                                 x[1].get("priority") == "high" if x[1] else False,      # Then high priority
+                                 x[1].get("frequency", 0) if x[1] else 0            # Then by frequency
                              ), 
                              reverse=True)
         
         for rule_name, rule in sorted_rules:
-            if rule.get("complex_rule"):
+            if rule and rule.get("complex_rule"):
                 if rule_name == "essential_categories_enforcement":
                     # Special handling for essential categories enforcement
                     filtered_items, rule_errors = self._apply_essential_categories_enforcement(filtered_items, rule, context)
