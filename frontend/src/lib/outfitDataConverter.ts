@@ -236,8 +236,8 @@ export function validateConvertedData(convertedData: any): boolean {
   }
   
   if (!convertedData.wardrobe.length) {
-    console.error('❌ Wardrobe is empty');
-    return false;
+    console.warn('⚠️ Wardrobe is empty - outfit generation may use fallback items');
+    // Allow empty wardrobe - let backend handle gracefully
   }
   
   console.log('✅ Converted data validation passed');

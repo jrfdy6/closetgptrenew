@@ -141,7 +141,9 @@ export class DataValidator {
     }
 
     if (wardrobe.length === 0) {
-      return { isValid: false, errors: ['Wardrobe cannot be empty'] };
+      console.warn('⚠️ Wardrobe is empty - outfit generation may use fallback items');
+      // Allow empty wardrobe - let backend handle gracefully
+      return { isValid: true, errors: [], sanitizedValue: [] };
     }
 
     if (wardrobe.length > 500) {
