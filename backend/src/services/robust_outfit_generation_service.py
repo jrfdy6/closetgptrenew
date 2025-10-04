@@ -27,63 +27,21 @@ src_dir = os.path.dirname(current_dir)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-# Import real services - try relative imports first, then absolute
+# Import real services - force real imports, no fallbacks
 try:
-    from ..custom_types.wardrobe import ClothingItem
+    from ..custom_types.wardrobe import ClothingItem, Metadata
     from ..custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
     from ..custom_types.weather import WeatherData
     from ..custom_types.profile import UserProfile
     from .robust_hydrator import ensure_items_safe_for_pydantic
-    print("✅ ROBUST SERVICE: Using relative imports")
+    print("✅ ROBUST SERVICE: Using real imports")
+    USING_REAL_CLASSES = True
 except (ImportError, ValueError) as e:
-    print(f"⚠️ Relative imports failed: {e}")
+    print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
     import traceback
-    print(f"⚠️ Relative import traceback: {traceback.format_exc()}")
-    try:
-        from custom_types.wardrobe import ClothingItem
-        from custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
-        from custom_types.weather import WeatherData
-        from custom_types.profile import UserProfile
-        from services.robust_hydrator import ensure_items_safe_for_pydantic
-        print("✅ ROBUST SERVICE: Using absolute imports")
-    except ImportError as e2:
-        print(f"⚠️ Absolute imports failed: {e2}")
-        print(f"⚠️ Absolute import traceback: {traceback.format_exc()}")
-        print("🔧 ROBUST SERVICE: Using fallback minimal classes")
-        
-        # Create minimal fallback classes to prevent total import failure
-        class ClothingItem:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        class OutfitGeneratedOutfit:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        class OutfitPiece:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        class WeatherData:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        class UserProfile:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        class Metadata:
-            def __init__(self, **kwargs):
-                for key, value in kwargs.items():
-                    setattr(self, key, value)
-
-        def ensure_items_safe_for_pydantic(items):
-            return items
+    print(f"❌ ROBUST SERVICE: Import traceback: {traceback.format_exc()}")
+    # NO FALLBACKS - force the import to work
+    raise ImportError(f"Robust service imports failed - no fallbacks allowed: {e}")
 
 class MockService:
     """Mock service with all required methods"""
