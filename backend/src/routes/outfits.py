@@ -1043,6 +1043,12 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # Initialize outfit variable to prevent "not defined" errors
             outfit = None
             
+            # DEBUG: Log wardrobe items at the very beginning
+            print(f"🔍 DEBUG ROBUST START: req.wardrobe = {req.wardrobe}")
+            print(f"🔍 DEBUG ROBUST START: req.wardrobe type = {type(req.wardrobe)}")
+            print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
+            print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
+            
             # Create generation context - ensure weather is properly formatted
             weather_data = req.weather
             if isinstance(weather_data, dict):
