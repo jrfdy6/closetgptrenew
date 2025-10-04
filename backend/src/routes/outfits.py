@@ -1387,7 +1387,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.info(f"✨ Generated outfit: {outfit.get('name', 'Unknown')}")
         else:
             logger.error("❌ Generated outfit is None - this should not happen")
-            raise Exception("Outfit generation failed - outfit is None")
+            raise Exception("🔥 OUTFIT NONE ERROR: Outfit generation failed - outfit is None")
         # Outfit generated successfully
         
         # Check if outfit generation was successful
