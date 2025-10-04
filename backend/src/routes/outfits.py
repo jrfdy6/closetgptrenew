@@ -865,16 +865,16 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                     temp_appropriateness = "good"
                     temp_note = f"suitable for {temp}°F cool weather"
                     
-            else:  # Cold weather
-                if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
-                    temp_appropriateness = "inappropriate"
-                    temp_note = f"inadequate for {temp}°F cold weather"
-                elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
-                    temp_appropriateness = "excellent"
-                    temp_note = f"ideal for {temp}°F cold weather"
-                else:
-                    temp_appropriateness = "good"
-                    temp_note = f"appropriate for {temp}°F cold weather"
+        else:  # Cold weather
+            if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
+                temp_appropriateness = "inappropriate"
+                temp_note = f"inadequate for {temp}°F cold weather"
+            elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
+                temp_appropriateness = "excellent"
+                temp_note = f"ideal for {temp}°F cold weather"
+            else:
+                temp_appropriateness = "good"
+                temp_note = f"appropriate for {temp}°F cold weather"
             
             # Fabric and condition analysis
             fabric_note = ""
