@@ -276,7 +276,7 @@ class RequestLogger:
             "status_code": response.status_code,
             "duration_ms": duration_ms,
             "timestamp": datetime.utcnow().isoformat(),
-            "user_agent": request.headers.get("user-agent", "") if headers else ""),
+            "user_agent": request.headers.get("user-agent", "") if request.headers else "",
             "ip_address": request.client.host if request.client else None
         }
         self.logger.info(
