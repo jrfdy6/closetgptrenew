@@ -5125,6 +5125,12 @@ async def generate_outfit(
     generation_attempts = 0
     max_attempts = 3
     
+    # DEBUG: Log request details at endpoint start
+    print(f"🔍 DEBUG ENDPOINT START: req = {req}")
+    print(f"🔍 DEBUG ENDPOINT START: req.wardrobe = {req.wardrobe}")
+    print(f"🔍 DEBUG ENDPOINT START: req.resolved_wardrobe = {req.resolved_wardrobe}")
+    print(f"🔍 DEBUG ENDPOINT START: current_user_id = {current_user_id}")
+    
     try:
         # Enhanced authentication validation
         if not current_user_id:
