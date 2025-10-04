@@ -172,9 +172,9 @@ class ValidationAnalyticsService:
         # Context failure patterns
         context_patterns = defaultdict(lambda: defaultdict(int))
         for log in self.failure_logs:
-            occasion = log.(context.get('occasion', 'unknown') if context else 'unknown')
-            style = log.(context.get('style', 'unknown') if context else 'unknown')
-            weather_temp = log.(context.get('temperature', 'unknown') if context else 'unknown')
+            occasion = context.get('occasion', 'unknown') if context else 'unknown'
+            style = context.get('style', 'unknown') if context else 'unknown'
+            weather_temp = context.get('temperature', 'unknown') if context else 'unknown'
             
             context_patterns['occasion'][occasion] += 1
             context_patterns['style'][style] += 1
