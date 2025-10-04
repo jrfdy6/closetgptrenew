@@ -101,7 +101,7 @@ export interface OutfitGenerationRequest {
 
 export class ExistingDataPersonalizationService {
   private static readonly API_BASE = '/api';
-  private static readonly ENDPOINT_PREFIX = '/api/outfits-existing-data';
+  private static readonly ENDPOINT_PREFIX = '/outfits-existing-data';
 
   // ===== AUTHENTICATION HELPERS =====
   private static async getAuthHeaders(user: User): Promise<HeadersInit> {
