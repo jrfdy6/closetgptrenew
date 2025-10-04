@@ -10,18 +10,18 @@ logger = logging.getLogger(__name__)
 
 try:
     # Try relative import first
-    from ..custom_types.wardrobe import ClothingItem
-    logger.info("✅ Using main ClothingItem model from custom_types.wardrobe")
+    from ..custom_types.wardrobe import ClothingItem, Metadata
+    logger.info("✅ Using main ClothingItem and Metadata models from custom_types.wardrobe")
     USING_FALLBACK_CLASSES = False
 except ImportError:
     try:
         # Try absolute import
-        from custom_types.wardrobe import ClothingItem
-        logger.info("✅ Using main ClothingItem model from custom_types.wardrobe (absolute)")
+        from custom_types.wardrobe import ClothingItem, Metadata
+        logger.info("✅ Using main ClothingItem and Metadata models from custom_types.wardrobe (absolute)")
         USING_FALLBACK_CLASSES = False
     except ImportError as e:
-        logger.error(f"❌ Failed to import main ClothingItem model: {e}")
-        logger.error("🔄 Falling back to local ClothingItem model")
+        logger.error(f"❌ Failed to import main ClothingItem and Metadata models: {e}")
+        logger.error("🔄 Falling back to local ClothingItem and Metadata models")
         USING_FALLBACK_CLASSES = True
     
     # Fallback to local model if import fails
