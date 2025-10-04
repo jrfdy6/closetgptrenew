@@ -153,7 +153,7 @@ ROUTERS = [
     ("src.routes.strategy_analytics", ""),           # Strategy analytics router - mounted at /api/strategy-analytics
     ("src.routes.diversity_analytics", ""),          # Diversity analytics router - mounted at /api/diversity-analytics
     ("src.routes.adaptive_tuning", ""),              # Adaptive tuning router - mounted at /api/adaptive-tuning
-    ("src.routes.outfits_with_embeddings", "/api/outfits-personalized"), # Embedding-based personalized outfit generation
+    # ("src.routes.outfits_with_embeddings", "/api/outfits-personalized"), # Embedding-based personalized outfit generation - TEMPORARILY DISABLED DUE TO SYNTAX ERRORS
     ("src.routes.lightweight_outfits", "/api/outfits-lightweight"), # Lightweight embeddings without external dependencies
     ("src.routes.validation_analytics", "/api/validation-analytics"), # Validation failure analytics and insights
     ("src.routes.generation_metrics", "/api/generation-metrics"), # Generation strategy metrics and monitoring
