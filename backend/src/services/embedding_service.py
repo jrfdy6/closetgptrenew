@@ -207,7 +207,7 @@ class EmbeddingService:
             
         except Exception as e:
             logger.error(f"❌ Failed to update user embedding: {e}")
-            return self.(user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
+            return user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
     
     async def get_personalized_recommendations(
         self, 

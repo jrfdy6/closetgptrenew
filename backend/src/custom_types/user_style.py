@@ -75,9 +75,9 @@ class UserStyleProfile(BaseModel):
             usage.last_worn = datetime.now()
         
         if outfit_id:
-            for other_item_id in self.(outfit_feedback.get(outfit_id, {}) if outfit_feedback else {}):
+            for other_item_id in (outfit_feedback.get(outfit_id, {}) if outfit_feedback else {}):
                 if other_item_id != item_id:
-                    usage.outfit_combinations[other_item_id] = usage.(outfit_combinations.get(other_item_id, 0) if outfit_combinations else 0) + 1
+                    usage.outfit_combinations[other_item_id] = (outfit_combinations.get(other_item_id, 0) if outfit_combinations else 0) + 1
     
     def update_style_preference(self, style: str, feedback: FeedbackType):
         """Update style preference based on feedback."""

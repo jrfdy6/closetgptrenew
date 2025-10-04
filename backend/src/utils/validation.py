@@ -314,9 +314,9 @@ def validate_outfit_requirements(outfit: ClothingItem) -> bool:
     has_mixed_bottoms = any(item.type == ClothingType.PANTS for item in outfit.items) and any(item.type == ClothingType.SHORTS for item in outfit.items)
 
     # Get style and season from metadata
-    style = outfit.(metadata.get('style', '') if metadata else '').lower() if outfit.metadata else ''
-    season = outfit.(metadata.get('season', '') if metadata else '').lower() if outfit.metadata else ''
-    occasion = outfit.(metadata.get('occasion', '') if metadata else '').lower() if outfit.metadata else ''
+    style = (metadata.get('style', '') if metadata else '').lower() if outfit.metadata else ''
+    season = (metadata.get('season', '') if metadata else '').lower() if outfit.metadata else ''
+    occasion = (metadata.get('occasion', '') if metadata else '').lower() if outfit.metadata else ''
     
     # Special handling for vacation outfits
     if occasion == 'vacation':
