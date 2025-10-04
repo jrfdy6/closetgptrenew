@@ -21,15 +21,13 @@ export async function GET(request: Request) {
     console.log('🔍 DEBUG: Authorization header value:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
     console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
     
-    // Temporarily bypass auth check to test functionality
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
-    
-    // if (!authHeader) {
-    //   return NextResponse.json(
-    //     { error: 'Authorization header required' },
-    //     { status: 401 }
-    //   );
-    // }
+    // Check for auth header
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
+    }
     
     // Get backend URL from environment variables
     const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app'; // Force correct backend URL
@@ -48,7 +46,7 @@ export async function GET(request: Request) {
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
-        'Authorization': 'Bearer test', // Use test token for development
+        'Authorization': authHeader || 'Bearer test', // Use real auth token if available
         'Content-Type': 'application/json',
       },
     });
