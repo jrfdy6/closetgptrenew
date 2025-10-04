@@ -1147,16 +1147,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     else:
                         print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
                     
-                print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
-                print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
-                print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
-                robust_outfit = await robust_service.generate_outfit(context)
-                logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
-                print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
-                print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
-                if robust_outfit is None:
-                    print(f"🚨 CRITICAL: robust_outfit is None!")
-                    raise Exception("Robust service returned None - this should not happen")
+                    print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
+                    print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
+                    print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
+                    robust_outfit = await robust_service.generate_outfit(context)
+                    logger.error(f"🚨 FORCE REDEPLOY v12.0: generate_outfit completed successfully")
+                    print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
+                    print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
+                    if robust_outfit is None:
+                        print(f"🚨 CRITICAL: robust_outfit is None!")
+                        raise Exception("Robust service returned None - this should not happen")
                     
                     # DEBUG: Collect robust generation result
                     debug_info["robust_output"] = {
