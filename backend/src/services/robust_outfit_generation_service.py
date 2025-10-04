@@ -335,6 +335,12 @@ class RobustOutfitGenerationService:
         # HYDRATION & CONTEXT VALIDATION
         # ═══════════════════════════════════════════════════════════════════════
         
+        # DEBUG: Log context details to identify NoneType issues
+        print(f"🔍 DEBUG ROBUST INTERNAL: context = {context}")
+        print(f"🔍 DEBUG ROBUST INTERNAL: context.wardrobe = {context.wardrobe}")
+        print(f"🔍 DEBUG ROBUST INTERNAL: context.user_profile = {context.user_profile}")
+        print(f"🔍 DEBUG ROBUST INTERNAL: context.weather = {context.weather}")
+        
         # Hydrate wardrobe items
         logger.debug(f"🔄 Hydrating {len(context.wardrobe)} wardrobe items")
         try:
@@ -346,6 +352,9 @@ class RobustOutfitGenerationService:
                 logger.debug(f"✅ Items already ClothingItem objects")
         except Exception as hydrator_error:
             logger.error(f"❌ Hydration failed: {hydrator_error}")
+            print(f"🚨 HYDRATION ERROR: {hydrator_error}")
+            import traceback
+            print(f"🚨 HYDRATION TRACEBACK: {traceback.format_exc()}")
         
         # DEBUG: Check context types after hydration
         logger.info(f"🔍 DEBUG: After hydration - user_profile type: {type(context.user_profile)}")
