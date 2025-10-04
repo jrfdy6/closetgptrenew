@@ -179,6 +179,11 @@ def safe_get(obj: Any, key: str, default: Any = None) -> Any:
         Value from object or default
     """
     try:
+        # Handle None objects
+        if obj is None:
+            logger.warning(f"⚠️ SAFE_GET: Object is None, cannot get '{key}', returning default: {default}")
+            return default
+        
         # Handle list objects (skip them)
         if isinstance(obj, list):
             logger.warning(f"⚠️ SAFE_GET: Object is a list, cannot get '{key}', returning default: {default}")
