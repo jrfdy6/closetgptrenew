@@ -420,6 +420,40 @@ class DiversityFilterService:
                 del self.item_usage_count[item_id]
         
         logger.info(f"🔄 Reset diversity tracking for user {user_id}")
+    
+    def get_diversity_suggestions(self, user_id: str, current_outfit: List[Dict[str, Any]], **kwargs) -> List[str]:
+        """
+        Get diversity suggestions for improving outfit variety.
+        Returns list of item IDs that could improve diversity.
+        """
+        try:
+            # Get recent outfit history
+            recent_outfits = self.outfit_history.get(user_id, [])
+            if not recent_outfits:
+                return []  # No history, no suggestions needed
+            
+            # Get current outfit item IDs
+            current_item_ids = [item.get('id', '') for item in current_outfit if item and item.get('id')]
+            
+            # Find items that haven't been used recently
+            recently_used_items = set()
+            for outfit in recent_outfits[-10:]:  # Check last 10 outfits
+                if outfit and 'items' in outfit:
+                    for item in outfit['items']:
+                        if item and 'id' in item:
+                            recently_used_items.add(item['id'])
+            
+            # Suggest items that haven't been used recently
+            suggestions = []
+            for item in current_outfit:
+                if item and item.get('id') and item['id'] not in recently_used_items:
+                    suggestions.append(item['id'])
+            
+            return suggestions[:3]  # Return max 3 suggestions
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Error getting diversity suggestions: {e}")
+            return []
 
 # Global instance
 diversity_filter = DiversityFilterService()
