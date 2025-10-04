@@ -62,7 +62,7 @@ class RateLimiter:
         """
         try:
             # Try to get Firebase UID from Authorization header
-            auth_header = request.(headers.get("Authorization") if headers else None)
+            auth_header = request.headers.get("Authorization") if headers else None)
             if auth_header and auth_header.startswith("Bearer "):
                 token = auth_header.split(" ")[1]
                 try:
@@ -94,11 +94,11 @@ class RateLimiter:
     def _get_client_ip(self, request: Request) -> str:
         """Extract client IP address from request."""
         # Check for forwarded headers (common with proxies)
-        forwarded_for = request.(headers.get("X-Forwarded-For") if headers else None)
+        forwarded_for = request.headers.get("X-Forwarded-For") if headers else None)
         if forwarded_for:
             return forwarded_for.split(",")[0].strip()
         
-        real_ip = request.(headers.get("X-Real-IP") if headers else None)
+        real_ip = request.headers.get("X-Real-IP") if headers else None)
         if real_ip:
             return real_ip
         
@@ -124,7 +124,7 @@ class RateLimiter:
     def is_admin_user(self, request: Request) -> bool:
         """Check if user has admin privileges."""
         try:
-            auth_header = request.(headers.get("Authorization") if headers else None)
+            auth_header = request.headers.get("Authorization") if headers else None)
             if auth_header and auth_header.startswith("Bearer "):
                 token = auth_header.split(" ")[1]
                 try:

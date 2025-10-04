@@ -98,7 +98,7 @@ class EnhancedFeedbackResponse(BaseModel):
 async def get_current_user(request: Request):
     """Extract user from Firebase token"""
     try:
-        auth_header = request.(headers.get("Authorization") if headers else None)
+        auth_header = request.headers.get("Authorization") if headers else None)
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
         

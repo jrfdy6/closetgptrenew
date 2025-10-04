@@ -238,7 +238,7 @@ class ErrorTracker:
         error_id = str(uuid.uuid4())
         error_type = type(error).__name__
         self.error_count += 1
-        self.error_types[error_type] = error_types.get(error_type, 0) if error_types else 0) + 1
+        self.error_types[error_type] = (self.error_types.get(error_type, 0) if self.error_types else 0) + 1
         error_data = {
             "error_id": error_id,
             "error_type": error_type,

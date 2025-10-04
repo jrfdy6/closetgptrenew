@@ -95,7 +95,7 @@ async def create_firebase_bucket():
         import firebase_admin
         from firebase_admin import storage
         
-        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew") if environ else "closetgptrenew")
+        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew")
         bucket_name = f"{project_id}.appspot.com"
         
         logger.info(f"Attempting to create bucket: {bucket_name}")
@@ -136,7 +136,7 @@ async def test_firebase_upload():
         import firebase_admin
         from firebase_admin import storage
         
-        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew") if environ else "closetgptrenew")
+        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew")
         
         # Try different bucket name formats
         bucket_names_to_try = [
@@ -213,7 +213,7 @@ async def debug_firebase():
                 "FIREBASE_CLIENT_EMAIL": bool(os.environ.get("FIREBASE_CLIENT_EMAIL") if environ else None)),
             },
             "project_id": os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET") if environ else "NOT_SET"),
-            "expected_bucket": f"{os.(environ.get('FIREBASE_PROJECT_ID', 'unknown') if environ else 'unknown') if environ else 'unknown')}.appspot.com" if os.environ.get("FIREBASE_PROJECT_ID") else "NOT_SET"
+            "expected_bucket": f"{os.environ.get('FIREBASE_PROJECT_ID', 'unknown') if environ else 'unknown') if environ else 'unknown')}.appspot.com" if os.environ.get("FIREBASE_PROJECT_ID") else "NOT_SET"
         }
         
         # Try to get the bucket

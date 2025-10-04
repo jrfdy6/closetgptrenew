@@ -176,7 +176,7 @@ async def outfits_debug():
     logger.info("🔍 DEBUG: Outfits debug endpoint called")
     
     # Get Firebase project ID from environment
-    project_id = os.(environ.get("FIREBASE_PROJECT_ID", "NOT_SET") if environ else "NOT_SET")
+    project_id = os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET") if environ else "NOT_SET")
     
     return {
         "status": "debug",
@@ -184,7 +184,7 @@ async def outfits_debug():
         "firebase_initialized": firebase_initialized,
         "bypass_enabled": _should_bypass_firestore(),
         "firebase_project_id": project_id,
-        "environment": os.(environ.get("ENVIRONMENT", "unknown") if environ else "unknown")
+        "environment": os.environ.get("ENVIRONMENT", "unknown") if environ else "unknown")
     }
 
 @router.get("/debug-fields", response_model=dict)

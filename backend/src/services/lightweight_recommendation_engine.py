@@ -299,7 +299,7 @@ class LightweightRecommendationEngine:
             return 0.0
         
         # Check if user has embedding
-        user_embedding = self.embedding_service.(user_embeddings.get(user_id) if user_embeddings else None)
+        user_embedding = user_embeddings.get(user_id) if user_embeddings else None
         if not user_embedding:
             return 0.0
         

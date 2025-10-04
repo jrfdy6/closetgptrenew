@@ -255,7 +255,7 @@ async def require_authentication(request: Request) -> dict:
         )
     
     # Get authorization header
-    auth_header = request.(headers.get("Authorization") if headers else None)
+    auth_header = request.headers.get("Authorization") if headers else None)
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -291,7 +291,7 @@ class SecurityMiddleware:
     async def validate_request(request: Request):
         """Validate incoming request for security issues."""
         # Check request size
-        content_length = request.(headers.get("content-length") if headers else None)
+        content_length = request.headers.get("content-length") if headers else None)
         if content_length and int(content_length) > SecurityConfig.MAX_FILE_SIZE:
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -309,7 +309,7 @@ class SecurityMiddleware:
                 logger.warning(f"Suspicious header detected: {header}", extra={
                     "extra_fields": {
                         "client_ip": request.client.host,
-                        "user_agent": request.(headers.get("user-agent") if headers else None),
+                        "user_agent": request.headers.get("user-agent") if headers else None),
                         "suspicious_header": header
                     }
                 })

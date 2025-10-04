@@ -63,7 +63,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "method": request.method,
                     "url": str(request.url),
                     "ip_address": request.client.host if request.client else None,
-                    "user_agent": request.(headers.get("user-agent") if headers else None),
+                    "user_agent": request.headers.get("user-agent") if headers else None),
                 }
             }
         )
