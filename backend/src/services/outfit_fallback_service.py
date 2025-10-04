@@ -771,7 +771,7 @@ class OutfitFallbackService:
         """
         try:
             # Get compatible styles
-            compatible_styles = self.(style_compatibility.get(target_style, [target_style]) if style_compatibility else [target_style])
+            compatible_styles = style_compatibility.get(target_style, [target_style]) if style_compatibility else [target_style])
             
             # Build style-based query
             query = self.wardrobe_collection.where('userId', '==', user_id)
@@ -1246,7 +1246,7 @@ class OutfitFallbackService:
         if not target_style or not item.style:
             return True
         
-        compatible_styles = self.(style_compatibility.get((target_style or '') if style_compatibility else None).lower(), [])
+        compatible_styles = style_compatibility.get((target_style or '') if style_compatibility else None).lower(), [])
         return any((style or '').lower() in compatible_styles for style in (item.style or []))
 
     def _check_body_type_compatibility(self, item: ClothingItem, body_type: str) -> bool:
@@ -1449,7 +1449,7 @@ class OutfitFallbackService:
 
     def _get_items_for_category(self, items: List[ClothingItem], category: str) -> List[ClothingItem]:
         """Get items that belong to a specific category."""
-        category_types = self.(category_mapping.get(category, []) if category_mapping else [])
+        category_types = category_mapping.get(category, []) if category_mapping else [])
         return [item for item in items if item.type in category_types]
 
     def _ensure_outfit_completeness(self, selected_items: List[ClothingItem], all_items: List[ClothingItem], context: Dict[str, Any], healing_context: DynamicHealingContext) -> List[ClothingItem]:
@@ -1505,7 +1505,7 @@ class OutfitFallbackService:
                 return []
             
             # Get category types
-            category_types = self.(category_mapping.get(category, []) if category_mapping else [])
+            category_types = category_mapping.get(category, []) if category_mapping else [])
             
             # Query Firestore for alternatives
             alternatives = []

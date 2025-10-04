@@ -244,11 +244,11 @@ class DynamicHealingContext:
     def get_excluded_materials_for_temperature(self, temperature: float) -> Set[str]:
         """Get materials that should be excluded for a given temperature."""
         temp_key = f"{temperature//10*10}-{(temperature//10*10)+10}"
-        return self.(weather_learning.get(temp_key, set() if weather_learning else set())
+        return weather_learning.get(temp_key, set() if weather_learning else set())
     
     def get_excluded_styles_for_style(self, target_style: str) -> Set[str]:
         """Get styles that should be excluded for a given target style."""
-        return self.(style_learning.get(target_style, set() if style_learning else set())
+        return style_learning.get(target_style, set() if style_learning else set())
     
     def _extract_learning_from_item_removal(self, item_id: str, reason: str, item_data: Dict[str, Any]):
         """Extract learning patterns from item removal."""

@@ -129,7 +129,7 @@ class BodyTypeOptimizationService:
         logger.info(f"🎯 Optimizing outfit for {body_type.value} body type")
         
         # Get body type rules
-        rules = self.(flattering_rules.get(body_type, {}) if flattering_rules else {})
+        rules = flattering_rules.get(body_type, {}) if flattering_rules else {})
         if not rules:
             logger.warning(f"No rules found for body type: {body_type}")
             return items
@@ -408,7 +408,7 @@ class BodyTypeOptimizationService:
 
     def get_body_type_recommendations(self, body_type: BodyType) -> Dict[str, Any]:
         """Get specific recommendations for a body type."""
-        rules = self.(flattering_rules.get(body_type, {}) if flattering_rules else {})
+        rules = flattering_rules.get(body_type, {}) if flattering_rules else {})
         
         return {
             "body_type": body_type.value,

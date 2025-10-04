@@ -1212,7 +1212,7 @@ class EnhancedOutfitValidator:
         if occasion not in self.occasion_rules and normalized_occasion not in self.occasion_rules:
             return filtered_items, issues
         
-        rule = self.((occasion_rules.get(occasion) if occasion_rules else None) if occasion_rules else None) or self.occasion_rules.get(normalized_occasion)
+        rule = (occasion_rules.get(occasion) if occasion_rules else None) if occasion_rules else None) or self.occasion_rules.get(normalized_occasion)
         forbidden_items = (rule.get('forbidden_items', []) if rule else [])
         required_items = (rule.get('required_items', []) if rule else [])
         preferred_shoes = (rule.get('preferred_shoes', []) if rule else [])

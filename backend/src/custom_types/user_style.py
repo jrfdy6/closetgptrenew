@@ -122,7 +122,7 @@ class UserStyleProfile(BaseModel):
         
         # Seasonal preferences
         current_season = self._get_current_season()
-        seasonal_prefs = self.(seasonal_preferences.get(current_season, {}) if seasonal_preferences else {})
+        seasonal_prefs = seasonal_preferences.get(current_season, {}) if seasonal_preferences else {}
         
         return {
             "most_worn_items": [item.item_id for item in most_worn],

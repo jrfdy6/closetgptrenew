@@ -567,7 +567,7 @@ class CohesiveOutfitCompositionService:
             return 0.0
         
         formality_scores = [self._get_item_formality_score(piece) for piece in pieces]
-        target_formality = self.(style_formality_levels.get(target_style.lower() if style_formality_levels else None), 2.5)
+        target_formality = style_formality_levels.get(target_style.lower() if style_formality_levels else None), 2.5)
         
         # Calculate deviation from target formality
         deviations = [abs(score - target_formality) for score in formality_scores]

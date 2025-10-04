@@ -285,7 +285,7 @@ class LightweightEmbeddingService:
         """Update user embedding based on interaction"""
         try:
             # Get current user embedding
-            current_embedding = self.(user_embeddings.get(user_id, [0.0] * self.embedding_dimension) if user_embeddings else [0.0] * self.embedding_dimension)
+            current_embedding = user_embeddings.get(user_id, [0.0] * self.embedding_dimension) if user_embeddings else [0.0] * self.embedding_dimension
             
             # Get item/outfit embedding
             if interaction.item_id and interaction.item_id in self.embeddings:
@@ -324,7 +324,7 @@ class LightweightEmbeddingService:
             
         except Exception as e:
             logger.error(f"❌ Failed to update user embedding: {e}")
-            return self.(user_embeddings.get(user_id, [0.0] * self.embedding_dimension) if user_embeddings else [0.0] * self.embedding_dimension)
+            return user_embeddings.get(user_id, [0.0] * self.embedding_dimension) if user_embeddings else [0.0] * self.embedding_dimension
     
     async def get_personalized_recommendations(
         self, 
@@ -335,7 +335,7 @@ class LightweightEmbeddingService:
         """Get personalized outfit recommendations based on cosine similarity"""
         try:
             # Get user embedding
-            user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
+            user_embedding = user_embeddings.get(user_id) if user_embeddings else None
             if not user_embedding:
                 logger.warning(f"No user embedding found for {user_id}")
                 return candidate_outfits[:top_k]
@@ -492,7 +492,7 @@ class LightweightEmbeddingService:
     
     def get_user_embedding_stats(self, user_id: str) -> Dict[str, Any]:
         """Get statistics about user's embedding and interactions"""
-        user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
+        user_embedding = user_embeddings.get(user_id) if user_embeddings else None
         user_interactions = [i for i in self.user_interactions if i.user_id == user_id]
         
         return {

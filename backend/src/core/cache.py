@@ -177,7 +177,7 @@ class CacheManager:
     
     def get_cache(self, name: str) -> InMemoryCache:
         """Get a cache instance by name."""
-        return self.(caches.get(name) if caches else None)
+        return caches.get(name) if caches else None)
     
     def get(self, cache_name: str, key: str) -> Optional[Any]:
         """Get a value from a specific cache."""
