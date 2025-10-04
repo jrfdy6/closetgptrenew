@@ -121,6 +121,8 @@ def _is_semantically_appropriate(outfit_items, required_item, occasion):
 
 def safe_get_metadata(obj: Dict[str, Any], key: str, default=None):
     """Safely get a value from metadata, handling None metadata."""
+    if obj is None:
+        return default
     metadata = obj.get("metadata") or {}
     return metadata.get(key, default)
 
