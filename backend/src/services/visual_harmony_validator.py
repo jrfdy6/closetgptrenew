@@ -687,7 +687,7 @@ class VisualHarmonyValidator:
     
     async def _analyze_style_coherence(self, items: List[Dict[str, Any]], style: str, occasion: str) -> Dict[str, Any]:
         """Analyze style coherence"""
-        style_rules = style_harmony_rules.get(style.lower() if style_harmony_rules else None), {})
+        style_rules = style_harmony_rules.get(style.lower() if style_harmony_rules else None, {})
         
         if not style_rules:
             return {
