@@ -173,7 +173,7 @@ class EmbeddingService:
         """
         try:
             # Get current user embedding
-            current_embedding = self.(user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
+            current_embedding = user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
             
             # Get item/outfit embedding
             if interaction.item_id:

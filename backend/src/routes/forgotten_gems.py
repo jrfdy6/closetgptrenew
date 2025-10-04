@@ -171,7 +171,7 @@ async def get_forgotten_gems(
 
             fi = ForgottenItem(
                 id=(it.get('id', '') if it else ''),
-                name=((it.get('name', f"{it.get('type', 'Item') if it else 'Item') if it else 'Item').title()}"),
+                name=((it.get('name', f"{it.get('type', 'Item') if it else 'Item'}") if it else 'Item').title()),
                 type=(it.get('type', 'unknown') if it else 'unknown'),
                 imageUrl=(it.get('imageUrl', '/placeholder.svg') if it else '/placeholder.svg'),
                 color=(it.get('color', 'unknown') if it else 'unknown'),
