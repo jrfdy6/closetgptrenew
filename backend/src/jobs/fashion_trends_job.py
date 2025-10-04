@@ -26,7 +26,7 @@ async def fetch_fashion_trends_job():
         elif result["status"] == "skipped":
             logger.info(f"⏭️ Trends fetch skipped: {result['reason']}")
         else:
-            logger.error(f"❌ Trends fetch failed: {result.get('error', 'Unknown error')}")
+            logger.error(f"❌ Trends fetch failed: {(result.get('error', 'Unknown error') if result else 'Unknown error')}")
             
     except Exception as e:
         logger.error(f"❌ Error in fashion trends job: {str(e)}")

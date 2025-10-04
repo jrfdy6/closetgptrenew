@@ -177,7 +177,7 @@ class CacheManager:
     
     def get_cache(self, name: str) -> InMemoryCache:
         """Get a cache instance by name."""
-        return self.caches.get(name)
+        return self.(caches.get(name) if caches else None)
     
     def get(self, cache_name: str, key: str) -> Optional[Any]:
         """Get a value from a specific cache."""
@@ -242,7 +242,7 @@ def cached(cache_name: str, ttl: Optional[int] = None, key_prefix: str = ""):
             cache_key = f"{key_prefix}:{func.__name__}:{hash(str(args) + str(sorted(kwargs.items())))}"
             
             # Try to get from cache
-            cached_result = cache_manager.get(cache_name, cache_key)
+            cached_result = (cache_manager.get(cache_name, cache_key) if cache_manager else cache_key)
             if cached_result is not None:
                 logger.debug(f"Cache hit for {func.__name__}", extra={
                     "extra_fields": {
@@ -274,7 +274,7 @@ def cached(cache_name: str, ttl: Optional[int] = None, key_prefix: str = ""):
             cache_key = f"{key_prefix}:{func.__name__}:{hash(str(args) + str(sorted(kwargs.items())))}"
             
             # Try to get from cache
-            cached_result = cache_manager.get(cache_name, cache_key)
+            cached_result = (cache_manager.get(cache_name, cache_key) if cache_manager else cache_key)
             if cached_result is not None:
                 logger.debug(f"Cache hit for async {func.__name__}", extra={
                     "extra_fields": {

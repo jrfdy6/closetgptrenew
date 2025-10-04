@@ -134,7 +134,7 @@ def validate_outfit_against_style(outfit_items: List[ClothingItem], target_style
     }
     
     # Get the style rules
-    style_rules = VISUAL_HARMONY_RULES.get(target_style.lower())
+    style_rules = (VISUAL_HARMONY_RULES.get(target_style.lower() if VISUAL_HARMONY_RULES else None))
     if not style_rules:
         validation["is_compliant"] = False
         validation["style_violations"].append(f"Style '{target_style}' not found in visual harmony rules")
@@ -162,7 +162,7 @@ def validate_outfit_against_style(outfit_items: List[ClothingItem], target_style
             # Check tags
             tag_similarities = [
                 calculate_similarity(required_element.lower(), tag.lower())
-                for tag in (item.metadata.get('tags', []) if item.metadata else [])
+                for tag in (item.(metadata.get('tags', []) if metadata else []) if item.metadata else [])
             ]
             tag_similarity = max(tag_similarities) if tag_similarities else 0.0
             
@@ -202,7 +202,7 @@ def validate_outfit_against_style(outfit_items: List[ClothingItem], target_style
             # Check tags
             tag_similarities = [
                 calculate_similarity(forbidden_element.lower(), tag.lower())
-                for tag in (item.metadata.get('tags', []) if item.metadata else [])
+                for tag in (item.(metadata.get('tags', []) if metadata else []) if item.metadata else [])
             ]
             tag_similarity = max(tag_similarities) if tag_similarities else 0.0
             

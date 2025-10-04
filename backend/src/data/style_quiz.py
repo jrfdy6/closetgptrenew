@@ -233,19 +233,19 @@ def calculate_quiz_results(answers: List[Dict[str, Any]]) -> Dict[str, Any]:
             # Update scores based on question category
             if question.category == "aesthetic":
                 for style, score in selected_option["scores"].items():
-                    aesthetic_scores[style] = aesthetic_scores.get(style, 0) + score * question.weight
+                    aesthetic_scores[style] = (aesthetic_scores.get(style, 0) if aesthetic_scores else 0) + score * question.weight
             
             elif question.category == "color":
                 for season, score in selected_option["scores"].items():
-                    color_scores[season] = color_scores.get(season, 0) + score * question.weight
+                    color_scores[season] = (color_scores.get(season, 0) if color_scores else 0) + score * question.weight
             
             elif question.category == "fit":
                 for body_type, score in selected_option["scores"].items():
-                    body_type_scores[body_type] = body_type_scores.get(body_type, 0) + score * question.weight
+                    body_type_scores[body_type] = (body_type_scores.get(body_type, 0) if body_type_scores else 0) + score * question.weight
             
             elif question.category == "style":
                 for style, score in selected_option["scores"].items():
-                    style_scores[style] = style_scores.get(style, 0) + score * question.weight
+                    style_scores[style] = (style_scores.get(style, 0) if style_scores else 0) + score * question.weight
         except (StopIteration, KeyError) as e:
             logging.error(f"Error processing answer: {answer}, Error: {str(e)}")
             continue

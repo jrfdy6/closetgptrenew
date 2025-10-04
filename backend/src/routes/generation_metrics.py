@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.get("/metrics/overview")
+@(router.get("/metrics/overview") if router else None)
 async def get_metrics_overview():
     """Get overview of generation metrics."""
     try:
@@ -27,7 +27,7 @@ async def get_metrics_overview():
         logger.error(f"Error getting metrics overview: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/metrics/breakdown")
+@(router.get("/metrics/breakdown") if router else None)
 async def get_metrics_breakdown():
     """Get detailed breakdown of strategy usage patterns."""
     try:
@@ -41,7 +41,7 @@ async def get_metrics_breakdown():
         logger.error(f"Error getting metrics breakdown: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/metrics/fallback-analysis")
+@(router.get("/metrics/fallback-analysis") if router else None)
 async def get_fallback_analysis():
     """Get analysis of fallback patterns and reasons."""
     try:
@@ -55,7 +55,7 @@ async def get_fallback_analysis():
         logger.error(f"Error getting fallback analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/metrics/hourly")
+@(router.get("/metrics/hourly") if router else None)
 async def get_hourly_metrics(hours: int = 24):
     """Get hourly metrics for the last N hours."""
     try:
@@ -73,7 +73,7 @@ async def get_hourly_metrics(hours: int = 24):
         logger.error(f"Error getting hourly metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/metrics/prometheus")
+@(router.get("/metrics/prometheus") if router else None)
 async def get_prometheus_metrics():
     """Get metrics in Prometheus format."""
     try:
@@ -114,7 +114,7 @@ async def get_prometheus_metrics():
         logger.error(f"Error getting Prometheus metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/metrics/health")
+@(router.get("/metrics/health") if router else None)
 async def get_metrics_health():
     """Health check for metrics service."""
     try:

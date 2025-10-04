@@ -1060,41 +1060,41 @@ class EnhancedOutfitValidator:
         """Pre-validation filtering to remove obviously inappropriate items"""
         filtered_items = []
         issues = []
-        occasion = context.get('occasion', '').lower()
+        occasion = (context.get('occasion', '') if context else '').lower()
         
         logger.info(f"🔍 PRE-VALIDATION: Starting with {len(items)} items for occasion: {occasion}")
         
         for i, item in enumerate(items):
-            item_name = item.get('name', '').lower()
-            item_type = item.get('type', '').lower()
-            item_id = item.get('id', f'item_{i}')
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            item_id = (item.get('id', f'item_{i}') if item else f'item_{i}')
             
             # PHASE A: Lightweight schema validation - only check for critical missing fields
             missing_critical_fields = []
             
             # Check for critical missing fields
-            if not item.get('name'):
+            if not (item.get('name') if item else None):
                 missing_critical_fields.append('name')
-            if not item.get('type'):
+            if not (item.get('type') if item else None):
                 missing_critical_fields.append('type')
-            if not item.get('color'):
+            if not (item.get('color') if item else None):
                 missing_critical_fields.append('color')
             
             if missing_critical_fields:
                 logger.warning(f"❌ REJECTED: {item_id} → missing critical fields: {missing_critical_fields}")
-                issues.append(f"Removed {item.get('name', 'Unknown')} - missing critical fields: {missing_critical_fields}")
+                issues.append(f"Removed {(item.get('name', 'Unknown') if item else 'Unknown')} - missing critical fields: {missing_critical_fields}")
                 continue
             
             # PHASE A: Use defaults for missing metadata instead of rejecting
-            if not item.get('season'):
+            if not (item.get('season') if item else None):
                 item['season'] = ['all_season']
                 logger.debug(f"🔧 DEFAULTED: {item_id} → missing season, set to 'all_season'")
             
-            if not item.get('style'):
+            if not (item.get('style') if item else None):
                 item['style'] = ['casual']
                 logger.debug(f"🔧 DEFAULTED: {item_id} → missing style, set to 'casual'")
             
-            if not item.get('occasion'):
+            if not (item.get('occasion') if item else None):
                 item['occasion'] = ['casual']
                 logger.debug(f"🔧 DEFAULTED: {item_id} → missing occasion, set to 'casual'")
             
@@ -1122,7 +1122,7 @@ class EnhancedOutfitValidator:
             
             if rejected_reason:
                 logger.warning(f"❌ REJECTED: {item_id} → {rejected_reason}")
-                issues.append(f"Removed {item.get('name', 'Unknown')} - {rejected_reason}")
+                issues.append(f"Removed {(item.get('name', 'Unknown') if item else 'Unknown')} - {rejected_reason}")
                 continue
             
             # Item passed pre-validation
@@ -1147,13 +1147,13 @@ class EnhancedOutfitValidator:
         """Check for inappropriate combinations using comprehensive rules"""
         filtered_items = items.copy()
         issues = []
-        occasion = context.get('occasion', '').lower()
+        occasion = (context.get('occasion', '') if context else '').lower()
         
         for rule_name, rule in self.inappropriate_combinations.items():
-            severity = rule.get('severity', ValidationSeverity.MEDIUM)
-            trigger_items = rule.get('trigger_items', [])
-            trigger_occasions = rule.get('trigger_occasions', [])
-            required_with = rule.get('required_with', [])
+            severity = (rule.get('severity', ValidationSeverity.MEDIUM) if rule else ValidationSeverity.MEDIUM)
+            trigger_items = (rule.get('trigger_items', []) if rule else [])
+            trigger_occasions = (rule.get('trigger_occasions', []) if rule else [])
+            required_with = (rule.get('required_with', []) if rule else [])
             
             # Check if rule applies to current occasion
             if trigger_occasions and occasion not in trigger_occasions:
@@ -1164,8 +1164,8 @@ class EnhancedOutfitValidator:
             has_required_with_items = False
             
             for item in filtered_items:
-                item_name = item.get('name', '').lower()
-                item_type = item.get('type', '').lower()
+                item_name = (item.get('name', '') if item else '').lower()
+                item_type = (item.get('type', '') if item else '').lower()
                 
                 # Check for trigger items
                 if any(trigger in item_name or trigger in item_type for trigger in trigger_items):
@@ -1180,12 +1180,12 @@ class EnhancedOutfitValidator:
                 items_to_remove = []
                 
                 for item in filtered_items:
-                    item_name = item.get('name', '').lower()
-                    item_type = item.get('type', '').lower()
+                    item_name = (item.get('name', '') if item else '').lower()
+                    item_type = (item.get('type', '') if item else '').lower()
                     
                     if any(trigger in item_name or trigger in item_type for trigger in trigger_items):
                         items_to_remove.append(item)
-                        issues.append(f"Removed {item.get('name', 'Unknown')} - {rule['reason']}")
+                        issues.append(f"Removed {(item.get('name', 'Unknown') if item else 'Unknown')} - {rule['reason']}")
                         self.validation_stats["inappropriate_combinations_prevented"] += 1
                 
                 # Remove inappropriate items
@@ -1203,7 +1203,7 @@ class EnhancedOutfitValidator:
         """Validate occasion-specific requirements"""
         filtered_items = items.copy()
         issues = []
-        occasion = context.get('occasion', '').lower()
+        occasion = (context.get('occasion', '') if context else '').lower()
         
         # Handle occasion variations (e.g., "Business Formal" -> "business_formal")
         normalized_occasion = occasion.replace(' ', '_').replace('-', '_')
@@ -1212,21 +1212,21 @@ class EnhancedOutfitValidator:
         if occasion not in self.occasion_rules and normalized_occasion not in self.occasion_rules:
             return filtered_items, issues
         
-        rule = self.occasion_rules.get(occasion) or self.occasion_rules.get(normalized_occasion)
-        forbidden_items = rule.get('forbidden_items', [])
-        required_items = rule.get('required_items', [])
-        preferred_shoes = rule.get('preferred_shoes', [])
-        min_formality = rule.get('min_formality', FormalityLevel.CASUAL)
+        rule = self.((occasion_rules.get(occasion) if occasion_rules else None) if occasion_rules else None) or self.occasion_rules.get(normalized_occasion)
+        forbidden_items = (rule.get('forbidden_items', []) if rule else [])
+        required_items = (rule.get('required_items', []) if rule else [])
+        preferred_shoes = (rule.get('preferred_shoes', []) if rule else [])
+        min_formality = (rule.get('min_formality', FormalityLevel.CASUAL) if rule else FormalityLevel.CASUAL)
         
         # Remove forbidden items
         items_to_remove = []
         for item in filtered_items:
-            item_name = item.get('name', '').lower()
-            item_type = item.get('type', '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
             
             if any(forbidden in item_name or forbidden in item_type for forbidden in forbidden_items):
                 items_to_remove.append(item)
-                issues.append(f"Removed {item.get('name', 'Unknown')} - forbidden for {occasion}")
+                issues.append(f"Removed {(item.get('name', 'Unknown') if item else 'Unknown')} - forbidden for {occasion}")
         
         for item in items_to_remove:
             if item in filtered_items:
@@ -1235,8 +1235,8 @@ class EnhancedOutfitValidator:
         # Check for required items (warnings, not removals)
         has_required_items = False
         for item in filtered_items:
-            item_name = item.get('name', '').lower()
-            item_type = item.get('type', '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
             
             if any(required in item_name or required in item_type for required in required_items):
                 has_required_items = True
@@ -1251,7 +1251,7 @@ class EnhancedOutfitValidator:
             for shoe in shoe_items:
                 shoe_name = shoe.get('name', '').lower()
                 if not any(preferred in shoe_name for preferred in preferred_shoes):
-                    issues.append(f"Warning: {shoe.get('name', 'Unknown')} may not be ideal for {occasion}")
+                    issues.append(f"Warning: {(shoe.get('name', 'Unknown') if shoe else 'Unknown')} may not be ideal for {occasion}")
         
         return filtered_items, issues
     
@@ -1269,8 +1269,8 @@ class EnhancedOutfitValidator:
         # Determine formality levels for each item
         item_formalities = []
         for item in items:
-            item_name = item.get('name', '').lower()
-            item_type = item.get('type', '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
             
             formality = FormalityLevel.CASUAL  # default
             for keyword, level in self.formality_mapping.items():
@@ -1313,8 +1313,8 @@ class EnhancedOutfitValidator:
             )
         
         try:
-            style = context.get('style', 'casual')
-            occasion = context.get('occasion', 'casual')
+            style = (context.get('style', 'casual') if context else 'casual')
+            occasion = (context.get('occasion', 'casual') if context else 'casual')
             
             # Use the visual harmony validator
             harmony_result = await self.visual_harmony_validator.validate_visual_harmony(
@@ -1363,11 +1363,11 @@ class EnhancedOutfitValidator:
             base_score -= 20.0
         
         # Bonus for occasion appropriateness
-        occasion = context.get('occasion', '').lower()
+        occasion = (context.get('occasion', '') if context else '').lower()
         if occasion in ['business', 'interview', 'formal']:
             # Check if we have appropriate items for formal occasions
             has_formal_items = any(
-                any(keyword in item.get('name', '').lower() or keyword in item.get('type', '').lower() 
+                any(keyword in ((item.get('name', '') if item else '') if item else '').lower() or keyword in item.get('type', '').lower() 
                     for keyword in ['dress', 'formal', 'business', 'blazer'])
                 for item in items
             )
@@ -1401,7 +1401,7 @@ class EnhancedOutfitValidator:
     def _generate_suggestions(self, issues: List[str], context: Dict[str, Any]) -> List[str]:
         """Generate helpful suggestions based on issues"""
         suggestions = []
-        occasion = context.get('occasion', '').lower()
+        occasion = (context.get('occasion', '') if context else '').lower()
         
         if not issues:
             suggestions.append("Outfit looks great! All validation checks passed.")
@@ -1431,24 +1431,24 @@ class EnhancedOutfitValidator:
     async def _validate_style_specific(self, items: List[Dict[str, Any]], context: Dict[str, Any]) -> List[str]:
         """Validate items against style-specific rules"""
         issues = []
-        style = context.get('style', '').lower()
+        style = (context.get('style', '') if context else '').lower()
         
         if not style or style not in self.style_rules:
             return issues
         
         rule = self.style_rules[style]
-        forbidden_items = rule.get('forbidden_items', [])
-        preferred_items = rule.get('preferred_items', [])
-        color_palette = rule.get('color_palette', [])
-        texture_preference = rule.get('texture_preference', [])
+        forbidden_items = (rule.get('forbidden_items', []) if rule else [])
+        preferred_items = (rule.get('preferred_items', []) if rule else [])
+        color_palette = (rule.get('color_palette', []) if rule else [])
+        texture_preference = (rule.get('texture_preference', []) if rule else [])
         
         logger.info(f"🎨 Style validation for '{style}': Checking {len(items)} items")
         
         # Check for forbidden items
         for item in items:
-            item_name = item.get('name', '').lower()
-            item_type = item.get('type', '').lower()
-            item_color = item.get('color', '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            item_color = (item.get('color', '') if item else '').lower()
             
             # Check forbidden items
             for forbidden in forbidden_items:
@@ -1464,7 +1464,7 @@ class EnhancedOutfitValidator:
         
         # Check if we have preferred items
         has_preferred = any(
-            any(preferred.lower() in item.get('name', '').lower() or preferred.lower() in item.get('type', '').lower() 
+            any(preferred.lower() in ((item.get('name', '') if item else '') if item else '').lower() or preferred.lower() in item.get('type', '').lower() 
                 for preferred in preferred_items)
             for item in items
         )
@@ -1478,25 +1478,25 @@ class EnhancedOutfitValidator:
     async def _validate_mood_specific(self, items: List[Dict[str, Any]], context: Dict[str, Any]) -> List[str]:
         """Validate items against mood-specific rules"""
         issues = []
-        mood = context.get('mood', '').lower()
+        mood = (context.get('mood', '') if context else '').lower()
         
         if not mood or mood not in self.mood_rules:
             return issues
         
         rule = self.mood_rules[mood]
-        forbidden_items = rule.get('forbidden_items', [])
-        preferred_items = rule.get('preferred_items', [])
-        color_preference = rule.get('color_preference', [])
-        style_preference = rule.get('style_preference', [])
-        formality_tendency = rule.get('formality_tendency', 'neutral')
+        forbidden_items = (rule.get('forbidden_items', []) if rule else [])
+        preferred_items = (rule.get('preferred_items', []) if rule else [])
+        color_preference = (rule.get('color_preference', []) if rule else [])
+        style_preference = (rule.get('style_preference', []) if rule else [])
+        formality_tendency = (rule.get('formality_tendency', 'neutral') if rule else 'neutral')
         
         logger.info(f"💭 Mood validation for '{mood}': Checking {len(items)} items")
         
         # Check for forbidden items based on mood
         for item in items:
-            item_name = item.get('name', '').lower()
-            item_type = item.get('type', '').lower()
-            item_color = item.get('color', '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            item_color = (item.get('color', '') if item else '').lower()
             
             # Check forbidden items
             for forbidden in forbidden_items:
@@ -1508,7 +1508,7 @@ class EnhancedOutfitValidator:
         if color_preference:
             color_matches = 0
             for item in items:
-                item_color = item.get('color', '').lower()
+                item_color = (item.get('color', '') if item else '').lower()
                 if any(color.lower() in item_color for color in color_preference):
                     color_matches += 1
             
@@ -1519,7 +1519,7 @@ class EnhancedOutfitValidator:
         if formality_tendency == 'elevated':
             casual_items = ['sneakers', 'jeans', 't-shirt', 'hoodie', 'sweatpants']
             has_casual = any(
-                any(casual in item.get('name', '').lower() or casual in item.get('type', '').lower() 
+                any(casual in ((item.get('name', '') if item else '') if item else '').lower() or casual in item.get('type', '').lower() 
                     for casual in casual_items)
                 for item in items
             )
@@ -1529,7 +1529,7 @@ class EnhancedOutfitValidator:
         elif formality_tendency == 'relaxed':
             formal_items = ['suit', 'blazer', 'dress_shoes', 'oxford', 'tie']
             has_formal = any(
-                any(formal in item.get('name', '').lower() or formal in item.get('type', '').lower() 
+                any(formal in ((item.get('name', '') if item else '') if item else '').lower() or formal in item.get('type', '').lower() 
                     for formal in formal_items)
                 for item in items
             )

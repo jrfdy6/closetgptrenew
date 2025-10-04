@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/adaptive-tuning", tags=["adaptive-tuning"])
 
-@router.get("/status")
+@(router.get("/status") if router else None)
 async def get_tuning_status() -> Dict[str, Any]:
     """Get current tuning status and recommendations"""
     try:
@@ -26,7 +26,7 @@ async def get_tuning_status() -> Dict[str, Any]:
         logger.error(f"Error retrieving tuning status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve tuning status: {str(e)}")
 
-@router.get("/parameters")
+@(router.get("/parameters") if router else None)
 async def get_current_parameters() -> Dict[str, Any]:
     """Get current parameter values"""
     try:
@@ -40,7 +40,7 @@ async def get_current_parameters() -> Dict[str, Any]:
         logger.error(f"Error retrieving parameters: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve parameters: {str(e)}")
 
-@router.get("/history")
+@(router.get("/history") if router else None)
 async def get_parameter_history(hours: int = Query(default=24, ge=1, le=168)) -> Dict[str, Any]:
     """Get parameter history for the last N hours"""
     try:
@@ -92,15 +92,15 @@ async def record_performance_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
     try:
         # Convert dict to PerformanceMetrics object
         perf_metrics = PerformanceMetrics(
-            success_rate=metrics.get('success_rate', 0.0),
-            avg_confidence=metrics.get('avg_confidence', 0.0),
-            avg_generation_time=metrics.get('avg_generation_time', 0.0),
-            avg_validation_time=metrics.get('avg_validation_time', 0.0),
-            diversity_score=metrics.get('diversity_score', 0.0),
-            user_satisfaction=metrics.get('user_satisfaction', 0.0),
-            fallback_rate=metrics.get('fallback_rate', 0.0),
-            sample_size=metrics.get('sample_size', 1),
-            time_window_hours=metrics.get('time_window_hours', 0)
+            success_rate=(metrics.get('success_rate', 0.0) if metrics else 0.0),
+            avg_confidence=(metrics.get('avg_confidence', 0.0) if metrics else 0.0),
+            avg_generation_time=(metrics.get('avg_generation_time', 0.0) if metrics else 0.0),
+            avg_validation_time=(metrics.get('avg_validation_time', 0.0) if metrics else 0.0),
+            diversity_score=(metrics.get('diversity_score', 0.0) if metrics else 0.0),
+            user_satisfaction=(metrics.get('user_satisfaction', 0.0) if metrics else 0.0),
+            fallback_rate=(metrics.get('fallback_rate', 0.0) if metrics else 0.0),
+            sample_size=(metrics.get('sample_size', 1) if metrics else 1),
+            time_window_hours=(metrics.get('time_window_hours', 0) if metrics else 0)
         )
         
         adaptive_tuning.record_performance(perf_metrics)
@@ -113,7 +113,7 @@ async def record_performance_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Error recording performance metrics: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to record performance metrics: {str(e)}")
 
-@router.get("/recommendations")
+@(router.get("/recommendations") if router else None)
 async def get_tuning_recommendations() -> Dict[str, Any]:
     """Get current tuning recommendations without applying them"""
     try:
@@ -141,7 +141,7 @@ async def get_tuning_recommendations() -> Dict[str, Any]:
         logger.error(f"Error retrieving tuning recommendations: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve tuning recommendations: {str(e)}")
 
-@router.get("/health")
+@(router.get("/health") if router else None)
 async def health_check() -> Dict[str, Any]:
     """Health check for adaptive tuning service"""
     try:

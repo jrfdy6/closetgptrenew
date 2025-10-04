@@ -35,7 +35,7 @@ class ForgottenGemsResponse(BaseModel):
     data: Dict[str, Any]
     message: str
 
-@router.get("/forgotten-gems", response_model=ForgottenGemsResponse)
+@(router.get("/forgotten-gems", response_model=ForgottenGemsResponse) if router else response_model=ForgottenGemsResponse)
 async def get_forgotten_gems(
     days_threshold: int = 30,
     min_rediscovery_potential: float = 20.0,
@@ -105,7 +105,7 @@ async def get_forgotten_gems(
         now = datetime.now()
 
         def compute_days_since_worn(item_dict: Dict[str, Any]) -> int:
-            ts = item_dict.get('lastWorn')
+            ts = (item_dict.get('lastWorn') if item_dict else None)
             if ts is None:
                 return 999 if item_dict.get('wearCount', 0) == 0 else 365
             try:
@@ -140,8 +140,8 @@ async def get_forgotten_gems(
             if days_since_worn < days_threshold:
                 continue
             total_unworn += 1
-            wear_count = int(it.get('wearCount', 0) or 0)
-            is_fav = bool(it.get('isFavorite', False))
+            wear_count = int((it.get('wearCount', 0) if it else 0) or 0)
+            is_fav = bool((it.get('isFavorite', False) if it else False))
 
             # Basic rediscovery potential: 
             # more days since worn -> higher, fewer wears -> higher, favorite -> small boost
@@ -170,12 +170,12 @@ async def get_forgotten_gems(
                     last_worn_ts = None
 
             fi = ForgottenItem(
-                id=it.get('id', ''),
-                name=it.get('name', f"{it.get('type', 'Item').title()}"),
-                type=it.get('type', 'unknown'),
-                imageUrl=it.get('imageUrl', '/placeholder.svg'),
-                color=it.get('color', 'unknown'),
-                style=it.get('style', []) if isinstance(it.get('style', []), list) else [],
+                id=(it.get('id', '') if it else ''),
+                name=((it.get('name', f"{it.get('type', 'Item') if it else 'Item') if it else 'Item').title()}"),
+                type=(it.get('type', 'unknown') if it else 'unknown'),
+                imageUrl=(it.get('imageUrl', '/placeholder.svg') if it else '/placeholder.svg'),
+                color=(it.get('color', 'unknown') if it else 'unknown'),
+                style=((it.get('style', []) if it else []) if it else []) if isinstance(((it.get('style', []) if it else []) if it else []), list) else [],
                 lastWorn=last_worn_ts,
                 daysSinceWorn=days_since_worn,
                 usageCount=wear_count,
@@ -194,8 +194,8 @@ async def get_forgotten_gems(
                 dsw = compute_days_since_worn(it)
                 if dsw < days_threshold:
                     continue
-                wc = int(it.get('wearCount', 0) or 0)
-                fav = bool(it.get('isFavorite', False))
+                wc = int((it.get('wearCount', 0) if it else 0) or 0)
+                fav = bool((it.get('isFavorite', False) if it else False))
                 basic_score = 30.0 + min(dsw / 10.0, 30.0) - min(wc * 3.0, 15.0) + (5.0 if fav else 0.0)
                 # Convert lastWorn to timestamp if it's a datetime object
                 last_worn_ts = it.get('lastWorn')
@@ -212,12 +212,12 @@ async def get_forgotten_gems(
                         last_worn_ts = None
 
                 fi = ForgottenItem(
-                    id=it.get('id', ''),
-                    name=it.get('name', f"{it.get('type', 'Item').title()}"),
-                    type=it.get('type', 'unknown'),
-                    imageUrl=it.get('imageUrl', '/placeholder.svg'),
-                    color=it.get('color', 'unknown'),
-                    style=it.get('style', []) if isinstance(it.get('style', []), list) else [],
+                    id=(it.get('id', '') if it else ''),
+                    name=((it.get('name', f"{it.get('type', 'Item') if it else 'Item') if it else 'Item').title()}"),
+                    type=(it.get('type', 'unknown') if it else 'unknown'),
+                    imageUrl=(it.get('imageUrl', '/placeholder.svg') if it else '/placeholder.svg'),
+                    color=(it.get('color', 'unknown') if it else 'unknown'),
+                    style=((it.get('style', []) if it else []) if it else []) if isinstance(((it.get('style', []) if it else []) if it else []), list) else [],
                     lastWorn=last_worn_ts,
                     daysSinceWorn=dsw,
                     usageCount=wc,
@@ -392,7 +392,7 @@ def _estimate_item_savings(item: ClothingItem, usage_count: int, days_since_worn
         'accessory': 50
     }
     
-    base_value = base_values.get(item.type, 75)
+    base_value = (base_values.get(item.type, 75) if base_values else 75)
     
     # Reduce value based on usage (more used = less value)
     usage_factor = max(0.1, 1.0 - (usage_count * 0.1))

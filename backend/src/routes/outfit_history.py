@@ -78,8 +78,8 @@ async def calculate_worn_outfits_this_week(user_id: str) -> int:
         history_docs = history_ref.stream()
         for doc in history_docs:
             data = doc.to_dict()
-            date_worn_raw = data.get('date_worn')
-            outfit_id = data.get('outfit_id')
+            date_worn_raw = (data.get('date_worn') if data else None)
+            outfit_id = (data.get('outfit_id') if data else None)
             
             # Use the safe parser for date_worn
             date_worn_dt = parse_last_worn(date_worn_raw)
@@ -132,7 +132,7 @@ def serialize_firestore_doc(doc):
     
     return data
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_outfit_history(
     current_user: UserProfile = Depends(get_current_user),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
@@ -198,21 +198,21 @@ async def get_outfit_history(
             data = doc.to_dict()
             outfit_history.append({
                 "id": doc.id,
-                "outfitId": data.get('outfit_id'),
-                "outfitName": data.get('outfit_name', 'Unknown Outfit'),
-                "outfitImage": data.get('outfit_image', ''),
-                "dateWorn": data.get('date_worn'),
+                "outfitId": (data.get('outfit_id') if data else None),
+                "outfitName": (data.get('outfit_name', 'Unknown Outfit') if data else 'Unknown Outfit'),
+                "outfitImage": (data.get('outfit_image', '') if data else ''),
+                "dateWorn": (data.get('date_worn') if data else None),
                 "weather": data.get('weather', {
                     "temperature": 0,
                     "condition": "Unknown",
                     "humidity": 0
                 }),
-                "occasion": data.get('occasion', 'Casual'),
-                "mood": data.get('mood', 'Comfortable'),
-                "notes": data.get('notes', ''),
-                "tags": data.get('tags', []),
-                "createdAt": data.get('created_at'),
-                "updatedAt": data.get('updated_at')
+                "occasion": (data.get('occasion', 'Casual') if data else 'Casual'),
+                "mood": (data.get('mood', 'Comfortable') if data else 'Comfortable'),
+                "notes": (data.get('notes', '') if data else ''),
+                "tags": (data.get('tags', []) if data else []),
+                "createdAt": (data.get('created_at') if data else None),
+                "updatedAt": (data.get('updated_at') if data else None)
             })
         
         logger.info(f"Retrieved {len(outfit_history)} outfit history entries for user {current_user.id}")
@@ -255,13 +255,13 @@ async def mark_outfit_as_worn(
         logger.info(f"👕 Marking outfit as worn for user {current_user.id}")
         logger.info(f"🔍 DEBUG: Received data: {data}")
         
-        outfit_id = data.get('outfitId')
-        date_worn = data.get('dateWorn')
-        occasion = data.get('occasion', 'Casual')
-        mood = data.get('mood', 'Comfortable')
-        weather = data.get('weather', {})
-        notes = data.get('notes', '')
-        tags = data.get('tags', [])
+        outfit_id = (data.get('outfitId') if data else None)
+        date_worn = (data.get('dateWorn') if data else None)
+        occasion = (data.get('occasion', 'Casual') if data else 'Casual')
+        mood = (data.get('mood', 'Comfortable') if data else 'Comfortable')
+        weather = (data.get('weather', {}) if data else {})
+        notes = (data.get('notes', '') if data else '')
+        tags = (data.get('tags', []) if data else [])
         
         logger.info(f"🔍 DEBUG: Parsed outfit_id: {outfit_id}, date_worn: {date_worn}")
         
@@ -300,11 +300,11 @@ async def mark_outfit_as_worn(
             
             for item_id in item_ids:
                 item_ref = wardrobe_ref.document(item_id)
-                item_doc = item_ref.get()
+                item_doc = item_ref.get() if item_ref else None
                 
                 if item_doc.exists:
                     item_data = item_doc.to_dict()
-                    current_wear_count = item_data.get('wearCount', 0)
+                    current_wear_count = (item_data.get('wearCount', 0) if item_data else 0)
                     
                     # Update wear count and last worn timestamp
                     batch.update(item_ref, {
@@ -321,7 +321,7 @@ async def mark_outfit_as_worn(
         entry_data = {
             'user_id': current_user.id,
             'outfit_id': outfit_id,
-            'outfit_name': outfit_data.get('name', 'Unknown Outfit'),
+            'outfit_name': (outfit_data.get('name', 'Unknown Outfit') if outfit_data else 'Unknown Outfit'),
             'outfit_image': '',  # We'll leave this empty for now since items are stored as strings
             'date_worn': date_timestamp,
             'occasion': occasion,
@@ -336,7 +336,7 @@ async def mark_outfit_as_worn(
         # Save to Firestore
         try:
             logger.info(f"🔍 DEBUG: About to save outfit history entry to Firestore")
-            logger.info(f"🔍 DEBUG: Entry data: user_id={entry_data.get('user_id')}, date={entry_data.get('date')}, outfit_id={entry_data.get('outfit_id')}")
+            logger.info(f"🔍 DEBUG: Entry data: user_id={(((entry_data.get('user_id') if entry_data else None) if entry_data else None) if entry_data else None)}, date={entry_data.get('date')}, outfit_id={entry_data.get('outfit_id')}")
             logger.info(f"🔍 DEBUG: User ID: {current_user.id}")
             logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
             logger.info(f"🔍 DEBUG: Date worn timestamp: {date_timestamp}")
@@ -347,7 +347,7 @@ async def mark_outfit_as_worn(
             logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
             
             # Verify the entry was actually saved
-            saved_doc = doc_ref.get()
+            saved_doc = doc_ref.get() if doc_ref else None
             if saved_doc.exists:
                 saved_data = saved_doc.to_dict()
                 logger.info(f"✅ VERIFIED: Entry saved successfully with data: {saved_data}")
@@ -410,7 +410,7 @@ async def update_outfit_history_entry(
         # Get the entry
         db = get_db()
         doc_ref = db.collection('outfit_history').document(entry_id)
-        doc = doc_ref.get()
+        doc = doc_ref.get() if doc_ref else None
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Entry not found")
@@ -449,7 +449,7 @@ async def update_outfit_history_entry(
             event_type="outfit_history_updated",
             metadata={
                 "entry_id": entry_id,
-                "outfit_id": entry_data.get('outfit_id'),
+                "outfit_id": (entry_data.get('outfit_id') if entry_data else None),
                 "updates": updates,
                 "source": "outfit_history_api"
             }
@@ -483,7 +483,7 @@ async def delete_outfit_history_entry(
         
         # Get the entry
         doc_ref = db.collection('outfit_history').document(entry_id)
-        doc = doc_ref.get()
+        doc = doc_ref.get() if doc_ref else None
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Entry not found")
@@ -504,11 +504,11 @@ async def delete_outfit_history_entry(
             event_type="outfit_history_deleted",
             metadata={
                 "entry_id": entry_id,
-                "outfit_id": entry_data.get('outfit_id'),
-                "outfit_name": entry_data.get('outfit_name'),
-                "date_worn": entry_data.get('date_worn'),
-                "occasion": entry_data.get('occasion'),
-                "mood": entry_data.get('mood'),
+                "outfit_id": (entry_data.get('outfit_id') if entry_data else None),
+                "outfit_name": (entry_data.get('outfit_name') if entry_data else None),
+                "date_worn": (entry_data.get('date_worn') if entry_data else None),
+                "occasion": (entry_data.get('occasion') if entry_data else None),
+                "mood": (entry_data.get('mood') if entry_data else None),
                 "source": "outfit_history_api"
             }
         )
@@ -525,7 +525,7 @@ async def delete_outfit_history_entry(
         logger.error(f"Error deleting outfit history entry: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete outfit history entry")
 
-@router.get("/today")
+@(router.get("/today") if router else None)
 async def get_todays_outfit(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -576,21 +576,21 @@ async def get_todays_outfit(
                     data = doc.to_dict()
                     todays_outfits.append({
                         "id": doc.id,
-                        "outfitId": data.get('outfit_id'),
-                        "outfitName": data.get('outfit_name', 'Today\'s Outfit'),
-                        "outfitImage": data.get('outfit_image', ''),
-                        "dateWorn": data.get('date_worn'),
+                        "outfitId": (data.get('outfit_id') if data else None),
+                        "outfitName": (data.get('outfit_name', 'Today\'s Outfit') if data else 'Today\'s Outfit'),
+                        "outfitImage": (data.get('outfit_image', '') if data else ''),
+                        "dateWorn": (data.get('date_worn') if data else None),
                         "weather": data.get('weather', {
                             "temperature": 0,
                             "condition": "Unknown",
                             "humidity": 0
                         }),
-                        "occasion": data.get('occasion', 'Casual'),
-                        "mood": data.get('mood', 'Comfortable'),
-                        "notes": data.get('notes', ''),
-                        "tags": data.get('tags', []),
-                        "createdAt": data.get('created_at'),
-                        "updatedAt": data.get('updated_at')
+                        "occasion": (data.get('occasion', 'Casual') if data else 'Casual'),
+                        "mood": (data.get('mood', 'Comfortable') if data else 'Comfortable'),
+                        "notes": (data.get('notes', '') if data else ''),
+                        "tags": (data.get('tags', []) if data else []),
+                        "createdAt": (data.get('created_at') if data else None),
+                        "updatedAt": (data.get('updated_at') if data else None)
                     })
                 except Exception as doc_error:
                     logger.warning(f"Error processing outfit history document {doc.id}: {doc_error}")
@@ -618,7 +618,7 @@ async def get_todays_outfit(
         logger.error(f"Error getting today's outfit: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get today's outfit")
 
-@router.get("/today-suggestion")
+@(router.get("/today-suggestion") if router else None)
 async def get_todays_outfit_suggestion(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -656,15 +656,15 @@ async def get_todays_outfit_suggestion(
             # Return existing suggestion
             doc = existing_docs[0]
             suggestion_data = doc.to_dict()
-            outfit_data = suggestion_data.get('outfit_data', {})
-            items = outfit_data.get('items', [])
+            outfit_data = (suggestion_data.get('outfit_data', {}) if suggestion_data else {})
+            items = (outfit_data.get('items', []) if outfit_data else [])
             
             # Check if the cached suggestion contains mock items (old fallback items)
             has_mock_items = any(
-                item.get('id', '').startswith('fallback-') or 
-                item.get('name', '').endswith(' Top') or 
-                item.get('name', '').endswith(' Pants') or 
-                item.get('name', '').endswith(' Shoes')
+                (item.get('id', '') if item else '').startswith('fallback-') or 
+                (item.get('name', '') if item else '').endswith(' Top') or 
+                (item.get('name', '') if item else '').endswith(' Pants') or 
+                (item.get('name', '') if item else '').endswith(' Shoes')
                 for item in items
             )
             
@@ -680,11 +680,11 @@ async def get_todays_outfit_suggestion(
                     "suggestion": {
                         "id": doc.id,
                         "outfitData": outfit_data,
-                        "generatedAt": suggestion_data.get('generated_at'),
-                        "date": suggestion_data.get('date')
+                        "generatedAt": (suggestion_data.get('generated_at') if suggestion_data else None),
+                        "date": (suggestion_data.get('date') if suggestion_data else None)
                     },
-                    "isWorn": suggestion_data.get('is_worn', False),
-                    "wornAt": suggestion_data.get('worn_at'),
+                    "isWorn": (suggestion_data.get('is_worn', False) if suggestion_data else False),
+                    "wornAt": (suggestion_data.get('worn_at') if suggestion_data else None),
                     "message": "Today's outfit suggestion"
                 }
         
@@ -712,7 +712,7 @@ async def get_todays_outfit_suggestion(
                     generate_outfit_logic(daily_request, current_user.id),
                     timeout=30.0  # 30 second timeout
                 )
-                logger.info(f"Successfully generated outfit: {generated_outfit.get('name', 'Unknown')}")
+                logger.info(f"Successfully generated outfit: {(generated_outfit.get('name', 'Unknown') if generated_outfit else 'Unknown')}")
             except asyncio.TimeoutError:
                 logger.error("Outfit generation timed out after 30 seconds")
                 raise Exception("Outfit generation timed out")
@@ -912,7 +912,7 @@ async def mark_today_suggestion_as_worn(
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
             
-        suggestion_id = data.get('suggestionId')
+        suggestion_id = (data.get('suggestionId') if data else None)
         if not suggestion_id:
             raise HTTPException(status_code=400, detail="suggestionId is required")
             
@@ -924,7 +924,7 @@ async def mark_today_suggestion_as_worn(
         
         # Get the suggestion document
         suggestion_ref = db.collection('daily_outfit_suggestions').document(suggestion_id)
-        suggestion_doc = suggestion_ref.get()
+        suggestion_doc = suggestion_ref.get() if suggestion_ref else None
         
         if not suggestion_doc.exists:
             raise HTTPException(status_code=404, detail="Suggestion not found")
@@ -952,12 +952,12 @@ async def mark_today_suggestion_as_worn(
         })
         
         # Create outfit history entry
-        outfit_data = suggestion_data.get('outfit_data', {})
+        outfit_data = (suggestion_data.get('outfit_data', {}) if suggestion_data else {})
         history_entry = {
             'user_id': current_user.id,
             'outfit_id': f"suggestion_{suggestion_id}",  # Special ID for suggested outfits
-            'outfit_name': outfit_data.get('name', 'Daily Suggestion'),
-            'outfit_image': outfit_data.get('imageUrl', ''),
+            'outfit_name': (outfit_data.get('name', 'Daily Suggestion') if outfit_data else 'Daily Suggestion'),
+            'outfit_image': (outfit_data.get('imageUrl', '') if outfit_data else ''),
             'date_worn': current_timestamp,
             'occasion': 'Daily Suggestion',
             'mood': 'Confident',
@@ -980,8 +980,8 @@ async def mark_today_suggestion_as_worn(
                 event_type="daily_suggestion_worn",
                 metadata={
                     "suggestion_id": suggestion_id,
-                    "outfit_name": outfit_data.get('name', 'Daily Suggestion'),
-                    "date": suggestion_data.get('date'),
+                    "outfit_name": (outfit_data.get('name', 'Daily Suggestion') if outfit_data else 'Daily Suggestion'),
+                    "date": (suggestion_data.get('date') if suggestion_data else None),
                     "source": "daily_outfit_suggestion"
                 }
             )
@@ -1004,7 +1004,7 @@ async def mark_today_suggestion_as_worn(
         logger.error(f"Error marking suggestion as worn: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to mark suggestion as worn")
 
-@router.get("/stats")
+@(router.get("/stats") if router else None)
 async def get_outfit_history_stats(
     current_user: UserProfile = Depends(get_current_user),
     days: int = Query(7, description="Number of days to look back for stats")
@@ -1023,22 +1023,22 @@ async def get_outfit_history_stats(
         stats_data = await user_stats_service.get_user_stats(current_user.id)
         
         # Extract outfit stats
-        outfit_stats = stats_data.get("outfits", {})
-        wardrobe_stats = stats_data.get("wardrobe", {})
+        outfit_stats = (stats_data.get("outfits", {}) if stats_data else {})
+        wardrobe_stats = (stats_data.get("wardrobe", {}) if stats_data else {})
         
         # Calculate worn outfits this week on-the-fly (until stats are properly tracking this)
         worn_this_week = await calculate_worn_outfits_this_week(current_user.id)
         
         # Format for frontend compatibility
         response_stats = {
-            "total_outfits": outfit_stats.get("total", 0),
+            "total_outfits": (outfit_stats.get("total", 0) if outfit_stats else 0),
             "outfits_this_week": worn_this_week,  # Show actual worn count
             "totalThisWeek": worn_this_week,  # Frontend compatibility
             "days_queried": days,
             "recent_outfits": [],  # Could be populated if needed
-            "wardrobe_total": wardrobe_stats.get("total_items", 0),
-            "wardrobe_favorites": wardrobe_stats.get("favorites", 0),
-            "last_updated": stats_data.get("last_updated"),
+            "wardrobe_total": (wardrobe_stats.get("total_items", 0) if wardrobe_stats else 0),
+            "wardrobe_favorites": (wardrobe_stats.get("favorites", 0) if wardrobe_stats else 0),
+            "last_updated": (stats_data.get("last_updated") if stats_data else None),
             "date_range": {
                 "start": (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(),
                 "end": datetime.now(timezone.utc).isoformat()
@@ -1050,7 +1050,7 @@ async def get_outfit_history_stats(
         return {
             "success": True,
             "data": response_stats,
-            "message": f"Pre-aggregated stats (updated: {stats_data.get('last_updated', 'unknown')})",
+            "message": f"Pre-aggregated stats (updated: {(stats_data.get('last_updated', 'unknown') if stats_data else 'unknown')})",
             **response_stats  # Also return stats at root level for compatibility
         }
         
@@ -1082,7 +1082,7 @@ async def get_outfit_history_stats(
             "totalThisWeek": 0
         }
 
-@router.get("/debug-user-docs")
+@(router.get("/debug-user-docs") if router else None)
 async def debug_user_outfit_history(
     user_id: str = Query(..., description="User ID to debug"),
     current_user: UserProfile = Depends(get_current_user)
@@ -1272,14 +1272,14 @@ async def verify_worn_calculation(
         
         for doc in outfits_ref.stream():
             data = doc.to_dict()
-            last_worn_raw = data.get('lastWorn')
+            last_worn_raw = (data.get('lastWorn') if data else None)
             last_worn_dt = parse_last_worn(last_worn_raw)
             
             if last_worn_dt and week_start <= last_worn_dt <= week_end:
                 outfits_count += 1
                 outfits_found.append({
                     "id": doc.id,
-                    "name": data.get("name"),
+                    "name": (data.get("name") if data else None),
                     "lastWorn": last_worn_dt.isoformat(),
                     "parsed_type": str(type(last_worn_raw))
                 })
@@ -1293,9 +1293,9 @@ async def verify_worn_calculation(
         
         for doc in history_ref.stream():
             data = doc.to_dict()
-            date_worn_raw = data.get('date_worn')
+            date_worn_raw = (data.get('date_worn') if data else None)
             date_worn_dt = parse_last_worn(date_worn_raw)
-            outfit_id = data.get('outfit_id')
+            outfit_id = (data.get('outfit_id') if data else None)
             
             if date_worn_dt and week_start <= date_worn_dt <= week_end:
                 history_count += 1

@@ -94,7 +94,7 @@ class WardrobeAnalysisService:
                     budget_range=None,  # Will be determined by user preferences
                     preferred_stores=None
                 )
-                print(f"DEBUG: Generated shopping recommendations: {shopping_recommendations.get('success', False)}")
+                print(f"DEBUG: Generated shopping recommendations: {(shopping_recommendations.get('success', False) if shopping_recommendations else False)}")
             except Exception as e:
                 print(f"DEBUG: Error generating shopping recommendations: {e}")
                 shopping_recommendations = None
@@ -122,12 +122,12 @@ class WardrobeAnalysisService:
                 user_data = user_doc.to_dict()
                 return {
                     'id': user_id,
-                    'gender': user_data.get('gender', 'unisex'),
-                    'bodyType': user_data.get('bodyType', 'average'),
-                    'stylePreferences': user_data.get('stylePreferences', []),
-                    'colorPreferences': user_data.get('colorPreferences', []),
-                    'age': user_data.get('age', 25),
-                    'name': user_data.get('name', 'User')
+                    'gender': (user_data.get('gender', 'unisex') if user_data else 'unisex'),
+                    'bodyType': (user_data.get('bodyType', 'average') if user_data else 'average'),
+                    'stylePreferences': (user_data.get('stylePreferences', []) if user_data else []),
+                    'colorPreferences': (user_data.get('colorPreferences', []) if user_data else []),
+                    'age': (user_data.get('age', 25) if user_data else 25),
+                    'name': (user_data.get('name', 'User') if user_data else 'User')
                 }
             else:
                 return {
@@ -169,9 +169,9 @@ class WardrobeAnalysisService:
                 
                 print(f"DEBUG: Processing doc {doc_count}: {doc.id}")
                 print(f"DEBUG: Item data keys: {list(item_data.keys())}")
-                print(f"DEBUG: Item type: {item_data.get('type', 'N/A')}")
-                print(f"DEBUG: Item brand: {item_data.get('brand', 'N/A')}")
-                print(f"DEBUG: Item userId: {item_data.get('userId', 'N/A')}")
+                print(f"DEBUG: Item type: {(item_data.get('type', 'N/A') if item_data else 'N/A')}")
+                print(f"DEBUG: Item brand: {(item_data.get('brand', 'N/A') if item_data else 'N/A')}")
+                print(f"DEBUG: Item userId: {(item_data.get('userId', 'N/A') if item_data else 'N/A')}")
                 
                 # Preprocess the data to fix validation issues
                 processed_data = self._preprocess_item_data(item_data)
@@ -200,9 +200,9 @@ class WardrobeAnalysisService:
                             for color_data in color_list:
                                 if isinstance(color_data, dict):
                                     colors.append(Color(
-                                        name=color_data.get('name', 'Unknown'),
-                                        hex=color_data.get('hex', '#000000'),
-                                        rgb=color_data.get('rgb', [0, 0, 0])
+                                        name=(color_data.get('name', 'Unknown') if color_data else 'Unknown'),
+                                        hex=(color_data.get('hex', '#000000') if color_data else '#000000'),
+                                        rgb=(color_data.get('rgb', [0, 0, 0]) if color_data else 0])
                                     ))
                                 elif isinstance(color_data, str):
                                     colors.append(Color.from_string(color_data))
@@ -210,8 +210,8 @@ class WardrobeAnalysisService:
                                     colors.append(Color(name="Unknown", hex="#000000", rgb=[0, 0, 0]))
                             return colors
                         # Convert Firestore timestamps to int for fallback
-                        fallback_created = item_data.get('createdAt', 0)
-                        fallback_updated = item_data.get('updatedAt', 0)
+                        fallback_created = (item_data.get('createdAt', 0) if item_data else 0)
+                        fallback_updated = (item_data.get('updatedAt', 0) if item_data else 0)
                         if hasattr(fallback_created, 'timestamp'):
                             fallback_created = int(fallback_created.timestamp())
                         elif isinstance(fallback_created, float):
@@ -223,35 +223,35 @@ class WardrobeAnalysisService:
                         # Minimal valid metadata
                         fallback_metadata = {
                             'analysisTimestamp': fallback_created or 0,
-                            'originalType': item_data.get('type', 'other'),
+                            'originalType': (item_data.get('type', 'other') if item_data else 'other'),
                             'colorAnalysis': {
                                 'dominant': [{'name': 'Unknown', 'hex': '#000000', 'rgb': [0, 0, 0]}],
                                 'matching': [{'name': 'Unknown', 'hex': '#000000', 'rgb': [0, 0, 0]}]
                             }
                         }
                         fallback_data = {
-                            'id': item_data.get('id', doc.id),
-                            'type': item_data.get('type', 'other'),
-                            'color': item_data.get('color', 'Unknown'),
-                            'style': item_data.get('style', ['Casual']),
-                            'season': item_data.get('season', ['all']),
-                            'occasion': item_data.get('occasion', ['Casual']),
-                            'gender': item_data.get('gender', 'unisex'),
-                            'userId': item_data.get('userId', user_id),
-                            'imageUrl': item_data.get('imageUrl', ''),
-                            'name': item_data.get('name', 'Unknown item'),
+                            'id': (item_data.get('id', doc.id) if item_data else doc.id),
+                            'type': (item_data.get('type', 'other') if item_data else 'other'),
+                            'color': (item_data.get('color', 'Unknown') if item_data else 'Unknown'),
+                            'style': (item_data.get('style', ['Casual']) if item_data else ['Casual']),
+                            'season': (item_data.get('season', ['all']) if item_data else ['all']),
+                            'occasion': (item_data.get('occasion', ['Casual']) if item_data else ['Casual']),
+                            'gender': (item_data.get('gender', 'unisex') if item_data else 'unisex'),
+                            'userId': (item_data.get('userId', user_id) if item_data else user_id),
+                            'imageUrl': (item_data.get('imageUrl', '') if item_data else ''),
+                            'name': (item_data.get('name', 'Unknown item') if item_data else 'Unknown item'),
                             'createdAt': fallback_created,
                             'updatedAt': fallback_updated,
-                            'tags': item_data.get('tags', []),
-                            'mood': item_data.get('mood', ['Neutral']),
-                            'brand': item_data.get('brand', None),
-                            'bodyTypeCompatibility': item_data.get('bodyTypeCompatibility', []),
-                            'backgroundRemoved': item_data.get('backgroundRemoved', False),
-                            'colorName': item_data.get('colorName', None),
-                            'dominantColors': create_color_objects(item_data.get('dominantColors', [])),
-                            'matchingColors': create_color_objects(item_data.get('matchingColors', [])),
-                            'subType': item_data.get('subType', None),
-                            'weatherCompatibility': item_data.get('weatherCompatibility', []),
+                            'tags': (item_data.get('tags', []) if item_data else []),
+                            'mood': (item_data.get('mood', ['Neutral']) if item_data else ['Neutral']),
+                            'brand': (item_data.get('brand', None) if item_data else None),
+                            'bodyTypeCompatibility': (item_data.get('bodyTypeCompatibility', []) if item_data else []),
+                            'backgroundRemoved': (item_data.get('backgroundRemoved', False) if item_data else False),
+                            'colorName': (item_data.get('colorName', None) if item_data else None),
+                            'dominantColors': create_color_objects((item_data.get('dominantColors', []) if item_data else [])),
+                            'matchingColors': create_color_objects((item_data.get('matchingColors', []) if item_data else [])),
+                            'subType': (item_data.get('subType', None) if item_data else None),
+                            'weatherCompatibility': (item_data.get('weatherCompatibility', []) if item_data else []),
                             'metadata': fallback_metadata
                         }
                         if not fallback_data['id']:
@@ -275,7 +275,7 @@ class WardrobeAnalysisService:
             # Print summary of raw data
             print(f"DEBUG: Raw data summary:")
             for i, raw_data in enumerate(raw_data_list[:5]):  # Show first 5 items
-                print(f"DEBUG:   Item {i+1}: type={raw_data.get('type', 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
+                print(f"DEBUG:   Item {i+1}: type={((raw_data.get('type', 'N/A') if raw_data else 'N/A') if raw_data else 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
             
             # Also check if there are any items without userId field
             all_wardrobe_ref = self.db.collection('wardrobe')
@@ -337,7 +337,7 @@ class WardrobeAnalysisService:
                         else:
                             logger.warning(f"⚠️ Skipping outfit with invalid timestamp: {timestamp_val} (computed: {timestamp_seconds})")
                     except (ValueError, OverflowError, OSError) as e:
-                        logger.warning(f"⚠️ Failed to convert timestamp for outfit {outfit_data.get('id', 'unknown')}: {e}")
+                        logger.warning(f"⚠️ Failed to convert timestamp for outfit {(outfit_data.get('id', 'unknown') if outfit_data else 'unknown')}: {e}")
                         # Skip this outfit instead of crashing
             
             return history
@@ -377,7 +377,7 @@ class WardrobeAnalysisService:
                             else:
                                 logger.warning(f"⚠️ Skipping log with invalid timestamp: {timestamp_val} (computed: {timestamp_seconds})")
                         except (ValueError, OverflowError, OSError) as e:
-                            logger.warning(f"⚠️ Failed to convert timestamp for log {log_data.get('id', 'unknown')}: {e}")
+                            logger.warning(f"⚠️ Failed to convert timestamp for log {(log_data.get('id', 'unknown') if log_data else 'unknown')}: {e}")
                             # Skip this log instead of crashing
             
             return errors
@@ -499,31 +499,31 @@ class WardrobeAnalysisService:
                 # Item types - safely get type
                 item_type = getattr(item, 'type', 'unknown')
                 if item_type:
-                    item_types[str(item_type)] = item_types.get(str(item_type), 0) + 1
+                    item_types[str(item_type)] = (item_types.get(str(item_type) if item_types else None), 0) + 1
                 
                 # Colors - safely get color
                 item_color = getattr(item, 'color', None)
                 if item_color:
-                    colors[str(item_color)] = colors.get(str(item_color), 0) + 1
+                    colors[str(item_color)] = (colors.get(str(item_color) if colors else None), 0) + 1
                 
                 # Styles - safely get style list
                 item_styles = getattr(item, 'style', [])
                 if item_styles and isinstance(item_styles, list):
                     for style in item_styles:
                         if style:
-                            styles[str(style)] = styles.get(str(style), 0) + 1
+                            styles[str(style)] = (styles.get(str(style) if styles else None), 0) + 1
                 
                 # Seasons - safely get season list
                 item_seasons = getattr(item, 'season', [])
                 if item_seasons and isinstance(item_seasons, list):
                     for season in item_seasons:
                         if season:
-                            seasons[str(season)] = seasons.get(str(season), 0) + 1
+                            seasons[str(season)] = (seasons.get(str(season) if seasons else None), 0) + 1
                 
                 # Brands - safely get brand
                 item_brand = getattr(item, 'brand', None)
                 if item_brand:
-                    brands[str(item_brand)] = brands.get(str(item_brand), 0) + 1
+                    brands[str(item_brand)] = (brands.get(str(item_brand) if brands else None), 0) + 1
                 
                 # Prices (if available) - safely get price
                 item_price = getattr(item, 'price', None)
@@ -652,7 +652,7 @@ class WardrobeAnalysisService:
         # Create a mapping of item types to their counts
         type_counts = {}
         for item_type in item_types:
-            type_counts[item_type] = type_counts.get(item_type, 0) + 1
+            type_counts[item_type] = (type_counts.get(item_type, 0) if type_counts else 0) + 1
         
         print(f"DEBUG: Type counts: {type_counts}")
         
@@ -673,7 +673,7 @@ class WardrobeAnalysisService:
         for essential, types in essential_mapping.items():
             count = 0
             for item_type in types:
-                count += type_counts.get(item_type, 0)
+                count += (type_counts.get(item_type, 0) if type_counts else 0)
             essential_counts[essential] = count
         
         print(f"DEBUG: Essential category counts: {essential_counts}")
@@ -689,7 +689,7 @@ class WardrobeAnalysisService:
         }
         
         for item_type, requirement in essential_requirements.items():
-            count = essential_counts.get(item_type, 0)
+            count = (essential_counts.get(item_type, 0) if essential_counts else 0)
             print(f"DEBUG: Checking {item_type}: found {count}, need {requirement['min']}")
             
             if count < requirement['min']:
@@ -864,9 +864,9 @@ class WardrobeAnalysisService:
         # Count error types
         error_counts = {}
         for error_log in validation_errors:
-            errors = error_log.get('validationErrors', [])
+            errors = (error_log.get('validationErrors', []) if error_log else [])
             for error in errors:
-                error_counts[error] = error_counts.get(error, 0) + 1
+                error_counts[error] = (error_counts.get(error, 0) if error_counts else 0) + 1
         
         # Identify frequent errors
         for error, count in error_counts.items():
@@ -968,7 +968,7 @@ class WardrobeAnalysisService:
                 expanded_key_items.add(get_singular(norm))
                 expanded_key_items.add(get_plural(norm))
                 # Add synonyms
-                for syn in synonym_map.get(norm, []):
+                for syn in (synonym_map.get(norm, []) if synonym_map else []):
                     expanded_key_items.add(normalize(syn))
                     expanded_key_items.add(get_singular(normalize(syn)))
                     expanded_key_items.add(get_plural(normalize(syn)))
@@ -1008,7 +1008,7 @@ class WardrobeAnalysisService:
                         "Y2K Revival": ["retro", "nostalgic", "bold", "fun"],
                         "Minimalist Luxury": ["minimal", "luxury", "clean", "simple"]
                     }
-                    trend_keywords = style_keywords.get(trend_name, [])
+                    trend_keywords = (style_keywords.get(trend_name, []) if style_keywords else [])
                     matches_style = any(keyword in style.lower() for style in item.style for keyword in trend_keywords)
 
                 if matches_key_item or matches_color or matches_style:
@@ -1113,7 +1113,7 @@ class WardrobeAnalysisService:
             if item.style:
                 for style in item.style:
                     all_styles.add(style)
-                    style_counts[style] = style_counts.get(style, 0) + 1
+                    style_counts[style] = (style_counts.get(style, 0) if style_counts else 0) + 1
         
         # Identify underrepresented styles
         total_items = len(wardrobe)
@@ -1155,8 +1155,8 @@ class WardrobeAnalysisService:
         # Analyze trending styles that complement current wardrobe
         compatible_trends = []
         for trend in trending_styles[:5]:  # Top 5 trends
-            trend_name = trend.get('name', '').lower()
-            trend_styles = trend.get('related_styles', [])
+            trend_name = (trend.get('name', '') if trend else '').lower()
+            trend_styles = (trend.get('related_styles', []) if trend else [])
             
             # Check if trend complements existing styles
             if any(style.lower() in current_styles for style in trend_styles):
@@ -1182,7 +1182,7 @@ class WardrobeAnalysisService:
         for item in wardrobe:
             if item.style:
                 for style in item.style:
-                    style_distribution[style] = style_distribution.get(style, 0) + 1
+                    style_distribution[style] = (style_distribution.get(style, 0) if style_distribution else 0) + 1
         
         # Find dominant styles
         if style_distribution:
@@ -1207,13 +1207,13 @@ class WardrobeAnalysisService:
         colors = {}
         for item in wardrobe:
             color = item.color.lower() if item.color else 'unknown'
-            colors[color] = colors.get(color, 0) + 1
+            colors[color] = (colors.get(color, 0) if colors else 0) + 1
         
         # Analyze color distribution
         if colors:
             total_items = len(wardrobe)
             neutral_colors = {'black', 'white', 'gray', 'grey', 'beige', 'navy', 'brown'}
-            neutral_count = sum(colors.get(color, 0) for color in neutral_colors)
+            neutral_count = sum((colors.get(color, 0) if colors else 0) for color in neutral_colors)
             
             if neutral_count > total_items * 0.7:  # More than 70% neutral
                 recommendations.append("Your wardrobe is mostly neutral. Add colorful statement pieces to create more vibrant outfits.")
@@ -1235,7 +1235,7 @@ class WardrobeAnalysisService:
         for item in wardrobe:
             if item.occasion:
                 for occasion in item.occasion:
-                    occasions[occasion] = occasions.get(occasion, 0) + 1
+                    occasions[occasion] = (occasions.get(occasion, 0) if occasions else 0) + 1
         
         # Check for missing essential occasions
         essential_occasions = {'casual', 'business casual', 'formal'}
@@ -1267,7 +1267,7 @@ class WardrobeAnalysisService:
         for item in wardrobe:
             if item.season:
                 for season in item.season:
-                    seasons[season] = seasons.get(season, 0) + 1
+                    seasons[season] = (seasons.get(season, 0) if seasons else 0) + 1
         
         # Check for seasonal gaps
         essential_seasons = {'spring', 'summer', 'fall', 'winter'}
@@ -1301,8 +1301,8 @@ class WardrobeAnalysisService:
         # Analyze error patterns
         error_types = {}
         for error in validation_errors:
-            error_type = error.get("type", "unknown")
-            error_types[error_type] = error_types.get(error_type, 0) + 1
+            error_type = (error.get("type", "unknown") if error else "unknown")
+            error_types[error_type] = (error_types.get(error_type, 0) if error_types else 0) + 1
         
         # Generate recommendations based on error types
         if error_types.get("missing_items", 0) > 0:
@@ -1349,7 +1349,7 @@ class WardrobeAnalysisService:
             'jacket': ['Blazer', 'Cardigan', 'Light jacket', 'Suit jacket'],
             'sweater': ['Pullover sweater', 'Cardigan', 'Turtleneck', 'Cable knit sweater']
         }
-        return suggestions.get(item_type, [])
+        return (suggestions.get(item_type, []) if suggestions else [])
     
     def _get_suggestions_for_occasion(self, occasion: str) -> List[str]:
         """Get suggested items for a specific occasion."""
@@ -1358,7 +1358,7 @@ class WardrobeAnalysisService:
             'business': ['Dress shirt', 'Dress pants', 'Dress shoes', 'Blazer'],
             'formal': ['Formal shirt', 'Suit pants', 'Oxford shoes', 'Suit jacket']
         }
-        return suggestions.get(occasion, [])
+        return (suggestions.get(occasion, []) if suggestions else [])
     
     def _get_suggestions_for_style(self, style: str) -> List[str]:
         """Get suggested items for a specific style."""
@@ -1370,7 +1370,7 @@ class WardrobeAnalysisService:
             'Preppy': ['Polo shirt', 'Khakis', 'Loafers'],
             'Minimalist': ['Basic t-shirt', 'Simple pants', 'Clean sneakers']
         }
-        return suggestions.get(style, [])
+        return (suggestions.get(style, []) if suggestions else [])
     
     def _get_suggestions_for_validation_error(self, error: str) -> List[str]:
         """Get suggested items based on validation error."""
@@ -1401,14 +1401,14 @@ class WardrobeAnalysisService:
         # Analyze validation errors
         error_types = {}
         for error in validation_errors:
-            error_type = error.get("type", "unknown")
-            error_types[error_type] = error_types.get(error_type, 0) + 1
+            error_type = (error.get("type", "unknown") if error else "unknown")
+            error_types[error_type] = (error_types.get(error_type, 0) if error_types else 0) + 1
         
         # Analyze outfit failures
         failure_reasons = []
         for outfit in outfit_history:
-            if not outfit.get("success", True):
-                reason = outfit.get("error", "Unknown failure")
+            if not (outfit.get("success", True) if outfit else True):
+                reason = (outfit.get("error", "Unknown failure") if outfit else "Unknown failure")
                 failure_reasons.append(reason)
         
         # Find most common errors
@@ -1431,7 +1431,7 @@ class WardrobeAnalysisService:
             "failure_reasons": failure_reasons,
             "improvement_areas": improvement_areas,
             "total_errors": len(validation_errors),
-            "failure_rate": len([o for o in outfit_history if not o.get("success", True)]) / max(len(outfit_history), 1) * 100
+            "failure_rate": len([o for o in outfit_history if not (o.get("success", True) if o else True)]) / max(len(outfit_history), 1) * 100
         }
 
     def _preprocess_item_data(self, item_data: dict) -> dict:
@@ -1565,5 +1565,5 @@ class WardrobeAnalysisService:
             'corduroy': 'cotton'
         }
         
-        return material_mapping.get(material_lower, 'other')
+        return (material_mapping.get(material_lower, 'other') if material_mapping else 'other')
     

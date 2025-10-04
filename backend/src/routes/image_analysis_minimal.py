@@ -17,24 +17,24 @@ def normalize_analysis(analysis: dict) -> dict:
     Normalize AI analysis results to match expected frontend fields
     """
     return {
-        "name": analysis.get("name") or "Analyzed Item",
-        "type": analysis.get("type") or "clothing",
-        "clothing_type": analysis.get("type") or "clothing",  # For frontend compatibility
-        "color": analysis.get("color") or "unknown",
-        "primary_color": analysis.get("color") or "unknown",  # For frontend compatibility
-        "style": analysis.get("style") or "casual",
-        "occasion": analysis.get("occasion") or "everyday",
-        "season": analysis.get("season") or "all-season",
-        "material": analysis.get("material") or "unknown",
-        "fit": analysis.get("fit") or "unknown",
-        "sleeveLength": analysis.get("sleeveLength") or "unknown",
-        "pattern": analysis.get("pattern") or "solid",
-        "confidence": analysis.get("confidence", 0.5),
-        "dominantColors": analysis.get("dominantColors", []),
-        "matchingColors": analysis.get("matchingColors", []),
-        "subType": analysis.get("subType") or "",
-        "brand": analysis.get("brand") or "",
-        "gender": analysis.get("gender") or "unisex"
+        "name": (analysis.get("name") if analysis else None) or "Analyzed Item",
+        "type": (analysis.get("type") if analysis else None) or "clothing",
+        "clothing_type": (analysis.get("type") if analysis else None) or "clothing",  # For frontend compatibility
+        "color": (analysis.get("color") if analysis else None) or "unknown",
+        "primary_color": (analysis.get("color") if analysis else None) or "unknown",  # For frontend compatibility
+        "style": (analysis.get("style") if analysis else None) or "casual",
+        "occasion": (analysis.get("occasion") if analysis else None) or "everyday",
+        "season": (analysis.get("season") if analysis else None) or "all-season",
+        "material": (analysis.get("material") if analysis else None) or "unknown",
+        "fit": (analysis.get("fit") if analysis else None) or "unknown",
+        "sleeveLength": (analysis.get("sleeveLength") if analysis else None) or "unknown",
+        "pattern": (analysis.get("pattern") if analysis else None) or "solid",
+        "confidence": (analysis.get("confidence", 0.5) if analysis else 0.5),
+        "dominantColors": (analysis.get("dominantColors", []) if analysis else []),
+        "matchingColors": (analysis.get("matchingColors", []) if analysis else []),
+        "subType": (analysis.get("subType") if analysis else None) or "",
+        "brand": (analysis.get("brand") if analysis else None) or "",
+        "gender": (analysis.get("gender") if analysis else None) or "unisex"
     }
 
 async def perform_clothing_analysis(image_path: str, image_url: str, file_size: int) -> Dict[str, Any]:
@@ -136,7 +136,7 @@ async def perform_clothing_analysis(image_path: str, image_url: str, file_size: 
         analysis["imageUrl"] = image_url
         analysis["analysisMethod"] = "gpt4-vision"
         
-        logger.info(f"AI analysis completed: {analysis.get('type', 'unknown')} - {analysis.get('style', 'unknown')}")
+        logger.info(f"AI analysis completed: {((analysis.get('type', 'unknown') if analysis else 'unknown') if analysis else 'unknown')} - {analysis.get('style', 'unknown')}")
         return analysis
         
     except Exception as e:
@@ -213,7 +213,7 @@ async def analyze_image(
         # Download image
         try:
             logger.info("Downloading image...")
-            response = requests.get(image_url, timeout=30)
+            response = (requests.get(image_url, timeout=30) if requests else timeout=30)
             response.raise_for_status()
             logger.info(f"Downloaded image, size: {len(response.content)} bytes")
         except Exception as e:

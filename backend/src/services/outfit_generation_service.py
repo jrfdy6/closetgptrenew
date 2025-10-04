@@ -186,7 +186,7 @@ class OutfitGenerationService:
             description=description,
             items=[item.id for item in items],  # Add required items field
             occasion=occasion,
-            mood=context.get("mood", "casual") or "neutral",  # Ensure mood is not None
+            mood=(context.get("mood", "casual") if context else "casual") or "neutral",  # Ensure mood is not None
             style=style or "casual",
             pieces=outfit_pieces,
             explanation="Generated using integrated thought clarification pipeline",
@@ -198,8 +198,8 @@ class OutfitGenerationService:
             updatedAt=int(datetime.now().timestamp()),
             metadata={
                 "used_favorites": [],
-                "warnings": context.get("warnings", []),
-                "errors": context.get("errors", [])
+                "warnings": (context.get("warnings", []) if context else []),
+                "errors": (context.get("errors", []) if context else [])
             }
         )
 

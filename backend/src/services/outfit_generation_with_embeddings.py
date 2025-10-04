@@ -188,7 +188,7 @@ class OutfitGenerationWithEmbeddings:
             
             # Extract outfits from result
             if isinstance(result, dict):
-                outfits = result.get('outfits', []) or result.get('items', [])
+                outfits = ((result.get('outfits', []) if result else []) if result else []) or result.get('items', [])
             elif isinstance(result, list):
                 outfits = result
             else:
@@ -308,8 +308,8 @@ class OutfitGenerationWithEmbeddings:
             "has_user_embedding": user_stats["has_embedding"],
             "total_interactions": user_stats["total_interactions"],
             "recommended_strategy": recommendation_analytics["recommended_strategy"],
-            "personalization_score": recommendation_analytics.get("personalization_score", 0.0),
-            "confidence": recommendation_analytics.get("confidence", 0.0),
+            "personalization_score": (recommendation_analytics.get("personalization_score", 0.0) if recommendation_analytics else 0.0),
+            "confidence": (recommendation_analytics.get("confidence", 0.0) if recommendation_analytics else 0.0),
             "system_parameters": {
                 "personalization_weight": self.recommendation_engine.personalization_weight,
                 "exploration_rate": self.recommendation_engine.exploration_rate,

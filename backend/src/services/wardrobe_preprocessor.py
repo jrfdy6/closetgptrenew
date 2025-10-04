@@ -42,7 +42,7 @@ class WardrobePreprocessor:
             try:
                 processed_item = self._preprocess_item(item)
                 processed_items.append(processed_item)
-                self.logger.debug(f"✅ Processed: {processed_item.get('name', 'Unknown')}")
+                self.logger.debug(f"✅ Processed: {(processed_item.get('name', 'Unknown') if processed_item else 'Unknown')}")
             except Exception as e:
                 self.logger.error(f"❌ Failed to process item: {e}")
                 # Add fallback item to prevent complete failure
@@ -78,12 +78,12 @@ class WardrobePreprocessor:
         
         # Extract core fields (required)
         processed = {
-            'id': complex_item.get('id', 'unknown'),
-            'name': complex_item.get('name', 'Unknown Item'),
-            'type': complex_item.get('type', 'unknown'),
-            'color': complex_item.get('color', 'Unknown'),
-            'imageUrl': complex_item.get('imageUrl', 'https://example.com/placeholder.jpg'),
-            'userId': complex_item.get('userId', 'test_user'),
+            'id': (complex_item.get('id', 'unknown') if complex_item else 'unknown'),
+            'name': (complex_item.get('name', 'Unknown Item') if complex_item else 'Unknown Item'),
+            'type': (complex_item.get('type', 'unknown') if complex_item else 'unknown'),
+            'color': (complex_item.get('color', 'Unknown') if complex_item else 'Unknown'),
+            'imageUrl': (complex_item.get('imageUrl', 'https://example.com/placeholder.jpg') if complex_item else 'https://example.com/placeholder.jpg'),
+            'userId': (complex_item.get('userId', 'test_user') if complex_item else 'test_user'),
         }
         
         # Process occasion field (enhanced with complex metadata)
@@ -110,7 +110,7 @@ class WardrobePreprocessor:
         Uses brand, season, mood, and usage data to create more sophisticated
         occasion recommendations.
         """
-        base_occasions = complex_item.get('occasion', [])
+        base_occasions = (complex_item.get('occasion', []) if complex_item else [])
         if isinstance(base_occasions, str):
             base_occasions = base_occasions.split()
         
@@ -118,11 +118,11 @@ class WardrobePreprocessor:
         enhanced_occasions = base_occasions.copy()
         
         # Only add occasions if they make logical sense
-        brand = complex_item.get('brand', '').lower()
-        season = complex_item.get('season', [])
+        brand = (complex_item.get('brand', '') if complex_item else '').lower()
+        season = (complex_item.get('season', []) if complex_item else [])
         if isinstance(season, str):
             season = season.split()
-        mood = complex_item.get('mood', [])
+        mood = (complex_item.get('mood', []) if complex_item else [])
         if isinstance(mood, str):
             mood = mood.split()
         
@@ -131,8 +131,8 @@ class WardrobePreprocessor:
             enhanced_occasions.append('formal')
         
         # Conservative usage-based enhancement (only for truly versatile items)
-        usage_count = complex_item.get('usage_count', 0)
-        wear_count = complex_item.get('wearCount', 0)
+        usage_count = (complex_item.get('usage_count', 0) if complex_item else 0)
+        wear_count = (complex_item.get('wearCount', 0) if complex_item else 0)
         total_usage = usage_count + wear_count
         
         # Only add 'everyday' if item is truly versatile (high usage + casual style)
@@ -151,18 +151,18 @@ class WardrobePreprocessor:
         Uses brand, mood, season, and usage data to create more sophisticated
         style recommendations.
         """
-        base_styles = complex_item.get('style', [])
+        base_styles = (complex_item.get('style', []) if complex_item else [])
         if isinstance(base_styles, str):
             base_styles = base_styles.split()
         
         enhanced_styles = base_styles.copy()
         
         # Conservative style enhancement - avoid contradictory styles
-        brand = complex_item.get('brand', '').lower()
-        mood = complex_item.get('mood', [])
+        brand = (complex_item.get('brand', '') if complex_item else '').lower()
+        mood = (complex_item.get('mood', []) if complex_item else [])
         if isinstance(mood, str):
             mood = mood.split()
-        season = complex_item.get('season', [])
+        season = (complex_item.get('season', []) if complex_item else [])
         if isinstance(season, str):
             season = season.split()
         
@@ -197,20 +197,20 @@ class WardrobePreprocessor:
         
         Combines original tags with sophisticated metadata-derived tags.
         """
-        base_tags = complex_item.get('tags', [])
+        base_tags = (complex_item.get('tags', []) if complex_item else [])
         if isinstance(base_tags, str):
             base_tags = base_tags.split()
         
         enhanced_tags = base_tags.copy()
         
         # Add sophisticated tags based on complex metadata
-        brand = complex_item.get('brand', '').lower()
+        brand = (complex_item.get('brand', '') if complex_item else '').lower()
         if brand:
             enhanced_tags.append(f'brand_{brand.replace(" ", "_")}')
         
         # Usage-based tags
-        usage_count = complex_item.get('usage_count', 0)
-        wear_count = complex_item.get('wearCount', 0)
+        usage_count = (complex_item.get('usage_count', 0) if complex_item else 0)
+        wear_count = (complex_item.get('wearCount', 0) if complex_item else 0)
         total_usage = usage_count + wear_count
         
         if total_usage > 15:
@@ -223,7 +223,7 @@ class WardrobePreprocessor:
             enhanced_tags.append('favorite')
         
         # Season tags
-        season = complex_item.get('season', [])
+        season = (complex_item.get('season', []) if complex_item else [])
         if isinstance(season, str):
             season = season.split()
         
@@ -231,7 +231,7 @@ class WardrobePreprocessor:
             enhanced_tags.append(f'season_{s}')
         
         # Mood tags
-        mood = complex_item.get('mood', [])
+        mood = (complex_item.get('mood', []) if complex_item else [])
         if isinstance(mood, str):
             mood = mood.split()
         
@@ -250,7 +250,7 @@ class WardrobePreprocessor:
         Returns:
             List of mood values
         """
-        mood = complex_item.get('mood', [])
+        mood = (complex_item.get('mood', []) if complex_item else [])
         
         # Handle both string and list formats
         if isinstance(mood, str):
@@ -277,25 +277,25 @@ class WardrobePreprocessor:
         sophisticated personalization.
         """
         return {
-            'brand': complex_item.get('brand', ''),
-            'season': complex_item.get('season', []),
-            'mood': complex_item.get('mood', []),
-            'gender': complex_item.get('gender', ''),
-            'matchingColors': complex_item.get('matchingColors', []),
-            'dominantColors': complex_item.get('dominantColors', []),
-            'colorName': complex_item.get('colorName', ''),
-            'subType': complex_item.get('subType', ''),
-            'bodyTypeCompatibility': complex_item.get('bodyTypeCompatibility', []),
-            'weatherCompatibility': complex_item.get('weatherCompatibility', []),
-            'favorite': complex_item.get('favorite', False),
-            'usage_count': complex_item.get('usage_count', 0),
-            'wearCount': complex_item.get('wearCount', 0),
-            'lastWorn': complex_item.get('lastWorn', None),
-            'last_used_at': complex_item.get('last_used_at', None),
-            'createdAt': complex_item.get('createdAt', None),
-            'updatedAt': complex_item.get('updatedAt', None),
-            'backgroundRemoved': complex_item.get('backgroundRemoved', False),
-            'metadata': complex_item.get('metadata', {})
+            'brand': (complex_item.get('brand', '') if complex_item else ''),
+            'season': (complex_item.get('season', []) if complex_item else []),
+            'mood': (complex_item.get('mood', []) if complex_item else []),
+            'gender': (complex_item.get('gender', '') if complex_item else ''),
+            'matchingColors': (complex_item.get('matchingColors', []) if complex_item else []),
+            'dominantColors': (complex_item.get('dominantColors', []) if complex_item else []),
+            'colorName': (complex_item.get('colorName', '') if complex_item else ''),
+            'subType': (complex_item.get('subType', '') if complex_item else ''),
+            'bodyTypeCompatibility': (complex_item.get('bodyTypeCompatibility', []) if complex_item else []),
+            'weatherCompatibility': (complex_item.get('weatherCompatibility', []) if complex_item else []),
+            'favorite': (complex_item.get('favorite', False) if complex_item else False),
+            'usage_count': (complex_item.get('usage_count', 0) if complex_item else 0),
+            'wearCount': (complex_item.get('wearCount', 0) if complex_item else 0),
+            'lastWorn': (complex_item.get('lastWorn', None) if complex_item else None),
+            'last_used_at': (complex_item.get('last_used_at', None) if complex_item else None),
+            'createdAt': (complex_item.get('createdAt', None) if complex_item else None),
+            'updatedAt': (complex_item.get('updatedAt', None) if complex_item else None),
+            'backgroundRemoved': (complex_item.get('backgroundRemoved', False) if complex_item else False),
+            'metadata': (complex_item.get('metadata', {}) if complex_item else {})
         }
     
     def _create_fallback_item(self, complex_item: Dict[str, Any]) -> Dict[str, Any]:
@@ -305,12 +305,12 @@ class WardrobePreprocessor:
         Ensures the system always has a working item to prevent complete failure.
         """
         return {
-            'id': complex_item.get('id', 'fallback'),
-            'name': complex_item.get('name', 'Fallback Item'),
-            'type': complex_item.get('type', 'unknown'),
-            'color': complex_item.get('color', 'Unknown'),
-            'imageUrl': complex_item.get('imageUrl', ''),
-            'userId': complex_item.get('userId', 'unknown'),
+            'id': (complex_item.get('id', 'fallback') if complex_item else 'fallback'),
+            'name': (complex_item.get('name', 'Fallback Item') if complex_item else 'Fallback Item'),
+            'type': (complex_item.get('type', 'unknown') if complex_item else 'unknown'),
+            'color': (complex_item.get('color', 'Unknown') if complex_item else 'Unknown'),
+            'imageUrl': (complex_item.get('imageUrl', '') if complex_item else ''),
+            'userId': (complex_item.get('userId', 'unknown') if complex_item else 'unknown'),
             'occasion': ['casual', 'everyday'],
             'style': ['casual'],
             'tags': ['fallback'],

@@ -56,7 +56,7 @@ def get_temp_threshold_for_layer(layer_type: str) -> float:
         "light_layer": 85.0,   # Light layers too warm above 85°F
         "unknown": 70.0        # Default threshold
     }
-    return thresholds.get(layer_type, 70.0)
+    return (thresholds.get(layer_type, 70.0) if thresholds else 70.0)
 
 def validate_layering(items, temperature: float, style: str) -> List[dict]:
     """
@@ -267,7 +267,7 @@ class ValidationRuleStore:
         """Remove a material climate rule."""
         try:
             rules = self.get_rules()
-            if material in rules.get('material_climate_rules', {}):
+            if material in (rules.get('material_climate_rules', {}) if rules else {}):
                 del rules['material_climate_rules'][material]
                 rules['metadata']['last_updated'] = int(time.time())
                 rules['metadata']['version'] = self._increment_version(rules['metadata']['version'])
@@ -339,8 +339,8 @@ class ValidationRuleStore:
         try:
             if error_type == "material_climate_mismatch":
                 # Extract material and temperature from error
-                material = error_details.get("material", "").lower()
-                temperature = error_details.get("temperature", 70)
+                material = (error_details.get("material", "") if error_details else "").lower()
+                temperature = (error_details.get("temperature", 70) if error_details else 70)
                 
                 # Ensure temperature is a float
                 if isinstance(temperature, str):
@@ -353,7 +353,7 @@ class ValidationRuleStore:
                 
                 if material and material in self.get_rules().get("material_climate_rules", {}):
                     current_rule = self.get_rules()["material_climate_rules"][material]
-                    current_max = current_rule.get("max_temp_f", 85)
+                    current_max = (current_rule.get("max_temp_f", 85) if current_rule else 85)
                     
                     # Suggest increasing max temperature if item is too hot for current temp
                     if temperature > current_max:
@@ -367,7 +367,7 @@ class ValidationRuleStore:
                         }
                     
                     # Suggest decreasing min temperature if item is too cold for current temp
-                    current_min = current_rule.get("min_temp_f", 50)
+                    current_min = (current_rule.get("min_temp_f", 50) if current_rule else 50)
                     if temperature < current_min:
                         return {
                             "rule_type": "material_climate",
@@ -380,8 +380,8 @@ class ValidationRuleStore:
             
             elif error_type == "layering_compliance":
                 # Suggest adjusting layering rules
-                missing_layers = error_details.get("missing_layers", 0)
-                temperature = error_details.get("temperature", 70)
+                missing_layers = (error_details.get("missing_layers", 0) if error_details else 0)
+                temperature = (error_details.get("temperature", 70) if error_details else 70)
                 
                 # Ensure temperature is a float
                 if isinstance(temperature, str):
@@ -404,8 +404,8 @@ class ValidationRuleStore:
             
             elif error_type == "low_occasion_appropriateness":
                 # Suggest adjusting occasion appropriateness threshold
-                score = error_details.get("score", 0.5)
-                occasion = error_details.get("occasion", "unknown")
+                score = (error_details.get("score", 0.5) if error_details else 0.5)
+                occasion = (error_details.get("occasion", "unknown") if error_details else "unknown")
                 
                 if score < 0.3:
                     return {
@@ -419,8 +419,8 @@ class ValidationRuleStore:
             
             elif error_type == "low_weather_appropriateness":
                 # Suggest adjusting weather thresholds
-                score = error_details.get("score", 0.5)
-                temperature = error_details.get("temperature", 70)
+                score = (error_details.get("score", 0.5) if error_details else 0.5)
+                temperature = (error_details.get("temperature", 70) if error_details else 70)
                 
                 if score < 0.4:
                     return {
@@ -450,8 +450,8 @@ class ValidationRuleStore:
             bool: True if fix was applied successfully
         """
         try:
-            rule_path = fix_suggestion.get("rule_path")
-            new_value = fix_suggestion.get("suggested_value")
+            rule_path = (fix_suggestion.get("rule_path") if fix_suggestion else None)
+            new_value = (fix_suggestion.get("suggested_value") if fix_suggestion else None)
             
             if not rule_path or new_value is None:
                 logger.error("Invalid fix suggestion: missing rule_path or suggested_value")
@@ -470,7 +470,7 @@ class ValidationRuleStore:
                 else:
                     break
             else:
-                current_value = current.get(path_parts[-1])
+                current_value = (current.get(path_parts[-1]) if current else None)
             
             # Apply the fix
             success = self.update_rule(rule_path, new_value)

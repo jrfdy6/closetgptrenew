@@ -208,7 +208,7 @@ def calculate_feedback_score(analytics_data: List[Dict]) -> float:
     if not feedback_data:
         return 0.0
     
-    total_rating = sum(data.get("feedback_rating", 0) for data in feedback_data)
+    total_rating = sum((data.get("feedback_rating", 0) if data else 0) for data in feedback_data)
     avg_rating = total_rating / len(feedback_data)
     
     # Convert 1-5 rating to 0-1 score
@@ -258,14 +258,14 @@ def calculate_style_preference_score(item_id: str, user_profile: Optional[UserPr
     try:
         # Get item details
         item_ref = db.collection("wardrobe").document(item_id)
-        item_doc = item_ref.get()
+        item_doc = item_ref.get() if item_ref else None
         
         if not item_doc.exists:
             return 0.5
         
         item_data = item_doc.to_dict()
-        item_styles = item_data.get("style", [])
-        item_type = item_data.get("type", "")
+        item_styles = (item_data.get("style", []) if item_data else [])
+        item_type = (item_data.get("type", "") if item_data else "")
         
         if not item_styles:
             return 0.5
@@ -305,7 +305,7 @@ def calculate_usage_statistics(analytics_data: List[Dict]) -> Dict[str, Any]:
     feedback_ratings = []
     
     for data in analytics_data:
-        interaction_type = data.get("interaction_type")
+        interaction_type = (data.get("interaction_type") if data else None)
         
         if interaction_type == ItemInteractionType.OUTFIT_GENERATED:
             stats["times_in_outfits"] += 1
@@ -318,7 +318,7 @@ def calculate_usage_statistics(analytics_data: List[Dict]) -> Dict[str, Any]:
         elif interaction_type == ItemInteractionType.SELECT:
             stats["total_selects"] += 1
         elif interaction_type == ItemInteractionType.FEEDBACK_RECEIVED:
-            rating = data.get("feedback_rating")
+            rating = (data.get("feedback_rating") if data else None)
             if rating:
                 feedback_ratings.append(rating)
     
@@ -331,7 +331,7 @@ def get_user_profile(user_id: str) -> Optional[UserProfile]:
     """Get user profile for style preference calculations."""
     try:
         profile_ref = db.collection("users").document(user_id)
-        profile_doc = profile_ref.get()
+        profile_doc = profile_ref.get() if profile_ref else None
         
         if profile_doc.exists:
             return UserProfile(**profile_doc.to_dict())
@@ -360,7 +360,7 @@ def get_user_favorites(
             score_data_list.append(score_data)
         
         # Sort by total_score in descending order
-        score_data_list.sort(key=lambda x: x.get("total_score", 0), reverse=True)
+        score_data_list.sort(key=lambda x: (x.get("total_score", 0) if x else 0), reverse=True)
         
         # Apply limit
         score_data_list = score_data_list[:limit]
@@ -371,37 +371,37 @@ def get_user_favorites(
             logger.debug(f"Checking item_id: {item_id}")
             
             item_ref = db.collection("wardrobe").document(item_id)
-            item_doc = item_ref.get()
+            item_doc = item_ref.get() if item_ref else None
             
             if not item_doc.exists:
                 logger.debug(f"Wardrobe item {item_id} not found, skipping")
                 continue
             
             item_data = item_doc.to_dict()
-            logger.debug(f"Item {item_id} type: {item_data.get('type', 'No type')}, requested type: {item_type}")
+            logger.debug(f"Item {item_id} type: {(item_data.get('type', 'No type') if item_data else 'No type')}, requested type: {item_type}")
             
             # Filter by type if specified
-            if item_type and item_data.get("type") != item_type:
-                logger.debug(f"Item {item_id} type mismatch: {item_data.get('type')} != {item_type}, skipping")
+            if item_type and (item_data.get("type") if item_data else None) != item_type:
+                logger.debug(f"Item {item_id} type mismatch: {(item_data.get('type') if item_data else None)} != {item_type}, skipping")
                 continue
             
             # Add item data to favorites
             favorite_item = {
                 "id": item_id,
-                "name": item_data.get("name", "Unknown"),
-                "type": item_data.get("type", "unknown"),
-                "imageUrl": item_data.get("imageUrl", ""),
-                "color": item_data.get("color", ""),
-                "style": item_data.get("style", []),
-                "favorite_score": score_data.get("total_score", 0),
-                "usage_count": score_data.get("usage_count", 0),
-                "feedback_score": score_data.get("feedback_score", 0),
-                "interaction_score": score_data.get("interaction_score", 0),
-                "style_match_score": score_data.get("style_match_score", 0),
-                "base_item_score": score_data.get("base_item_score", 0)
+                "name": (item_data.get("name", "Unknown") if item_data else "Unknown"),
+                "type": (item_data.get("type", "unknown") if item_data else "unknown"),
+                "imageUrl": (item_data.get("imageUrl", "") if item_data else ""),
+                "color": (item_data.get("color", "") if item_data else ""),
+                "style": (item_data.get("style", []) if item_data else []),
+                "favorite_score": (score_data.get("total_score", 0) if score_data else 0),
+                "usage_count": (score_data.get("usage_count", 0) if score_data else 0),
+                "feedback_score": (score_data.get("feedback_score", 0) if score_data else 0),
+                "interaction_score": (score_data.get("interaction_score", 0) if score_data else 0),
+                "style_match_score": (score_data.get("style_match_score", 0) if score_data else 0),
+                "base_item_score": (score_data.get("base_item_score", 0) if score_data else 0)
             }
             favorites.append(favorite_item)
-            logger.debug(f"Added favorite item: {item_id} ({item_data.get('type')})")
+            logger.debug(f"Added favorite item: {item_id} ({(item_data.get('type') if item_data else None)})")
         
         logger.info(f"Found {len(favorites)} favorite items for user {user_id}, type {item_type}")
         return favorites

@@ -78,7 +78,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                     )
             
             logger.info("🔍 DEBUG: Extracting user_id from decoded token...")
-            user_id: str = decoded_token.get("uid")
+            user_id: str = (decoded_token.get("uid") if decoded_token else None)
             logger.info(f"🔍 DEBUG: Token verification successful, user_id: {user_id}")
             
             if user_id is None:
@@ -127,7 +127,7 @@ def get_current_user_id_jwt(token: str = Depends(security)) -> str:
     """Get current user ID from JWT token (legacy)."""
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
+        user_id: str = (payload.get("sub") if payload else None)
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -174,9 +174,9 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
         token = credentials.credentials
         decoded_token = firebase_auth.verify_id_token(token)
         
-        user_id = decoded_token.get("uid")
-        email = decoded_token.get("email")
-        name = decoded_token.get("name", email)
+        user_id = (decoded_token.get("uid") if decoded_token else None)
+        email = (decoded_token.get("email") if decoded_token else None)
+        name = (decoded_token.get("name", email) if decoded_token else email)
         
         # Check if user exists in our database
         user_doc = db.collection('users').document(user_id).get()
@@ -326,7 +326,7 @@ async def login_user(user_data: UserLogin):
             detail="Login failed"
         )
 
-@router.get("/profile")
+@(router.get("/profile") if router else None)
 async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
     """Get current user's profile."""
     try:

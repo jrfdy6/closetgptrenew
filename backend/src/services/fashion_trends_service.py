@@ -165,7 +165,7 @@ class FashionTrendsService:
                                 "score": round(avg_score, 2),
                                 "trend_direction": trend_direction,
                                 "category": self._categorize_trend(trend),
-                                "related_styles": self.style_mappings.get(trend, []),
+                                "related_styles": self.(style_mappings.get(trend, []) if style_mappings else []),
                                 "source": "google_trends",
                                 "geo": "US",
                                 "timeframe": "7d",
@@ -218,7 +218,7 @@ class FashionTrendsService:
             
             for doc in docs:
                 trend_data = doc.to_dict()
-                trend_name = trend_data.get("name", "").lower()
+                trend_name = (trend_data.get("name", "") if trend_data else "").lower()
                 all_trends.append(trend_name)
                 
                 # Skip if we've already seen this trend name (deduplication)
@@ -244,11 +244,11 @@ class FashionTrendsService:
             print(f"🔍 Trends Service: Total trends found: {len(all_trends)}")
             print(f"🔍 Trends Service: Trends after gender filtering and deduplication: {len(trends)}")
             print(f"🔍 Trends Service: Sample trends before filtering: {all_trends[:5]}")
-            print(f"🔍 Trends Service: Sample trends after filtering: {[t.get('name', '') for t in trends[:5]]}")
+            print(f"🔍 Trends Service: Sample trends after filtering: {[(t.get('name', '') if t else '') for t in trends[:5]]}")
             
             # Check for ballet flats specifically
             ballet_flats_before = [t for t in all_trends if 'ballet' in t]
-            ballet_flats_after = [t.get('name', '') for t in trends if 'ballet' in t.get('name', '').lower()]
+            ballet_flats_after = [((t.get('name', '') if t else '') if t else '') for t in trends if 'ballet' in ((t.get('name', '') if t else '') if t else '').lower()]
             print(f"🔍 Trends Service: Ballet flats before filtering: {ballet_flats_before}")
             print(f"🔍 Trends Service: Ballet flats after filtering: {ballet_flats_after}")
             
@@ -272,31 +272,31 @@ class FashionTrendsService:
             # 4. Exclude men's specific items
             
             # Check for women's specific keywords
-            for keyword in self.gender_specific_keywords.get("female", []):
+            for keyword in self.(gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     print(f"✅ Gender Filter: '{trend_name}' matches female keyword '{keyword}'")
                     return True
             
             # Check for women's specific items
-            for item in self.gender_specific_items.get("female", []):
+            for item in self.(gender_specific_items.get("female", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
                     print(f"✅ Gender Filter: '{trend_name}' matches female item '{item}'")
                     return True
             
             # Check for unisex keywords
-            for keyword in self.gender_specific_keywords.get("unisex", []):
+            for keyword in self.(gender_specific_keywords.get("unisex", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     print(f"✅ Gender Filter: '{trend_name}' matches unisex keyword '{keyword}'")
                     return True
             
             # Exclude men's specific items
-            for item in self.gender_specific_items.get("male", []):
+            for item in self.(gender_specific_items.get("male", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
                     print(f"❌ Gender Filter: '{trend_name}' excluded - matches male item '{item}'")
                     return False
             
             # Exclude men's specific keywords
-            for keyword in self.gender_specific_keywords.get("male", []):
+            for keyword in self.(gender_specific_keywords.get("male", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     print(f"❌ Gender Filter: '{trend_name}' excluded - matches male keyword '{keyword}'")
                     return False
@@ -313,31 +313,31 @@ class FashionTrendsService:
             # 4. Exclude women's specific items
             
             # Check for men's specific keywords
-            for keyword in self.gender_specific_keywords.get("male", []):
+            for keyword in self.(gender_specific_keywords.get("male", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     print(f"✅ Gender Filter: '{trend_name}' matches male keyword '{keyword}'")
                     return True
             
             # Check for men's specific items
-            for item in self.gender_specific_items.get("male", []):
+            for item in self.(gender_specific_items.get("male", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
                     print(f"✅ Gender Filter: '{trend_name}' matches male item '{item}'")
                     return True
             
             # Check for unisex keywords
-            for keyword in self.gender_specific_keywords.get("unisex", []):
+            for keyword in self.(gender_specific_keywords.get("unisex", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     print(f"✅ Gender Filter: '{trend_name}' matches unisex keyword '{keyword}'")
                     return True
             
             # Exclude women's specific items
-            for item in self.gender_specific_items.get("female", []):
+            for item in self.(gender_specific_items.get("female", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
                     print(f"❌ Gender Filter: '{trend_name}' excluded - matches female item '{item}'")
                     return False
             
             # Exclude women's specific keywords
-            for keyword in self.gender_specific_keywords.get("female", []):
+            for keyword in self.(gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
                     print(f"❌ Gender Filter: '{trend_name}' excluded - matches female keyword '{keyword}'")
                     return False
@@ -353,15 +353,15 @@ class FashionTrendsService:
     def _format_trend_data(self, trend_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format trend data for consistent output."""
         return {
-            "name": trend_data.get("display_name", trend_data.get("name")),
+            "name": ((trend_data.get("display_name", trend_data.get("name") if trend_data else trend_data.get("name") if trend_data else trend_data.get("name")),
             "description": self._generate_trend_description(trend_data),
-            "popularity": int(trend_data.get("score", 0)),
-            "trend_direction": trend_data.get("trend_direction", "stable"),
-            "category": trend_data.get("category", "general"),
+            "popularity": int((trend_data.get("score", 0) if trend_data else 0)),
+            "trend_direction": (trend_data.get("trend_direction", "stable") if trend_data else "stable"),
+            "category": (trend_data.get("category", "general") if trend_data else "general"),
             "key_items": self._get_key_items_for_trend(trend_data),
             "colors": self._get_colors_for_trend(trend_data),
-            "related_styles": trend_data.get("related_styles", []),
-            "last_updated": trend_data.get("last_updated")
+            "related_styles": (trend_data.get("related_styles", []) if trend_data else []),
+            "last_updated": (trend_data.get("last_updated") if trend_data else None)
         }
 
     async def _already_fetched_today(self) -> bool:
@@ -369,7 +369,7 @@ class FashionTrendsService:
         try:
             today = datetime.now().date().isoformat()
             fetch_log_ref = self.db.collection("fashion_trends_fetch_log").document(today)
-            doc = fetch_log_ref.get()
+            doc = fetch_log_ref.get() if fetch_log_ref else None
             return doc.exists
         except Exception as e:
             logger.error(f"Error checking fetch log: {str(e)}")
@@ -398,7 +398,7 @@ class FashionTrendsService:
             # Also store in a daily collection for historical tracking
             today = datetime.now().date().isoformat()
             daily_ref = self.db.collection("fashion_trends_daily").document(today)
-            daily_doc = daily_ref.get()
+            daily_doc = daily_ref.get() if daily_ref else None
             
             if daily_doc.exists:
                 daily_data = daily_doc.to_dict()
@@ -482,9 +482,9 @@ class FashionTrendsService:
 
     def _generate_trend_description(self, trend_data: Dict[str, Any]) -> str:
         """Generate a description for the trend."""
-        name = trend_data.get("display_name", trend_data.get("name", ""))
-        category = trend_data.get("category", "general")
-        direction = trend_data.get("trend_direction", "stable")
+        name = ((trend_data.get("display_name", trend_data.get("name", "") if trend_data else "") if trend_data else ""))
+        category = (trend_data.get("category", "general") if trend_data else "general")
+        direction = (trend_data.get("trend_direction", "stable") if trend_data else "stable")
         
         descriptions = {
             "nostalgic": f"Reviving {name} with modern twists",
@@ -501,7 +501,7 @@ class FashionTrendsService:
             "playful": f"Fun and whimsical {name} style"
         }
         
-        base_desc = descriptions.get(category, f"Trending {name} style")
+        base_desc = (descriptions.get(category, f"Trending {name} style") if descriptions else f"Trending {name} style")
         
         if direction == "increasing":
             return f"{base_desc} (gaining popularity)"
@@ -512,7 +512,7 @@ class FashionTrendsService:
 
     def _get_key_items_for_trend(self, trend_data: Dict[str, Any]) -> List[str]:
         """Get key items for a trend."""
-        name = trend_data.get("name", "").lower()
+        name = (trend_data.get("name", "") if trend_data else "").lower()
         
         # Define key items for different trends
         key_items_map = {
@@ -534,11 +534,11 @@ class FashionTrendsService:
             "kawaii fashion": ["Pastel colors", "Cute accessories", "Frilly dresses", "Character prints"]
         }
         
-        return key_items_map.get(name, ["Stylish pieces", "Trending items", "Fashion essentials"])
+        return (key_items_map.get(name, ["Stylish pieces", "Trending items", "Fashion essentials"]) if key_items_map else "Fashion essentials"])
 
     def _get_colors_for_trend(self, trend_data: Dict[str, Any]) -> List[str]:
         """Get colors for a trend."""
-        name = trend_data.get("name", "").lower()
+        name = (trend_data.get("name", "") if trend_data else "").lower()
         
         # Define colors for different trends
         colors_map = {
@@ -560,4 +560,4 @@ class FashionTrendsService:
             "kawaii fashion": ["Pastels", "Pink", "Blue", "Yellow"]
         }
         
-        return colors_map.get(name, ["Versatile colors", "Trending hues", "Classic tones"]) 
+        return (colors_map.get(name, ["Versatile colors", "Trending hues", "Classic tones"]) if colors_map else "Classic tones"]) 

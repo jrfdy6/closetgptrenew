@@ -173,7 +173,7 @@ class ExistingDataPersonalizationEngine:
                             preferred_occasions.append(item_data['occasion'])
                 
                 # If item is frequently worn, add its attributes to preferences
-                wear_count = item_data.get('wearCount', 0)
+                wear_count = (item_data.get('wearCount', 0) if item_data else 0)
                 if wear_count >= 3:  # Consider frequently worn if worn 3+ times
                     most_worn_items.append(item_id)
                     
@@ -229,8 +229,8 @@ class ExistingDataPersonalizationEngine:
                 interactions += 1
                 
                 # If outfit is favorited or frequently worn, add its attributes to preferences
-                is_favorite = outfit_data.get('favorite', False)
-                wear_count = outfit_data.get('wearCount', 0)
+                is_favorite = (outfit_data.get('favorite', False) if outfit_data else False)
+                wear_count = (outfit_data.get('wearCount', 0) if outfit_data else 0)
                 
                 if is_favorite or wear_count >= 2:  # Consider if favorited or worn 2+ times
                     # Add style to preferences
@@ -347,7 +347,7 @@ class ExistingDataPersonalizationEngine:
         # Count frequency
         frequency = {}
         for item in items:
-            frequency[item] = frequency.get(item, 0) + 1
+            frequency[item] = (frequency.get(item, 0) if frequency else 0) + 1
         
         # Sort by frequency (highest first)
         sorted_items = sorted(frequency.items(), key=lambda x: x[1], reverse=True)
@@ -366,7 +366,7 @@ class ExistingDataPersonalizationEngine:
             score = 0.0
             
             # Color preference scoring
-            outfit_colors = outfit.get('colors', [])
+            outfit_colors = (outfit.get('colors', []) if outfit else [])
             for color in outfit_colors:
                 if color in preference.preferred_colors:
                     # Higher score for colors that appear more frequently in preferences
@@ -374,7 +374,7 @@ class ExistingDataPersonalizationEngine:
                     score += (10 - color_index) * 0.5  # Top colors get higher scores
             
             # Style preference scoring
-            outfit_styles = outfit.get('styles', [])
+            outfit_styles = (outfit.get('styles', []) if outfit else [])
             for style in outfit_styles:
                 if style in preference.preferred_styles:
                     style_index = preference.preferred_styles.index(style)
@@ -387,7 +387,7 @@ class ExistingDataPersonalizationEngine:
                 score += (10 - occasion_index) * 0.2
             
             # Favorite items bonus
-            outfit_items = outfit.get('items', [])
+            outfit_items = (outfit.get('items', []) if outfit else [])
             for item in outfit_items:
                 if item.get('id') in preference.favorite_items:
                     score += 1.0  # Bonus for favorite items
@@ -406,7 +406,7 @@ class ExistingDataPersonalizationEngine:
             ranked_outfits.append(outfit)
         
         # Sort by personalization score (highest first)
-        ranked_outfits.sort(key=lambda x: x.get('personalization_score', 0), reverse=True)
+        ranked_outfits.sort(key=lambda x: (x.get('personalization_score', 0) if x else 0), reverse=True)
         
         logger.info(f"✅ Ranked {len(outfits)} outfits for user {user_id} using existing data")
         return ranked_outfits

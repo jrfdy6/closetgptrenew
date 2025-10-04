@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/outfits", tags=["outfits"])
 
 # ===== ROUTES: Handle HTTP requests/responses and basic validation =====
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_user_outfits(
     current_user_id: str = Depends(get_current_user_id),
     limit: Optional[int] = 50,
@@ -63,7 +63,7 @@ async def get_user_outfits(
             detail="Failed to fetch outfits"
         )
 
-@router.get("/{outfit_id}")
+@(router.get("/{outfit_id}") if router else None)
 async def get_outfit(
     outfit_id: str,
     current_user_id: str = Depends(get_current_user_id)
@@ -289,7 +289,7 @@ async def toggle_outfit_favorite(
             detail="Failed to toggle outfit favorite"
         )
 
-@router.get("/stats/summary")
+@(router.get("/stats/summary") if router else None)
 async def get_outfit_stats(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -320,7 +320,7 @@ async def get_outfit_stats(
 
 # ===== HEALTH AND DEBUG ENDPOINTS =====
 
-@router.get("/health")
+@(router.get("/health") if router else None)
 async def outfits_health_check():
     """Health check for outfits router."""
     return {
@@ -333,7 +333,7 @@ async def outfits_health_check():
         }
     }
 
-@router.get("/debug")
+@(router.get("/debug") if router else None)
 async def outfits_debug():
     """Debug endpoint for outfits router."""
     return {

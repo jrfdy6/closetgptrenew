@@ -101,7 +101,7 @@ class OutfitCoreService:
             
             # Debug: Print the raw outfit data structure
             print(f"DEBUG: get_outfit - Raw outfit data keys: {list(outfit_data.keys())}")
-            print(f"DEBUG: get_outfit - Items type: {type(outfit_data.get('items', 'NOT_FOUND'))}")
+            print(f"DEBUG: get_outfit - Items type: {type((outfit_data.get('items', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'))}")
             if 'items' in outfit_data:
                 print(f"DEBUG: get_outfit - Items length: {len(outfit_data['items']) if isinstance(outfit_data['items'], list) else 'NOT_LIST'}")
                 if isinstance(outfit_data['items'], list) and outfit_data['items']:
@@ -197,17 +197,17 @@ class OutfitCoreService:
                         # This is an OutfitPiece, we need to convert it to ClothingItem format
                         # For now, we'll create a minimal ClothingItem structure
                         converted_item = {
-                            'id': item.get('itemId', 'unknown'),
-                            'name': item.get('name', 'Unknown Item'),
-                            'type': normalize_enum_string(item.get('type', 'other')),
+                            'id': (item.get('itemId', 'unknown') if item else 'unknown'),
+                            'name': (item.get('name', 'Unknown Item') if item else 'Unknown Item'),
+                            'type': normalize_enum_string((item.get('type', 'other') if item else 'other')),
                             'color': 'unknown',
                             'season': ['all'],
-                            'style': item.get('style', []),
-                            'imageUrl': item.get('imageUrl', ''),
+                            'style': (item.get('style', []) if item else []),
+                            'imageUrl': (item.get('imageUrl', '') if item else ''),
                             'tags': [],
-                            'dominantColors': item.get('dominantColors', []),
+                            'dominantColors': (item.get('dominantColors', []) if item else []),
                             'matchingColors': [],
-                            'occasion': item.get('occasion', []),
+                            'occasion': (item.get('occasion', []) if item else []),
                             'createdAt': int(time.time()),
                             'updatedAt': int(time.time()),
                             'userId': 'unknown'
@@ -230,20 +230,20 @@ class OutfitCoreService:
                             print(f"Warning: Failed to convert item dict to ClothingItem: {e}")
                             # If conversion fails, create a minimal structure
                             converted_item = {
-                                'id': item.get('id', 'unknown'),
-                                'name': item.get('name', 'Unknown Item'),
-                                'type': normalize_enum_string(item.get('type', 'other')),
-                                'color': item.get('color', 'unknown'),
-                                'season': item.get('season', ['all']),
-                                'style': item.get('style', []),
-                                'imageUrl': item.get('imageUrl', ''),
-                                'tags': item.get('tags', []),
-                                'dominantColors': item.get('dominantColors', []),
-                                'matchingColors': item.get('matchingColors', []),
-                                'occasion': item.get('occasion', []),
-                                'createdAt': item.get('createdAt', int(time.time())),
-                                'updatedAt': item.get('updatedAt', int(time.time())),
-                                'userId': item.get('userId', 'unknown')
+                                'id': (item.get('id', 'unknown') if item else 'unknown'),
+                                'name': (item.get('name', 'Unknown Item') if item else 'Unknown Item'),
+                                'type': normalize_enum_string((item.get('type', 'other') if item else 'other')),
+                                'color': (item.get('color', 'unknown') if item else 'unknown'),
+                                'season': (item.get('season', ['all']) if item else ['all']),
+                                'style': (item.get('style', []) if item else []),
+                                'imageUrl': (item.get('imageUrl', '') if item else ''),
+                                'tags': (item.get('tags', []) if item else []),
+                                'dominantColors': (item.get('dominantColors', []) if item else []),
+                                'matchingColors': (item.get('matchingColors', []) if item else []),
+                                'occasion': (item.get('occasion', []) if item else []),
+                                'createdAt': (item.get('createdAt', int(time.time() if item else int(time.time())),
+                                'updatedAt': (item.get('updatedAt', int(time.time() if item else int(time.time())),
+                                'userId': (item.get('userId', 'unknown') if item else 'unknown')
                             }
                             converted_items.append(converted_item)
                 elif isinstance(item, str):
@@ -262,18 +262,18 @@ class OutfitCoreService:
         
         # Ensure all required fields are present with proper type checking
         required_fields = {
-            'explanation': new_data.get('explanation', 'Generated outfit'),
-            'pieces': new_data.get('pieces', []),
-            'styleTags': new_data.get('styleTags', []),
-            'colorHarmony': new_data.get('colorHarmony', ''),
-            'styleNotes': new_data.get('styleNotes', ''),
-            'metadata': new_data.get('metadata', {}),
+            'explanation': (new_data.get('explanation', 'Generated outfit') if new_data else 'Generated outfit'),
+            'pieces': (new_data.get('pieces', []) if new_data else []),
+            'styleTags': (new_data.get('styleTags', []) if new_data else []),
+            'colorHarmony': (new_data.get('colorHarmony', '') if new_data else ''),
+            'styleNotes': (new_data.get('styleNotes', '') if new_data else ''),
+            'metadata': (new_data.get('metadata', {}) if new_data else {}),
             # Add new tracking fields with default values
-            'wasSuccessful': new_data.get('wasSuccessful', True),
-            'baseItemId': new_data.get('baseItemId', None),
-            'validationErrors': new_data.get('validationErrors', []),
-            'userFeedback': new_data.get('userFeedback', None),
-            'user_id': new_data.get('user_id', None)  # 🚀 NEW: Ensure user_id is included
+            'wasSuccessful': (new_data.get('wasSuccessful', True) if new_data else True),
+            'baseItemId': (new_data.get('baseItemId', None) if new_data else None),
+            'validationErrors': (new_data.get('validationErrors', []) if new_data else []),
+            'userFeedback': (new_data.get('userFeedback', None) if new_data else None),
+            'user_id': (new_data.get('user_id', None) if new_data else None)  # 🚀 NEW: Ensure user_id is included
         }
         
         # Safely update the data, ensuring we don't overwrite existing valid data

@@ -70,12 +70,12 @@ def check_body_type_compatibility(item: ClothingItem, body_type: str) -> bool:
                 body_comp = visual_attrs['bodyTypeCompatibility']
                 if isinstance(body_comp, dict):
                     # Check if the body type is in the recommended fits
-                    recommended_fits = body_comp.get('recommendedFits', {})
+                    recommended_fits = (body_comp.get('recommendedFits', {}) if body_comp else {})
                     if body_type in recommended_fits:
                         return True
                     
                     # Check if the body type is in the style recommendations
-                    style_recs = body_comp.get('styleRecommendations', {})
+                    style_recs = (body_comp.get('styleRecommendations', {}) if body_comp else {})
                     if body_type in style_recs:
                         return True
     
@@ -109,12 +109,12 @@ def check_skin_tone_compatibility(item: ClothingItem, skin_tone: str) -> bool:
                 skin_comp = visual_attrs['skinToneCompatibility']
                 if isinstance(skin_comp, dict):
                     # Check if the skin tone is in the compatible colors
-                    compatible_colors = skin_comp.get('compatibleColors', {})
+                    compatible_colors = (skin_comp.get('compatibleColors', {}) if skin_comp else {})
                     if skin_tone in compatible_colors:
                         return True
                     
                     # Check if the skin tone is in the recommended palettes
-                    recommended_palettes = skin_comp.get('recommendedPalettes', {})
+                    recommended_palettes = (skin_comp.get('recommendedPalettes', {}) if skin_comp else {})
                     if skin_tone in recommended_palettes:
                         return True
     

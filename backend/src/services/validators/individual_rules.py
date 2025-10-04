@@ -26,7 +26,7 @@ def has_required_categories(items: List[ClothingItem]) -> bool:
     categories = []
     for item in items:
         item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
-        category = category_mapping.get(item_type, "other")
+        category = (category_mapping.get(item_type, "other") if category_mapping else "other")
         categories.append(category)
     
     # Check for required categories: top, bottom, shoes

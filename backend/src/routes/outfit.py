@@ -69,12 +69,12 @@ class UpdateOutfitRequest(BaseModel):
 
 
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_outfits():
     """Simple test endpoint to verify outfit router loads"""
     return {"message": "Outfit router is working!", "status": "success"}
 
-@router.get("/{outfit_id}")
+@(router.get("/{outfit_id}") if router else None)
 async def get_outfit(outfit_id: str):
     """Simple test endpoint to get outfit by ID"""
     return {"message": f"Getting outfit {outfit_id}", "outfit_id": outfit_id}
@@ -271,7 +271,7 @@ async def generate_outfit(request: OutfitGenerationRequest):
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Error submitting feedback: {str(e)}")
 
-# @router.get("/{outfit_id}/feedback")
+# @(router.get("/{outfit_id}/feedback") if router else None)
 # async def get_outfit_feedback(
 #     outfit_id: str,
 #     current_user: UserProfile = Depends(get_current_user)

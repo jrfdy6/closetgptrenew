@@ -27,7 +27,7 @@ router = APIRouter()
 
 outfit_service = OutfitService()
 
-@router.get("/outfit-analytics")
+@(router.get("/outfit-analytics") if router else None)
 async def get_outfit_analytics(
     start_date: Optional[int] = Query(None, description="Start timestamp"),
     end_date: Optional[int] = Query(None, description="End timestamp"),
@@ -73,7 +73,7 @@ async def get_outfit_analytics(
             detail="Failed to retrieve analytics"
         )
 
-@router.get("/outfit-analytics/validation-errors")
+@(router.get("/outfit-analytics/validation-errors") if router else None)
 async def get_validation_error_analytics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -84,7 +84,7 @@ async def get_validation_error_analytics(
         # Get all outfits for the user
         analytics = await outfit_service.get_outfit_analytics(user_id=current_user.id)
         
-        validation_errors = analytics.get("validation_errors", {})
+        validation_errors = (analytics.get("validation_errors", {}) if analytics else {})
         
         # Categorize errors
         error_categories = {
@@ -127,7 +127,7 @@ async def get_validation_error_analytics(
             detail="Failed to retrieve validation error analytics"
         )
 
-@router.get("/outfit-analytics/feedback")
+@(router.get("/outfit-analytics/feedback") if router else None)
 async def get_feedback_analytics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -137,12 +137,12 @@ async def get_feedback_analytics(
     try:
         analytics = await outfit_service.get_outfit_analytics(user_id=current_user.id)
         
-        feedback_stats = analytics.get("feedback_stats", {})
+        feedback_stats = (analytics.get("feedback_stats", {}) if analytics else {})
         
         # Calculate feedback insights
-        total_feedback = feedback_stats.get("total_feedback", 0)
-        positive_feedback = feedback_stats.get("positive_feedback", 0)
-        average_rating = feedback_stats.get("average_rating", 0)
+        total_feedback = (feedback_stats.get("total_feedback", 0) if feedback_stats else 0)
+        positive_feedback = (feedback_stats.get("positive_feedback", 0) if feedback_stats else 0)
+        average_rating = (feedback_stats.get("average_rating", 0) if feedback_stats else 0)
         
         feedback_insights = {
             "total_feedback": total_feedback,
@@ -169,7 +169,7 @@ async def get_feedback_analytics(
             detail="Failed to retrieve feedback analytics"
         )
 
-@router.get("/outfit-analytics/performance")
+@(router.get("/outfit-analytics/performance") if router else None)
 async def get_performance_metrics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -179,14 +179,14 @@ async def get_performance_metrics(
     try:
         analytics = await outfit_service.get_outfit_analytics(user_id=current_user.id)
         
-        total_outfits = analytics.get("total_outfits", 0)
-        successful_outfits = analytics.get("successful_outfits", 0)
-        failed_outfits = analytics.get("failed_outfits", 0)
-        base_item_usage_rate = analytics.get("base_item_usage_rate", 0)
+        total_outfits = (analytics.get("total_outfits", 0) if analytics else 0)
+        successful_outfits = (analytics.get("successful_outfits", 0) if analytics else 0)
+        failed_outfits = (analytics.get("failed_outfits", 0) if analytics else 0)
+        base_item_usage_rate = (analytics.get("base_item_usage_rate", 0) if analytics else 0)
         
         performance_metrics = {
             "total_outfits_generated": total_outfits,
-            "success_rate": analytics.get("success_rate", 0),
+            "success_rate": (analytics.get("success_rate", 0) if analytics else 0),
             "failure_rate": (failed_outfits / total_outfits * 100) if total_outfits > 0 else 0,
             "base_item_usage_rate": base_item_usage_rate,
             "efficiency_score": (successful_outfits / total_outfits) if total_outfits > 0 else 0,
@@ -229,7 +229,7 @@ def create_analytics_event(event: AnalyticsEvent):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-@router.get("/diagnostics/outfit-traces")
+@(router.get("/diagnostics/outfit-traces") if router else None)
 async def get_outfit_generation_traces(
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
     outfit_id: Optional[str] = Query(None, description="Filter by specific outfit ID"),
@@ -269,18 +269,18 @@ async def get_outfit_generation_traces(
             trace_data['trace_id'] = doc.id
             
             # Apply additional filters
-            if generation_method and trace_data.get('trace_data', {}).get('generation_method') != generation_method:
+            if generation_method and (trace_data.get('trace_data', {}) if trace_data else {}).get('generation_method') != generation_method:
                 continue
                 
             if success_only:
-                outfit_success = trace_data.get('trace_data', {}).get('was_successful', True)
+                outfit_success = (trace_data.get('trace_data', {}) if trace_data else {}).get('was_successful', True)
                 if not outfit_success:
                     continue
             
             traces.append(trace_data)
         
         # Sort by creation time (newest first)
-        traces.sort(key=lambda x: x.get('created_at', 0), reverse=True)
+        traces.sort(key=lambda x: (x.get('created_at', 0) if x else 0), reverse=True)
         
         return {
             "success": True,
@@ -299,7 +299,7 @@ async def get_outfit_generation_traces(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving traces: {str(e)}")
 
-@router.get("/diagnostics/outfit-traces/{outfit_id}")
+@(router.get("/diagnostics/outfit-traces/{outfit_id}") if router else None)
 async def get_outfit_trace_detail(
     outfit_id: str,
     current_user: UserProfile = Depends(get_current_user)
@@ -313,7 +313,7 @@ async def get_outfit_trace_detail(
     try:
         # First try to get from the outfit document
         outfit_ref = db.collection('outfits').document(outfit_id)
-        outfit_doc = outfit_ref.get()
+        outfit_doc = outfit_ref.get() if outfit_ref else None
         
         if not outfit_doc.exists:
             raise HTTPException(status_code=404, detail="Outfit not found")
@@ -323,22 +323,22 @@ async def get_outfit_trace_detail(
         # Extract trace information
         trace_info = {
             "outfit_id": outfit_id,
-            "generation_trace": outfit_data.get('generation_trace', []),
-            "validation_details": outfit_data.get('validation_details', {}),
-            "wardrobe_snapshot": outfit_data.get('wardrobe_snapshot', {}),
-            "system_context": outfit_data.get('system_context', {}),
-            "user_session_context": outfit_data.get('user_session_context', {}),
-            "generation_method": outfit_data.get('generation_method', 'unknown'),
-            "was_successful": outfit_data.get('wasSuccessful', False),
-            "validation_errors": outfit_data.get('validationErrors', []),
-            "created_at": outfit_data.get('createdAt', 0),
+            "generation_trace": (outfit_data.get('generation_trace', []) if outfit_data else []),
+            "validation_details": (outfit_data.get('validation_details', {}) if outfit_data else {}),
+            "wardrobe_snapshot": (outfit_data.get('wardrobe_snapshot', {}) if outfit_data else {}),
+            "system_context": (outfit_data.get('system_context', {}) if outfit_data else {}),
+            "user_session_context": (outfit_data.get('user_session_context', {}) if outfit_data else {}),
+            "generation_method": (outfit_data.get('generation_method', 'unknown') if outfit_data else 'unknown'),
+            "was_successful": (outfit_data.get('wasSuccessful', False) if outfit_data else False),
+            "validation_errors": (outfit_data.get('validationErrors', []) if outfit_data else []),
+            "created_at": (outfit_data.get('createdAt', 0) if outfit_data else 0),
             "outfit_summary": {
-                "name": outfit_data.get('name', ''),
-                "occasion": outfit_data.get('occasion', ''),
-                "style": outfit_data.get('style', ''),
-                "items_count": len(outfit_data.get('items', [])),
-                "color_harmony": outfit_data.get('colorHarmony', ''),
-                "style_notes": outfit_data.get('styleNotes', '')
+                "name": (outfit_data.get('name', '') if outfit_data else ''),
+                "occasion": (outfit_data.get('occasion', '') if outfit_data else ''),
+                "style": (outfit_data.get('style', '') if outfit_data else ''),
+                "items_count": len((outfit_data.get('items', []) if outfit_data else [])),
+                "color_harmony": (outfit_data.get('colorHarmony', '') if outfit_data else ''),
+                "style_notes": (outfit_data.get('styleNotes', '') if outfit_data else '')
             }
         }
         
@@ -352,7 +352,7 @@ async def get_outfit_trace_detail(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving trace: {str(e)}")
 
-@router.get("/diagnostics/analytics")
+@(router.get("/diagnostics/analytics") if router else None)
 async def get_diagnostic_analytics(
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
     days: Optional[int] = Query(7, description="Number of days to analyze"),
@@ -392,22 +392,22 @@ async def get_diagnostic_analytics(
         # Generation method breakdown
         method_counts = {}
         for outfit in outfits:
-            method = outfit.get('generation_method', 'unknown')
-            method_counts[method] = method_counts.get(method, 0) + 1
+            method = (outfit.get('generation_method', 'unknown') if outfit else 'unknown')
+            method_counts[method] = (method_counts.get(method, 0) if method_counts else 0) + 1
         
         # Common validation errors
         error_counts = {}
         for outfit in outfits:
-            errors = outfit.get('validationErrors', [])
+            errors = (outfit.get('validationErrors', []) if outfit else [])
             for error in errors:
                 # Extract error type from error message
                 error_type = error.split(':')[0] if ':' in error else 'unknown'
-                error_counts[error_type] = error_counts.get(error_type, 0) + 1
+                error_counts[error_type] = (error_counts.get(error_type, 0) if error_counts else 0) + 1
         
         # Performance metrics
         generation_times = []
         for outfit in outfits:
-            trace = outfit.get('generation_trace', [])
+            trace = (outfit.get('generation_trace', []) if outfit else [])
             if trace:
                 # Find the generation completion step
                 for step in trace:
@@ -421,11 +421,11 @@ async def get_diagnostic_analytics(
         # Wardrobe gap analysis
         wardrobe_gaps = {}
         for outfit in outfits:
-            snapshot = outfit.get('wardrobe_snapshot', {})
-            gaps = snapshot.get('gaps', [])
+            snapshot = (outfit.get('wardrobe_snapshot', {}) if outfit else {})
+            gaps = (snapshot.get('gaps', []) if snapshot else [])
             for gap in gaps:
-                category = gap.get('category', 'unknown')
-                severity = gap.get('severity', 'unknown')
+                category = (gap.get('category', 'unknown') if gap else 'unknown')
+                severity = (gap.get('severity', 'unknown') if gap else 'unknown')
                 if category not in wardrobe_gaps:
                     wardrobe_gaps[category] = {'high': 0, 'medium': 0, 'low': 0}
                 wardrobe_gaps[category][severity] = wardrobe_gaps[category].get(severity, 0) + 1
@@ -457,7 +457,7 @@ async def get_diagnostic_analytics(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating analytics: {str(e)}")
 
-@router.get("/diagnostics/health")
+@(router.get("/diagnostics/health") if router else None)
 async def get_system_health(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -500,7 +500,7 @@ async def get_system_health(
         # Check generation times
         slow_generations = 0
         for outfit in outfits:
-            trace = outfit.get('generation_trace', [])
+            trace = (outfit.get('generation_trace', []) if outfit else [])
             for step in trace:
                 if step.get('step') == 'generation_completion':
                     duration = step.get('duration', 0)
@@ -543,7 +543,7 @@ async def get_system_health(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking system health: {str(e)}")
 
-@router.get("/diagnostics/health/public")
+@(router.get("/diagnostics/health/public") if router else None)
 async def get_public_system_health():
     """
     Public health check endpoint for diagnostic testing.
@@ -585,7 +585,7 @@ async def get_public_system_health():
             "timestamp": int(time.time())
         }
 
-@router.get("/diagnostics/outfit-traces/public")
+@(router.get("/diagnostics/outfit-traces/public") if router else None)
 async def get_public_outfit_traces():
     """
     Public outfit traces endpoint for diagnostic testing.
@@ -613,13 +613,13 @@ async def get_public_outfit_traces():
             "timestamp": int(time.time()),
             "latest_outfit": {
                 "id": outfit_data['outfit_id'],
-                "name": outfit_data.get('name', 'Unknown'),
-                "generation_method": outfit_data.get('generation_method', 'unknown'),
-                "was_successful": outfit_data.get('wasSuccessful', False),
-                "items_count": len(outfit_data.get('items', [])),
-                "created_at": outfit_data.get('createdAt', 0),
-                "validation_errors": outfit_data.get('validationErrors', []),
-                "generation_trace": outfit_data.get('generation_trace', [])
+                "name": (outfit_data.get('name', 'Unknown') if outfit_data else 'Unknown'),
+                "generation_method": (outfit_data.get('generation_method', 'unknown') if outfit_data else 'unknown'),
+                "was_successful": (outfit_data.get('wasSuccessful', False) if outfit_data else False),
+                "items_count": len((outfit_data.get('items', []) if outfit_data else [])),
+                "created_at": (outfit_data.get('createdAt', 0) if outfit_data else 0),
+                "validation_errors": (outfit_data.get('validationErrors', []) if outfit_data else []),
+                "generation_trace": (outfit_data.get('generation_trace', []) if outfit_data else [])
             },
             "message": "Latest outfit trace retrieved successfully"
         }
@@ -630,7 +630,7 @@ async def get_public_outfit_traces():
             "timestamp": int(time.time())
         }
 
-@router.get("/test-alive")
+@(router.get("/test-alive") if router else None)
 async def test_alive():
     return {"status": "alive"} 
 
@@ -649,11 +649,11 @@ async def track_outfit_worn(
         logger.info(f"Tracking outfit worn for user {current_user.id}")
         
         # Extract data from request
-        outfit_id = data.get("outfitId")
-        date_worn = data.get("dateWorn")
-        occasion = data.get("occasion", "Casual")
-        mood = data.get("mood", "Comfortable")
-        weather = data.get("weather")
+        outfit_id = (data.get("outfitId") if data else None)
+        date_worn = (data.get("dateWorn") if data else None)
+        occasion = (data.get("occasion", "Casual") if data else "Casual")
+        mood = (data.get("mood", "Comfortable") if data else "Comfortable")
+        weather = (data.get("weather") if data else None)
         
         # Create analytics event
         event_data = {
@@ -694,9 +694,9 @@ async def track_outfit_history_update(
         logger.info(f"Tracking outfit history update for user {current_user.id}")
         
         # Extract data from request
-        entry_id = data.get("entryId")
-        outfit_id = data.get("outfitId")
-        updates = data.get("updates", {})
+        entry_id = (data.get("entryId") if data else None)
+        outfit_id = (data.get("outfitId") if data else None)
+        updates = (data.get("updates", {}) if data else {})
         
         # Create analytics event
         event_data = {
@@ -735,12 +735,12 @@ async def track_outfit_history_delete(
         logger.info(f"Tracking outfit history deletion for user {current_user.id}")
         
         # Extract data from request
-        entry_id = data.get("entryId")
-        outfit_id = data.get("outfitId")
-        outfit_name = data.get("outfitName")
-        date_worn = data.get("dateWorn")
-        occasion = data.get("occasion")
-        mood = data.get("mood")
+        entry_id = (data.get("entryId") if data else None)
+        outfit_id = (data.get("outfitId") if data else None)
+        outfit_name = (data.get("outfitName") if data else None)
+        date_worn = (data.get("dateWorn") if data else None)
+        occasion = (data.get("occasion") if data else None)
+        mood = (data.get("mood") if data else None)
         
         # Create analytics event
         event_data = {
@@ -770,7 +770,7 @@ async def track_outfit_history_delete(
         logger.error(f"Error tracking outfit history deletion: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to track outfit history deletion")
 
-@router.get("/outfit-history-summary/{user_id}")
+@(router.get("/outfit-history-summary/{user_id}") if router else None)
 async def get_outfit_history_summary(
     user_id: str,
     current_user: UserProfile = Depends(get_current_user)
@@ -798,7 +798,7 @@ async def get_outfit_history_summary(
         logger.error(f"Error getting outfit history summary: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get outfit history summary")
 
-@router.get("/outfit-wear-patterns/{user_id}")
+@(router.get("/outfit-wear-patterns/{user_id}") if router else None)
 async def get_outfit_wear_patterns(
     user_id: str,
     current_user: UserProfile = Depends(get_current_user)

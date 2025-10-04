@@ -134,8 +134,8 @@ class DiversityFilterService:
                 similarities.append({
                     'index': i,
                     'similarity': similarity,
-                    'outfit_id': recent_outfit.get('id', f'outfit_{i}'),
-                    'created_at': recent_outfit.get('createdAt', 0)
+                    'outfit_id': (recent_outfit.get('id', f'outfit_{i}') if recent_outfit else f'outfit_{i}'),
+                    'created_at': (recent_outfit.get('createdAt', 0) if recent_outfit else 0)
                 })
         
         # Sort by similarity (highest first)

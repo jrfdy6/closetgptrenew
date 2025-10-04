@@ -138,7 +138,7 @@ EXCEPTION_STATUS_MAPPING = {
 
 def handle_closetgpt_exception(exc: ClosetGPTException) -> HTTPException:
     """Convert ClosetGPT exceptions to HTTP exceptions."""
-    status_code = EXCEPTION_STATUS_MAPPING.get(type(exc), status.HTTP_500_INTERNAL_SERVER_ERROR)
+    status_code = (EXCEPTION_STATUS_MAPPING.get(type(exc) if EXCEPTION_STATUS_MAPPING else None), status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     return HTTPException(
         status_code=status_code,

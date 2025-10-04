@@ -34,7 +34,7 @@ def parse_timestamp_safe(ts):
         pass
     return None
 
-@router.get("/stats")
+@(router.get("/stats") if router else None)
 async def get_simple_outfit_stats(
     current_user: UserProfile = Depends(get_current_user),
     days: int = Query(7, description="Number of days to look back")
@@ -69,11 +69,11 @@ async def get_simple_outfit_stats(
         try:
             # Try to get from user_stats first (fast)
             stats_ref = db.collection('user_stats').document(current_user.id)
-            stats_doc = await stats_ref.get()
+            stats_doc = await stats_ref.get() if stats_ref else None
             
             if stats_doc.exists:
                 stats_data = stats_doc.to_dict()
-                worn_count = stats_data.get('worn_this_week', 0)
+                worn_count = (stats_data.get('worn_this_week', 0) if stats_data else 0)
                 logger.info(f"✅ Got worn count from user_stats: {worn_count}")
             else:
                 # Fallback: count manually but with limit to prevent timeout
@@ -83,7 +83,7 @@ async def get_simple_outfit_stats(
                 docs = outfits_ref.stream()
                 for doc in docs:
                     data = doc.to_dict()
-                    last_worn = parse_timestamp_safe(data.get('lastWorn'))
+                    last_worn = parse_timestamp_safe((data.get('lastWorn') if data else None))
                     
                     if last_worn and last_worn >= week_start:
                         worn_count += 1

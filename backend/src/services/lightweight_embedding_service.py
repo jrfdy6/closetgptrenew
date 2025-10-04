@@ -88,7 +88,7 @@ class LightweightEmbeddingService:
                     data = json.load(f)
                     
                 # Load embeddings
-                for embedding_id, embedding_data in data.get('embeddings', {}).items():
+                for embedding_id, embedding_data in (data.get('embeddings', {}) if data else {}).items():
                     self.embeddings[embedding_id] = LightweightEmbedding(
                         id=embedding_data['id'],
                         type=EmbeddingType(embedding_data['type']),
@@ -96,14 +96,14 @@ class LightweightEmbeddingService:
                         metadata=embedding_data['metadata'],
                         created_at=embedding_data['created_at'],
                         updated_at=embedding_data['updated_at'],
-                        version=embedding_data.get('version', 1)
+                        version=(embedding_data.get('version', 1) if embedding_data else 1)
                     )
                 
                 # Load user embeddings
-                self.user_embeddings = data.get('user_embeddings', {})
+                self.user_embeddings = (data.get('user_embeddings', {}) if data else {})
                 
                 # Load interactions
-                interactions_data = data.get('interactions', [])
+                interactions_data = (data.get('interactions', []) if data else [])
                 self.user_interactions = [
                     UserInteraction(**interaction) for interaction in interactions_data
                 ]
@@ -187,23 +187,23 @@ class LightweightEmbeddingService:
             embedding = self._create_lightweight_embedding(item_text, "item")
             
             # Store embedding
-            item_id = item.get('id', f"item_{int(time.time())}")
+            item_id = (item.get('id', f"item_{int(time.time() if item else f"item_{int(time.time())}")
             self.embeddings[item_id] = LightweightEmbedding(
                 id=item_id,
                 type=EmbeddingType.ITEM,
                 vector=embedding,
                 metadata={
-                    "name": item.get('name', 'Unknown'),
-                    "type": item.get('type', 'unknown'),
-                    "color": item.get('color', 'unknown'),
-                    "style": item.get('style', []),
-                    "occasion": item.get('occasion', [])
+                    "name": (item.get('name', 'Unknown') if item else 'Unknown'),
+                    "type": (item.get('type', 'unknown') if item else 'unknown'),
+                    "color": (item.get('color', 'unknown') if item else 'unknown'),
+                    "style": (item.get('style', []) if item else []),
+                    "occasion": (item.get('occasion', []) if item else [])
                 },
                 created_at=time.time(),
                 updated_at=time.time()
             )
             
-            logger.info(f"✅ Generated lightweight item embedding for {item.get('name', 'Unknown')}")
+            logger.info(f"✅ Generated lightweight item embedding for {(item.get('name', 'Unknown') if item else 'Unknown')}")
             return embedding
             
         except Exception as e:
@@ -221,23 +221,23 @@ class LightweightEmbeddingService:
             embedding = self._create_lightweight_embedding(outfit_text, "outfit")
             
             # Store embedding
-            outfit_id = outfit.get('id', f"outfit_{int(time.time())}")
+            outfit_id = (outfit.get('id', f"outfit_{int(time.time() if outfit else f"outfit_{int(time.time())}")
             self.embeddings[outfit_id] = LightweightEmbedding(
                 id=outfit_id,
                 type=EmbeddingType.OUTFIT,
                 vector=embedding,
                 metadata={
-                    "name": outfit.get('name', 'Unknown Outfit'),
-                    "style": outfit.get('style', 'unknown'),
-                    "occasion": outfit.get('occasion', 'unknown'),
-                    "mood": outfit.get('mood', 'unknown'),
-                    "items_count": len(outfit.get('items', []))
+                    "name": (outfit.get('name', 'Unknown Outfit') if outfit else 'Unknown Outfit'),
+                    "style": (outfit.get('style', 'unknown') if outfit else 'unknown'),
+                    "occasion": (outfit.get('occasion', 'unknown') if outfit else 'unknown'),
+                    "mood": (outfit.get('mood', 'unknown') if outfit else 'unknown'),
+                    "items_count": len((outfit.get('items', []) if outfit else []))
                 },
                 created_at=time.time(),
                 updated_at=time.time()
             )
             
-            logger.info(f"✅ Generated lightweight outfit embedding for {outfit.get('name', 'Unknown Outfit')}")
+            logger.info(f"✅ Generated lightweight outfit embedding for {(outfit.get('name', 'Unknown Outfit') if outfit else 'Unknown Outfit')}")
             return embedding
             
         except Exception as e:
@@ -285,7 +285,7 @@ class LightweightEmbeddingService:
         """Update user embedding based on interaction"""
         try:
             # Get current user embedding
-            current_embedding = self.user_embeddings.get(user_id, [0.0] * self.embedding_dimension)
+            current_embedding = self.(user_embeddings.get(user_id, [0.0] * self.embedding_dimension) if user_embeddings else [0.0] * self.embedding_dimension)
             
             # Get item/outfit embedding
             if interaction.item_id and interaction.item_id in self.embeddings:
@@ -324,7 +324,7 @@ class LightweightEmbeddingService:
             
         except Exception as e:
             logger.error(f"❌ Failed to update user embedding: {e}")
-            return self.user_embeddings.get(user_id, [0.0] * self.embedding_dimension)
+            return self.(user_embeddings.get(user_id, [0.0] * self.embedding_dimension) if user_embeddings else [0.0] * self.embedding_dimension)
     
     async def get_personalized_recommendations(
         self, 
@@ -335,7 +335,7 @@ class LightweightEmbeddingService:
         """Get personalized outfit recommendations based on cosine similarity"""
         try:
             # Get user embedding
-            user_embedding = self.user_embeddings.get(user_id)
+            user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
             if not user_embedding:
                 logger.warning(f"No user embedding found for {user_id}")
                 return candidate_outfits[:top_k]
@@ -344,7 +344,7 @@ class LightweightEmbeddingService:
             similarities = []
             for outfit in candidate_outfits:
                 # Get or generate outfit embedding
-                outfit_embedding = await self._get_outfit_embedding(outfit.get('id', ''))
+                outfit_embedding = await self._get_outfit_embedding((outfit.get('id', '') if outfit else ''))
                 
                 # Calculate cosine similarity
                 similarity = self._cosine_similarity(user_embedding, outfit_embedding)
@@ -352,7 +352,7 @@ class LightweightEmbeddingService:
                 similarities.append({
                     'outfit': outfit,
                     'similarity': similarity,
-                    'outfit_id': outfit.get('id', '')
+                    'outfit_id': (outfit.get('id', '') if outfit else '')
                 })
             
             # Sort by similarity (descending)
@@ -426,27 +426,27 @@ class LightweightEmbeddingService:
         parts = []
         
         # Basic information
-        parts.append(f"Item: {item.get('name', 'Unknown')}")
-        parts.append(f"Type: {item.get('type', 'unknown')}")
-        parts.append(f"Color: {item.get('color', 'unknown')}")
+        parts.append(f"Item: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+        parts.append(f"Type: {(item.get('type', 'unknown') if item else 'unknown')}")
+        parts.append(f"Color: {(item.get('color', 'unknown') if item else 'unknown')}")
         
         # Style information
-        styles = item.get('style', [])
+        styles = (item.get('style', []) if item else [])
         if styles:
             parts.append(f"Styles: {', '.join(styles)}")
         
         # Occasion information
-        occasions = item.get('occasion', [])
+        occasions = (item.get('occasion', []) if item else [])
         if occasions:
             parts.append(f"Occasions: {', '.join(occasions)}")
         
         # Material and texture
-        material = item.get('material', '')
+        material = (item.get('material', '') if item else '')
         if material:
             parts.append(f"Material: {material}")
         
         # Brand information
-        brand = item.get('brand', '')
+        brand = (item.get('brand', '') if item else '')
         if brand:
             parts.append(f"Brand: {brand}")
         
@@ -457,24 +457,24 @@ class LightweightEmbeddingService:
         parts = []
         
         # Basic outfit information
-        parts.append(f"Outfit: {outfit.get('name', 'Unknown Outfit')}")
-        parts.append(f"Style: {outfit.get('style', 'unknown')}")
-        parts.append(f"Occasion: {outfit.get('occasion', 'unknown')}")
-        parts.append(f"Mood: {outfit.get('mood', 'unknown')}")
+        parts.append(f"Outfit: {(outfit.get('name', 'Unknown Outfit') if outfit else 'Unknown Outfit')}")
+        parts.append(f"Style: {(outfit.get('style', 'unknown') if outfit else 'unknown')}")
+        parts.append(f"Occasion: {(outfit.get('occasion', 'unknown') if outfit else 'unknown')}")
+        parts.append(f"Mood: {(outfit.get('mood', 'unknown') if outfit else 'unknown')}")
         
         # Items in the outfit
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         if items:
             item_descriptions = []
             for item in items:
-                item_desc = f"{item.get('name', 'Unknown')} ({item.get('type', 'unknown')}, {item.get('color', 'unknown')})"
+                item_desc = f"{(((item.get('name', 'Unknown') if item else 'Unknown') if item else 'Unknown') if item else 'Unknown')} ({item.get('type', 'unknown')}, {item.get('color', 'unknown')})"
                 item_descriptions.append(item_desc)
             parts.append(f"Items: {', '.join(item_descriptions)}")
         
         # Color palette
         colors = []
         for item in items:
-            color = item.get('color', '')
+            color = (item.get('color', '') if item else '')
             if color and color not in colors:
                 colors.append(color)
         if colors:
@@ -492,7 +492,7 @@ class LightweightEmbeddingService:
     
     def get_user_embedding_stats(self, user_id: str) -> Dict[str, Any]:
         """Get statistics about user's embedding and interactions"""
-        user_embedding = self.user_embeddings.get(user_id)
+        user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
         user_interactions = [i for i in self.user_interactions if i.user_id == user_id]
         
         return {

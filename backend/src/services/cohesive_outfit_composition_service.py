@@ -249,7 +249,7 @@ class CohesiveOutfitCompositionService:
             return appropriate_items
         
         # Try style fallbacks (limit to 2 attempts)
-        style_fallback_list = style_fallbacks.get(style.lower(), ["casual"])
+        style_fallback_list = (style_fallbacks.get(style.lower() if style_fallbacks else None), ["casual"])
         for fallback_style in style_fallback_list[:2]:  # Limit to 2 attempts
             if fallback_style == style.lower():
                 continue  # Skip original style
@@ -262,7 +262,7 @@ class CohesiveOutfitCompositionService:
                 return fallback_items
         
         # Try occasion fallbacks (limit to 2 attempts)
-        occasion_fallback_list = occasion_fallbacks.get(occasion.lower(), ["casual"])
+        occasion_fallback_list = (occasion_fallbacks.get(occasion.lower() if occasion_fallbacks else None), ["casual"])
         for fallback_occasion in occasion_fallback_list[:2]:  # Limit to 2 attempts
             if fallback_occasion == occasion.lower():
                 continue  # Skip original occasion
@@ -316,7 +316,7 @@ class CohesiveOutfitCompositionService:
         }
         
         # Get items by priority for this occasion
-        occasion_priority = base_priorities.get(occasion.lower(), ["pants", "jeans", "dress"])
+        occasion_priority = (base_priorities.get(occasion.lower() if base_priorities else None), ["pants", "jeans", "dress"])
         
         logger.info(f"🎯 Selecting base piece for {occasion} occasion")
         logger.info(f"   Priority types: {occasion_priority}")
@@ -567,7 +567,7 @@ class CohesiveOutfitCompositionService:
             return 0.0
         
         formality_scores = [self._get_item_formality_score(piece) for piece in pieces]
-        target_formality = self.style_formality_levels.get(target_style.lower(), 2.5)
+        target_formality = self.(style_formality_levels.get(target_style.lower() if style_formality_levels else None), 2.5)
         
         # Calculate deviation from target formality
         deviations = [abs(score - target_formality) for score in formality_scores]
@@ -685,7 +685,7 @@ class CohesiveOutfitCompositionService:
         # Check if body type is in user preferences or metadata
         if hasattr(user_profile, 'preferences') and user_profile.preferences:
             if isinstance(user_profile.preferences, dict):
-                body_type = user_profile.preferences.get('body_type')
+                body_type = user_profile.(preferences.get('body_type') if preferences else None)
                 if body_type:
                     try:
                         return BodyType(body_type.lower())
@@ -723,27 +723,27 @@ class CohesiveOutfitCompositionService:
             # Classic items (structured, traditional)
             if any(classic in item_name or classic in item_type for classic in 
                    ['blazer', 'oxford', 'pencil', 'sheath', 'classic', 'traditional']):
-                score += style_personality.get('classic', 0.5) * 10
+                score += (style_personality.get('classic', 0.5) if style_personality else 0.5) * 10
             
             # Modern items (contemporary, minimalist)
             elif any(modern in item_name or modern in item_type for modern in 
                      ['minimalist', 'contemporary', 'sleek', 'modern', 'geometric']):
-                score += style_personality.get('modern', 0.5) * 10
+                score += (style_personality.get('modern', 0.5) if style_personality else 0.5) * 10
             
             # Creative items (unique, artistic, bold)
             elif any(creative in item_name or creative in item_type for creative in 
                      ['artistic', 'unique', 'bold', 'statement', 'creative', 'patterned']):
-                score += style_personality.get('creative', 0.5) * 10
+                score += (style_personality.get('creative', 0.5) if style_personality else 0.5) * 10
             
             # Minimal items (simple, clean)
             elif any(minimal in item_name or minimal in item_type for minimal in 
                      ['simple', 'clean', 'basic', 'essential', 'minimal']):
-                score += style_personality.get('minimal', 0.5) * 10
+                score += (style_personality.get('minimal', 0.5) if style_personality else 0.5) * 10
             
             # Bold items (eye-catching, dramatic)
             elif any(bold in item_name or bold in item_type for bold in 
                      ['dramatic', 'eye-catching', 'bold', 'vibrant', 'statement']):
-                score += style_personality.get('bold', 0.5) * 10
+                score += (style_personality.get('bold', 0.5) if style_personality else 0.5) * 10
         
         # Check style preferences
         if hasattr(user_profile, 'stylePreferences') and user_profile.stylePreferences:
@@ -771,13 +771,13 @@ class CohesiveOutfitCompositionService:
         item_type = item.type.lower()
         
         # Check preferred materials
-        preferred_materials = material_prefs.get('preferred', [])
+        preferred_materials = (material_prefs.get('preferred', []) if material_prefs else [])
         for material in preferred_materials:
             if material.lower() in item_name or material.lower() in item_type:
                 score += 10
         
         # Check avoided materials
-        avoided_materials = material_prefs.get('avoid', [])
+        avoided_materials = (material_prefs.get('avoid', []) if material_prefs else [])
         for material in avoided_materials:
             if material.lower() in item_name or material.lower() in item_type:
                 score -= 15
@@ -816,8 +816,8 @@ class CohesiveOutfitCompositionService:
         score = 0.0
         
         # Height-based compatibility
-        height = measurements.get('height', 0)
-        height_feet_inches = measurements.get('heightFeetInches', '')
+        height = (measurements.get('height', 0) if measurements else 0)
+        height_feet_inches = (measurements.get('heightFeetInches', '') if measurements else '')
         
         if height > 0 or height_feet_inches:
             # Convert height to inches for calculations
@@ -842,8 +842,8 @@ class CohesiveOutfitCompositionService:
                     score -= 5
         
         # Weight-based compatibility
-        weight = measurements.get('weight', 0)
-        plus_size = measurements.get('plusSize', False)
+        weight = (measurements.get('weight', 0) if measurements else 0)
+        plus_size = (measurements.get('plusSize', False) if measurements else False)
         
         if weight > 0 or plus_size:
             item_name = item.name.lower()
@@ -860,30 +860,30 @@ class CohesiveOutfitCompositionService:
         if item_size:
             # Top size matching
             if item_type in ['shirt', 't-shirt', 'blouse', 'sweater', 'jacket', 'blazer']:
-                user_top_size = measurements.get('topSize', '')
+                user_top_size = (measurements.get('topSize', '') if measurements else '')
                 if user_top_size and self._sizes_match(item_size, user_top_size):
                     score += 10
             
             # Bottom size matching
             elif item_type in ['pants', 'jeans', 'shorts', 'skirt']:
-                user_bottom_size = measurements.get('bottomSize', '')
+                user_bottom_size = (measurements.get('bottomSize', '') if measurements else '')
                 if user_bottom_size and self._sizes_match(item_size, user_bottom_size):
                     score += 10
             
             # Dress size matching
             elif item_type == 'dress':
-                user_dress_size = measurements.get('dressSize', '')
+                user_dress_size = (measurements.get('dressSize', '') if measurements else '')
                 if user_dress_size and self._sizes_match(item_size, user_dress_size):
                     score += 10
             
             # Shoe size matching
             elif item_type in ['shoes', 'sneakers', 'boots', 'sandals', 'heels']:
-                user_shoe_size = measurements.get('shoeSize', '')
+                user_shoe_size = (measurements.get('shoeSize', '') if measurements else '')
                 if user_shoe_size and self._shoe_sizes_match(item_size, user_shoe_size):
                     score += 10
         
         # Skin tone compatibility for colors
-        skin_tone = measurements.get('skinTone')
+        skin_tone = (measurements.get('skinTone') if measurements else None)
         if skin_tone:
             color_compatibility = self._calculate_skin_tone_color_compatibility(item, skin_tone)
             score += color_compatibility

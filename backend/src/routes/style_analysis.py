@@ -142,7 +142,7 @@ async def get_style_breakdown(file: UploadFile = File(...)):
         logger.error(f"Error getting style breakdown: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get style breakdown: {str(e)}")
 
-@router.get("/supported-styles")
+@(router.get("/supported-styles") if router else None)
 async def get_supported_styles():
     """
     Get list of all supported style types

@@ -164,19 +164,19 @@ def _safe_firestore_query(query_func, timeout=3.0):
         _mark_auth_failure()
         raise
 
-@router.get("/health", response_model=dict)
+@(router.get("/health", response_model=dict) if router else response_model=dict)
 async def outfits_health_check():
     """Health check for outfits router."""
     logger.info("🔍 DEBUG: Outfits health check called")
     return {"status": "healthy", "router": "outfits"}
 
-@router.get("/debug", response_model=dict)
+@(router.get("/debug", response_model=dict) if router else response_model=dict)
 async def outfits_debug():
     """Debug endpoint for outfits router."""
     logger.info("🔍 DEBUG: Outfits debug endpoint called")
     
     # Get Firebase project ID from environment
-    project_id = os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET")
+    project_id = os.(environ.get("FIREBASE_PROJECT_ID", "NOT_SET") if environ else "NOT_SET")
     
     return {
         "status": "debug",
@@ -184,10 +184,10 @@ async def outfits_debug():
         "firebase_initialized": firebase_initialized,
         "bypass_enabled": _should_bypass_firestore(),
         "firebase_project_id": project_id,
-        "environment": os.environ.get("ENVIRONMENT", "unknown")
+        "environment": os.(environ.get("ENVIRONMENT", "unknown") if environ else "unknown")
     }
 
-@router.get("/debug-fields", response_model=dict)
+@(router.get("/debug-fields", response_model=dict) if router else response_model=dict)
 async def debug_outfit_fields():
     """Debug endpoint to check field names in outfits collection."""
     logger.info("🔍 DEBUG: Debug fields endpoint called")
@@ -203,10 +203,10 @@ async def debug_outfit_fields():
             field_info.append({
                 "doc_id": doc.id,
                 "fields": list(outfit_data.keys()),
-                "user_id_field": outfit_data.get('user_id', 'NOT_FOUND'),
-                "userId_field": outfit_data.get('userId', 'NOT_FOUND'),
-                "user_field": outfit_data.get('user', 'NOT_FOUND'),
-                "name": outfit_data.get('name', 'NO_NAME')
+                "user_id_field": (outfit_data.get('user_id', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'),
+                "userId_field": (outfit_data.get('userId', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'),
+                "user_field": (outfit_data.get('user', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'),
+                "name": (outfit_data.get('name', 'NO_NAME') if outfit_data else 'NO_NAME')
             })
         
         return {
@@ -222,7 +222,7 @@ async def debug_outfit_fields():
             "error": str(e)
         }
 
-@router.get("/test", response_model=List[OutfitResponse])
+@(router.get("/test", response_model=List[OutfitResponse]) if router else response_model=List[OutfitResponse])
 async def get_test_outfits():
     """Get test outfits without authentication (for testing)."""
     logger.info("Returning test outfits")
@@ -265,17 +265,17 @@ async def get_test_outfits():
                 outfit_data = doc.to_dict()
                 
                 # Resolve item IDs to actual item objects
-                resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), "test_user")
+                resolved_items = await resolve_item_ids_to_objects((outfit_data.get('items', []) if outfit_data else []), "test_user")
                 
                 outfits.append(OutfitResponse(
                     id=doc.id,
-                    name=outfit_data.get('name', ''),
-                    style=outfit_data.get('style', ''),
-                    mood=outfit_data.get('mood', ''),
+                    name=(outfit_data.get('name', '') if outfit_data else ''),
+                    style=(outfit_data.get('style', '') if outfit_data else ''),
+                    mood=(outfit_data.get('mood', '') if outfit_data else ''),
                     items=resolved_items,
-                    occasion=outfit_data.get('occasion', 'Casual'),
-                    confidence_score=outfit_data.get('confidence_score', 0.0),
-                    reasoning=outfit_data.get('reasoning', ''),
+                    occasion=(outfit_data.get('occasion', 'Casual') if outfit_data else 'Casual'),
+                    confidence_score=(outfit_data.get('confidence_score', 0.0) if outfit_data else 0.0),
+                    reasoning=(outfit_data.get('reasoning', '') if outfit_data else ''),
                     createdAt=outfit_data['createdAt']
                 ))
             except Exception as e:
@@ -325,7 +325,7 @@ def _get_mock_outfits():
     
     return [OutfitResponse(**outfit) for outfit in mock_outfits]
 
-@router.get("/{outfit_id}", response_model=OutfitResponse)
+@(router.get("/{outfit_id}", response_model=OutfitResponse) if router else response_model=OutfitResponse)
 async def get_outfit(
     outfit_id: str,
     current_user_id: str = Depends(get_current_user_id)
@@ -343,17 +343,17 @@ async def get_outfit(
         outfit_data = outfit_doc.to_dict()
         
         # Resolve item IDs to actual item objects
-        resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), current_user_id)
+        resolved_items = await resolve_item_ids_to_objects((outfit_data.get('items', []) if outfit_data else []), current_user_id)
         
         return OutfitResponse(
             id=outfit_doc.id,
-            name=outfit_data.get('name', ''),
-            style=outfit_data.get('style', ''),
-            mood=outfit_data.get('mood', ''),
+            name=(outfit_data.get('name', '') if outfit_data else ''),
+            style=(outfit_data.get('style', '') if outfit_data else ''),
+            mood=(outfit_data.get('mood', '') if outfit_data else ''),
             items=resolved_items,
-            occasion=outfit_data.get('occasion', 'Casual'),
-            confidence_score=outfit_data.get('confidence_score', 0.0),
-            reasoning=outfit_data.get('reasoning', ''),
+            occasion=(outfit_data.get('occasion', 'Casual') if outfit_data else 'Casual'),
+            confidence_score=(outfit_data.get('confidence_score', 0.0) if outfit_data else 0.0),
+            reasoning=(outfit_data.get('reasoning', '') if outfit_data else ''),
             createdAt=outfit_data['createdAt']
         )
         
@@ -366,7 +366,7 @@ async def get_outfit(
             detail="Failed to get outfit"
         )
 
-@router.get("/", response_model=List[OutfitResponse])
+@(router.get("/", response_model=List[OutfitResponse]) if router else response_model=List[OutfitResponse])
 async def get_user_outfits(
     current_user_id: str = Depends(get_current_user_id),
     limit: Optional[int] = 1000,  # High limit to show most outfits, but prevent performance issues
@@ -400,10 +400,10 @@ async def get_user_outfits(
             outfit_docs_list = []
             for doc in all_outfit_docs:
                 outfit_data = doc.to_dict()
-                items = outfit_data.get('items', [])
+                items = (outfit_data.get('items', []) if outfit_data else [])
                 # Check if any item in this outfit belongs to the current user
                 for item in items:
-                    if isinstance(item, dict) and item.get('userId') == current_user_id:
+                    if isinstance(item, dict) and (item.get('userId') if item else None) == current_user_id:
                         outfit_docs_list.append(doc)
                         break
                     elif isinstance(item, str):
@@ -432,17 +432,17 @@ async def get_user_outfits(
                 outfit_data = doc.to_dict()
                 
                 # Resolve item IDs to actual item objects
-                resolved_items = await resolve_item_ids_to_objects(outfit_data.get('items', []), current_user_id)
+                resolved_items = await resolve_item_ids_to_objects((outfit_data.get('items', []) if outfit_data else []), current_user_id)
                 
                 outfits.append(OutfitResponse(
                     id=doc.id,
-                    name=outfit_data.get('name', ''),
-                    style=outfit_data.get('style', ''),
-                    mood=outfit_data.get('mood', ''),
+                    name=(outfit_data.get('name', '') if outfit_data else ''),
+                    style=(outfit_data.get('style', '') if outfit_data else ''),
+                    mood=(outfit_data.get('mood', '') if outfit_data else ''),
                     items=resolved_items,
-                    occasion=outfit_data.get('occasion', 'Casual'),
-                    confidence_score=outfit_data.get('confidence_score', 0.0),
-                    reasoning=outfit_data.get('reasoning', ''),
+                    occasion=(outfit_data.get('occasion', 'Casual') if outfit_data else 'Casual'),
+                    confidence_score=(outfit_data.get('confidence_score', 0.0) if outfit_data else 0.0),
+                    reasoning=(outfit_data.get('reasoning', '') if outfit_data else ''),
                     createdAt=outfit_data['createdAt']
                 ))
             except Exception as e:

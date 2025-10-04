@@ -180,8 +180,8 @@ class FieldEncryptor:
             Decrypted value
         """
         try:
-            if not encrypted_data.get("encrypted", False):
-                return encrypted_data.get("value")
+            if not (encrypted_data.get("encrypted", False) if encrypted_data else False):
+                return (encrypted_data.get("value") if encrypted_data else None)
             
             # Get encrypted value
             encrypted_b64 = encrypted_data["value"]
@@ -256,7 +256,7 @@ class FieldEncryptor:
         decrypted_data = {}
         
         for field_name, value in user_data.items():
-            if isinstance(value, dict) and value.get("encrypted", False):
+            if isinstance(value, dict) and (value.get("encrypted", False) if value else False):
                 decrypted_data[field_name] = self.decrypt_field(value, field_name, user_id)
             else:
                 decrypted_data[field_name] = value

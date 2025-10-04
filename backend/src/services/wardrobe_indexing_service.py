@@ -235,7 +235,7 @@ class WardrobeIndexingService:
         }
         
         for season in seasons:
-            normalized_season = season_mapping.get(season.lower(), 'all')
+            normalized_season = (season_mapping.get(season.lower() if season_mapping else None), 'all')
             if normalized_season not in normalized:
                 normalized.append(normalized_season)
         
@@ -349,7 +349,7 @@ class WardrobeIndexingService:
         }
         
         for occasion in occasions:
-            normalized_occasion = occasion_mapping.get(occasion.lower(), occasion.lower())
+            normalized_occasion = (occasion_mapping.get(occasion.lower() if occasion_mapping else None), occasion.lower())
             if normalized_occasion not in normalized:
                 normalized.append(normalized_occasion)
         
@@ -415,7 +415,7 @@ class WardrobeIndexingService:
             'linen': 0.7,
             'polyester': 0.5
         }
-        score += material_scores.get(material, 0.5) * 0.3
+        score += (material_scores.get(material, 0.5) if material_scores else 0.5) * 0.3
         
         # Brand quality (if available)
         if hasattr(item, 'brand') and item.brand:
@@ -479,19 +479,19 @@ class WardrobeIndexingService:
                     stats['indexed_items'] += 1
                     
                     # Category stats
-                    category = data.get('category', 'unknown')
+                    category = (data.get('category', 'unknown') if data else 'unknown')
                     stats['categories'][category] = stats['categories'].get(category, 0) + 1
                     
                     # Material stats
-                    material = data.get('material', 'unknown')
+                    material = (data.get('material', 'unknown') if data else 'unknown')
                     stats['materials'][material] = stats['materials'].get(material, 0) + 1
                     
                     # Color stats
-                    color = data.get('color', 'unknown')
+                    color = (data.get('color', 'unknown') if data else 'unknown')
                     stats['colors'][color] = stats['colors'].get(color, 0) + 1
                     
                     # Formality stats
-                    formality = data.get('formality', 'unknown')
+                    formality = (data.get('formality', 'unknown') if data else 'unknown')
                     stats['formality_levels'][formality] = stats['formality_levels'].get(formality, 0) + 1
                 else:
                     stats['non_indexed_items'] += 1

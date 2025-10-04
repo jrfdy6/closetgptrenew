@@ -37,7 +37,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             detail="Token processing failed"
         )
 
-@router.get("/profile")
+@(router.get("/profile") if router else None)
 async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
     """Get current user's profile."""
     try:
@@ -75,8 +75,8 @@ async def update_user_profile(
         # Return success for now
         return {
             "user_id": current_user_id,
-            "email": profile_data.get('email'),
-            "name": profile_data.get('name'),
+            "email": (profile_data.get('email') if profile_data else None),
+            "name": (profile_data.get('name') if profile_data else None),
             "updated_at": "2024-01-01T00:00:00Z"
         }
         

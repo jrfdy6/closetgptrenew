@@ -132,32 +132,32 @@ class OutfitService:
                     # Create a complete outfit object with all required fields
                     minimal_outfit = {
                         "id": doc.id,
-                        "name": outfit_data.get("name", "Unnamed Outfit"),
-                        "description": outfit_data.get("description", "A generated outfit"),
-                        "items": outfit_data.get("items", []),
-                        "explanation": outfit_data.get("explanation", outfit_data.get("reasoning", "Generated outfit")),
-                        "pieces": outfit_data.get("pieces", []),
-                        "styleTags": outfit_data.get("styleTags", []),
-                        "colorHarmony": outfit_data.get("colorHarmony", "neutral"),
-                        "styleNotes": outfit_data.get("styleNotes", ""),
-                        "occasion": outfit_data.get("occasion", "casual"),
-                        "season": outfit_data.get("season", "all"),
-                        "style": outfit_data.get("style", "casual"),
-                        "mood": outfit_data.get("mood", "neutral"),
-                        "createdAt": outfit_data.get("createdAt", 0),
-                        "updatedAt": outfit_data.get("updatedAt", outfit_data.get("createdAt", 0)),
-                        "metadata": outfit_data.get("metadata", {}),
-                        "wasSuccessful": outfit_data.get("wasSuccessful", True),
-                        "baseItemId": outfit_data.get("baseItemId", None),
-                        "validationErrors": outfit_data.get("validationErrors", []),
-                        "userFeedback": outfit_data.get("userFeedback", None),
-                        "user_id": outfit_data.get("user_id", user_id),
-                        "generation_trace": outfit_data.get("generation_trace", []),
-                        "validation_details": outfit_data.get("validation_details", {}),
-                        "wardrobe_snapshot": outfit_data.get("wardrobe_snapshot", {}),
-                        "system_context": outfit_data.get("system_context", {}),
-                        "user_session_context": outfit_data.get("user_session_context", {}),
-                        "generation_method": outfit_data.get("generation_method", "primary")
+                        "name": (outfit_data.get("name", "Unnamed Outfit") if outfit_data else "Unnamed Outfit"),
+                        "description": (outfit_data.get("description", "A generated outfit") if outfit_data else "A generated outfit"),
+                        "items": (outfit_data.get("items", []) if outfit_data else []),
+                        "explanation": ((outfit_data.get("explanation", outfit_data.get("reasoning", "Generated outfit") if outfit_data else "Generated outfit") if outfit_data else "Generated outfit")),
+                        "pieces": (outfit_data.get("pieces", []) if outfit_data else []),
+                        "styleTags": (outfit_data.get("styleTags", []) if outfit_data else []),
+                        "colorHarmony": (outfit_data.get("colorHarmony", "neutral") if outfit_data else "neutral"),
+                        "styleNotes": (outfit_data.get("styleNotes", "") if outfit_data else ""),
+                        "occasion": (outfit_data.get("occasion", "casual") if outfit_data else "casual"),
+                        "season": (outfit_data.get("season", "all") if outfit_data else "all"),
+                        "style": (outfit_data.get("style", "casual") if outfit_data else "casual"),
+                        "mood": (outfit_data.get("mood", "neutral") if outfit_data else "neutral"),
+                        "createdAt": (outfit_data.get("createdAt", 0) if outfit_data else 0),
+                        "updatedAt": ((outfit_data.get("updatedAt", outfit_data.get("createdAt", 0) if outfit_data else 0) if outfit_data else 0)),
+                        "metadata": (outfit_data.get("metadata", {}) if outfit_data else {}),
+                        "wasSuccessful": (outfit_data.get("wasSuccessful", True) if outfit_data else True),
+                        "baseItemId": (outfit_data.get("baseItemId", None) if outfit_data else None),
+                        "validationErrors": (outfit_data.get("validationErrors", []) if outfit_data else []),
+                        "userFeedback": (outfit_data.get("userFeedback", None) if outfit_data else None),
+                        "user_id": (outfit_data.get("user_id", user_id) if outfit_data else user_id),
+                        "generation_trace": (outfit_data.get("generation_trace", []) if outfit_data else []),
+                        "validation_details": (outfit_data.get("validation_details", {}) if outfit_data else {}),
+                        "wardrobe_snapshot": (outfit_data.get("wardrobe_snapshot", {}) if outfit_data else {}),
+                        "system_context": (outfit_data.get("system_context", {}) if outfit_data else {}),
+                        "user_session_context": (outfit_data.get("user_session_context", {}) if outfit_data else {}),
+                        "generation_method": (outfit_data.get("generation_method", "primary") if outfit_data else "primary")
                     }
                     try:
                         outfits.append(OutfitGeneratedOutfit(**minimal_outfit))
@@ -182,7 +182,7 @@ class OutfitService:
             
             # Debug: Print the raw outfit data structure
             print(f"DEBUG: get_outfit - Raw outfit data keys: {list(outfit_data.keys())}")
-            print(f"DEBUG: get_outfit - Items type: {type(outfit_data.get('items', 'NOT_FOUND'))}")
+            print(f"DEBUG: get_outfit - Items type: {type((outfit_data.get('items', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'))}")
             if 'items' in outfit_data:
                 print(f"DEBUG: get_outfit - Items length: {len(outfit_data['items']) if isinstance(outfit_data['items'], list) else 'NOT_LIST'}")
                 if isinstance(outfit_data['items'], list) and outfit_data['items']:
@@ -268,17 +268,17 @@ class OutfitService:
                         # This is an OutfitPiece, we need to convert it to ClothingItem format
                         # For now, we'll create a minimal ClothingItem structure
                         converted_item = {
-                            'id': item.get('itemId', 'unknown'),
-                            'name': item.get('name', 'Unknown Item'),
-                            'type': normalize_enum_string(item.get('type', 'other')),
+                            'id': (item.get('itemId', 'unknown') if item else 'unknown'),
+                            'name': (item.get('name', 'Unknown Item') if item else 'Unknown Item'),
+                            'type': normalize_enum_string((item.get('type', 'other') if item else 'other')),
                             'color': 'unknown',
                             'season': ['all'],
-                            'style': item.get('style', []),
-                            'imageUrl': item.get('imageUrl', ''),
+                            'style': (item.get('style', []) if item else []),
+                            'imageUrl': (item.get('imageUrl', '') if item else ''),
                             'tags': [],
-                            'dominantColors': item.get('dominantColors', []),
+                            'dominantColors': (item.get('dominantColors', []) if item else []),
                             'matchingColors': [],
-                            'occasion': item.get('occasion', []),
+                            'occasion': (item.get('occasion', []) if item else []),
                             'createdAt': int(time.time()),
                             'updatedAt': int(time.time()),
                             'userId': 'unknown'
@@ -302,20 +302,20 @@ class OutfitService:
                             print(f"Warning: Failed to convert item dict to ClothingItem: {e}")
                             # If conversion fails, create a minimal structure
                             converted_item = {
-                                'id': item.get('id', 'unknown'),
-                                'name': item.get('name', 'Unknown Item'),
-                                'type': normalize_enum_string(item.get('type', 'other')),
-                                'color': item.get('color', 'unknown'),
-                                'season': item.get('season', ['all']),
-                                'style': item.get('style', []),
-                                'imageUrl': item.get('imageUrl', ''),
-                                'tags': item.get('tags', []),
-                                'dominantColors': item.get('dominantColors', []),
-                                'matchingColors': item.get('matchingColors', []),
-                                'occasion': item.get('occasion', []),
-                                'createdAt': item.get('createdAt', int(time.time())),
-                                'updatedAt': item.get('updatedAt', int(time.time())),
-                                'userId': item.get('userId', 'unknown')
+                                'id': (item.get('id', 'unknown') if item else 'unknown'),
+                                'name': (item.get('name', 'Unknown Item') if item else 'Unknown Item'),
+                                'type': normalize_enum_string((item.get('type', 'other') if item else 'other')),
+                                'color': (item.get('color', 'unknown') if item else 'unknown'),
+                                'season': (item.get('season', ['all']) if item else ['all']),
+                                'style': (item.get('style', []) if item else []),
+                                'imageUrl': (item.get('imageUrl', '') if item else ''),
+                                'tags': (item.get('tags', []) if item else []),
+                                'dominantColors': (item.get('dominantColors', []) if item else []),
+                                'matchingColors': (item.get('matchingColors', []) if item else []),
+                                'occasion': (item.get('occasion', []) if item else []),
+                                'createdAt': (item.get('createdAt', int(time.time() if item else int(time.time())),
+                                'updatedAt': (item.get('updatedAt', int(time.time() if item else int(time.time())),
+                                'userId': (item.get('userId', 'unknown') if item else 'unknown')
                             }
                             converted_items.append(converted_item)
                 elif isinstance(item, str):
@@ -334,18 +334,18 @@ class OutfitService:
         
         # Ensure all required fields are present with proper type checking
         required_fields = {
-            'explanation': new_data.get('explanation', 'Generated outfit'),
-            'pieces': new_data.get('pieces', []),
-            'styleTags': new_data.get('styleTags', []),
-            'colorHarmony': new_data.get('colorHarmony', ''),
-            'styleNotes': new_data.get('styleNotes', ''),
-            'metadata': new_data.get('metadata', {}),
+            'explanation': (new_data.get('explanation', 'Generated outfit') if new_data else 'Generated outfit'),
+            'pieces': (new_data.get('pieces', []) if new_data else []),
+            'styleTags': (new_data.get('styleTags', []) if new_data else []),
+            'colorHarmony': (new_data.get('colorHarmony', '') if new_data else ''),
+            'styleNotes': (new_data.get('styleNotes', '') if new_data else ''),
+            'metadata': (new_data.get('metadata', {}) if new_data else {}),
             # Add new tracking fields with default values
-            'wasSuccessful': new_data.get('wasSuccessful', True),
-            'baseItemId': new_data.get('baseItemId', None),
-            'validationErrors': new_data.get('validationErrors', []),
-            'userFeedback': new_data.get('userFeedback', None),
-            'user_id': new_data.get('user_id', None)  # 🚀 NEW: Ensure user_id is included
+            'wasSuccessful': (new_data.get('wasSuccessful', True) if new_data else True),
+            'baseItemId': (new_data.get('baseItemId', None) if new_data else None),
+            'validationErrors': (new_data.get('validationErrors', []) if new_data else []),
+            'userFeedback': (new_data.get('userFeedback', None) if new_data else None),
+            'user_id': (new_data.get('user_id', None) if new_data else None)  # 🚀 NEW: Ensure user_id is included
         }
         
         # Safely update the data, ensuring we don't overwrite existing valid data
@@ -400,7 +400,7 @@ class OutfitService:
             # print(f"DEBUG: _select_items_for_layering - Selecting for layer {layer_index + 1}: {layer_type} (type: {type(layer_type)})")
             
             # Get items of the required type
-            available_items = items_by_type.get(layer_type, [])
+            available_items = (items_by_type.get(layer_type, []) if items_by_type else [])
             # print(f"DEBUG: _select_items_for_layering - Available items for {layer_type}: {[item.name for item in available_items]}")
             
             if not available_items:
@@ -482,10 +482,10 @@ class OutfitService:
                 validation["layer_count"] += 1
         
         # Use matrix-based validation
-        allow_minimal_layering = layering_matrix.get("allow_minimal_layering", False)
-        required_layers = layering_matrix.get("required_layers", layering_rule.required_layers)
-        max_layers = layering_matrix.get("max_layers", 4)
-        strict_enforcement = layering_matrix.get("strict_enforcement", True)
+        allow_minimal_layering = (layering_matrix.get("allow_minimal_layering", False) if layering_matrix else False)
+        required_layers = (layering_matrix.get("required_layers", layering_rule.required_layers) if layering_matrix else layering_rule.required_layers)
+        max_layers = (layering_matrix.get("max_layers", 4) if layering_matrix else 4)
+        strict_enforcement = (layering_matrix.get("strict_enforcement", True) if layering_matrix else True)
         
         # Check if we have enough layers
         if validation["layer_count"] < required_layers:
@@ -665,13 +665,13 @@ class OutfitService:
                 step="pipeline_completion",
                 method="refined_pipeline",
                 params={"success": pipeline_result["success"]},
-                result={"items_selected": len(pipeline_result.get("items", []))},
+                result={"items_selected": len((pipeline_result.get("items", []) if pipeline_result else []))},
                 duration=pipeline_duration
             )
             
             # Check if pipeline was successful
             if not pipeline_result["success"]:
-                error_message = pipeline_result.get("message", "Pipeline failed")
+                error_message = (pipeline_result.get("message", "Pipeline failed") if pipeline_result else "Pipeline failed")
                 validation_errors.append(error_message)
                 was_successful = False
                 print(f"❌ Pipeline failed: {error_message}")
@@ -795,8 +795,8 @@ class OutfitService:
             
             if not layering_validation["is_compliant"]:
                 # Use the correct keys from the validation dict
-                missing_layers = layering_validation.get('missing_layers', [])
-                suggestions = layering_validation.get('suggestions', [])
+                missing_layers = (layering_validation.get('missing_layers', []) if layering_validation else [])
+                suggestions = (layering_validation.get('suggestions', []) if layering_validation else [])
                 validation_errors.append(f"Layering requirements not met: {missing_layers}; {suggestions}")
                 print(f"DEBUG: generate_outfit - Layering validation failed: {missing_layers}; {suggestions}")
                 
@@ -825,8 +825,8 @@ class OutfitService:
             )
             
             if not layering_compatibility["is_compatible"]:
-                errors = layering_compatibility.get('errors', [])
-                warnings = layering_compatibility.get('warnings', [])
+                errors = (layering_compatibility.get('errors', []) if layering_compatibility else [])
+                warnings = (layering_compatibility.get('warnings', []) if layering_compatibility else [])
                 validation_errors.extend(errors)
                 validation_errors.extend(warnings)
                 print(f"DEBUG: generate_outfit - Layering compatibility failed: {errors}; {warnings}")
@@ -1164,9 +1164,9 @@ class OutfitService:
             
             # Debug: Print the outfit_data dict to see what's in it
             print(f"DEBUG: generate_outfit - outfit_data keys: {list(outfit_data.keys())}")
-            print(f"DEBUG: generate_outfit - wasSuccessful in dict: {outfit_data.get('wasSuccessful', 'NOT FOUND')}")
-            print(f"DEBUG: generate_outfit - baseItemId in dict: {outfit_data.get('baseItemId', 'NOT FOUND')}")
-            print(f"DEBUG: generate_outfit - validationErrors in dict: {outfit_data.get('validationErrors', 'NOT FOUND')}")
+            print(f"DEBUG: generate_outfit - wasSuccessful in dict: {(outfit_data.get('wasSuccessful', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
+            print(f"DEBUG: generate_outfit - baseItemId in dict: {(outfit_data.get('baseItemId', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
+            print(f"DEBUG: generate_outfit - validationErrors in dict: {(outfit_data.get('validationErrors', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
             
             # Debug: Print the full outfit_data dict
             print("DEBUG: generate_outfit - Full outfit_data dict:")
@@ -1473,14 +1473,14 @@ class OutfitService:
             if visual_attrs is None:
                 temp_compatibility = {}
             elif isinstance(visual_attrs, dict):
-                temp_compatibility = visual_attrs.get("temperatureCompatibility", {})
+                temp_compatibility = (visual_attrs.get("temperatureCompatibility", {}) if visual_attrs else {})
             else:
                 temp_compatibility = getattr(visual_attrs, 'temperatureCompatibility', {})
             
             # Handle both dict and Pydantic model for temp_compatibility
             if isinstance(temp_compatibility, dict):
-                min_temp = temp_compatibility.get("minTemp", 32)
-                max_temp = temp_compatibility.get("maxTemp", 75)
+                min_temp = (temp_compatibility.get("minTemp", 32) if temp_compatibility else 32)
+                max_temp = (temp_compatibility.get("maxTemp", 75) if temp_compatibility else 75)
             else:
                 # Pydantic model - use getattr
                 min_temp = getattr(temp_compatibility, "minTemp", 32)
@@ -1682,14 +1682,14 @@ class OutfitService:
             if visual_attrs is None:
                 temp_compatibility = {}
             elif isinstance(visual_attrs, dict):
-                temp_compatibility = visual_attrs.get("temperatureCompatibility", {})
+                temp_compatibility = (visual_attrs.get("temperatureCompatibility", {}) if visual_attrs else {})
             else:
                 temp_compatibility = getattr(visual_attrs, 'temperatureCompatibility', {})
             
             # Handle both dict and Pydantic model for temp_compatibility
             if isinstance(temp_compatibility, dict):
-                min_temp = temp_compatibility.get("minTemp", 32)
-                max_temp = temp_compatibility.get("maxTemp", 75)
+                min_temp = (temp_compatibility.get("minTemp", 32) if temp_compatibility else 32)
+                max_temp = (temp_compatibility.get("maxTemp", 75) if temp_compatibility else 75)
             else:
                 # Pydantic model - use getattr
                 min_temp = getattr(temp_compatibility, "minTemp", 32)
@@ -2748,12 +2748,12 @@ class OutfitService:
                     raise ValueError(f"Missing required feedback field: {field}")
             
             # Validate rating range
-            rating = feedback.get("rating")
+            rating = (feedback.get("rating") if feedback else None)
             if not isinstance(rating, (int, float)) or rating < 1 or rating > 5:
                 raise ValueError("Rating must be a number between 1 and 5")
             
             # Validate liked field
-            liked = feedback.get("liked")
+            liked = (feedback.get("liked") if feedback else None)
             if not isinstance(liked, bool):
                 raise ValueError("Liked field must be a boolean")
             
@@ -2768,7 +2768,7 @@ class OutfitService:
             feedback_data = {
                 "liked": liked,
                 "rating": rating,
-                "comment": feedback.get("comment", ""),
+                "comment": (feedback.get("comment", "") if feedback else ""),
                 "timestamp": int(time.time())
             }
             
@@ -2823,7 +2823,7 @@ class OutfitService:
                 total_outfits += 1
                 
                 # Track success/failure
-                was_successful = data.get("wasSuccessful", True)
+                was_successful = (data.get("wasSuccessful", True) if data else True)
                 if was_successful:
                     successful_outfits += 1
                 else:
@@ -2834,18 +2834,18 @@ class OutfitService:
                     base_item_outfits += 1
                 
                 # Track validation errors
-                errors = data.get("validationErrors", [])
+                errors = (data.get("validationErrors", []) if data else [])
                 for error in errors:
-                    validation_errors[error] = validation_errors.get(error, 0) + 1
+                    validation_errors[error] = (validation_errors.get(error, 0) if validation_errors else 0) + 1
                 
                 # Track feedback
-                user_feedback = data.get("userFeedback")
+                user_feedback = (data.get("userFeedback") if data else None)
                 if user_feedback:
                     feedback_stats["total_feedback"] += 1
                     if user_feedback.get("liked", False):
                         feedback_stats["positive_feedback"] += 1
                     
-                    rating = user_feedback.get("rating", 0)
+                    rating = (user_feedback.get("rating", 0) if user_feedback else 0)
                     if rating > 0:
                         feedback_stats["total_rating"] += rating
             
@@ -3040,13 +3040,13 @@ class OutfitService:
                 selected_items = structure_result["items"]
                 print(f"✅ Phase 4: Structure validated - {len(selected_items)} items")
             else:
-                print(f"⚠️  Phase 4: Structure issues - missing categories: {structure_result.get('missing_categories', [])}")
+                print(f"⚠️  Phase 4: Structure issues - missing categories: {(structure_result.get('missing_categories', []) if structure_result else [])}")
                 # Continue with current items rather than failing completely
 
             self._debug_outfit_generation(selected_items, "After Structural Integrity Check")
 
             # NEW: Preserve base item before deduplication
-            base_item = context.get("base_item")
+            base_item = (context.get("base_item") if context else None)
             base_item_preserved = False
             if base_item:
                 base_item_preserved = any(item.id == base_item.id for item in selected_items)
@@ -3158,7 +3158,7 @@ class OutfitService:
                 }
             
             # NEW: Preserve base item when limiting items
-            base_item = context.get("base_item")
+            base_item = (context.get("base_item") if context else None)
             if base_item and len(selected_items) > 6:
                 # Check if base item is in the first 6 items
                 base_item_in_first_6 = any(item.id == base_item.id for item in selected_items[:6])
@@ -3271,7 +3271,7 @@ class OutfitService:
             print(f"🔍 DEBUG: _apply_strict_filtering - After mood filtering: {len(filtered_items)} items (removed {before_mood - len(filtered_items)})")
         
         # 6. NEW: Filter out recently used items for wardrobe diversity
-        outfit_history = context.get("outfit_history", [])
+        outfit_history = (context.get("outfit_history", []) if context else [])
         if outfit_history:
             before_history = len(filtered_items)
             filtered_items = self._filter_recently_used_items(filtered_items, outfit_history, days=7)
@@ -3388,7 +3388,7 @@ class OutfitService:
         target_counts = context["target_counts"]
         
         # NEW: Handle base item first if provided
-        base_item = context.get("base_item")
+        base_item = (context.get("base_item") if context else None)
         if base_item:
             print(f"🔍 DEBUG: _smart_selection_phase - Starting with base item: {base_item.name} (type: {base_item.type})")
             
@@ -3504,7 +3504,7 @@ class OutfitService:
         required_categories = target_counts["required_categories"]
         
         # NEW: Preserve base item if present
-        base_item = context.get("base_item")
+        base_item = (context.get("base_item") if context else None)
         base_item_preserved = False
         if base_item:
             base_item_preserved = any(item.id == base_item.id for item in selected_items)
@@ -3545,7 +3545,7 @@ class OutfitService:
                 print(f"⚠️  DEBUG: _structural_integrity_check - Trying with original wardrobe...")
                 
                 # Get original wardrobe from context
-                original_wardrobe = context.get("original_wardrobe", [])
+                original_wardrobe = (context.get("original_wardrobe", []) if context else [])
                 if original_wardrobe:
                     # Try to fill missing categories from original wardrobe
                     additional_items = self._fill_missing_categories(
@@ -3880,7 +3880,7 @@ class OutfitService:
             }
         }
         
-        return matrices.get(style.lower(), {"approved_items": [], "banned_items": []})
+        return (matrices.get(style.lower() if matrices else None), {"approved_items": [], "banned_items": []})
 
     def _filter_by_weather_strict(self, items: List[ClothingItem], weather: WeatherData) -> List[ClothingItem]:
         """Strict weather filtering."""
@@ -5566,8 +5566,8 @@ class OutfitService:
 
     def _filter_by_style_strict(self, items: List[ClothingItem], style: str, style_matrix: Dict[str, Any]) -> List[ClothingItem]:
         """Strict style filtering."""
-        approved_items = style_matrix.get("approved_items", [])
-        banned_items = style_matrix.get("banned_items", [])
+        approved_items = (style_matrix.get("approved_items", []) if style_matrix else [])
+        banned_items = (style_matrix.get("banned_items", []) if style_matrix else [])
         
         filtered_items = []
         for item in items:
@@ -5606,7 +5606,7 @@ class OutfitService:
                 continue
             
             # Check bra size compatibility (for tops and dresses)
-            if not self._check_bra_size_compatibility(item, user_profile.measurements.get('braSize')):
+            if not self._check_bra_size_compatibility(item, user_profile.(measurements.get('braSize') if measurements else None)):
                 continue
             
             # Check color palette compatibility
@@ -5685,7 +5685,7 @@ class OutfitService:
         if not color_palette or not item.dominantColors:
             return True
         
-        avoid_colors = color_palette.get('avoid', [])
+        avoid_colors = (color_palette.get('avoid', []) if color_palette else [])
         if not avoid_colors:
             return True
         
@@ -5702,7 +5702,7 @@ class OutfitService:
         if not material_preferences:
             return True
         
-        avoid_materials = material_preferences.get('avoid', [])
+        avoid_materials = (material_preferences.get('avoid', []) if material_preferences else [])
         if not avoid_materials:
             return True
         
@@ -5710,7 +5710,7 @@ class OutfitService:
         item_material = None
         if hasattr(item, 'metadata') and item.metadata:
             metadata = item.metadata.dict() if hasattr(item.metadata, 'dict') else item.metadata
-            item_material = metadata.get('material', '').lower()
+            item_material = (metadata.get('material', '') if metadata else '').lower()
         
         # Also check tags for material info
         if not item_material and item.tags:
@@ -5734,7 +5734,7 @@ class OutfitService:
         item_fit = None
         if hasattr(item, 'metadata') and item.metadata:
             metadata = item.metadata.dict() if hasattr(item.metadata, 'dict') else item.metadata
-            item_fit = metadata.get('fit', '').lower()
+            item_fit = (metadata.get('fit', '') if metadata else '').lower()
         
         # Check tags for fit info
         if not item_fit and item.tags:
@@ -5745,13 +5745,13 @@ class OutfitService:
         
         if item_fit and comfort_level:
             # Check comfort level preferences
-            if 'tight' in item_fit and comfort_level.get('tight', 0.5) < 0.3:
+            if 'tight' in item_fit and (comfort_level.get('tight', 0.5) if comfort_level else 0.5) < 0.3:
                 return False
-            if 'loose' in item_fit and comfort_level.get('loose', 0.5) < 0.3:
+            if 'loose' in item_fit and (comfort_level.get('loose', 0.5) if comfort_level else 0.5) < 0.3:
                 return False
-            if 'structured' in item_fit and comfort_level.get('structured', 0.5) < 0.3:
+            if 'structured' in item_fit and (comfort_level.get('structured', 0.5) if comfort_level else 0.5) < 0.3:
                 return False
-            if 'relaxed' in item_fit and comfort_level.get('relaxed', 0.5) < 0.3:
+            if 'relaxed' in item_fit and (comfort_level.get('relaxed', 0.5) if comfort_level else 0.5) < 0.3:
                 return False
         
         return True
@@ -5778,7 +5778,7 @@ class OutfitService:
         required_categories = context["target_counts"]["required_categories"]
         min_items = context["target_counts"]["min_items"]
         max_items = context["target_counts"]["max_items"]
-        occasion = context.get("occasion", "").lower()
+        occasion = (context.get("occasion", "") if context else "").lower()
         
         print(f"🔍 DEBUG: _select_core_items - Starting selection")
         print(f"   - Occasion: {occasion}")
@@ -5984,11 +5984,11 @@ class OutfitService:
         """Sort items by relevance to the current context including user preferences."""
         def relevance_score(item):
             score = 0
-            occasion = context.get("occasion", "").lower()
-            style = (context.get("style") or "").lower()
-            weather = context.get("weather")
-            user_profile = context.get("user_profile")
-            mood_rule = context.get("mood_rule")
+            occasion = (context.get("occasion", "") if context else "").lower()
+            style = ((context.get("style") if context else None) or "").lower()
+            weather = (context.get("weather") if context else None)
+            user_profile = (context.get("user_profile") if context else None)
+            mood_rule = (context.get("mood_rule") if context else None)
             
             # Base score for item type
             if item.type in ["shirt", "dress_shirt"]:
@@ -6046,9 +6046,9 @@ class OutfitService:
                 # Color palette bonus (preferred colors)
                 if user_profile.colorPalette:
                     palette = user_profile.colorPalette
-                    primary_colors = palette.get('primary', [])
-                    secondary_colors = palette.get('secondary', [])
-                    accent_colors = palette.get('accent', [])
+                    primary_colors = (palette.get('primary', []) if palette else [])
+                    secondary_colors = (palette.get('secondary', []) if palette else [])
+                    accent_colors = (palette.get('accent', []) if palette else [])
                     
                     for color in item.dominantColors or []:
                         color_name = get_color_name(color)
@@ -6090,7 +6090,7 @@ class OutfitService:
                 
                 # Material preference bonus
                 if user_profile.materialPreferences:
-                    preferred_materials = user_profile.materialPreferences.get('preferred', [])
+                    preferred_materials = user_profile.(materialPreferences.get('preferred', []) if materialPreferences else [])
                     if preferred_materials and item.tags:
                         for tag in item.tags:
                             if any(material.lower() in tag.lower() for material in preferred_materials):
@@ -6206,7 +6206,7 @@ class OutfitService:
             'layer': ['jacket', 'coat', 'sweater', 'cardigan', 'blazer']
         }
         
-        types = category_types.get(category, [])
+        types = (category_types.get(category, []) if category_types else [])
         return [item for item in items if any(t in item.type.lower() for t in types)]
 
     def _identify_missing_items(self, context: Dict[str, Any]) -> List[str]:
@@ -6280,7 +6280,7 @@ class OutfitService:
             "minimalist": ["y2k", "vintage", "bohemian"]
         }
         
-        conflicting_styles = style_groups.get(style.lower(), [])
+        conflicting_styles = (style_groups.get(style.lower() if style_groups else None), [])
         
         for item in items:
             if item.style:
@@ -6681,7 +6681,7 @@ class OutfitService:
                 outfit_items = outfit.get('items', [])
                 for item in outfit_items:
                     if isinstance(item, dict):
-                        item_id = item.get('id')
+                        item_id = (item.get('id') if item else None)
                     else:
                         item_id = getattr(item, 'id', None)
                     if item_id:
@@ -6754,9 +6754,9 @@ class OutfitService:
         import random
         
         # Add randomization based on context
-        occasion = context.get('occasion', '').lower()
-        style = (context.get('style') or '').lower()
-        mood = (context.get('mood') or '').lower()
+        occasion = (context.get('occasion', '') if context else '').lower()
+        style = ((context.get('style') if context else None) or '').lower()
+        mood = ((context.get('mood') if context else None) or '').lower()
         
         # Create randomization scores
         randomization_scores = []
@@ -6886,32 +6886,32 @@ class OutfitService:
                     # Create a complete outfit object with all required fields
                     minimal_outfit = {
                         "id": doc.id,
-                        "name": outfit_data.get("name", "Unnamed Outfit"),
-                        "description": outfit_data.get("description", "A generated outfit"),
-                        "items": outfit_data.get("items", []),
-                        "explanation": outfit_data.get("explanation", outfit_data.get("reasoning", "Generated outfit")),
-                        "pieces": outfit_data.get("pieces", []),
-                        "styleTags": outfit_data.get("styleTags", []),
-                        "colorHarmony": outfit_data.get("colorHarmony", "neutral"),
-                        "styleNotes": outfit_data.get("styleNotes", ""),
-                        "occasion": outfit_data.get("occasion", "casual"),
-                        "season": outfit_data.get("season", "all"),
-                        "style": outfit_data.get("style", "casual"),
-                        "mood": outfit_data.get("mood", "neutral"),
-                        "createdAt": outfit_data.get("createdAt", 0),
-                        "updatedAt": outfit_data.get("updatedAt", outfit_data.get("createdAt", 0)),
-                        "metadata": outfit_data.get("metadata", {}),
-                        "wasSuccessful": outfit_data.get("wasSuccessful", True),
-                        "baseItemId": outfit_data.get("baseItemId", None),
-                        "validationErrors": outfit_data.get("validationErrors", []),
-                        "userFeedback": outfit_data.get("userFeedback", None),
-                        "user_id": outfit_data.get("user_id", user_id),
-                        "generation_trace": outfit_data.get("generation_trace", []),
-                        "validation_details": outfit_data.get("validation_details", {}),
-                        "wardrobe_snapshot": outfit_data.get("wardrobe_snapshot", {}),
-                        "system_context": outfit_data.get("system_context", {}),
-                        "user_session_context": outfit_data.get("user_session_context", {}),
-                        "generation_method": outfit_data.get("generation_method", "primary")
+                        "name": (outfit_data.get("name", "Unnamed Outfit") if outfit_data else "Unnamed Outfit"),
+                        "description": (outfit_data.get("description", "A generated outfit") if outfit_data else "A generated outfit"),
+                        "items": (outfit_data.get("items", []) if outfit_data else []),
+                        "explanation": ((outfit_data.get("explanation", outfit_data.get("reasoning", "Generated outfit") if outfit_data else "Generated outfit") if outfit_data else "Generated outfit")),
+                        "pieces": (outfit_data.get("pieces", []) if outfit_data else []),
+                        "styleTags": (outfit_data.get("styleTags", []) if outfit_data else []),
+                        "colorHarmony": (outfit_data.get("colorHarmony", "neutral") if outfit_data else "neutral"),
+                        "styleNotes": (outfit_data.get("styleNotes", "") if outfit_data else ""),
+                        "occasion": (outfit_data.get("occasion", "casual") if outfit_data else "casual"),
+                        "season": (outfit_data.get("season", "all") if outfit_data else "all"),
+                        "style": (outfit_data.get("style", "casual") if outfit_data else "casual"),
+                        "mood": (outfit_data.get("mood", "neutral") if outfit_data else "neutral"),
+                        "createdAt": (outfit_data.get("createdAt", 0) if outfit_data else 0),
+                        "updatedAt": ((outfit_data.get("updatedAt", outfit_data.get("createdAt", 0) if outfit_data else 0) if outfit_data else 0)),
+                        "metadata": (outfit_data.get("metadata", {}) if outfit_data else {}),
+                        "wasSuccessful": (outfit_data.get("wasSuccessful", True) if outfit_data else True),
+                        "baseItemId": (outfit_data.get("baseItemId", None) if outfit_data else None),
+                        "validationErrors": (outfit_data.get("validationErrors", []) if outfit_data else []),
+                        "userFeedback": (outfit_data.get("userFeedback", None) if outfit_data else None),
+                        "user_id": (outfit_data.get("user_id", user_id) if outfit_data else user_id),
+                        "generation_trace": (outfit_data.get("generation_trace", []) if outfit_data else []),
+                        "validation_details": (outfit_data.get("validation_details", {}) if outfit_data else {}),
+                        "wardrobe_snapshot": (outfit_data.get("wardrobe_snapshot", {}) if outfit_data else {}),
+                        "system_context": (outfit_data.get("system_context", {}) if outfit_data else {}),
+                        "user_session_context": (outfit_data.get("user_session_context", {}) if outfit_data else {}),
+                        "generation_method": (outfit_data.get("generation_method", "primary") if outfit_data else "primary")
                     }
                     try:
                         outfits.append(OutfitGeneratedOutfit(**minimal_outfit))

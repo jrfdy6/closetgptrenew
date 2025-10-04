@@ -772,11 +772,9 @@ class RobustOutfitGenerationService:
                 if pattern in item_name or pattern in item_type:
                     return True
             
-            # For business, reject casual items that don't have business patterns
-            casual_patterns = ['shirt', 'pants', 'shoes']
-            if any(casual in item_type for casual in casual_patterns):
-                # If it's a basic shirt/pants/shoes without business indicators, reject
-                return False
+            # For business, allow basic items but prefer business-specific ones
+            # Don't reject basic shirt/pants/shoes - they can be business appropriate
+            # The preference scoring will handle the distinction
             
             return True
         
@@ -786,6 +784,17 @@ class RobustOutfitGenerationService:
         
         # Athletic occasion
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
+            # Check item's occasion field first
+            item_occasions = safe_item_access(item, 'occasion', [])
+            if isinstance(item_occasions, str):
+                item_occasions = [item_occasions]
+            item_occasions_lower = [occ.lower() for occ in item_occasions]
+            
+            # Allow if item explicitly has athletic occasion
+            if 'athletic' in item_occasions_lower or 'gym' in item_occasions_lower:
+                return True
+            
+            # Also check name/type patterns for athletic items
             athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball']
             return any(pattern in item_name or pattern in item_type for pattern in athletic_patterns)
         

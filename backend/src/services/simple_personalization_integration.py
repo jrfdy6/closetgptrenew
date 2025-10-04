@@ -205,7 +205,7 @@ class SimplePersonalizationIntegration:
             
             # Extract outfits from result (handle different response formats)
             if isinstance(result, dict):
-                outfits = result.get('outfits', []) or result.get('items', [])
+                outfits = ((result.get('outfits', []) if result else []) if result else []) or result.get('items', [])
             elif isinstance(result, list):
                 outfits = result
             else:

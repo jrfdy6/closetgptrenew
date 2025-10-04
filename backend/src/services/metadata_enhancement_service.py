@@ -58,7 +58,7 @@ class MetadataEnhancementService:
                             # Update the item in Firestore
                             self.wardrobe_collection.document(doc.id).update(enhanced_item)
                             enhanced_items += 1
-                            logger.info(f"Enhanced metadata for item: {item_data.get('name', 'Unknown')}")
+                            logger.info(f"Enhanced metadata for item: {(item_data.get('name', 'Unknown') if item_data else 'Unknown')}")
                         else:
                             failed_items += 1
                     else:
@@ -91,27 +91,27 @@ class MetadataEnhancementService:
         # Check if item has basic required fields
         required_fields = ['name', 'type', 'color', 'style', 'occasion', 'season']
         for field in required_fields:
-            if not item_data.get(field):
+            if not (item_data.get(field) if item_data else None):
                 return True
         
         # Check if item has enhanced metadata
-        metadata = item_data.get('metadata', {})
+        metadata = (item_data.get('metadata', {}) if item_data else {})
         if not metadata:
             return True
         
         # Check for enhanced analysis timestamp
-        if not metadata.get('analysisTimestamp'):
+        if not (metadata.get('analysisTimestamp') if metadata else None):
             return True
         
         # Check if style and occasion arrays are too short
-        if len(item_data.get('style', [])) < 2:
+        if len((item_data.get('style', []) if item_data else [])) < 2:
             return True
         
-        if len(item_data.get('occasion', [])) < 2:
+        if len((item_data.get('occasion', []) if item_data else [])) < 2:
             return True
         
         # Check if dominant colors are missing
-        if not item_data.get('dominantColors'):
+        if not (item_data.get('dominantColors') if item_data else None):
             return True
         
         return False
@@ -124,45 +124,45 @@ class MetadataEnhancementService:
             enhanced_data = {}
             
             # Enhance basic fields if missing
-            if not item_data.get('style'):
-                enhanced_data['style'] = self._infer_style_from_type(item_data.get('type', ''))
+            if not (item_data.get('style') if item_data else None):
+                enhanced_data['style'] = self._infer_style_from_type((item_data.get('type', '') if item_data else ''))
             
-            if not item_data.get('occasion'):
-                enhanced_data['occasion'] = self._infer_occasion_from_type(item_data.get('type', ''))
+            if not (item_data.get('occasion') if item_data else None):
+                enhanced_data['occasion'] = self._infer_occasion_from_type((item_data.get('type', '') if item_data else ''))
             
-            if not item_data.get('season'):
+            if not (item_data.get('season') if item_data else None):
                 enhanced_data['season'] = ['all']  # Default to all seasons
             
-            if not item_data.get('dominantColors'):
+            if not (item_data.get('dominantColors') if item_data else None):
                 enhanced_data['dominantColors'] = [{
-                    "name": item_data.get('color', 'unknown'),
-                    "hex": self._get_color_hex(item_data.get('color', 'unknown')),
+                    "name": (item_data.get('color', 'unknown') if item_data else 'unknown'),
+                    "hex": self._get_color_hex((item_data.get('color', 'unknown') if item_data else 'unknown')),
                     "rgb": [0, 0, 0]  # Default RGB
                 }]
             
-            if not item_data.get('matchingColors'):
-                enhanced_data['matchingColors'] = self._get_matching_colors(item_data.get('color', 'unknown'))
+            if not (item_data.get('matchingColors') if item_data else None):
+                enhanced_data['matchingColors'] = self._get_matching_colors((item_data.get('color', 'unknown') if item_data else 'unknown'))
             
             # Create or enhance metadata object
-            metadata = item_data.get('metadata', {})
+            metadata = (item_data.get('metadata', {}) if item_data else {})
             enhanced_metadata = {
                 "analysisTimestamp": int(time.time()),
-                "originalType": item_data.get('type', 'unknown'),
-                "styleTags": item_data.get('style', []),
-                "occasionTags": item_data.get('occasion', []),
+                "originalType": (item_data.get('type', 'unknown') if item_data else 'unknown'),
+                "styleTags": (item_data.get('style', []) if item_data else []),
+                "occasionTags": (item_data.get('occasion', []) if item_data else []),
                 "colorAnalysis": {
-                    "dominant": [color.get('name', 'unknown') for color in enhanced_data.get('dominantColors', [])],
-                    "matching": [color.get('name', 'unknown') for color in enhanced_data.get('matchingColors', [])]
+                    "dominant": [(color.get('name', 'unknown') if color else 'unknown') for color in (enhanced_data.get('dominantColors', []) if enhanced_data else [])],
+                    "matching": [(color.get('name', 'unknown') if color else 'unknown') for color in (enhanced_data.get('matchingColors', []) if enhanced_data else [])]
                 },
                 "visualAttributes": {
                     "pattern": "solid",  # Default
-                    "formalLevel": self._infer_formality(item_data.get('type', ''), item_data.get('style', [])),
+                    "formalLevel": self._infer_formality(((item_data.get('type', '') if item_data else '') if item_data else ''), item_data.get('style', [])),
                     "fit": "regular",  # Default
-                    "material": self._infer_material(item_data.get('type', '')),
+                    "material": self._infer_material((item_data.get('type', '') if item_data else '')),
                     "fabricWeight": "medium"  # Default
                 },
                 "itemMetadata": {
-                    "tags": item_data.get('tags', []),
+                    "tags": (item_data.get('tags', []) if item_data else []),
                     "careInstructions": "Check care label"
                 }
             }
@@ -196,7 +196,7 @@ class MetadataEnhancementService:
             'boots': ['casual', 'rugged']
         }
         
-        return style_mappings.get(item_type.lower(), ['casual'])
+        return (style_mappings.get(item_type.lower() if style_mappings else None), ['casual'])
     
     def _infer_occasion_from_type(self, item_type: str) -> List[str]:
         """Infer occasion from item type."""
@@ -214,7 +214,7 @@ class MetadataEnhancementService:
             'boots': ['casual', 'outdoor']
         }
         
-        return occasion_mappings.get(item_type.lower(), ['casual'])
+        return (occasion_mappings.get(item_type.lower() if occasion_mappings else None), ['casual'])
     
     def _get_color_hex(self, color_name: str) -> str:
         """Get hex color for a color name."""
@@ -236,7 +236,7 @@ class MetadataEnhancementService:
             'cream': '#FFFDD0'
         }
         
-        return color_mappings.get(color_name.lower(), '#000000')
+        return (color_mappings.get(color_name.lower() if color_mappings else None), '#000000')
     
     def _get_matching_colors(self, color_name: str) -> List[Dict[str, Any]]:
         """Get matching colors for a given color."""
@@ -251,7 +251,7 @@ class MetadataEnhancementService:
             'navy': ['white', 'beige', 'gray', 'red']
         }
         
-        matches = color_matches.get(color_name.lower(), ['black', 'white'])
+        matches = (color_matches.get(color_name.lower() if color_matches else None), ['black', 'white'])
         return [{"name": color, "hex": self._get_color_hex(color), "rgb": [0, 0, 0]} for color in matches]
     
     def _infer_formality(self, item_type: str, styles: List[str]) -> str:
@@ -284,4 +284,4 @@ class MetadataEnhancementService:
             'boots': 'leather'
         }
         
-        return material_mappings.get(item_type.lower(), 'cotton') 
+        return (material_mappings.get(item_type.lower() if material_mappings else None), 'cotton') 

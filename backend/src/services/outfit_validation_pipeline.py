@@ -86,7 +86,7 @@ class OutfitValidationPipeline:
         self.validation_stats["total_validations"] += 1
         
         logger.info(f"🔍 Starting outfit validation pipeline for {context.occasion} occasion")
-        logger.info(f"📋 Outfit items: {len(outfit.get('items', []))}")
+        logger.info(f"📋 Outfit items: {len((outfit.get('items', []) if outfit else []))}")
         
         all_errors = []
         all_warnings = []
@@ -167,10 +167,10 @@ class OutfitValidationPipeline:
                                     "temperature": context.temperature,
                                     "weather": context.weather
                                 },
-                                outfit_items=outfit.get("items", []),
-                                user_id=context.user_profile.get("id", "unknown"),
+                                outfit_items=(outfit.get("items", []) if outfit else []),
+                                user_id=context.(user_profile.get("id", "unknown") if user_profile else "unknown"),
                                 validation_duration=duration,
-                                outfit_id=outfit.get("id", f"outfit_{int(time.time())}"),
+                                outfit_id=(outfit.get("id", f"outfit_{int(time.time() if outfit else f"outfit_{int(time.time())}"),
                                 generation_request_id=f"req_{int(time.time())}",
                                 retry_attempt=0
                             )
@@ -242,10 +242,10 @@ class WeatherValidator(BaseValidator):
         suggestions = []
         
         temp = context.temperature
-        condition = context.weather.get('condition', 'clear')
-        precipitation = context.weather.get('precipitation', 0)
+        condition = context.(weather.get('condition', 'clear') if weather else 'clear')
+        precipitation = context.(weather.get('precipitation', 0) if weather else 0)
         
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         
         # Enhanced temperature-based validation
         temp_validation = self._validate_temperature_appropriateness(items, temp)
@@ -257,12 +257,12 @@ class WeatherValidator(BaseValidator):
         if precipitation > 0.5 and condition in ['rain', 'drizzle']:
             inappropriate_rain_items = [item for item in items if self._is_inappropriate_for_rain(item)]
             if inappropriate_rain_items:
-                warnings.append(f"Consider waterproof items for rainy weather: {[item.get('name', 'Unknown') for item in inappropriate_rain_items]}")
+                warnings.append(f"Consider waterproof items for rainy weather: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in inappropriate_rain_items]}")
                 suggestions.append("Add a rain jacket or umbrella")
         
         # Check for sun protection in hot, sunny weather
         if temp > 80 and condition == 'sunny':
-            sun_protection = any('hat' in item.get('name', '').lower() or 'sunglasses' in item.get('name', '').lower() for item in items)
+            sun_protection = any('hat' in ((item.get('name', '') if item else '') if item else '').lower() or 'sunglasses' in ((item.get('name', '') if item else '') if item else '').lower() for item in items)
             if not sun_protection:
                 suggestions.append("Consider adding sun protection for hot, sunny weather")
         
@@ -284,20 +284,20 @@ class WeatherValidator(BaseValidator):
         if temp > self.temp_thresholds['very_hot']:
             heavy_items = [item for item in items if self._is_heavy_item(item)]
             if heavy_items:
-                errors.append(f"TOO HOT ({temp}°F): Heavy items not allowed: {[item.get('name', 'Unknown') for item in heavy_items]}")
+                errors.append(f"TOO HOT ({temp}°F): Heavy items not allowed: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in heavy_items]}")
                 suggestions.append("CRITICAL: Remove heavy coats, use only lightweight fabrics")
         
         # Hot weather (>75°F) - no heavy coats, warn about heavy items
         elif temp > self.temp_thresholds['hot']:
             heavy_coats = [item for item in items if self._is_heavy_coat(item)]
             if heavy_coats:
-                errors.append(f"HOT WEATHER ({temp}°F): Heavy coats not appropriate: {[item.get('name', 'Unknown') for item in heavy_coats]}")
+                errors.append(f"HOT WEATHER ({temp}°F): Heavy coats not appropriate: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in heavy_coats]}")
                 suggestions.append("Consider lightweight blazers or cardigans instead of heavy coats")
             
             # Check for borderline items
             borderline_items = [item for item in items if self._is_borderline_heavy(item)]
             if borderline_items:
-                warnings.append(f"HOT WEATHER ({temp}°F): Consider lighter alternatives: {[item.get('name', 'Unknown') for item in borderline_items]}")
+                warnings.append(f"HOT WEATHER ({temp}°F): Consider lighter alternatives: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in borderline_items]}")
                 suggestions.append("Lightweight jackets or cardigans are better for hot weather")
         
         # Warm weather (>65°F) - allow lightweight jackets
@@ -305,14 +305,14 @@ class WeatherValidator(BaseValidator):
             # Check for appropriate lightweight layering
             lightweight_items = [item for item in items if self._is_lightweight_item(item)]
             if lightweight_items:
-                suggestions.append(f"PERFECT: Lightweight layering appropriate for {temp}°F: {[item.get('name', 'Unknown') for item in lightweight_items]}")
+                suggestions.append(f"PERFECT: Lightweight layering appropriate for {temp}°F: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in lightweight_items]}")
         
         # Moderate weather (>55°F) - allow light layering
         elif temp > self.temp_thresholds['moderate']:
             # Check for appropriate moderate layering
             moderate_items = [item for item in items if self._is_moderate_item(item)]
             if moderate_items:
-                suggestions.append(f"GOOD: Moderate layering appropriate for {temp}°F: {[item.get('name', 'Unknown') for item in moderate_items]}")
+                suggestions.append(f"GOOD: Moderate layering appropriate for {temp}°F: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in moderate_items]}")
         
         # Cool weather (>45°F) - allow moderate layering
         elif temp > self.temp_thresholds['cool']:
@@ -329,9 +329,9 @@ class WeatherValidator(BaseValidator):
                 suggestions.append("REQUIRED: Add a jacket, sweater, or warm outer layer")
             
             # Check for shorts in cold weather
-            shorts = [item for item in items if 'shorts' in item.get('name', '').lower() or 'shorts' in item.get('type', '').lower()]
+            shorts = [item for item in items if 'shorts' in ((item.get('name', '') if item else '') if item else '').lower() or 'shorts' in item.get('type', '').lower()]
             if shorts:
-                errors.append(f"TOO COLD ({temp}°F) for shorts: {[item.get('name', 'Unknown') for item in shorts]}")
+                errors.append(f"TOO COLD ({temp}°F) for shorts: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in shorts]}")
                 suggestions.append("REQUIRED: Use pants or long bottoms for cold weather")
         
         # Very cold weather (<35°F) - require heavy winter clothing
@@ -460,7 +460,7 @@ class OccasionValidator(BaseValidator):
         suggestions = []
         
         occasion = context.occasion.lower()
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         
         # Business formal validation - STRICTEST RULES
         if 'formal' in occasion or 'business' in occasion:
@@ -496,7 +496,7 @@ class OccasionValidator(BaseValidator):
             # Check for inappropriate items for business casual
             inappropriate_items = [item for item in items if self._is_inappropriate_for_business_casual(item)]
             if inappropriate_items:
-                errors.append(f"Inappropriate for business casual: {[item.get('name', 'Unknown') for item in inappropriate_items]}")
+                errors.append(f"Inappropriate for business casual: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in inappropriate_items]}")
                 suggestions.append("Business casual allows dress shoes, polo shirts, chinos, and blazers")
         
         # Athletic occasion validation
@@ -504,13 +504,13 @@ class OccasionValidator(BaseValidator):
             # Check for formal items
             formal_items = [item for item in items if self._is_formal_item(item)]
             if formal_items:
-                errors.append(f"Too formal for {occasion}: {[item.get('name', 'Unknown') for item in formal_items]}")
+                errors.append(f"Too formal for {occasion}: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in formal_items]}")
                 suggestions.append("Consider athletic wear, sneakers, and comfortable clothing")
             
             # Check for blazers and jackets specifically
-            blazer_items = [item for item in items if 'blazer' in item.get('name', '').lower() or 'jacket' in item.get('name', '').lower()]
+            blazer_items = [item for item in items if 'blazer' in ((item.get('name', '') if item else '') if item else '').lower() or 'jacket' in ((item.get('name', '') if item else '') if item else '').lower()]
             if blazer_items:
-                errors.append(f"Inappropriate for {occasion}: {[item.get('name', 'Unknown') for item in blazer_items]}")
+                errors.append(f"Inappropriate for {occasion}: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in blazer_items]}")
                 suggestions.append("Athletic occasions require athletic wear, not formal jackets")
         
         # Party occasion validation
@@ -518,7 +518,7 @@ class OccasionValidator(BaseValidator):
             # Check for work clothes
             work_items = [item for item in items if self._is_work_item(item)]
             if work_items:
-                warnings.append(f"Consider more festive items for {occasion}: {[item.get('name', 'Unknown') for item in work_items]}")
+                warnings.append(f"Consider more festive items for {occasion}: {[(item.get('name', 'Unknown') if item else 'Unknown') for item in work_items]}")
                 suggestions.append("Consider stylish, trendy, or dressy items for parties")
         
         return ValidationResult(
@@ -534,8 +534,8 @@ class OccasionValidator(BaseValidator):
         violations = {}
         
         for item in items:
-            item_type = item.get('type', '').lower()
-            item_name = item.get('name', '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
             
             # Map item types to categories
             category = None
@@ -554,7 +554,7 @@ class OccasionValidator(BaseValidator):
                     if blacklisted_term in item_name:
                         if category not in violations:
                             violations[category] = []
-                        violations[category].append(f"{item.get('name', 'Unknown')} (matched: '{blacklisted_term}')")
+                        violations[category].append(f"{(item.get('name', 'Unknown') if item else 'Unknown')} (matched: '{blacklisted_term}')")
                         break
                 
                 # Additional check for generic shoe names that might be sneakers
@@ -564,7 +564,7 @@ class OccasionValidator(BaseValidator):
                     if any(indicator in item_name for indicator in generic_sneaker_indicators):
                         if category not in violations:
                             violations[category] = []
-                        violations[category].append(f"{item.get('name', 'Unknown')} (generic shoe - likely sneaker)")
+                        violations[category].append(f"{(item.get('name', 'Unknown') if item else 'Unknown')} (generic shoe - likely sneaker)")
         
         return violations
     
@@ -573,8 +573,8 @@ class OccasionValidator(BaseValidator):
         positive_items = []
         
         for item in items:
-            item_type = item.get('type', '').lower()
-            item_name = item.get('name', '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
             
             # Map item types to categories
             category = None
@@ -591,7 +591,7 @@ class OccasionValidator(BaseValidator):
                 # Check if item name contains any positive terms
                 for positive_term in self.formal_positive[category]:
                     if positive_term in item_name:
-                        positive_items.append(item.get('name', 'Unknown'))
+                        positive_items.append((item.get('name', 'Unknown') if item else 'Unknown'))
                         break
         
         return positive_items
@@ -642,7 +642,7 @@ class OccasionValidator(BaseValidator):
         if item.get('type', '').lower() not in ['shoes', 'footwear']:
             return False
         
-        name = item.get('name', '').lower()
+        name = (item.get('name', '') if item else '').lower()
         inappropriate = ['sneaker', 'athletic', 'canvas', 'flip', 'slides', 'sandals', 'thongs']
         return any(term in name for term in inappropriate)
     
@@ -651,7 +651,7 @@ class OccasionValidator(BaseValidator):
         if item.get('type', '').lower() not in ['shirt', 'top', 'blouse']:
             return False
         
-        name = item.get('name', '').lower()
+        name = (item.get('name', '') if item else '').lower()
         casual_indicators = ['t-shirt', 'tank', 'hoodie', 'sweatshirt', 'jersey']
         return any(indicator in name for indicator in casual_indicators)
     
@@ -711,10 +711,10 @@ class StyleValidator(BaseValidator):
         suggestions = []
         
         style = context.style.lower()
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         
         # Get style rules
-        style_rule = self.style_rules.get(style, {})
+        style_rule = self.(style_rules.get(style, {}) if style_rules else {})
         if not style_rule:
             return ValidationResult(valid=True, errors=[], warnings=[], suggestions=[])
         
@@ -746,7 +746,7 @@ class StyleValidator(BaseValidator):
             errors=errors,
             warnings=warnings,
             suggestions=suggestions,
-            severity=style_rule.get('severity', ValidationSeverity.LOW)
+            severity=(style_rule.get('severity', ValidationSeverity.LOW) if style_rule else ValidationSeverity.LOW)
         )
     
     def _validate_item_count(self, items: List[Dict[str, Any]], style: str, style_rule: Dict[str, Any]) -> Dict[str, List[str]]:
@@ -801,17 +801,17 @@ class StyleValidator(BaseValidator):
         preferred_items = []
         
         for item in items:
-            name = item.get('name', '').lower()
+            name = (item.get('name', '') if item else '').lower()
             
             # Check for items to avoid
             if 'avoid_items' in style_rule:
                 if any(avoid_term in name for avoid_term in style_rule['avoid_items']):
-                    inappropriate_items.append(item.get('name', 'Unknown'))
+                    inappropriate_items.append((item.get('name', 'Unknown') if item else 'Unknown'))
             
             # Check for preferred items
             if 'preferred_items' in style_rule:
                 if any(preferred_term in name for preferred_term in style_rule['preferred_items']):
-                    preferred_items.append(item.get('name', 'Unknown'))
+                    preferred_items.append((item.get('name', 'Unknown') if item else 'Unknown'))
         
         if inappropriate_items:
             if style_rule.get('severity') == ValidationSeverity.HIGH:
@@ -835,7 +835,7 @@ class StyleValidator(BaseValidator):
             return {'errors': errors, 'warnings': warnings, 'suggestions': suggestions}
         
         required_items = style_rule['required_items']
-        item_names = [item.get('name', '').lower() for item in items]
+        item_names = [(item.get('name', '') if item else '').lower() for item in items]
         
         missing_required = []
         for required in required_items:
@@ -881,7 +881,7 @@ class LayeringValidator(BaseValidator):
         warnings = []
         suggestions = []
         
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         temp = context.temperature
         occasion = context.occasion.lower()
         
@@ -921,14 +921,14 @@ class FormalityValidator(BaseValidator):
         warnings = []
         suggestions = []
         
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         
         # Check for formality mismatches
         formal_items = [item for item in items if self._is_formal_item(item)]
         casual_items = [item for item in items if self._is_casual_item(item)]
         
         if formal_items and casual_items:
-            warnings.append(f"Mixed formality levels: formal items {[item.get('name', 'Unknown') for item in formal_items]} with casual items {[item.get('name', 'Unknown') for item in casual_items]}")
+            warnings.append(f"Mixed formality levels: formal items {[((item.get('name', 'Unknown') if item else 'Unknown') if item else 'Unknown') for item in formal_items]} with casual items {[((item.get('name', 'Unknown') if item else 'Unknown') if item else 'Unknown') for item in casual_items]}")
             suggestions.append("Consider matching formality levels across all items")
         
         return ValidationResult(
@@ -959,7 +959,7 @@ class ColorHarmonyValidator(BaseValidator):
         warnings = []
         suggestions = []
         
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         colors = [item.get('color', '').lower() for item in items if item.get('color')]
         
         if len(colors) < 2:
@@ -994,21 +994,21 @@ class MaterialValidator(BaseValidator):
         warnings = []
         suggestions = []
         
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         temp = context.temperature
         
         for item in items:
-            material = item.get('material', '').lower()
-            name = item.get('name', '').lower()
+            material = (item.get('material', '') if item else '').lower()
+            name = (item.get('name', '') if item else '').lower()
             
             # Check for inappropriate materials in hot weather
             if temp > 80 and material in ['wool', 'fleece', 'suede']:
-                warnings.append(f"Material {material} may be too warm for {temp}°F: {item.get('name', 'Unknown')}")
+                warnings.append(f"Material {material} may be too warm for {temp}°F: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                 suggestions.append("Consider lighter materials like cotton or linen for hot weather")
             
             # Check for inappropriate materials in cold weather
             if temp < 50 and material in ['linen', 'silk']:
-                warnings.append(f"Material {material} may be too light for {temp}°F: {item.get('name', 'Unknown')}")
+                warnings.append(f"Material {material} may be too light for {temp}°F: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                 suggestions.append("Consider warmer materials like wool or fleece for cold weather")
         
         return ValidationResult(
@@ -1027,15 +1027,15 @@ class FitValidator(BaseValidator):
         warnings = []
         suggestions = []
         
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         occasion = context.occasion.lower()
         
         # Check for overly tight or loose items in formal occasions
         if 'formal' in occasion or 'business' in occasion:
             for item in items:
-                name = item.get('name', '').lower()
+                name = (item.get('name', '') if item else '').lower()
                 if 'oversized' in name or 'loose' in name:
-                    warnings.append(f"Consider more fitted items for formal occasions: {item.get('name', 'Unknown')}")
+                    warnings.append(f"Consider more fitted items for formal occasions: {(item.get('name', 'Unknown') if item else 'Unknown')}")
                     suggestions.append("Formal occasions typically call for well-fitted clothing")
         
         return ValidationResult(

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/validation-analytics", tags=["validation-analytics"])
 
-@router.get("/dashboard")
+@(router.get("/dashboard") if router else None)
 async def get_validation_dashboard(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -36,7 +36,7 @@ async def get_validation_dashboard(
         logger.error(f"❌ Failed to get validation dashboard: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve validation analytics")
 
-@router.get("/report")
+@(router.get("/report") if router else None)
 async def get_validation_report(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, str]:
@@ -51,7 +51,7 @@ async def get_validation_report(
         logger.error(f"❌ Failed to generate validation report: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate validation report")
 
-@router.get("/export-csv")
+@(router.get("/export-csv") if router else None)
 async def export_validation_csv(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, str]:
@@ -77,7 +77,7 @@ async def export_validation_csv(
         logger.error(f"❌ Failed to export validation CSV: {e}")
         raise HTTPException(status_code=500, detail="Failed to export validation analytics")
 
-@router.get("/download-csv/{filename}")
+@(router.get("/download-csv/{filename}") if router else None)
 async def download_validation_csv(
     filename: str,
     current_user: UserProfile = Depends(get_current_user)
@@ -109,7 +109,7 @@ async def download_validation_csv(
         logger.error(f"❌ Failed to download validation CSV: {e}")
         raise HTTPException(status_code=500, detail="Failed to download validation CSV")
 
-@router.get("/stats")
+@(router.get("/stats") if router else None)
 async def get_validation_stats(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -149,7 +149,7 @@ async def refresh_validation_cache(
         logger.error(f"❌ Failed to refresh validation cache: {e}")
         raise HTTPException(status_code=500, detail="Failed to refresh validation cache")
 
-@router.get("/health")
+@(router.get("/health") if router else None)
 async def validation_analytics_health() -> Dict[str, str]:
     """
     Health check for validation analytics service

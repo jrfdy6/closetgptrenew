@@ -176,7 +176,7 @@ STYLE_DEFINITIONS = {
 
 def get_style_definition(style_name: str) -> Optional[StyleDefinition]:
     """Get the style definition for a given style name."""
-    return STYLE_DEFINITIONS.get(style_name.lower())
+    return (STYLE_DEFINITIONS.get(style_name.lower() if STYLE_DEFINITIONS else None))
 
 def get_compatible_styles(style_name: str) -> List[str]:
     """Get a list of styles that are compatible with the given style."""

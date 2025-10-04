@@ -5,20 +5,20 @@ from .outfit_fallback_service import OutfitFallbackService
 # --- Scoring logic ---
 def calculate_style_score(item: ClothingItem, context: Dict[str, Any]) -> float:
     base_score = 1.0
-    occasion = context.get("occasion", "").lower()
+    occasion = (context.get("occasion", "") if context else "").lower()
     if occasion and hasattr(item, 'occasion'):
         if occasion in [occ.lower() for occ in getattr(item, 'occasion', [])]:
             base_score += 0.3
-    style = context.get("style", "")
+    style = (context.get("style", "") if context else "")
     if style and hasattr(item, 'style'):
         style_lower = style.lower() if style else ""
         if style_lower in [s.lower() for s in getattr(item, 'style', [])]:
             base_score += 0.2
-    weather = context.get("weather", {})
+    weather = (context.get("weather", {}) if context else {})
     if hasattr(weather, 'temperature'):
         temperature = weather.temperature
     else:
-        temperature = weather.get("temperature", 70)
+        temperature = (weather.get("temperature", 70) if weather else 70)
     if isinstance(temperature, str):
         try:
             temperature = float(temperature)
@@ -45,7 +45,7 @@ async def get_favorite_item_ids(user_id: str) -> set:
         return set()
 
 def score_items(items: List[ClothingItem], context: Dict[str, Any]) -> List[dict]:
-    user_id = context.get("user_id")
+    user_id = (context.get("user_id") if context else None)
     favorite_ids = set()
     if user_id:
         import asyncio
@@ -68,7 +68,7 @@ def score_items(items: List[ClothingItem], context: Dict[str, Any]) -> List[dict
     return scored
 
 async def score_items_async(items: List[ClothingItem], context: Dict[str, Any]) -> List[dict]:
-    user_id = context.get("user_id")
+    user_id = (context.get("user_id") if context else None)
     favorite_ids = set()
     if user_id:
         favorite_ids = await get_favorite_item_ids(user_id)
@@ -89,7 +89,7 @@ async def select_items(filtered_items: List[ClothingItem], context: Dict[str, An
     print(f"🎯 Smart selection: Processing {len(filtered_items)} items")
     
     # Check if there's a base item that should be included
-    base_item = context.get("base_item")
+    base_item = (context.get("base_item") if context else None)
     base_item_included = False
     
     if base_item:
@@ -103,8 +103,8 @@ async def select_items(filtered_items: List[ClothingItem], context: Dict[str, An
             print(f"⚠️ Base item not found in filtered items, will try to include it")
     
     scored = await score_items_async(filtered_items, context)
-    target_counts = context.get("target_counts", {})
-    target_count = target_counts.get("target_items", 5)
+    target_counts = (context.get("target_counts", {}) if context else {})
+    target_count = (target_counts.get("target_items", 5) if target_counts else 5)
     
     # If we have a base item, ensure it's included
     if base_item and not base_item_included:

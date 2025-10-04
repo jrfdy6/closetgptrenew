@@ -87,7 +87,7 @@ except ImportError:
     AUTH_AVAILABLE = False
     logger.warning("Auth service not available, uploads will be anonymous")
 
-@router.get("/create-firebase-bucket")
+@(router.get("/create-firebase-bucket") if router else None)
 async def create_firebase_bucket():
     """Try to create a Firebase Storage bucket"""
     try:
@@ -95,7 +95,7 @@ async def create_firebase_bucket():
         import firebase_admin
         from firebase_admin import storage
         
-        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew")
+        project_id = os.(environ.get("FIREBASE_PROJECT_ID", "closetgptrenew") if environ else "closetgptrenew")
         bucket_name = f"{project_id}.appspot.com"
         
         logger.info(f"Attempting to create bucket: {bucket_name}")
@@ -128,7 +128,7 @@ async def create_firebase_bucket():
             "error_type": type(e).__name__
         }
 
-@router.get("/test-firebase-upload")
+@(router.get("/test-firebase-upload") if router else None)
 async def test_firebase_upload():
     """Test Firebase Storage upload with different bucket name formats"""
     try:
@@ -136,7 +136,7 @@ async def test_firebase_upload():
         import firebase_admin
         from firebase_admin import storage
         
-        project_id = os.environ.get("FIREBASE_PROJECT_ID", "closetgptrenew")
+        project_id = os.(environ.get("FIREBASE_PROJECT_ID", "closetgptrenew") if environ else "closetgptrenew")
         
         # Try different bucket name formats
         bucket_names_to_try = [
@@ -197,7 +197,7 @@ async def test_firebase_upload():
             "error_type": type(e).__name__
         }
 
-@router.get("/debug-firebase")
+@(router.get("/debug-firebase") if router else None)
 async def debug_firebase():
     """Debug Firebase Storage configuration"""
     try:
@@ -208,12 +208,12 @@ async def debug_firebase():
         debug_info = {
             "firebase_initialized": len(firebase_admin._apps) > 0,
             "environment_vars": {
-                "FIREBASE_PROJECT_ID": bool(os.environ.get("FIREBASE_PROJECT_ID")),
-                "FIREBASE_PRIVATE_KEY": bool(os.environ.get("FIREBASE_PRIVATE_KEY")),
-                "FIREBASE_CLIENT_EMAIL": bool(os.environ.get("FIREBASE_CLIENT_EMAIL")),
+                "FIREBASE_PROJECT_ID": bool(os.(environ.get("FIREBASE_PROJECT_ID") if environ else None)),
+                "FIREBASE_PRIVATE_KEY": bool(os.(environ.get("FIREBASE_PRIVATE_KEY") if environ else None)),
+                "FIREBASE_CLIENT_EMAIL": bool(os.(environ.get("FIREBASE_CLIENT_EMAIL") if environ else None)),
             },
-            "project_id": os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET"),
-            "expected_bucket": f"{os.environ.get('FIREBASE_PROJECT_ID', 'unknown')}.appspot.com" if os.environ.get("FIREBASE_PROJECT_ID") else "NOT_SET"
+            "project_id": os.(environ.get("FIREBASE_PROJECT_ID", "NOT_SET") if environ else "NOT_SET"),
+            "expected_bucket": f"{os.((environ.get('FIREBASE_PROJECT_ID', 'unknown') if environ else 'unknown') if environ else 'unknown')}.appspot.com" if os.environ.get("FIREBASE_PROJECT_ID") else "NOT_SET"
         }
         
         # Try to get the bucket

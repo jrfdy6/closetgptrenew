@@ -27,14 +27,14 @@ class ValidationRulesResponse(BaseModel):
     rules: Dict[str, Any]
     metadata: Dict[str, Any]
 
-@router.get("/validation-rules")
+@(router.get("/validation-rules") if router else None)
 async def get_validation_rules(current_user: Optional[UserProfile] = Depends(get_current_user_optional)) -> ValidationRulesResponse:
     """Get current validation rules."""
     try:
         rules = validation_rules.get_rules()
         return ValidationRulesResponse(
             rules=rules,
-            metadata=rules.get('metadata', {})
+            metadata=(rules.get('metadata', {}) if rules else {})
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching validation rules: {str(e)}")
@@ -136,7 +136,7 @@ async def remove_material_rule(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error removing material rule: {str(e)}")
 
-@router.get("/validation-rules/history")
+@(router.get("/validation-rules/history") if router else None)
 async def get_rule_history(
     limit: int = 10,
     current_user: Optional[UserProfile] = Depends(get_current_user_optional)
@@ -221,8 +221,8 @@ async def generate_fix_suggestion(
     }
     """
     try:
-        error_type = error_data.get("error_type")
-        error_details = error_data.get("error_details", {})
+        error_type = (error_data.get("error_type") if error_data else None)
+        error_details = (error_data.get("error_details", {}) if error_data else {})
         
         if not error_type:
             return {

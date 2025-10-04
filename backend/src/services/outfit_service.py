@@ -218,8 +218,8 @@ class OutfitService:
             logger.info(f"🎨 Creating custom outfit")
             
             # Extract user_id from the user_profile if present
-            user_profile = outfit_data.get('user_profile', {})
-            user_id = user_profile.get('id')
+            user_profile = (outfit_data.get('user_profile', {}) if outfit_data else {})
+            user_id = (user_profile.get('id') if user_profile else None)
             if not user_id:
                 raise ValueError("User ID is required for creating custom outfits")
             
@@ -227,36 +227,36 @@ class OutfitService:
             from ..custom_types.outfit import OutfitCreate, OutfitItem
             
             # Transform items if needed
-            items = outfit_data.get('items', [])
+            items = (outfit_data.get('items', []) if outfit_data else [])
             outfit_items = []
             for item in items:
                 if isinstance(item, dict):
                     # Provide all required fields for OutfitItem
                     outfit_item = OutfitItem(
-                        id=item.get('id', ''),
-                        name=item.get('name', ''),
+                        id=(item.get('id', '') if item else ''),
+                        name=(item.get('name', '') if item else ''),
                         userId=user_id,  # Required field
-                        subType=item.get('subType') or item.get('category') or item.get('type', 'item'),  # Required field
-                        type=item.get('type', 'item'),
-                        color=item.get('color', ''),
-                        imageUrl=item.get('imageUrl') or item.get('image_url') or item.get('image', ''),
-                        style=item.get('style', []) if isinstance(item.get('style'), list) else [item.get('style', 'casual')],  # Required List[str]
-                        occasion=item.get('occasion', []) if isinstance(item.get('occasion'), list) else [item.get('occasion', 'casual')],  # Required List[str]
-                        brand=item.get('brand', ''),
-                        wearCount=item.get('wearCount', 0),
-                        favorite_score=item.get('favorite_score', 0.0)
+                        subType=(((item.get('subType') if item else None) if item else None) if item else None) or item.get('category') or item.get('type', 'item'),  # Required field
+                        type=(item.get('type', 'item') if item else 'item'),
+                        color=(item.get('color', '') if item else ''),
+                        imageUrl=(((item.get('imageUrl') if item else None) if item else None) if item else None) or item.get('image_url') or item.get('image', ''),
+                        style=(((item.get('style', []) if item else []) if item else []) if item else []) if isinstance(item.get('style'), list) else [item.get('style', 'casual')],  # Required List[str]
+                        occasion=(((item.get('occasion', []) if item else []) if item else []) if item else []) if isinstance(item.get('occasion'), list) else [item.get('occasion', 'casual')],  # Required List[str]
+                        brand=(item.get('brand', '') if item else ''),
+                        wearCount=(item.get('wearCount', 0) if item else 0),
+                        favorite_score=(item.get('favorite_score', 0.0) if item else 0.0)
                     )
                     outfit_items.append(outfit_item)
             
             # Create the outfit data object
             outfit_create = OutfitCreate(
-                name=outfit_data.get('name', 'Custom Outfit'),
-                occasion=outfit_data.get('occasion', 'Casual'),
-                style=outfit_data.get('style', 'Casual'),
-                mood=outfit_data.get('mood'),
+                name=(outfit_data.get('name', 'Custom Outfit') if outfit_data else 'Custom Outfit'),
+                occasion=(outfit_data.get('occasion', 'Casual') if outfit_data else 'Casual'),
+                style=(outfit_data.get('style', 'Casual') if outfit_data else 'Casual'),
+                mood=(outfit_data.get('mood') if outfit_data else None),
                 items=outfit_items,
-                confidenceScore=outfit_data.get('confidenceScore'),
-                reasoning=outfit_data.get('description') or outfit_data.get('reasoning')
+                confidenceScore=(outfit_data.get('confidenceScore') if outfit_data else None),
+                reasoning=((outfit_data.get('description') if outfit_data else None) if outfit_data else None) or outfit_data.get('reasoning')
             )
             
             # Call the existing create_outfit method
@@ -408,7 +408,7 @@ class OutfitService:
             updated_count = 0
             
             for item in outfit_items:
-                item_id = item.get('id')
+                item_id = (item.get('id') if item else None)
                 if not item_id:
                     logger.warning(f"⚠️ Skipping item without ID: {item}")
                     continue
@@ -429,7 +429,7 @@ class OutfitService:
                         continue
                     
                     # Update wear counter and last worn date
-                    current_wear_count = wardrobe_data.get('wearCount', 0)
+                    current_wear_count = (wardrobe_data.get('wearCount', 0) if wardrobe_data else 0)
                     new_wear_count = current_wear_count + 1
                     
                     wardrobe_ref.update({

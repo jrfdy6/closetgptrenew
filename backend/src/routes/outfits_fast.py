@@ -17,7 +17,7 @@ from ..auth.auth_service import get_current_user
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.get("/metadata")
+@(router.get("/metadata") if router else None)
 async def get_outfits_metadata(
     current_user: UserProfile = Depends(get_current_user),
     limit: Optional[int] = Query(100, description="Number of outfits to return metadata for"),
@@ -77,28 +77,28 @@ async def get_outfits_metadata(
             # Create lightweight metadata object
             metadata = {
                 'id': doc.id,
-                'name': data.get('name', ''),
-                'occasion': data.get('occasion', ''),
-                'style': data.get('style', ''),
-                'mood': data.get('mood', ''),
-                'isFavorite': data.get('isFavorite', False),
-                'isWorn': data.get('isWorn', False),
-                'wearCount': data.get('wearCount', 0),
-                'rating': data.get('rating'),
-                'createdAt': data.get('createdAt'),
-                'updatedAt': data.get('updatedAt'),
-                'thumbnailUrl': data.get('thumbnailUrl', ''),
+                'name': (data.get('name', '') if data else ''),
+                'occasion': (data.get('occasion', '') if data else ''),
+                'style': (data.get('style', '') if data else ''),
+                'mood': (data.get('mood', '') if data else ''),
+                'isFavorite': (data.get('isFavorite', False) if data else False),
+                'isWorn': (data.get('isWorn', False) if data else False),
+                'wearCount': (data.get('wearCount', 0) if data else 0),
+                'rating': (data.get('rating') if data else None),
+                'createdAt': (data.get('createdAt') if data else None),
+                'updatedAt': (data.get('updatedAt') if data else None),
+                'thumbnailUrl': (data.get('thumbnailUrl', '') if data else ''),
                 # Include item count for UI
-                'itemCount': len(data.get('items', [])),
+                'itemCount': len((data.get('items', []) if data else [])),
                 # Include first few item thumbnails for preview
                 'itemPreviews': [
                     {
-                        'id': item.get('id', ''),
-                        'name': item.get('name', ''),
-                        'imageUrl': item.get('imageUrl', ''),
-                        'type': item.get('type', '')
+                        'id': (item.get('id', '') if item else ''),
+                        'name': (item.get('name', '') if item else ''),
+                        'imageUrl': (item.get('imageUrl', '') if item else ''),
+                        'type': (item.get('type', '') if item else '')
                     }
-                    for item in (data.get('items', [])[:4])  # First 4 items for preview
+                    for item in ((data.get('items', []) if data else [])[:4])  # First 4 items for preview
                 ]
             }
             outfits_metadata.append(metadata)
@@ -108,7 +108,7 @@ async def get_outfits_metadata(
         try:
             from ..services.user_stats_service import user_stats_service
             stats = await user_stats_service.get_user_stats(current_user.id)
-            total_count = stats.get('outfits', {}).get('total', 0)
+            total_count = (stats.get('outfits', {}) if stats else {}).get('total', 0)
         except Exception as e:
             logger.warning(f"Could not get total count from stats: {e}")
             # Fallback to expensive count query
@@ -145,7 +145,7 @@ async def get_outfits_metadata(
         raise HTTPException(status_code=500, detail=f"Failed to fetch outfit metadata: {e}")
 
 
-@router.get("/summary")
+@(router.get("/summary") if router else None)
 async def get_outfits_summary(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -178,29 +178,29 @@ async def get_outfits_summary(
                 data = doc.to_dict()
                 recent_outfits.append({
                     'id': doc.id,
-                    'name': data.get('name', ''),
-                    'thumbnailUrl': data.get('thumbnailUrl', ''),
-                    'occasion': data.get('occasion', ''),
-                    'createdAt': data.get('createdAt')
+                    'name': (data.get('name', '') if data else ''),
+                    'thumbnailUrl': (data.get('thumbnailUrl', '') if data else ''),
+                    'occasion': (data.get('occasion', '') if data else ''),
+                    'createdAt': (data.get('createdAt') if data else None)
                 })
         else:
             recent_outfits = []
 
         # Calculate quick stats
-        outfit_stats = stats.get('outfits', {})
+        outfit_stats = (stats.get('outfits', {}) if stats else {})
         
         return {
             "success": True,
             "summary": {
-                "total_outfits": outfit_stats.get('total', 0),
-                "outfits_this_week": outfit_stats.get('this_week', 0),
+                "total_outfits": (outfit_stats.get('total', 0) if outfit_stats else 0),
+                "outfits_this_week": (outfit_stats.get('this_week', 0) if outfit_stats else 0),
                 "recent_outfits": recent_outfits,
-                "last_updated": stats.get('last_updated')
+                "last_updated": (stats.get('last_updated') if stats else None)
             },
             "quick_stats": {
-                "total": outfit_stats.get('total', 0),
+                "total": (outfit_stats.get('total', 0) if outfit_stats else 0),
                 "favorites": 0,  # TODO: Add to stats service
-                "worn_this_week": outfit_stats.get('this_week', 0),
+                "worn_this_week": (outfit_stats.get('this_week', 0) if outfit_stats else 0),
                 "never_worn": 0  # TODO: Add to stats service
             }
         }
@@ -210,7 +210,7 @@ async def get_outfits_summary(
         raise HTTPException(status_code=500, detail=f"Failed to fetch outfit summary: {e}")
 
 
-@router.get("/filter-options")
+@(router.get("/filter-options") if router else None)
 async def get_filter_options(
     current_user: UserProfile = Depends(get_current_user)
 ):

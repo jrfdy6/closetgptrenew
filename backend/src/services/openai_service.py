@@ -144,7 +144,7 @@ Provide comprehensive, detailed analysis that would be useful for wardrobe manag
             name_parts = []
             
             # Handle clothing type - be more flexible with "object" or "other"
-            clothing_type = analysis.get("type", "")
+            clothing_type = (analysis.get("type", "") if analysis else "")
             if clothing_type and clothing_type not in ["other", "object", "unknown"]:
                 name_parts.append(clothing_type.title())
             elif clothing_type == "object":

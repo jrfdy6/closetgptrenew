@@ -62,13 +62,13 @@ class RateLimiter:
         """
         try:
             # Try to get Firebase UID from Authorization header
-            auth_header = request.headers.get("Authorization")
+            auth_header = request.(headers.get("Authorization") if headers else None)
             if auth_header and auth_header.startswith("Bearer "):
                 token = auth_header.split(" ")[1]
                 try:
                     # Try with default settings first
                     decoded_token = firebase_auth.verify_id_token(token)
-                    user_id = decoded_token.get("uid")
+                    user_id = (decoded_token.get("uid") if decoded_token else None)
                     if user_id:
                         return f"user:{user_id}"
                 except Exception as e:
@@ -77,7 +77,7 @@ class RateLimiter:
                         logger.debug(f"Clock skew detected in rate limiter, trying with lenient settings: {e}")
                         try:
                             decoded_token = firebase_auth.verify_id_token(token, check_revoked=False)
-                            user_id = decoded_token.get("uid")
+                            user_id = (decoded_token.get("uid") if decoded_token else None)
                             if user_id:
                                 return f"user:{user_id}"
                         except Exception as e2:
@@ -94,11 +94,11 @@ class RateLimiter:
     def _get_client_ip(self, request: Request) -> str:
         """Extract client IP address from request."""
         # Check for forwarded headers (common with proxies)
-        forwarded_for = request.headers.get("X-Forwarded-For")
+        forwarded_for = request.(headers.get("X-Forwarded-For") if headers else None)
         if forwarded_for:
             return forwarded_for.split(",")[0].strip()
         
-        real_ip = request.headers.get("X-Real-IP")
+        real_ip = request.(headers.get("X-Real-IP") if headers else None)
         if real_ip:
             return real_ip
         
@@ -124,20 +124,20 @@ class RateLimiter:
     def is_admin_user(self, request: Request) -> bool:
         """Check if user has admin privileges."""
         try:
-            auth_header = request.headers.get("Authorization")
+            auth_header = request.(headers.get("Authorization") if headers else None)
             if auth_header and auth_header.startswith("Bearer "):
                 token = auth_header.split(" ")[1]
                 try:
                     # Try with default settings first
                     decoded_token = firebase_auth.verify_id_token(token)
-                    return decoded_token.get("admin", False)
+                    return (decoded_token.get("admin", False) if decoded_token else False)
                 except Exception as e:
                     # If it's a clock issue, try with more lenient settings
                     if "Token used too early" in str(e) or "clock" in str(e).lower():
                         logger.debug(f"Clock skew detected in admin check, trying with lenient settings: {e}")
                         try:
                             decoded_token = firebase_auth.verify_id_token(token, check_revoked=False)
-                            return decoded_token.get("admin", False)
+                            return (decoded_token.get("admin", False) if decoded_token else False)
                         except Exception as e2:
                             logger.debug(f"Still failed with lenient settings: {e2}")
                     else:

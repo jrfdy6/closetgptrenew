@@ -58,7 +58,7 @@ except ImportError as e:
                 'hoodie': 'outerwear'
             }
             
-            return category_map.get(item_type, 'other')
+            return (category_map.get(item_type, 'other') if category_map else 'other')
 
 router = APIRouter()
 
@@ -153,7 +153,7 @@ async def test_category_mapping(test_item: TestItem):
             detail=f"Test failed: {str(e)}"
         )
 
-@router.get("/test-category-mapping")
+@(router.get("/test-category-mapping") if router else None)
 async def test_category_mapping_get():
     """Test the category mapping with default test data"""
     

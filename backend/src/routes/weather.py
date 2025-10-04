@@ -87,7 +87,7 @@ async def get_weather(request: WeatherRequest):
                 )
                 response.raise_for_status()
                 data = response.json()
-                logger.info(f"Weather data retrieved successfully for {data.get('name', 'unknown location')}")
+                logger.info(f"Weather data retrieved successfully for {(data.get('name', 'unknown location') if data else 'unknown location')}")
             except httpx.TimeoutException:
                 logger.error("Timeout while fetching weather data")
                 raise HTTPException(status_code=500, detail="Weather service timeout")
@@ -110,7 +110,7 @@ async def get_weather(request: WeatherRequest):
                             )
                             fallback_response.raise_for_status()
                             data = fallback_response.json()
-                            logger.info(f"Fallback successful for {data.get('name', 'unknown location')}")
+                            logger.info(f"Fallback successful for {(data.get('name', 'unknown location') if data else 'unknown location')}")
                         except httpx.HTTPStatusError:
                             logger.error(f"Location not found even with fallback: {request.location}")
                             raise HTTPException(status_code=404, detail="Location not found")
@@ -134,7 +134,7 @@ async def get_weather(request: WeatherRequest):
             humidity=data["main"]["humidity"],
             wind_speed=data["wind"]["speed"],
             location=data["name"],
-            precipitation=data.get("rain", {}).get("1h", 0.0)  # Get 1h rain if available
+            precipitation=(data.get("rain", {}) if data else {}).get("1h", 0.0)  # Get 1h rain if available
         )
 
         return weather_data

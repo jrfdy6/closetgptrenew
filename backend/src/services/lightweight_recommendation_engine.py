@@ -299,7 +299,7 @@ class LightweightRecommendationEngine:
             return 0.0
         
         # Check if user has embedding
-        user_embedding = self.embedding_service.user_embeddings.get(user_id)
+        user_embedding = self.embedding_service.(user_embeddings.get(user_id) if user_embeddings else None)
         if not user_embedding:
             return 0.0
         
@@ -344,19 +344,19 @@ class LightweightRecommendationEngine:
         score = 0.0
         
         # Wear count
-        wear_count = outfit.get('wearCount', 0)
+        wear_count = (outfit.get('wearCount', 0) if outfit else 0)
         score += wear_count * 0.1
         
         # Rating
-        rating = outfit.get('rating', 0)
+        rating = (outfit.get('rating', 0) if outfit else 0)
         score += rating * 0.2
         
         # Favorite score
-        favorite_score = outfit.get('favorite_score', 0)
+        favorite_score = (outfit.get('favorite_score', 0) if outfit else 0)
         score += favorite_score * 0.3
         
         # Quality score
-        quality_score = outfit.get('quality_score', 0.5)
+        quality_score = (outfit.get('quality_score', 0.5) if outfit else 0.5)
         score += quality_score * 0.2
         
         # Recency bonus (if outfit was created recently)

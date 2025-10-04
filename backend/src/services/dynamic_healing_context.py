@@ -227,7 +227,7 @@ class DynamicHealingContext:
             temp_key = f"{temperature//10*10}-{(temperature//10*10)+10}"  # e.g., "70-80"
             
             if temp_key in self.weather_learning:
-                material = item_data.get('material', '').lower()
+                material = (item_data.get('material', '') if item_data else '').lower()
                 if material in self.weather_learning[temp_key]:
                     return True
         
@@ -235,7 +235,7 @@ class DynamicHealingContext:
         if item_data and 'style' in self.base_context:
             target_style = self.base_context['style']
             if target_style and target_style in self.style_learning:
-                item_style = item_data.get('style', '').lower()
+                item_style = (item_data.get('style', '') if item_data else '').lower()
                 if item_style in self.style_learning[target_style]:
                     return True
         
@@ -244,11 +244,11 @@ class DynamicHealingContext:
     def get_excluded_materials_for_temperature(self, temperature: float) -> Set[str]:
         """Get materials that should be excluded for a given temperature."""
         temp_key = f"{temperature//10*10}-{(temperature//10*10)+10}"
-        return self.weather_learning.get(temp_key, set())
+        return self.(weather_learning.get(temp_key, set() if weather_learning else set())
     
     def get_excluded_styles_for_style(self, target_style: str) -> Set[str]:
         """Get styles that should be excluded for a given target style."""
-        return self.style_learning.get(target_style, set())
+        return self.(style_learning.get(target_style, set() if style_learning else set())
     
     def _extract_learning_from_item_removal(self, item_id: str, reason: str, item_data: Dict[str, Any]):
         """Extract learning patterns from item removal."""
@@ -261,7 +261,7 @@ class DynamicHealingContext:
                 if temp_key not in self.weather_learning:
                     self.weather_learning[temp_key] = set()
                 
-                material = item_data.get('material', '').lower()
+                material = (item_data.get('material', '') if item_data else '').lower()
                 if material:
                     self.weather_learning[temp_key].add(material)
         
@@ -273,12 +273,12 @@ class DynamicHealingContext:
                     if target_style not in self.style_learning:
                         self.style_learning[target_style] = set()
                     
-                    item_style = item_data.get('style', '').lower()
+                    item_style = (item_data.get('style', '') if item_data else '').lower()
                     if item_style:
                         self.style_learning[target_style].add(item_style)
         
         # Category-based learning
-        category = item_data.get('type', '').lower()
+        category = (item_data.get('type', '') if item_data else '').lower()
         if category:
             if category not in self.category_learning:
                 self.category_learning[category] = set()
@@ -287,7 +287,7 @@ class DynamicHealingContext:
     def _extract_learning_from_rule_failure(self, rule_name: str, failure_reason: str, context: Dict[str, Any]):
         """Extract learning patterns from rule failures."""
         if rule_name == 'weather' and context:
-            temperature = context.get('temperature', 70)
+            temperature = (context.get('temperature', 70) if context else 70)
             temp_key = f"{temperature//10*10}-{(temperature//10*10)+10}"
             
             if temp_key not in self.weather_learning:

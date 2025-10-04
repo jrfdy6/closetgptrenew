@@ -94,13 +94,13 @@ class EnhancedImageAnalysisService:
         """
         try:
             # Extract CLIP insights
-            clip_insights = clip_analysis.get("clip_style_analysis", {})
-            top_clip_styles = [style for style, _ in clip_insights.get("top_5_styles", [])]
-            primary_clip_style = clip_insights.get("primary_style")
-            style_confidence = clip_insights.get("style_confidence", 0.0)
+            clip_insights = (clip_analysis.get("clip_style_analysis", {}) if clip_analysis else {})
+            top_clip_styles = [style for style, _ in (clip_insights.get("top_5_styles", []) if clip_insights else [])]
+            primary_clip_style = (clip_insights.get("primary_style") if clip_insights else None)
+            style_confidence = (clip_insights.get("style_confidence", 0.0) if clip_insights else 0.0)
             
             # Get GPT-4 style tags
-            gpt_styles = gpt_analysis.get("style", [])
+            gpt_styles = (gpt_analysis.get("style", []) if gpt_analysis else [])
             
             # Create enhanced style tags by combining both analyses
             enhanced_styles = self._enhance_style_tags(gpt_styles, top_clip_styles, style_confidence)
@@ -116,20 +116,20 @@ class EnhancedImageAnalysisService:
                 "primaryStyle": primary_clip_style,
                 "styleConfidence": style_confidence,
                 "topStyles": top_clip_styles,
-                "styleBreakdown": clip_insights.get("full_breakdown", {}),
+                "styleBreakdown": (clip_insights.get("full_breakdown", {}) if clip_insights else {}),
                 "analysisMethod": "CLIP + GPT-4 Vision"
             }
             
             # Enhance occasion tags based on style insights
             enhanced_analysis["occasion"] = self._enhance_occasion_tags(
-                gpt_analysis.get("occasion", []),
+                (gpt_analysis.get("occasion", []) if gpt_analysis else []),
                 top_clip_styles,
                 style_confidence
             )
             
             # Enhance season tags based on style insights
             enhanced_analysis["season"] = self._enhance_season_tags(
-                gpt_analysis.get("season", []),
+                (gpt_analysis.get("season", []) if gpt_analysis else []),
                 top_clip_styles,
                 style_confidence
             )

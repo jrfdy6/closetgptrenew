@@ -56,7 +56,7 @@ class OutfitFeedbackResponse(BaseModel):
 async def get_current_user(request: Request):
     """Extract user from Firebase token"""
     try:
-        auth_header = request.headers.get("Authorization")
+        auth_header = request.(headers.get("Authorization") if headers else None)
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
         
@@ -95,7 +95,7 @@ async def submit_outfit_feedback(
     logger.info(f"Current user: {current_user}")
     
     try:
-        user_id = current_user.get("uid")
+        user_id = (current_user.get("uid") if current_user else None)
         logger.info(f"Extracted user_id: {user_id}")
         
         if not user_id:
@@ -105,14 +105,14 @@ async def submit_outfit_feedback(
         # Get the outfit details for context
         logger.info(f"Fetching outfit with ID: {feedback.outfit_id}")
         outfit_ref = db.collection("outfits").document(feedback.outfit_id)
-        outfit_doc = outfit_ref.get()
+        outfit_doc = outfit_ref.get() if outfit_ref else None
         
         if not outfit_doc.exists:
             logger.error(f"Outfit not found: {feedback.outfit_id}")
             raise HTTPException(status_code=404, detail="Outfit not found")
         
         outfit_data = outfit_doc.to_dict()
-        logger.info(f"Outfit data retrieved: {outfit_data.get('occasion', 'Unknown')} outfit with {len(outfit_data.get('items', []))} items")
+        logger.info(f"Outfit data retrieved: {((outfit_data.get('occasion', 'Unknown') if outfit_data else 'Unknown') if outfit_data else 'Unknown')} outfit with {len(outfit_data.get('items', []))} items")
         
         # Create comprehensive feedback document
         logger.info("Creating feedback data structure...")
@@ -125,34 +125,34 @@ async def submit_outfit_feedback(
             "rating": feedback.rating,
             "context_data": feedback.context_data or {},
             "outfit_context": {
-                "occasion": outfit_data.get("occasion"),
-                "mood": outfit_data.get("mood"),
-                "style": outfit_data.get("style"),
-                "items_count": len(outfit_data.get("items", [])),
+                "occasion": (outfit_data.get("occasion") if outfit_data else None),
+                "mood": (outfit_data.get("mood") if outfit_data else None),
+                "style": (outfit_data.get("style") if outfit_data else None),
+                "items_count": len((outfit_data.get("items", []) if outfit_data else [])),
                 "items_types": [],  # We can't get item types from IDs without fetching the items
-                "created_at": outfit_data.get("createdAt"),
-                "generation_method": outfit_data.get("generation_method", "unknown")
+                "created_at": (outfit_data.get("createdAt") if outfit_data else None),
+                "generation_method": (outfit_data.get("generation_method", "unknown") if outfit_data else "unknown")
             },
             "user_context": {
                 "user_id": user_id,
-                "user_email": current_user.get("email"),
-                "user_preferences": current_user.get("preferences", {}),
+                "user_email": (current_user.get("email") if current_user else None),
+                "user_preferences": (current_user.get("preferences", {}) if current_user else {}),
                 "feedback_timestamp": datetime.utcnow().isoformat(),
-                "session_data": feedback.context_data.get("session_data", {}) if feedback.context_data else {}
+                "session_data": feedback.(context_data.get("session_data", {}) if context_data else {}) if feedback.context_data else {}
             },
             "analytics_data": {
                 "feedback_timestamp": datetime.utcnow().isoformat(),
                 "feedback_category": "outfit_rating",
                 "data_source": "user_feedback",
                 "metadata": {
-                    "user_agent": feedback.context_data.get("user_agent") if feedback.context_data else None,
-                    "platform": feedback.context_data.get("platform") if feedback.context_data else None,
-                    "location": feedback.context_data.get("location") if feedback.context_data else None
+                    "user_agent": feedback.(context_data.get("user_agent") if context_data else None) if feedback.context_data else None,
+                    "platform": feedback.(context_data.get("platform") if context_data else None) if feedback.context_data else None,
+                    "location": feedback.(context_data.get("location") if context_data else None) if feedback.context_data else None
                 }
             }
         }
         
-        logger.info(f"Feedback data created: user_id={feedback_data.get('user_id')}, outfit_id={feedback_data.get('outfit_id')}, rating={feedback_data.get('rating')}")
+        logger.info(f"Feedback data created: user_id={(((feedback_data.get('user_id') if feedback_data else None) if feedback_data else None) if feedback_data else None)}, outfit_id={feedback_data.get('outfit_id')}, rating={feedback_data.get('rating')}")
         
         # Store in feedback collection
         logger.info("Attempting to save to outfit_feedback collection...")
@@ -215,7 +215,7 @@ async def submit_outfit_feedback(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/outfit/{outfit_id}/summary")
+@(router.get("/outfit/{outfit_id}/summary") if router else None)
 async def get_outfit_feedback_summary(
     outfit_id: str,
     current_user: Dict = Depends(get_current_user)
@@ -224,7 +224,7 @@ async def get_outfit_feedback_summary(
     Get feedback summary for an outfit
     """
     try:
-        user_id = current_user.get("uid")
+        user_id = (current_user.get("uid") if current_user else None)
         
         # Get feedback for this outfit
         feedback_refs = db.collection("outfit_feedback").where("outfit_id", "==", outfit_id).stream()
@@ -262,10 +262,10 @@ async def get_outfit_feedback_summary(
             # Add to recent feedback (last 5)
             if len(feedback_summary["recent_feedback"]) < 5:
                 feedback_summary["recent_feedback"].append({
-                    "feedback_type": feedback_data.get("feedback_type"),
-                    "timestamp": feedback_data.get("user_context", {}).get("feedback_timestamp"),
-                    "rating": feedback_data.get("rating"),
-                    "issue_category": feedback_data.get("issue_category")
+                    "feedback_type": (feedback_data.get("feedback_type") if feedback_data else None),
+                    "timestamp": (feedback_data.get("user_context", {}) if feedback_data else {}).get("feedback_timestamp"),
+                    "rating": (feedback_data.get("rating") if feedback_data else None),
+                    "issue_category": (feedback_data.get("issue_category") if feedback_data else None)
                 })
         
         if rating_count > 0:
@@ -280,7 +280,7 @@ async def get_outfit_feedback_summary(
         logger.error(f"Error getting feedback summary: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/analytics/summary")
+@(router.get("/analytics/summary") if router else None)
 async def get_feedback_analytics_summary(
     current_user: Dict = Depends(get_current_user)
 ):
@@ -288,7 +288,7 @@ async def get_feedback_analytics_summary(
     Get overall feedback analytics summary
     """
     try:
-        user_id = current_user.get("uid")
+        user_id = (current_user.get("uid") if current_user else None)
         
         # Get all feedback for this user
         feedback_refs = db.collection("outfit_feedback").where("user_id", "==", user_id).stream()
@@ -313,7 +313,7 @@ async def get_feedback_analytics_summary(
         for feedback_doc in feedback_refs:
             feedback_data = feedback_doc.to_dict()
             analytics_summary["total_feedback"] += 1
-            rated_outfits.add(feedback_data.get("outfit_id"))
+            rated_outfits.add((feedback_data.get("outfit_id") if feedback_data else None))
             
             if feedback_data.get("feedback_type") == "like":
                 analytics_summary["likes"] += 1
@@ -322,9 +322,9 @@ async def get_feedback_analytics_summary(
                     rating_count += 1
                     
                 # Track preferred occasions and styles for likes
-                outfit_context = feedback_data.get("outfit_context", {})
-                occasion = outfit_context.get("occasion")
-                style = outfit_context.get("style")
+                outfit_context = (feedback_data.get("outfit_context", {}) if feedback_data else {})
+                occasion = (outfit_context.get("occasion") if outfit_context else None)
+                style = (outfit_context.get("style") if outfit_context else None)
                 
                 if occasion:
                     analytics_summary["preferred_occasions"][occasion] = analytics_summary["preferred_occasions"].get(occasion, 0) + 1
@@ -353,7 +353,7 @@ async def get_feedback_analytics_summary(
         logger.error(f"Error getting analytics summary: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/user/summary")
+@(router.get("/user/summary") if router else None)
 async def get_user_feedback_summary(
     current_user: Dict = Depends(get_current_user)
 ):
@@ -361,7 +361,7 @@ async def get_user_feedback_summary(
     Get comprehensive feedback summary for the current user
     """
     try:
-        user_id = current_user.get("uid")
+        user_id = (current_user.get("uid") if current_user else None)
         
         # Get all feedback for this user
         feedback_refs = db.collection("outfit_feedback").where("user_id", "==", user_id).stream()
@@ -402,32 +402,32 @@ async def get_user_feedback_summary(
                 feedback_summary["issues"] += 1
             
             # Track ratings by style and occasion
-            outfit_context = feedback_data.get("outfit_context", {})
-            if outfit_context.get("style") and feedback_data.get("rating"):
+            outfit_context = (feedback_data.get("outfit_context", {}) if feedback_data else {})
+            if outfit_context.get("style") and (feedback_data.get("rating") if feedback_data else None):
                 style = outfit_context["style"].lower()
                 if style not in style_ratings:
                     style_ratings[style] = []
                 style_ratings[style].append(feedback_data["rating"])
             
-            if outfit_context.get("occasion") and feedback_data.get("rating"):
+            if outfit_context.get("occasion") and (feedback_data.get("rating") if feedback_data else None):
                 occasion = outfit_context["occasion"].lower()
                 if occasion not in occasion_ratings:
                     occasion_ratings[occasion] = []
                 occasion_ratings[occasion].append(feedback_data["rating"])
             
             # Track item-specific feedback
-            outfit_id = feedback_data.get("outfit_id")
-            if outfit_id and feedback_data.get("rating"):
+            outfit_id = (feedback_data.get("outfit_id") if feedback_data else None)
+            if outfit_id and (feedback_data.get("rating") if feedback_data else None):
                 if outfit_id not in item_ratings:
                     item_ratings[outfit_id] = []
                 item_ratings[outfit_id].append(feedback_data["rating"])
             
             # Add to recent feedback
             feedback_summary["recent_feedback"].append({
-                "outfit_id": feedback_data.get("outfit_id"),
-                "feedback_type": feedback_data.get("feedback_type"),
-                "rating": feedback_data.get("rating"),
-                "timestamp": feedback_data.get("timestamp"),
+                "outfit_id": (feedback_data.get("outfit_id") if feedback_data else None),
+                "feedback_type": (feedback_data.get("feedback_type") if feedback_data else None),
+                "rating": (feedback_data.get("rating") if feedback_data else None),
+                "timestamp": (feedback_data.get("timestamp") if feedback_data else None),
                 "outfit_context": outfit_context
             })
         
@@ -483,7 +483,7 @@ async def get_user_feedback_summary(
         
         # Sort recent feedback by timestamp
         feedback_summary["recent_feedback"].sort(
-            key=lambda x: x.get("timestamp") or 0,
+            key=lambda x: (x.get("timestamp") if x else None) or 0,
             reverse=True
         )
         feedback_summary["recent_feedback"] = feedback_summary["recent_feedback"][:10]

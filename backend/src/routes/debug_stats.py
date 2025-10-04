@@ -15,7 +15,7 @@ except ImportError as e:
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@router.get("/debug-stats")
+@(router.get("/debug-stats") if router else None)
 async def get_debug_stats(user_id: str = Query(..., description="User ID to get debug stats for")) -> Dict[str, Any]:
     """
     Get debug stats updates for a user (bypasses Railway rate limiting).
@@ -38,7 +38,7 @@ async def get_debug_stats(user_id: str = Query(..., description="User ID to get 
             
             # Parse timestamp and filter to last 24 hours
             try:
-                doc_timestamp = datetime.fromisoformat(doc_data.get('timestamp', ''))
+                doc_timestamp = datetime.fromisoformat((doc_data.get('timestamp', '') if doc_data else ''))
                 if doc_timestamp >= cutoff_time:
                     debug_entries.append({
                         'id': doc.id,
@@ -52,11 +52,11 @@ async def get_debug_stats(user_id: str = Query(..., description="User ID to get 
                 })
         
         # Sort by timestamp (newest first)
-        debug_entries.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        debug_entries.sort(key=lambda x: (x.get('timestamp', '') if x else ''), reverse=True)
         
         # Get current user_stats for comparison
         user_stats_ref = db.collection('user_stats').document(user_id)
-        user_stats_doc = user_stats_ref.get()
+        user_stats_doc = user_stats_ref.get() if user_stats_ref else None
         
         current_stats = None
         if user_stats_doc.exists:

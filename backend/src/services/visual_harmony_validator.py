@@ -328,8 +328,8 @@ class VisualHarmonyValidator:
         colors = []
         
         for item in items:
-            item_colors = item.get('color', '').lower().split()
-            dominant_colors = item.get('dominantColors', [])
+            item_colors = (item.get('color', '') if item else '').lower().split()
+            dominant_colors = (item.get('dominantColors', []) if item else [])
             
             # Use dominant colors if available, otherwise use item color
             if dominant_colors:
@@ -385,7 +385,7 @@ class VisualHarmonyValidator:
             "metallic": "silver"
         }
         
-        mapped_color = color_mappings.get(color_name)
+        mapped_color = (color_mappings.get(color_name) if color_mappings else None)
         if mapped_color and mapped_color in self.color_database:
             return self.color_database[mapped_color]
         
@@ -478,7 +478,7 @@ class VisualHarmonyValidator:
             ColorHarmonyType.TRIADIC: 10
         }
         
-        base_score += harmony_bonuses.get(harmony_type, 0)
+        base_score += (harmony_bonuses.get(harmony_type, 0) if harmony_bonuses else 0)
         
         # Penalty for too many colors
         unique_colors = len(set([c.name for c in colors]))
@@ -545,14 +545,14 @@ class VisualHarmonyValidator:
         textures = []
         
         # Check material
-        material = item.get('material', '').lower()
+        material = (item.get('material', '') if item else '').lower()
         if material:
             for texture_type, info in self.texture_database.items():
                 if any(example in material for example in info['examples']):
                     textures.append(texture_type)
         
         # Check name for texture clues
-        name = item.get('name', '').lower()
+        name = (item.get('name', '') if item else '').lower()
         for texture_type, info in self.texture_database.items():
             if any(example in name for example in info['examples']):
                 textures.append(texture_type)
@@ -611,8 +611,8 @@ class VisualHarmonyValidator:
         }
         
         for item in items:
-            item_type = item.get('type', '').lower()
-            name = item.get('name', '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            name = (item.get('name', '') if item else '').lower()
             
             # Count by type
             if item_type in ['shirt', 'top', 'blouse', 'sweater', 'jacket']:
@@ -673,7 +673,7 @@ class VisualHarmonyValidator:
             ProportionType.OVERSIZED: 5
         }
         
-        base_score += proportion_bonuses.get(proportion_type, 0)
+        base_score += (proportion_bonuses.get(proportion_type, 0) if proportion_bonuses else 0)
         
         # Penalty for too many items of same type
         if proportions["top_items"] > 3:
@@ -687,7 +687,7 @@ class VisualHarmonyValidator:
     
     async def _analyze_style_coherence(self, items: List[Dict[str, Any]], style: str, occasion: str) -> Dict[str, Any]:
         """Analyze style coherence"""
-        style_rules = self.style_harmony_rules.get(style.lower(), {})
+        style_rules = self.(style_harmony_rules.get(style.lower() if style_harmony_rules else None), {})
         
         if not style_rules:
             return {
@@ -703,7 +703,7 @@ class VisualHarmonyValidator:
         # Check color palette
         colors = self._extract_colors(items)
         color_harmony = await self._analyze_color_harmony(colors)
-        preferred_palettes = style_rules.get("color_palette", [])
+        preferred_palettes = (style_rules.get("color_palette", []) if style_rules else [])
         
         if color_harmony["harmony_type"] in preferred_palettes:
             coherence_score += 25
@@ -713,7 +713,7 @@ class VisualHarmonyValidator:
         textures = []
         for item in items:
             textures.extend(self._identify_textures(item))
-        preferred_textures = style_rules.get("texture_preference", [])
+        preferred_textures = (style_rules.get("texture_preference", []) if style_rules else [])
         
         texture_match = any(texture in preferred_textures for texture in textures)
         if texture_match:
@@ -723,7 +723,7 @@ class VisualHarmonyValidator:
         # Check proportion preference
         proportions = self._identify_proportions(items)
         proportion_type = self._determine_proportion_type(proportions)
-        preferred_proportions = style_rules.get("proportion_preference", [])
+        preferred_proportions = (style_rules.get("proportion_preference", []) if style_rules else [])
         
         if proportion_type.value in preferred_proportions:
             coherence_score += 25
@@ -731,7 +731,7 @@ class VisualHarmonyValidator:
         
         # Check pattern tolerance
         patterns = self._count_patterns(items)
-        pattern_tolerance = style_rules.get("pattern_tolerance", "medium")
+        pattern_tolerance = (style_rules.get("pattern_tolerance", "medium") if style_rules else "medium")
         
         if pattern_tolerance == "high" and patterns >= 2:
             coherence_score += 25
@@ -756,7 +756,7 @@ class VisualHarmonyValidator:
         pattern_keywords = ['striped', 'polka', 'checkered', 'plaid', 'floral', 'print', 'pattern']
         
         for item in items:
-            name = item.get('name', '').lower()
+            name = (item.get('name', '') if item else '').lower()
             if any(keyword in name for keyword in pattern_keywords):
                 pattern_count += 1
         
@@ -779,10 +779,10 @@ class VisualHarmonyValidator:
         }
         
         overall_score = (
-            color_harmony.get("score", 50) * weights["color"] +
-            style_coherence.get("score", 50) * weights["style"] +
-            proportion_harmony.get("score", 50) * weights["proportion"] +
-            texture_harmony.get("score", 50) * weights["texture"]
+            (color_harmony.get("score", 50) if color_harmony else 50) * weights["color"] +
+            (style_coherence.get("score", 50) if style_coherence else 50) * weights["style"] +
+            (proportion_harmony.get("score", 50) if proportion_harmony else 50) * weights["proportion"] +
+            (texture_harmony.get("score", 50) if texture_harmony else 50) * weights["texture"]
         )
         
         return min(max(overall_score, 0), 100)
@@ -831,7 +831,7 @@ class VisualHarmonyValidator:
     
     def _determine_harmony_type(self, color_harmony: Dict[str, Any], style: str) -> str:
         """Determine overall harmony type"""
-        color_type = color_harmony.get("harmony_type", "unknown")
+        color_type = (color_harmony.get("harmony_type", "unknown") if color_harmony else "unknown")
         return f"{style}_{color_type}"
     
     def _calculate_confidence(self, items: List[Dict[str, Any]], color_harmony: Dict[str, Any], style_coherence: Dict[str, Any]) -> float:

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/strategy-analytics", tags=["strategy-analytics"])
 
-@router.get("/overview")
+@(router.get("/overview") if router else None)
 async def get_strategy_overview() -> Dict[str, Any]:
     """Get comprehensive strategy analytics overview"""
     try:
@@ -26,7 +26,7 @@ async def get_strategy_overview() -> Dict[str, Any]:
         logger.error(f"Error retrieving strategy analytics: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve strategy analytics: {str(e)}")
 
-@router.get("/strategy/{strategy_name}")
+@(router.get("/strategy/{strategy_name}") if router else None)
 async def get_strategy_details(strategy_name: str) -> Dict[str, Any]:
     """Get detailed analytics for a specific strategy"""
     try:
@@ -45,7 +45,7 @@ async def get_strategy_details(strategy_name: str) -> Dict[str, Any]:
         logger.error(f"Error retrieving strategy details for {strategy_name}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve strategy details: {str(e)}")
 
-@router.get("/user/{user_id}")
+@(router.get("/user/{user_id}") if router else None)
 async def get_user_analytics(user_id: str) -> Dict[str, Any]:
     """Get analytics for a specific user"""
     try:
@@ -64,7 +64,7 @@ async def get_user_analytics(user_id: str) -> Dict[str, Any]:
         logger.error(f"Error retrieving user analytics for {user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve user analytics: {str(e)}")
 
-@router.get("/recommendations")
+@(router.get("/recommendations") if router else None)
 async def get_performance_recommendations() -> Dict[str, Any]:
     """Get performance improvement recommendations"""
     try:
@@ -78,7 +78,7 @@ async def get_performance_recommendations() -> Dict[str, Any]:
         logger.error(f"Error retrieving performance recommendations: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve recommendations: {str(e)}")
 
-@router.get("/export")
+@(router.get("/export") if router else None)
 async def export_analytics_data() -> Dict[str, Any]:
     """Export all analytics data for external analysis"""
     try:
@@ -92,7 +92,7 @@ async def export_analytics_data() -> Dict[str, Any]:
         logger.error(f"Error exporting analytics data: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to export analytics data: {str(e)}")
 
-@router.get("/health")
+@(router.get("/health") if router else None)
 async def health_check() -> Dict[str, Any]:
     """Health check for strategy analytics service"""
     try:
@@ -100,8 +100,8 @@ async def health_check() -> Dict[str, Any]:
         return {
             "success": True,
             "status": "healthy",
-            "total_executions": analytics.get("total_executions", 0),
-            "active_strategies": len(analytics.get("active_strategies", [])),
+            "total_executions": (analytics.get("total_executions", 0) if analytics else 0),
+            "active_strategies": len((analytics.get("active_strategies", []) if analytics else [])),
             "message": "Strategy analytics service is healthy"
         }
     except Exception as e:

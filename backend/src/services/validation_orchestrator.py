@@ -301,7 +301,7 @@ class ValidationOrchestrator:
         warnings = []
         
         user_profile = context.get("user_profile", {}) if context else {}
-        # body_type = user_profile.get("body_type", "").lower()
+        # body_type = (user_profile.get("body_type", "") if user_profile else "").lower()
         body_type = getattr(user_profile, 'bodyType', '') or ''
         body_type = body_type.lower()
         
@@ -357,15 +357,15 @@ class ValidationOrchestrator:
         errors = []
         warnings = []
         
-        target_counts = context.get("target_counts", {})
-        min_items = target_counts.get("min_items", 3)
-        required_categories = target_counts.get("required_categories", ["top", "bottom", "shoes"])
+        target_counts = (context.get("target_counts", {}) if context else {})
+        min_items = (target_counts.get("min_items", 3) if target_counts else 3)
+        required_categories = (target_counts.get("required_categories", ["top", "bottom", "shoes"]) if target_counts else "shoes"])
         
         # Count items by category
         category_counts = {}
         for item in items:
             category = self._get_item_category(item)
-            category_counts[category] = category_counts.get(category, 0) + 1
+            category_counts[category] = (category_counts.get(category, 0) if category_counts else 0) + 1
         
         # Check minimum items - make this a warning instead of error
         if len(items) < min_items:
@@ -381,7 +381,7 @@ class ValidationOrchestrator:
             warnings.append(f"Missing recommended categories: {', '.join(missing_categories)}")  # Changed from error to warning
         
         # Check for too many items
-        max_items = target_counts.get("max_items", 6)
+        max_items = (target_counts.get("max_items", 6) if target_counts else 6)
         if len(items) > max_items:
             warnings.append(f"Outfit has {len(items)} items, maximum {max_items} recommended")
         
@@ -405,12 +405,12 @@ class ValidationOrchestrator:
         errors = []
         warnings = []
         
-        weather = context.get("weather", {})
+        weather = (context.get("weather", {}) if context else {})
         # Handle both WeatherData objects and dictionaries
         if hasattr(weather, 'temperature'):
             temperature = weather.temperature
         else:
-            temperature = weather.get("temperature", 70)
+            temperature = (weather.get("temperature", 70) if weather else 70)
         
         # Ensure temperature is a float
         if isinstance(temperature, str):
@@ -420,7 +420,7 @@ class ValidationOrchestrator:
                 temperature = 70.0
         elif temperature is None:
             temperature = 70.0
-        occasion = context.get("occasion", "").lower()
+        occasion = (context.get("occasion", "") if context else "").lower()
         
         # Calculate layer count
         layer_count = len([item for item in items if self._is_layer_item(item)])
@@ -461,12 +461,12 @@ class ValidationOrchestrator:
         errors = []
         warnings = []
         
-        weather = context.get("weather", {})
+        weather = (context.get("weather", {}) if context else {})
         # Handle both WeatherData objects and dictionaries
         if hasattr(weather, 'temperature'):
             temperature = weather.temperature
         else:
-            temperature = weather.get("temperature", 70)
+            temperature = (weather.get("temperature", 70) if weather else 70)
         # Ensure temperature is a float
         if isinstance(temperature, str):
             try:
@@ -475,7 +475,7 @@ class ValidationOrchestrator:
                 temperature = 70.0
         elif temperature is None:
             temperature = 70.0
-        occasion = context.get("occasion", "")
+        occasion = (context.get("occasion", "") if context else "")
         
         # Basic layering validation without outfit_service dependency
         layer_items = [item for item in items if self._is_layer_item(item)]
@@ -573,7 +573,7 @@ class ValidationOrchestrator:
         categories = [self._get_item_category(item) for item in items]
         category_counts = {}
         for category in categories:
-            category_counts[category] = category_counts.get(category, 0) + 1
+            category_counts[category] = (category_counts.get(category, 0) if category_counts else 0) + 1
         
         for category, count in category_counts.items():
             if count > 1:
@@ -613,7 +613,7 @@ class ValidationOrchestrator:
             "bag": "accessory"
         }
         
-        return category_mapping.get(item_type, "other")
+        return (category_mapping.get(item_type, "other") if category_mapping else "other")
     
     def _is_layer_item(self, item: ClothingItem) -> bool:
         """Check if item is a layering item."""

@@ -44,10 +44,10 @@ class ShoppingRecommendationsService:
             logger.info(f"🛍️ Generating shopping recommendations for user {user_id}")
             
             # Get user's style preferences
-            style_preferences = user_profile.get('stylePreferences', [])
-            color_preferences = user_profile.get('colorPreferences', [])
-            body_type = user_profile.get('bodyType', 'average')
-            gender = user_profile.get('gender', 'unisex')
+            style_preferences = (user_profile.get('stylePreferences', []) if user_profile else [])
+            color_preferences = (user_profile.get('colorPreferences', []) if user_profile else [])
+            body_type = (user_profile.get('bodyType', 'average') if user_profile else 'average')
+            gender = (user_profile.get('gender', 'unisex') if user_profile else 'unisex')
             
             # Generate recommendations for each gap
             recommendations = []
@@ -58,7 +58,7 @@ class ShoppingRecommendationsService:
                     gap, style_preferences, color_preferences, body_type, gender, budget_range
                 )
                 recommendations.extend(gap_recommendations)
-                total_estimated_cost += sum(rec.get('estimated_price', 0) for rec in gap_recommendations)
+                total_estimated_cost += sum((rec.get('estimated_price', 0) if rec else 0) for rec in gap_recommendations)
             
             # Sort by priority and budget
             recommendations = self._prioritize_recommendations(recommendations, budget_range)
@@ -102,9 +102,9 @@ class ShoppingRecommendationsService:
     ) -> List[Dict[str, Any]]:
         """Generate specific item recommendations for a wardrobe gap."""
         
-        category = gap.get('category', '')
-        priority = gap.get('priority', 'medium')
-        suggested_items = gap.get('suggestedItems', [])
+        category = (gap.get('category', '') if gap else '')
+        priority = (gap.get('priority', 'medium') if gap else 'medium')
+        suggested_items = (gap.get('suggestedItems', []) if gap else [])
         
         recommendations = []
         
@@ -126,7 +126,7 @@ class ShoppingRecommendationsService:
                         "materials": template['materials'],
                         "estimated_price": self._estimate_price(item_type, budget_range),
                         "priority": priority,
-                        "why_needed": gap.get('description', ''),
+                        "why_needed": (gap.get('description', '') if gap else ''),
                         "styling_tips": template['styling_tips'],
                         "care_instructions": template['care_instructions'],
                         "versatility_score": template['versatility_score'],
@@ -273,7 +273,7 @@ class ShoppingRecommendationsService:
             ]
         }
         
-        return templates.get(category, [])
+        return (templates.get(category, []) if templates else [])
     
     def _get_recommended_colors(self, color_preferences: List[str], template_colors: List[str]) -> List[str]:
         """Get recommended colors based on user preferences and template options."""
@@ -303,7 +303,7 @@ class ShoppingRecommendationsService:
             }
         }
         
-        return size_guides.get(gender, size_guides['female']).get(body_type, ['S', 'M', 'L'])
+        return (size_guides.get(gender, size_guides['female']) if size_guides else size_guides['female']).get(body_type, ['S', 'M', 'L'])
     
     def _estimate_price(self, item_type: str, budget_range: Optional[str]) -> int:
         """Estimate price based on item type and budget range."""
@@ -313,7 +313,7 @@ class ShoppingRecommendationsService:
             'bag': 80, 'scarf': 40, 'accessory': 25
         }
         
-        base_price = base_prices.get(item_type.lower(), 50)
+        base_price = (base_prices.get(item_type.lower() if base_prices else None), 50)
         
         if budget_range == 'low':
             return int(base_price * 0.6)
@@ -330,8 +330,8 @@ class ShoppingRecommendationsService:
         """Sort recommendations by priority and budget considerations."""
         def sort_key(rec):
             priority_scores = {'high': 3, 'medium': 2, 'low': 1}
-            priority_score = priority_scores.get(rec.get('priority', 'medium'), 2)
-            versatility_score = rec.get('versatility_score', 5)
+            priority_score = (priority_scores.get((rec.get('priority', 'medium') if rec else 'medium') if priority_scores else 'medium'), 2)
+            versatility_score = (rec.get('versatility_score', 5) if rec else 5)
             return (priority_score, versatility_score)
         
         return sorted(recommendations, key=sort_key, reverse=True)
@@ -372,7 +372,7 @@ class ShoppingRecommendationsService:
         }
         
         budget = budget_range or 'medium'
-        store_list = stores.get(budget, stores['medium'])
+        store_list = (stores.get(budget, stores['medium']) if stores else stores['medium'])
         
         # Filter by preferred stores if provided
         if preferred_stores:
@@ -413,7 +413,7 @@ class ShoppingRecommendationsService:
                 "name": "Style Builders",
                 "description": f"Add {len(medium_priority)} medium-priority items to enhance your wardrobe",
                 "items": medium_priority,
-                "estimated_cost": sum(r.get('estimated_price', 0) for r in medium_priority)
+                "estimated_cost": sum((r.get('estimated_price', 0) if r else 0) for r in medium_priority)
             })
         
         # Add shopping tips

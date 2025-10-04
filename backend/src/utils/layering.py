@@ -414,23 +414,23 @@ MAX_LAYERS_MAPPING: Dict[ClothingType, int] = {
 # Utility functions for layering logic
 def get_core_category(clothing_type: ClothingType) -> CoreCategory:
     """Get the core category for a clothing type."""
-    return CORE_CATEGORY_MAPPING.get(clothing_type, CoreCategory.ACCESSORY)
+    return (CORE_CATEGORY_MAPPING.get(clothing_type, CoreCategory.ACCESSORY) if CORE_CATEGORY_MAPPING else CoreCategory.ACCESSORY)
 
 def get_layer_level(clothing_type: ClothingType) -> LayerLevel:
     """Get the layer level for a clothing type."""
-    return LAYER_LEVEL_MAPPING.get(clothing_type, LayerLevel.BASE)
+    return (LAYER_LEVEL_MAPPING.get(clothing_type, LayerLevel.BASE) if LAYER_LEVEL_MAPPING else LayerLevel.BASE)
 
 def get_warmth_factor(clothing_type: ClothingType) -> WarmthFactor:
     """Get the warmth factor for a clothing type."""
-    return WARMTH_FACTOR_MAPPING.get(clothing_type, WarmthFactor.MEDIUM)
+    return (WARMTH_FACTOR_MAPPING.get(clothing_type, WarmthFactor.MEDIUM) if WARMTH_FACTOR_MAPPING else WarmthFactor.MEDIUM)
 
 def can_layer(clothing_type: ClothingType) -> bool:
     """Check if a clothing type can be layered."""
-    return CAN_LAYER_MAPPING.get(clothing_type, False)
+    return (CAN_LAYER_MAPPING.get(clothing_type, False) if CAN_LAYER_MAPPING else False)
 
 def get_max_layers(clothing_type: ClothingType) -> int:
     """Get the maximum number of layers for a clothing type."""
-    return MAX_LAYERS_MAPPING.get(clothing_type, 1)
+    return (MAX_LAYERS_MAPPING.get(clothing_type, 1) if MAX_LAYERS_MAPPING else 1)
 
 # Temperature-based layering rules
 def get_layering_rule(temperature: float) -> Dict:
@@ -499,20 +499,20 @@ def validate_layering_compatibility(
     layers_by_level = {}
     
     for item in items:
-        item_type = ClothingType(item.get("type", "other"))
+        item_type = ClothingType((item.get("type", "other") if item else "other"))
         category = get_core_category(item_type)
         layer_level = get_layer_level(item_type)
         warmth_factor = get_warmth_factor(item_type)
         
-        layers_by_category[category] = layers_by_category.get(category, 0) + 1
-        layers_by_level[layer_level] = layers_by_level.get(layer_level, 0) + 1
+        layers_by_category[category] = (layers_by_category.get(category, 0) if layers_by_category else 0) + 1
+        layers_by_level[layer_level] = (layers_by_level.get(layer_level, 0) if layers_by_level else 0) + 1
         
         # Check warmth appropriateness
         if warmth_factor not in rule["preferred_warmth"]:
             warnings.append(f"{item_type.value} may be too {warmth_factor.value} for {temperature}°F weather")
     
     # Check minimum layers
-    total_layers = sum(1 for item in items if can_layer(ClothingType(item.get("type", "other"))))
+    total_layers = sum(1 for item in items if can_layer(ClothingType((item.get("type", "other") if item else "other"))))
     if total_layers < rule["min_layers"]:
         errors.append(f"Insufficient layering for {temperature}°F weather. Need at least {rule['min_layers']} layers.")
     
@@ -540,8 +540,8 @@ def get_layering_suggestions(
     rule = get_layering_rule(temperature)
     suggestions = []
     
-    current_layers = sum(1 for item in items if can_layer(ClothingType(item.get("type", "other"))))
-    current_categories = set(get_core_category(ClothingType(item.get("type", "other"))) for item in items)
+    current_layers = sum(1 for item in items if can_layer(ClothingType((item.get("type", "other") if item else "other"))))
+    current_categories = set(get_core_category(ClothingType((item.get("type", "other") if item else "other"))) for item in items)
     
     if current_layers < rule["min_layers"]:
         suggestions.append(f"Add {rule['min_layers'] - current_layers} more layer(s) for {temperature}°F weather")
@@ -554,7 +554,7 @@ def get_layering_suggestions(
 
 def get_skin_tone_color_recommendations(skin_tone: str) -> Dict[str, List[str]]:
     """Get color recommendations based on skin tone."""
-    return SKIN_TONE_COLOR_COMPATIBILITY.get(skin_tone.lower(), {
+    return (SKIN_TONE_COLOR_COMPATIBILITY.get(skin_tone.lower() if SKIN_TONE_COLOR_COMPATIBILITY else None), {
         'flattering_colors': [],
         'avoid_colors': [],
         'neutral_colors': []
@@ -562,7 +562,7 @@ def get_skin_tone_color_recommendations(skin_tone: str) -> Dict[str, List[str]]:
 
 def get_body_type_layering_recommendations(body_type: str) -> Dict[str, List[str]]:
     """Get layering recommendations based on body type."""
-    return BODY_TYPE_LAYERING_RECOMMENDATIONS.get(body_type.lower(), {
+    return (BODY_TYPE_LAYERING_RECOMMENDATIONS.get(body_type.lower() if BODY_TYPE_LAYERING_RECOMMENDATIONS else None), {
         'flattering_layers': [],
         'avoid_layers': [],
         'layer_priorities': []
@@ -570,7 +570,7 @@ def get_body_type_layering_recommendations(body_type: str) -> Dict[str, List[str
 
 def get_style_preference_layering(style_preference: str) -> Dict[str, List[str]]:
     """Get layering approach based on style preference."""
-    return STYLE_PREFERENCE_LAYERING.get(style_preference.lower(), {
+    return (STYLE_PREFERENCE_LAYERING.get(style_preference.lower() if STYLE_PREFERENCE_LAYERING else None), {
         'layer_approach': [],
         'preferred_layers': [],
         'avoid_layers': []
@@ -610,8 +610,8 @@ def validate_body_type_layering_compatibility(items: List[Dict], body_type: str)
     score = 1.0
     
     # Analyze the layering approach
-    top_items = [item for item in items if get_core_category(item.get('type', '')) == CoreCategory.TOP]
-    outerwear_items = [item for item in items if get_core_category(item.get('type', '')) == CoreCategory.OUTERWEAR]
+    top_items = [item for item in items if get_core_category((item.get('type', '') if item else '')) == CoreCategory.TOP]
+    outerwear_items = [item for item in items if get_core_category((item.get('type', '') if item else '')) == CoreCategory.OUTERWEAR]
     
     # Check for body type specific recommendations
     if body_type.lower() == 'pear':
@@ -622,7 +622,7 @@ def validate_body_type_layering_compatibility(items: List[Dict], body_type: str)
             suggestions.append("Consider adding a structured jacket to draw attention upward")
     
     elif body_type.lower() == 'apple':
-        if any('crop' in item.get('type', '').lower() for item in top_items):
+        if any('crop' in (item.get('type', '') if item else '').lower() for item in top_items):
             warnings.append("Crop tops may not be ideal for apple body types")
             score -= 0.3
         if len(outerwear_items) == 0:
@@ -733,13 +733,13 @@ def calculate_personalized_layering_score(
     
     # Temperature compatibility (30% weight)
     temp_validation = validate_layering_compatibility(items, temperature)
-    base_score += temp_validation.get('score', 0.5) * 0.3
+    base_score += (temp_validation.get('score', 0.5) if temp_validation else 0.5) * 0.3
     
     # Skin tone compatibility (20% weight)
     if skin_tone:
         color_scores = []
         for item in items:
-            color = item.get('color', '')
+            color = (item.get('color', '') if item else '')
             if color:
                 color_validation = validate_color_skin_tone_compatibility(color, skin_tone)
                 color_scores.append(color_validation['score'])
@@ -806,10 +806,10 @@ def get_enhanced_layering_validation(
     return {
         'is_valid': overall_score > 0.6,
         'overall_score': overall_score,
-        'temperature_score': temp_validation.get('score', 0.5),
-        'color_score': color_validation.get('score', 0.5),
-        'body_type_score': body_validation.get('score', 0.5),
-        'style_score': style_validation.get('score', 0.5),
+        'temperature_score': (temp_validation.get('score', 0.5) if temp_validation else 0.5),
+        'color_score': (color_validation.get('score', 0.5) if color_validation else 0.5),
+        'body_type_score': (body_validation.get('score', 0.5) if body_validation else 0.5),
+        'style_score': (style_validation.get('score', 0.5) if style_validation else 0.5),
         'suggestions': all_suggestions,
         'warnings': all_warnings,
         'personalized_recommendations': get_personalized_layering_suggestions(

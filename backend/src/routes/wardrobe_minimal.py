@@ -47,7 +47,7 @@ except Exception as e:
     print(f"Warning: Could not initialize Firestore: {e}")
     db = None
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_wardrobe_items(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
     try:
@@ -64,19 +64,19 @@ async def get_wardrobe_items(current_user: UserProfile = Depends(get_current_use
             # Transform backend data to match frontend expectations
             transformed_item = {
                 "id": doc.id,
-                "name": item_data.get('name', 'Unknown Item'),
-                "type": item_data.get('category', 'unknown'),  # Map category to type
-                "color": item_data.get('color', 'unknown'),
-                "imageUrl": item_data.get('image_url', '/placeholder.png'),  # Map image_url to imageUrl
-                "wearCount": item_data.get('wear_count', 0),  # Map wear_count to wearCount
-                "favorite": item_data.get('favorite', False),
-                "style": item_data.get('style', []),
-                "season": item_data.get('season', []),
-                "occasion": item_data.get('occasion', []),
-                "lastWorn": item_data.get('last_worn'),  # Map last_worn to lastWorn
+                "name": (item_data.get('name', 'Unknown Item') if item_data else 'Unknown Item'),
+                "type": (item_data.get('category', 'unknown') if item_data else 'unknown'),  # Map category to type
+                "color": (item_data.get('color', 'unknown') if item_data else 'unknown'),
+                "imageUrl": (item_data.get('image_url', '/placeholder.png') if item_data else '/placeholder.png'),  # Map image_url to imageUrl
+                "wearCount": (item_data.get('wear_count', 0) if item_data else 0),  # Map wear_count to wearCount
+                "favorite": (item_data.get('favorite', False) if item_data else False),
+                "style": (item_data.get('style', []) if item_data else []),
+                "season": (item_data.get('season', []) if item_data else []),
+                "occasion": (item_data.get('occasion', []) if item_data else []),
+                "lastWorn": (item_data.get('last_worn') if item_data else None),  # Map last_worn to lastWorn
                 "userId": current_user.id,
-                "createdAt": item_data.get('created_at'),  # Map created_at to createdAt
-                "updatedAt": item_data.get('updated_at'),  # Map updated_at to updatedAt
+                "createdAt": (item_data.get('created_at') if item_data else None),  # Map created_at to createdAt
+                "updatedAt": (item_data.get('updated_at') if item_data else None),  # Map updated_at to updatedAt
             }
             items.append(transformed_item)
         
@@ -118,13 +118,13 @@ async def add_wardrobe_item(
             "name": item_data["name"],
             "category": item_data["type"],  # Map type to category
             "color": item_data["color"],
-            "style": item_data.get("style", []),
-            "occasion": item_data.get("occasion", []),
-            "season": item_data.get("season", ["all"]),
-            "image_url": item_data.get("imageUrl", ""),  # Map imageUrl to image_url
-            "wear_count": item_data.get("wearCount", 0),  # Map wearCount to wear_count
-            "favorite": item_data.get("favorite", False),
-            "last_worn": item_data.get("lastWorn"),  # Map lastWorn to last_worn
+            "style": (item_data.get("style", []) if item_data else []),
+            "occasion": (item_data.get("occasion", []) if item_data else []),
+            "season": (item_data.get("season", ["all"]) if item_data else ["all"]),
+            "image_url": (item_data.get("imageUrl", "") if item_data else ""),  # Map imageUrl to image_url
+            "wear_count": (item_data.get("wearCount", 0) if item_data else 0),  # Map wearCount to wear_count
+            "favorite": (item_data.get("favorite", False) if item_data else False),
+            "last_worn": (item_data.get("lastWorn") if item_data else None),  # Map lastWorn to last_worn
             "created_at": current_time,
             "updated_at": current_time,
         }
@@ -143,7 +143,7 @@ async def add_wardrobe_item(
         print(f"Error adding wardrobe item: {e}")
         return {"success": False, "error": str(e)}
 
-@router.get("/{item_id}")
+@(router.get("/{item_id}") if router else None)
 async def get_wardrobe_item(
     item_id: str,
     current_user: UserProfile = Depends(get_current_user)
@@ -247,7 +247,7 @@ async def increment_wear_count(
         # Update wear count and last worn
         current_time = int(time.time())
         updates = {
-            'wear_count': item_data.get('wear_count', 0) + 1,
+            'wear_count': (item_data.get('wear_count', 0) if item_data else 0) + 1,
             'last_worn': current_time,
             'updated_at': current_time
         }

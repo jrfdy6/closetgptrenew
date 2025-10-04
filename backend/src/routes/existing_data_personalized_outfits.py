@@ -75,7 +75,7 @@ class PersonalizationStatusResponse(BaseModel):
     data_source: str
     system_parameters: Dict[str, Any]
 
-@router.get("/health")
+@(router.get("/health") if router else None)
 async def health_check():
     """Health check for the existing data personalization system"""
     try:
@@ -105,7 +105,7 @@ async def health_check():
             "timestamp": time.time()
         }
 
-@router.get("/test")
+@(router.get("/test") if router else None)
 async def test_endpoint():
     """Test endpoint for existing data personalization"""
     return {
@@ -257,7 +257,7 @@ async def generate_personalized_outfit_from_existing_data(
         
         # Extract outfit data for personalization
         outfit_data = {
-            'colors': [item.get('color', '') for item in existing_result.get('items', []) if item.get('color')],
+            'colors': [item.get('color', '') for item in (existing_result.get('items', []) if existing_result else []) if item.get('color')],
             'styles': [req.style],
             'occasion': req.occasion
         }
@@ -278,35 +278,35 @@ async def generate_personalized_outfit_from_existing_data(
         
         # Create response with real validation metadata
         outfit_response = {
-            "id": existing_result.get("id", f"personalized_{int(time.time())}"),
-            "name": existing_result.get("name", "Personalized Outfit"),
-            "items": existing_result.get("items", []),
+            "id": (existing_result.get("id", f"personalized_{int(time.time() if existing_result else f"personalized_{int(time.time())}"),
+            "name": (existing_result.get("name", "Personalized Outfit") if existing_result else "Personalized Outfit"),
+            "items": (existing_result.get("items", []) if existing_result else []),
             "style": req.style,
             "occasion": req.occasion,
             "mood": req.mood,
             "weather": req.weather or {},
-            "confidence_score": existing_result.get("confidence_score", existing_result.get("confidence", 0.8)),
-            "personalization_score": existing_result.get("personalization_score"),
-            "personalization_applied": existing_result.get("personalization_applied", False),
+            "confidence_score": ((existing_result.get("confidence_score", existing_result.get("confidence", 0.8) if existing_result else 0.8) if existing_result else 0.8)),
+            "personalization_score": (existing_result.get("personalization_score") if existing_result else None),
+            "personalization_applied": (existing_result.get("personalization_applied", False) if existing_result else False),
             "user_interactions": preference.total_interactions,
-            "data_source": existing_result.get("data_source", "existing_data"),
+            "data_source": (existing_result.get("data_source", "existing_data") if existing_result else "existing_data"),
             "metadata": {
-                **existing_result.get("metadata", {}),
+                **(existing_result.get("metadata", {}) if existing_result else {}),
                 "generation_time": time.time() - start_time,
                 "personalization_enabled": True,
                 "user_id": user_id,
                 "uses_existing_data": True,
                 "preference_data_source": preference.data_source,
                 # Include real validation metadata
-                "validation_applied": existing_result.get("metadata", {}).get("validation_applied", True),
-                "occasion_requirements_met": existing_result.get("metadata", {}).get("occasion_requirements_met", True),
-                "generation_strategy": existing_result.get("metadata", {}).get("generation_strategy", "real_generation"),
-                "deduplication_applied": existing_result.get("metadata", {}).get("deduplication_applied", True),
-                "unique_items_count": len(existing_result.get("items", []))
+                "validation_applied": (existing_result.get("metadata", {}) if existing_result else {}).get("validation_applied", True),
+                "occasion_requirements_met": (existing_result.get("metadata", {}) if existing_result else {}).get("occasion_requirements_met", True),
+                "generation_strategy": (existing_result.get("metadata", {}) if existing_result else {}).get("generation_strategy", "real_generation"),
+                "deduplication_applied": (existing_result.get("metadata", {}) if existing_result else {}).get("deduplication_applied", True),
+                "unique_items_count": len((existing_result.get("items", []) if existing_result else []))
             }
         }
         
-        logger.info(f"✅ Generated personalized outfit from existing data (personalization: {existing_result.get('personalization_applied', False)})")
+        logger.info(f"✅ Generated personalized outfit from existing data (personalization: {(existing_result.get('personalization_applied', False) if existing_result else False)})")
         return OutfitResponse(**outfit_response)
     
     except HTTPException:
@@ -318,7 +318,7 @@ async def generate_personalized_outfit_from_existing_data(
             detail=f"Personalized outfit generation from existing data failed: {str(e)}"
         )
 
-@router.get("/personalization-status", response_model=PersonalizationStatusResponse)
+@(router.get("/personalization-status", response_model=PersonalizationStatusResponse) if router else response_model=PersonalizationStatusResponse)
 async def get_personalization_status_from_existing_data(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -344,7 +344,7 @@ async def get_personalization_status_from_existing_data(
             detail=f"Failed to get personalization status from existing data: {str(e)}"
         )
 
-@router.get("/user-preferences")
+@(router.get("/user-preferences") if router else None)
 async def get_user_preferences_from_existing_data(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -393,7 +393,7 @@ async def get_user_preferences_from_existing_data(
             detail=f"Failed to get user preferences from existing data: {str(e)}"
         )
 
-@router.get("/analytics")
+@(router.get("/analytics") if router else None)
 async def get_existing_data_analytics():
     """Get analytics about existing data usage"""
     try:

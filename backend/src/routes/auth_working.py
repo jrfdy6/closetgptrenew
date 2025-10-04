@@ -21,7 +21,7 @@ logger = logging.getLogger("auth_working")
 
 router = APIRouter(tags=["authentication"])
 
-@router.get("/profile")
+@(router.get("/profile") if router else None)
 async def get_user_profile(current_user: UserProfile = Depends(get_current_user)):
     """Get current user's profile."""
     try:
@@ -106,20 +106,20 @@ async def update_user_profile(
         user_ref = db.collection('users').document(current_user.id)
         
         # Prepare update data with all profile fields
-        frontend_updated_at = profile_data.get('updated_at') or profile_data.get('updatedAt')
+        frontend_updated_at = ((profile_data.get('updated_at') if profile_data else None) if profile_data else None) or profile_data.get('updatedAt')
         current_time = int(time.time())
         final_updated_at = frontend_updated_at or current_time
         
         # Also check for createdAt/created_at
-        frontend_created_at = profile_data.get('created_at') or profile_data.get('createdAt')
+        frontend_created_at = ((profile_data.get('created_at') if profile_data else None) if profile_data else None) or profile_data.get('createdAt')
         final_created_at = frontend_created_at or current_time
         
         logger.info(f"🔍 DEBUG: Timestamp handling - frontend_updated_at: {frontend_updated_at}, current_time: {current_time}, final_updated_at: {final_updated_at}")
         logger.info(f"🔍 DEBUG: Profile data keys: {list(profile_data.keys())}")
         
         update_data = {
-            'name': profile_data.get('name'),
-            'email': profile_data.get('email'),
+            'name': (profile_data.get('name') if profile_data else None),
+            'email': (profile_data.get('email') if profile_data else None),
             'created_at': final_created_at,  # Use frontend timestamp if available
             'updated_at': final_updated_at  # Use frontend timestamp if available
         }

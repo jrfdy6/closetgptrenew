@@ -205,7 +205,7 @@ class ItemAnalyticsService:
         if not feedback_data:
             return 0.0
         
-        total_rating = sum(data.get("feedback_rating", 0) for data in feedback_data)
+        total_rating = sum((data.get("feedback_rating", 0) if data else 0) for data in feedback_data)
         avg_rating = total_rating / len(feedback_data)
         
         # Convert 1-5 rating to 0-1 score
@@ -256,14 +256,14 @@ class ItemAnalyticsService:
         try:
             # Get item details
             item_ref = self.db.collection("wardrobe").document(item_id)
-            item_doc = item_ref.get()
+            item_doc = item_ref.get() if item_ref else None
             
             if not item_doc.exists:
                 return 0.5
             
             item_data = item_doc.to_dict()
-            item_styles = item_data.get("style", [])
-            item_type = item_data.get("type", "")
+            item_styles = (item_data.get("style", []) if item_data else [])
+            item_type = (item_data.get("type", "") if item_data else "")
             
             if not item_styles:
                 return 0.5
@@ -303,7 +303,7 @@ class ItemAnalyticsService:
         feedback_ratings = []
         
         for data in analytics_data:
-            interaction_type = data.get("interaction_type")
+            interaction_type = (data.get("interaction_type") if data else None)
             
             if interaction_type == ItemInteractionType.OUTFIT_GENERATED:
                 stats["times_in_outfits"] += 1
@@ -316,7 +316,7 @@ class ItemAnalyticsService:
             elif interaction_type == ItemInteractionType.SELECT:
                 stats["total_selects"] += 1
             elif interaction_type == ItemInteractionType.FEEDBACK_RECEIVED:
-                rating = data.get("feedback_rating")
+                rating = (data.get("feedback_rating") if data else None)
                 if rating:
                     feedback_ratings.append(rating)
         
@@ -329,7 +329,7 @@ class ItemAnalyticsService:
         """Get user profile for style preference calculations."""
         try:
             profile_ref = self.db.collection("users").document(user_id)
-            profile_doc = profile_ref.get()
+            profile_doc = profile_ref.get() if profile_ref else None
             
             if profile_doc.exists:
                 return UserProfile(**profile_doc.to_dict())
@@ -358,7 +358,7 @@ class ItemAnalyticsService:
                 
                 # Get item details
                 item_ref = self.db.collection("wardrobe").document(score_data["item_id"])
-                item_doc = item_ref.get()
+                item_doc = item_ref.get() if item_ref else None
                 
                 if not item_doc.exists:
                     continue
@@ -366,23 +366,23 @@ class ItemAnalyticsService:
                 item_data = item_doc.to_dict()
                 
                 # Filter by type if specified
-                if item_type and item_data.get("type") != item_type:
+                if item_type and (item_data.get("type") if item_data else None) != item_type:
                     continue
                 
                 # Create usage summary
                 summary = ItemUsageSummary(
                     item_id=score_data["item_id"],
                     user_id=user_id,
-                    item_name=item_data.get("name", "Unknown"),
-                    item_type=item_data.get("type", "unknown"),
-                    image_url=item_data.get("imageUrl", ""),
-                    outfit_appearances=score_data.get("times_in_outfits", 0),
-                    base_item_uses=score_data.get("times_base_item", 0),
-                    total_views=score_data.get("total_views", 0),
-                    total_edits=score_data.get("total_edits", 0),
-                    total_selects=score_data.get("total_selects", 0),
-                    favorite_score=score_data.get("total_score", 0.0),
-                    average_rating=score_data.get("average_feedback_rating", 0.0)
+                    item_name=(item_data.get("name", "Unknown") if item_data else "Unknown"),
+                    item_type=(item_data.get("type", "unknown") if item_data else "unknown"),
+                    image_url=(item_data.get("imageUrl", "") if item_data else ""),
+                    outfit_appearances=(score_data.get("times_in_outfits", 0) if score_data else 0),
+                    base_item_uses=(score_data.get("times_base_item", 0) if score_data else 0),
+                    total_views=(score_data.get("total_views", 0) if score_data else 0),
+                    total_edits=(score_data.get("total_edits", 0) if score_data else 0),
+                    total_selects=(score_data.get("total_selects", 0) if score_data else 0),
+                    favorite_score=(score_data.get("total_score", 0.0) if score_data else 0.0),
+                    average_rating=(score_data.get("average_feedback_rating", 0.0) if score_data else 0.0)
                 )
                 
                 favorites.append(summary)

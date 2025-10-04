@@ -25,7 +25,7 @@ def get_current_user_mock():
     """Mock authentication for testing"""
     return MockUser("test-user-id")
 
-@router.get("/test")
+@(router.get("/test") if router else None)
 async def test_wardrobe_endpoint() -> Dict[str, Any]:
     """Test endpoint to verify router is working"""
     return {
@@ -34,7 +34,7 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
         "firebase_available": db is not None
     }
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_wardrobe_items() -> Dict[str, Any]:
     """Get user's wardrobe items - simplified version"""
     try:
@@ -116,7 +116,7 @@ async def get_wardrobe_items() -> Dict[str, Any]:
                 errors.append(f"Failed to process item {doc.id}: {str(e)}")
         
         # Sort items by creation date (newest first)
-        items.sort(key=lambda x: x.get('createdAt', 0), reverse=True)
+        items.sort(key=lambda x: (x.get('createdAt', 0) if x else 0), reverse=True)
         
         print(f"DEBUG: Retrieved {len(items)} wardrobe items")
         if errors:
@@ -157,20 +157,20 @@ async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = De
             "name": item_data["name"],
             "type": item_data["type"],
             "color": item_data["color"],
-            "style": item_data.get("style", []),
-            "occasion": item_data.get("occasion", []),
-            "season": item_data.get("season", ["all"]),
-            "imageUrl": item_data.get("imageUrl", ""),
+            "style": (item_data.get("style", []) if item_data else []),
+            "occasion": (item_data.get("occasion", []) if item_data else []),
+            "season": (item_data.get("season", ["all"]) if item_data else ["all"]),
+            "imageUrl": (item_data.get("imageUrl", "") if item_data else ""),
             "dominantColors": [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}],
             "matchingColors": [],
-            "tags": item_data.get("tags", []),
+            "tags": (item_data.get("tags", []) if item_data else []),
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
             "metadata": {
                 "analysisTimestamp": int(time.time()),
                 "originalType": item_data["type"],
-                "styleTags": item_data.get("style", []),
-                "occasionTags": item_data.get("occasion", []),
+                "styleTags": (item_data.get("style", []) if item_data else []),
+                "occasionTags": (item_data.get("occasion", []) if item_data else []),
                 "colorAnalysis": {
                     "dominant": [item_data["color"]],
                     "matching": []
@@ -183,7 +183,7 @@ async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = De
                     "fabricWeight": "medium"
                 },
                 "itemMetadata": {
-                    "tags": item_data.get("tags", []),
+                    "tags": (item_data.get("tags", []) if item_data else []),
                     "careInstructions": "Check care label"
                 }
             },
@@ -215,7 +215,7 @@ async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = De
             detail="Failed to add item"
         )
 
-@router.get("/top-worn-items")
+@(router.get("/top-worn-items") if router else None)
 async def get_top_worn_items(limit: int = 5):
     """Get top worn items from the wardrobe"""
     try:
@@ -235,17 +235,17 @@ async def get_top_worn_items(limit: int = 5):
         # Sort by wear count (assuming wear_count field exists)
         items_with_wear_count = []
         for item in items:
-            wear_count = item.get('wearCount', 0)
+            wear_count = (item.get('wearCount', 0) if item else 0)
             # Use the correct image field name from the database
-            image_url = item.get('imageUrl', '/placeholder.jpg')
+            image_url = (item.get('imageUrl', '/placeholder.jpg') if item else '/placeholder.jpg')
             
             items_with_wear_count.append({
-                'id': item.get('id'),
-                'name': item.get('name', 'Unknown Item'),
-                'type': item.get('type', 'unknown'),
+                'id': (item.get('id') if item else None),
+                'name': (item.get('name', 'Unknown Item') if item else 'Unknown Item'),
+                'type': (item.get('type', 'unknown') if item else 'unknown'),
                 'image_url': image_url,
                 'wear_count': wear_count,
-                'is_favorite': item.get('favorite', False)
+                'is_favorite': (item.get('favorite', False) if item else False)
             })
         
         # Sort by wear count descending and take top items
@@ -266,7 +266,7 @@ async def get_top_worn_items(limit: int = 5):
             detail="Failed to get top worn items"
         )
 
-@router.get("/wardrobe-stats")
+@(router.get("/wardrobe-stats") if router else None)
 async def get_wardrobe_stats():
     """Get wardrobe statistics for the dashboard"""
     try:
@@ -288,12 +288,12 @@ async def get_wardrobe_stats():
             items.append(item_data)
             
             # Count categories (use 'type' field if 'category' is not available)
-            category = item_data.get('category') or item_data.get('type', 'unknown')
-            categories[category] = categories.get(category, 0) + 1
+            category = ((item_data.get('category') if item_data else None) if item_data else None) or item_data.get('type', 'unknown')
+            categories[category] = (categories.get(category, 0) if categories else 0) + 1
             
             # Count colors
-            color = item_data.get('color', 'unknown')
-            colors[color] = colors.get(color, 0) + 1
+            color = (item_data.get('color', 'unknown') if item_data else 'unknown')
+            colors[color] = (colors.get(color, 0) if colors else 0) + 1
             
             # Count favorites - use the correct field name
             if item_data.get('favorite', False):
@@ -329,7 +329,7 @@ async def delete_wardrobe_item(item_id: str, current_user_id: str = Depends(get_
         
         # Check if item exists and belongs to user
         doc_ref = db.collection('wardrobe').document(item_id)
-        doc = doc_ref.get()
+        doc = doc_ref.get() if doc_ref else None
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Item not found")

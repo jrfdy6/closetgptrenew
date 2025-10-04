@@ -49,7 +49,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
                     detail="Token verification timed out"
                 )
         
-        user_id: str = decoded_token.get("uid")
+        user_id: str = (decoded_token.get("uid") if decoded_token else None)
         if user_id is None:
             logger.error("🔍 DEBUG: No user_id found in decoded token")
             raise HTTPException(
@@ -103,9 +103,9 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
                     detail="Token verification timed out"
                 )
         
-        user_id: str = decoded_token.get("uid")
-        email: str = decoded_token.get("email", "")
-        name: str = decoded_token.get("name", email)
+        user_id: str = (decoded_token.get("uid") if decoded_token else None)
+        email: str = (decoded_token.get("email", "") if decoded_token else "")
+        name: str = (decoded_token.get("name", email) if decoded_token else email)
         
         if user_id is None:
             logger.error("🔍 DEBUG: No user_id found in decoded token")
@@ -134,7 +134,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             detail="Token verification failed"
         )
 
-@router.get("/profile")
+@(router.get("/profile") if router else None)
 async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
     """Get current user's profile."""
     try:
@@ -155,11 +155,11 @@ async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
         
         return {
             "user_id": current_user_id,
-            "email": user_data.get('email'),
-            "name": user_data.get('name'),
-            "avatar_url": user_data.get('avatar_url'),
-            "created_at": user_data.get('created_at'),
-            "updated_at": user_data.get('updated_at')
+            "email": (user_data.get('email') if user_data else None),
+            "name": (user_data.get('name') if user_data else None),
+            "avatar_url": (user_data.get('avatar_url') if user_data else None),
+            "created_at": (user_data.get('created_at') if user_data else None),
+            "updated_at": (user_data.get('updated_at') if user_data else None)
         }
         
     except HTTPException:
@@ -183,8 +183,8 @@ async def update_user_profile(
         user_ref = db.collection('users').document(current_user_id)
         
         update_data = {
-            'name': profile_data.get('name'),
-            'email': profile_data.get('email'),
+            'name': (profile_data.get('name') if profile_data else None),
+            'email': (profile_data.get('email') if profile_data else None),
             'updated_at': firebase_admin.firestore.SERVER_TIMESTAMP
         }
         
@@ -194,8 +194,8 @@ async def update_user_profile(
         
         return {
             "user_id": current_user_id,
-            "email": profile_data.get('email'),
-            "name": profile_data.get('name'),
+            "email": (profile_data.get('email') if profile_data else None),
+            "name": (profile_data.get('name') if profile_data else None),
             "updated_at": "now"
         }
         

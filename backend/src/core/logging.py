@@ -123,14 +123,14 @@ class ErrorLoggingMiddleware(BaseHTTPMiddleware):
                 user_id = None
                 try:
                     # Try to get user ID from auth header or request state
-                    auth_header = request.headers.get("authorization")
+                    auth_header = request.(headers.get("authorization") if headers else None)
                     if auth_header and auth_header.startswith("Bearer "):
                         token = auth_header.split(" ")[1]
                         # Decode JWT token to get user ID
                         import jwt
                         from ..routes.auth import SECRET_KEY, ALGORITHM
                         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                        user_id = payload.get("sub")
+                        user_id = (payload.get("sub") if payload else None)
                 except:
                     pass
                 
@@ -238,7 +238,7 @@ class ErrorTracker:
         error_id = str(uuid.uuid4())
         error_type = type(error).__name__
         self.error_count += 1
-        self.error_types[error_type] = self.error_types.get(error_type, 0) + 1
+        self.error_types[error_type] = self.(error_types.get(error_type, 0) if error_types else 0) + 1
         error_data = {
             "error_id": error_id,
             "error_type": error_type,
@@ -276,7 +276,7 @@ class RequestLogger:
             "status_code": response.status_code,
             "duration_ms": duration_ms,
             "timestamp": datetime.utcnow().isoformat(),
-            "user_agent": request.headers.get("user-agent", ""),
+            "user_agent": request.(headers.get("user-agent", "") if headers else ""),
             "ip_address": request.client.host if request.client else None
         }
         self.logger.info(

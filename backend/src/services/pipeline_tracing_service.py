@@ -62,7 +62,7 @@ class PipelineTracingService:
         }
         
         # Add to current trace
-        if not any(entry.get("step") == "validation_error" for entry in self.current_trace):
+        if not any((entry.get("step") if entry else None) == "validation_error" for entry in self.current_trace):
             self.current_trace.append({"step": "validation_error", "errors": []})
         
         validation_entry = next(entry for entry in self.current_trace if entry.get("step") == "validation_error")
@@ -81,7 +81,7 @@ class PipelineTracingService:
         }
         
         # Add to current trace
-        if not any(entry.get("step") == "fix_attempt" for entry in self.current_trace):
+        if not any((entry.get("step") if entry else None) == "fix_attempt" for entry in self.current_trace):
             self.current_trace.append({"step": "fix_attempt", "fixes": []})
         
         fix_entry_list = next(entry for entry in self.current_trace if entry.get("step") == "fix_attempt")
@@ -101,7 +101,7 @@ class PipelineTracingService:
         category_counts = {}
         for item in wardrobe:
             item_type = getattr(item, 'type', 'unknown')
-            category_counts[item_type] = category_counts.get(item_type, 0) + 1
+            category_counts[item_type] = (category_counts.get(item_type, 0) if category_counts else 0) + 1
         
         wardrobe_summary["categories"] = category_counts
         
@@ -190,7 +190,7 @@ class PipelineTracingService:
                 words = issue.lower().split()
                 for word in words:
                     if len(word) > 3:  # Skip short words
-                        common_words[word] = common_words.get(word, 0) + 1
+                        common_words[word] = (common_words.get(word, 0) if common_words else 0) + 1
             
             feedback_patterns["common_issues"] = [word for word, count in common_words.items() if count > 1]
             session_context["feedback_patterns"] = feedback_patterns

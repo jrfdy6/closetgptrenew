@@ -16,7 +16,7 @@ from ..routes.auth import get_current_user_id
 router = APIRouter()
 logger = get_logger("analytics_dashboard")
 
-@router.get("/dashboard")
+@(router.get("/dashboard") if router else None)
 async def get_dashboard_data(
     range: str = Query("7d", description="Time range: 1d, 7d, 30d, 90d"),
     current_user_id: str = Depends(get_current_user_id)
@@ -96,12 +96,12 @@ async def calculate_overview_metrics(events: List[Dict], start_time: datetime, e
         api_call_count = 0
 
         for event in events:
-            user_id = event.get('user_id')
+            user_id = (event.get('user_id') if event else None)
             if user_id:
                 unique_users.add(user_id)
 
-            event_type = event.get('event_type', '')
-            metadata = event.get('metadata', {})
+            event_type = (event.get('event_type', '') if event else '')
+            metadata = (event.get('metadata', {}) if event else {})
 
             if event_type == 'outfit_generated':
                 total_outfits += 1
@@ -110,11 +110,11 @@ async def calculate_overview_metrics(events: List[Dict], start_time: datetime, e
 
             elif event_type == 'api_call':
                 total_api_calls += 1
-                status = metadata.get('status', 0)
+                status = (metadata.get('status', 0) if metadata else 0)
                 if 200 <= status < 300:
                     successful_api_calls += 1
                 
-                duration = metadata.get('duration', 0)
+                duration = (metadata.get('duration', 0) if metadata else 0)
                 if duration:
                     total_response_time += duration
                     api_call_count += 1
@@ -154,8 +154,8 @@ def calculate_event_distribution(events: List[Dict]) -> List[Dict[str, Any]]:
     total_events = len(events)
 
     for event in events:
-        event_type = event.get('event_type', 'unknown')
-        event_counts[event_type] = event_counts.get(event_type, 0) + 1
+        event_type = (event.get('event_type', 'unknown') if event else 'unknown')
+        event_counts[event_type] = (event_counts.get(event_type, 0) if event_counts else 0) + 1
 
     distribution = []
     for event_type, count in sorted(event_counts.items(), key=lambda x: x[1], reverse=True):
@@ -217,8 +217,8 @@ def calculate_top_events(events: List[Dict]) -> List[Dict[str, Any]]:
     
     # Count events by type
     for event in events:
-        event_type = event.get('event_type', 'unknown')
-        event_counts[event_type] = event_counts.get(event_type, 0) + 1
+        event_type = (event.get('event_type', 'unknown') if event else 'unknown')
+        event_counts[event_type] = (event_counts.get(event_type, 0) if event_counts else 0) + 1
 
     # Get top 10 events
     top_events = []
@@ -244,11 +244,11 @@ def calculate_error_analytics(events: List[Dict]) -> List[Dict[str, Any]]:
     error_last_occurrence = {}
 
     for event in events:
-        event_type = event.get('event_type', '')
+        event_type = (event.get('event_type', '') if event else '')
         if 'error' in event_type.lower():
-            error_counts[event_type] = error_counts.get(event_type, 0) + 1
+            error_counts[event_type] = (error_counts.get(event_type, 0) if error_counts else 0) + 1
             
-            timestamp = event.get('timestamp', '')
+            timestamp = (event.get('timestamp', '') if event else '')
             if timestamp:
                 if event_type not in error_last_occurrence or timestamp > error_last_occurrence[event_type]:
                     error_last_occurrence[event_type] = timestamp
@@ -258,7 +258,7 @@ def calculate_error_analytics(events: List[Dict]) -> List[Dict[str, Any]]:
         errors.append({
             "error_type": error_type,
             "count": count,
-            "last_occurrence": error_last_occurrence.get(error_type, '')
+            "last_occurrence": (error_last_occurrence.get(error_type, '') if error_last_occurrence else '')
         })
 
     return errors
@@ -270,9 +270,9 @@ def calculate_performance_metrics(events: List[Dict]) -> List[Dict[str, Any]]:
     for event in events:
         if event.get('event_type') == 'api_call':
             metadata = event.get('metadata', {})
-            endpoint = metadata.get('endpoint', 'unknown')
-            status = metadata.get('status', 0)
-            duration = metadata.get('duration', 0)
+            endpoint = (metadata.get('endpoint', 'unknown') if metadata else 'unknown')
+            status = (metadata.get('status', 0) if metadata else 0)
+            duration = (metadata.get('duration', 0) if metadata else 0)
 
             if endpoint not in endpoint_stats:
                 endpoint_stats[endpoint] = {
@@ -304,7 +304,7 @@ def calculate_performance_metrics(events: List[Dict]) -> List[Dict[str, Any]]:
 
     return sorted(performance, key=lambda x: x['total_calls'], reverse=True)
 
-@router.get("/realtime")
+@(router.get("/realtime") if router else None)
 async def get_realtime_metrics(
     current_user_id: str = Depends(get_current_user_id)
 ):

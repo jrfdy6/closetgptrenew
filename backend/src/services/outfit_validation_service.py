@@ -668,8 +668,8 @@ class OutfitValidationService:
             
             # Add appropriate bottom if missing
             current_categories = self._categorize_items(filtered_items)
-            if len(current_categories.get("bottom", [])) == 0:
-                available_bottoms = original_categories.get("bottom", [])
+            if len((current_categories.get("bottom", []) if current_categories else [])) == 0:
+                available_bottoms = (original_categories.get("bottom", []) if original_categories else [])
                 appropriate_bottoms = [item for item in available_bottoms if 'shorts' not in (item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()) and 'shorts' not in item.name.lower()]
                 
                 if appropriate_bottoms:
@@ -703,8 +703,8 @@ class OutfitValidationService:
             
             # Add appropriate bottom if missing
             current_categories = self._categorize_items(filtered_items)
-            if len(current_categories.get("bottom", [])) == 0:
-                available_bottoms = original_categories.get("bottom", [])
+            if len((current_categories.get("bottom", []) if current_categories else [])) == 0:
+                available_bottoms = (original_categories.get("bottom", []) if original_categories else [])
                 appropriate_bottoms = [item for item in available_bottoms if not any(casual in (item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()) for casual in ['shorts', 'cargo pants', 'athletic pants'])]
                 
                 if appropriate_bottoms:
@@ -717,16 +717,16 @@ class OutfitValidationService:
         final_categories = self._categorize_items(filtered_items)
         missing_categories = []
         
-        if len(final_categories.get("top", [])) == 0:
+        if len((final_categories.get("top", []) if final_categories else [])) == 0:
             missing_categories.append("top")
-        if len(final_categories.get("bottom", [])) == 0:
+        if len((final_categories.get("bottom", []) if final_categories else [])) == 0:
             missing_categories.append("bottom")
-        if len(final_categories.get("shoes", [])) == 0:
+        if len((final_categories.get("shoes", []) if final_categories else [])) == 0:
             missing_categories.append("shoes")
         
         # Restore missing essential categories from original items
         for missing_category in missing_categories:
-            available_items = original_categories.get(missing_category, [])
+            available_items = (original_categories.get(missing_category, []) if original_categories else [])
             if available_items:
                 item_to_add = available_items[0]
                 if item_to_add not in filtered_items:
@@ -754,7 +754,7 @@ class OutfitValidationService:
         
         # Apply limits for each category
         for category, category_items in categorized_items.items():
-            limit = category_limits.get(category, 2)  # Default limit of 2
+            limit = (category_limits.get(category, 2) if category_limits else 2)  # Default limit of 2
             items_to_keep = category_items[:limit]  # Take first N items (best scored)
             filtered_items.extend(items_to_keep)
             
@@ -766,22 +766,22 @@ class OutfitValidationService:
         errors = []
         
         categories = self._categorize_items(filtered_items)
-        essential_categories = rule.get("essential_categories", ["top", "bottom", "shoes"])
+        essential_categories = (rule.get("essential_categories", ["top", "bottom", "shoes"]) if rule else "shoes"])
         
         # Check if we have all essential categories
         missing_categories = []
         for category in essential_categories:
-            if len(categories.get(category, [])) == 0:
+            if len((categories.get(category, []) if categories else [])) == 0:
                 missing_categories.append(category)
         
         if missing_categories:
             # Try to restore missing categories from original items
-            original_items = context.get("original_items", items)
+            original_items = (context.get("original_items", items) if context else items)
             original_categories = self._categorize_items(original_items)
             
             for missing_category in missing_categories:
                 # Find items from the original items that belong to this category
-                available_items = original_categories.get(missing_category, [])
+                available_items = (original_categories.get(missing_category, []) if original_categories else [])
                 if available_items:
                     # Add the first available item from this category
                     item_to_add = available_items[0]
@@ -799,22 +799,22 @@ class OutfitValidationService:
         errors = []
         
         categories = self._categorize_items(filtered_items)
-        essential_categories = rule.get("essential_categories", ["top", "bottom", "shoes"])
+        essential_categories = (rule.get("essential_categories", ["top", "bottom", "shoes"]) if rule else "shoes"])
         
         # Check if we have all essential categories
         missing_categories = []
         for category in essential_categories:
-            if len(categories.get(category, [])) == 0:
+            if len((categories.get(category, []) if categories else [])) == 0:
                 missing_categories.append(category)
         
         if missing_categories:
             # CRITICAL: Try to restore missing categories from original items
-            original_items = context.get("original_items", items)
+            original_items = (context.get("original_items", items) if context else items)
             original_categories = self._categorize_items(original_items)
             
             for missing_category in missing_categories:
                 # Find items from the original items that belong to this category
-                available_items = original_categories.get(missing_category, [])
+                available_items = (original_categories.get(missing_category, []) if original_categories else [])
                 if available_items:
                     # Add the first available item from this category
                     item_to_add = available_items[0]
@@ -894,7 +894,7 @@ class OutfitValidationService:
                 metadata={}
             )
         }
-        return fallback_items.get(category)
+        return (fallback_items.get(category) if fallback_items else None)
     
     def _apply_ultimate_formal_shoes_casual_bottoms(self, items: List[ClothingItem], rule: Dict, context: Dict[str, Any]) -> Tuple[List[ClothingItem], List[str]]:
         """CRITICAL: Ultimate formal shoes + casual bottoms prevention with absolute guarantee."""
@@ -946,11 +946,11 @@ class OutfitValidationService:
             
             # Add appropriate bottom if missing
             current_categories = self._categorize_items(filtered_items)
-            if len(current_categories.get("bottom", [])) == 0:
+            if len((current_categories.get("bottom", []) if current_categories else [])) == 0:
                 # Try to get appropriate bottom from original items
-                original_items = context.get("original_items", items)
+                original_items = (context.get("original_items", items) if context else items)
                 original_categories = self._categorize_items(original_items)
-                available_bottoms = original_categories.get("bottom", [])
+                available_bottoms = (original_categories.get("bottom", []) if original_categories else [])
                 
                 # Find appropriate bottoms (not casual)
                 appropriate_bottoms = []
@@ -1019,9 +1019,9 @@ class OutfitValidationService:
         filtered_items = items.copy()
         errors = []
         
-        occasion = context.get("occasion", "casual").lower()
-        occasion_map = rule.get("occasion_formality_map", {})
-        required_formality = occasion_map.get(occasion, 2)  # Default to business casual
+        occasion = (context.get("occasion", "casual") if context else "casual").lower()
+        occasion_map = (rule.get("occasion_formality_map", {}) if rule else {})
+        required_formality = (occasion_map.get(occasion, 2) if occasion_map else 2)  # Default to business casual
         
         items_to_remove = []
         for item in filtered_items:
@@ -1046,8 +1046,8 @@ class OutfitValidationService:
         filtered_items = items.copy()
         errors = []
         
-        keep_items = rule.get("keep_items", [])
-        remove_items = rule.get("remove_items", [])
+        keep_items = (rule.get("keep_items", []) if rule else [])
+        remove_items = (rule.get("remove_items", []) if rule else [])
         
         # Find items that should be kept (formal items)
         has_formal_items = False
@@ -1169,15 +1169,15 @@ class OutfitValidationService:
             
             unique_levels = list(set(formality_levels))
             
-            if len(unique_levels) > rule.get("max_formality_levels", 2):
+            if len(unique_levels) > (rule.get("max_formality_levels", 2) if rule else 2):
                 # Find items with outlier formality levels
                 level_counts = {}
                 for level in formality_levels:
-                    level_counts[level] = level_counts.get(level, 0) + 1
+                    level_counts[level] = (level_counts.get(level, 0) if level_counts else 0) + 1
                 
                 # Remove items with the least common formality levels
                 sorted_levels = sorted(level_counts.items(), key=lambda x: x[1])
-                levels_to_remove = [level for level, count in sorted_levels[:-rule.get("max_formality_levels", 2)]]
+                levels_to_remove = [level for level, count in sorted_levels[:-(rule.get("max_formality_levels", 2) if rule else 2)]]
                 
                 items_to_remove = []
                 for i, item in enumerate(filtered_items):
@@ -1196,9 +1196,9 @@ class OutfitValidationService:
         filtered_items = items.copy()
         errors = []
         
-        occasion = context.get("occasion", "casual").lower()
-        occasion_map = rule.get("occasion_formality_map", {})
-        required_formality = occasion_map.get(occasion, 2)  # Default to business casual
+        occasion = (context.get("occasion", "casual") if context else "casual").lower()
+        occasion_map = (rule.get("occasion_formality_map", {}) if rule else {})
+        required_formality = (occasion_map.get(occasion, 2) if occasion_map else 2)  # Default to business casual
         
         items_to_remove = []
         for item in filtered_items:
@@ -1225,8 +1225,8 @@ class OutfitValidationService:
         filtered_items = items.copy()
         errors = []
         
-        keep_items = rule.get("keep_items", [])
-        remove_items = rule.get("remove_items", [])
+        keep_items = (rule.get("keep_items", []) if rule else [])
+        remove_items = (rule.get("remove_items", []) if rule else [])
         
         # Find items that should be kept (formal items)
         has_formal_items = False
@@ -1351,4 +1351,4 @@ class OutfitValidationService:
         }
         
         item_type = item.type.value.lower() if hasattr(item.type, 'value') else str(item.type).lower()
-        return formality_map.get(item_type, 2)  # Default to business casual 
+        return (formality_map.get(item_type, 2) if formality_map else 2)  # Default to business casual 

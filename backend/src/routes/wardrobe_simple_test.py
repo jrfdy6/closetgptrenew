@@ -17,7 +17,7 @@ except Exception as e:
     print(f"Warning: Could not initialize Firestore: {e}")
     db = None
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_wardrobe_items_simple(
     current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
@@ -52,7 +52,7 @@ async def get_wardrobe_items_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@router.get("/wardrobe-stats")
+@(router.get("/wardrobe-stats") if router else None)
 async def get_wardrobe_stats_simple(
     current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
@@ -78,12 +78,12 @@ async def get_wardrobe_stats_simple(
             items.append(item_data)
             
             # Count by category
-            item_type = item_data.get('type', 'unknown')
-            categories[item_type] = categories.get(item_type, 0) + 1
+            item_type = (item_data.get('type', 'unknown') if item_data else 'unknown')
+            categories[item_type] = (categories.get(item_type, 0) if categories else 0) + 1
             
             # Count by color
-            item_color = item_data.get('color', 'unknown')
-            colors[item_color] = colors.get(item_color, 0) + 1
+            item_color = (item_data.get('color', 'unknown') if item_data else 'unknown')
+            colors[item_color] = (colors.get(item_color, 0) if colors else 0) + 1
             
             # Count favorites
             if item_data.get('favorite', False):
@@ -108,7 +108,7 @@ async def get_wardrobe_stats_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@router.get("/test")
+@(router.get("/test") if router else None)
 async def test_wardrobe_simple() -> Dict[str, Any]:
     """Test endpoint that doesn't require authentication."""
     return {

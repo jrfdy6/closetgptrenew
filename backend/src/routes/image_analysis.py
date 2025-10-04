@@ -91,7 +91,7 @@ def convert_to_jpeg(image_url: str) -> str:
     """Convert image to JPEG format for analysis"""
     try:
         # Download the image
-        response = requests.get(image_url)
+        response = (requests.get(image_url) if requests else None)
         response.raise_for_status()
         
         # Create a temporary file
@@ -212,8 +212,8 @@ async def analyze_image(
                         "analysis_type": "enhanced",
                         "file_type": file.content_type,
                         "file_size": len(content),
-                        "has_clothing_detected": bool(analysis.get("clothing_type")),
-                        "confidence_score": analysis.get("confidence_score", 0)
+                        "has_clothing_detected": bool((analysis.get("clothing_type") if analysis else None)),
+                        "confidence_score": (analysis.get("confidence_score", 0) if analysis else 0)
                     }
                 )
                 log_analytics_event(analytics_event)
@@ -299,7 +299,7 @@ async def analyze_single_image(
             # Handle regular URL (Firebase Storage, S3, etc.)
             print(f"Processing regular URL: {image_url}")
             try:
-                response = requests.get(image_url, timeout=30)
+                response = (requests.get(image_url, timeout=30) if requests else timeout=30)
                 response.raise_for_status()
                 print(f"Successfully downloaded image from URL, size: {len(response.content)} bytes")
                 
@@ -321,9 +321,9 @@ async def analyze_single_image(
                     analysis = await analyze_image_with_gpt4(temp_path)
                     print(f"✅ AI analysis completed successfully")
                     print(f"🔍 Full analysis result: {analysis}")
-                    print(f"🔍 Generated name: {analysis.get('name', 'No name')}")
-                    print(f"🔍 Analysis type: {analysis.get('type', 'No type')}")
-                    print(f"🔍 Analysis subType: {analysis.get('subType', 'No subType')}")
+                    print(f"🔍 Generated name: {(analysis.get('name', 'No name') if analysis else 'No name')}")
+                    print(f"🔍 Analysis type: {(analysis.get('type', 'No type') if analysis else 'No type')}")
+                    print(f"🔍 Analysis subType: {(analysis.get('subType', 'No subType') if analysis else 'No subType')}")
                 else:
                     print("⚠️ analyze_image_with_gpt4 not available, using fallback")
                     raise Exception("GPT-4 service not available")
@@ -357,24 +357,24 @@ async def analyze_single_image(
             
             # Map AI analysis to wardrobe item schema
             normalized_analysis = {
-                "name": analysis.get("name", "Unknown Item"),
-                "type": analysis.get("type", "clothing"),
-                "subType": analysis.get("subType", ""),
+                "name": (analysis.get("name", "Unknown Item") if analysis else "Unknown Item"),
+                "type": (analysis.get("type", "clothing") if analysis else "clothing"),
+                "subType": (analysis.get("subType", "") if analysis else ""),
                 "clothing_type": analysis.get("type", "clothing"),  # Map type to clothing_type
                 "color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if analysis.get("dominantColors") else "unknown",
                 "primary_color": analysis.get("dominantColors", [{}])[0].get("name", "unknown") if analysis.get("dominantColors") else "unknown",
                 "dominantColors": analysis.get("dominantColors", []),
                 "matchingColors": analysis.get("matchingColors", []),
-                "style": analysis.get("style", []),
-                "season": analysis.get("season", []),
-                "occasion": analysis.get("occasion", []),
-                "brand": analysis.get("brand", ""),
-                "material": analysis.get("metadata", {}).get("visualAttributes", {}).get("material", "unknown"),
-                "fit": analysis.get("metadata", {}).get("visualAttributes", {}).get("fit", "unknown"),
-                "sleeveLength": analysis.get("metadata", {}).get("visualAttributes", {}).get("sleeveLength", "unknown"),
-                "pattern": analysis.get("metadata", {}).get("visualAttributes", {}).get("pattern", "unknown"),
-                "gender": analysis.get("metadata", {}).get("visualAttributes", {}).get("genderTarget", "unisex"),
-                "formalLevel": analysis.get("metadata", {}).get("visualAttributes", {}).get("formalLevel", "casual")
+                "style": (analysis.get("style", []) if analysis else []),
+                "season": (analysis.get("season", []) if analysis else []),
+                "occasion": (analysis.get("occasion", []) if analysis else []),
+                "brand": (analysis.get("brand", "") if analysis else ""),
+                "material": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("material", "unknown"),
+                "fit": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("fit", "unknown"),
+                "sleeveLength": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("sleeveLength", "unknown"),
+                "pattern": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("pattern", "unknown"),
+                "gender": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("genderTarget", "unisex"),
+                "formalLevel": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("formalLevel", "casual")
             }
             
             print(f"🔍 Mapped analysis for wardrobe: {normalized_analysis}")
@@ -388,7 +388,7 @@ async def analyze_single_image(
                     "analysis_type": "gpt4_vision_direct",
                     "image_url": image_url,
                     "file_size": file_size,
-                    "has_clothing_detected": bool(analysis.get("type")),
+                    "has_clothing_detected": bool((analysis.get("type") if analysis else None)),
                     "confidence_score": 0.85
                 }
             )
@@ -414,7 +414,7 @@ async def analyze_single_image(
                     "analysis_type": "enhanced",
                     "error": str(e),
                     "error_type": type(e).__name__,
-                    "image_url": image.get("url", "") if 'image' in locals() else ""
+                    "image_url": (image.get("url", "") if image else "") if 'image' in locals() else ""
                 }
             )
             log_analytics_event(analytics_event)
@@ -432,12 +432,12 @@ async def analyze_single_image_legacy(
     Legacy single image analysis using only GPT-4 Vision
     """
     try:
-        image_url = image.get("url")
+        image_url = (image.get("url") if image else None)
         if not image_url:
             raise HTTPException(status_code=400, detail="Image URL is required")
         
         # Download image to temporary file
-        response = requests.get(image_url)
+        response = (requests.get(image_url) if requests else None)
         response.raise_for_status()
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
@@ -457,8 +457,8 @@ async def analyze_single_image_legacy(
                     "analysis_type": "legacy",
                     "image_url": image_url,
                     "file_size": file_size,
-                    "has_clothing_detected": bool(analysis.get("clothing_type")),
-                    "confidence_score": analysis.get("confidence_score", 0)
+                    "has_clothing_detected": bool((analysis.get("clothing_type") if analysis else None)),
+                    "confidence_score": (analysis.get("confidence_score", 0) if analysis else 0)
                 }
             )
             log_analytics_event(analytics_event)
@@ -477,7 +477,7 @@ async def analyze_single_image_legacy(
                 "analysis_type": "legacy",
                 "error": str(e),
                 "error_type": type(e).__name__,
-                "image_url": image.get("url", "") if 'image' in locals() else ""
+                "image_url": (image.get("url", "") if image else "") if 'image' in locals() else ""
             }
         )
         log_analytics_event(analytics_event)
@@ -493,12 +493,12 @@ async def analyze_single_image_clip_only(
     Simple image analysis using GPT-4 Vision only
     """
     try:
-        image_url = image.get("url")
+        image_url = (image.get("url") if image else None)
         if not image_url:
             raise HTTPException(status_code=400, detail="Image URL is required")
         
         # Download image to temporary file
-        response = requests.get(image_url)
+        response = (requests.get(image_url) if requests else None)
         response.raise_for_status()
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
@@ -518,7 +518,7 @@ async def analyze_single_image_clip_only(
                     "analysis_type": "gpt4_vision_only",
                     "image_url": image_url,
                     "file_size": file_size,
-                    "confidence_score": analysis.get("metadata", {}).get("confidence", 0)
+                    "confidence_score": (analysis.get("metadata", {}) if analysis else {}).get("confidence", 0)
                 }
             )
             log_analytics_event(analytics_event)
@@ -537,7 +537,7 @@ async def analyze_single_image_clip_only(
                 "analysis_type": "gpt4_vision_only",
                 "error": str(e),
                 "error_type": type(e).__name__,
-                "image_url": image.get("url", "") if 'image' in locals() else ""
+                "image_url": (image.get("url", "") if image else "") if 'image' in locals() else ""
             }
         )
         log_analytics_event(analytics_event)
@@ -562,12 +562,12 @@ async def analyze_batch_images(
         
         for i, image_data in enumerate(images):
             try:
-                image_url = image_data.get("url")
+                image_url = (image_data.get("url") if image_data else None)
                 if not image_url:
                     continue
                 
                 # Download image to temporary file
-                response = requests.get(image_url)
+                response = (requests.get(image_url) if requests else None)
                 response.raise_for_status()
                 
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
@@ -591,7 +591,7 @@ async def analyze_batch_images(
             except Exception as e:
                 results.append({
                     "index": i,
-                    "url": image_data.get("url", ""),
+                    "url": (image_data.get("url", "") if image_data else ""),
                     "error": str(e),
                     "status": "error"
                 })
@@ -654,12 +654,12 @@ async def analyze_batch_images_legacy(
         
         for i, image_data in enumerate(images):
             try:
-                image_url = image_data.get("url")
+                image_url = (image_data.get("url") if image_data else None)
                 if not image_url:
                     continue
                 
                 # Download image to temporary file
-                response = requests.get(image_url)
+                response = (requests.get(image_url) if requests else None)
                 response.raise_for_status()
                 
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
@@ -683,7 +683,7 @@ async def analyze_batch_images_legacy(
             except Exception as e:
                 results.append({
                     "index": i,
-                    "url": image_data.get("url", ""),
+                    "url": (image_data.get("url", "") if image_data else ""),
                     "error": str(e),
                     "status": "error"
                 })
@@ -745,7 +745,7 @@ async def generate_image_hash(
             raise HTTPException(status_code=400, detail="Image URL is required")
         
         # Download image to temporary file
-        response = requests.get(image_url)
+        response = (requests.get(image_url) if requests else None)
         response.raise_for_status()
         
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:

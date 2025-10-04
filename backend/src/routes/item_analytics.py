@@ -92,7 +92,7 @@ async def track_outfit_generation(
         
         for item_id in request.item_ids:
             item_ref = db.collection("wardrobe").document(item_id)
-            item_doc = item_ref.get()
+            item_doc = item_ref.get() if item_ref else None
             
             if item_doc.exists:
                 item_data = item_doc.to_dict()
@@ -143,7 +143,7 @@ async def track_outfit_feedback(
         logger.error(f"Error tracking outfit feedback: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/favorites", response_model=FavoritesResponse)
+@(router.get("/favorites", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
 async def get_user_favorites_endpoint(
     item_type: Optional[str] = None,
     limit: int = 10,
@@ -167,7 +167,7 @@ async def get_user_favorites_endpoint(
         logger.error(f"Error getting user favorites: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/favorites/{item_type}", response_model=FavoritesResponse)
+@(router.get("/favorites/{item_type}", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
 async def get_favorite_by_type_endpoint(
     item_type: str,
     current_user_id: str = Depends(get_current_user_id)
@@ -193,7 +193,7 @@ async def get_favorite_by_type_endpoint(
         logger.error(f"Error getting favorite by type: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/favorites/top/{item_type}", response_model=FavoritesResponse)
+@(router.get("/favorites/top/{item_type}", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
 async def get_top_favorites_by_type_endpoint(
     item_type: str,
     limit: int = 3,
@@ -217,7 +217,7 @@ async def get_top_favorites_by_type_endpoint(
         logger.error(f"Error getting top favorites by type: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/test-favorites/{item_type}", response_model=FavoritesResponse)
+@(router.get("/test-favorites/{item_type}", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
 async def test_get_favorite_by_type_endpoint(
     item_type: str,
     current_user_id: str = Depends(get_current_user_id)
@@ -254,13 +254,13 @@ async def toggle_item_favorite(
         
         # Get the item from Firestore
         item_ref = db.collection("wardrobe").document(request.item_id)
-        item_doc = item_ref.get()
+        item_doc = item_ref.get() if item_ref else None
         
         if not item_doc.exists:
             raise HTTPException(status_code=404, detail="Item not found")
         
         item_data = item_doc.to_dict()
-        current_favorite = item_data.get('favorite', False)
+        current_favorite = (item_data.get('favorite', False) if item_data else False)
         
         # Toggle the favorite status
         new_favorite_status = not current_favorite

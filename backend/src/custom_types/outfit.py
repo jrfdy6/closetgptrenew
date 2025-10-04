@@ -274,7 +274,7 @@ class OutfitGenerationRequest(BaseModel):
                 # Normalize type to match ClothingType enum values
                 if 'type' in item and isinstance(item['type'], str):
                     from src.services.robust_hydrator import normalize_item_type_to_enum
-                    item['type'] = normalize_item_type_to_enum(item['type'], item.get('name', ''))
+                    item['type'] = normalize_item_type_to_enum(item['type'], (item.get('name', '') if item else ''))
                 validated_items.append(ClothingItem(**item))
             else:
                 validated_items.append(item)

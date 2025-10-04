@@ -283,8 +283,8 @@ def validate_clothing_item(item: Dict[str, Any]) -> ClothingItem:
     Validate and normalize a clothing item.
     """
     # Normalize type and subtype
-    item_type = normalize_clothing_type(item.get('type', ''), item.get('subType'))
-    sub_type = normalize_subtype(item.get('subType'))
+    item_type = normalize_clothing_type(((item.get('type', '') if item else '') if item else ''), item.get('subType'))
+    sub_type = normalize_subtype((item.get('subType') if item else None))
 
     # Update the item with normalized values
     item['type'] = item_type
@@ -314,9 +314,9 @@ def validate_outfit_requirements(outfit: ClothingItem) -> bool:
     has_mixed_bottoms = any(item.type == ClothingType.PANTS for item in outfit.items) and any(item.type == ClothingType.SHORTS for item in outfit.items)
 
     # Get style and season from metadata
-    style = outfit.metadata.get('style', '').lower() if outfit.metadata else ''
-    season = outfit.metadata.get('season', '').lower() if outfit.metadata else ''
-    occasion = outfit.metadata.get('occasion', '').lower() if outfit.metadata else ''
+    style = outfit.(metadata.get('style', '') if metadata else '').lower() if outfit.metadata else ''
+    season = outfit.(metadata.get('season', '') if metadata else '').lower() if outfit.metadata else ''
+    occasion = outfit.(metadata.get('occasion', '') if metadata else '').lower() if outfit.metadata else ''
     
     # Special handling for vacation outfits
     if occasion == 'vacation':

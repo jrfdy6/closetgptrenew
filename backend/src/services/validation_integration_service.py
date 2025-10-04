@@ -174,22 +174,22 @@ class ValidationIntegrationService:
             try:
                 # Create ClothingItem from dictionary
                 clothing_item = ClothingItem(
-                    id=item.get('id', ''),
-                    name=item.get('name', ''),
-                    type=item.get('type', ''),
-                    color=item.get('color', ''),
-                    brand=item.get('brand', ''),
-                    size=item.get('size', ''),
-                    imageUrl=item.get('imageUrl', ''),
-                    style=item.get('style', []),
-                    occasion=item.get('occasion', []),
-                    material=item.get('material', ''),
-                    season=item.get('season', []),
-                    dominantColors=item.get('dominantColors', []),
-                    metadata=item.get('metadata', {}),
-                    favorite_score=item.get('favorite_score', 0.0),
-                    wearCount=item.get('wearCount', 0),
-                    quality_score=item.get('quality_score', 0.5)
+                    id=(item.get('id', '') if item else ''),
+                    name=(item.get('name', '') if item else ''),
+                    type=(item.get('type', '') if item else ''),
+                    color=(item.get('color', '') if item else ''),
+                    brand=(item.get('brand', '') if item else ''),
+                    size=(item.get('size', '') if item else ''),
+                    imageUrl=(item.get('imageUrl', '') if item else ''),
+                    style=(item.get('style', []) if item else []),
+                    occasion=(item.get('occasion', []) if item else []),
+                    material=(item.get('material', '') if item else ''),
+                    season=(item.get('season', []) if item else []),
+                    dominantColors=(item.get('dominantColors', []) if item else []),
+                    metadata=(item.get('metadata', {}) if item else {}),
+                    favorite_score=(item.get('favorite_score', 0.0) if item else 0.0),
+                    wearCount=(item.get('wearCount', 0) if item else 0),
+                    quality_score=(item.get('quality_score', 0.5) if item else 0.5)
                 )
                 clothing_items.append(clothing_item)
             except Exception as e:
@@ -222,22 +222,22 @@ class ValidationIntegrationService:
     def _dict_to_clothing_item(self, item_dict: Dict[str, Any]) -> ClothingItem:
         """Convert dictionary back to ClothingItem"""
         return ClothingItem(
-            id=item_dict.get('id', ''),
-            name=item_dict.get('name', ''),
-            type=item_dict.get('type', ''),
-            color=item_dict.get('color', ''),
-            brand=item_dict.get('brand', ''),
-            size=item_dict.get('size', ''),
-            imageUrl=item_dict.get('imageUrl', ''),
-            style=item_dict.get('style', []),
-            occasion=item_dict.get('occasion', []),
-            material=item_dict.get('material', ''),
-            season=item_dict.get('season', []),
-            dominantColors=item_dict.get('dominantColors', []),
-            metadata=item_dict.get('metadata', {}),
-            favorite_score=item_dict.get('favorite_score', 0.0),
-            wearCount=item_dict.get('wearCount', 0),
-            quality_score=item_dict.get('quality_score', 0.5)
+            id=(item_dict.get('id', '') if item_dict else ''),
+            name=(item_dict.get('name', '') if item_dict else ''),
+            type=(item_dict.get('type', '') if item_dict else ''),
+            color=(item_dict.get('color', '') if item_dict else ''),
+            brand=(item_dict.get('brand', '') if item_dict else ''),
+            size=(item_dict.get('size', '') if item_dict else ''),
+            imageUrl=(item_dict.get('imageUrl', '') if item_dict else ''),
+            style=(item_dict.get('style', []) if item_dict else []),
+            occasion=(item_dict.get('occasion', []) if item_dict else []),
+            material=(item_dict.get('material', '') if item_dict else ''),
+            season=(item_dict.get('season', []) if item_dict else []),
+            dominantColors=(item_dict.get('dominantColors', []) if item_dict else []),
+            metadata=(item_dict.get('metadata', {}) if item_dict else {}),
+            favorite_score=(item_dict.get('favorite_score', 0.0) if item_dict else 0.0),
+            wearCount=(item_dict.get('wearCount', 0) if item_dict else 0),
+            quality_score=(item_dict.get('quality_score', 0.5) if item_dict else 0.5)
         )
     
     def get_validation_statistics(self) -> Dict[str, Any]:

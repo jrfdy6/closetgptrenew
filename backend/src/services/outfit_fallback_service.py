@@ -276,17 +276,17 @@ class OutfitFallbackService:
     ) -> Tuple[List[ClothingItem], List[Dict[str, Any]]]:
         """Fix weather appropriateness issues, logging to healing context and using dynamic exclusions."""
         fixes_applied = []
-        weather = context.get('weather')
+        weather = (context.get('weather') if context else None)
         if not weather:
             return items, fixes_applied
         
         # Handle both dictionary and object formats for weather data
         if isinstance(weather, dict):
-            temperature = weather.get('temperature_f', weather.get('temperature', 70))
+            temperature = ((weather.get('temperature_f', weather.get('temperature', 70) if weather else 70) if weather else 70))
         else:
             temperature = getattr(weather, 'temperature_f', getattr(weather, 'temperature', 70))
         
-        season = self._determine_season(temperature, context.get('occasion', ''))
+        season = self._determine_season(temperature, (context.get('occasion', '') if context else ''))
         
         for i, item in enumerate(items):
             print(f"[DEBUG] Checking item for weather appropriateness: {getattr(item, 'name', str(item))} ({getattr(item, 'material', 'unknown')})")
@@ -355,7 +355,7 @@ class OutfitFallbackService:
                 item.userId,
                 category,
                 temperature,
-                context.get('weather', {}).get('condition', 'sunny'),
+                (context.get('weather', {}) if context else {}).get('condition', 'sunny'),
                 healing_context=healing_context,
                 limit=5
             )
@@ -439,13 +439,13 @@ class OutfitFallbackService:
     ) -> Tuple[List[ClothingItem], List[Dict[str, Any]]]:
         """Fix layering compatibility issues."""
         fixes_applied = []
-        weather = context.get('weather')
+        weather = (context.get('weather') if context else None)
         if not weather:
             return items, fixes_applied
         
         # Handle both dictionary and object formats for weather data
         if isinstance(weather, dict):
-            temperature = weather.get('temperature_f', weather.get('temperature', 70))
+            temperature = ((weather.get('temperature_f', weather.get('temperature', 70) if weather else 70) if weather else 70))
         else:
             temperature = getattr(weather, 'temperature_f', getattr(weather, 'temperature', 70))
         
@@ -492,7 +492,7 @@ class OutfitFallbackService:
     ) -> Tuple[List[ClothingItem], List[Dict[str, Any]]]:
         """Fix style conflicts between items."""
         fixes_applied = []
-        target_style = context.get('style')
+        target_style = (context.get('style') if context else None)
         if not target_style:
             return items, fixes_applied
         
@@ -556,7 +556,7 @@ class OutfitFallbackService:
         """Generate a new outfit from scratch using indexed wardrobe data."""
         try:
             # Get user's wardrobe from Firestore with indexes
-            user_id = context.get('user_profile', {}).get('id')
+            user_id = (context.get('user_profile', {}) if context else {}).get('id')
             if not user_id:
                 return None
             
@@ -595,22 +595,22 @@ class OutfitFallbackService:
         healing_context: DynamicHealingContext
     ) -> List[ClothingItem]:
         """Intelligently select items using multiple criteria."""
-        occasion = context.get('occasion', 'casual')
-        style = context.get('style')
-        weather = context.get('weather')
-        user_profile = context.get('user_profile', {})
+        occasion = (context.get('occasion', 'casual') if context else 'casual')
+        style = (context.get('style') if context else None)
+        weather = (context.get('weather') if context else None)
+        user_profile = (context.get('user_profile', {}) if context else {})
         
         # Step 1: Filter by basic criteria
         filtered_items = self._filter_by_basic_criteria(wardrobe, context, healing_context)
         
         # Step 2: Get target item counts for the occasion, style, mood, and temperature
-        style = context.get('style', '')
-        mood = context.get('mood', '')
-        weather = context.get('weather', {})
+        style = (context.get('style', '') if context else '')
+        mood = (context.get('mood', '') if context else '')
+        weather = (context.get('weather', {}) if context else {})
         
         # Extract temperature from weather data
         if isinstance(weather, dict):
-            temperature = weather.get('temperature', 70.0)
+            temperature = (weather.get('temperature', 70.0) if weather else 70.0)
         else:
             temperature = getattr(weather, 'temperature', 70.0)
         
@@ -713,7 +713,7 @@ class OutfitFallbackService:
             if 'weather' in context and context['weather']:
                 season = self._determine_season(
                     context['weather'].temperature,
-                    context.get('occasion', 'casual')
+                    (context.get('occasion', 'casual') if context else 'casual')
                 )
                 query = query.where('seasonality', 'array_contains', season)
             
@@ -771,7 +771,7 @@ class OutfitFallbackService:
         """
         try:
             # Get compatible styles
-            compatible_styles = self.style_compatibility.get(target_style, [target_style])
+            compatible_styles = self.(style_compatibility.get(target_style, [target_style]) if style_compatibility else [target_style])
             
             # Build style-based query
             query = self.wardrobe_collection.where('userId', '==', user_id)
@@ -976,7 +976,7 @@ class OutfitFallbackService:
             'gym': 'casual',
             'workout': 'casual'
         }
-        return formality_mapping.get(occasion.lower(), 'casual')
+        return (formality_mapping.get(occasion.lower() if formality_mapping else None), 'casual')
 
     async def _query_category_basic(
         self,
@@ -1145,21 +1145,21 @@ class OutfitFallbackService:
         score = 0.0
         
         # Occasion relevance
-        occasion = context.get('occasion', '')
+        occasion = (context.get('occasion', '') if context else '')
         if occasion in item.occasion:
             score += 0.3
         
         # Style relevance
-        style = context.get('style', '')
+        style = (context.get('style', '') if context else '')
         if style and style in item.style:
             score += 0.2
         
         # Weather appropriateness
-        weather = context.get('weather')
+        weather = (context.get('weather') if context else None)
         if weather:
             # Handle both dictionary and object formats for weather data
             if isinstance(weather, dict):
-                temperature = weather.get('temperature_f', weather.get('temperature', 70))
+                temperature = ((weather.get('temperature_f', weather.get('temperature', 70) if weather else 70) if weather else 70))
             else:
                 temperature = getattr(weather, 'temperature_f', getattr(weather, 'temperature', 70))
             
@@ -1167,7 +1167,7 @@ class OutfitFallbackService:
                 score += 0.2
         
         # User preference relevance
-        user_profile = context.get('user_profile', {})
+        user_profile = (context.get('user_profile', {}) if context else {})
         if user_profile:
             if hasattr(user_profile, 'bodyType') and user_profile.bodyType and self._check_body_type_compatibility(item, user_profile.bodyType):
                 score += 0.1
@@ -1246,7 +1246,7 @@ class OutfitFallbackService:
         if not target_style or not item.style:
             return True
         
-        compatible_styles = self.style_compatibility.get((target_style or '').lower(), [])
+        compatible_styles = self.(style_compatibility.get((target_style or '') if style_compatibility else None).lower(), [])
         return any((style or '').lower() in compatible_styles for style in (item.style or []))
 
     def _check_body_type_compatibility(self, item: ClothingItem, body_type: str) -> bool:
@@ -1449,19 +1449,19 @@ class OutfitFallbackService:
 
     def _get_items_for_category(self, items: List[ClothingItem], category: str) -> List[ClothingItem]:
         """Get items that belong to a specific category."""
-        category_types = self.category_mapping.get(category, [])
+        category_types = self.(category_mapping.get(category, []) if category_mapping else [])
         return [item for item in items if item.type in category_types]
 
     def _ensure_outfit_completeness(self, selected_items: List[ClothingItem], all_items: List[ClothingItem], context: Dict[str, Any], healing_context: DynamicHealingContext) -> List[ClothingItem]:
         """Ensure the outfit has all necessary components."""
-        occasion = context.get('occasion', 'casual')
-        style = context.get('style', '')
-        mood = context.get('mood', '')
-        weather = context.get('weather', {})
+        occasion = (context.get('occasion', 'casual') if context else 'casual')
+        style = (context.get('style', '') if context else '')
+        mood = (context.get('mood', '') if context else '')
+        weather = (context.get('weather', {}) if context else {})
         
         # Extract temperature from weather data
         if isinstance(weather, dict):
-            temperature = weather.get('temperature', 70.0)
+            temperature = (weather.get('temperature', 70.0) if weather else 70.0)
         else:
             temperature = getattr(weather, 'temperature', 70.0)
         
@@ -1479,7 +1479,7 @@ class OutfitFallbackService:
         current_categories = self._categorize_items(selected_items)
         
         for category, target_count in target_counts.items():
-            current_count = len(current_categories.get(category, []))
+            current_count = len((current_categories.get(category, []) if current_categories else []))
             if current_count < target_count:
                 # Find additional items for this category
                 available_items = self._get_items_for_category(all_items, category)
@@ -1500,12 +1500,12 @@ class OutfitFallbackService:
     async def _find_alternatives_for_category(self, category: str, exclude_item: ClothingItem, context: Dict[str, Any], healing_context: DynamicHealingContext) -> List[ClothingItem]:
         """Find alternative items for a category using Firestore queries with dynamic exclusions."""
         try:
-            user_id = context.get('user_profile', {}).get('id')
+            user_id = (context.get('user_profile', {}) if context else {}).get('id')
             if not user_id:
                 return []
             
             # Get category types
-            category_types = self.category_mapping.get(category, [])
+            category_types = self.(category_mapping.get(category, []) if category_mapping else [])
             
             # Query Firestore for alternatives
             alternatives = []
@@ -1560,7 +1560,7 @@ class OutfitFallbackService:
     async def _find_layering_compatible_replacement(self, item: ClothingItem, existing_items: List[ClothingItem], context: Dict[str, Any], healing_context: DynamicHealingContext) -> Optional[ClothingItem]:
         """Find a layering-compatible replacement for an item."""
         try:
-            user_id = context.get('user_profile', {}).get('id')
+            user_id = (context.get('user_profile', {}) if context else {}).get('id')
             if not user_id:
                 return None
             
@@ -1648,12 +1648,12 @@ class OutfitFallbackService:
             print("🔧 Step 3: Generating full outfit from Firestore (Fallback 2)")
             
             # Extract constraints
-            season = constraints.get('season', 'all')
-            formality = constraints.get('formality', 'casual')
-            occasion = constraints.get('occasion', 'casual')
-            temperature = constraints.get('temperature', 70.0)
-            style = constraints.get('style', 'casual')
-            user_id = constraints.get('user_id')
+            season = (constraints.get('season', 'all') if constraints else 'all')
+            formality = (constraints.get('formality', 'casual') if constraints else 'casual')
+            occasion = (constraints.get('occasion', 'casual') if constraints else 'casual')
+            temperature = (constraints.get('temperature', 70.0) if constraints else 70.0)
+            style = (constraints.get('style', 'casual') if constraints else 'casual')
+            user_id = (constraints.get('user_id') if constraints else None)
             
             if not user_id:
                 print("❌ No user_id provided for Firestore queries")
@@ -1768,12 +1768,12 @@ class OutfitFallbackService:
             query = query.where('category', '==', category)
             
             # Add seasonality constraint
-            season = constraints.get('seasonality', 'all')
+            season = (constraints.get('seasonality', 'all') if constraints else 'all')
             if season != 'all':
                 query = query.where('seasonality', 'array_contains', season)
             
             # Add formality constraint
-            formality = constraints.get('formality', 'casual')
+            formality = (constraints.get('formality', 'casual') if constraints else 'casual')
             query = query.where('formality', '==', formality)
             
             # Add quality constraint for better items
@@ -1831,8 +1831,8 @@ class OutfitFallbackService:
             
             # Determine which accessories are needed based on occasion and formality
             needed_accessories = self._get_needed_accessories(
-                constraints.get('occasion', 'casual'),
-                constraints.get('formality', 'casual')
+                (constraints.get('occasion', 'casual') if constraints else 'casual'),
+                (constraints.get('formality', 'casual') if constraints else 'casual')
             )
             
             for accessory_type in needed_accessories:
@@ -1872,17 +1872,17 @@ class OutfitFallbackService:
         score = 0.5  # Base score
         
         # Temperature compatibility
-        temperature = constraints.get('temperature', 70.0)
+        temperature = (constraints.get('temperature', 70.0) if constraints else 70.0)
         if self._is_weather_appropriate(item, temperature):
             score += 0.2
         
         # Style compatibility
-        style = constraints.get('style', 'casual')
+        style = (constraints.get('style', 'casual') if constraints else 'casual')
         if self._item_matches_style(item, style):
             score += 0.15
         
         # Compatibility with other selected items
-        compatible_with = constraints.get('compatible_with', [])
+        compatible_with = (constraints.get('compatible_with', []) if constraints else [])
         if compatible_with:
             compatibility_score = sum(
                 self._calculate_item_compatibility(item, other_item)
@@ -2261,7 +2261,7 @@ class OutfitFallbackService:
             'gym': 'casual',
             'workout': 'casual'
         }
-        constraints['formality'] = formality_mapping.get((occasion or '').lower(), 'casual')
+        constraints['formality'] = (formality_mapping.get((occasion or '') if formality_mapping else None).lower(), 'casual')
         
         # Map occasion to style
         style_mapping = {
@@ -2276,7 +2276,7 @@ class OutfitFallbackService:
             'gym': 'athletic',
             'workout': 'athletic'
         }
-        constraints['style'] = style_mapping.get((occasion or '').lower(), 'casual')
+        constraints['style'] = (style_mapping.get((occasion or '') if style_mapping else None).lower(), 'casual')
         
         # Add weather constraints
         if weather_data:

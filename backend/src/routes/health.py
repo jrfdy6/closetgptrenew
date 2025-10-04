@@ -26,12 +26,12 @@ health_data = {
 
 start_time = time.time()
 
-@router.get("/simple")
+@(router.get("/simple") if router else None)
 async def simple_health_check():
     """Simple health check for load balancers and monitoring"""
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
-@router.get("/detailed")
+@(router.get("/detailed") if router else None)
 async def detailed_health_check(current_user: UserProfile = Depends(get_current_user_optional)):
     """Detailed health check with system metrics"""
     global health_data
@@ -59,7 +59,7 @@ async def detailed_health_check(current_user: UserProfile = Depends(get_current_
     
     return health_data
 
-@router.get("/metrics")
+@(router.get("/metrics") if router else None)
 async def get_metrics(current_user: UserProfile = Depends(get_current_user_optional)):
     """Get system performance metrics"""
     if not current_user:
@@ -229,7 +229,7 @@ async def check_external_services() -> Dict[str, Any]:
     try:
         import httpx
         async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get("http://api.openweathermap.org/data/2.5/weather?q=London&appid=test")
+            response = await (client.get("http://api.openweathermap.org/data/2.5/weather?q=London&appid=test") if client else None)
             services["weather_api"] = {
                 "status": "healthy" if response.status_code in [200, 401] else "degraded",
                 "response_code": response.status_code
@@ -268,7 +268,7 @@ async def check_application_health() -> Dict[str, Any]:
             }
         }
 
-@router.get("/status")
+@(router.get("/status") if router else None)
 async def get_status():
     """Get current system status"""
     return {

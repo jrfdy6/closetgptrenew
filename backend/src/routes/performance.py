@@ -25,7 +25,7 @@ class PerformanceTestResponse(BaseModel):
     average_time: float
     results: List[Dict[str, Any]]
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_performance_status():
     """Get performance service status."""
     return {
@@ -35,7 +35,7 @@ async def get_performance_status():
         "timestamp": time.time()
     }
 
-@router.get("/stats")
+@(router.get("/stats") if router else None)
 async def get_performance_stats():
     """Get basic performance statistics."""
     return {
@@ -48,7 +48,7 @@ async def get_performance_stats():
         "status": "operational"
     }
 
-@router.get("/test/cache")
+@(router.get("/test/cache") if router else None)
 async def test_cache_performance():
     """Test cache performance with various operations."""
     start_time = time.time()
@@ -72,7 +72,7 @@ async def test_cache_performance():
         results=test_results
     )
 
-@router.get("/test/database")
+@(router.get("/test/database") if router else None)
 async def test_database_performance():
     """Test database performance."""
     start_time = time.time()
@@ -90,7 +90,7 @@ async def test_database_performance():
         results=[{"test": "database_query", "duration": total_time, "status": "success"}]
     )
 
-@router.get("/test/image-processing")
+@(router.get("/test/image-processing") if router else None)
 async def test_image_processing_performance():
     """Test image processing performance."""
     start_time = time.time()
@@ -108,7 +108,7 @@ async def test_image_processing_performance():
         results=[{"test": "image_analysis", "duration": total_time, "status": "success"}]
     )
 
-@router.get("/test/outfit-generation")
+@(router.get("/test/outfit-generation") if router else None)
 async def test_outfit_generation_performance():
     """Test outfit generation performance."""
     start_time = time.time()

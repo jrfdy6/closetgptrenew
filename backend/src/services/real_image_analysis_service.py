@@ -207,17 +207,17 @@ class RealImageAnalysisService:
         """Enhance the analysis with additional metadata"""
         try:
             # Extract basic information
-            clothing_type = analysis.get("type", "unknown")
-            colors = analysis.get("dominantColors", [])
-            styles = analysis.get("style", [])
-            occasions = analysis.get("occasion", [])
-            seasons = analysis.get("season", [])
+            clothing_type = (analysis.get("type", "unknown") if analysis else "unknown")
+            colors = (analysis.get("dominantColors", []) if analysis else [])
+            styles = (analysis.get("style", []) if analysis else [])
+            occasions = (analysis.get("occasion", []) if analysis else [])
+            seasons = (analysis.get("season", []) if analysis else [])
             
             # Create enhanced analysis
             enhanced = {
                 "analysis": analysis,
                 "metadata": {
-                    "confidence": analysis.get("confidence", 0.85),
+                    "confidence": (analysis.get("confidence", 0.85) if analysis else 0.85),
                     "analysis_method": "gpt4_vision",
                     "processing_time": "real_time"
                 },

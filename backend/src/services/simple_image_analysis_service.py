@@ -51,11 +51,11 @@ class SimpleImageAnalysisService:
         """
         try:
             # Extract basic information
-            clothing_type = gpt_analysis.get("type", "unknown")
-            colors = gpt_analysis.get("dominantColors", [])
-            styles = gpt_analysis.get("style", [])
-            occasions = gpt_analysis.get("occasion", [])
-            seasons = gpt_analysis.get("season", [])
+            clothing_type = (gpt_analysis.get("type", "unknown") if gpt_analysis else "unknown")
+            colors = (gpt_analysis.get("dominantColors", []) if gpt_analysis else [])
+            styles = (gpt_analysis.get("style", []) if gpt_analysis else [])
+            occasions = (gpt_analysis.get("occasion", []) if gpt_analysis else [])
+            seasons = (gpt_analysis.get("season", []) if gpt_analysis else [])
             
             # Create enhanced analysis
             enhanced = {

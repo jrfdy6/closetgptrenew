@@ -115,7 +115,7 @@ class ValidationAnalyticsService:
         logger.warning(f"   ID: {log_id}")
         logger.warning(f"   Severity: {severity}")
         logger.warning(f"   Error: {error_message}")
-        logger.warning(f"   Context: {context.get('occasion', 'unknown')} - {context.get('style', 'unknown')}")
+        logger.warning(f"   Context: {((context.get('occasion', 'unknown') if context else 'unknown') if context else 'unknown')} - {context.get('style', 'unknown')}")
         logger.warning(f"   Items: {len(outfit_items)} items")
         logger.warning(f"   User: {user_id}")
         
@@ -165,16 +165,16 @@ class ValidationAnalyticsService:
         problematic_items = Counter()
         for log in self.failure_logs:
             for item in log.outfit_items:
-                item_type = item.get('type', 'unknown')
-                item_name = item.get('name', 'unknown')
+                item_type = (item.get('type', 'unknown') if item else 'unknown')
+                item_name = (item.get('name', 'unknown') if item else 'unknown')
                 problematic_items[f"{item_type}:{item_name}"] += 1
         
         # Context failure patterns
         context_patterns = defaultdict(lambda: defaultdict(int))
         for log in self.failure_logs:
-            occasion = log.context.get('occasion', 'unknown')
-            style = log.context.get('style', 'unknown')
-            weather_temp = log.context.get('temperature', 'unknown')
+            occasion = log.(context.get('occasion', 'unknown') if context else 'unknown')
+            style = log.(context.get('style', 'unknown') if context else 'unknown')
+            weather_temp = log.(context.get('temperature', 'unknown') if context else 'unknown')
             
             context_patterns['occasion'][occasion] += 1
             context_patterns['style'][style] += 1
@@ -241,13 +241,13 @@ class ValidationAnalyticsService:
                 
                 # Get example items (first 3)
                 example_items = [
-                    f"{item.get('type', 'unknown')}:{item.get('name', 'unknown')}"
+                    f"{((item.get('type', 'unknown') if item else 'unknown') if item else 'unknown')}:{item.get('name', 'unknown')}"
                     for item in data['items'][:3]
                 ]
                 
                 # Get example contexts (first 3)
                 example_contexts = [
-                    f"{ctx.get('occasion', 'unknown')}:{ctx.get('style', 'unknown')}"
+                    f"{((ctx.get('occasion', 'unknown') if ctx else 'unknown') if ctx else 'unknown')}:{ctx.get('style', 'unknown')}"
                     for ctx in data['contexts'][:3]
                 ]
                 

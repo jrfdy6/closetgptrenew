@@ -101,7 +101,7 @@ class EmbeddingService:
             # Generate embedding using OpenAI API
             embedding = await self._generate_embedding_with_openai(item_text)
             
-            logger.info(f"✅ Generated item embedding for {item.get('name', 'Unknown')}")
+            logger.info(f"✅ Generated item embedding for {(item.get('name', 'Unknown') if item else 'Unknown')}")
             return embedding
             
         except Exception as e:
@@ -125,7 +125,7 @@ class EmbeddingService:
             # Generate embedding using OpenAI API
             embedding = await self._generate_embedding_with_openai(outfit_text)
             
-            logger.info(f"✅ Generated outfit embedding for {outfit.get('name', 'Unknown Outfit')}")
+            logger.info(f"✅ Generated outfit embedding for {(outfit.get('name', 'Unknown Outfit') if outfit else 'Unknown Outfit')}")
             return embedding
             
         except Exception as e:
@@ -173,7 +173,7 @@ class EmbeddingService:
         """
         try:
             # Get current user embedding
-            current_embedding = self.user_embeddings.get(user_id, np.zeros(self.embedding_dimension))
+            current_embedding = self.(user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
             
             # Get item/outfit embedding
             if interaction.item_id:
@@ -207,7 +207,7 @@ class EmbeddingService:
             
         except Exception as e:
             logger.error(f"❌ Failed to update user embedding: {e}")
-            return self.user_embeddings.get(user_id, np.zeros(self.embedding_dimension))
+            return self.(user_embeddings.get(user_id, np.zeros(self.embedding_dimension) if user_embeddings else np.zeros(self.embedding_dimension))
     
     async def get_personalized_recommendations(
         self, 
@@ -222,7 +222,7 @@ class EmbeddingService:
         """
         try:
             # Get user embedding
-            user_embedding = self.user_embeddings.get(user_id)
+            user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
             if user_embedding is None:
                 logger.warning(f"No user embedding found for {user_id}")
                 return candidate_outfits[:top_k]
@@ -231,7 +231,7 @@ class EmbeddingService:
             similarities = []
             for outfit in candidate_outfits:
                 # Get or generate outfit embedding
-                outfit_embedding = await self._get_outfit_embedding(outfit.get('id', ''))
+                outfit_embedding = await self._get_outfit_embedding((outfit.get('id', '') if outfit else ''))
                 
                 # Calculate cosine similarity
                 similarity = cosine_similarity([user_embedding], [outfit_embedding])[0][0]
@@ -239,7 +239,7 @@ class EmbeddingService:
                 similarities.append({
                     'outfit': outfit,
                     'similarity': similarity,
-                    'outfit_id': outfit.get('id', '')
+                    'outfit_id': (outfit.get('id', '') if outfit else '')
                 })
             
             # Sort by similarity (descending)
@@ -269,37 +269,37 @@ class EmbeddingService:
         parts = []
         
         # Basic information
-        parts.append(f"Item: {item.get('name', 'Unknown')}")
-        parts.append(f"Type: {item.get('type', 'unknown')}")
-        parts.append(f"Color: {item.get('color', 'unknown')}")
+        parts.append(f"Item: {(item.get('name', 'Unknown') if item else 'Unknown')}")
+        parts.append(f"Type: {(item.get('type', 'unknown') if item else 'unknown')}")
+        parts.append(f"Color: {(item.get('color', 'unknown') if item else 'unknown')}")
         
         # Style information
-        styles = item.get('style', [])
+        styles = (item.get('style', []) if item else [])
         if styles:
             parts.append(f"Styles: {', '.join(styles)}")
         
         # Occasion information
-        occasions = item.get('occasion', [])
+        occasions = (item.get('occasion', []) if item else [])
         if occasions:
             parts.append(f"Occasions: {', '.join(occasions)}")
         
         # Material and texture
-        material = item.get('material', '')
+        material = (item.get('material', '') if item else '')
         if material:
             parts.append(f"Material: {material}")
         
         # Season information
-        seasons = item.get('season', [])
+        seasons = (item.get('season', []) if item else [])
         if seasons:
             parts.append(f"Seasons: {', '.join(seasons)}")
         
         # Brand information
-        brand = item.get('brand', '')
+        brand = (item.get('brand', '') if item else '')
         if brand:
             parts.append(f"Brand: {brand}")
         
         # Additional metadata
-        metadata = item.get('metadata', {})
+        metadata = (item.get('metadata', {}) if item else {})
         if metadata:
             for key, value in metadata.items():
                 if isinstance(value, (str, int, float)):
@@ -312,31 +312,31 @@ class EmbeddingService:
         parts = []
         
         # Basic outfit information
-        parts.append(f"Outfit: {outfit.get('name', 'Unknown Outfit')}")
-        parts.append(f"Style: {outfit.get('style', 'unknown')}")
-        parts.append(f"Occasion: {outfit.get('occasion', 'unknown')}")
-        parts.append(f"Mood: {outfit.get('mood', 'unknown')}")
+        parts.append(f"Outfit: {(outfit.get('name', 'Unknown Outfit') if outfit else 'Unknown Outfit')}")
+        parts.append(f"Style: {(outfit.get('style', 'unknown') if outfit else 'unknown')}")
+        parts.append(f"Occasion: {(outfit.get('occasion', 'unknown') if outfit else 'unknown')}")
+        parts.append(f"Mood: {(outfit.get('mood', 'unknown') if outfit else 'unknown')}")
         
         # Items in the outfit
-        items = outfit.get('items', [])
+        items = (outfit.get('items', []) if outfit else [])
         if items:
             item_descriptions = []
             for item in items:
-                item_desc = f"{item.get('name', 'Unknown')} ({item.get('type', 'unknown')}, {item.get('color', 'unknown')})"
+                item_desc = f"{(((item.get('name', 'Unknown') if item else 'Unknown') if item else 'Unknown') if item else 'Unknown')} ({item.get('type', 'unknown')}, {item.get('color', 'unknown')})"
                 item_descriptions.append(item_desc)
             parts.append(f"Items: {', '.join(item_descriptions)}")
         
         # Color palette
         colors = []
         for item in items:
-            color = item.get('color', '')
+            color = (item.get('color', '') if item else '')
             if color and color not in colors:
                 colors.append(color)
         if colors:
             parts.append(f"Color palette: {', '.join(colors)}")
         
         # Weather information
-        weather = outfit.get('weather', {})
+        weather = (outfit.get('weather', {}) if outfit else {})
         if weather:
             temp = weather.get('temperature', '')
             condition = weather.get('condition', '')
@@ -344,12 +344,12 @@ class EmbeddingService:
                 parts.append(f"Weather: {temp}°F, {condition}")
         
         # Formality level
-        formality = outfit.get('formality', '')
+        formality = (outfit.get('formality', '') if outfit else '')
         if formality:
             parts.append(f"Formality: {formality}")
         
         # Confidence and quality scores
-        confidence = outfit.get('confidence', '')
+        confidence = (outfit.get('confidence', '') if outfit else '')
         if confidence:
             parts.append(f"Confidence: {confidence}")
         
@@ -410,7 +410,7 @@ class EmbeddingService:
     
     def get_user_embedding_stats(self, user_id: str) -> Dict[str, Any]:
         """Get statistics about user's embedding and interactions"""
-        user_embedding = self.user_embeddings.get(user_id)
+        user_embedding = self.(user_embeddings.get(user_id) if user_embeddings else None)
         user_interactions = [i for i in self.user_interactions if i.user_id == user_id]
         
         return {

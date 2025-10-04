@@ -34,7 +34,7 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
     """Get current user ID from JWT token."""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
+        user_id: str = (payload.get("sub") if payload else None)
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -186,7 +186,7 @@ async def login_user(user_data: UserLogin):
             detail="Login failed"
         )
 
-@router.get("/profile")
+@(router.get("/profile") if router else None)
 async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
     """Get current user's profile."""
     try:
@@ -203,7 +203,7 @@ async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
         return UserProfile(
             name=user_data['name'],
             email=user_data['email'],
-            avatar_url=user_data.get('avatar_url')
+            avatar_url=(user_data.get('avatar_url') if user_data else None)
         )
         
     except HTTPException:

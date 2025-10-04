@@ -62,8 +62,8 @@ def validate_material_compatibility(items: List[ClothingItem]) -> ValidationResu
             if material1 == 'unknown' or material2 == 'unknown':
                 continue
 
-            compatible_with1 = COMPATIBLE_MATERIALS.get(material1, [])
-            compatible_with2 = COMPATIBLE_MATERIALS.get(material2, [])
+            compatible_with1 = (COMPATIBLE_MATERIALS.get(material1, []) if COMPATIBLE_MATERIALS else [])
+            compatible_with2 = (COMPATIBLE_MATERIALS.get(material2, []) if COMPATIBLE_MATERIALS else [])
 
             if material2 not in compatible_with1 and material1 not in compatible_with2:
                 warnings.append(f"Material compatibility warning: {material1} and {material2} may not work well together")
@@ -81,7 +81,7 @@ def validate_material_compatibility(items: List[ClothingItem]) -> ValidationResu
 def validate_weather_appropriateness(items: List[ClothingItem], season: Season) -> ValidationResult:
     start_time = time.time()
     warnings = []
-    season_materials = WEATHER_MATERIALS.get(season.value.lower(), [])
+    season_materials = (WEATHER_MATERIALS.get(season.value.lower() if WEATHER_MATERIALS else None), [])
 
     for item in items:
         if not item.metadata or not item.metadata.visualAttributes:
@@ -115,7 +115,7 @@ def validate_skin_tone_compatibility(items: List[ClothingItem], user_profile: Us
             duration=0.0
         )
 
-    recommended_colors = SKIN_TONE_COLORS.get(skin_tone, [])
+    recommended_colors = (SKIN_TONE_COLORS.get(skin_tone, []) if SKIN_TONE_COLORS else [])
     for item in items:
         color = getattr(item, 'color', '').lower() if hasattr(item, 'color') else ''
         if not any(rec_color in color for rec_color in recommended_colors):
@@ -147,7 +147,7 @@ def validate_body_type_fit(items: List[ClothingItem], user_profile: UserProfile)
             duration=0.0
         )
 
-    recommended_fits = BODY_TYPE_FITS.get(body_type, [])
+    recommended_fits = (BODY_TYPE_FITS.get(body_type, []) if BODY_TYPE_FITS else [])
     for item in items:
         if not item.metadata or not item.metadata.visualAttributes:
             continue

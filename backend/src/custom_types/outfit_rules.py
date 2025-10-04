@@ -589,32 +589,32 @@ def get_occasion_rule(occasion: str) -> Optional[OccasionRule]:
     
     # Try matching by common patterns
     if "athletic" in occasion_lower or "gym" in occasion_lower:
-        return OCCASION_RULES.get("athletic")
+        return (OCCASION_RULES.get("athletic") if OCCASION_RULES else None)
     elif "business" in occasion_lower:
         if "formal" in occasion_lower:
-            return OCCASION_RULES.get("business_formal")
+            return (OCCASION_RULES.get("business_formal") if OCCASION_RULES else None)
         else:
-            return OCCASION_RULES.get("business_casual")
+            return (OCCASION_RULES.get("business_casual") if OCCASION_RULES else None)
     elif "casual" in occasion_lower:
-        return OCCASION_RULES.get("casual")
+        return (OCCASION_RULES.get("casual") if OCCASION_RULES else None)
     elif "formal" in occasion_lower:
-        return OCCASION_RULES.get("formal")
+        return (OCCASION_RULES.get("formal") if OCCASION_RULES else None)
     elif "interview" in occasion_lower:
-        return OCCASION_RULES.get("interview")
+        return (OCCASION_RULES.get("interview") if OCCASION_RULES else None)
     elif "beach" in occasion_lower:
-        return OCCASION_RULES.get("beach")
+        return (OCCASION_RULES.get("beach") if OCCASION_RULES else None)
     elif "travel" in occasion_lower:
-        return OCCASION_RULES.get("travel")
+        return (OCCASION_RULES.get("travel") if OCCASION_RULES else None)
     elif "party" in occasion_lower:
-        return OCCASION_RULES.get("party")
+        return (OCCASION_RULES.get("party") if OCCASION_RULES else None)
     elif "date" in occasion_lower:
-        return OCCASION_RULES.get("date_night")
+        return (OCCASION_RULES.get("date_night") if OCCASION_RULES else None)
     
     return None
 
 def get_mood_rule(mood: str) -> Optional[MoodRule]:
     """Get the rule for a specific mood."""
-    return MOOD_RULES.get(mood.lower())
+    return (MOOD_RULES.get(mood.lower() if MOOD_RULES else None))
 
 def validate_outfit_requirements(
     outfit_items: List[Dict[str, Any]],

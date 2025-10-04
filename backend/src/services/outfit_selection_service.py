@@ -30,7 +30,7 @@ class OutfitSelectionService:
             return []
         
         # Get base item from context
-        base_item = context.get("base_item")
+        base_item = (context.get("base_item") if context else None)
         selected_items = []
         
         # Always include the base item if provided
@@ -40,7 +40,7 @@ class OutfitSelectionService:
         
         # For now, select additional items from filtered wardrobe
         # In a full implementation, this would use sophisticated selection logic
-        target_count = context.get("target_counts", {}).get("min_items", 3)
+        target_count = (context.get("target_counts", {}) if context else {}).get("min_items", 3)
         
         # Add additional items, excluding the base item if it's already in filtered_wardrobe
         additional_items_needed = target_count - len(selected_items)

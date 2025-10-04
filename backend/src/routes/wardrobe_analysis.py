@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["wardrobe-analysis"])
 
-@router.get("/gaps")
+@(router.get("/gaps") if router else None)
 async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get comprehensive wardrobe gap analysis for the current user.
@@ -56,7 +56,7 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
             if real_trends and len(real_trends) > 0:
                 print(f"✅ Gaps Backend: Successfully retrieved {len(real_trends)} real trends for gender: {gender or 'unisex'}")
                 # Check if ballet flats are in the results
-                ballet_flats_count = sum(1 for trend in real_trends if 'ballet' in trend.get('name', '').lower())
+                ballet_flats_count = sum(1 for trend in real_trends if 'ballet' in (trend.get('name', '') if trend else '').lower())
                 print(f"🔍 Gaps Backend: Ballet flats in results: {ballet_flats_count}")
                 analysis["trending_styles"] = real_trends
                 analysis["gender_filter"] = gender
@@ -78,7 +78,7 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
             detail="Failed to analyze wardrobe gaps"
         )
 
-@router.get("/coverage")
+@(router.get("/coverage") if router else None)
 async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get wardrobe coverage metrics for the current user.
@@ -100,10 +100,10 @@ async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_
             "success": True,
             "data": {
                 "coverage": analysis["coverage"],
-                "total_items": len(analysis.get("gaps", [])),
-                "high_priority_gaps": len([g for g in analysis.get("gaps", []) if g["severity"] == "high"]),
-                "medium_priority_gaps": len([g for g in analysis.get("gaps", []) if g["severity"] == "medium"]),
-                "low_priority_gaps": len([g for g in analysis.get("gaps", []) if g["severity"] == "low"])
+                "total_items": len((analysis.get("gaps", []) if analysis else [])),
+                "high_priority_gaps": len([g for g in (analysis.get("gaps", []) if analysis else []) if g["severity"] == "high"]),
+                "medium_priority_gaps": len([g for g in (analysis.get("gaps", []) if analysis else []) if g["severity"] == "medium"]),
+                "low_priority_gaps": len([g for g in (analysis.get("gaps", []) if analysis else []) if g["severity"] == "low"])
             },
             "message": "Wardrobe coverage analysis completed successfully"
         }
@@ -114,7 +114,7 @@ async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_
             detail="Failed to analyze wardrobe coverage"
         )
 
-@router.get("/recommendations")
+@(router.get("/recommendations") if router else None)
 async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get personalized wardrobe recommendations for the current user.
@@ -132,11 +132,11 @@ async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_c
         analysis = await analysis_service.get_wardrobe_gaps(current_user.id)
         
         # Extract high-priority recommendations
-        high_priority_gaps = [g for g in analysis.get("gaps", []) if g["severity"] == "high"]
+        high_priority_gaps = [g for g in (analysis.get("gaps", []) if analysis else []) if g["severity"] == "high"]
         suggested_items = []
         
         for gap in high_priority_gaps[:5]:  # Top 5 high-priority gaps
-            suggested_items.extend(gap.get("suggestedItems", []))
+            suggested_items.extend((gap.get("suggestedItems", []) if gap else []))
         
         # Remove duplicates
         suggested_items = list(set(suggested_items))
@@ -144,10 +144,10 @@ async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_c
         return {
             "success": True,
             "data": {
-                "recommendations": analysis.get("recommendations", []),
+                "recommendations": (analysis.get("recommendations", []) if analysis else []),
                 "suggested_items": suggested_items,
                 "priority_gaps": high_priority_gaps[:3],  # Top 3 gaps
-                "total_gaps": len(analysis.get("gaps", []))
+                "total_gaps": len((analysis.get("gaps", []) if analysis else []))
             },
             "message": "Wardrobe recommendations generated successfully"
         }
@@ -158,7 +158,7 @@ async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_c
             detail="Failed to generate wardrobe recommendations"
         )
 
-@router.get("/validation-errors")
+@(router.get("/validation-errors") if router else None)
 async def get_validation_errors(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get validation errors and outfit generation failures for the current user.
@@ -183,10 +183,10 @@ async def get_validation_errors(current_user: UserProfile = Depends(get_current_
             "success": True,
             "data": {
                 "validation_errors": validation_errors,
-                "outfit_failures": [outfit for outfit in outfit_history if not outfit.get("success", True)],
+                "outfit_failures": [outfit for outfit in outfit_history if not (outfit.get("success", True) if outfit else True)],
                 "error_patterns": error_patterns,
                 "total_errors": len(validation_errors),
-                "failure_rate": len([o for o in outfit_history if not o.get("success", True)]) / max(len(outfit_history), 1) * 100
+                "failure_rate": len([o for o in outfit_history if not (o.get("success", True) if o else True)]) / max(len(outfit_history), 1) * 100
             },
             "message": "Validation error analysis completed successfully"
         }
@@ -197,7 +197,7 @@ async def get_validation_errors(current_user: UserProfile = Depends(get_current_
             detail="Failed to analyze validation errors"
         )
 
-@router.get("/trending-styles")
+@(router.get("/trending-styles") if router else None)
 async def get_trending_styles(gender: str = None, current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get current trending styles and fashion trends, optionally filtered by gender.
@@ -231,7 +231,7 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
                         "trending_styles": trending_styles,
                         "total_trends": len(trending_styles),
                         "gender_filter": gender,
-                        "most_popular": max(trending_styles, key=lambda x: x.get("popularity", 0)) if trending_styles else None,
+                        "most_popular": max(trending_styles, key=lambda x: (x.get("popularity", 0) if x else 0)) if trending_styles else None,
                         "message": f"Real trending styles retrieved successfully for {gender or 'all genders'}"
                     }
                 }
@@ -295,7 +295,7 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
             detail="Failed to retrieve trending styles"
         )
 
-@router.get("/wardrobe-stats")
+@(router.get("/wardrobe-stats") if router else None)
 async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """
     Get comprehensive wardrobe statistics for the current user.
@@ -375,7 +375,7 @@ async def force_refresh_trends() -> Dict[str, Any]:
         else:
             return {
                 "success": False,
-                "error": f"Failed to refresh trends: {result.get('reason', 'Unknown error')}"
+                "error": f"Failed to refresh trends: {(result.get('reason', 'Unknown error') if result else 'Unknown error')}"
             }
             
     except Exception as e:

@@ -45,7 +45,7 @@ def parse_datetime_safe(dt_value) -> datetime:
     except:
         return None
 
-@router.get("/outfits-worn-this-week")
+@(router.get("/outfits-worn-this-week") if router else None)
 async def get_outfits_worn_this_week(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -76,7 +76,7 @@ async def get_outfits_worn_this_week(
         # Count all wear events this week (not unique outfits)
         for history_doc in history_ref.stream():
             history_data = history_doc.to_dict()
-            date_worn = history_data.get('date_worn')
+            date_worn = (history_data.get('date_worn') if history_data else None)
             
             if date_worn:
                 worn_date = parse_datetime_safe(date_worn)
@@ -99,7 +99,7 @@ async def get_outfits_worn_this_week(
         logger.error(f"❌ Error counting worn outfits: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}")
 
-@router.get("/dashboard-stats")
+@(router.get("/dashboard-stats") if router else None)
 async def get_dashboard_stats(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -140,7 +140,7 @@ async def get_dashboard_stats(
                     outfit_data = doc.to_dict()
                     
                     # Check if outfit has lastWorn field and it's this week
-                    last_worn = outfit_data.get('lastWorn')
+                    last_worn = (outfit_data.get('lastWorn') if outfit_data else None)
                     if last_worn:
                         if isinstance(last_worn, str):
                             try:
@@ -177,7 +177,7 @@ async def get_dashboard_stats(
         logger.error(f"❌ Error getting dashboard stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get dashboard stats: {e}")
 
-@router.get("/test")
+@(router.get("/test") if router else None)
 async def test_simple_analytics():
     """Simple test endpoint to verify router is loaded"""
     return {

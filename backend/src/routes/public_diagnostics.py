@@ -18,7 +18,7 @@ class ServiceStatus(BaseModel):
     timestamp: float
     details: Dict[str, Any]
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_diagnostics_status():
     """Get diagnostics service status."""
     return {
@@ -28,7 +28,7 @@ async def get_diagnostics_status():
         "timestamp": time.time()
     }
 
-@router.get("/health")
+@(router.get("/health") if router else None)
 async def public_health_check():
     """Public health check endpoint."""
     return ServiceStatus(
@@ -42,7 +42,7 @@ async def public_health_check():
         }
     )
 
-@router.get("/status")
+@(router.get("/status") if router else None)
 async def get_public_status():
     """Get public service status."""
     return {
@@ -57,7 +57,7 @@ async def get_public_status():
         "version": "1.0.0"
     }
 
-@router.get("/info")
+@(router.get("/info") if router else None)
 async def get_service_info():
     """Get service information."""
     return {

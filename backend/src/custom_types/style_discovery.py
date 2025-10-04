@@ -309,7 +309,7 @@ class StyleDiscoveryProfile(BaseModel):
             # Add more color season palettes...
         }
         
-        return color_palettes.get(self.quiz_result.color_season, {})
+        return (color_palettes.get(self.quiz_result.color_season, {}) if color_palettes else {})
     
     def _get_fit_guide(self) -> Dict[str, List[str]]:
         """Get personalized fit guide based on body type and preferences."""
@@ -334,4 +334,4 @@ class StyleDiscoveryProfile(BaseModel):
             # Add more body type guides...
         }
         
-        return fit_guides.get(self.quiz_result.body_type, {}) 
+        return (fit_guides.get(self.quiz_result.body_type, {}) if fit_guides else {}) 

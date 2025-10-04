@@ -47,7 +47,7 @@ class OutfitGenerationPipelineService:
             print(f"✅ Phase 1: Context gathered - {len(wardrobe)} items, {occasion}, {style}")
             if baseItem:
                 print(f"🎯 Base item in context: {baseItem.name} ({baseItem.type})")
-                print(f"🎯 Context base_item: {context.get('base_item', 'Not found')}")
+                print(f"🎯 Context base_item: {(context.get('base_item', 'Not found') if context else 'Not found')}")
             
             # Phase 2: Light Filtering (based on availability/weather only)
             filtered_wardrobe = self.filtering_service.apply_light_filtering(wardrobe, context)
@@ -87,7 +87,7 @@ class OutfitGenerationPipelineService:
                     "success": True,
                     "items": final_items,
                     "context": context,
-                    "warnings": validation_result.get("warnings", [])
+                    "warnings": (validation_result.get("warnings", []) if validation_result else [])
                 }
             else:
                 # Check if it's a soft failure (can be auto-fixed)
@@ -107,7 +107,7 @@ class OutfitGenerationPipelineService:
                         "success": False,
                         "message": f"Hard validation errors: {hard_errors}",
                         "errors": hard_errors,
-                        "warnings": validation_result.get("warnings", [])
+                        "warnings": (validation_result.get("warnings", []) if validation_result else [])
                     }
             
         except Exception as e:

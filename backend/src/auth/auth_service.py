@@ -57,8 +57,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             # Try with default settings first
             decoded_token = auth.verify_id_token(credentials.credentials)
             user_id = decoded_token['uid']
-            email = decoded_token.get('email', '')
-            name = decoded_token.get('name', 'User')
+            email = (decoded_token.get('email', '') if decoded_token else '')
+            name = (decoded_token.get('name', 'User') if decoded_token else 'User')
             print(f"🔍 DEBUG: Token verified successfully for user: {user_id}")
             
             # Create user profile from token data
@@ -93,8 +93,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
                     # Try with a more lenient clock skew tolerance
                     decoded_token = auth.verify_id_token(credentials.credentials, check_revoked=False)
                     user_id = decoded_token['uid']
-                    email = decoded_token.get('email', '')
-                    name = decoded_token.get('name', 'User')
+                    email = (decoded_token.get('email', '') if decoded_token else '')
+                    name = (decoded_token.get('name', 'User') if decoded_token else 'User')
                     print(f"🔍 DEBUG: Token verified with lenient settings for user: {user_id}")
                     
                     # Create user profile from token data
@@ -190,8 +190,8 @@ async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = 
             # Try with default settings first
             decoded_token = auth.verify_id_token(credentials.credentials)
             user_id = decoded_token['uid']
-            email = decoded_token.get('email', '')
-            name = decoded_token.get('name', 'User')
+            email = (decoded_token.get('email', '') if decoded_token else '')
+            name = (decoded_token.get('name', 'User') if decoded_token else 'User')
             print(f"🔍 DEBUG: Real user authenticated successfully: {user_id}")
             
             # Create user profile from token data
@@ -224,8 +224,8 @@ async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = 
                 try:
                     decoded_token = auth.verify_id_token(credentials.credentials, check_revoked=False)
                     user_id = decoded_token['uid']
-                    email = decoded_token.get('email', '')
-                    name = decoded_token.get('name', 'User')
+                    email = (decoded_token.get('email', '') if decoded_token else '')
+                    name = (decoded_token.get('name', 'User') if decoded_token else 'User')
                     print(f"🔍 DEBUG: Real user authenticated with lenient settings: {user_id}")
                     
                     user = UserProfile(

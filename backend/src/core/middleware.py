@@ -63,7 +63,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "method": request.method,
                     "url": str(request.url),
                     "ip_address": request.client.host if request.client else None,
-                    "user_agent": request.headers.get("user-agent"),
+                    "user_agent": request.(headers.get("user-agent") if headers else None),
                 }
             }
         )
@@ -255,7 +255,7 @@ class CacheMiddleware(BaseHTTPMiddleware):
         cache_key = f"response:{request.method}:{request.url.path}:{hash(str(request.query_params))}"
         
         # Try to get from cache
-        cached_response = cache_manager.get("api", cache_key)
+        cached_response = (cache_manager.get("api", cache_key) if cache_manager else cache_key)
         if cached_response:
             logger.debug("Cache hit for response", extra={
                 "extra_fields": {

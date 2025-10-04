@@ -98,7 +98,7 @@ class EnhancedFeedbackResponse(BaseModel):
 async def get_current_user(request: Request):
     """Extract user from Firebase token"""
     try:
-        auth_header = request.headers.get("Authorization")
+        auth_header = request.(headers.get("Authorization") if headers else None)
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
         
@@ -238,13 +238,13 @@ async def submit_enhanced_feedback(
     Submit enhanced feedback with comprehensive diagnostic data
     """
     try:
-        user_id = current_user.get("uid")
+        user_id = (current_user.get("uid") if current_user else None)
         if not user_id:
             raise HTTPException(status_code=401, detail="User ID not found in token")
 
         # Get the outfit details for context
         outfit_ref = db.collection("outfits").document(feedback.outfit_id)
-        outfit_doc = outfit_ref.get()
+        outfit_doc = outfit_ref.get() if outfit_ref else None
         
         if not outfit_doc.exists:
             raise HTTPException(status_code=404, detail="Outfit not found")
@@ -288,13 +288,13 @@ async def submit_enhanced_feedback(
             # Metadata
             "timestamp": datetime.utcnow().isoformat(),
             "outfit_context": {
-                "occasion": outfit_data.get("occasion"),
-                "mood": outfit_data.get("mood"),
-                "style": outfit_data.get("style"),
-                "generation_method": outfit_data.get("generation_method", "unknown"),
-                "items_count": len(outfit_data.get("items", [])),
-                "items_types": [item.get("type") for item in outfit_data.get("items", [])],
-                "created_at": outfit_data.get("createdAt"),
+                "occasion": (outfit_data.get("occasion") if outfit_data else None),
+                "mood": (outfit_data.get("mood") if outfit_data else None),
+                "style": (outfit_data.get("style") if outfit_data else None),
+                "generation_method": (outfit_data.get("generation_method", "unknown") if outfit_data else "unknown"),
+                "items_count": len((outfit_data.get("items", []) if outfit_data else [])),
+                "items_types": [(item.get("type") if item else None) for item in (outfit_data.get("items", []) if outfit_data else [])],
+                "created_at": (outfit_data.get("createdAt") if outfit_data else None),
             }
         }
         
@@ -349,7 +349,7 @@ async def submit_enhanced_feedback(
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/diagnostics/summary")
+@(router.get("/diagnostics/summary") if router else None)
 async def get_diagnostic_summary(
     current_user: Dict = Depends(get_current_user)
 ):
@@ -357,7 +357,7 @@ async def get_diagnostic_summary(
     Get comprehensive diagnostic summary for system improvements
     """
     try:
-        user_id = current_user.get("uid")
+        user_id = (current_user.get("uid") if current_user else None)
         
         # Get all enhanced feedback for this user
         feedback_refs = db.collection("enhanced_outfit_feedback").where("user_id", "==", user_id).stream()
@@ -380,13 +380,13 @@ async def get_diagnostic_summary(
             summary["total_feedback"] += 1
             
             # Collect all insights and recommendations
-            all_insights.extend(feedback_data.get("diagnostic_insights", []))
-            all_recommendations.extend(feedback_data.get("recommended_fixes", []))
+            all_insights.extend((feedback_data.get("diagnostic_insights", []) if feedback_data else []))
+            all_recommendations.extend((feedback_data.get("recommended_fixes", []) if feedback_data else []))
         
         # Analyze common issues
         insight_counts = {}
         for insight in all_insights:
-            insight_counts[insight] = insight_counts.get(insight, 0) + 1
+            insight_counts[insight] = (insight_counts.get(insight, 0) if insight_counts else 0) + 1
         
         # Categorize issues
         for insight, count in insight_counts.items():
@@ -401,7 +401,7 @@ async def get_diagnostic_summary(
         # Analyze recommendations
         recommendation_counts = {}
         for rec in all_recommendations:
-            category = rec.get("category", "unknown")
+            category = (rec.get("category", "unknown") if rec else "unknown")
             if category not in summary["common_recommendations"]:
                 summary["common_recommendations"][category] = []
             summary["common_recommendations"][category].append(rec)

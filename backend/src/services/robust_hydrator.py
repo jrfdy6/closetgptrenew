@@ -168,7 +168,7 @@ def normalize_item_type_to_enum(item_type: str, item_name: str = "") -> str:
     }
     
     # Return mapped value or original type if it matches enum
-    return type_mappings.get(type_lower, type_lower)
+    return (type_mappings.get(type_lower, type_lower) if type_mappings else type_lower)
 
 # -------------------------------
 # Hydrator Function

@@ -1883,7 +1883,7 @@ VISUAL_HARMONY_RULES = {
 
 def get_visual_harmony_rule(style: str) -> Optional[VisualHarmonyRule]:
     """Get the visual harmony rules for a specific style."""
-    return VISUAL_HARMONY_RULES.get(style.lower())
+    return (VISUAL_HARMONY_RULES.get(style.lower() if VISUAL_HARMONY_RULES else None))
 
 def validate_color_harmony(colors: List[str], harmony_type: ColorHarmonyType) -> bool:
     """Validate if a set of colors follows the specified harmony type."""

@@ -129,7 +129,7 @@ class BodyTypeOptimizationService:
         logger.info(f"🎯 Optimizing outfit for {body_type.value} body type")
         
         # Get body type rules
-        rules = self.flattering_rules.get(body_type, {})
+        rules = self.(flattering_rules.get(body_type, {}) if flattering_rules else {})
         if not rules:
             logger.warning(f"No rules found for body type: {body_type}")
             return items
@@ -162,8 +162,8 @@ class BodyTypeOptimizationService:
         item_name = item.name.lower()
         
         # Check against flattering rules
-        preferred_items = rules.get("prefer", [])
-        avoided_items = rules.get("avoid", [])
+        preferred_items = (rules.get("prefer", []) if rules else [])
+        avoided_items = (rules.get("avoid", []) if rules else [])
         
         # Increase score for preferred items
         for preferred in preferred_items:
@@ -282,9 +282,9 @@ class BodyTypeOptimizationService:
             }
         }
         
-        preferences = fit_preferences.get(body_type, {})
-        flattering_keywords = preferences.get("flattering", [])
-        unflattering_keywords = preferences.get("unflattering", [])
+        preferences = (fit_preferences.get(body_type, {}) if fit_preferences else {})
+        flattering_keywords = (preferences.get("flattering", []) if preferences else [])
+        unflattering_keywords = (preferences.get("unflattering", []) if preferences else [])
         
         # Check for flattering keywords
         for keyword in flattering_keywords:
@@ -380,7 +380,7 @@ class BodyTypeOptimizationService:
 
     def _should_add_layer(self, body_type: BodyType, rules: Dict[str, Any]) -> bool:
         """Determine if a layering piece would be flattering for the body type."""
-        layering_strategy = rules.get("layering", "")
+        layering_strategy = (rules.get("layering", "") if rules else "")
         
         if body_type in [BodyType.PEAR, BodyType.RECTANGLE]:
             return True  # Layers help balance proportions
@@ -395,7 +395,7 @@ class BodyTypeOptimizationService:
 
     def _should_add_accessories(self, body_type: BodyType, rules: Dict[str, Any]) -> bool:
         """Determine if accessories would be flattering for the body type."""
-        emphasis = rules.get("emphasis", "")
+        emphasis = (rules.get("emphasis", "") if rules else "")
         
         if "waist" in emphasis:
             return True  # Belts can help emphasize waist
@@ -408,14 +408,14 @@ class BodyTypeOptimizationService:
 
     def get_body_type_recommendations(self, body_type: BodyType) -> Dict[str, Any]:
         """Get specific recommendations for a body type."""
-        rules = self.flattering_rules.get(body_type, {})
+        rules = self.(flattering_rules.get(body_type, {}) if flattering_rules else {})
         
         return {
             "body_type": body_type.value,
-            "silhouette_goal": rules.get("silhouette", ""),
-            "emphasis_areas": rules.get("emphasis", ""),
-            "preferred_items": rules.get("prefer", []),
-            "items_to_avoid": rules.get("avoid", []),
-            "layering_strategy": rules.get("layering", ""),
-            "proportion_goal": rules.get("proportions", "")
+            "silhouette_goal": (rules.get("silhouette", "") if rules else ""),
+            "emphasis_areas": (rules.get("emphasis", "") if rules else ""),
+            "preferred_items": (rules.get("prefer", []) if rules else []),
+            "items_to_avoid": (rules.get("avoid", []) if rules else []),
+            "layering_strategy": (rules.get("layering", "") if rules else ""),
+            "proportion_goal": (rules.get("proportions", "") if rules else "")
         }

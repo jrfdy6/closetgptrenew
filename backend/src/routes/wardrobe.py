@@ -17,7 +17,7 @@ except ImportError:
     def safe_get(obj, key, default=None):
         """Fallback safe_get if import fails"""
         if isinstance(obj, dict):
-            return obj.get(key, default)
+            return (obj.get(key, default) if obj else default)
         return getattr(obj, key, default)
 
 # Optional imports with graceful fallbacks
@@ -122,11 +122,11 @@ except Exception as e:
 
 # Removed conflicting /wardrobe-stats endpoint - using the one in wardrobe_analysis.py instead
 
-@router.get("/debug-test")
+@(router.get("/debug-test") if router else None)
 async def debug_test():
     return {"status": "ok", "message": "Router loading test endpoint"}
 
-@router.get("/top-worn-items")
+@(router.get("/top-worn-items") if router else None)
 async def get_top_worn_items(
     current_user: Optional[UserProfile] = Depends(get_current_user_optional),
     limit: int = 10
@@ -224,7 +224,7 @@ async def get_top_worn_items(
         logger.error(f"Error getting top worn items: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving top worn items: {str(e)}")
 
-@router.get("/most-worn-by-category")
+@(router.get("/most-worn-by-category") if router else None)
 async def get_most_worn_by_category(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -246,7 +246,7 @@ async def get_most_worn_by_category(
         # Group items by category
         categories = {}
         for item in items:
-            item_type = item.get('type', 'Unknown').lower()
+            item_type = (item.get('type', 'Unknown') if item else 'Unknown').lower()
             
             # Map item types to categories
             if any(word in item_type for word in ['shirt', 'blouse', 'sweater', 'jacket', 'coat', 'hoodie', 'tank', 'tee']):
@@ -271,27 +271,27 @@ async def get_most_worn_by_category(
         for category, category_items in categories.items():
             if category_items:
                 # Sort by wear count and get the most worn
-                category_items.sort(key=lambda x: x.get('wearCount', 0), reverse=True)
+                category_items.sort(key=lambda x: (x.get('wearCount', 0) if x else 0), reverse=True)
                 most_worn = category_items[0]
                 
                 most_worn_by_category[category] = {
                     "item": {
                         "id": most_worn['id'],
-                        "name": most_worn.get('name', 'Unknown'),
-                        "type": most_worn.get('type', 'Unknown'),
-                        "color": most_worn.get('color', 'Unknown'),
-                        "wear_count": most_worn.get('wearCount', 0),
-                        "last_worn": most_worn.get('lastWorn'),
-                        "image_url": most_worn.get('imageUrl') or most_worn.get('image_url') or most_worn.get('image')
+                        "name": (most_worn.get('name', 'Unknown') if most_worn else 'Unknown'),
+                        "type": (most_worn.get('type', 'Unknown') if most_worn else 'Unknown'),
+                        "color": (most_worn.get('color', 'Unknown') if most_worn else 'Unknown'),
+                        "wear_count": (most_worn.get('wearCount', 0) if most_worn else 0),
+                        "last_worn": (most_worn.get('lastWorn') if most_worn else None),
+                        "image_url": (((most_worn.get('imageUrl') if most_worn else None) if most_worn else None) if most_worn else None) or most_worn.get('image_url') or most_worn.get('image')
                     },
                     "total_items": len(category_items),
-                    "total_wear_count": sum(item.get('wearCount', 0) for item in category_items),
-                    "avg_wear_count": sum(item.get('wearCount', 0) for item in category_items) / len(category_items) if category_items else 0
+                    "total_wear_count": sum((item.get('wearCount', 0) if item else 0) for item in category_items),
+                    "avg_wear_count": sum((item.get('wearCount', 0) if item else 0) for item in category_items) / len(category_items) if category_items else 0
                 }
         
         # Calculate overall statistics
         total_items = len(items)
-        total_wear_count = sum(item.get('wearCount', 0) for item in items)
+        total_wear_count = sum((item.get('wearCount', 0) if item else 0) for item in items)
         
         stats = {
             "total_items": total_items,
@@ -314,7 +314,7 @@ async def get_most_worn_by_category(
         logger.error(f"Error getting most worn by category: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving most worn by category: {str(e)}")
 
-@router.get("/trending-styles")
+@(router.get("/trending-styles") if router else None)
 async def get_trending_styles(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -336,20 +336,20 @@ async def get_trending_styles(
         
         for item in items:
             # Count styles
-            styles = item.get('style', [])
+            styles = (item.get('style', []) if item else [])
             if isinstance(styles, list):
                 for style in styles:
-                    style_counts[style] = style_counts.get(style, 0) + 1
+                    style_counts[style] = (style_counts.get(style, 0) if style_counts else 0) + 1
             elif isinstance(styles, str):
-                style_counts[styles] = style_counts.get(styles, 0) + 1
+                style_counts[styles] = (style_counts.get(styles, 0) if style_counts else 0) + 1
             
             # Count colors
-            color = item.get('color', 'unknown')
-            color_counts[color] = color_counts.get(color, 0) + 1
+            color = (item.get('color', 'unknown') if item else 'unknown')
+            color_counts[color] = (color_counts.get(color, 0) if color_counts else 0) + 1
             
             # Count types
-            item_type = item.get('type', 'unknown')
-            type_counts[item_type] = type_counts.get(item_type, 0) + 1
+            item_type = (item.get('type', 'unknown') if item else 'unknown')
+            type_counts[item_type] = (type_counts.get(item_type, 0) if type_counts else 0) + 1
         
         # Get top styles, colors, and types
         top_styles = sorted(style_counts.items(), key=lambda x: x[1], reverse=True)[:5]
@@ -364,7 +364,7 @@ async def get_trending_styles(
                 if item.get('lastWorn'):
                     # Add bonus for recent wear
                     try:
-                        last_worn = item.get('lastWorn', 0)
+                        last_worn = (item.get('lastWorn', 0) if item else 0)
                         if isinstance(last_worn, (int, float)):
                             # Already a timestamp
                             days_since_worn = (int(time.time()) - last_worn) / (24 * 60 * 60)
@@ -385,13 +385,13 @@ async def get_trending_styles(
                         # Skip if we can't process the date
                         pass
                 trending_items.append({
-                    'id': item.get('id'),
-                    'name': item.get('name'),
-                    'type': item.get('type'),
-                    'color': item.get('color', 'unknown'),
-                    'style': item.get('style', []),
+                    'id': (item.get('id') if item else None),
+                    'name': (item.get('name') if item else None),
+                    'type': (item.get('type') if item else None),
+                    'color': (item.get('color', 'unknown') if item else 'unknown'),
+                    'style': (item.get('style', []) if item else []),
                     'trending_score': score,
-                    'wear_count': item.get('wearCount', 0)
+                    'wear_count': (item.get('wearCount', 0) if item else 0)
                 })
         
         # Sort by trending score
@@ -449,30 +449,30 @@ async def add_wardrobe_item(
         item_id = str(uuid.uuid4())
         
         # Extract AI analysis results if available
-        analysis = item_data.get("analysis", {})
-        metadata_analysis = analysis.get("metadata", {})
-        visual_attrs = metadata_analysis.get("visualAttributes", {})
+        analysis = (item_data.get("analysis", {}) if item_data else {})
+        metadata_analysis = (analysis.get("metadata", {}) if analysis else {})
+        visual_attrs = (metadata_analysis.get("visualAttributes", {}) if metadata_analysis else {})
         
         # Use AI analysis results or fallback to defaults
         visual_attributes = {
-            "pattern": visual_attrs.get("pattern", "solid"),
-            "formalLevel": visual_attrs.get("formalLevel", "casual"),
-            "fit": visual_attrs.get("fit", "regular"),
-            "material": visual_attrs.get("material", "cotton"),
-            "fabricWeight": visual_attrs.get("fabricWeight", "medium"),
-            "sleeveLength": visual_attrs.get("sleeveLength", "unknown"),
-            "silhouette": visual_attrs.get("silhouette", "regular"),
-            "genderTarget": visual_attrs.get("genderTarget", "unisex")
+            "pattern": (visual_attrs.get("pattern", "solid") if visual_attrs else "solid"),
+            "formalLevel": (visual_attrs.get("formalLevel", "casual") if visual_attrs else "casual"),
+            "fit": (visual_attrs.get("fit", "regular") if visual_attrs else "regular"),
+            "material": (visual_attrs.get("material", "cotton") if visual_attrs else "cotton"),
+            "fabricWeight": (visual_attrs.get("fabricWeight", "medium") if visual_attrs else "medium"),
+            "sleeveLength": (visual_attrs.get("sleeveLength", "unknown") if visual_attrs else "unknown"),
+            "silhouette": (visual_attrs.get("silhouette", "regular") if visual_attrs else "regular"),
+            "genderTarget": (visual_attrs.get("genderTarget", "unisex") if visual_attrs else "unisex")
         }
         
         # Extract dominant colors from AI analysis if available
-        dominant_colors = analysis.get("dominantColors", [])
+        dominant_colors = (analysis.get("dominantColors", []) if analysis else [])
         if not dominant_colors:
             # Fallback to basic color analysis
             dominant_colors = [{"name": item_data["color"], "hex": "#000000", "rgb": [0, 0, 0]}]
         
         # Extract matching colors from AI analysis if available
-        matching_colors = analysis.get("matchingColors", [])
+        matching_colors = (analysis.get("matchingColors", []) if analysis else [])
         
         # Prepare item data
         wardrobe_item = {
@@ -481,27 +481,27 @@ async def add_wardrobe_item(
             "name": item_data["name"],
             "type": item_data["type"],
             "color": item_data["color"],
-            "style": item_data.get("style", []),
-            "occasion": item_data.get("occasion", []),
-            "season": item_data.get("season", ["all"]),
-            "imageUrl": item_data.get("imageUrl", ""),
+            "style": (item_data.get("style", []) if item_data else []),
+            "occasion": (item_data.get("occasion", []) if item_data else []),
+            "season": (item_data.get("season", ["all"]) if item_data else ["all"]),
+            "imageUrl": (item_data.get("imageUrl", "") if item_data else ""),
             "dominantColors": dominant_colors,
             "matchingColors": matching_colors,
-            "tags": item_data.get("tags", []),
+            "tags": (item_data.get("tags", []) if item_data else []),
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
             "metadata": {
                 "analysisTimestamp": int(time.time()),
                 "originalType": item_data["type"],
-                "styleTags": item_data.get("style", []),
-                "occasionTags": item_data.get("occasion", []),
+                "styleTags": (item_data.get("style", []) if item_data else []),
+                "occasionTags": (item_data.get("occasion", []) if item_data else []),
                 "colorAnalysis": {
-                    "dominant": [color.get("name", item_data["color"]) for color in dominant_colors],
-                    "matching": [color.get("name", "") for color in matching_colors]
+                    "dominant": [(color.get("name", item_data["color"]) if color else item_data["color"]) for color in dominant_colors],
+                    "matching": [(color.get("name", "") if color else "") for color in matching_colors]
                 },
                 "visualAttributes": visual_attributes,
                 "itemMetadata": {
-                    "tags": item_data.get("tags", []),
+                    "tags": (item_data.get("tags", []) if item_data else []),
                     "careInstructions": "Check care label"
                 },
                 # Store the full AI analysis for reference
@@ -521,9 +521,9 @@ async def add_wardrobe_item(
                 metadata={
                     "item_id": item_id,
                     "item_type": item_data["type"],
-                    "has_image": bool(item_data.get("imageUrl")),
-                    "style_count": len(item_data.get("style", [])),
-                    "occasion_count": len(item_data.get("occasion", []))
+                    "has_image": bool((item_data.get("imageUrl") if item_data else None)),
+                    "style_count": len((item_data.get("style", []) if item_data else [])),
+                    "occasion_count": len((item_data.get("occasion", []) if item_data else []))
                 }
             )
             log_analytics_event(analytics_event)
@@ -542,7 +542,7 @@ async def add_wardrobe_item(
         logger.error(f"Error adding wardrobe item: {e}")
         raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
 
-@router.get("/test", include_in_schema=False)
+@(router.get("/test", include_in_schema=False) if router else include_in_schema=False)
 async def test_wardrobe_endpoint() -> Dict[str, Any]:
     """Simple test endpoint to verify the wardrobe endpoint is working."""
     return {
@@ -552,7 +552,7 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
         "backend": "closetgptrenew-backend-production"
     }
 
-@router.get("/count", include_in_schema=False)
+@(router.get("/count", include_in_schema=False) if router else include_in_schema=False)
 async def count_wardrobe_items() -> Dict[str, Any]:
     """Count all items in wardrobe collection."""
     try:
@@ -574,7 +574,7 @@ async def count_wardrobe_items() -> Dict[str, Any]:
     except Exception as e:
         return {"error": str(e)}
 
-@router.get("/debug", include_in_schema=False)
+@(router.get("/debug", include_in_schema=False) if router else include_in_schema=False)
 async def debug_wardrobe_data() -> Dict[str, Any]:
     """Debug endpoint to check what's actually in the wardrobe collection."""
     try:
@@ -596,7 +596,7 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
             data['id'] = doc.id
             
             # Check all possible user ID field names
-            user_id = data.get('userId') or data.get('uid') or data.get('ownerId') or data.get('user_id')
+            user_id = ((((data.get('userId') if data else None) if data else None) if data else None) if data else None) or data.get('uid') or data.get('ownerId') or data.get('user_id')
             if user_id:
                 user_ids_found.add(user_id)
             
@@ -604,11 +604,11 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
             if len(items) < 10:
                 items.append({
                     'id': doc.id,
-                    'userId': data.get('userId', 'NOT_FOUND'),
-                    'uid': data.get('uid', 'NOT_FOUND'),
-                    'ownerId': data.get('ownerId', 'NOT_FOUND'),
-                    'user_id': data.get('user_id', 'NOT_FOUND'),
-                    'name': data.get('name', 'NO_NAME'),
+                    'userId': (data.get('userId', 'NOT_FOUND') if data else 'NOT_FOUND'),
+                    'uid': (data.get('uid', 'NOT_FOUND') if data else 'NOT_FOUND'),
+                    'ownerId': (data.get('ownerId', 'NOT_FOUND') if data else 'NOT_FOUND'),
+                    'user_id': (data.get('user_id', 'NOT_FOUND') if data else 'NOT_FOUND'),
+                    'name': (data.get('name', 'NO_NAME') if data else 'NO_NAME'),
                     'keys': list(data.keys())
                 })
         
@@ -625,7 +625,7 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
 
 
 
-@router.get("/")
+@(router.get("/") if router else None)
 async def get_wardrobe_items_with_slash(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -657,10 +657,10 @@ async def get_wardrobe_items_with_slash(
                 data['id'] = doc.id
                 
                 # Check all possible user ID field names
-                user_id = (data.get('userId') or 
-                          data.get('uid') or 
-                          data.get('ownerId') or 
-                          data.get('user_id'))
+                user_id = ((data.get('userId') if data else None) or 
+                          (data.get('uid') if data else None) or 
+                          (data.get('ownerId') if data else None) or 
+                          (data.get('user_id') if data else None))
                 
                 # If this item belongs to the current user, include it
                 if user_id == current_user.id:
@@ -710,7 +710,7 @@ async def get_wardrobe_items_with_slash(
                 if 'metadata' not in item_data:
                     item_data['metadata'] = {
                         'analysisTimestamp': int(time.time() * 1000),
-                        'originalType': item_data.get('type', 'other'),
+                        'originalType': (item_data.get('type', 'other') if item_data else 'other'),
                         'colorAnalysis': {'dominant': [], 'matching': []}
                     }
                 if 'favorite' not in item_data:
@@ -753,7 +753,7 @@ async def get_wardrobe_items_with_slash(
                 errors.append(f"Failed to process item {doc.id}: {str(e)}")
         
         # Sort items by creation date (newest first)
-        items.sort(key=lambda x: x.get('createdAt', 0), reverse=True)
+        items.sort(key=lambda x: (x.get('createdAt', 0) if x else 0), reverse=True)
         
         logger.info(f"Retrieved {len(items)} wardrobe items for user {current_user.id}")
         if errors:
@@ -782,19 +782,19 @@ async def get_wardrobe_items_with_slash(
         for item in items:
             transformed_item = {
                 "id": item['id'],
-                "name": item.get('name', 'Unknown Item'),
-                "type": item.get('type', 'unknown'),  # Keep as type for frontend
-                "color": item.get('color', 'unknown'),
-                "imageUrl": item.get('imageUrl', '/placeholder.png'),  # Keep as imageUrl for frontend
-                "wearCount": item.get('wearCount', 0),  # Keep as wearCount for frontend
-                "favorite": item.get('favorite', False),
-                "style": item.get('style', []),
-                "season": item.get('season', ['all']),
-                "occasion": item.get('occasion', []),
-                "lastWorn": item.get('lastWorn'),  # Keep as lastWorn for frontend
+                "name": (item.get('name', 'Unknown Item') if item else 'Unknown Item'),
+                "type": (item.get('type', 'unknown') if item else 'unknown'),  # Keep as type for frontend
+                "color": (item.get('color', 'unknown') if item else 'unknown'),
+                "imageUrl": (item.get('imageUrl', '/placeholder.png') if item else '/placeholder.png'),  # Keep as imageUrl for frontend
+                "wearCount": (item.get('wearCount', 0) if item else 0),  # Keep as wearCount for frontend
+                "favorite": (item.get('favorite', False) if item else False),
+                "style": (item.get('style', []) if item else []),
+                "season": (item.get('season', ['all']) if item else ['all']),
+                "occasion": (item.get('occasion', []) if item else []),
+                "lastWorn": (item.get('lastWorn') if item else None),  # Keep as lastWorn for frontend
                 "userId": current_user.id,
-                "createdAt": item.get('createdAt'),  # Keep as createdAt for frontend
-                "updatedAt": item.get('updatedAt'),  # Keep as updatedAt for frontend
+                "createdAt": (item.get('createdAt') if item else None),  # Keep as createdAt for frontend
+                "updatedAt": (item.get('updatedAt') if item else None),  # Keep as updatedAt for frontend
             }
             transformed_items.append(transformed_item)
         
@@ -816,7 +816,7 @@ async def get_wardrobe_items_with_slash(
         logger.error(f"Error retrieving wardrobe items: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving wardrobe items: {str(e)}")
 
-@router.get("/{item_id}")
+@(router.get("/{item_id}") if router else None)
 async def get_wardrobe_item(
     item_id: str,
     current_user: UserProfile = Depends(get_current_user)
@@ -826,7 +826,7 @@ async def get_wardrobe_item(
     """
     try:
         doc_ref = db.collection('wardrobe').document(item_id)
-        doc = doc_ref.get()
+        doc = doc_ref.get() if doc_ref else None
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Wardrobe item not found")
@@ -845,7 +845,7 @@ async def get_wardrobe_item(
                 event_type="wardrobe_item_viewed",
                 metadata={
                     "item_id": item_id,
-                    "item_type": item_data.get("type")
+                    "item_type": (item_data.get("type") if item_data else None)
                 }
             )
             log_analytics_event(analytics_event)
@@ -871,7 +871,7 @@ async def update_wardrobe_item(
     try:
         # Check if item exists and belongs to user
         doc_ref = db.collection('wardrobe').document(item_id)
-        doc = doc_ref.get()
+        doc = doc_ref.get() if doc_ref else None
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Wardrobe item not found")
@@ -897,7 +897,7 @@ async def update_wardrobe_item(
                 metadata={
                     "item_id": item_id,
                     "updated_fields": list(item_data.keys()),
-                    "item_type": item.get("type")
+                    "item_type": (item.get("type") if item else None)
                 }
             )
             log_analytics_event(analytics_event)
@@ -924,7 +924,7 @@ async def delete_wardrobe_item(
     try:
         # Check if item exists and belongs to user
         doc_ref = db.collection('wardrobe').document(item_id)
-        doc = doc_ref.get()
+        doc = doc_ref.get() if doc_ref else None
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Wardrobe item not found")
@@ -940,8 +940,8 @@ async def delete_wardrobe_item(
                 event_type="wardrobe_item_deleted",
                 metadata={
                     "item_id": item_id,
-                    "item_type": item.get("type"),
-                    "item_name": item.get("name")
+                    "item_type": (item.get("type") if item else None),
+                    "item_name": (item.get("name") if item else None)
                 }
             )
             log_analytics_event(analytics_event)
@@ -1043,7 +1043,7 @@ async def increment_wardrobe_item_wear_count(
     try:
         # Check if item exists and belongs to user
         doc_ref = db.collection('wardrobe').document(item_id)
-        doc = doc_ref.get()
+        doc = doc_ref.get() if doc_ref else None
         
         if not doc.exists:
             raise HTTPException(status_code=404, detail="Wardrobe item not found")
@@ -1053,7 +1053,7 @@ async def increment_wardrobe_item_wear_count(
             raise HTTPException(status_code=403, detail="Not authorized to update this item")
         
         # Get current wear count and increment it
-        current_wear_count = item.get('wearCount', 0)
+        current_wear_count = (item.get('wearCount', 0) if item else 0)
         new_wear_count = current_wear_count + 1
         current_timestamp = int(time.time())
         
@@ -1073,7 +1073,7 @@ async def increment_wardrobe_item_wear_count(
                 event_type="wardrobe_item_wear_incremented",
                 metadata={
                     "item_id": item_id,
-                    "item_type": item.get("type"),
+                    "item_type": (item.get("type") if item else None),
                     "previous_wear_count": current_wear_count,
                     "new_wear_count": new_wear_count
                 }

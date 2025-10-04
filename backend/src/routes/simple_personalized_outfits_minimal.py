@@ -130,9 +130,9 @@ class SimplePersonalizationEngine:
         """Update user preferences based on interaction"""
         preference = self.get_user_preference(user_id)
         
-        colors = outfit_data.get('colors', [])
-        styles = outfit_data.get('styles', [])
-        occasion = outfit_data.get('occasion', '')
+        colors = (outfit_data.get('colors', []) if outfit_data else [])
+        styles = (outfit_data.get('styles', []) if outfit_data else [])
+        occasion = (outfit_data.get('occasion', '') if outfit_data else '')
         
         if interaction_type in ['like', 'wear']:
             # Add to preferences
@@ -172,7 +172,7 @@ class SimplePersonalizationEngine:
             score = 0.0
             
             # Color preference scoring
-            outfit_colors = outfit.get('colors', [])
+            outfit_colors = (outfit.get('colors', []) if outfit else [])
             for color in outfit_colors:
                 if color in preference.preferred_colors:
                     score += 2.0
@@ -180,7 +180,7 @@ class SimplePersonalizationEngine:
                     score -= 1.0
             
             # Style preference scoring
-            outfit_styles = outfit.get('styles', [])
+            outfit_styles = (outfit.get('styles', []) if outfit else [])
             for style in outfit_styles:
                 if style in preference.preferred_styles:
                     score += 1.5
@@ -200,7 +200,7 @@ class SimplePersonalizationEngine:
             ranked_outfits.append(outfit)
         
         # Sort by personalization score (highest first)
-        ranked_outfits.sort(key=lambda x: x.get('personalization_score', 0), reverse=True)
+        ranked_outfits.sort(key=lambda x: (x.get('personalization_score', 0) if x else 0), reverse=True)
         
         logger.info(f"✅ Ranked {len(outfits)} outfits for user {user_id}")
         return ranked_outfits
@@ -253,7 +253,7 @@ class OutfitResponse(BaseModel):
     user_interactions: int = 0
     metadata: Dict[str, Any]
 
-@router.get("/health")
+@(router.get("/health") if router else None)
 async def health_check():
     """Health check for the minimal simple personalization system"""
     try:
@@ -278,7 +278,7 @@ async def health_check():
             "timestamp": time.time()
         }
 
-@router.get("/test")
+@(router.get("/test") if router else None)
 async def test_endpoint():
     """Test endpoint for minimal simple personalization"""
     return {
@@ -348,18 +348,18 @@ async def generate_personalized_outfit(
         
         # Get requirements for current occasion
         occasion = req.occasion.lower()
-        requirements = occasion_requirements.get(occasion, occasion_requirements['casual'])
+        requirements = (occasion_requirements.get(occasion, occasion_requirements['casual']) if occasion_requirements else occasion_requirements['casual'])
         
         # Enhanced filtering by occasion, style, and mood
         suitable_items = []
         for item in req.wardrobe:
-            item_name = item.get('name', '').lower()
-            item_type = item.get('type', '').lower()
-            item_color = item.get('color', '').lower()
+            item_name = (item.get('name', '') if item else '').lower()
+            item_type = (item.get('type', '') if item else '').lower()
+            item_color = (item.get('color', '') if item else '').lower()
             
             # Check if item is forbidden for this occasion
             is_forbidden = False
-            for forbidden in requirements.get('forbidden', []):
+            for forbidden in (requirements.get('forbidden', []) if requirements else []):
                 if forbidden in item_name or forbidden in item_type:
                     is_forbidden = True
                     break
@@ -486,8 +486,8 @@ async def generate_personalized_outfit(
             occasion_lower = occasion.lower()
             
             for item in outfit_items:
-                item_type = item.get('type', '').lower()
-                item_name = item.get('name', '').lower()
+                item_type = (item.get('type', '') if item else '').lower()
+                item_name = (item.get('name', '') if item else '').lower()
                 
                 # Direct match first
                 if required_item in item_type or required_item in item_name:
@@ -543,14 +543,14 @@ async def generate_personalized_outfit(
                     options = [opt.strip() for opt in missing.split(' OR ')]
                     for option in options:
                         for item in req.wardrobe:
-                            if (option in item.get('type', '').lower() or option in item.get('name', '').lower()) and item not in selected_items:
+                            if (option in ((item.get('type', '') if item else '') if item else '').lower() or option in item.get('name', '').lower()) and item not in selected_items:
                                 selected_items.append(item)
                                 break
                         if len(selected_items) >= target_count:
                             break
                 else:
                     for item in req.wardrobe:
-                        if (missing in item.get('type', '').lower() or missing in item.get('name', '').lower()) and item not in selected_items:
+                        if (missing in ((item.get('type', '') if item else '') if item else '').lower() or missing in item.get('name', '').lower()) and item not in selected_items:
                             selected_items.append(item)
                             break
             
@@ -572,10 +572,10 @@ async def generate_personalized_outfit(
             seen_combinations = set()
             unique_items = []
             for item in items:
-                item_id = item.get('id', '')
-                item_name = item.get('name', '')
-                item_type = item.get('type', '')
-                item_color = item.get('color', '')
+                item_id = (item.get('id', '') if item else '')
+                item_name = (item.get('name', '') if item else '')
+                item_type = (item.get('type', '') if item else '')
+                item_color = (item.get('color', '') if item else '')
                 
                 # Create a combination key for name+type+color
                 combination_key = f"{item_name}|{item_type}|{item_color}"
@@ -604,18 +604,18 @@ async def generate_personalized_outfit(
             "name": f"{req.style} {req.occasion} Outfit",
             "items": [
                 {
-                    "id": item.get('id', f"item_{i+1}"),
-                    "name": item.get('name', f"{req.style} Item"),
-                    "type": item.get('type', 'unknown'),
-                    "color": item.get('color', 'Unknown'),
+                    "id": (item.get('id', f"item_{i+1}") if item else f"item_{i+1}"),
+                    "name": (item.get('name', f"{req.style} Item") if item else f"{req.style} Item"),
+                    "type": (item.get('type', 'unknown') if item else 'unknown'),
+                    "color": (item.get('color', 'Unknown') if item else 'Unknown'),
                     "style": req.style,
                     "occasion": req.occasion,
-                    "brand": item.get('brand', ''),
-                    "imageUrl": item.get('imageUrl', ''),
-                    "wearCount": item.get('wearCount', 0),
-                    "favorite_score": item.get('favorite_score', 0.0),
-                    "tags": item.get('tags', []),
-                    "metadata": item.get('metadata', {})
+                    "brand": (item.get('brand', '') if item else ''),
+                    "imageUrl": (item.get('imageUrl', '') if item else ''),
+                    "wearCount": (item.get('wearCount', 0) if item else 0),
+                    "favorite_score": (item.get('favorite_score', 0.0) if item else 0.0),
+                    "tags": (item.get('tags', []) if item else []),
+                    "metadata": (item.get('metadata', {}) if item else {})
                 }
                 for i, item in enumerate(selected_items)
             ],
@@ -642,7 +642,7 @@ async def generate_personalized_outfit(
         
         # Extract outfit data for personalization
         outfit_data = {
-            'colors': [item.get('color', '') for item in existing_result.get('items', []) if item.get('color')],
+            'colors': [item.get('color', '') for item in (existing_result.get('items', []) if existing_result else []) if item.get('color')],
             'styles': [req.style],
             'occasion': req.occasion
         }
@@ -660,19 +660,19 @@ async def generate_personalized_outfit(
         
         # Create response
         outfit_response = {
-            "id": existing_result.get("id", f"personalized_{int(time.time())}"),
-            "name": existing_result.get("name", "Personalized Outfit"),
-            "items": existing_result.get("items", []),
+            "id": (existing_result.get("id", f"personalized_{int(time.time() if existing_result else f"personalized_{int(time.time())}"),
+            "name": (existing_result.get("name", "Personalized Outfit") if existing_result else "Personalized Outfit"),
+            "items": (existing_result.get("items", []) if existing_result else []),
             "style": req.style,
             "occasion": req.occasion,
             "mood": req.mood,
             "weather": req.weather or {},
-            "confidence": existing_result.get("confidence", 0.8),
-            "personalization_score": existing_result.get("personalization_score") if preference.interaction_count >= 3 else None,
-            "personalization_applied": existing_result.get("personalization_applied", False),
+            "confidence": (existing_result.get("confidence", 0.8) if existing_result else 0.8),
+            "personalization_score": (existing_result.get("personalization_score") if existing_result else None) if preference.interaction_count >= 3 else None,
+            "personalization_applied": (existing_result.get("personalization_applied", False) if existing_result else False),
             "user_interactions": preference.interaction_count,
             "metadata": {
-                **existing_result.get("metadata", {}),
+                **(existing_result.get("metadata", {}) if existing_result else {}),
                 "generation_time": time.time() - start_time,
                 "personalization_enabled": True,
                 "user_id": user_id,
@@ -680,7 +680,7 @@ async def generate_personalized_outfit(
             }
         }
         
-        logger.info(f"✅ Generated personalized outfit (personalization: {existing_result.get('personalization_applied', False)})")
+        logger.info(f"✅ Generated personalized outfit (personalization: {(existing_result.get('personalization_applied', False) if existing_result else False)})")
         return OutfitResponse(**outfit_response)
     
     except HTTPException:
@@ -760,7 +760,7 @@ async def record_enhanced_interaction(
             detail=f"Failed to record interaction: {str(e)}"
         )
 
-@router.get("/personalization-status", response_model=PersonalizationStatusResponse)
+@(router.get("/personalization-status", response_model=PersonalizationStatusResponse) if router else response_model=PersonalizationStatusResponse)
 async def get_enhanced_personalization_status(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -806,7 +806,7 @@ async def get_enhanced_personalization_status(
             detail=f"Failed to get personalization status: {str(e)}"
         )
 
-@router.get("/user-preferences")
+@(router.get("/user-preferences") if router else None)
 async def get_user_preferences(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -847,7 +847,7 @@ async def get_user_preferences(
             detail=f"Failed to get user preferences: {str(e)}"
         )
 
-@router.get("/analytics")
+@(router.get("/analytics") if router else None)
 async def get_system_analytics():
     """Get system-wide analytics"""
     try:
