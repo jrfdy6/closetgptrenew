@@ -850,11 +850,11 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                     temp_appropriateness = "good"
                     temp_note = f"appropriate for {temp}°F warm weather"
                     
-            elif temp >= 65:  # Mild weather
-                temp_appropriateness = "excellent"
-                temp_note = f"ideal for {temp}°F mild weather"
+        elif temp >= 65:  # Mild weather
+            temp_appropriateness = "excellent"
+            temp_note = f"ideal for {temp}°F mild weather"
                 
-            elif temp >= 55:  # Cool weather
+        elif temp >= 55:  # Cool weather
                 if 'shorts' in item_type:
                     temp_appropriateness = "borderline"
                     temp_note = f"may be cool for {temp}°F weather"
