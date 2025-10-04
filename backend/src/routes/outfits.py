@@ -5454,6 +5454,9 @@ async def generate_outfit(
             generation_attempts += 1
             try:
                 logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
+                print(f"🔍 DEBUG RETRY LOOP: Starting attempt {generation_attempts}")
+                print(f"🔍 DEBUG RETRY LOOP: req = {req}")
+                print(f"🔍 DEBUG RETRY LOOP: current_user_id = {current_user_id}")
                 
                 # Run generation logic with robust service
                 outfit = await generate_outfit_logic(req, current_user_id)
@@ -5605,6 +5608,8 @@ async def generate_outfit(
                 print(f"🚨 RETRY ALERT: Attempt {generation_attempts} failed with exception")
                 print(f"🚨 RETRY CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
                 print(f"🚨 RETRY REASON: Exception - {type(e).__name__}: {e}")
+                import traceback
+                print(f"🚨 RETRY TRACEBACK: {traceback.format_exc()}")
                 if attempt < max_attempts - 1:
                     await asyncio.sleep(1)  # Brief delay before retry
                     continue
