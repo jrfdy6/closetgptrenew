@@ -714,7 +714,7 @@ class StyleValidator(BaseValidator):
         items = (outfit.get('items', []) if outfit else [])
         
         # Get style rules
-        style_rule = self.(style_rules.get(style, {}) if style_rules else {})
+        style_rule = (style_rules.get(style, {}) if style_rules else {})
         if not style_rule:
             return ValidationResult(valid=True, errors=[], warnings=[], suggestions=[])
         
