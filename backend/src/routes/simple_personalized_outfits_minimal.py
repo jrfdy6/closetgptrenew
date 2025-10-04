@@ -587,6 +587,7 @@ async def generate_personalized_outfit(
                     unique_items.append(item)
                 else:
                     # print(f"🔍 DEBUG: Removed duplicate item: {item_name} ({item_color})")
+                    pass
             return unique_items
         
         selected_items = deduplicate_items(selected_items)
