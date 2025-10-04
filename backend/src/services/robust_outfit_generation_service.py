@@ -691,7 +691,7 @@ class RobustOutfitGenerationService:
                 ] if item_scores else []
             }
             
-            raise Exception(f"Cohesive composition failed to generate items - system needs fixing. DEBUG: {debug_info}")
+            raise Exception(f"🔥 COHESIVE COMPOSITION FAILED: Cohesive composition failed to generate items - system needs fixing. DEBUG: {debug_info}")
         
         logger.info(f"✅ ROBUST GENERATION SUCCESS: Generated outfit with {len(outfit.items)} items")
         logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
