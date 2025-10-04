@@ -528,11 +528,11 @@ class OutfitValidationService:
     
     def debug_outfit_generation(self, items: List[ClothingItem], phase: str):
         """Debug outfit generation process."""
-        print(f"🔍 DEBUG: {phase} - {len(items)} items")
+        # print(f"🔍 DEBUG: {phase} - {len(items)} items")
         if items:
-            print(f"  Items: {[item.name for item in items[:3]]}")
+#             print(f"  Items: {[item.name for item in items[:3]]}")
             if len(items) > 3:
-                print(f"  ... and {len(items) - 3} more items")
+#                 print(f"  ... and {len(items) - 3} more items")
     
     # ENHANCED VALIDATION METHODS (based on 1000-outfit simulation results)
     
@@ -1126,7 +1126,7 @@ class OutfitValidationService:
         # If we're missing essential categories, we need to be less strict with validation
         # This is a safety net to ensure we always have complete outfits
         if not has_bottom:
-            print("⚠️ WARNING: No bottoms found after validation - this is a critical issue!")
+            # print("⚠️ WARNING: No bottoms found after validation - this is a critical issue!")
             # For now, keep the items as-is and let the calling service handle completeness
             # In a real scenario, we might want to relax validation rules for bottoms
         

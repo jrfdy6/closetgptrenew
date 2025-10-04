@@ -44,14 +44,14 @@ class OutfitGenerationPipelineService:
                 occasion, weather, user_profile, style, mood, 
                 trendingStyles or [], likedOutfits or [], baseItem, outfit_history, wardrobe
             )
-            print(f"✅ Phase 1: Context gathered - {len(wardrobe)} items, {occasion}, {style}")
+            # print(f"✅ Phase 1: Context gathered - {len(wardrobe)} items, {occasion}, {style}")
             if baseItem:
-                print(f"🎯 Base item in context: {baseItem.name} ({baseItem.type})")
-                print(f"🎯 Context base_item: {(context.get('base_item', 'Not found') if context else 'Not found')}")
+#                 print(f"🎯 Base item in context: {baseItem.name} ({baseItem.type})")
+#                 print(f"🎯 Context base_item: {(context.get('base_item', 'Not found') if context else 'Not found')}")
             
             # Phase 2: Light Filtering (based on availability/weather only)
             filtered_wardrobe = self.filtering_service.apply_light_filtering(wardrobe, context)
-            print(f"✅ Phase 2: Light filtering - {len(filtered_wardrobe)} items available")
+            # print(f"✅ Phase 2: Light filtering - {len(filtered_wardrobe)} items available")
             
             if len(filtered_wardrobe) < 2:
                 return {
@@ -61,7 +61,7 @@ class OutfitGenerationPipelineService:
             
             # Phase 3: Smart Selection (style/mood-aware)
             selected_items = self.selection_service.smart_selection_phase(filtered_wardrobe, context)
-            print(f"✅ Phase 3: Smart selection - {len(selected_items)} items selected")
+            # print(f"✅ Phase 3: Smart selection - {len(selected_items)} items selected")
             
             # Remove duplicates
             unique_items = []
@@ -72,7 +72,7 @@ class OutfitGenerationPipelineService:
                     seen_ids.add(item.id)
             
             if len(unique_items) != len(selected_items):
-                print(f"⚠️  Removed {len(selected_items) - len(unique_items)} duplicate items")
+                # print(f"⚠️  Removed {len(selected_items) - len(unique_items)} duplicate items")
                 selected_items = unique_items
             
             # Phase 4: Enhanced Validation (hard/soft rules + simulation-based rules)
@@ -82,7 +82,7 @@ class OutfitGenerationPipelineService:
             if validation_result["is_valid"]:
                 # Use filtered items if available, otherwise use selected items
                 final_items = validation_result.get("filtered_items", selected_items)
-                print(f"✅ Phase 4: Validation passed - {len(final_items)} items")
+                # print(f"✅ Phase 4: Validation passed - {len(final_items)} items")
                 return {
                     "success": True,
                     "items": final_items,
@@ -98,11 +98,11 @@ class OutfitGenerationPipelineService:
                 
                 if soft_errors and not hard_errors:
                     # Soft Fail - Auto-Fix via Fallback
-                    print(f"⚠️  Phase 4: Soft validation failures - attempting auto-fix")
+                    # print(f"⚠️  Phase 4: Soft validation failures - attempting auto-fix")
                     return await self._handle_soft_failure(selected_items, soft_errors, context)
                 else:
                     # Hard Fail - Suggest Retry or Error
-                    print(f"❌ Phase 4: Hard validation failures - cannot auto-fix")
+                    # print(f"❌ Phase 4: Hard validation failures - cannot auto-fix")
                     return {
                         "success": False,
                         "message": f"Hard validation errors: {hard_errors}",
@@ -111,7 +111,7 @@ class OutfitGenerationPipelineService:
                     }
             
         except Exception as e:
-            print(f"❌ ERROR: _generate_outfit_refined_pipeline - {str(e)}")
+            # print(f"❌ ERROR: _generate_outfit_refined_pipeline - {str(e)}")
             return {
                 "success": False,
                 "message": f"Pipeline error: {str(e)}"
@@ -129,7 +129,7 @@ class OutfitGenerationPipelineService:
     
     async def _handle_soft_failure(self, selected_items: List[ClothingItem], soft_errors: List[str], context: Dict[str, Any]) -> Dict[str, Any]:
         """Handle soft failures by attempting fallback fixes."""
-        print("🔧 Attempting auto-fix via fallback...")
+        # print("🔧 Attempting auto-fix via fallback...")
         
         try:
             healed_items, remaining_errors, healing_log = await self.fallback_service.heal_outfit_with_fallbacks(
@@ -139,7 +139,7 @@ class OutfitGenerationPipelineService:
             )
             
             if healed_items and len(healed_items) >= context["target_counts"]["min_items"]:
-                print(f"✅ Auto-fix successful - {len(healed_items)} items")
+                # print(f"✅ Auto-fix successful - {len(healed_items)} items")
                 return {
                     "success": True,
                     "items": healed_items,
@@ -148,7 +148,7 @@ class OutfitGenerationPipelineService:
                     "healing_log": healing_log
                 }
             else:
-                print(f"⚠️  Auto-fix failed - {len(healed_items) if healed_items else 0} items")
+                # print(f"⚠️  Auto-fix failed - {len(healed_items) if healed_items else 0} items")
                 return {
                     "success": False,
                     "message": f"Auto-fix failed: {remaining_errors}",
@@ -157,7 +157,7 @@ class OutfitGenerationPipelineService:
                 }
                 
         except Exception as fallback_error:
-            print(f"❌ Fallback error: {fallback_error}")
+            # print(f"❌ Fallback error: {fallback_error}")
             return {
                 "success": False,
                 "message": f"Fallback error: {str(fallback_error)}",

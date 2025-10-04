@@ -17,57 +17,57 @@ class OutfitFilteringService:
         pass
     
     def apply_strict_filtering(self, wardrobe, context):
-        print(f"🔍 DEBUG: _apply_strict_filtering - Starting with {len(wardrobe)} items")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - Starting with {len(wardrobe)} items")
         filtered = wardrobe[:]
         
         # Weather filtering
         before = len(filtered)
         filtered = self._filter_by_weather_strict(filtered, context["weather"])
         after = len(filtered)
-        print(f"🔍 DEBUG: _apply_strict_filtering - After weather filtering: {after} items (removed {before - after})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After weather filtering: {after} items (removed {before - after})")
         
         # Occasion filtering
         before = len(filtered)
         filtered = self._filter_by_occasion_strict(filtered, context["occasion"])
         after = len(filtered)
-        print(f"🔍 DEBUG: _apply_strict_filtering - After occasion filtering: {after} items (removed {before - after})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After occasion filtering: {after} items (removed {before - after})")
         
         # Style filtering
         before = len(filtered)
         filtered = self._filter_by_style_strict(filtered, context.get("style") if context else None, context.get("style_matrix", {}) if context else {})
         after = len(filtered)
-        print(f"🔍 DEBUG: _apply_strict_filtering - After style filtering: {after} items (removed {before - after})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After style filtering: {after} items (removed {before - after})")
         
         # Preferences filtering
         before = len(filtered)
         filtered = self._filter_by_personal_preferences(filtered, context.get("user_profile") if context else None)
         after = len(filtered)
-        print(f"🔍 DEBUG: _apply_strict_filtering - After preferences filtering: {after} items (removed {before - after})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After preferences filtering: {after} items (removed {before - after})")
         
         # Mood filtering
         before = len(filtered)
         filtered = self._filter_by_mood_strict(filtered, context.get("mood_rule") if context else None, context.get("base_item") if context else None)
         after = len(filtered)
-        print(f"🔍 DEBUG: _apply_strict_filtering - After mood filtering: {after} items (removed {before - after})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After mood filtering: {after} items (removed {before - after})")
         
         return filtered
     
     def apply_light_filtering(self, wardrobe, context):
         """Light filtering - basic weather and occasion filtering."""
-        print(f"🔍 DEBUG: apply_light_filtering - Starting with {len(wardrobe)} items")
+        # print(f"🔍 DEBUG: apply_light_filtering - Starting with {len(wardrobe)} items")
         filtered = wardrobe[:]
         
         # Basic weather filtering
         before = len(filtered)
         filtered = self._filter_by_weather_strict(filtered, context["weather"])
         after = len(filtered)
-        print(f"🔍 DEBUG: apply_light_filtering - After weather filtering: {after} items (removed {before - after})")
+        # print(f"🔍 DEBUG: apply_light_filtering - After weather filtering: {after} items (removed {before - after})")
         
         # Basic occasion filtering to prevent obviously inappropriate items
         before = len(filtered)
         filtered = self._filter_by_occasion_light(filtered, context.get("occasion", "") if context else "")
         after = len(filtered)
-        print(f"🔍 DEBUG: apply_light_filtering - After occasion filtering: {after} items (removed {before - after})")
+        # print(f"🔍 DEBUG: apply_light_filtering - After occasion filtering: {after} items (removed {before - after})")
         
         return filtered
     

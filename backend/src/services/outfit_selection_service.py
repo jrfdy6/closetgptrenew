@@ -35,7 +35,7 @@ class OutfitSelectionService:
         
         # Always include the base item if provided
         if base_item:
-            print(f"🎯 Including base item in selection: {base_item.name} ({base_item.type})")
+#             print(f"🎯 Including base item in selection: {base_item.name} ({base_item.type})")
             selected_items.append(base_item)
         
         # For now, select additional items from filtered wardrobe
@@ -67,9 +67,9 @@ class OutfitSelectionService:
                 if item not in selected_items:
                     selected_items.append(item)
         
-        print(f"🎯 Final selection: {len(selected_items)} items")
+#         print(f"🎯 Final selection: {len(selected_items)} items")
         for i, item in enumerate(selected_items):
-            print(f"  {i+1}. {item.name} ({item.type})")
+#             print(f"  {i+1}. {item.name} ({item.type})")
         
         return selected_items
         

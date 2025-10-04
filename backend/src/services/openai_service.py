@@ -132,13 +132,13 @@ Provide comprehensive, detailed analysis that would be useful for wardrobe manag
         
         # Log the raw response for debugging
         logger.info(f"Raw GPT-4 Vision response: {content}")
-        print(f"🔍 Raw GPT-4 Vision response: {content}")
+        # print(f"🔍 Raw GPT-4 Vision response: {content}")
         
         # Parse the JSON response
         try:
             analysis = json.loads(content)
             logger.info(f"Parsed analysis: {analysis}")
-            print(f"✅ Parsed analysis: {analysis}")
+            # print(f"✅ Parsed analysis: {analysis}")
             
             # Generate a descriptive name for the item
             name_parts = []

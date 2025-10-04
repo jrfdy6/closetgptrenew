@@ -12,7 +12,7 @@ try:
     REMBG_AVAILABLE = True
 except ImportError:
     REMBG_AVAILABLE = False
-    print("⚠️ rembg not available - background removal disabled")
+    # print("⚠️ rembg not available - background removal disabled")
 
 try:
     import firebase_admin
@@ -20,14 +20,14 @@ try:
     FIREBASE_AVAILABLE = True
 except ImportError:
     FIREBASE_AVAILABLE = False
-    print("⚠️ Firebase Admin SDK not available")
+    # print("⚠️ Firebase Admin SDK not available")
 
 try:
     from ..config.firebase import firebase_admin  # Import Firebase configuration
     FIREBASE_CONFIG_AVAILABLE = True
 except ImportError:
     FIREBASE_CONFIG_AVAILABLE = False
-    print("⚠️ Firebase config not available")
+    # print("⚠️ Firebase config not available")
 
 try:
     from ..auth.auth_service import get_current_user_optional
@@ -35,7 +35,7 @@ try:
     AUTH_AVAILABLE = True
 except ImportError:
     AUTH_AVAILABLE = False
-    print("⚠️ Auth services not available - using fallback")
+    # print("⚠️ Auth services not available - using fallback")
     
     # Fallback for when auth is not available
     def get_current_user_optional():
@@ -80,26 +80,26 @@ async def upload_image(
             )
         
         try:
-            print(f"🔍 Attempting to get Firebase Storage bucket...")
+            # print(f"🔍 Attempting to get Firebase Storage bucket...")
             bucket = storage.bucket()
-            print(f"✅ Got bucket: {bucket.name}")
+            # print(f"✅ Got bucket: {bucket.name}")
             
             blob = bucket.blob(filename)
-            print(f"🔍 Created blob for filename: {filename}")
+            # print(f"🔍 Created blob for filename: {filename}")
             
             token = str(uuid.uuid4())
             blob.metadata = {"firebaseStorageDownloadTokens": token}
-            print(f"🔍 Set metadata with token: {token}")
+            # print(f"🔍 Set metadata with token: {token}")
             
-            print(f"🔍 Uploading {len(contents)} bytes to Firebase Storage...")
+            # print(f"🔍 Uploading {len(contents)} bytes to Firebase Storage...")
             blob.upload_from_string(contents, content_type=file.content_type)
-            print(f"✅ Successfully uploaded to Firebase Storage")
+            # print(f"✅ Successfully uploaded to Firebase Storage")
             
         except Exception as firebase_error:
-            print(f"❌ Firebase Storage upload error: {firebase_error}")
-            print(f"❌ Error type: {type(firebase_error).__name__}")
+            # print(f"❌ Firebase Storage upload error: {firebase_error}")
+            # print(f"❌ Error type: {type(firebase_error).__name__}")
             import traceback
-            print(f"❌ Traceback: {traceback.format_exc()}")
+            # print(f"❌ Traceback: {traceback.format_exc()}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
                 detail=f"Firebase Storage upload failed: {str(firebase_error)}"

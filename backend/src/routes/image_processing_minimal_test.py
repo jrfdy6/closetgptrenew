@@ -17,7 +17,7 @@ async def upload_image_test(
     Minimal test endpoint for image upload
     """
     try:
-        print(f"🔍 Test endpoint called with file: {file.filename}")
+        # print(f"🔍 Test endpoint called with file: {file.filename}")
         
         if not file.content_type or not file.content_type.startswith('image/'):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must be an image")
@@ -27,7 +27,7 @@ async def upload_image_test(
         if not contents:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
 
-        print(f"✅ File read successfully: {len(contents)} bytes")
+        # print(f"✅ File read successfully: {len(contents)} bytes")
         
         # Return a simple response without Firebase
         return {
@@ -43,5 +43,5 @@ async def upload_image_test(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Test upload error: {e}")
+        # print(f"❌ Test upload error: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Test upload failed")

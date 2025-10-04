@@ -44,7 +44,7 @@ router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe"])
 try:
     db = firestore.client()
 except Exception as e:
-    print(f"Warning: Could not initialize Firestore: {e}")
+#     print(f"Warning: Could not initialize Firestore: {e}")
     db = None
 
 @router.get("/")
@@ -88,7 +88,7 @@ async def get_wardrobe_items(current_user: UserProfile = Depends(get_current_use
         }
         
     except Exception as e:
-        print(f"Error getting wardrobe items: {e}")
+#         print(f"Error getting wardrobe items: {e}")
         return {"success": False, "error": str(e)}
 
 @router.post("/add")
@@ -140,7 +140,7 @@ async def add_wardrobe_item(
         }
         
     except Exception as e:
-        print(f"Error adding wardrobe item: {e}")
+#         print(f"Error adding wardrobe item: {e}")
         return {"success": False, "error": str(e)}
 
 @router.get("/{item_id}")
@@ -164,7 +164,7 @@ async def get_wardrobe_item(
         return {"success": True, "item": item_data}
         
     except Exception as e:
-        print(f"Error getting wardrobe item: {e}")
+#         print(f"Error getting wardrobe item: {e}")
         return {"success": False, "error": str(e)}
 
 @router.put("/{item_id}")
@@ -194,7 +194,7 @@ async def update_wardrobe_item(
         return {"success": True, "message": "Item updated successfully"}
         
     except Exception as e:
-        print(f"Error updating wardrobe item: {e}")
+#         print(f"Error updating wardrobe item: {e}")
         return {"success": False, "error": str(e)}
 
 @router.delete("/{item_id}")
@@ -222,7 +222,7 @@ async def delete_wardrobe_item(
         return {"success": True, "message": "Item deleted successfully"}
         
     except Exception as e:
-        print(f"Error deleting wardrobe item: {e}")
+#         print(f"Error deleting wardrobe item: {e}")
         return {"success": False, "error": str(e)}
 
 @router.post("/{item_id}/increment-wear")
@@ -257,5 +257,5 @@ async def increment_wear_count(
         return {"success": True, "message": "Wear count incremented", "new_wear_count": updates['wear_count']}
         
     except Exception as e:
-        print(f"Error incrementing wear count: {e}")
+#         print(f"Error incrementing wear count: {e}")
         return {"success": False, "error": str(e)} 

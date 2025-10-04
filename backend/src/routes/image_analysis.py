@@ -12,7 +12,7 @@ try:
     HEIC_SUPPORT = True
 except ImportError:
     HEIC_SUPPORT = False
-    print("⚠️ pillow_heif not available - HEIC image support disabled")
+    # print("⚠️ pillow_heif not available - HEIC image support disabled")
 import tempfile
 import mimetypes
 import base64
@@ -23,44 +23,44 @@ from datetime import datetime
 # Debug imports with try/except blocks
 try:
     from ..services.openai_service import analyze_image_with_gpt4
-    print("✅ Successfully imported openai_service")
+    # print("✅ Successfully imported openai_service")
 except Exception as e:
-    print(f"❌ Failed import: openai_service - {e}")
+    # print(f"❌ Failed import: openai_service - {e}")
     analyze_image_with_gpt4 = None
 
 try:
     from ..services.simple_image_analysis_service import simple_analyzer
-    print("✅ Successfully imported simple_image_analysis_service")
+    # print("✅ Successfully imported simple_image_analysis_service")
 except Exception as e:
-    print(f"❌ Failed import: simple_image_analysis_service - {e}")
+    # print(f"❌ Failed import: simple_image_analysis_service - {e}")
     simple_analyzer = None
 
 try:
     from ..utils.image_processing import process_image_for_analysis
-    print("✅ Successfully imported utils.image_processing")
+    # print("✅ Successfully imported utils.image_processing")
 except Exception as e:
-    print(f"❌ Failed import: utils.image_processing - {e}")
+    # print(f"❌ Failed import: utils.image_processing - {e}")
     process_image_for_analysis = None
 
 try:
     from ..core.logging import get_logger
-    print("✅ Successfully imported core.logging")
+    # print("✅ Successfully imported core.logging")
 except Exception as e:
-    print(f"❌ Failed import: core.logging - {e}")
+    # print(f"❌ Failed import: core.logging - {e}")
     get_logger = None
 
 try:
     from ..models.analytics_event import AnalyticsEvent
-    print("✅ Successfully imported models.analytics_event")
+    # print("✅ Successfully imported models.analytics_event")
 except Exception as e:
-    print(f"❌ Failed import: models.analytics_event - {e}")
+    # print(f"❌ Failed import: models.analytics_event - {e}")
     AnalyticsEvent = None
 
 try:
     from ..services.analytics_service import log_analytics_event
-    print("✅ Successfully imported services.analytics_service")
+    # print("✅ Successfully imported services.analytics_service")
 except Exception as e:
-    print(f"❌ Failed import: services.analytics_service - {e}")
+    # print(f"❌ Failed import: services.analytics_service - {e}")
     log_analytics_event = None
 # Import auth dependency
 try:
@@ -76,7 +76,7 @@ if get_logger:
 else:
     import logging
     logger = logging.getLogger("image_analysis")
-    print("⚠️ Using fallback logging due to import failure")
+    # print("⚠️ Using fallback logging due to import failure")
 
 # Load environment variables
 load_dotenv()
@@ -109,7 +109,7 @@ def convert_to_jpeg(image_url: str) -> str:
                         )
                         image.save(temp_file.name, "JPEG")
                     except Exception as e:
-                        print(f"Failed to convert HEIC: {str(e)}")
+#                         print(f"Failed to convert HEIC: {str(e)}")
                         # Fallback: save as is
                         temp_file.write(response.content)
                 else:
@@ -123,14 +123,14 @@ def convert_to_jpeg(image_url: str) -> str:
                         image = image.convert('RGB')
                     image.save(temp_file.name, "JPEG")
                 except Exception as e:
-                    print(f"Failed to convert image: {str(e)}")
+#                     print(f"Failed to convert image: {str(e)}")
                     # Fallback: save as is
                     temp_file.write(response.content)
             
             return temp_file.name
             
     except Exception as e:
-        print(f"Error converting image: {str(e)}")
+#         print(f"Error converting image: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
 
 @router.post("/analyze")
@@ -174,7 +174,7 @@ async def analyze_image(
         if process_image_for_analysis:
             processed_image = process_image_for_analysis(temp_file_path)
         else:
-            print("⚠️ process_image_for_analysis not available, using original image")
+            # print("⚠️ process_image_for_analysis not available, using original image")
             processed_image = temp_file_path
         
         # Use enhanced analysis (GPT-4 + CLIP)
@@ -182,7 +182,7 @@ async def analyze_image(
         if simple_analyzer:
             analysis = await simple_analyzer.analyze_clothing_item(processed_image)
         else:
-            print("⚠️ simple_analyzer not available, using fallback analysis")
+            # print("⚠️ simple_analyzer not available, using fallback analysis")
             analysis = {
                 "name": "Analysis Failed - Service Unavailable",
                 "type": "clothing",
@@ -218,9 +218,9 @@ async def analyze_image(
                 )
                 log_analytics_event(analytics_event)
             except Exception as analytics_error:
-                print(f"⚠️ Analytics logging failed: {analytics_error}")
+                # print(f"⚠️ Analytics logging failed: {analytics_error}")
         else:
-            print("⚠️ Analytics not available, skipping event logging")
+            # print("⚠️ Analytics not available, skipping event logging")
         
         # Clean up temporary files
         os.unlink(temp_file_path)
@@ -257,7 +257,7 @@ async def analyze_image(
         )
         log_analytics_event(analytics_event)
         
-        print(f"Enhanced analysis failed: {str(e)}")
+#         print(f"Enhanced analysis failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze-image")
@@ -275,17 +275,17 @@ async def analyze_single_image(
             image_url = payload.image["url"]
         
         if not image_url:
-            print("❌ No image URL provided in request")
+            # print("❌ No image URL provided in request")
             raise HTTPException(status_code=400, detail="Image URL is required")
         
-        print(f"🔍 Processing image URL: {image_url[:100]}...")
-        print(f"🔍 Image URL type: {'data URL' if image_url.startswith('data:') else 'regular URL'}")
+        # print(f"🔍 Processing image URL: {image_url[:100]}...")
+        # print(f"🔍 Image URL type: {'data URL' if image_url.startswith('data:') else 'regular URL'}")
         
         # Handle both data URLs and regular URLs
         response = None  # Initialize response variable
         if image_url.startswith('data:'):
             # Handle base64 data URL
-            print("Processing base64 data URL")
+#             print("Processing base64 data URL")
             import base64
             
             # Extract the base64 data from the data URL
@@ -301,37 +301,37 @@ async def analyze_single_image(
             try:
                 response = requests.get(image_url, timeout=30)
                 response.raise_for_status()
-                print(f"Successfully downloaded image from URL, size: {len(response.content)} bytes")
+#                 print(f"Successfully downloaded image from URL, size: {len(response.content)} bytes")
                 
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                     temp_file.write(response.content)
                     temp_path = temp_file.name
             except Exception as download_error:
-                print(f"Failed to download image from URL: {str(download_error)}")
+#                 print(f"Failed to download image from URL: {str(download_error)}")
                 raise HTTPException(status_code=400, detail=f"Failed to download image: {str(download_error)}")
         
         try:
             # Use direct GPT-4 Vision analysis for better name generation
-            print(f"🔍 Starting AI analysis for image at: {temp_path}")
-            print(f"🔍 Image file exists: {os.path.exists(temp_path)}")
-            print(f"🔍 Image file size: {os.path.getsize(temp_path)} bytes")
+            # print(f"🔍 Starting AI analysis for image at: {temp_path}")
+            # print(f"🔍 Image file exists: {os.path.exists(temp_path)}")
+            # print(f"🔍 Image file size: {os.path.getsize(temp_path)} bytes")
             
             try:
                 if analyze_image_with_gpt4:
                     analysis = await analyze_image_with_gpt4(temp_path)
-                    print(f"✅ AI analysis completed successfully")
-                    print(f"🔍 Full analysis result: {analysis}")
-                    print(f"🔍 Generated name: {(analysis.get('name', 'No name') if analysis else 'No name')}")
-                    print(f"🔍 Analysis type: {(analysis.get('type', 'No type') if analysis else 'No type')}")
-                    print(f"🔍 Analysis subType: {(analysis.get('subType', 'No subType') if analysis else 'No subType')}")
+                    # print(f"✅ AI analysis completed successfully")
+                    # print(f"🔍 Full analysis result: {analysis}")
+                    # print(f"🔍 Generated name: {(analysis.get('name', 'No name') if analysis else 'No name')}")
+                    # print(f"🔍 Analysis type: {(analysis.get('type', 'No type') if analysis else 'No type')}")
+                    # print(f"🔍 Analysis subType: {(analysis.get('subType', 'No subType') if analysis else 'No subType')}")
                 else:
-                    print("⚠️ analyze_image_with_gpt4 not available, using fallback")
+                    # print("⚠️ analyze_image_with_gpt4 not available, using fallback")
                     raise Exception("GPT-4 service not available")
             except Exception as gpt_error:
-                print(f"❌ GPT-4 analysis failed: {gpt_error}")
-                print(f"❌ GPT-4 error type: {type(gpt_error).__name__}")
+                # print(f"❌ GPT-4 analysis failed: {gpt_error}")
+                # print(f"❌ GPT-4 error type: {type(gpt_error).__name__}")
                 import traceback
-                print(f"❌ GPT-4 traceback: {traceback.format_exc()}")
+                # print(f"❌ GPT-4 traceback: {traceback.format_exc()}")
                 
                 # Fallback to basic analysis
                 analysis = {
@@ -353,7 +353,7 @@ async def analyze_single_image(
                     },
                     "error": str(gpt_error)
                 }
-                print(f"🔍 Using fallback analysis: {analysis}")
+                # print(f"🔍 Using fallback analysis: {analysis}")
             
             # Map AI analysis to wardrobe item schema
             normalized_analysis = {
@@ -377,7 +377,7 @@ async def analyze_single_image(
                 "formalLevel": (analysis.get("metadata", {}) if analysis else {}).get("visualAttributes", {}).get("formalLevel", "casual")
             }
             
-            print(f"🔍 Mapped analysis for wardrobe: {normalized_analysis}")
+            # print(f"🔍 Mapped analysis for wardrobe: {normalized_analysis}")
             
             # Log analytics event
             file_size = len(response.content) if response else 0
@@ -400,10 +400,10 @@ async def analyze_single_image(
             os.unlink(temp_path)
             
     except Exception as e:
-        print(f"❌ Error in analyze_single_image: {str(e)}")
-        print(f"❌ Error type: {type(e).__name__}")
+        # print(f"❌ Error in analyze_single_image: {str(e)}")
+        # print(f"❌ Error type: {type(e).__name__}")
         import traceback
-        print(f"❌ Traceback: {traceback.format_exc()}")
+        # print(f"❌ Traceback: {traceback.format_exc()}")
         
         # Log error analytics event (simplified)
         try:
@@ -419,7 +419,7 @@ async def analyze_single_image(
             )
             log_analytics_event(analytics_event)
         except Exception as analytics_error:
-            print(f"⚠️ Analytics logging failed: {analytics_error}")
+            # print(f"⚠️ Analytics logging failed: {analytics_error}")
         
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -802,5 +802,5 @@ async def generate_image_hash(
             os.unlink(temp_path)
             
     except Exception as e:
-        print(f"❌ Error generating image hash: {str(e)}")
+        # print(f"❌ Error generating image hash: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

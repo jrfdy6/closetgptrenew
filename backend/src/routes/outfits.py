@@ -139,7 +139,7 @@ def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unk
     
     # CRITICAL DEBUG: Log what strategy we're about to log
     logger.info(f"🔍 DEBUG LOG_GENERATION_STRATEGY: About to log strategy = {strategy}")
-    print(f"🔍 DEBUG LOG_GENERATION_STRATEGY: About to log strategy = {strategy}")
+    # print(f"🔍 DEBUG LOG_GENERATION_STRATEGY: About to log strategy = {strategy}")
     
     # Define which strategies are considered "complex" vs "fallback"
     complex_strategies = ["cohesive_composition", "body_type_optimized", "style_profile_matched", "weather_adapted", "rule_based"]
@@ -231,7 +231,7 @@ def clean_for_firestore(obj):
     if isinstance(obj, dict) and 'metadata' in obj:
         strategy_before = safe_get_metadata(obj, 'generation_strategy', 'unknown')
         logger.info(f"🔍 DEBUG CLEAN_FOR_FIRESTORE BEFORE: strategy = {strategy_before}")
-        print(f"🔍 DEBUG CLEAN_FOR_FIRESTORE BEFORE: strategy = {strategy_before}")
+        # print(f"🔍 DEBUG CLEAN_FOR_FIRESTORE BEFORE: strategy = {strategy_before}")
     
     # Handle Pydantic models
     if hasattr(obj, "dict"):  # Pydantic v1
@@ -272,7 +272,7 @@ def clean_for_firestore(obj):
         if 'metadata' in safe:
             strategy_after = safe_get_metadata(safe, 'generation_strategy', 'unknown')
             logger.info(f"🔍 DEBUG CLEAN_FOR_FIRESTORE AFTER: strategy = {strategy_after}")
-            print(f"🔍 DEBUG CLEAN_FOR_FIRESTORE AFTER: strategy = {strategy_after}")
+            # print(f"🔍 DEBUG CLEAN_FOR_FIRESTORE AFTER: strategy = {strategy_after}")
         return safe
     elif isinstance(obj, list):
         return [clean_for_firestore(i) for i in obj if i is not None]
@@ -559,7 +559,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
                         "matched_keyword": keyword,
                         "reason": "cross-style bridge rule"
                     })
-                    print(f"🌉 BRIDGE RULE: Allowing {keyword} for {bridge_key[0]} + {bridge_key[1]} combination")
+#                     print(f"🌉 BRIDGE RULE: Allowing {keyword} for {bridge_key[0]} + {bridge_key[1]} combination")
                     return None  # Allow item through bridge rule
     except Exception as bridge_error:
         logger.warning(f"⚠️ Bridge rule error: {bridge_error}")
@@ -579,7 +579,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
                             "category": category,
                             "reason": "fashion-forward bold styling"
                         })
-                        print(f"🎨 BOLD EXCEPTION: Allowing {indicator} with {style} for bold fashion statement")
+#                         print(f"🎨 BOLD EXCEPTION: Allowing {indicator} with {style} for bold fashion statement")
                         continue  # Skip exclusion for bold mood
                     
                     # EXTENDED BOLD EXCEPTION: Allow cross-style items for any style combination
@@ -591,7 +591,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
                             "category": category,
                             "reason": "bold mood cross-style blending"
                         })
-                        print(f"🎨 BOLD EXCEPTION: Allowing {indicator} with {style} for bold cross-style blending")
+#                         print(f"🎨 BOLD EXCEPTION: Allowing {indicator} with {style} for bold cross-style blending")
                         continue  # Skip exclusion for bold mood
                 
                 exclusion_debug.append({
@@ -600,7 +600,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
                     "matched_indicator": indicator,
                     "category": category
                 })
-                print(f"🚫 EXCLUSION MATCH: {indicator} found in {item_text}")
+#                 print(f"🚫 EXCLUSION MATCH: {indicator} found in {item_text}")
                 return f"{indicator} inappropriate for {style}"
     
     exclusion_debug.append({
@@ -918,21 +918,21 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
 # Real outfit generation logic with AI and user wardrobe
 async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, Any]:
     """Real outfit generation logic using user's wardrobe and AI recommendations."""
-    print(f"🔎 MAIN LOGIC ENTRY: Starting generation for user {user_id}")
-    print(f"🔎 MAIN LOGIC ENTRY: Request - style: {req.style}, mood: {req.mood}, occasion: {req.occasion}")
+    # print(f"🔎 MAIN LOGIC ENTRY: Starting generation for user {user_id}")
+    # print(f"🔎 MAIN LOGIC ENTRY: Request - style: {req.style}, mood: {req.mood}, occasion: {req.occasion}")
 
     # DEBUG: Log detailed request information
-    print(f"🔍 DEBUG INPUT: Wardrobe has {len(req.wardrobe) if (req.wardrobe if req else []) else 0} items")
-    print(f"🔍 DEBUG INPUT: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
-    print(f"🔍 DEBUG INPUT: req.resolved_wardrobe = {req.resolved_wardrobe}")
-    print(f"🔍 DEBUG INPUT: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
+    # print(f"🔍 DEBUG INPUT: Wardrobe has {len(req.wardrobe) if (req.wardrobe if req else []) else 0} items")
+    # print(f"🔍 DEBUG INPUT: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
+    # print(f"🔍 DEBUG INPUT: req.resolved_wardrobe = {req.resolved_wardrobe}")
+    # print(f"🔍 DEBUG INPUT: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
     
     if (req.wardrobe if req else []):
         for i, item in enumerate(req.wardrobe[:3]):  # Log first 3 items
-            print(f"🔍 DEBUG INPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')} - {getattr(item, 'type', 'NO_TYPE')}")
+            # print(f"🔍 DEBUG INPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')} - {getattr(item, 'type', 'NO_TYPE')}")
 
-    print(f"🔍 DEBUG INPUT: Weather data: {req.weather}")
-    print(f"🔍 DEBUG INPUT: Base item ID: {req.baseItemId}")
+    # print(f"🔍 DEBUG INPUT: Weather data: {req.weather}")
+    # print(f"🔍 DEBUG INPUT: Base item ID: {req.baseItemId}")
     
     # Initialize debug info variable at function level
     robust_debug_info = None
@@ -944,10 +944,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         from ..custom_types.profile import UserProfile
         from ..custom_types.outfit import OutfitGeneratedOutfit
         FIREBASE_AVAILABLE = True
-        print(f"🔎 MAIN LOGIC: Firebase imports successful")
+        # print(f"🔎 MAIN LOGIC: Firebase imports successful")
     except ImportError as e:
         logger.warning(f"⚠️ Firebase import failed: {e}")
-        print(f"🚨 MAIN LOGIC: Firebase import FAILED: {e}")
+        # print(f"🚨 MAIN LOGIC: Firebase import FAILED: {e}")
         FIREBASE_AVAILABLE = False
         db = None
         firebase_initialized = False
@@ -957,16 +957,16 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     
     # Import robust generation service - NO FALLBACKS ALLOWED
     from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
-    print(f"✅ MAIN LOGIC: Robust generation service imported successfully")
+    # print(f"✅ MAIN LOGIC: Robust generation service imported successfully")
     logger.info(f"✅ ROBUST IMPORT: Robust generation service imported successfully")
     
     # Import ClothingItem for validation
     try:
         from ..custom_types.wardrobe import ClothingItem
-        print(f"🔎 MAIN LOGIC: ClothingItem import successful")
+        # print(f"🔎 MAIN LOGIC: ClothingItem import successful")
     except ImportError as e:
         logger.error(f"🚨 FORCE REDEPLOY v12.0: ClothingItem import failed: {e}")
-        print(f"🚨 MAIN LOGIC: ClothingItem import FAILED: {e}")
+        # print(f"🚨 MAIN LOGIC: ClothingItem import FAILED: {e}")
         ClothingItem = None
     
     logger.info(f"🎨 Generating outfit for user {user_id}: {req.style}, {req.mood}, {req.occasion}")
@@ -977,9 +977,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         logger.error(f"🚨 DEBUG: (req.wardrobe if req else []) = {req.wardrobe}")
         logger.error(f"🚨 DEBUG: (req.wardrobe if req else [])Items = {req.wardrobeItems}")
         logger.error(f"🚨 DEBUG: req.resolved_wardrobe = {req.resolved_wardrobe}")
-        print(f"🚨 DEBUG: (req.wardrobe if req else []) = {req.wardrobe}")
-        print(f"🚨 DEBUG: (req.wardrobe if req else [])Items = {req.wardrobeItems}")
-        print(f"🚨 DEBUG: req.resolved_wardrobe = {req.resolved_wardrobe}")
+        # print(f"🚨 DEBUG: (req.wardrobe if req else []) = {req.wardrobe}")
+        # print(f"🚨 DEBUG: (req.wardrobe if req else [])Items = {req.wardrobeItems}")
+        # print(f"🚨 DEBUG: req.resolved_wardrobe = {req.resolved_wardrobe}")
         wardrobe_items = req.resolved_wardrobe
         if not wardrobe_items:
             logger.info(f"📦 No wardrobe in request, fetching from database for user {user_id}")
@@ -991,7 +991,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         if not wardrobe_items:
             # NO FALLBACKS - Force proper wardrobe items
             logger.error(f"🚨 NO WARDROBE ITEMS - NO FALLBACKS ALLOWED")
-            print(f"🚨 NO WARDROBE ITEMS: User={user_id} has no wardrobe items")
+            # print(f"🚨 NO WARDROBE ITEMS: User={user_id} has no wardrobe items")
             raise Exception("No wardrobe items available - no fallbacks allowed. User must have wardrobe items.")
         
         # 2. Get user's style profile (with caching)
@@ -1026,7 +1026,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         else:
             logger.warning(f"⚠️ No weather data provided for outfit generation")
         
-        print(f"🔎 MAIN LOGIC: About to call robust outfit generation service")
+        # print(f"🔎 MAIN LOGIC: About to call robust outfit generation service")
         logger.error(f"🚨 FORCE REDEPLOY v12.0: RobustOutfitGenerationService = {RobustOutfitGenerationService}")
         logger.error(f"🚨 FORCE REDEPLOY v12.0: GenerationContext = {GenerationContext}")
         logger.error(f"🚨 FORCE REDEPLOY v12.0: Both available = {RobustOutfitGenerationService is not None and GenerationContext is not None}")
@@ -1035,7 +1035,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         try:
             # Use robust outfit generation service - NO FALLBACKS ALLOWED
             logger.info("🚀 Using robust outfit generation service - NO FALLBACKS ALLOWED")
-            print(f"🚀 ROBUST SERVICE: Starting robust outfit generation")
+#             print(f"🚀 ROBUST SERVICE: Starting robust outfit generation")
             
             # Ensure robust service is available
             if not RobustOutfitGenerationService or not GenerationContext:
@@ -1043,17 +1043,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             
             # Use robust service
             logger.info("🚀 Using robust outfit generation service")
-            print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
-            print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
+            # print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
+            # print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
             
             # Initialize outfit variable to prevent "not defined" errors
             outfit = None
             
             # DEBUG: Log wardrobe items at the very beginning
-            print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) = {req.wardrobe}")
-            print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
-            print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
-            print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
+            # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) = {req.wardrobe}")
+            # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
+            # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
+            # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
             
             # Create generation context - ensure weather is properly formatted
             weather_data = (req.weather if req else None)
@@ -1068,19 +1068,19 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             
             # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
             logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
-            print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
-            print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
-            print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
+            # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
+            # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
+            # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
             try:
                 from ..utils.item_hydration import hydrate_outfit_items
                 hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
                 logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
-                print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
+                # print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
             except Exception as hydrator_error:
                 logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
-                print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
+                # print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
                 import traceback
-                print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
+                # print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
                 logger.info(f"🔄 Using original wardrobe_items as fallback")
                 hydrated_wardrobe_items = wardrobe_items
                 
@@ -1095,29 +1095,29 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
                 else:
                     for i, item_dict in enumerate(hydrated_wardrobe_items):
-                        print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
-                        print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
+                        # print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
+                        # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
                         try:
                             clothing_item = ClothingItem(**item_dict)
                             clothing_items.append(clothing_item)
-                            print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
+                            # print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
                         except Exception as item_error:
                             logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
-                            print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
+                            # print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
                             import traceback
-                            print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
+                            # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
                             continue
                 
                 logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
                 
                 # DEBUG: Check clothing_items for None values
-                print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
-                print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
+                # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
+                # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
                 for i, item in enumerate(clothing_items):
-                    print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
-                    print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
+                    # print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
+                    # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
                     if item is None:
-                        print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
+                        # print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
                 
                 context = GenerationContext(
                     user_id=user_id,
@@ -1167,23 +1167,23 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     }
                     
                     # DEBUG: Log wardrobe item types before robust service call
-                    print(f"🔍 DEBUG WARDROBE ITEMS: About to call robust service")
+                    # print(f"🔍 DEBUG WARDROBE ITEMS: About to call robust service")
                     if hasattr(context, 'wardrobe') and context.wardrobe:
-                        print(f"🔍 DEBUG WARDROBE ITEMS: Wardrobe has {len(context.wardrobe)} items")
+                        # print(f"🔍 DEBUG WARDROBE ITEMS: Wardrobe has {len(context.wardrobe)} items")
                         for i, item in enumerate(context.wardrobe):
                             item_type = getattr(item, 'type', 'NO_TYPE')
                             item_name = getattr(item, 'name', 'NO_NAME')
-                            print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
+                            # print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type='{item_type}' name='{item_name}'")
                             if hasattr(item_type, 'value'):
-                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
+                                # print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.value='{item_type.value}'")
                             if hasattr(item_type, 'name'):
-                                print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
+                                # print(f"🔍 DEBUG WARDROBE ITEM {i+1}: type.name='{item_type.name}'")
                     else:
-                        print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
+                        # print(f"🔍 DEBUG WARDROBE ITEMS: No wardrobe items or wardrobe is None")
                     
-                    print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
-                    print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
-                    print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
+                    # print(f"🔍 DEBUG BEFORE ROBUST CALL: robust_service = {robust_service}")
+                    # print(f"🔍 DEBUG BEFORE ROBUST CALL: context = {context}")
+                    # print(f"🔍 DEBUG BEFORE ROBUST CALL: context.wardrobe = {len(context.wardrobe) if hasattr(context, 'wardrobe') else 'NO WARDROBE'}")
                     
                     # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
                     try:
@@ -1204,13 +1204,13 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                             }
                         }
                         logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
-                        print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
-                        print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+                        # print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
+                        # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
                         raise
-                    print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
-                    print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
+                    # print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
+                    # print(f"🔍 DEBUG ROBUST RETURN: type = {type(robust_outfit)}")
                     if robust_outfit is None:
-                        print(f"🚨 CRITICAL: robust_outfit is None!")
+                        # print(f"🚨 CRITICAL: robust_outfit is None!")
                         raise Exception("Robust service returned None - this should not happen")
                     
                     # DEBUG: Collect robust generation result
@@ -1239,13 +1239,13 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     strategy = metadata.get('generation_strategy', 'unknown') if metadata else 'unknown'
                     logger.info(f"[GENERATION][ROBUST] SUCCESS - Generated outfit using strategy: {strategy}")
                     logger.info(f"[GENERATION][ROBUST] Outfit items: {len(robust_outfit.items)} items")
-                    print(f"🎯 GENERATION STRATEGY: {strategy}")
+#                     print(f"🎯 GENERATION STRATEGY: {strategy}")
                     
                     # Check if robust service is internally falling back
                     if strategy == 'fallback_simple':
                         logger.warning(f"⚠️ ROBUST SERVICE INTERNAL FALLBACK: Strategy is fallback_simple")
-                        print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
-                        print(f"🚨 This means the robust service is working but failing internally")
+                        # print(f"🚨 ROBUST SERVICE INTERNAL FALLBACK: The robust service itself is falling back!")
+                        # print(f"🚨 This means the robust service is working but failing internally")
                         
                         # Add detailed fallback reason logging
                         fallback_reason = "Unknown - robust service returned fallback_simple strategy"
@@ -1260,15 +1260,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                                 fallback_reason = f"Too few items generated: {len(robust_outfit.items)}"
                         
                         logger.warning(f"🔍 ROBUST FALLBACK REASON: {fallback_reason}")
-                        print(f"🚨 ROBUST FALLBACK REASON: {fallback_reason}")
+                        # print(f"🚨 ROBUST FALLBACK REASON: {fallback_reason}")
                     
                 except Exception as e:
                     logger.error(f"[GENERATION][ROBUST][ERROR] {e}", exc_info=True)
                     logger.error(f"[GENERATION][ROBUST][ERROR] Context: user={user_id}, occasion={req.occasion}, style={req.style}")
                     logger.error(f"[GENERATION][ROBUST][ERROR] Wardrobe size: {len(wardrobe_items)}")
                     logger.error(f"[GENERATION][ROBUST][ERROR] Exception type: {type(e).__name__}")
-                    print(f"🚨 ROBUST GENERATOR ERROR: {type(e).__name__}: {e}")
-                    print(f"🚨 ROBUST GENERATOR FULL TRACEBACK:")
+                    # print(f"🚨 ROBUST GENERATOR ERROR: {type(e).__name__}: {e}")
+                    # print(f"🚨 ROBUST GENERATOR FULL TRACEBACK:")
                     import traceback
                     traceback.print_exc()
                     raise
@@ -1280,14 +1280,14 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.info(f"🔄 Robust outfit attributes: {dir(robust_outfit)}")
                     
                     # DEBUG: Log robust outfit attributes before conversion
-                    print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
-                    print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
-                    print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
+                    # print(f"🔍 DEBUG CONVERSION: Robust outfit type: {type(robust_outfit)}")
+                    # print(f"🔍 DEBUG CONVERSION: Robust outfit dir: {dir(robust_outfit)}")
+                    # print(f"🔍 DEBUG CONVERSION: Has items: {hasattr(robust_outfit, 'items')}")
                     if hasattr(robust_outfit, 'items'):
-                        print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
-                        print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
+                        # print(f"🔍 DEBUG CONVERSION: Items type: {type(robust_outfit.items)}")
+                        # print(f"🔍 DEBUG CONVERSION: Items length: {len(robust_outfit.items) if robust_outfit.items else 0}")
                         if robust_outfit.items:
-                            print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
+                            # print(f"🔍 DEBUG CONVERSION: First item: {robust_outfit.items[0]}")
                     
                     outfit = {
                         'id': getattr(robust_outfit, 'id', 'unknown'),
@@ -1335,15 +1335,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 # Verify strategy is set correctly
                 final_strategy = safe_get_metadata(outfit, 'generation_strategy', 'unknown')
                 logger.info(f"🎯 FINAL STRATEGY: {final_strategy}")
-                print(f"🎯 FINAL STRATEGY: {final_strategy}")
+#                 print(f"🎯 FINAL STRATEGY: {final_strategy}")
                 
                 # CRITICAL DEBUG: Log outfit metadata before any post-processing
                 logger.info(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
-                print(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
+                # print(f"🔍 DEBUG BEFORE POST-PROCESSING: outfit metadata = {(outfit.get('metadata') if outfit else None)}")
                 
                 if final_strategy == 'fallback_simple':
                     logger.warning(f"⚠️ WARNING: Robust path returned fallback_simple strategy")
-                    print(f"🚨 WARNING: Robust path returned fallback_simple strategy - this should be a robust strategy!")
+                    # print(f"🚨 WARNING: Robust path returned fallback_simple strategy - this should be a robust strategy!")
                 
             logger.info(f"✅ Robust generation successful with {len((outfit.get('items', []) if outfit else []))} items")
             
@@ -1378,9 +1378,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                         'precipitation': 0
                     }
             
-            print(f"🔎 MAIN LOGIC: Rule-based generation succeeded")
+            # print(f"🔎 MAIN LOGIC: Rule-based generation succeeded")
         except Exception as rule_exception:
-            print(f"🔎 MAIN LOGIC: Rule-based generation FAILED with exception: {rule_exception}")
+            # print(f"🔎 MAIN LOGIC: Rule-based generation FAILED with exception: {rule_exception}")
             logger.error(f"🔎 MAIN LOGIC: Rule-based generation FAILED: {rule_exception}")
             raise rule_exception
         if outfit:
@@ -1391,13 +1391,13 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # Outfit generated successfully
         
         # Check if outfit generation was successful
-        print(f"🔍 DEBUG FINAL CHECK: Outfit type: {type(outfit)}")
-        print(f"🔍 DEBUG FINAL CHECK: Outfit keys: {list(outfit.keys()) if isinstance(outfit, dict) else 'NOT A DICT'}")
-        print(f"🔍 DEBUG FINAL CHECK: Has 'items' key: {'items' in outfit if isinstance(outfit, dict) else 'N/A'}")
+        # print(f"🔍 DEBUG FINAL CHECK: Outfit type: {type(outfit)}")
+        # print(f"🔍 DEBUG FINAL CHECK: Outfit keys: {list(outfit.keys()) if isinstance(outfit, dict) else 'NOT A DICT'}")
+        # print(f"🔍 DEBUG FINAL CHECK: Has 'items' key: {'items' in outfit if isinstance(outfit, dict) else 'N/A'}")
         if isinstance(outfit, dict) and 'items' in outfit:
-            print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
-            print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
-            print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
+            # print(f"🔍 DEBUG FINAL CHECK: Items value: {outfit['items']}")
+            # print(f"🔍 DEBUG FINAL CHECK: Items type: {type(outfit['items'])}")
+            # print(f"🔍 DEBUG FINAL CHECK: Items length: {len(outfit['items']) if outfit['items'] else 'None/Empty'}")
         
         if not outfit or not outfit.get('items') or len(outfit.get('items', [])) == 0:
             logger.error(f"❌ GENERATION FAILED: No items generated")
@@ -1465,18 +1465,18 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     except Exception as e:
         logger.error(f"🚨 ROBUST GENERATION CRASHED: {e}")
         logger.exception("Full robust generation traceback:")
-        print(f"🚨 ROBUST GENERATION CRASHED: {type(e).__name__}: {e}")
-        print(f"🚨 ROBUST CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-        print(f"🚨 ROBUST TRACEBACK: {str(e)}")
+        # print(f"🚨 ROBUST GENERATION CRASHED: {type(e).__name__}: {e}")
+        # print(f"🚨 ROBUST CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+        # print(f"🚨 ROBUST TRACEBACK: {str(e)}")
         
         # FALLBACK RE-ENABLED - Root cause identified and fixed (weather data format)
         logger.warning(f"⚠️ FALLBACK TRIGGERED: Outfit generation failed with exception: {e}")
         logger.exception("Full traceback:")
-        print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
-        print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-        print(f"🚨 GENERATION FAILED - NO FALLBACKS ALLOWED")
-        print(f"🚨 ERROR: {type(e).__name__}: {e}")
-        print(f"🚨 TRACEBACK: {str(e)}")
+        # print(f"🚨 FALLBACK ALERT: Exception in main generation logic")
+        # print(f"🚨 FALLBACK CONTEXT: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+        # print(f"🚨 GENERATION FAILED - NO FALLBACKS ALLOWED")
+        # print(f"🚨 ERROR: {type(e).__name__}: {e}")
+        # print(f"🚨 TRACEBACK: {str(e)}")
         # NO FALLBACKS - Force proper error handling
         raise e
 
@@ -1609,13 +1609,13 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
     logger.info(f"🔍 DATA HANDOFF: Validation context created - occasion='{context['occasion']}', style='{context['style']}', mood='{context['mood']}'")
     
     # Run enhanced validation with inappropriate combination enforcement + simulation-based rules
-    print(f"🔍 VALIDATION DEBUG: Starting validation with {len(clothing_items)} items")
-    print(f"🔍 VALIDATION DEBUG: Item types: {[item.type for item in clothing_items]}")
+    # print(f"🔍 VALIDATION DEBUG: Starting validation with {len(clothing_items)} items")
+    # print(f"🔍 VALIDATION DEBUG: Item types: {[item.type for item in clothing_items]}")
     
     try:
         validation_result = await validation_service.validate_outfit_with_enhanced_rules(clothing_items, context)
-        print(f"🔍 VALIDATION DEBUG: Validation completed, result keys: {validation_result.keys()}")
-        print(f"🔍 VALIDATION DEBUG: Filtered items count: {len((validation_result.get('filtered_items', []) if validation_result else []))}")
+        # print(f"🔍 VALIDATION DEBUG: Validation completed, result keys: {validation_result.keys()}")
+        # print(f"🔍 VALIDATION DEBUG: Filtered items count: {len((validation_result.get('filtered_items', []) if validation_result else []))}")
     
         if validation_result.get("filtered_items"):
             # Convert back to dict format
@@ -1645,29 +1645,29 @@ async def validate_outfit_composition(items: List[Dict], occasion: str, base_ite
                 warnings = validation_result["warnings"]
                 logger.info(f"🔍 Validation warnings: {warnings}")
             
-            print(f"🔍 VALIDATION DEBUG: Returning {len(validated_outfit)} items")
+            # print(f"🔍 VALIDATION DEBUG: Returning {len(validated_outfit)} items")
             return validated_outfit
         else:
-            print(f"❌ VALIDATION DEBUG: No filtered items returned from enhanced validation!")
-            print(f"❌ VALIDATION DEBUG: Validation result: {validation_result}")
+            # print(f"❌ VALIDATION DEBUG: No filtered items returned from enhanced validation!")
+            # print(f"❌ VALIDATION DEBUG: Validation result: {validation_result}")
             # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
             return []
             
     except Exception as validation_error:
-        print(f"❌ VALIDATION DEBUG: Enhanced validation failed with error: {validation_error}")
+        # print(f"❌ VALIDATION DEBUG: Enhanced validation failed with error: {validation_error}")
         logger.error(f"Enhanced validation failed: {validation_error}")
         # NO FALLBACK TO BAD OUTFITS - Return empty list on validation failure
         return []
     # CRITICAL: Check if we have any items at all before falling back
     if not clothing_items:
-        print(f"❌ VALIDATION CRITICAL: No clothing items to validate!")
+        # print(f"❌ VALIDATION CRITICAL: No clothing items to validate!")
         return []  # NO FALLBACK TO BAD OUTFITS - Return empty list
     
         # NO FALLBACK TO BAD OUTFITS - If we reach here, validation failed
         logger.error("❌ Enhanced validation failed completely - no fallback allowed")
-        print(f"🚨 VALIDATION FAILURE: No valid outfit can be generated")
-        print(f"🚨 VALIDATION CONTEXT: Items={len(clothing_items)}, Occasion={occasion}")
-        print(f"🚨 VALIDATION REASON: All items failed enhanced validation rules")
+        # print(f"🚨 VALIDATION FAILURE: No valid outfit can be generated")
+        # print(f"🚨 VALIDATION CONTEXT: Items={len(clothing_items)}, Occasion={occasion}")
+        # print(f"🚨 VALIDATION REASON: All items failed enhanced validation rules")
         return []
 
 async def validate_layering_rules(items: List[Dict], occasion: str) -> Dict[str, Any]:
@@ -2795,13 +2795,13 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # DEBUG: Before scoring loop
         def debug_scores(stage: str, items):
             try:
-                print("🎯 SCORING DEBUG:", {
+#                 print("🎯 SCORING DEBUG:", {
                     "stage": stage,
                     "input_items": [i.get("id") for i in items] if items else None,
                     "input_count": len(items) if items else 0,
                 })
             except Exception as e:
-                print("⚠️ SCORE DEBUG ERROR:", e)
+#                 print("⚠️ SCORE DEBUG ERROR:", e)
         
         debug_scores("before_scoring_loop", wardrobe_items)
         
@@ -2835,26 +2835,26 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             
             # HARD EXCLUSION FILTER: Prevent truly inappropriate items from entering scoring pool
             hard_exclusions = get_hard_style_exclusions(req.style.lower(), item, (req.mood if req else "unknown"))
-            print(f"🔍 EXCLUSION CHECK: {(item.get('name', 'unnamed') if item else 'unnamed')} for {req.style} - result: {hard_exclusions}")
-            print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
-            print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={((item.get('id') if item else None) if item else None)}, isBaseItem={req.baseItemId and ((item.get('id') if item else None) if item else None) == (req.baseItemId if req else None)}")
+            # print(f"🔍 EXCLUSION CHECK: {(item.get('name', 'unnamed') if item else 'unnamed')} for {req.style} - result: {hard_exclusions}")
+            # print(f"🔍 EXCLUSION LOGIC: hard_exclusions={hard_exclusions}, type={type(hard_exclusions)}, bool={bool(hard_exclusions)}")
+            # print(f"🔍 EXCLUSION LOGIC: baseItemId={req.baseItemId}, itemId={((item.get('id') if item else None) if item else None)}, isBaseItem={req.baseItemId and ((item.get('id') if item else None) if item else None) == (req.baseItemId if req else None)}")
             
             # Check exclusion condition explicitly
             is_base_item = (req.baseItemId if req else None) and (item.get('id') if item else None) == (req.baseItemId if req else None)
             should_exclude = hard_exclusions is not None and not is_base_item
             
-            print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
+            # print(f"🔍 EXCLUSION DECISION: should_exclude={should_exclude}, is_base_item={is_base_item}")
             
             if should_exclude:
-                print(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
-                print(f"🚫 EXECUTING CONTINUE: About to skip {(item.get('name', 'unnamed') if item else 'unnamed')} - this item should NOT appear in final outfit")
+#                 print(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
+#                 print(f"🚫 EXECUTING CONTINUE: About to skip {(item.get('name', 'unnamed') if item else 'unnamed')} - this item should NOT appear in final outfit")
                 logger.info(f"🚫 HARD EXCLUSION: {(item.get('name', 'unnamed') if item else 'unnamed')} excluded from {req.style} - {hard_exclusions}")
                 continue
-                print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
+                # print(f"❌ CONTINUE FAILED: This line should NEVER execute if continue worked")
             elif hard_exclusions:
-                print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
+#                 print(f"🛡️ EXCLUSION BYPASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} is base item, allowing despite exclusion")
             else:
-                print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
+                # print(f"✅ EXCLUSION PASSED: {(item.get('name', 'unnamed') if item else 'unnamed')} has no exclusions for {req.style}")
             
             # 1. Core Style Matching (Primary filter - must pass)
             # SOFTEN VALIDATION: Allow base item to pass even if it fails core criteria
@@ -2986,16 +2986,16 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 item_id = ((item.get('id', item.get('name', 'unknown') if item else 'unknown') if item else 'unknown'))
                 item_scores[item_id] = item_score
                 suitable_items.append(item)
-                print(f"✅ SCORED: {(item.get('name', 'unnamed') if item else 'unnamed')} (ID: {item_id}) = {item_score} points")
-                print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
+                # print(f"✅ SCORED: {(item.get('name', 'unnamed') if item else 'unnamed')} (ID: {item_id}) = {item_score} points")
+#                 print(f"📊 SUITABLE_ITEMS COUNT: {len(suitable_items)} items now in pool")
                 logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} is suitable with score: {item_score}")
             else:
-                print(f"❌ REJECTED: {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
+                # print(f"❌ REJECTED: {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
                 logger.info(f"🔍 DEBUG: Item {(item.get('name', 'unnamed') if item else 'unnamed')} failed core style/occasion criteria")
         
         # DEBUG: After scoring loop
         debug_scores("after_scoring_loop", suitable_items)
-        print(f"🎯 Final item_scores: {item_scores}")
+#         print(f"🎯 Final item_scores: {item_scores}")
         
         # ENHANCED: Sort items by preference score for better selection
         if suitable_items and item_scores:
@@ -3022,9 +3022,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                     hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
                     if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
                         additional_items.append(item)
-                        print(f"➕ ADDITIONAL: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion filter")
+#                         print(f"➕ ADDITIONAL: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion filter")
                     else:
-                        print(f"🚫 ADDITIONAL EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
+#                         print(f"🚫 ADDITIONAL EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
             
             random.shuffle(additional_items)
             suitable_items.extend(additional_items[:10])
@@ -3042,9 +3042,9 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
                 hard_exclusions = get_hard_style_exclusions(req.style.lower(), item)
                 if not hard_exclusions or (req.baseItemId and (item.get('id') if item else None) == (req.baseItemId if req else None)):
                     emergency_items.append(item)
-                    print(f"🆘 EMERGENCY: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion for emergency use")
+#                     print(f"🆘 EMERGENCY: {(item.get('name', 'unnamed') if item else 'unnamed')} passes exclusion for emergency use")
                 else:
-                    print(f"🚫 EMERGENCY EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
+#                     print(f"🚫 EMERGENCY EXCLUDED: {(item.get('name', 'unnamed') if item else 'unnamed')} - {hard_exclusions}")
             
             suitable_items = emergency_items[:4]  # Take first 4 exclusion-filtered items
             logger.warning(f"⚠️ DEBUG: Using {len(suitable_items)} emergency items (exclusion-filtered)")
@@ -3105,11 +3105,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
 
         # Validate and ensure complete outfit composition
         try:
-            print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
+            # print(f"🔍 VALIDATION: About to validate outfit composition with {len(suitable_items)} items...")
             validated_items = await validate_outfit_composition(suitable_items, (req.occasion if req else "unknown"), base_item_obj, (req.style if req else "unknown"))
-            print(f"✅ VALIDATION: Successfully validated outfit, got {len(validated_items)} items")
+            # print(f"✅ VALIDATION: Successfully validated outfit, got {len(validated_items)} items")
         except Exception as validation_error:
-            print(f"❌ VALIDATION FAILED: {validation_error}")
+            # print(f"❌ VALIDATION FAILED: {validation_error}")
             logger.error(f"Outfit validation failed: {validation_error}")
             # NO FALLBACK TO BAD OUTFITS - Return empty list if validation fails
             validated_items = []
@@ -3117,7 +3117,7 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         # FORCE MINIMUM VIABLE OUTFIT: If we have suitable items but validation failed
         if len(suitable_items) > 0 and len(validated_items) == 0:
             logger.warning(f"🚨 SAFETY CHECK: {len(suitable_items)} suitable items but validation returned 0 - forcing minimum outfit")
-            print(f"🚨 SAFETY CHECK: Creating minimum viable outfit from {len(suitable_items)} suitable items")
+            # print(f"🚨 SAFETY CHECK: Creating minimum viable outfit from {len(suitable_items)} suitable items")
             
             try:
                 # Force create a basic outfit from suitable items
@@ -3197,12 +3197,12 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         # Calculate comprehensive outfit score
         try:
-            print(f"🔍 SCORING: About to calculate outfit score...")
+            # print(f"🔍 SCORING: About to calculate outfit score...")
             outfit_score = await calculate_outfit_score(outfit_items, req, layering_validation, color_material_validation, user_id)
-            print(f"✅ SCORING: Successfully calculated outfit score: {outfit_score}")
+            # print(f"✅ SCORING: Successfully calculated outfit score: {outfit_score}")
             logger.info(f"🔍 DEBUG: Calculated outfit score: {outfit_score}")
         except Exception as score_error:
-            print(f"❌ SCORING FAILED: {score_error}")
+            # print(f"❌ SCORING FAILED: {score_error}")
             logger.error(f"Outfit scoring failed: {score_error}")
             # Use default score if scoring fails
             outfit_score = {"total_score": 0.7}
@@ -3213,18 +3213,18 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         
         # Generate intelligent reasoning
         try:
-            print(f"🔍 REASONING: About to generate intelligent reasoning...")
+            # print(f"🔍 REASONING: About to generate intelligent reasoning...")
             intelligent_reasoning = await generate_intelligent_reasoning(outfit_items, req, outfit_score, layering_validation, color_material_validation)
-            print(f"✅ REASONING: Successfully generated reasoning")
+            # print(f"✅ REASONING: Successfully generated reasoning")
         except Exception as reasoning_error:
-            print(f"❌ REASONING FAILED: {reasoning_error}")
+            # print(f"❌ REASONING FAILED: {reasoning_error}")
             logger.error(f"Intelligent reasoning failed: {reasoning_error}")
             # Use fallback reasoning if generation fails
             intelligent_reasoning = f"Rule-based {req.style} outfit for {req.occasion} with {len(outfit_items)} items"
         
         # FINAL DEBUG: Log outfit assembly results
         logger.info(f"📊 FINAL OUTFIT: {len(outfit_items)} items selected out of {len(suitable_items)} suitable items")
-        print(f"📊 FINAL OUTFIT: {len(outfit_items)} items selected out of {len(suitable_items)} suitable items")
+#         print(f"📊 FINAL OUTFIT: {len(outfit_items)} items selected out of {len(suitable_items)} suitable items")
         
         return {
             "name": outfit_name,
@@ -3467,9 +3467,9 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     import time  # Add time import for fallback function
     
     logger.info(f"🔄 FALLBACK ACTIVATED: Generating weather-aware fallback outfit for {user_id}")
-    print(f"🚨 FALLBACK EXECUTION: Starting fallback outfit generation")
-    print(f"🚨 FALLBACK EXECUTION: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-    print(f"🚨 FALLBACK EXECUTION: This indicates main generation logic needs improvement")
+    # print(f"🚨 FALLBACK EXECUTION: Starting fallback outfit generation")
+    # print(f"🚨 FALLBACK EXECUTION: User={user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+    # print(f"🚨 FALLBACK EXECUTION: This indicates main generation logic needs improvement")
     
     outfit_name = f"{req.style.title()} {req.mood.title()} Look"
     selected_items = []
@@ -3671,19 +3671,19 @@ async def generate_fallback_outfit(req: OutfitRequest, user_id: str) -> Dict[str
     # FINAL SAFETY NET: Ensure we have at least some items
     if len(selected_items) == 0:
         logger.error(f"🚨 NO ITEMS SELECTED: Rule-based generation failed to select any items")
-        print(f"🚨 NO ITEMS SELECTED: Rule-based generation failed to select any items")
+        # print(f"🚨 NO ITEMS SELECTED: Rule-based generation failed to select any items")
         # NO EMERGENCY FALLBACK - let the robust service handle this
     
     # FALLBACK COMPLETION SUMMARY
-    print(f"🚨 FALLBACK COMPLETED: Generated fallback outfit with {len(selected_items)} items")
-    print(f"🚨 FALLBACK SUMMARY: Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+    # print(f"🚨 FALLBACK COMPLETED: Generated fallback outfit with {len(selected_items)} items")
+    # print(f"🚨 FALLBACK SUMMARY: Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
     if selected_items:
         item_types = [(item.get('type', 'unknown') if item else 'unknown') for item in selected_items]
         item_names = [(item.get('name', 'unknown') if item else 'unknown')[:30] for item in selected_items]
-        print(f"🚨 FALLBACK ITEMS: Types={item_types}, Names={item_names}")
+        # print(f"🚨 FALLBACK ITEMS: Types={item_types}, Names={item_names}")
     else:
-        print(f"🚨 FALLBACK WARNING: No items were generated - empty outfit!")
-    print(f"🚨 FALLBACK IMPACT: This indicates main generation logic needs attention")
+        # print(f"🚨 FALLBACK WARNING: No items were generated - empty outfit!")
+    # print(f"🚨 FALLBACK IMPACT: This indicates main generation logic needs attention")
     
     # Apply semantic validation to fallback outfit
     occasion_requirements_met = True
@@ -4596,7 +4596,7 @@ async def mark_outfit_as_worn(
     current_user: UserProfile = Depends(get_current_user)
 ):
     # DEBUG DISABLED: Causing 4000+ log drops on Railway
-    # print(f"🚨 CRITICAL: mark_outfit_as_worn endpoint called with outfit_id={outfit_id}, user_id={current_user.id}")
+    # # print(f"🚨 CRITICAL: mark_outfit_as_worn endpoint called with outfit_id={outfit_id}, user_id={current_user.id}")
     
     # Write endpoint entry to Firestore immediately (silent)
     try:
@@ -4608,10 +4608,10 @@ async def mark_outfit_as_worn(
             'timestamp': datetime.utcnow().isoformat(),
             'message': 'Successfully entered mark_outfit_as_worn endpoint'
         })
-        # print("🚨 CRITICAL: Logged endpoint entry to Firestore")
+        # # print("🚨 CRITICAL: Logged endpoint entry to Firestore")
     except Exception as entry_error:
         pass  # Silent error handling
-        # print(f"🚨 CRITICAL: Failed to log endpoint entry: {entry_error}")
+        # # print(f"🚨 CRITICAL: Failed to log endpoint entry: {entry_error}")
     """
     Mark an outfit as worn (simplified endpoint for frontend compatibility).
     This will update both the outfit wear counter AND individual wardrobe item wear counters.
@@ -4664,13 +4664,13 @@ async def mark_outfit_as_worn(
                 'timestamp': datetime.utcnow().isoformat(),
                 'message': 'Successfully updated outfit wear count'
             })
-            # print("🚨 CRITICAL: Outfit update successful, proceeding to user_stats")
+            # # print("🚨 CRITICAL: Outfit update successful, proceeding to user_stats")
         except Exception as outfit_error:
             pass  # Silent error handling
-            # print(f"🚨 CRITICAL: Failed to log outfit update: {outfit_error}")
+            # # print(f"🚨 CRITICAL: Failed to log outfit update: {outfit_error}")
         
         # DEBUG DISABLED: Causing massive Railway log flooding
-        # print("🚨 CRITICAL: About to start user_stats update section")
+        # # print("🚨 CRITICAL: About to start user_stats update section")
         # print("🚨 DEPLOYMENT_TEST: Surgical debug code is LIVE", flush=True)
         
         # Write entry debug to Firestore immediately (before any potential errors) - SILENT
@@ -4683,10 +4683,10 @@ async def mark_outfit_as_worn(
                 'timestamp': datetime.utcnow().isoformat(),
                 'message': 'Successfully entered user_stats update section'
             })
-            # print("🚨 CRITICAL: Logged entry to user_stats section in Firestore")
+            # # print("🚨 CRITICAL: Logged entry to user_stats section in Firestore")
         except Exception as entry_error:
             pass  # Silent error handling
-            # print(f"🚨 CRITICAL: Failed to log entry to user_stats section: {entry_error}")
+            # # print(f"🚨 CRITICAL: Failed to log entry to user_stats section: {entry_error}")
         
         # FIXED: Simple user_stats update with proper increment logic
         try:
@@ -4700,11 +4700,11 @@ async def mark_outfit_as_worn(
                 'last_updated': datetime.utcnow(),
                 'updated_at': datetime.utcnow()
             }, merge=True)
-            print("✅ FIXED: Updated user_stats with proper increment")
+            # print("✅ FIXED: Updated user_stats with proper increment")
             
         except Exception as simple_stats_error:
             # Don't fail - outfit was still marked as worn successfully
-            print(f"⚠️ SIMPLIFIED: Stats update failed: {simple_stats_error}")
+            # print(f"⚠️ SIMPLIFIED: Stats update failed: {simple_stats_error}")
             pass
         
         # DISABLED: Complex week validation logic causing massive syntax errors
@@ -4723,9 +4723,9 @@ async def mark_outfit_as_worn(
                     'timestamp': datetime.utcnow().isoformat(),
                     'message': 'Successfully imported Firestore and accessed db'
                 })
-                # print("🚨 CRITICAL: Firestore imports and db access successful")
+                # # print("🚨 CRITICAL: Firestore imports and db access successful")
             except Exception as import_error:
-                # print(f"🚨 CRITICAL: Firestore import/db access failed: {import_error}")
+                # # print(f"🚨 CRITICAL: Firestore import/db access failed: {import_error}")
                 try:
                     error_ref = db.collection('debug_errors').document()
                     error_ref.set({
@@ -4833,7 +4833,7 @@ async def mark_outfit_as_worn(
                     pass
                 
                 # Before Firestore write
-                print(f"🔥 USER_STATS_WRITE_ATTEMPT: worn_this_week={new_worn_count}", flush=True)
+#                 print(f"🔥 USER_STATS_WRITE_ATTEMPT: worn_this_week={new_worn_count}", flush=True)
                 
                 # Use set with merge=True for guaranteed write
                 try:
@@ -4843,10 +4843,10 @@ async def mark_outfit_as_worn(
                         'last_updated': current_time_dt,
                         'updated_at': current_time_dt
                     }, merge=True)
-                    print("✅ USER_STATS_WRITE_SUCCESS", flush=True)
-                    print(f"✅ STATS UPDATED: worn_this_week = {new_worn_count}")
+#                     print("✅ USER_STATS_WRITE_SUCCESS", flush=True)
+                    # print(f"✅ STATS UPDATED: worn_this_week = {new_worn_count}")
                 except Exception as e:
-                    print(f"❌ USER_STATS_WRITE_ERROR: {e}", flush=True)
+#                     print(f"❌ USER_STATS_WRITE_ERROR: {e}", flush=True)
                 
                 # RAILWAY-PROOF: Write debug info to Firestore (bypasses rate limiting)
                 try:
@@ -4868,7 +4868,7 @@ async def mark_outfit_as_worn(
                 
             else:
                 # Create new stats document
-                print("🔥 USER_STATS_CREATE_ATTEMPT: worn_this_week=1", flush=True)
+#                 print("🔥 USER_STATS_CREATE_ATTEMPT: worn_this_week=1", flush=True)
                 
                 try:
                     stats_ref.set({
@@ -4879,10 +4879,10 @@ async def mark_outfit_as_worn(
                         'last_updated': current_time_dt,
                         'created_at': current_time_dt
                     }, merge=True)
-                    print("✅ USER_STATS_CREATE_SUCCESS", flush=True)
-                    print("✅ STATS CREATED: new user_stats with worn_this_week = 1")
+#                     print("✅ USER_STATS_CREATE_SUCCESS", flush=True)
+                    # print("✅ STATS CREATED: new user_stats with worn_this_week = 1")
                 except Exception as e:
-                    print(f"❌ USER_STATS_CREATE_ERROR: {e}", flush=True)
+#                     print(f"❌ USER_STATS_CREATE_ERROR: {e}", flush=True)
                 
                 # RAILWAY-PROOF: Write debug info to Firestore
                 try:
@@ -4903,9 +4903,9 @@ async def mark_outfit_as_worn(
         except Exception as stats_error:
             # FORCE ERROR TO SURFACE - Use multiple methods to ensure visibility
             error_msg = f"🚨 USER_STATS_CRITICAL_ERROR: {stats_error}"
-            print(error_msg)
-            print(f"🚨 Error type: {type(stats_error).__name__}")
-            print(f"🚨 Error details: {str(stats_error)}")
+#             print(error_msg)
+            # print(f"🚨 Error type: {type(stats_error).__name__}")
+            # print(f"🚨 Error details: {str(stats_error)}")
             logger.error(error_msg)  # Also use logger in case print is throttled
             
             # Try to write error to a different collection as last resort
@@ -4919,7 +4919,7 @@ async def mark_outfit_as_worn(
                     'timestamp': datetime.utcnow(),
                     'attempt': 'robust_fix_with_increment'
                 })
-                print("🚨 ERROR LOGGED TO debug_errors COLLECTION")
+                # print("🚨 ERROR LOGGED TO debug_errors COLLECTION")
             except:
                 pass  # Don't fail the whole request if error logging fails
             
@@ -5152,10 +5152,10 @@ async def generate_outfit(
     """
     # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
     # DEBUG: Log request details at endpoint start
-    print(f"🔍 DEBUG ENDPOINT START: req = {req}")
-    print(f"🔍 DEBUG ENDPOINT START: (req.wardrobe if req else []) = {req.wardrobe}")
-    print(f"🔍 DEBUG ENDPOINT START: req.resolved_wardrobe = {req.resolved_wardrobe}")
-    print(f"🔍 DEBUG ENDPOINT START: current_user_id = {current_user_id}")
+    # print(f"🔍 DEBUG ENDPOINT START: req = {req}")
+    # print(f"🔍 DEBUG ENDPOINT START: (req.wardrobe if req else []) = {req.wardrobe}")
+    # print(f"🔍 DEBUG ENDPOINT START: req.resolved_wardrobe = {req.resolved_wardrobe}")
+    # print(f"🔍 DEBUG ENDPOINT START: current_user_id = {current_user_id}")
     
     try:
         start_time = time.time()
@@ -5490,9 +5490,9 @@ async def generate_outfit(
             generation_attempts += 1
             try:
                 logger.info(f"🔄 Generation attempt {generation_attempts}/{max_attempts}")
-                print(f"🔍 DEBUG RETRY LOOP: Starting attempt {generation_attempts}")
-                print(f"🔍 DEBUG RETRY LOOP: req = {req}")
-                print(f"🔍 DEBUG RETRY LOOP: current_user_id = {current_user_id}")
+                # print(f"🔍 DEBUG RETRY LOOP: Starting attempt {generation_attempts}")
+                # print(f"🔍 DEBUG RETRY LOOP: req = {req}")
+                # print(f"🔍 DEBUG RETRY LOOP: current_user_id = {current_user_id}")
                 
                 # Run generation logic with robust service
                 outfit = await generate_outfit_logic(req, current_user_id)
@@ -5503,7 +5503,7 @@ async def generate_outfit(
                     
                     # CRITICAL DEBUG: Log strategy before category limits
                     logger.info(f"🔍 DEBUG BEFORE CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                    print(f"🔍 DEBUG BEFORE CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                    # print(f"🔍 DEBUG BEFORE CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                     
                     # Step 1: Apply category limits and subtype tracking INSIDE robust logic
                     original_items = outfit['items'].copy()
@@ -5511,7 +5511,7 @@ async def generate_outfit(
                     
                     # CRITICAL DEBUG: Log strategy after category limits
                     logger.info(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                    print(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                    # print(f"🔍 DEBUG AFTER CATEGORY LIMITS: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                     
                     # Step 2: If validation fails, retry with relaxed rules instead of falling back
                     validation_passed = True
@@ -5525,7 +5525,7 @@ async def generate_outfit(
                             
                             # CRITICAL DEBUG: Log strategy before relaxed rules
                             logger.info(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                            print(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                            # print(f"🔍 DEBUG BEFORE RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                             
                             # Retry with relaxed rules instead of falling back
                             outfit['items'] = retry_with_relaxed_rules(original_items, (req.occasion if req else "unknown"), requirements)
@@ -5535,7 +5535,7 @@ async def generate_outfit(
                             
                             # CRITICAL DEBUG: Log strategy after relaxed rules
                             logger.info(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                            print(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                            # print(f"🔍 DEBUG AFTER RELAXED RULES: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                             
                             logger.info(f"🔄 Retried with relaxed rules - final items: {len(outfit['items'])}")
                     
@@ -5550,7 +5550,7 @@ async def generate_outfit(
                     
                     # CRITICAL DEBUG: Log strategy before metadata modification
                     logger.info(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                    print(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                    # print(f"🔍 DEBUG BEFORE METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                     
                     # Ensure metadata exists
                     if 'metadata' not in outfit:
@@ -5562,7 +5562,7 @@ async def generate_outfit(
                     
                     # CRITICAL DEBUG: Log strategy after metadata modification
                     logger.info(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
-                    print(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
+                    # print(f"🔍 DEBUG AFTER METADATA MODIFICATION: strategy = {safe_get_metadata(outfit, 'generation_strategy', 'unknown')}")
                     
                     # Update metadata with processing status (simplified)
                     if 'metadata' not in outfit:
@@ -5603,7 +5603,7 @@ async def generate_outfit(
                             if not validation_result.valid:
                                 failed_rules = validation_result.errors or []
                                 logger.warning(f"⚠️ VALIDATION FAILED on attempt {generation_attempts}: {validation_result.errors}")
-                                print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
+                                # print(f"🚨 VALIDATION ALERT: Attempt {generation_attempts} failed validation")
                                 
                                 # If validation fails, retry or use emergency outfit
                                 if attempt < max_attempts - 1:
@@ -5612,7 +5612,7 @@ async def generate_outfit(
                                 else:
                                     # Final attempt failed validation - NO EMERGENCY FALLBACK
                                     logger.error(f"❌ VALIDATION FAILURE: All {max_attempts} attempts failed validation")
-                                    print(f"🚨 VALIDATION FAILURE: All {max_attempts} attempts failed validation")
+                                    # print(f"🚨 VALIDATION FAILURE: All {max_attempts} attempts failed validation")
                                     # NO EMERGENCY FALLBACK - let the robust service handle this
                                     raise Exception(f"Validation failed after {max_attempts} attempts")
                                 
@@ -5631,9 +5631,9 @@ async def generate_outfit(
                     break
                 else:
                     logger.warning(f"⚠️ Generation attempt {generation_attempts} produced invalid outfit")
-                    print(f"🚨 RETRY ALERT: Attempt {generation_attempts} failed - invalid outfit")
-                    print(f"🚨 RETRY CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-                    print(f"🚨 RETRY REASON: Generated outfit has {len((outfit.get('items', []) if outfit else []))} items (minimum 3 required)")
+                    # print(f"🚨 RETRY ALERT: Attempt {generation_attempts} failed - invalid outfit")
+                    # print(f"🚨 RETRY CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+                    # print(f"🚨 RETRY REASON: Generated outfit has {len((outfit.get('items', []) if outfit else []))} items (minimum 3 required)")
                     if attempt < max_attempts - 1:
                         await asyncio.sleep(1)  # Brief delay before retry
                         continue
@@ -5658,8 +5658,8 @@ async def generate_outfit(
                 }
                 
                 logger.error(f"🔥 RETRY LOOP CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
-                print(f"🔥 RETRY LOOP CRASH: {error_details}")
-                print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+                # print(f"🔥 RETRY LOOP CRASH: {error_details}")
+                # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
                 
                 if attempt < max_attempts - 1:
                     await asyncio.sleep(1)  # Brief delay before retry
@@ -5668,11 +5668,11 @@ async def generate_outfit(
         # Check if all attempts failed
         if not outfit or not ((outfit.get('items') if outfit else None) if outfit else None) or len(outfit.get('items', [])) < 3:
             logger.error(f"❌ All {max_attempts} generation attempts failed")
-            print(f"🚨 FINAL FAILURE: All {max_attempts} generation attempts failed")
-            print(f"🚨 FINAL CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
-            print(f"🚨 FINAL IMPACT: User will receive HTTP 500 error - no outfit generated")
+            # print(f"🚨 FINAL FAILURE: All {max_attempts} generation attempts failed")
+            # print(f"🚨 FINAL CONTEXT: User={current_user_id}, Occasion={req.occasion}, Style={req.style}, Mood={req.mood}")
+            # print(f"🚨 FINAL IMPACT: User will receive HTTP 500 error - no outfit generated")
             if last_error:
-                print(f"🚨 FINAL ERROR: {type(last_error).__name__}: {str(last_error)}")
+                # print(f"🚨 FINAL ERROR: {type(last_error).__name__}: {str(last_error)}")
                 # Preserve debug information from our debug logging
                 error_detail = str(last_error)
                 if "DEBUG:" in error_detail or "🔥" in error_detail or "NoneType" in error_detail:
@@ -5693,7 +5693,7 @@ async def generate_outfit(
                         detail=f"Outfit generation failed after {max_attempts} attempts: {error_detail}"
                     )
             else:
-                print(f"🚨 FINAL ERROR: No specific error - unable to generate valid outfit")
+                # print(f"🚨 FINAL ERROR: No specific error - unable to generate valid outfit")
                 raise HTTPException(
                     status_code=500, 
                     detail=f"Outfit generation failed: Unable to generate valid outfit"
@@ -5774,7 +5774,7 @@ async def generate_outfit(
         # CRITICAL DEBUG: Log strategy right before saving to Firebase
         final_strategy = safe_get_metadata(clean_outfit_record, 'generation_strategy', 'unknown')
         logger.info(f"🔍 DEBUG FINAL SAVE: strategy = {final_strategy}")
-        print(f"🔍 DEBUG FINAL SAVE: strategy = {final_strategy}")
+        # print(f"🔍 DEBUG FINAL SAVE: strategy = {final_strategy}")
         
         save_result = await save_outfit(current_user_id, outfit_id, clean_outfit_record)
         logger.info(f"💾 Save operation result: {save_result}")
@@ -5824,8 +5824,8 @@ async def generate_outfit(
         }
         
         logger.error("🔥 ENDPOINT CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
-        print(f"🔥 ENDPOINT CRASH: {error_details}")
-        print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+        # print(f"🔥 ENDPOINT CRASH: {error_details}")
+        # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
         
         # Return the detailed error information
         raise HTTPException(

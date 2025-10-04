@@ -51,17 +51,17 @@ class ValidationOrchestrator:
     ) -> Dict[str, Any]:
         """Run all validation steps with orchestration."""
         
-        print(f"🔧 Starting validation orchestration for {len(items)} items")
+        # print(f"🔧 Starting validation orchestration for {len(items)} items")
         
         # Add debugging to see what items we're validating
         if len(items) > 10:
-            print(f"⚠️  WARNING: Validating {len(items)} items - this seems like the entire wardrobe!")
-            print(f"🔍 First few items: {[item.name[:50] for item in items[:3]]}")
+            # print(f"⚠️  WARNING: Validating {len(items)} items - this seems like the entire wardrobe!")
+            # print(f"🔍 First few items: {[item.name[:50] for item in items[:3]]}")
         else:
-            print(f"✅ Validating {len(items)} selected items")
+            # print(f"✅ Validating {len(items)} selected items")
         
         # Phase 1: Parallel validations (independent checks)
-        print("🔄 Phase 1: Running parallel validations...")
+#         print("🔄 Phase 1: Running parallel validations...")
         parallel_tasks = [
             self._validate_occasion_appropriateness(items, context),
             self._validate_weather_compatibility(items, context),
@@ -78,10 +78,10 @@ class ValidationOrchestrator:
             if isinstance(result, ValidationResult):
                 valid_parallel_results.append(result)
             else:
-                print(f"⚠️  Parallel validation failed: {result}")
+                # print(f"⚠️  Parallel validation failed: {result}")
         
         # Phase 2: Sequential validations (dependent on previous results)
-        print("🔄 Phase 2: Running sequential validations...")
+#         print("🔄 Phase 2: Running sequential validations...")
         sequential_results = []
         
         # Form completeness depends on occasion rules
@@ -109,7 +109,7 @@ class ValidationOrchestrator:
         self.results = all_results
         
         final_result = self._aggregate_results()
-        print(f"✅ Validation orchestration completed: {len(final_result['errors'])} errors, {len(final_result['warnings'])} warnings")
+        # print(f"✅ Validation orchestration completed: {len(final_result['errors'])} errors, {len(final_result['warnings'])} warnings")
         
         return final_result
     

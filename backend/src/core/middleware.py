@@ -308,7 +308,7 @@ class HealthCheckMiddleware(BaseHTTPMiddleware):
 
 def setup_middleware(app: ASGIApp) -> None:
     """Setup only LoggingMiddleware for debugging."""
-    print("DEBUG: setup_middleware called - adding LoggingMiddleware")
+    # print("DEBUG: setup_middleware called - adding LoggingMiddleware")
     
     # RE-ENABLING LOGGING MIDDLEWARE NOW THAT STARTUP IS STABLE
     app.add_middleware(LoggingMiddleware)
@@ -323,9 +323,9 @@ def setup_middleware(app: ASGIApp) -> None:
     # Make logging call safer to prevent silent failures
     try:
         logger.info("LoggingMiddleware re-enabled - startup issue resolved")
-        print("DEBUG: LoggingMiddleware logging call completed successfully")
+        # print("DEBUG: LoggingMiddleware logging call completed successfully")
     except Exception as e:
-        print(f"DEBUG: LoggingMiddleware logging call failed: {e}")
+        # print(f"DEBUG: LoggingMiddleware logging call failed: {e}")
         # Continue anyway - don't let logging failure break the app
     
-    print("DEBUG: setup_middleware completed - LoggingMiddleware re-enabled") 
+    # print("DEBUG: setup_middleware completed - LoggingMiddleware re-enabled") 

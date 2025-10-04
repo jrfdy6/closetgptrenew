@@ -29,9 +29,9 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
     Returns detailed analysis with prioritized recommendations.
     """
     try:
-        print(f"🔍 Gaps Backend: Received gender parameter: {gender}")
-        print(f"🔍 Gaps Backend: Current user: {current_user.id if current_user else 'None'}")
-        print(f"🔍 Gaps Backend: Current user gender: {current_user.gender if current_user else 'None'}")
+        # print(f"🔍 Gaps Backend: Received gender parameter: {gender}")
+        # print(f"🔍 Gaps Backend: Current user: {current_user.id if current_user else 'None'}")
+        # print(f"🔍 Gaps Backend: Current user gender: {current_user.gender if current_user else 'None'}")
         
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
@@ -39,9 +39,9 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
         # Use user's gender if not specified
         if not gender and current_user.gender:
             gender = current_user.gender
-            print(f"🎯 Gaps Backend: Using user's gender from profile: {gender}")
+#             print(f"🎯 Gaps Backend: Using user's gender from profile: {gender}")
         
-        print(f"🎯 Gaps Backend: Final gender filter: {gender}")
+#         print(f"🎯 Gaps Backend: Final gender filter: {gender}")
             
         analysis_service = WardrobeAnalysisService()
         analysis = await analysis_service.get_wardrobe_gaps(current_user.id)
@@ -50,20 +50,20 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
         try:
             from src.services.fashion_trends_service import FashionTrendsService
             trends_service = FashionTrendsService()
-            print(f"🔍 Gaps Backend: Calling trends service with gender: {gender}")
+            # print(f"🔍 Gaps Backend: Calling trends service with gender: {gender}")
             real_trends = await trends_service.get_trending_styles(gender)
             
             if real_trends and len(real_trends) > 0:
-                print(f"✅ Gaps Backend: Successfully retrieved {len(real_trends)} real trends for gender: {gender or 'unisex'}")
+                # print(f"✅ Gaps Backend: Successfully retrieved {len(real_trends)} real trends for gender: {gender or 'unisex'}")
                 # Check if ballet flats are in the results
                 ballet_flats_count = sum(1 for trend in real_trends if 'ballet' in (trend.get('name', '') if trend else '').lower())
-                print(f"🔍 Gaps Backend: Ballet flats in results: {ballet_flats_count}")
+                # print(f"🔍 Gaps Backend: Ballet flats in results: {ballet_flats_count}")
                 analysis["trending_styles"] = real_trends
                 analysis["gender_filter"] = gender
             else:
-                print("⚠️ Gaps Backend: No real trends available, keeping fallback data")
+                # print("⚠️ Gaps Backend: No real trends available, keeping fallback data")
         except Exception as e:
-            print(f"❌ Gaps Backend: Error getting real trends: {e}")
+            # print(f"❌ Gaps Backend: Error getting real trends: {e}")
             # Keep the fallback trends from the analysis service
         
         return {
@@ -72,7 +72,7 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
             "message": "Wardrobe gap analysis completed successfully"
         }
     except Exception as e:
-        print(f"❌ Gaps Backend: Error in wardrobe gap analysis: {e}")
+        # print(f"❌ Gaps Backend: Error in wardrobe gap analysis: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to analyze wardrobe gaps"
@@ -108,7 +108,7 @@ async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_
             "message": "Wardrobe coverage analysis completed successfully"
         }
     except Exception as e:
-        print(f"Error in wardrobe coverage analysis: {e}")
+#         print(f"Error in wardrobe coverage analysis: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to analyze wardrobe coverage"
@@ -152,7 +152,7 @@ async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_c
             "message": "Wardrobe recommendations generated successfully"
         }
     except Exception as e:
-        print(f"Error in wardrobe recommendations: {e}")
+#         print(f"Error in wardrobe recommendations: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to generate wardrobe recommendations"
@@ -191,7 +191,7 @@ async def get_validation_errors(current_user: UserProfile = Depends(get_current_
             "message": "Validation error analysis completed successfully"
         }
     except Exception as e:
-        print(f"Error in validation error analysis: {e}")
+#         print(f"Error in validation error analysis: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to analyze validation errors"
@@ -224,7 +224,7 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
             trending_styles = await trends_service.get_trending_styles(gender)
             
             if trending_styles and len(trending_styles) > 0:
-                print(f"✅ API: Successfully retrieved {len(trending_styles)} real trends for gender: {gender or 'unisex'}")
+                # print(f"✅ API: Successfully retrieved {len(trending_styles)} real trends for gender: {gender or 'unisex'}")
                 return {
                     "success": True,
                     "data": {
@@ -236,9 +236,9 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
                     }
                 }
             else:
-                print("⚠️ API: No real trends available, using fallback data")
+                # print("⚠️ API: No real trends available, using fallback data")
         except Exception as e:
-            print(f"❌ API: Error getting real trends: {e}")
+            # print(f"❌ API: Error getting real trends: {e}")
         
         # Fallback to curated trends if real trends fail
         fallback_trends = [
@@ -289,7 +289,7 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
         }
         
     except Exception as e:
-        print(f"Error getting trending styles: {e}")
+#         print(f"Error getting trending styles: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve trending styles"
@@ -312,12 +312,12 @@ async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)
         if not current_user_id:
             raise HTTPException(status_code=400, detail="User not found")
             
-        print(f"🔍 DEBUG: Getting wardrobe stats for user: {current_user_id}")
+        # print(f"🔍 DEBUG: Getting wardrobe stats for user: {current_user_id}")
         analysis_service = WardrobeAnalysisService()
         wardrobe = await analysis_service._get_user_wardrobe(current_user_id)
-        print(f"🔍 DEBUG: Retrieved {len(wardrobe)} wardrobe items for user: {current_user_id}")
+        # print(f"🔍 DEBUG: Retrieved {len(wardrobe)} wardrobe items for user: {current_user_id}")
         stats = analysis_service._get_wardrobe_stats(wardrobe)
-        print(f"🔍 DEBUG: Generated stats: {stats}")
+        # print(f"🔍 DEBUG: Generated stats: {stats}")
         
         return {
             "success": True,
@@ -325,7 +325,7 @@ async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)
             "message": "Wardrobe statistics retrieved successfully"
         }
     except Exception as e:
-        print(f"Error getting wardrobe stats: {e}")
+#         print(f"Error getting wardrobe stats: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to get wardrobe statistics"
@@ -351,13 +351,13 @@ async def force_refresh_trends() -> Dict[str, Any]:
             fetch_log_ref.delete()
             print(f"🗑️ Cleared fetch log for {today}")
         except Exception as e:
-            print(f"⚠️ Warning: Could not clear fetch log: {e}")
+            # print(f"⚠️ Warning: Could not clear fetch log: {e}")
         
         # Force fetch new trends
         result = await trends_service.fetch_and_store_trends()
         
         if result["status"] == "success":
-            print(f"✅ Force refresh successful: {result['trends_fetched']} trends fetched")
+            # print(f"✅ Force refresh successful: {result['trends_fetched']} trends fetched")
             
             # Get the updated trends
             trending_styles = await trends_service.get_trending_styles()
@@ -379,7 +379,7 @@ async def force_refresh_trends() -> Dict[str, Any]:
             }
             
     except Exception as e:
-        print(f"❌ Error in force refresh: {e}")
+        # print(f"❌ Error in force refresh: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to force refresh trends: {str(e)}"

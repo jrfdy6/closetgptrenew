@@ -11,9 +11,9 @@ router = APIRouter(tags=["wardrobe"])
 # Initialize Firestore conditionally
 try:
     db = firestore.client()
-    print("DEBUG: Firebase client initialized successfully")
+    # print("DEBUG: Firebase client initialized successfully")
 except Exception as e:
-    print(f"Warning: Could not initialize Firebase client: {e}")
+#     print(f"Warning: Could not initialize Firebase client: {e}")
     db = None
 
 # Simple mock user for testing
@@ -38,11 +38,11 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
 async def get_wardrobe_items() -> Dict[str, Any]:
     """Get user's wardrobe items - simplified version"""
     try:
-        print("DEBUG: Getting wardrobe items (simplified)")
+        # print("DEBUG: Getting wardrobe items (simplified)")
         
         # Get wardrobe items from Firestore using flat collection structure
         wardrobe_ref = db.collection('wardrobe')
-        print(f"DEBUG: Querying wardrobe collection for userId: {current_user_id}")
+        # print(f"DEBUG: Querying wardrobe collection for userId: {current_user_id}")
         docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
         
         items = []
@@ -93,7 +93,7 @@ async def get_wardrobe_items() -> Dict[str, Any]:
                     else:
                         item_data['createdAt'] = int(datetime.now().timestamp())
                 except Exception as e:
-                    print(f"DEBUG: Error converting createdAt for item {doc.id}: {e}")
+                    # print(f"DEBUG: Error converting createdAt for item {doc.id}: {e}")
                     item_data['createdAt'] = int(datetime.now().timestamp())
                 
                 try:
@@ -105,22 +105,22 @@ async def get_wardrobe_items() -> Dict[str, Any]:
                     else:
                         item_data['updatedAt'] = int(datetime.now().timestamp())
                 except Exception as e:
-                    print(f"DEBUG: Error converting updatedAt for item {doc.id}: {e}")
+                    # print(f"DEBUG: Error converting updatedAt for item {doc.id}: {e}")
                     item_data['updatedAt'] = int(datetime.now().timestamp())
                 
                 items.append(item_data)
-                print(f"DEBUG: Successfully processed item {doc.id}")
+                # print(f"DEBUG: Successfully processed item {doc.id}")
                 
             except Exception as e:
-                print(f"DEBUG: Error processing wardrobe item {doc.id}: {e}")
+                # print(f"DEBUG: Error processing wardrobe item {doc.id}: {e}")
                 errors.append(f"Failed to process item {doc.id}: {str(e)}")
         
         # Sort items by creation date (newest first)
         items.sort(key=lambda x: (x.get('createdAt', 0) if x else 0), reverse=True)
         
-        print(f"DEBUG: Retrieved {len(items)} wardrobe items")
+        # print(f"DEBUG: Retrieved {len(items)} wardrobe items")
         if errors:
-            print(f"DEBUG: Encountered {len(errors)} errors while processing items")
+            # print(f"DEBUG: Encountered {len(errors)} errors while processing items")
         
         return {
             "success": True,
@@ -129,7 +129,7 @@ async def get_wardrobe_items() -> Dict[str, Any]:
             "errors": errors if errors else None
         }
     except Exception as e:
-        print(f"DEBUG: Error getting wardrobe: {e}")
+        # print(f"DEBUG: Error getting wardrobe: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving wardrobe items: {str(e)}"
@@ -139,7 +139,7 @@ async def get_wardrobe_items() -> Dict[str, Any]:
 async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """Add item to wardrobe - simplified version"""
     try:
-        print(f"DEBUG: Adding wardrobe item")
+        # print(f"DEBUG: Adding wardrobe item")
         
         # Validate required fields
         required_fields = ['name', 'type', 'color']
@@ -196,11 +196,11 @@ async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = De
         doc_ref = db.collection('wardrobe').document(item_id)
         doc_ref.set(wardrobe_item)
         
-        print(f"DEBUG: Successfully added item with ID: {item_id}")
-        print(f"DEBUG: Item saved with userId: {wardrobe_item['userId']}")
-        print(f"DEBUG: Item name: {wardrobe_item['name']}")
-        print(f"DEBUG: Item type: {wardrobe_item['type']}")
-        print(f"DEBUG: Item color: {wardrobe_item['color']}")
+        # print(f"DEBUG: Successfully added item with ID: {item_id}")
+        # print(f"DEBUG: Item saved with userId: {wardrobe_item['userId']}")
+        # print(f"DEBUG: Item name: {wardrobe_item['name']}")
+        # print(f"DEBUG: Item type: {wardrobe_item['type']}")
+        # print(f"DEBUG: Item color: {wardrobe_item['color']}")
         
         return {
             "success": True,
@@ -209,7 +209,7 @@ async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = De
             "item": wardrobe_item
         }
     except Exception as e:
-        print(f"DEBUG: Error adding wardrobe item: {e}")
+        # print(f"DEBUG: Error adding wardrobe item: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to add item"
@@ -260,7 +260,7 @@ async def get_top_worn_items(limit: int = 5):
         }
         
     except Exception as e:
-        print(f"DEBUG: Error getting top worn items: {e}")
+        # print(f"DEBUG: Error getting top worn items: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to get top worn items"
@@ -312,7 +312,7 @@ async def get_wardrobe_stats():
         }
         
     except Exception as e:
-        print(f"DEBUG: Error getting wardrobe stats: {e}")
+        # print(f"DEBUG: Error getting wardrobe stats: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to get wardrobe stats"
@@ -322,7 +322,7 @@ async def get_wardrobe_stats():
 async def delete_wardrobe_item(item_id: str, current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """Delete a wardrobe item"""
     try:
-        print(f"DEBUG: Deleting wardrobe item {item_id} for user {current_user_id}")
+        # print(f"DEBUG: Deleting wardrobe item {item_id} for user {current_user_id}")
         
         if not db:
             raise HTTPException(status_code=500, detail="Database not available")
@@ -341,7 +341,7 @@ async def delete_wardrobe_item(item_id: str, current_user_id: str = Depends(get_
         # Delete the item
         doc_ref.delete()
         
-        print(f"DEBUG: Successfully deleted item {item_id}")
+        # print(f"DEBUG: Successfully deleted item {item_id}")
         
         return {
             "success": True,
@@ -352,7 +352,7 @@ async def delete_wardrobe_item(item_id: str, current_user_id: str = Depends(get_
     except HTTPException:
         raise
     except Exception as e:
-        print(f"DEBUG: Error deleting wardrobe item: {e}")
+        # print(f"DEBUG: Error deleting wardrobe item: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to delete item"

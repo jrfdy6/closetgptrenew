@@ -33,7 +33,7 @@ def parse_last_worn(ts):
             return None
     except Exception as e:
         # Use print instead of logger since logger isn't defined yet
-        print(f"Failed to parse lastWorn timestamp '{ts}': {e}")
+#         print(f"Failed to parse lastWorn timestamp '{ts}': {e}")
         return None
 # Firebase imports moved inside functions to prevent import-time crashes
 # from google.cloud import firestore
@@ -626,7 +626,7 @@ async def get_todays_outfit_suggestion(
     Get or generate today's outfit suggestion for the current user.
     This generates a new outfit suggestion once per day and caches it.
     """
-    print("⚡ HIT: today-suggestion from outfit_history.py")
+#     print("⚡ HIT: today-suggestion from outfit_history.py")
     try:
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")

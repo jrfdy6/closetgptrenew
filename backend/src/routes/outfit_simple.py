@@ -17,8 +17,8 @@ async def get_outfit(outfit_id: str):
 
 @router.post("/generate")
 async def generate_outfit(request: Dict[str, Any]):
-    print(f"🔍 DEBUG: Simple outfit generation called")
-    print(f"🔍 DEBUG: Request data: {request}")
+    # print(f"🔍 DEBUG: Simple outfit generation called")
+    # print(f"🔍 DEBUG: Request data: {request}")
     
     # Simple mock response
     mock_outfit = {
@@ -77,5 +77,5 @@ async def generate_outfit(request: Dict[str, Any]):
         "userId": (request.get("user_profile", {}) if request else {}).get("id", "unknown")
     }
     
-    print(f"✅ DEBUG: Simple mock outfit generated successfully")
+    # print(f"✅ DEBUG: Simple mock outfit generated successfully")
     return mock_outfit

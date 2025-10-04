@@ -22,11 +22,11 @@ router = APIRouter(prefix="/api/outfit")
 
 @router.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    print(f"🔍 DEBUG: Validation error occurred:")
-    print(f"  - URL: {request.url}")
-    print(f"  - Method: {request.method}")
-    print(f"  - Errors: {exc.errors()}")
-    print(f"  - Body: {await request.body()}")
+    # print(f"🔍 DEBUG: Validation error occurred:")
+#     print(f"  - URL: {request.url}")
+#     print(f"  - Method: {request.method}")
+#     print(f"  - Errors: {exc.errors()}")
+#     print(f"  - Body: {await request.body()}")
     return HTTPException(status_code=422, detail=f"Validation error: {exc.errors()}")
 
 class OutfitGenerationRequest(BaseModel):
@@ -81,16 +81,16 @@ async def get_outfit(outfit_id: str):
 
 @router.post("/generate")
 async def generate_outfit(request: OutfitGenerationRequest):
-    print(f"🔍 DEBUG: Backend generate_outfit called [SIMPLE ENDPOINT v1.0]")
-    print(f"🔍 DEBUG: Request data:")
-    print(f"  - occasion: {request.occasion}")
-    print(f"  - mood: {request.mood}")
-    print(f"  - style: {request.style}")
-    print(f"  - wardrobe size: {len(request.wardrobe)}")
-    print(f"  - baseItemId: {request.baseItemId if request.baseItemId else 'None'}")
-    print(f"  - user_profile.id: {request.user_profile.id}")
-    print(f"🔍 DEBUG: Weather data: temp={request.weather.temperature}, condition={request.weather.condition}")
-    print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].name if request.wardrobe else 'None'}")
+    # print(f"🔍 DEBUG: Backend generate_outfit called [SIMPLE ENDPOINT v1.0]")
+    # print(f"🔍 DEBUG: Request data:")
+#     print(f"  - occasion: {request.occasion}")
+#     print(f"  - mood: {request.mood}")
+#     print(f"  - style: {request.style}")
+#     print(f"  - wardrobe size: {len(request.wardrobe)}")
+#     print(f"  - baseItemId: {request.baseItemId if request.baseItemId else 'None'}")
+#     print(f"  - user_profile.id: {request.user_profile.id}")
+    # print(f"🔍 DEBUG: Weather data: temp={request.weather.temperature}, condition={request.weather.condition}")
+    # print(f"🔍 DEBUG: First wardrobe item: {request.wardrobe[0].name if request.wardrobe else 'None'}")
     
     # Simple mock response for now
     mock_outfit = {
@@ -153,7 +153,7 @@ async def generate_outfit(request: OutfitGenerationRequest):
         "userId": request.user_profile.id
     }
     
-    print(f"✅ DEBUG: Mock outfit generated successfully")
+    # print(f"✅ DEBUG: Mock outfit generated successfully")
     return mock_outfit
 
 # MOVED TO OUTFITS.PY - Using unified REST structure
@@ -167,7 +167,7 @@ async def generate_outfit(request: OutfitGenerationRequest):
 #     """
 # OLD IMPLEMENTATION - MOVED TO outfits.py for unified REST structure
 #     try:
-#         print(f"🔍 DEBUG: Backend create_outfit called")
+#         # print(f"🔍 DEBUG: Backend create_outfit called")
 #         ...implementation moved to outfits.py...
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
@@ -183,8 +183,8 @@ async def generate_outfit(request: OutfitGenerationRequest):
 #     Update an existing outfit with new details and items.
 #     """
 #     try:
-#         print(f"🔍 DEBUG: Backend update_outfit called")
-#         print(f"🔍 DEBUG: Request data:")
+#         # print(f"🔍 DEBUG: Backend update_outfit called")
+#         # print(f"🔍 DEBUG: Request data:")
 #         print(f"  - outfit_id: {outfit_id}")
 #         print(f"  - name: {request.name}")
 #         print(f"  - occasion: {request.occasion}")
@@ -193,7 +193,7 @@ async def generate_outfit(request: OutfitGenerationRequest):
 #         
 #         # Handle case where current_user might be None
 #         if current_user is None:
-#             print(f"❌ DEBUG: Authentication failed - current_user is None")
+#             # print(f"❌ DEBUG: Authentication failed - current_user is None")
 #             raise HTTPException(status_code=401, detail="Authentication required")
 #         
 #         print(f"  - user_profile.id: {current_user.id}")
@@ -212,15 +212,15 @@ async def generate_outfit(request: OutfitGenerationRequest):
 #         # Save to database
 #         result = await outfit_service.update_outfit(outfit_id, outfit_data, current_user.id)
 #         
-#         print(f"✅ DEBUG: update_outfit completed successfully")
-#         print(f"🔍 DEBUG: Updated outfit id: {result.id}")
+#         # print(f"✅ DEBUG: update_outfit completed successfully")
+#         # print(f"🔍 DEBUG: Updated outfit id: {result.id}")
 #         return result
 #         
 #     except Exception as e:
-#         print(f"❌ DEBUG: Error in update_outfit: {str(e)}")
-#         print(f"🔍 DEBUG: Exception type: {type(e)}")
+#         # print(f"❌ DEBUG: Error in update_outfit: {str(e)}")
+#         # print(f"🔍 DEBUG: Exception type: {type(e)}")
 #         import traceback
-#         print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
+#         # print(f"🔍 DEBUG: Full traceback: {traceback.format_exc()}")
 #         raise HTTPException(status_code=500, detail=str(e))
 
 # @router.post("/{outfit_id}/feedback")

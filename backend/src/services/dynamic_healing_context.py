@@ -109,7 +109,7 @@ class DynamicHealingContext:
             'timestamp': time.time()
         })
         
-        print(f"🔍 Error recorded: {error_type.value} - {details}")
+        # print(f"🔍 Error recorded: {error_type.value} - {details}")
     
     def add_item_removed(self, item_id: str, reason: str, item_data: Dict[str, Any] = None):
         """Mark an item as removed to avoid retrying it in future passes."""
@@ -128,7 +128,7 @@ class DynamicHealingContext:
             'item_data': item_data
         })
         
-        print(f"🚫 Item removed: {item_id} - {reason}")
+#         print(f"🚫 Item removed: {item_id} - {reason}")
     
     def add_rule_triggered(self, rule_name: str, failure_reason: str, context: Dict[str, Any] = None):
         """Track which rules failed and why."""
@@ -181,7 +181,7 @@ class DynamicHealingContext:
         })
         
         status = "✅" if success else "❌"
-        print(f"{status} Fix attempted: {fix_type.value} - {'Success' if success else 'Failed'}")
+#         print(f"{status} Fix attempted: {fix_type.value} - {'Success' if success else 'Failed'}")
     
     def increment_pass(self):
         """Move to the next healing pass."""

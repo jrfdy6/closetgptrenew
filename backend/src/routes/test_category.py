@@ -12,7 +12,7 @@ try:
     from ..services.robust_outfit_generation_service import RobustOutfitGenerationService
     from ..custom_types.wardrobe import ClothingItem
 except ImportError as e:
-    print(f"Import error: {e}")
+#     print(f"Import error: {e}")
     # Fallback for testing
     class ClothingItem:
         def __init__(self, **kwargs):

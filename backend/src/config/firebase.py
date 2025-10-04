@@ -41,7 +41,7 @@ try:
     firebase_initialized = True
     
 except Exception as e:
-    print(f"Firebase initialization failed: {e}")
+#     print(f"Firebase initialization failed: {e}")
     firebase_initialized = False
     db = None
 

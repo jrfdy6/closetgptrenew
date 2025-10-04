@@ -205,7 +205,7 @@ class FashionTrendsService:
     async def get_trending_styles(self, gender: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get trending styles from Firestore, optionally filtered by gender."""
         try:
-            print(f"🔍 Trends Service: Starting get_trending_styles with gender: {gender}")
+            # print(f"🔍 Trends Service: Starting get_trending_styles with gender: {gender}")
             
             # Get trends from the last 7 days, sorted by score
             trends_ref = self.db.collection("fashion_trends")
@@ -241,16 +241,16 @@ class FashionTrendsService:
                 if len(trends) >= 20:
                     break
             
-            print(f"🔍 Trends Service: Total trends found: {len(all_trends)}")
-            print(f"🔍 Trends Service: Trends after gender filtering and deduplication: {len(trends)}")
-            print(f"🔍 Trends Service: Sample trends before filtering: {all_trends[:5]}")
-            print(f"🔍 Trends Service: Sample trends after filtering: {[(t.get('name', '') if t else '') for t in trends[:5]]}")
+            # print(f"🔍 Trends Service: Total trends found: {len(all_trends)}")
+            # print(f"🔍 Trends Service: Trends after gender filtering and deduplication: {len(trends)}")
+            # print(f"🔍 Trends Service: Sample trends before filtering: {all_trends[:5]}")
+            # print(f"🔍 Trends Service: Sample trends after filtering: {[(t.get('name', '') if t else '') for t in trends[:5]]}")
             
             # Check for ballet flats specifically
             ballet_flats_before = [t for t in all_trends if 'ballet' in t]
             ballet_flats_after = [((t.get('name', '') if t else '') if t else '') for t in trends if 'ballet' in ((t.get('name', '') if t else '') if t else '').lower()]
-            print(f"🔍 Trends Service: Ballet flats before filtering: {ballet_flats_before}")
-            print(f"🔍 Trends Service: Ballet flats after filtering: {ballet_flats_after}")
+            # print(f"🔍 Trends Service: Ballet flats before filtering: {ballet_flats_before}")
+            # print(f"🔍 Trends Service: Ballet flats after filtering: {ballet_flats_after}")
             
             return trends
             
@@ -262,7 +262,7 @@ class FashionTrendsService:
         """Check if a trend is appropriate for the specified gender."""
         trend_lower = trend_name.lower()
         
-        print(f"🔍 Gender Filter: Checking trend '{trend_name}' for gender '{gender}'")
+        # print(f"🔍 Gender Filter: Checking trend '{trend_name}' for gender '{gender}'")
         
         if gender == "female":
             # For female users, include:
@@ -274,35 +274,35 @@ class FashionTrendsService:
             # Check for women's specific keywords
             for keyword in gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
-                    print(f"✅ Gender Filter: '{trend_name}' matches female keyword '{keyword}'")
+                    # print(f"✅ Gender Filter: '{trend_name}' matches female keyword '{keyword}'")
                     return True
             
             # Check for women's specific items
             for item in gender_specific_items.get("female", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
-                    print(f"✅ Gender Filter: '{trend_name}' matches female item '{item}'")
+                    # print(f"✅ Gender Filter: '{trend_name}' matches female item '{item}'")
                     return True
             
             # Check for unisex keywords
             for keyword in gender_specific_keywords.get("unisex", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
-                    print(f"✅ Gender Filter: '{trend_name}' matches unisex keyword '{keyword}'")
+                    # print(f"✅ Gender Filter: '{trend_name}' matches unisex keyword '{keyword}'")
                     return True
             
             # Exclude men's specific items
             for item in gender_specific_items.get("male", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
-                    print(f"❌ Gender Filter: '{trend_name}' excluded - matches male item '{item}'")
+                    # print(f"❌ Gender Filter: '{trend_name}' excluded - matches male item '{item}'")
                     return False
             
             # Exclude men's specific keywords
             for keyword in gender_specific_keywords.get("male", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
-                    print(f"❌ Gender Filter: '{trend_name}' excluded - matches male keyword '{keyword}'")
+                    # print(f"❌ Gender Filter: '{trend_name}' excluded - matches male keyword '{keyword}'")
                     return False
             
             # Include general trends that don't have gender-specific terms
-            print(f"✅ Gender Filter: '{trend_name}' included as general trend for female")
+            # print(f"✅ Gender Filter: '{trend_name}' included as general trend for female")
             return True
             
         elif gender == "male":
@@ -315,39 +315,39 @@ class FashionTrendsService:
             # Check for men's specific keywords
             for keyword in gender_specific_keywords.get("male", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
-                    print(f"✅ Gender Filter: '{trend_name}' matches male keyword '{keyword}'")
+                    # print(f"✅ Gender Filter: '{trend_name}' matches male keyword '{keyword}'")
                     return True
             
             # Check for men's specific items
             for item in gender_specific_items.get("male", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
-                    print(f"✅ Gender Filter: '{trend_name}' matches male item '{item}'")
+                    # print(f"✅ Gender Filter: '{trend_name}' matches male item '{item}'")
                     return True
             
             # Check for unisex keywords
             for keyword in gender_specific_keywords.get("unisex", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
-                    print(f"✅ Gender Filter: '{trend_name}' matches unisex keyword '{keyword}'")
+                    # print(f"✅ Gender Filter: '{trend_name}' matches unisex keyword '{keyword}'")
                     return True
             
             # Exclude women's specific items
             for item in gender_specific_items.get("female", []) if gender_specific_items else []):
                 if item.lower() in trend_lower:
-                    print(f"❌ Gender Filter: '{trend_name}' excluded - matches female item '{item}'")
+                    # print(f"❌ Gender Filter: '{trend_name}' excluded - matches female item '{item}'")
                     return False
             
             # Exclude women's specific keywords
             for keyword in gender_specific_keywords.get("female", []) if gender_specific_keywords else []):
                 if keyword.lower() in trend_lower:
-                    print(f"❌ Gender Filter: '{trend_name}' excluded - matches female keyword '{keyword}'")
+                    # print(f"❌ Gender Filter: '{trend_name}' excluded - matches female keyword '{keyword}'")
                     return False
             
             # Include general trends that don't have gender-specific terms
-            print(f"✅ Gender Filter: '{trend_name}' included as general trend for male")
+            # print(f"✅ Gender Filter: '{trend_name}' included as general trend for male")
             return True
         
         # For unisex or unknown gender, include everything
-        print(f"✅ Gender Filter: '{trend_name}' included for unisex")
+        # print(f"✅ Gender Filter: '{trend_name}' included for unisex")
         return True
 
     def _format_trend_data(self, trend_data: Dict[str, Any]) -> Dict[str, Any]:

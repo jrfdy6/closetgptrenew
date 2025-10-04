@@ -41,7 +41,7 @@ async def get_favorite_item_ids(user_id: str) -> set:
         favorite_items = await fallback_service._query_favorite_items(user_id)
         return {item.id for item in favorite_items}
     except Exception as e:
-        print(f"⚠️ Warning: Could not fetch favorite items: {e}")
+        # print(f"⚠️ Warning: Could not fetch favorite items: {e}")
         return set()
 
 def score_items(items: List[ClothingItem], context: Dict[str, Any]) -> List[dict]:
@@ -56,14 +56,14 @@ def score_items(items: List[ClothingItem], context: Dict[str, Any]) -> List[dict
             else:
                 favorite_ids = loop.run_until_complete(get_favorite_item_ids(user_id))
         except Exception as e:
-            print(f"⚠️ Warning: Could not get favorite items: {e}")
+            # print(f"⚠️ Warning: Could not get favorite items: {e}")
             favorite_ids = set()
     scored = []
     for item in items:
         base_score = calculate_style_score(item, context)
         if hasattr(item, 'id') and item.id in favorite_ids:
             base_score += 0.3
-            print(f"⭐ Favorite item boosted: {getattr(item, 'name', str(item))} (score: {base_score:.2f})")
+#             print(f"⭐ Favorite item boosted: {getattr(item, 'name', str(item))} (score: {base_score:.2f})")
         scored.append({"item": item, "score": base_score})
     return scored
 
@@ -77,7 +77,7 @@ async def score_items_async(items: List[ClothingItem], context: Dict[str, Any]) 
         base_score = calculate_style_score(item, context)
         if hasattr(item, 'id') and item.id in favorite_ids:
             base_score += 0.3
-            print(f"⭐ Favorite item boosted: {getattr(item, 'name', str(item))} (score: {base_score:.2f})")
+#             print(f"⭐ Favorite item boosted: {getattr(item, 'name', str(item))} (score: {base_score:.2f})")
         scored.append({"item": item, "score": base_score})
     return scored
 
@@ -86,21 +86,21 @@ def pick_top_ranked_items(scored: List[dict], target_count: int = 5) -> List[Clo
     return [entry["item"] for entry in sorted_items[:target_count]]
 
 async def select_items(filtered_items: List[ClothingItem], context: Dict[str, Any]) -> List[ClothingItem]:
-    print(f"🎯 Smart selection: Processing {len(filtered_items)} items")
+#     print(f"🎯 Smart selection: Processing {len(filtered_items)} items")
     
     # Check if there's a base item that should be included
     base_item = (context.get("base_item") if context else None)
     base_item_included = False
     
     if base_item:
-        print(f"🎯 Base item specified: {base_item.name}")
+#         print(f"🎯 Base item specified: {base_item.name}")
         # Check if base item is in filtered items
         base_item_in_filtered = any(item.id == base_item.id for item in filtered_items)
         if base_item_in_filtered:
-            print(f"✅ Base item found in filtered items")
+            # print(f"✅ Base item found in filtered items")
             base_item_included = True
         else:
-            print(f"⚠️ Base item not found in filtered items, will try to include it")
+            # print(f"⚠️ Base item not found in filtered items, will try to include it")
     
     scored = await score_items_async(filtered_items, context)
     target_counts = (context.get("target_counts", {}) if context else {})
@@ -111,7 +111,7 @@ async def select_items(filtered_items: List[ClothingItem], context: Dict[str, An
         # Add base item to scored items with high score
         base_item_score = {"item": base_item, "score": 10.0}  # Very high score to ensure selection
         scored.append(base_item_score)
-        print(f"🎯 Added base item to selection with high priority score")
+#         print(f"🎯 Added base item to selection with high priority score")
     
     selected = pick_top_ranked_items(scored, target_count)
     
@@ -121,7 +121,7 @@ async def select_items(filtered_items: List[ClothingItem], context: Dict[str, An
         selected = [item for item in selected if item.id != base_item.id]
         if base_item_in_filtered or any(item.id == base_item.id for item in filtered_items):
             selected.insert(0, base_item)
-            print(f"✅ Base item placed first in selection")
+            # print(f"✅ Base item placed first in selection")
     
-    print(f"✅ Smart selection: Selected {len(selected)} items")
+    # print(f"✅ Smart selection: Selected {len(selected)} items")
     return selected 

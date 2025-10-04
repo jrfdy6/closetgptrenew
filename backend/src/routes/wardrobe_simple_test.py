@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/wardrobe", tags=["wardrobe-simple"])
 try:
     db = firestore.client()
 except Exception as e:
-    print(f"Warning: Could not initialize Firestore: {e}")
+#     print(f"Warning: Could not initialize Firestore: {e}")
     db = None
 
 @router.get("/")

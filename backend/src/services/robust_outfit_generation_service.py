@@ -34,14 +34,14 @@ try:
     from ..custom_types.weather import WeatherData
     from ..custom_types.profile import UserProfile
     from .robust_hydrator import ensure_items_safe_for_pydantic
-    print("✅ ROBUST SERVICE: Using real imports")
+    # print("✅ ROBUST SERVICE: Using real imports")
     USING_REAL_CLASSES = True
 except (ImportError, ValueError) as e:
-    print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
+    # print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
     import traceback
-    print(f"❌ ROBUST SERVICE: Import traceback: {traceback.format_exc()}")
+    # print(f"❌ ROBUST SERVICE: Import traceback: {traceback.format_exc()}")
     # TEMPORARILY ALLOW FALLBACKS TO DEBUG THE ISSUE
-    print(f"🔧 ROBUST SERVICE: Using fallback classes for debugging")
+    # print(f"🔧 ROBUST SERVICE: Using fallback classes for debugging")
     USING_REAL_CLASSES = False
     
     # Create minimal fallback classes
@@ -83,7 +83,7 @@ class MockService:
     
     def __getattr__(self, name):
         """Catch any missing method calls"""
-        print(f"🔧 MOCK SERVICE: Called missing method '{name}' - returning default")
+        # print(f"🔧 MOCK SERVICE: Called missing method '{name}' - returning default")
         if name.startswith('get_') or name.startswith('is_') or name.startswith('has_'):
             return lambda *args, **kwargs: None
         elif name.startswith('set_') or name.startswith('update_') or name.startswith('record_'):
@@ -123,18 +123,18 @@ class MockService:
 try:
     from .diversity_filter_service import DiversityFilterService
     diversity_filter = DiversityFilterService()
-    print("✅ DIVERSITY FILTER: Real service loaded")
+    # print("✅ DIVERSITY FILTER: Real service loaded")
 except ImportError as e:
-    print(f"⚠️ DiversityFilterService import failed: {e}")
+    # print(f"⚠️ DiversityFilterService import failed: {e}")
     diversity_filter = MockService()
-    print("🔧 DIVERSITY FILTER: Using mock service")
+    # print("🔧 DIVERSITY FILTER: Using mock service")
 
 try:
     from .strategy_analytics_service import StrategyAnalyticsService, StrategyStatus
     strategy_analytics = StrategyAnalyticsService()
-    print("✅ STRATEGY ANALYTICS: Real service loaded")
+    # print("✅ STRATEGY ANALYTICS: Real service loaded")
 except ImportError as e:
-    print(f"⚠️ StrategyAnalyticsService import failed: {e}")
+    # print(f"⚠️ StrategyAnalyticsService import failed: {e}")
     
     # Define StrategyStatus enum if import fails
     class StrategyStatus(Enum):
@@ -143,16 +143,16 @@ except ImportError as e:
         PARTIAL = "partial"
     
     strategy_analytics = MockService()
-    print("🔧 STRATEGY ANALYTICS: Using mock service")
+    # print("🔧 STRATEGY ANALYTICS: Using mock service")
 
 try:
     from .adaptive_tuning_service import AdaptiveTuningService
     adaptive_tuning = AdaptiveTuningService()
-    print("✅ ADAPTIVE TUNING: Real service loaded")
+    # print("✅ ADAPTIVE TUNING: Real service loaded")
 except ImportError as e:
-    print(f"⚠️ AdaptiveTuningService import failed: {e}")
+    # print(f"⚠️ AdaptiveTuningService import failed: {e}")
     adaptive_tuning = MockService()
-    print("🔧 ADAPTIVE TUNING: Using mock service")
+    # print("🔧 ADAPTIVE TUNING: Using mock service")
 
 class PerformanceMetrics:
     """Mock PerformanceMetrics class"""
@@ -331,8 +331,8 @@ class RobustOutfitGenerationService:
                 }
             }
             logger.error("🔥 ROBUST SERVICE CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
-            print(f"🔥 ROBUST SERVICE CRASH: {error_details}")
-            print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+            # print(f"🔥 ROBUST SERVICE CRASH: {error_details}")
+            # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
             raise
     
     async def _generate_outfit_internal(self, context: GenerationContext) -> OutfitGeneratedOutfit:
@@ -343,10 +343,10 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════════════════
         
         # DEBUG: Log context details to identify NoneType issues
-        print(f"🔍 DEBUG ROBUST INTERNAL: context = {context}")
-        print(f"🔍 DEBUG ROBUST INTERNAL: (context.wardrobe if context else []) = {context.wardrobe}")
-        print(f"🔍 DEBUG ROBUST INTERNAL: context.user_profile = {context.user_profile}")
-        print(f"🔍 DEBUG ROBUST INTERNAL: (context.weather if context else None) = {context.weather}")
+        # print(f"🔍 DEBUG ROBUST INTERNAL: context = {context}")
+        # print(f"🔍 DEBUG ROBUST INTERNAL: (context.wardrobe if context else []) = {context.wardrobe}")
+        # print(f"🔍 DEBUG ROBUST INTERNAL: context.user_profile = {context.user_profile}")
+        # print(f"🔍 DEBUG ROBUST INTERNAL: (context.weather if context else None) = {context.weather}")
         
         # Hydrate wardrobe items
         logger.debug(f"🔄 Hydrating {len(context.wardrobe)} wardrobe items")
@@ -360,9 +360,9 @@ class RobustOutfitGenerationService:
                 logger.debug(f"✅ Items already ClothingItem objects")
         except Exception as hydrator_error:
             logger.error(f"❌ Hydration failed: {hydrator_error}")
-            print(f"🚨 HYDRATION ERROR: {hydrator_error}")
+            # print(f"🚨 HYDRATION ERROR: {hydrator_error}")
             import traceback
-            print(f"🚨 HYDRATION TRACEBACK: {traceback.format_exc()}")
+            # print(f"🚨 HYDRATION TRACEBACK: {traceback.format_exc()}")
         
         # DEBUG: Check context types after hydration
         logger.info(f"🔍 DEBUG: After hydration - user_profile type: {type(context.user_profile)}")

@@ -56,7 +56,7 @@ async def get_forgotten_gems(
         if not current_user:
             raise HTTPException(status_code=400, detail="User not found")
             
-        print(f"🔍 Forgotten Gems: Analyzing for user {current_user.id}")
+        # print(f"🔍 Forgotten Gems: Analyzing for user {current_user.id}")
         
         # Use simple Firestore query instead of complex services
         from ..config.firebase import db
@@ -128,7 +128,7 @@ async def get_forgotten_gems(
                     return max(0, (now - last).days)
                 return 365
             except Exception as e:
-                print(f"🔍 DEBUG: Error processing lastWorn timestamp: {e}, type: {type(ts)}")
+                # print(f"🔍 DEBUG: Error processing lastWorn timestamp: {e}, type: {type(ts)}")
                 return 365
 
         scored: List[ForgottenItem] = []
@@ -166,7 +166,7 @@ async def get_forgotten_gems(
                         # Try to convert to int
                         last_worn_ts = int(last_worn_ts)
                 except Exception as e:
-                    print(f"🔍 DEBUG: Error converting lastWorn to timestamp: {e}")
+                    # print(f"🔍 DEBUG: Error converting lastWorn to timestamp: {e}")
                     last_worn_ts = None
 
             fi = ForgottenItem(
@@ -208,7 +208,7 @@ async def get_forgotten_gems(
                             # Try to convert to int
                             last_worn_ts = int(last_worn_ts)
                     except Exception as e:
-                        print(f"🔍 DEBUG: Error converting lastWorn to timestamp in fallback: {e}")
+                        # print(f"🔍 DEBUG: Error converting lastWorn to timestamp in fallback: {e}")
                         last_worn_ts = None
 
                 fi = ForgottenItem(
@@ -246,7 +246,7 @@ async def get_forgotten_gems(
         )
         
     except Exception as e:
-        print(f"❌ Forgotten Gems Error: {e}")
+        # print(f"❌ Forgotten Gems Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to analyze forgotten gems: {str(e)}")
 
 def _calculate_rediscovery_potential(
@@ -414,7 +414,7 @@ async def rediscover_item(
         
         # This would typically update the item's usage data
         # For now, we'll just return success
-        print(f"🔍 Rediscover: Marking item {item_id} as rediscovered for user {current_user.id}")
+        # print(f"🔍 Rediscover: Marking item {item_id} as rediscovered for user {current_user.id}")
         
         return {
             "success": True,
@@ -424,7 +424,7 @@ async def rediscover_item(
         }
         
     except Exception as e:
-        print(f"❌ Rediscover Error: {e}")
+        # print(f"❌ Rediscover Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to rediscover item: {str(e)}")
 
 @router.post("/forgotten-gems/declutter")
@@ -434,7 +434,7 @@ async def declutter_item(
 ) -> Dict[str, Any]:
     """Mark an item for decluttering."""
     try:
-        print(f"🔍 Declutter: Marking item {item_id} for decluttering for user {current_user.id}")
+        # print(f"🔍 Declutter: Marking item {item_id} for decluttering for user {current_user.id}")
         
         # This would typically move the item to a declutter list
         # For now, we'll just return success
@@ -447,5 +447,5 @@ async def declutter_item(
         }
         
     except Exception as e:
-        print(f"❌ Declutter Error: {e}")
+        # print(f"❌ Declutter Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to mark item for decluttering: {str(e)}") 

@@ -245,7 +245,7 @@ class PipelineTracingService:
             
             return True
         except Exception as e:
-            print(f"Error saving trace: {e}")
+#             print(f"Error saving trace: {e}")
             return False
     
     def reset_trace(self) -> None:

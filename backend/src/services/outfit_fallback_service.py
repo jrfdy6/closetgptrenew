@@ -73,10 +73,10 @@ class OutfitFallbackService:
         remaining_errors = validation_errors.copy()
         current_items = failed_outfit.copy()
         
-        print(f"🔧 Starting outfit healing with {len(validation_errors)} errors")
+        # print(f"🔧 Starting outfit healing with {len(validation_errors)} errors")
         
         # Strategy 1: Fix individual items using Firestore queries
-        print("🔧 Strategy 1: Attempting item-by-item fixes")
+        # print("🔧 Strategy 1: Attempting item-by-item fixes")
         current_items, remaining_errors, item_fixes = await self._fix_individual_items(
             current_items, remaining_errors, context, healing_context
         )
@@ -89,7 +89,7 @@ class OutfitFallbackService:
             return current_items, remaining_errors, healing_log
         
         # Strategy 2: Replace problematic items with better alternatives
-        print("🔧 Strategy 2: Attempting item replacements")
+        # print("🔧 Strategy 2: Attempting item replacements")
         current_items, remaining_errors, replacements = await self._replace_problematic_items(
             current_items, remaining_errors, context, healing_context
         )
@@ -102,7 +102,7 @@ class OutfitFallbackService:
             return current_items, remaining_errors, healing_log
         
         # Strategy 3: Generate new outfit from scratch using indexed data
-        print("🔧 Strategy 3: Generating new outfit from scratch")
+        # print("🔧 Strategy 3: Generating new outfit from scratch")
         try:
             new_outfit = await self._generate_from_scratch_with_indexes(context, healing_context)
             if new_outfit:
@@ -111,11 +111,11 @@ class OutfitFallbackService:
                 healing_log['healing_context'] = healing_context.get_state()
                 return new_outfit, [], healing_log
         except Exception as e:
-            print(f"❌ Scratch generation failed: {e}")
+            # print(f"❌ Scratch generation failed: {e}")
             remaining_errors.append(f"Scratch generation failed: {str(e)}")
         
         # Strategy 4: Relaxed validation with best available items
-        print("🔧 Strategy 4: Relaxed validation approach")
+        # print("🔧 Strategy 4: Relaxed validation approach")
         current_items, remaining_errors, relaxed_fixes = await self._relaxed_validation_approach(
             current_items, remaining_errors, context, healing_context
         )
@@ -186,7 +186,7 @@ class OutfitFallbackService:
         
         for category, category_items in item_categories.items():
             if len(category_items) > 1:
-                print(f"[DEBUG] Found {len(category_items)} duplicate items in category '{category}': {[item.name for item in category_items]}")
+#                 print(f"[DEBUG] Found {len(category_items)} duplicate items in category '{category}': {[item.name for item in category_items]}")
                 
                 # Log duplicate error to healing context
                 duplicate_item_ids = [item.id for item in category_items if hasattr(item, 'id')]
@@ -263,7 +263,7 @@ class OutfitFallbackService:
                     'replacement_items': [item.name for item in replacement_items[:len(category_items) - 1]]
                 })
                 
-                print(f"[DEBUG] Duplicate fix applied: kept '{best_item.name}', replaced {len(items_to_remove)} items")
+#                 print(f"[DEBUG] Duplicate fix applied: kept '{best_item.name}', replaced {len(items_to_remove)} items")
                 return new_items, fixes_applied
         
         return items, fixes_applied
@@ -289,9 +289,9 @@ class OutfitFallbackService:
         season = self._determine_season(temperature, (context.get('occasion', '') if context else ''))
         
         for i, item in enumerate(items):
-            print(f"[DEBUG] Checking item for weather appropriateness: {getattr(item, 'name', str(item))} ({getattr(item, 'material', 'unknown')})")
+#             print(f"[DEBUG] Checking item for weather appropriateness: {getattr(item, 'name', str(item))} ({getattr(item, 'material', 'unknown')})")
             if not self._is_weather_appropriate(item, temperature, season):
-                print(f"[DEBUG] Item {getattr(item, 'name', str(item))} is NOT weather appropriate. Attempting replacement...")
+#                 print(f"[DEBUG] Item {getattr(item, 'name', str(item))} is NOT weather appropriate. Attempting replacement...")
                 # Log error to healing context
                 material = getattr(item, 'material', None) or (getattr(item, 'metadata', None) and getattr(item.metadata, 'material', None))
                 item_id = getattr(item, 'id', None)
@@ -313,7 +313,7 @@ class OutfitFallbackService:
                 replacement = await self._find_weather_appropriate_replacement(
                     item, temperature, season, context, healing_context
                 )
-                print(f"[DEBUG] Replacement found: {getattr(replacement, 'name', None) if replacement else None}")
+#                 print(f"[DEBUG] Replacement found: {getattr(replacement, 'name', None) if replacement else None}")
                 if replacement:
                     items[i] = replacement
                     fixes_applied.append({
@@ -333,7 +333,7 @@ class OutfitFallbackService:
                     # Log that a weather fix was attempted but failed
                     healing_context.add_fix_attempted(FixType.WEATHER_FIX, f"Failed to replace {item.name}")
             else:
-                print(f"[DEBUG] Item {getattr(item, 'name', str(item))} is weather appropriate.")
+#                 print(f"[DEBUG] Item {getattr(item, 'name', str(item))} is weather appropriate.")
         return items, fixes_applied
 
     async def _find_weather_appropriate_replacement(
@@ -365,7 +365,7 @@ class OutfitFallbackService:
             best_item = max(weather_items, key=lambda x: self._calculate_relevance_score(x, context))
             return best_item
         except Exception as e:
-            print(f"❌ Error finding weather-appropriate replacement: {e}")
+            # print(f"❌ Error finding weather-appropriate replacement: {e}")
             return None
 
     async def _query_by_weather_conditions(
@@ -425,10 +425,10 @@ class OutfitFallbackService:
                 data = doc.to_dict()
                 item = ClothingItem(**data)
                 items.append(item)
-            print(f"✅ Found {len(items)} weather-appropriate {category} items (with dynamic exclusions)")
+            # print(f"✅ Found {len(items)} weather-appropriate {category} items (with dynamic exclusions)")
             return items
         except Exception as e:
-            print(f"❌ Error in weather-based query: {e}")
+            # print(f"❌ Error in weather-based query: {e}")
             return []
 
     async def _fix_layering_issues(
@@ -571,7 +571,7 @@ class OutfitFallbackService:
                 try:
                     wardrobe_items.append(ClothingItem(**item_data))
                 except Exception as e:
-                    print(f"Warning: Could not parse wardrobe item {doc.id}: {e}")
+#                     print(f"Warning: Could not parse wardrobe item {doc.id}: {e}")
                     continue
             
             if not wardrobe_items:
@@ -585,7 +585,7 @@ class OutfitFallbackService:
             return selected_items
             
         except Exception as e:
-            print(f"Error in scratch generation: {e}")
+#             print(f"Error in scratch generation: {e}")
             return None
 
     async def _intelligent_item_selection(
@@ -740,11 +740,11 @@ class OutfitFallbackService:
                 item = ClothingItem(**data)
                 items.append(item)
             
-            print(f"✅ Found {len(items)} {category} items using indexed query")
+            # print(f"✅ Found {len(items)} {category} items using indexed query")
             return items
             
         except Exception as e:
-            print(f"❌ Error in indexed category query: {e}")
+            # print(f"❌ Error in indexed category query: {e}")
             # Fallback to basic query
             return await self._query_category_basic(user_id, category, limit)
 
@@ -801,11 +801,11 @@ class OutfitFallbackService:
                 item = ClothingItem(**data)
                 items.append(item)
             
-            print(f"✅ Found {len(items)} {target_style}-compatible {category} items")
+            # print(f"✅ Found {len(items)} {target_style}-compatible {category} items")
             return items
             
         except Exception as e:
-            print(f"❌ Error in style-based query: {e}")
+            # print(f"❌ Error in style-based query: {e}")
             return []
 
     async def _query_high_quality_alternatives(
@@ -862,11 +862,11 @@ class OutfitFallbackService:
                 if len(items) >= limit:
                     break
             
-            print(f"✅ Found {len(items)} high-quality {category} alternatives")
+            # print(f"✅ Found {len(items)} high-quality {category} alternatives")
             return items
             
         except Exception as e:
-            print(f"❌ Error in high-quality alternatives query: {e}")
+            # print(f"❌ Error in high-quality alternatives query: {e}")
             return []
 
     async def _query_favorite_items(
@@ -908,11 +908,11 @@ class OutfitFallbackService:
                 item = ClothingItem(**data)
                 items.append(item)
             
-            print(f"✅ Found {len(items)} favorite items")
+            # print(f"✅ Found {len(items)} favorite items")
             return items
             
         except Exception as e:
-            print(f"❌ Error in favorites query: {e}")
+            # print(f"❌ Error in favorites query: {e}")
             return []
 
     async def _query_underutilized_items(
@@ -956,11 +956,11 @@ class OutfitFallbackService:
                 item = ClothingItem(**data)
                 items.append(item)
             
-            print(f"✅ Found {len(items)} underutilized items")
+            # print(f"✅ Found {len(items)} underutilized items")
             return items
             
         except Exception as e:
-            print(f"❌ Error in underutilized items query: {e}")
+            # print(f"❌ Error in underutilized items query: {e}")
             return []
 
     # Helper methods for indexed queries
@@ -1009,11 +1009,11 @@ class OutfitFallbackService:
                 item = ClothingItem(**data)
                 items.append(item)
             
-            print(f"✅ Found {len(items)} {category} items using basic query")
+            # print(f"✅ Found {len(items)} {category} items using basic query")
             return items
             
         except Exception as e:
-            print(f"❌ Error in basic category query: {e}")
+            # print(f"❌ Error in basic category query: {e}")
             return []
 
     # ============================================================================
@@ -1059,7 +1059,7 @@ class OutfitFallbackService:
             return best_item
             
         except Exception as e:
-            print(f"❌ Error finding style-compatible replacement: {e}")
+            # print(f"❌ Error finding style-compatible replacement: {e}")
             return None
 
     async def _find_better_alternative(
@@ -1105,7 +1105,7 @@ class OutfitFallbackService:
             return None
             
         except Exception as e:
-            print(f"❌ Error finding better alternative: {e}")
+            # print(f"❌ Error finding better alternative: {e}")
             return None
 
     def _determine_category(self, item_type: str) -> str:
@@ -1543,18 +1543,18 @@ class OutfitFallbackService:
                         score = self._calculate_relevance_score(item, context)
                         alternatives.append((item, score))
                     except Exception as e:
-                        print(f"Warning: Could not parse alternative item {doc.id}: {e}")
+#                         print(f"Warning: Could not parse alternative item {doc.id}: {e}")
                         continue
             
             # Sort by relevance score and return top alternatives
             alternatives.sort(key=lambda x: x[1], reverse=True)
             result = [item for item, score in alternatives[:5]]  # Return top 5 alternatives
             
-            print(f"✅ Found {len(result)} alternatives for category '{category}' (with dynamic exclusions)")
+            # print(f"✅ Found {len(result)} alternatives for category '{category}' (with dynamic exclusions)")
             return result
             
         except Exception as e:
-            print(f"❌ Error finding alternatives for category {category}: {e}")
+            # print(f"❌ Error finding alternatives for category {category}: {e}")
             return []
 
     async def _find_layering_compatible_replacement(self, item: ClothingItem, existing_items: List[ClothingItem], context: Dict[str, Any], healing_context: DynamicHealingContext) -> Optional[ClothingItem]:
@@ -1589,13 +1589,13 @@ class OutfitFallbackService:
                                 best_score = score
                                 best_replacement = candidate
                     except Exception as e:
-                        print(f"Warning: Could not parse layering replacement item {doc.id}: {e}")
+#                         print(f"Warning: Could not parse layering replacement item {doc.id}: {e}")
                         continue
             
             return best_replacement
             
         except Exception as e:
-            print(f"Error finding layering-compatible replacement: {e}")
+#             print(f"Error finding layering-compatible replacement: {e}")
             return None
 
     def _has_low_score(self, item: ClothingItem, error: str) -> bool:
@@ -1645,7 +1645,7 @@ class OutfitFallbackService:
             Dictionary with category keys and ClothingItem values
         """
         try:
-            print("🔧 Step 3: Generating full outfit from Firestore (Fallback 2)")
+            # print("🔧 Step 3: Generating full outfit from Firestore (Fallback 2)")
             
             # Extract constraints
             season = (constraints.get('season', 'all') if constraints else 'all')
@@ -1656,7 +1656,7 @@ class OutfitFallbackService:
             user_id = (constraints.get('user_id') if constraints else None)
             
             if not user_id:
-                print("❌ No user_id provided for Firestore queries")
+                # print("❌ No user_id provided for Firestore queries")
                 return {}
             
             # Generate outfit components deterministically
@@ -1674,7 +1674,7 @@ class OutfitFallbackService:
             )
             if top:
                 outfit['top'] = top
-                print(f"✅ Selected top: {top.name}")
+                # print(f"✅ Selected top: {top.name}")
             
             # 2. Find bottom item
             bottom = await self._find_item_deterministic(
@@ -1689,7 +1689,7 @@ class OutfitFallbackService:
             )
             if bottom:
                 outfit['bottom'] = bottom
-                print(f"✅ Selected bottom: {bottom.name}")
+                # print(f"✅ Selected bottom: {bottom.name}")
             
             # 3. Find shoes
             shoes = await self._find_item_deterministic(
@@ -1704,7 +1704,7 @@ class OutfitFallbackService:
             )
             if shoes:
                 outfit['shoes'] = shoes
-                print(f"✅ Selected shoes: {shoes.name}")
+                # print(f"✅ Selected shoes: {shoes.name}")
             
             # 4. Find outerwear (if needed for temperature/occasion)
             if self._needs_outerwear(temperature, occasion, formality):
@@ -1720,7 +1720,7 @@ class OutfitFallbackService:
                 )
                 if outerwear:
                     outfit['outerwear'] = outerwear
-                    print(f"✅ Selected outerwear: {outerwear.name}")
+                    # print(f"✅ Selected outerwear: {outerwear.name}")
             
             # 5. Find accessories (if appropriate for occasion)
             if self._needs_accessories(occasion, formality):
@@ -1736,13 +1736,13 @@ class OutfitFallbackService:
                 )
                 if accessories:
                     outfit['accessories'] = accessories
-                    print(f"✅ Selected accessories: {[acc.name for acc in accessories]}")
+                    # print(f"✅ Selected accessories: {[acc.name for acc in accessories]}")
             
-            print(f"✅ Generated complete outfit with {len(outfit)} components")
+            # print(f"✅ Generated complete outfit with {len(outfit)} components")
             return outfit
             
         except Exception as e:
-            print(f"❌ Error in deterministic outfit generation: {e}")
+            # print(f"❌ Error in deterministic outfit generation: {e}")
             return {}
 
     async def _find_item_deterministic(
@@ -1797,7 +1797,7 @@ class OutfitFallbackService:
                     score = self._score_item_for_constraints(item, constraints)
                     candidates.append((item, score))
                 except Exception as e:
-                    print(f"Warning: Could not parse item {doc.id}: {e}")
+#                     print(f"Warning: Could not parse item {doc.id}: {e}")
                     continue
             
             if not candidates:
@@ -1808,7 +1808,7 @@ class OutfitFallbackService:
             return candidates[0][0]
             
         except Exception as e:
-            print(f"❌ Error in deterministic item search: {e}")
+            # print(f"❌ Error in deterministic item search: {e}")
             return None
 
     async def _find_accessories_deterministic(
@@ -1851,7 +1851,7 @@ class OutfitFallbackService:
             return accessories
             
         except Exception as e:
-            print(f"❌ Error in accessory search: {e}")
+            # print(f"❌ Error in accessory search: {e}")
             return []
 
     def _score_item_for_constraints(
@@ -2085,7 +2085,7 @@ class OutfitFallbackService:
             }
             
         except Exception as e:
-            print(f"❌ Error in outfit generation with constraints: {e}")
+            # print(f"❌ Error in outfit generation with constraints: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -2182,7 +2182,7 @@ class OutfitFallbackService:
         outfits = []
         
         for i in range(count):
-            print(f"🔧 Generating outfit variation {i + 1}/{count}")
+            # print(f"🔧 Generating outfit variation {i + 1}/{count}")
             
             # Add variation to constraints
             variation_constraints = constraints.copy()
@@ -2194,7 +2194,7 @@ class OutfitFallbackService:
             if outfit_result['success']:
                 outfits.append(outfit_result)
             else:
-                print(f"❌ Failed to generate outfit variation {i + 1}: {outfit_result['error']}")
+                # print(f"❌ Failed to generate outfit variation {i + 1}: {outfit_result['error']}")
         
         return outfits
 

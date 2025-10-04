@@ -535,7 +535,7 @@ async def generate_personalized_outfit(
         
         # If missing required items, try to fill them
         if missing_required:
-            print(f"🔍 DEBUG: Missing required items for {occasion}: {missing_required}")
+            # print(f"🔍 DEBUG: Missing required items for {occasion}: {missing_required}")
             
             # Try to find items that fill missing requirements
             for missing in missing_required:
@@ -557,12 +557,12 @@ async def generate_personalized_outfit(
             # If still missing required items after trying to fill, log warning but continue
             final_missing = validate_outfit_completeness(selected_items, requirements)
             if final_missing:
-                print(f"⚠️ WARNING: Still missing required items after fallback: {final_missing}")
-                print(f"🔍 DEBUG: Proceeding with incomplete outfit - this may not be ideal for {occasion}")
+                # print(f"⚠️ WARNING: Still missing required items after fallback: {final_missing}")
+                # print(f"🔍 DEBUG: Proceeding with incomplete outfit - this may not be ideal for {occasion}")
                 
                 # Additional safety check - ensure we have at least some items
                 if len(selected_items) == 0:
-                    print(f"🚨 CRITICAL: No items selected after validation - using emergency fallback")
+                    # print(f"🚨 CRITICAL: No items selected after validation - using emergency fallback")
                     # Emergency fallback: use any available items
                     selected_items = req.wardrobe[:3] if len(req.wardrobe) >= 3 else req.wardrobe
         
@@ -586,7 +586,7 @@ async def generate_personalized_outfit(
                     seen_combinations.add(combination_key)
                     unique_items.append(item)
                 else:
-                    print(f"🔍 DEBUG: Removed duplicate item: {item_name} ({item_color})")
+                    # print(f"🔍 DEBUG: Removed duplicate item: {item_name} ({item_color})")
             return unique_items
         
         selected_items = deduplicate_items(selected_items)

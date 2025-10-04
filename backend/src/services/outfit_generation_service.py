@@ -48,7 +48,7 @@ class OutfitGenerationService:
         unique_wardrobe = list(unique_items.values())
         
         # NEW: Use cohesive composition service for harmonious outfit creation
-        print("🎨 Creating cohesive outfit composition...")
+#         print("🎨 Creating cohesive outfit composition...")
         try:
             composition = await self.composition_service.create_cohesive_outfit(
                 wardrobe=unique_wardrobe,
@@ -63,21 +63,21 @@ class OutfitGenerationService:
             # Extract items from composition
             selected_items = [composition.base_piece] + composition.complementary_pieces
             
-            print(f"✅ Cohesive composition created:")
-            print(f"  - Base piece: {composition.base_piece.name} ({composition.base_piece.type})")
-            print(f"  - Total items: {composition.total_items}")
-            print(f"  - Color harmony: {composition.color_harmony.value}")
-            print(f"  - Style consistency: {composition.style_consistency:.1f}")
+            # print(f"✅ Cohesive composition created:")
+#             print(f"  - Base piece: {composition.base_piece.name} ({composition.base_piece.type})")
+#             print(f"  - Total items: {composition.total_items}")
+#             print(f"  - Color harmony: {composition.color_harmony.value}")
+#             print(f"  - Style consistency: {composition.style_consistency:.1f}")
             for i, item in enumerate(composition.complementary_pieces):
-                print(f"  - Complementary {i+1}: {item.name} ({item.type})")
+#                 print(f"  - Complementary {i+1}: {item.name} ({item.type})")
             
         except Exception as e:
-            print(f"⚠️ Cohesive composition failed: {e}, falling back to traditional selection")
+            # print(f"⚠️ Cohesive composition failed: {e}, falling back to traditional selection")
             # Fallback to traditional selection
             selected_items = self._select_appropriate_items(unique_wardrobe, occasion, style, base_item_id)
         
         # NEW: Apply comprehensive validation pipeline
-        print("🔍 Applying comprehensive validation pipeline...")
+        # print("🔍 Applying comprehensive validation pipeline...")
         
         # Create validation context
         validation_context = ValidationContext(
@@ -99,26 +99,26 @@ class OutfitGenerationService:
             validation_result = await validation_pipeline.validate_outfit(outfit_dict, validation_context)
             
             if not validation_result.valid:
-                print(f"❌ VALIDATION FAILED: {len(validation_result.errors)} errors, {len(validation_result.warnings)} warnings")
-                print(f"   Errors: {validation_result.errors}")
-                print(f"   Warnings: {validation_result.warnings}")
-                print(f"   Suggestions: {validation_result.suggestions}")
+                # print(f"❌ VALIDATION FAILED: {len(validation_result.errors)} errors, {len(validation_result.warnings)} warnings")
+#                 print(f"   Errors: {validation_result.errors}")
+#                 print(f"   Warnings: {validation_result.warnings}")
+#                 print(f"   Suggestions: {validation_result.suggestions}")
                 
                 # For now, we'll continue with the outfit but log the issues
                 # In the future, we could implement repair logic or regeneration
-                print("⚠️ Continuing with outfit despite validation issues (repair mode not yet implemented)")
+                # print("⚠️ Continuing with outfit despite validation issues (repair mode not yet implemented)")
             else:
-                print(f"✅ VALIDATION PASSED: {len(validation_result.warnings)} warnings")
+                # print(f"✅ VALIDATION PASSED: {len(validation_result.warnings)} warnings")
                 if validation_result.warnings:
-                    print(f"   Warnings: {validation_result.warnings}")
+#                     print(f"   Warnings: {validation_result.warnings}")
                 if validation_result.suggestions:
-                    print(f"   Suggestions: {validation_result.suggestions}")
+#                     print(f"   Suggestions: {validation_result.suggestions}")
                 
         except Exception as e:
-            print(f"⚠️ Validation pipeline failed: {e}, using original selection")
+            # print(f"⚠️ Validation pipeline failed: {e}, using original selection")
         
         # LEGACY: Apply enhanced validation to prevent inappropriate combinations
-        print("🔍 Applying legacy enhanced validation...")
+        # print("🔍 Applying legacy enhanced validation...")
         legacy_validation_context = {
             "occasion": occasion,
             "weather": weather,
@@ -134,17 +134,17 @@ class OutfitGenerationService:
             
             if validation_result.get("filtered_items"):
                 validated_items = validation_result["filtered_items"]
-                print(f"✅ Legacy validation applied: {len(selected_items)} → {len(validated_items)} items")
+                # print(f"✅ Legacy validation applied: {len(selected_items)} → {len(validated_items)} items")
                 if validation_result.get("errors"):
-                    print(f"⚠️ Legacy validation errors: {validation_result['errors']}")
+                    # print(f"⚠️ Legacy validation errors: {validation_result['errors']}")
                 if validation_result.get("warnings"):
-                    print(f"⚠️ Legacy validation warnings: {validation_result['warnings']}")
+                    # print(f"⚠️ Legacy validation warnings: {validation_result['warnings']}")
                 selected_items = validated_items
             else:
-                print("⚠️ Legacy validation returned no filtered items, using original selection")
+                # print("⚠️ Legacy validation returned no filtered items, using original selection")
                 
         except Exception as e:
-            print(f"⚠️ Legacy validation failed: {e}, using original selection")
+            # print(f"⚠️ Legacy validation failed: {e}, using original selection")
         
         return await self._create_outfit_from_items(
             items=selected_items,
@@ -205,8 +205,8 @@ class OutfitGenerationService:
 
     def _select_appropriate_items(self, wardrobe: List[ClothingItem], occasion: str, style: Optional[str], base_item_id: Optional[str] = None) -> List[ClothingItem]:
         """TEMPORARILY SIMPLIFIED: Select appropriate items based on occasion and style."""
-        print(f"🔍 DEBUG: _select_appropriate_items called with base_item_id: {base_item_id}")
-        print(f"🔍 DEBUG: Wardrobe size: {len(wardrobe)}")
+        # print(f"🔍 DEBUG: _select_appropriate_items called with base_item_id: {base_item_id}")
+        # print(f"🔍 DEBUG: Wardrobe size: {len(wardrobe)}")
         
         # TEMPORARILY SIMPLIFIED: Just return first 4 items for debugging
         try:
@@ -219,21 +219,21 @@ class OutfitGenerationService:
                         break
                 
                 if base_item:
-                    print(f"🎯 Including base item: {base_item.name} ({base_item.type})")
+#                     print(f"🎯 Including base item: {base_item.name} ({base_item.type})")
                     # Add base item + 3 more items
                     remaining_items = [item for item in wardrobe if item.id != base_item_id]
                     selected_items = [base_item] + remaining_items[:3]
                 else:
-                    print(f"⚠️ Base item not found, using first 4 items")
+                    # print(f"⚠️ Base item not found, using first 4 items")
                     selected_items = wardrobe[:4]
             else:
                 selected_items = wardrobe[:4]
             
-            print(f"✅ Selected {len(selected_items)} items for debugging")
+            # print(f"✅ Selected {len(selected_items)} items for debugging")
             return selected_items
             
         except Exception as e:
-            print(f"⚠️ Selection failed: {e}, using emergency fallback")
+            # print(f"⚠️ Selection failed: {e}, using emergency fallback")
             return wardrobe[:4] if wardrobe else []
         
         # Add comprehensive handling for all dropdown occasions
@@ -943,12 +943,12 @@ class OutfitGenerationService:
     def _fetch_item_from_database(self, item_id: str) -> Optional[ClothingItem]:
         """Fetch a wardrobe item from the database by ID."""
         try:
-            print(f"🔍 Fetching item from database: {item_id}")
+            # print(f"🔍 Fetching item from database: {item_id}")
             doc_ref = db.collection('wardrobe').document(item_id)
             doc = doc_ref.get()
             
             if not doc.exists:
-                print(f"❌ Item not found in database: {item_id}")
+                # print(f"❌ Item not found in database: {item_id}")
                 return None
             
             item_data = doc.to_dict()
@@ -956,11 +956,11 @@ class OutfitGenerationService:
             
             # Convert to ClothingItem
             clothing_item = ClothingItem(**item_data)
-            print(f"✅ Successfully fetched item from database: {clothing_item.name} ({clothing_item.type})")
+            # print(f"✅ Successfully fetched item from database: {clothing_item.name} ({clothing_item.type})")
             return clothing_item
             
         except Exception as e:
-            print(f"❌ Error fetching item from database: {e}")
+            # print(f"❌ Error fetching item from database: {e}")
             return None
 
 def generate_piece_reasoning(item: ClothingItem, occasion: str, style: str) -> str:

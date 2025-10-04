@@ -51,10 +51,10 @@ class OutfitCoreService:
             # Save to Firestore
             self.collection.document(outfit.id).set(outfit_dict)
             
-            print(f"✅ Saved outfit {outfit.id} to database")
+            # print(f"✅ Saved outfit {outfit.id} to database")
             return True
         except Exception as e:
-            print(f"❌ Error saving outfit {outfit.id}: {e}")
+            # print(f"❌ Error saving outfit {outfit.id}: {e}")
             return False
 
     async def get_outfits(self) -> List[OutfitGeneratedOutfit]:
@@ -72,21 +72,21 @@ class OutfitCoreService:
                     outfit = OutfitGeneratedOutfit(**outfit_data)
                     outfits.append(outfit)
                 except Exception as e:
-                    print(f"Warning: Failed to load outfit {doc.id}: {e}")
+#                     print(f"Warning: Failed to load outfit {doc.id}: {e}")
                     # Try to convert from old format
                     try:
                         converted_data = self._convert_old_outfit_format(outfit_data)
                         outfit = OutfitGeneratedOutfit(**converted_data)
                         outfits.append(outfit)
                     except Exception as e2:
-                        print(f"Failed to convert outfit {doc.id}: {e2}")
+#                         print(f"Failed to convert outfit {doc.id}: {e2}")
                         # Delete problematic outfit
                         self.collection.document(doc.id).delete()
                         continue
             
             return outfits
         except Exception as e:
-            print(f"Error getting outfits: {e}")
+#             print(f"Error getting outfits: {e}")
             raise
         
     async def get_outfit(self, outfit_id: str) -> Optional[OutfitGeneratedOutfit]:
@@ -100,17 +100,17 @@ class OutfitCoreService:
             outfit_data['id'] = doc.id
             
             # Debug: Print the raw outfit data structure
-            print(f"DEBUG: get_outfit - Raw outfit data keys: {list(outfit_data.keys())}")
-            print(f"DEBUG: get_outfit - Items type: {type((outfit_data.get('items', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'))}")
+            # print(f"DEBUG: get_outfit - Raw outfit data keys: {list(outfit_data.keys())}")
+            # print(f"DEBUG: get_outfit - Items type: {type((outfit_data.get('items', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'))}")
             if 'items' in outfit_data:
-                print(f"DEBUG: get_outfit - Items length: {len(outfit_data['items']) if isinstance(outfit_data['items'], list) else 'NOT_LIST'}")
+                # print(f"DEBUG: get_outfit - Items length: {len(outfit_data['items']) if isinstance(outfit_data['items'], list) else 'NOT_LIST'}")
                 if isinstance(outfit_data['items'], list) and outfit_data['items']:
-                    print(f"DEBUG: get_outfit - First item type: {type(outfit_data['items'][0])}")
+                    # print(f"DEBUG: get_outfit - First item type: {type(outfit_data['items'][0])}")
             
             # Handle items and pieces fields - convert to proper format
             if 'items' in outfit_data and isinstance(outfit_data['items'], list):
-                print(f"DEBUG: get_outfit - Processing items field with {len(outfit_data['items'])} items")
-                print(f"DEBUG: get_outfit - Items field contains: {outfit_data['items']}")
+                # print(f"DEBUG: get_outfit - Processing items field with {len(outfit_data['items'])} items")
+                # print(f"DEBUG: get_outfit - Items field contains: {outfit_data['items']}")
                 
                 # Convert items to proper format (keep as IDs for Pydantic validation)
                 converted_items = []
@@ -126,45 +126,45 @@ class OutfitCoreService:
                         else:
                             # No ID found, generate a new one
                             new_id = str(uuid.uuid4())
-                            print(f"Warning: No ID found in item dict, generating new ID: {new_id}")
+#                             print(f"Warning: No ID found in item dict, generating new ID: {new_id}")
                             converted_items.append(new_id)
                     else:
                         # Unknown type, keep as is
                         converted_items.append(item)
                 outfit_data['items'] = converted_items
-                print(f"DEBUG: get_outfit - Converted items to IDs: {converted_items}")
+                # print(f"DEBUG: get_outfit - Converted items to IDs: {converted_items}")
                 
                 # Keep pieces field as is (frontend expects OutfitPiece format)
                 if 'pieces' in outfit_data and isinstance(outfit_data['pieces'], list):
-                    print(f"DEBUG: get_outfit - Keeping pieces field as is with {len(outfit_data['pieces'])} pieces")
-                    print(f"DEBUG: get_outfit - First piece structure: {outfit_data['pieces'][0] if outfit_data['pieces'] else 'No pieces'}")
-                    print(f"DEBUG: get_outfit - All pieces: {outfit_data['pieces']}")
+                    # print(f"DEBUG: get_outfit - Keeping pieces field as is with {len(outfit_data['pieces'])} pieces")
+                    # print(f"DEBUG: get_outfit - First piece structure: {outfit_data['pieces'][0] if outfit_data['pieces'] else 'No pieces'}")
+                    # print(f"DEBUG: get_outfit - All pieces: {outfit_data['pieces']}")
                     # Don't modify pieces - frontend expects OutfitPiece format
                 else:
-                    print(f"DEBUG: get_outfit - No pieces field found")
+                    # print(f"DEBUG: get_outfit - No pieces field found")
             
             try:
                 # Try to validate as OutfitGeneratedOutfit first
                 return OutfitGeneratedOutfit(**outfit_data)
             except Exception as e:
-                print(f"Failed to validate as OutfitGeneratedOutfit: {e}")
-                print(f"DEBUG: get_outfit - Validation error details: {str(e)}")
+#                 print(f"Failed to validate as OutfitGeneratedOutfit: {e}")
+                # print(f"DEBUG: get_outfit - Validation error details: {str(e)}")
                 # If that fails, try to convert from old Outfit format
                 try:
                     # Convert old Outfit format to OutfitGeneratedOutfit format
                     converted_data = self._convert_old_outfit_format(outfit_data)
-                    print(f"DEBUG: get_outfit - Conversion successful, trying validation again")
+                    # print(f"DEBUG: get_outfit - Conversion successful, trying validation again")
                     return OutfitGeneratedOutfit(**converted_data)
                 except Exception as e2:
-                    print(f"Failed to convert old outfit format: {e2}")
-                    print(f"DEBUG: get_outfit - Conversion error details: {str(e2)}")
+#                     print(f"Failed to convert old outfit format: {e2}")
+                    # print(f"DEBUG: get_outfit - Conversion error details: {str(e2)}")
                     # If conversion fails, delete the problematic outfit
-                    print(f"Deleting problematic outfit {outfit_id}")
+#                     print(f"Deleting problematic outfit {outfit_id}")
                     self.collection.document(outfit_id).delete()
                     return None
                     
         except Exception as e:
-            print(f"Error getting outfit {outfit_id}: {e}")
+#             print(f"Error getting outfit {outfit_id}: {e}")
             raise
 
     def _convert_old_outfit_format(self, old_outfit_data: dict) -> dict:
@@ -227,7 +227,7 @@ class OutfitCoreService:
                         try:
                             converted_items.append(ClothingItem(**item))
                         except Exception as e:
-                            print(f"Warning: Failed to convert item dict to ClothingItem: {e}")
+#                             print(f"Warning: Failed to convert item dict to ClothingItem: {e}")
                             # If conversion fails, create a minimal structure
                             converted_item = {
                                 'id': (item.get('id', 'unknown') if item else 'unknown'),
@@ -251,7 +251,7 @@ class OutfitCoreService:
                     converted_items.append(item)
                 else:
                     # Handle case where item is not a dict or string (could be other type)
-                    print(f"Warning: Skipping non-dict/non-string item in outfit data: {type(item)} - {item}")
+#                     print(f"Warning: Skipping non-dict/non-string item in outfit data: {type(item)} - {item}")
                     continue
             
             new_data['items'] = converted_items
@@ -282,15 +282,15 @@ class OutfitCoreService:
                 new_data[key] = default_value
             elif isinstance(default_value, list) and not isinstance(new_data[key], list):
                 # If we expect a list but got something else, use the default
-                print(f"Warning: Expected list for {key}, got {type(new_data[key])}, using default")
+#                 print(f"Warning: Expected list for {key}, got {type(new_data[key])}, using default")
                 new_data[key] = default_value
             elif isinstance(default_value, dict) and not isinstance(new_data[key], dict):
                 # If we expect a dict but got something else, use the default
-                print(f"Warning: Expected dict for {key}, got {type(new_data[key])}, using default")
+#                 print(f"Warning: Expected dict for {key}, got {type(new_data[key])}, using default")
                 new_data[key] = default_value
             elif key == 'userFeedback' and new_data[key] == 'None':
                 # Special handling for userFeedback - convert string 'None' to actual None
-                print(f"Warning: Converting userFeedback from string 'None' to None")
+#                 print(f"Warning: Converting userFeedback from string 'None' to None")
                 new_data[key] = None
         
         return new_data

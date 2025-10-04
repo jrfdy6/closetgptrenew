@@ -67,7 +67,7 @@ async def get_outfit_analytics(
         }
         
     except Exception as e:
-        print(f"Error getting outfit analytics: {e}")
+#         print(f"Error getting outfit analytics: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve analytics"
@@ -121,7 +121,7 @@ async def get_validation_error_analytics(
         }
         
     except Exception as e:
-        print(f"Error getting validation error analytics: {e}")
+#         print(f"Error getting validation error analytics: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve validation error analytics"
@@ -163,7 +163,7 @@ async def get_feedback_analytics(
         }
         
     except Exception as e:
-        print(f"Error getting feedback analytics: {e}")
+#         print(f"Error getting feedback analytics: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve feedback analytics"
@@ -215,7 +215,7 @@ async def get_performance_metrics(
         }
         
     except Exception as e:
-        print(f"Error getting performance metrics: {e}")
+#         print(f"Error getting performance metrics: {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve performance metrics"

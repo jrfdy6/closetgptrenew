@@ -368,15 +368,15 @@ if __name__ == "__main__":
         "personal_notes": "Private notes about user"
     }
     
-    print("Original data:", test_data)
+#     print("Original data:", test_data)
     
     # Encrypt sensitive data
     encrypted_data = encryptor.encrypt_user_data(test_data, test_user_id)
-    print("Encrypted data:", encrypted_data)
+#     print("Encrypted data:", encrypted_data)
     
     # Decrypt sensitive data
     decrypted_data = encryptor.decrypt_user_data(encrypted_data, test_user_id)
-    print("Decrypted data:", decrypted_data)
+#     print("Decrypted data:", decrypted_data)
     
     # Verify data matches
     assert test_data["email"] == decrypted_data["email"]
@@ -384,4 +384,4 @@ if __name__ == "__main__":
     assert test_data["wardrobe_items"] == decrypted_data["wardrobe_items"]
     assert test_data["personal_notes"] == decrypted_data["personal_notes"]
     
-    print("✅ Encryption/decryption test passed!") 
+    # print("✅ Encryption/decryption test passed!") 

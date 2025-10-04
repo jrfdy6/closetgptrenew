@@ -113,10 +113,10 @@ class OutfitService:
                                     clothing_item = ClothingItem(**item_data)
                                     converted_items.append(clothing_item)
                                 else:
-                                    print(f"Warning: Item {item} not found in wardrobe, keeping as ID")
+#                                     print(f"Warning: Item {item} not found in wardrobe, keeping as ID")
                                     converted_items.append(item)
                             except Exception as e:
-                                print(f"Warning: Failed to fetch item {item}: {e}, keeping as ID")
+#                                 print(f"Warning: Failed to fetch item {item}: {e}, keeping as ID")
                                 converted_items.append(item)
                         else:
                             # This is already a full object or dict, keep as is
@@ -128,7 +128,7 @@ class OutfitService:
                     # Try to validate as OutfitGeneratedOutfit first
                     outfits.append(OutfitGeneratedOutfit(**outfit_data))
                 except Exception as e:
-                    print(f"Validation failed for outfit {doc.id}, creating minimal outfit object")
+#                     print(f"Validation failed for outfit {doc.id}, creating minimal outfit object")
                     # Create a complete outfit object with all required fields
                     minimal_outfit = {
                         "id": doc.id,
@@ -162,12 +162,12 @@ class OutfitService:
                     try:
                         outfits.append(OutfitGeneratedOutfit(**minimal_outfit))
                     except Exception as e2:
-                        print(f"Failed to create minimal outfit for {doc.id}: {e2}")
+#                         print(f"Failed to create minimal outfit for {doc.id}: {e2}")
                         continue
             
             return outfits
         except Exception as e:
-            print(f"Error getting outfits: {e}")
+#             print(f"Error getting outfits: {e}")
             raise
 
     async def get_outfit(self, outfit_id: str) -> Optional[OutfitGeneratedOutfit]:
@@ -181,12 +181,12 @@ class OutfitService:
             outfit_data['id'] = doc.id
             
             # Debug: Print the raw outfit data structure
-            print(f"DEBUG: get_outfit - Raw outfit data keys: {list(outfit_data.keys())}")
-            print(f"DEBUG: get_outfit - Items type: {type((outfit_data.get('items', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'))}")
+            # print(f"DEBUG: get_outfit - Raw outfit data keys: {list(outfit_data.keys())}")
+            # print(f"DEBUG: get_outfit - Items type: {type((outfit_data.get('items', 'NOT_FOUND') if outfit_data else 'NOT_FOUND'))}")
             if 'items' in outfit_data:
-                print(f"DEBUG: get_outfit - Items length: {len(outfit_data['items']) if isinstance(outfit_data['items'], list) else 'NOT_LIST'}")
+                # print(f"DEBUG: get_outfit - Items length: {len(outfit_data['items']) if isinstance(outfit_data['items'], list) else 'NOT_LIST'}")
                 if isinstance(outfit_data['items'], list) and outfit_data['items']:
-                    print(f"DEBUG: get_outfit - First item type: {type(outfit_data['items'][0])}")
+                    # print(f"DEBUG: get_outfit - First item type: {type(outfit_data['items'][0])}")
             
             # Convert item IDs to full ClothingItem objects if needed
             if 'items' in outfit_data and isinstance(outfit_data['items'], list):
@@ -204,10 +204,10 @@ class OutfitService:
                                 clothing_item = ClothingItem(**item_data)
                                 converted_items.append(clothing_item)
                             else:
-                                print(f"Warning: Item {item} not found in wardrobe, keeping as ID")
+#                                 print(f"Warning: Item {item} not found in wardrobe, keeping as ID")
                                 converted_items.append(item)
                         except Exception as e:
-                            print(f"Warning: Failed to fetch item {item}: {e}, keeping as ID")
+#                             print(f"Warning: Failed to fetch item {item}: {e}, keeping as ID")
                             converted_items.append(item)
                     else:
                         # This is already a full object or dict, keep as is
@@ -218,24 +218,24 @@ class OutfitService:
                 # Try to validate as OutfitGeneratedOutfit first
                 return OutfitGeneratedOutfit(**outfit_data)
             except Exception as e:
-                print(f"Failed to validate as OutfitGeneratedOutfit: {e}")
-                print(f"DEBUG: get_outfit - Validation error details: {str(e)}")
+#                 print(f"Failed to validate as OutfitGeneratedOutfit: {e}")
+                # print(f"DEBUG: get_outfit - Validation error details: {str(e)}")
                 # If that fails, try to convert from old Outfit format
                 try:
                     # Convert old Outfit format to OutfitGeneratedOutfit format
                     converted_data = self._convert_old_outfit_format(outfit_data)
-                    print(f"DEBUG: get_outfit - Conversion successful, trying validation again")
+                    # print(f"DEBUG: get_outfit - Conversion successful, trying validation again")
                     return OutfitGeneratedOutfit(**converted_data)
                 except Exception as e2:
-                    print(f"Failed to convert old outfit format: {e2}")
-                    print(f"DEBUG: get_outfit - Conversion error details: {str(e2)}")
+#                     print(f"Failed to convert old outfit format: {e2}")
+                    # print(f"DEBUG: get_outfit - Conversion error details: {str(e2)}")
                     # If conversion fails, delete the problematic outfit
-                    print(f"Deleting problematic outfit {outfit_id}")
+#                     print(f"Deleting problematic outfit {outfit_id}")
                     self.collection.document(outfit_id).delete()
                     return None
                     
         except Exception as e:
-            print(f"Error getting outfit {outfit_id}: {e}")
+#             print(f"Error getting outfit {outfit_id}: {e}")
             raise
 
     def _convert_old_outfit_format(self, old_outfit_data: dict) -> dict:
@@ -299,7 +299,7 @@ class OutfitService:
                             from ..types.wardrobe import ClothingItem
                             converted_items.append(ClothingItem(**item))
                         except Exception as e:
-                            print(f"Warning: Failed to convert item dict to ClothingItem: {e}")
+#                             print(f"Warning: Failed to convert item dict to ClothingItem: {e}")
                             # If conversion fails, create a minimal structure
                             converted_item = {
                                 'id': (item.get('id', 'unknown') if item else 'unknown'),
@@ -323,7 +323,7 @@ class OutfitService:
                     converted_items.append(item)
                 else:
                     # Handle case where item is not a dict or string (could be other type)
-                    print(f"Warning: Skipping non-dict/non-string item in outfit data: {type(item)} - {item}")
+#                     print(f"Warning: Skipping non-dict/non-string item in outfit data: {type(item)} - {item}")
                     continue
             
             new_data['items'] = converted_items
@@ -354,15 +354,15 @@ class OutfitService:
                 new_data[key] = default_value
             elif isinstance(default_value, list) and not isinstance(new_data[key], list):
                 # If we expect a list but got something else, use the default
-                print(f"Warning: Expected list for {key}, got {type(new_data[key])}, using default")
+#                 print(f"Warning: Expected list for {key}, got {type(new_data[key])}, using default")
                 new_data[key] = default_value
             elif isinstance(default_value, dict) and not isinstance(new_data[key], dict):
                 # If we expect a dict but got something else, use the default
-                print(f"Warning: Expected dict for {key}, got {type(new_data[key])}, using default")
+#                 print(f"Warning: Expected dict for {key}, got {type(new_data[key])}, using default")
                 new_data[key] = default_value
             elif key == 'userFeedback' and new_data[key] == 'None':
                 # Special handling for userFeedback - convert string 'None' to actual None
-                print(f"Warning: Converting userFeedback from string 'None' to None")
+#                 print(f"Warning: Converting userFeedback from string 'None' to None")
                 new_data[key] = None
         
         return new_data
@@ -380,10 +380,10 @@ class OutfitService:
         layer_types = [lt.value if hasattr(lt, 'value') else str(lt) for lt in layering_rule.layer_types]
         material_preferences = layering_rule.material_preferences
         
-        # print(f"DEBUG: _select_items_for_layering - Required layers: {required_layers}")
-        # print(f"DEBUG: _select_items_for_layering - Layer types: {layer_types}")
-        # print(f"DEBUG: _select_items_for_layering - Material preferences: {material_preferences}")
-        # print(f"DEBUG: _select_items_for_layering - Wardrobe item types: {[item.type for item in wardrobe]}")
+        # # print(f"DEBUG: _select_items_for_layering - Required layers: {required_layers}")
+        # # print(f"DEBUG: _select_items_for_layering - Layer types: {layer_types}")
+        # # print(f"DEBUG: _select_items_for_layering - Material preferences: {material_preferences}")
+        # # print(f"DEBUG: _select_items_for_layering - Wardrobe item types: {[item.type for item in wardrobe]}")
         
         # Group wardrobe items by type for easier selection
         items_by_type = {}
@@ -397,14 +397,14 @@ class OutfitService:
         for layer_index in range(required_layers):
             layer_type = layer_types[layer_index] if layer_index < len(layer_types) else layer_types[0]
             
-            # print(f"DEBUG: _select_items_for_layering - Selecting for layer {layer_index + 1}: {layer_type} (type: {type(layer_type)})")
+            # # print(f"DEBUG: _select_items_for_layering - Selecting for layer {layer_index + 1}: {layer_type} (type: {type(layer_type)})")
             
             # Get items of the required type
             available_items = (items_by_type.get(layer_type, []) if items_by_type else [])
-            # print(f"DEBUG: _select_items_for_layering - Available items for {layer_type}: {[item.name for item in available_items]}")
+            # # print(f"DEBUG: _select_items_for_layering - Available items for {layer_type}: {[item.name for item in available_items]}")
             
             if not available_items:
-                # print(f"DEBUG: _select_items_for_layering - No items available for type {layer_type}")
+                # # print(f"DEBUG: _select_items_for_layering - No items available for type {layer_type}")
                 continue
             
             # Filter by material preferences
@@ -425,7 +425,7 @@ class OutfitService:
             
             if preferred_items:
                 best_item = preferred_items[0][0]
-                # print(f"DEBUG: _select_items_for_layering - Selected {best_item.name} for layer {layer_index + 1}")
+                # # print(f"DEBUG: _select_items_for_layering - Selected {best_item.name} for layer {layer_index + 1}")
                 selected_items.append(best_item)
                 
                 # Remove the selected item from available items to avoid duplicates
@@ -433,18 +433,18 @@ class OutfitService:
         
         # If we don't have enough layers, try to add additional items
         if len(selected_items) < required_layers:
-            # print(f"DEBUG: _select_items_for_layering - Only got {len(selected_items)} layers, need {required_layers}")
+            # # print(f"DEBUG: _select_items_for_layering - Only got {len(selected_items)} layers, need {required_layers}")
             
             # Try to add additional items that could work as layers
             for item in wardrobe:
                 item_type_str = item.type.value if hasattr(item.type, 'value') else str(item.type)
                 if item not in selected_items and item_type_str in layer_types:
-                    # print(f"DEBUG: _select_items_for_layering - Adding additional layer: {item.name} (type: {item_type_str})")
+                    # # print(f"DEBUG: _select_items_for_layering - Adding additional layer: {item.name} (type: {item_type_str})")
                     selected_items.append(item)
                     if len(selected_items) >= required_layers:
                         break
         
-        # print(f"DEBUG: _select_items_for_layering - Final selected items: {[item.name for item in selected_items]}")
+        # # print(f"DEBUG: _select_items_for_layering - Final selected items: {[item.name for item in selected_items]}")
         return selected_items
 
     def _validate_layering_compliance(self, items: List[ClothingItem], layering_rule: LayeringRule, occasion: str = None, temperature: float = None) -> Dict[str, Any]:
@@ -461,7 +461,7 @@ class OutfitService:
         if temperature and occasion:
             layering_matrix = self._get_temperature_occasion_layering_matrix(temperature, occasion)
             validation["matrix_applied"] = layering_matrix
-            print(f"DEBUG: _validate_layering_compliance - Applied matrix: {layering_matrix}")
+            # print(f"DEBUG: _validate_layering_compliance - Applied matrix: {layering_matrix}")
         else:
             # Fallback to basic logic if temperature/occasion not provided
             layering_matrix = {
@@ -491,7 +491,7 @@ class OutfitService:
         if validation["layer_count"] < required_layers:
             if allow_minimal_layering:
                 # For casual/warm occasions, be more lenient
-                print(f"DEBUG: _validate_layering_compliance - Matrix allows minimal layering: {layering_matrix['notes']}")
+                # print(f"DEBUG: _validate_layering_compliance - Matrix allows minimal layering: {layering_matrix['notes']}")
                 validation["is_compliant"] = True
                 validation["suggestions"].append(f"Minimal layering acceptable: {layering_matrix['notes']}")
             else:
@@ -606,30 +606,30 @@ class OutfitService:
             user_profile = self._normalize_user_profile_data(user_profile)
             
             # 🚨 DEBUG: Print first 3 wardrobe items before filtering
-            print("\n===== DEBUG: First 3 wardrobe items before filtering =====")
+#             print("\n===== DEBUG: First 3 wardrobe items before filtering =====")
             for i, item in enumerate(wardrobe[:3]):
-                print(f"Item {i+1}: {item}")
-            print("===== END DEBUG =====\n")
+#                 print(f"Item {i+1}: {item}")
+#             print("===== END DEBUG =====\n")
             
             # NEW: More detailed debugging
-            print(f"🔍 DEBUG: generate_outfit - Received wardrobe with {len(wardrobe)} items")
+            # print(f"🔍 DEBUG: generate_outfit - Received wardrobe with {len(wardrobe)} items")
             if wardrobe:
-                print(f"🔍 DEBUG: generate_outfit - First 3 wardrobe items details:")
+                # print(f"🔍 DEBUG: generate_outfit - First 3 wardrobe items details:")
                 for i, item in enumerate(wardrobe[:3]):
-                    print(f"  {i+1}. {item.name} ({item.type}) - Style: {item.style}, Occasion: {item.occasion}")
-                    print(f"      Colors: {item.dominantColors}, Matching: {item.matchingColors}")
+#                     print(f"  {i+1}. {item.name} ({item.type}) - Style: {item.style}, Occasion: {item.occasion}")
+#                     print(f"      Colors: {item.dominantColors}, Matching: {item.matchingColors}")
             else:
-                print(f"🔍 DEBUG: generate_outfit - No wardrobe items received!")
+                # print(f"🔍 DEBUG: generate_outfit - No wardrobe items received!")
             
-            # print("✅ Step 1: Starting generate_outfit with refined pipeline")
-            # print(f"🔍 BASE ITEM DEBUG - Received baseItem: {baseItem.name if baseItem else 'None'}")
-            # print(f"🔍 BASE ITEM DEBUG - Base item ID: {base_item_id}")
+            # # print("✅ Step 1: Starting generate_outfit with refined pipeline")
+            # # print(f"🔍 BASE ITEM DEBUG - Received baseItem: {baseItem.name if baseItem else 'None'}")
+            # # print(f"🔍 BASE ITEM DEBUG - Base item ID: {base_item_id}")
             
-            # print(f"DEBUG: generate_outfit - Starting with {len(wardrobe)} wardrobe items")
-            # print(f"DEBUG: generate_outfit - Temperature: {weather.temperature}°F")
-            # print(f"DEBUG: generate_outfit - Occasion: {occasion}, Style: {style}, Mood: {mood}")
-            # print(f"DEBUG: generate_outfit - User body type: {user_profile.bodyType}, Skin tone: {user_profile.skinTone}")
-            # print(f"DEBUG: generate_outfit - Base item: {base_item_id}")
+            # # print(f"DEBUG: generate_outfit - Starting with {len(wardrobe)} wardrobe items")
+            # # print(f"DEBUG: generate_outfit - Temperature: {weather.temperature}°F")
+            # # print(f"DEBUG: generate_outfit - Occasion: {occasion}, Style: {style}, Mood: {mood}")
+            # # print(f"DEBUG: generate_outfit - User body type: {user_profile.bodyType}, Skin tone: {user_profile.skinTone}")
+            # # print(f"DEBUG: generate_outfit - Base item: {base_item_id}")
             
             # 🚀 NEW: Add pipeline start trace
             pipeline_start_time = time.time()
@@ -640,7 +640,7 @@ class OutfitService:
             )
             
             # Use the refined pipeline
-            # print("✅ Step 2: Starting refined pipeline")
+            # # print("✅ Step 2: Starting refined pipeline")
             
             # NEW: Enhance wardrobe with usage data for diversity
             enhanced_wardrobe = await self._enhance_wardrobe_with_usage_data(wardrobe, user_profile.id)
@@ -657,7 +657,7 @@ class OutfitService:
                 likedOutfits=likedOutfits,
                 outfit_history=outfitHistory
             )
-            # print("✅ Step 2: Finished refined pipeline")
+            # # print("✅ Step 2: Finished refined pipeline")
             
             # 🚀 NEW: Add pipeline completion trace
             pipeline_duration = time.time() - pipeline_start_time
@@ -674,7 +674,7 @@ class OutfitService:
                 error_message = (pipeline_result.get("message", "Pipeline failed") if pipeline_result else "Pipeline failed")
                 validation_errors.append(error_message)
                 was_successful = False
-                print(f"❌ Pipeline failed: {error_message}")
+                # print(f"❌ Pipeline failed: {error_message}")
                 
                 # 🚀 NEW: Add validation error trace
                 self.tracing_service.add_validation_error(
@@ -683,12 +683,12 @@ class OutfitService:
                 )
             else:
                 selected_items = pipeline_result["items"]
-                                # print(f"✅ Pipeline successful: {len(selected_items)} items selected")
-        # print(f"🔍 Selected items: {[item.name for item in selected_items]}")
+                                # # print(f"✅ Pipeline successful: {len(selected_items)} items selected")
+        # # print(f"🔍 Selected items: {[item.name for item in selected_items]}")
             
             # NEW: If pipeline failed, try fallback strategies instead of immediately failing
             if not was_successful:
-                print("🔧 Pipeline failed, attempting fallback strategies...")
+                # print("🔧 Pipeline failed, attempting fallback strategies...")
                 generation_method = "fallback"
                 
                 # 🚀 NEW: Add fallback start trace
@@ -731,7 +731,7 @@ class OutfitService:
                 )
                 
                 if not remaining_errors:
-                    print("✅ Fallback strategies successful!")
+                    # print("✅ Fallback strategies successful!")
                     selected_items = healed_items
                     was_successful = True
                     validation_errors = []
@@ -743,7 +743,7 @@ class OutfitService:
                         fix_details={"healing_log": healing_log}
                     )
                 else:
-                    print(f"❌ Fallback strategies reduced errors but {len(remaining_errors)} remain")
+                    # print(f"❌ Fallback strategies reduced errors but {len(remaining_errors)} remain")
                     selected_items = healed_items
                     validation_errors = remaining_errors
                     was_successful = False
@@ -777,12 +777,12 @@ class OutfitService:
             layering_rule = self._get_layering_rule(weather.temperature)
             
             # Step 3: Validate layering compliance
-            print("✅ Step 3: Starting layering validation")
+            # print("✅ Step 3: Starting layering validation")
             layering_start_time = time.time()
             layering_validation = self._validate_layering_compliance(selected_items, layering_rule, occasion, weather.temperature)
             layering_duration = time.time() - layering_start_time
-            print("✅ Step 3: Finished layering validation")
-            print(f"🔍 layering_validation: {layering_validation}")
+            # print("✅ Step 3: Finished layering validation")
+            # print(f"🔍 layering_validation: {layering_validation}")
             
             # 🚀 NEW: Add layering validation trace
             self.tracing_service.add_trace_step(
@@ -798,7 +798,7 @@ class OutfitService:
                 missing_layers = (layering_validation.get('missing_layers', []) if layering_validation else [])
                 suggestions = (layering_validation.get('suggestions', []) if layering_validation else [])
                 validation_errors.append(f"Layering requirements not met: {missing_layers}; {suggestions}")
-                print(f"DEBUG: generate_outfit - Layering validation failed: {missing_layers}; {suggestions}")
+                # print(f"DEBUG: generate_outfit - Layering validation failed: {missing_layers}; {suggestions}")
                 
                 # 🚀 NEW: Add layering error trace
                 self.tracing_service.add_validation_error(
@@ -808,12 +808,12 @@ class OutfitService:
                 )
             
             # Step 3.5: Validate layering compatibility (sleeve length, button-up rules)
-            print("✅ Step 3.5: Starting layering compatibility validation")
+            # print("✅ Step 3.5: Starting layering compatibility validation")
             compatibility_start_time = time.time()
             layering_compatibility = self._validate_layering_compatibility(selected_items)
             compatibility_duration = time.time() - compatibility_start_time
-            print("✅ Step 3.5: Finished layering compatibility validation")
-            print(f"🔍 layering_compatibility: {layering_compatibility}")
+            # print("✅ Step 3.5: Finished layering compatibility validation")
+            # print(f"🔍 layering_compatibility: {layering_compatibility}")
             
             # 🚀 NEW: Add layering compatibility trace
             self.tracing_service.add_trace_step(
@@ -829,7 +829,7 @@ class OutfitService:
                 warnings = (layering_compatibility.get('warnings', []) if layering_compatibility else [])
                 validation_errors.extend(errors)
                 validation_errors.extend(warnings)
-                print(f"DEBUG: generate_outfit - Layering compatibility failed: {errors}; {warnings}")
+                # print(f"DEBUG: generate_outfit - Layering compatibility failed: {errors}; {warnings}")
                 
                 # 🚀 NEW: Add compatibility error traces
                 for error in errors:
@@ -841,12 +841,12 @@ class OutfitService:
                 # was_successful = False
             
             # Step 4: Generate outfit insights and analysis
-            print("✅ Step 4: Starting _enhance_outfit_with_layering_insights")
+            # print("✅ Step 4: Starting _enhance_outfit_with_layering_insights")
             insights_start_time = time.time()
             layering_insights = self._enhance_outfit_with_layering_insights(selected_items, layering_rule, weather)
             insights_duration = time.time() - insights_start_time
-            print("✅ Step 4: Finished _enhance_outfit_with_layering_insights")
-            print(f"🔍 layering_insights: {layering_insights}")
+            # print("✅ Step 4: Finished _enhance_outfit_with_layering_insights")
+            # print(f"🔍 layering_insights: {layering_insights}")
             
             # 🚀 NEW: Add insights generation trace
             self.tracing_service.add_trace_step(
@@ -858,24 +858,24 @@ class OutfitService:
             )
             
             # Step 5: Calculate scores and generate content
-            print("✅ Step 5: Starting score calculations")
+            # print("✅ Step 5: Starting score calculations")
             scores_start_time = time.time()
-            print("🔍 Before _calculate_pairability_score_enhanced")
+            # print("🔍 Before _calculate_pairability_score_enhanced")
             pairability_score = self._calculate_pairability_score_enhanced(selected_items)
-            print(f"🔍 pairability_score: {pairability_score}")
+            # print(f"🔍 pairability_score: {pairability_score}")
             
-            print("🔍 Before _calculate_style_compliance_enhanced")
+            # print("🔍 Before _calculate_style_compliance_enhanced")
             style_compliance = self._calculate_style_compliance_enhanced(selected_items, style)
-            print(f"🔍 style_compliance: {style_compliance}")
+            # print(f"🔍 style_compliance: {style_compliance}")
             
-            print("🔍 Before _calculate_weather_appropriateness_enhanced")
+            # print("🔍 Before _calculate_weather_appropriateness_enhanced")
             weather_appropriateness = self._calculate_weather_appropriateness_enhanced(selected_items, weather)
-            print(f"🔍 weather_appropriateness: {weather_appropriateness}")
+            # print(f"🔍 weather_appropriateness: {weather_appropriateness}")
             
-            print("🔍 Before _calculate_occasion_appropriateness_enhanced")
+            # print("🔍 Before _calculate_occasion_appropriateness_enhanced")
             occasion_appropriateness = self._calculate_occasion_appropriateness_enhanced(selected_items, occasion)
-            print(f"🔍 occasion_appropriateness: {occasion_appropriateness}")
-            print("✅ Step 5: Finished score calculations")
+            # print(f"🔍 occasion_appropriateness: {occasion_appropriateness}")
+            # print("✅ Step 5: Finished score calculations")
             
             scores_duration = time.time() - scores_start_time
             
@@ -928,7 +928,7 @@ class OutfitService:
             
             # NEW: If we still have validation errors after fallback, try one more healing attempt
             if validation_errors and not was_successful:
-                print("🔧 Final healing attempt for remaining validation errors...")
+                # print("🔧 Final healing attempt for remaining validation errors...")
                 generation_method = "final_fallback"
                 
                 # 🚀 NEW: Add final healing attempt trace
@@ -972,7 +972,7 @@ class OutfitService:
                 )
                 
                 if len(final_remaining_errors) < len(validation_errors):
-                    print("✅ Final healing attempt improved the outfit!")
+                    # print("✅ Final healing attempt improved the outfit!")
                     selected_items = final_healed_items
                     validation_errors = final_remaining_errors
                     healing_log.update(final_healing_log)
@@ -989,25 +989,25 @@ class OutfitService:
                         was_successful = True
             
             # Step 6: Generate outfit content
-            print("✅ Step 6: Starting content generation")
-            print("🔍 Before _calculate_color_harmony_enhanced")
+            # print("✅ Step 6: Starting content generation")
+            # print("🔍 Before _calculate_color_harmony_enhanced")
             color_harmony = self._calculate_color_harmony_enhanced(selected_items)
-            print(f"🔍 color_harmony: {color_harmony}")
+            # print(f"🔍 color_harmony: {color_harmony}")
             
-            print("🔍 Before _generate_style_notes_enhanced")
+            # print("🔍 Before _generate_style_notes_enhanced")
             style_notes = self._generate_style_notes_enhanced(selected_items, occasion, style)
-            print(f"🔍 style_notes: {style_notes}")
+            # print(f"🔍 style_notes: {style_notes}")
             
-            print("🔍 Before _generate_style_tags_enhanced")
+            # print("🔍 Before _generate_style_tags_enhanced")
             style_tags = self._generate_style_tags_enhanced(selected_items, style)
-            print(f"🔍 style_tags: {style_tags}")
+            # print(f"🔍 style_tags: {style_tags}")
             
             # Calculate missing metadata values just before using them
             style_compatibility = self._get_style_compatibility_summary(selected_items)
             clip_insights = self._extract_clip_insights(selected_items)
 
             # Step 7: Create outfit pieces
-            print("✅ Step 7: Starting outfit pieces creation")
+            # print("✅ Step 7: Starting outfit pieces creation")
             outfit_pieces = []
             for item in selected_items:
                 piece = OutfitPiece(
@@ -1021,15 +1021,15 @@ class OutfitService:
                     imageUrl=item.imageUrl
                 )
                 outfit_pieces.append(piece)
-            print("✅ Step 7: Finished outfit pieces creation")
+            # print("✅ Step 7: Finished outfit pieces creation")
             
             # CRITICAL VALIDATION: Check if we have too many validation errors
             if len(validation_errors) >= 3:
                 was_successful = False
-                print(f"❌ CRITICAL: Too many validation errors ({len(validation_errors)}), marking as failed")
+                # print(f"❌ CRITICAL: Too many validation errors ({len(validation_errors)}), marking as failed")
             
             # Step 8: Create outfit data
-            print("✅ Step 8: Starting outfit_data creation")
+            # print("✅ Step 8: Starting outfit_data creation")
             
             # Convert selected items to full objects for the response
             items_for_response = []
@@ -1092,16 +1092,16 @@ class OutfitService:
                     "healing_log": healing_log  # Add healing information
                 }
             }
-            print("✅ Step 8: Finished outfit_data creation")
-            print(f"🔍 outfit_data keys: {list(outfit_data.keys())}")
+            # print("✅ Step 8: Finished outfit_data creation")
+            # print(f"🔍 outfit_data keys: {list(outfit_data.keys())}")
 
             # Save to Firestore
-            print("✅ Step 9: Starting Firestore save")
+            # print("✅ Step 9: Starting Firestore save")
             doc_ref = self.collection.document(outfit_data["id"])
             # Convert the outfit data to dict for Firestore storage
             firestore_data = self.to_dict_recursive(outfit_data)
             doc_ref.set(firestore_data)
-            print("✅ Step 9: Finished Firestore save")
+            # print("✅ Step 9: Finished Firestore save")
             
             # 🚀 NEW: Add final generation completion trace
             generation_duration = time.time() - generation_start_time
@@ -1150,41 +1150,41 @@ class OutfitService:
                 # Also save to the traces collection
                 await self.tracing_service.save_trace(outfit_data["id"], complete_trace)
                 
-                print(f"🚀 Trace saved successfully for outfit {outfit_data['id']}")
-                print(f"📊 Trace summary: {self.tracing_service.get_trace_summary()}")
+#                 print(f"🚀 Trace saved successfully for outfit {outfit_data['id']}")
+#                 print(f"📊 Trace summary: {self.tracing_service.get_trace_summary()}")
                 
             except Exception as trace_error:
-                print(f"⚠️ Warning: Failed to save trace: {trace_error}")
+                # print(f"⚠️ Warning: Failed to save trace: {trace_error}")
             
-            print(f"DEBUG: generate_outfit - Outfit saved with ID: {outfit_data['id']}")
-            print(f"DEBUG: generate_outfit - Success: {was_successful}")
-            print(f"DEBUG: generate_outfit - Base item ID: {base_item_id}")
-            print(f"DEBUG: generate_outfit - Validation errors: {validation_errors}")
-            print(f"DEBUG: generate_outfit - Layering compliance: {layering_validation['is_compliant']}")
+            # print(f"DEBUG: generate_outfit - Outfit saved with ID: {outfit_data['id']}")
+            # print(f"DEBUG: generate_outfit - Success: {was_successful}")
+            # print(f"DEBUG: generate_outfit - Base item ID: {base_item_id}")
+            # print(f"DEBUG: generate_outfit - Validation errors: {validation_errors}")
+            # print(f"DEBUG: generate_outfit - Layering compliance: {layering_validation['is_compliant']}")
             
             # Debug: Print the outfit_data dict to see what's in it
-            print(f"DEBUG: generate_outfit - outfit_data keys: {list(outfit_data.keys())}")
-            print(f"DEBUG: generate_outfit - wasSuccessful in dict: {(outfit_data.get('wasSuccessful', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
-            print(f"DEBUG: generate_outfit - baseItemId in dict: {(outfit_data.get('baseItemId', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
-            print(f"DEBUG: generate_outfit - validationErrors in dict: {(outfit_data.get('validationErrors', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
+            # print(f"DEBUG: generate_outfit - outfit_data keys: {list(outfit_data.keys())}")
+            # print(f"DEBUG: generate_outfit - wasSuccessful in dict: {(outfit_data.get('wasSuccessful', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
+            # print(f"DEBUG: generate_outfit - baseItemId in dict: {(outfit_data.get('baseItemId', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
+            # print(f"DEBUG: generate_outfit - validationErrors in dict: {(outfit_data.get('validationErrors', 'NOT FOUND') if outfit_data else 'NOT FOUND')}")
             
             # Debug: Print the full outfit_data dict
-            print("DEBUG: generate_outfit - Full outfit_data dict:")
+            # print("DEBUG: generate_outfit - Full outfit_data dict:")
             import json
-            print(json.dumps(outfit_data, indent=2, default=str))
+#             print(json.dumps(outfit_data, indent=2, default=str))
             
-            print("✅ Step 10: Creating OutfitGeneratedOutfit object")
+            # print("✅ Step 10: Creating OutfitGeneratedOutfit object")
             result = OutfitGeneratedOutfit(**outfit_data)
-            print("✅ Step 10: Finished creating OutfitGeneratedOutfit object")
-            print("✅ SUCCESS: generate_outfit completed successfully!")
+            # print("✅ Step 10: Finished creating OutfitGeneratedOutfit object")
+            # print("✅ SUCCESS: generate_outfit completed successfully!")
             
             return result
             
         except Exception as e:
-            print(f"❌ ERROR in generate_outfit: {e}")
+            # print(f"❌ ERROR in generate_outfit: {e}")
             import traceback
-            print(f"❌ TRACEBACK:")
-            print(traceback.format_exc())
+            # print(f"❌ TRACEBACK:")
+#             print(traceback.format_exc())
             
             # 🚀 NEW: Add error trace
             self.tracing_service.add_trace_step(
@@ -1235,7 +1235,7 @@ class OutfitService:
                 # Convert the outfit data to dict for Firestore storage
                 firestore_data = self.to_dict_recursive(outfit_data)
                 doc_ref.set(firestore_data)
-                print(f"DEBUG: generate_outfit - Failed outfit saved with ID: {outfit_data['id']}")
+                # print(f"DEBUG: generate_outfit - Failed outfit saved with ID: {outfit_data['id']}")
                 
                 # 🚀 NEW: Save error trace
                 try:
@@ -1248,10 +1248,10 @@ class OutfitService:
                     )
                     await self.tracing_service.save_trace(outfit_data["id"], error_trace)
                 except Exception as trace_error:
-                    print(f"⚠️ Warning: Failed to save error trace: {trace_error}")
+                    # print(f"⚠️ Warning: Failed to save error trace: {trace_error}")
                     
             except Exception as save_error:
-                print(f"Error saving failed outfit: {save_error}")
+#                 print(f"Error saving failed outfit: {save_error}")
             
             # Return the failed outfit
             return OutfitGeneratedOutfit(**outfit_data)
@@ -1276,7 +1276,7 @@ class OutfitService:
     def _get_essential_items_enhanced(self, occasion: str, wardrobe: List[ClothingItem], style: Optional[str]) -> List[ClothingItem]:
         """Get essential items for the given occasion using enhanced analysis and outfit rules."""
         essential_items = []
-        print(f"DEBUG: _get_essential_items_enhanced - Looking for {occasion} items from {len(wardrobe)} wardrobe items")
+        # print(f"DEBUG: _get_essential_items_enhanced - Looking for {occasion} items from {len(wardrobe)} wardrobe items")
         
         # Get the occasion rule to know what item types are required
         from ..types.outfit_rules import get_occasion_rule
@@ -1284,9 +1284,9 @@ class OutfitService:
         required_item_types = []
         if occasion_rule:
             required_item_types = [item_type.value.lower() for item_type in occasion_rule.required_items]
-            print(f"DEBUG: _get_essential_items_enhanced - Required item types for {occasion}: {required_item_types}")
+            # print(f"DEBUG: _get_essential_items_enhanced - Required item types for {occasion}: {required_item_types}")
         else:
-            print(f"DEBUG: _get_essential_items_enhanced - No occasion rule found for {occasion}")
+            # print(f"DEBUG: _get_essential_items_enhanced - No occasion rule found for {occasion}")
         
         # Define category mapping to avoid duplicates
         category_mapping = {
@@ -1305,9 +1305,9 @@ class OutfitService:
         # First, try to find items that match the occasion
         occasion_matching_items = []
         for item in wardrobe:
-            print(f"DEBUG: Checking item {item.name} (id: {item.id})")
-            print(f"DEBUG:   - Item occasions: {item.occasion}")
-            print(f"DEBUG:   - Looking for occasion: {occasion}")
+            # print(f"DEBUG: Checking item {item.name} (id: {item.id})")
+            # print(f"DEBUG:   - Item occasions: {item.occasion}")
+            # print(f"DEBUG:   - Looking for occasion: {occasion}")
             
             # STRICT FILTERING for athletic occasions
             if occasion and 'athletic' in occasion.lower():
@@ -1334,31 +1334,31 @@ class OutfitService:
                 
                 # For athletic occasions, require at least one athletic attribute
                 if not (has_athletic_occasion or has_athletic_style or has_athletic_tags):
-                    print(f"DEBUG:   ✗ Item filtered out - no athletic attributes for {occasion}")
+                    # print(f"DEBUG:   ✗ Item filtered out - no athletic attributes for {occasion}")
                     continue
                 
-                print(f"DEBUG:   ✓ Item has athletic attributes for {occasion}")
+                # print(f"DEBUG:   ✓ Item has athletic attributes for {occasion}")
                 occasion_matching_items.append(item)
             
             else:
                 # For non-athletic occasions, use the original logic
                 # Check occasion compatibility
                 if occasion in item.occasion:
-                    print(f"DEBUG:   ✓ Item matches occasion {occasion}")
+                    # print(f"DEBUG:   ✓ Item matches occasion {occasion}")
                     # Use enhanced occasion tags if available
                     enhanced_occasions = getattr(item.metadata, 'enhancedOccasions', None)
                     if enhanced_occasions is None and item.metadata and hasattr(item.metadata, 'dict'):
                         enhanced_occasions = item.metadata.dict().get('enhancedOccasions', item.occasion) if item.metadata and hasattr(item.metadata, 'dict') else item.occasion
                     if enhanced_occasions is None:
                         enhanced_occasions = item.occasion
-                    print(f"DEBUG:   - Enhanced occasions: {enhanced_occasions}")
+                    # print(f"DEBUG:   - Enhanced occasions: {enhanced_occasions}")
                     if occasion in enhanced_occasions:
-                        print(f"DEBUG:   ✓ Item added to occasion matching items")
+                        # print(f"DEBUG:   ✓ Item added to occasion matching items")
                         occasion_matching_items.append(item)
                     else:
-                        print(f"DEBUG:   ✗ Item filtered out by enhanced occasions")
+                        # print(f"DEBUG:   ✗ Item filtered out by enhanced occasions")
                 else:
-                    print(f"DEBUG:   ✗ Item doesn't match occasion {occasion}")
+                    # print(f"DEBUG:   ✗ Item doesn't match occasion {occasion}")
         
         # Now ensure we have at least one item of each required type, but avoid duplicate categories
         selected_by_type = {}
@@ -1379,7 +1379,7 @@ class OutfitService:
                         selected_by_type[required_type] = item
                         essential_items.append(item)
                         filled_categories.add(item_category)
-                        print(f"DEBUG: _get_essential_items_enhanced - Added {required_type} (category: {item_category}): {item.name}")
+                        # print(f"DEBUG: _get_essential_items_enhanced - Added {required_type} (category: {item_category}): {item.name}")
                         break
         
         # STRICT FALLBACK LOGIC for athletic occasions
@@ -1387,15 +1387,15 @@ class OutfitService:
             # For athletic occasions, don't add items that don't have athletic attributes
             missing_types = set(required_item_types) - set(selected_by_type.keys())
             if missing_types:
-                print(f"DEBUG: _get_essential_items_enhanced - Missing required types for athletic occasion: {missing_types}")
-                print(f"DEBUG: _get_essential_items_enhanced - WARNING: Not adding non-athletic items as fallback!")
-                print(f"DEBUG: _get_essential_items_enhanced - This may result in incomplete outfits, but prevents inappropriate items.")
+                # print(f"DEBUG: _get_essential_items_enhanced - Missing required types for athletic occasion: {missing_types}")
+                # print(f"DEBUG: _get_essential_items_enhanced - WARNING: Not adding non-athletic items as fallback!")
+                # print(f"DEBUG: _get_essential_items_enhanced - This may result in incomplete outfits, but prevents inappropriate items.")
         else:
             # For non-athletic occasions, keep the original fallback logic
             # If we don't have all required types, add items that match the required types
             missing_types = set(required_item_types) - set(selected_by_type.keys())
             if missing_types:
-                print(f"DEBUG: _get_essential_items_enhanced - Missing required types: {missing_types}")
+                # print(f"DEBUG: _get_essential_items_enhanced - Missing required types: {missing_types}")
                 for missing_type in missing_types:
                     for item in wardrobe:
                         if item not in essential_items:  # Don't add duplicates
@@ -1412,29 +1412,29 @@ class OutfitService:
                             if item_category and item_category not in filled_categories and missing_type in item_type:
                                 essential_items.append(item)
                                 filled_categories.add(item_category)
-                                print(f"DEBUG: _get_essential_items_enhanced - Added missing {missing_type} (category: {item_category}): {item.name}")
+                                # print(f"DEBUG: _get_essential_items_enhanced - Added missing {missing_type} (category: {item_category}): {item.name}")
                                 break
         
-        print(f"DEBUG: _get_essential_items_enhanced - Found {len(essential_items)} essential items")
-        # print(f"DEBUG: _get_essential_items_enhanced - Selected items: {[item.name for item in essential_items]}")
-        print(f"DEBUG: _get_essential_items_enhanced - Filled categories: {filled_categories}")
+        # print(f"DEBUG: _get_essential_items_enhanced - Found {len(essential_items)} essential items")
+        # # print(f"DEBUG: _get_essential_items_enhanced - Selected items: {[item.name for item in essential_items]}")
+        # print(f"DEBUG: _get_essential_items_enhanced - Filled categories: {filled_categories}")
         return essential_items
 
     def _get_style_items_enhanced(self, style: str, wardrobe: List[ClothingItem]) -> List[ClothingItem]:
         """Get items matching the style using enhanced analysis insights."""
         style_items = []
-        print(f"DEBUG: _get_style_items_enhanced - Looking for {style} items from {len(wardrobe)} wardrobe items")
+        # print(f"DEBUG: _get_style_items_enhanced - Looking for {style} items from {len(wardrobe)} wardrobe items")
         
         for item in wardrobe:
-            print(f"DEBUG: Checking item {item.name} (id: {item.id}) for style {style}")
-            print(f"DEBUG:   - Item styles: {item.style}")
+            # print(f"DEBUG: Checking item {item.name} (id: {item.id}) for style {style}")
+            # print(f"DEBUG:   - Item styles: {item.style}")
             
             # Check primary style from CLIP analysis
             clip_analysis = getattr(item.metadata, 'clipAnalysis', None)
             clip_primary_style = clip_analysis.get("primaryStyle") if clip_analysis else None
-            print(f"DEBUG:   - CLIP primary style: {clip_primary_style}")
+            # print(f"DEBUG:   - CLIP primary style: {clip_primary_style}")
             if clip_primary_style and clip_primary_style.lower() == style.lower():
-                print(f"DEBUG:   ✓ Item matches CLIP style")
+                # print(f"DEBUG:   ✓ Item matches CLIP style")
                 style_items.append(item)
                 continue
 
@@ -1444,23 +1444,23 @@ class OutfitService:
                 enhanced_styles = item.metadata.dict().get('enhancedStyles', item.style) if item.metadata and hasattr(item.metadata, 'dict') else item.style
             if enhanced_styles is None:
                 enhanced_styles = item.style
-            print(f"DEBUG:   - Enhanced styles: {enhanced_styles}")
+            # print(f"DEBUG:   - Enhanced styles: {enhanced_styles}")
             if style.lower() in [s.lower() for s in enhanced_styles]:
-                print(f"DEBUG:   ✓ Item matches enhanced styles")
+                # print(f"DEBUG:   ✓ Item matches enhanced styles")
                 style_items.append(item)
                 continue
 
             # Check style compatibility
             style_compatibility = getattr(item.metadata, 'styleCompatibility', None)
             compatible_styles = style_compatibility.get("compatibleStyles", []) if style_compatibility else []
-            print(f"DEBUG:   - Compatible styles: {compatible_styles}")
+            # print(f"DEBUG:   - Compatible styles: {compatible_styles}")
             if style.lower() in [s.lower() for s in compatible_styles]:
-                print(f"DEBUG:   ✓ Item matches compatible styles")
+                # print(f"DEBUG:   ✓ Item matches compatible styles")
                 style_items.append(item)
             else:
-                print(f"DEBUG:   ✗ Item doesn't match any style criteria")
+                # print(f"DEBUG:   ✗ Item doesn't match any style criteria")
         
-        print(f"DEBUG: _get_style_items_enhanced - Found {len(style_items)} style items")
+        # print(f"DEBUG: _get_style_items_enhanced - Found {len(style_items)} style items")
         return style_items
 
     def _adjust_for_weather_enhanced(self, items: List[ClothingItem], weather: WeatherData) -> List[ClothingItem]:
@@ -1740,12 +1740,12 @@ class OutfitService:
         
         # NEW: Fallback logic for low scores
         if base_score == 0.0:
-            print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Zero occasion score, applying fallback logic")
+            # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Zero occasion score, applying fallback logic")
             
             # Comprehensive fallback logic for all occasions
             # Fashion Event
             if 'fashion' in occasion.lower() or 'event' in occasion.lower():
-                print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Fashion event detected, applying fashion-specific logic")
+                # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Fashion event detected, applying fashion-specific logic")
                 fashion_matches = 0
                 for item in items:
                     item_name_lower = item.name.lower()
@@ -1761,7 +1761,7 @@ class OutfitService:
                         fashion_matches += 1
                 if fashion_matches > 0:
                     fallback_score = fashion_matches / total_items
-                    print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Fashion event fallback score: {fallback_score}")
+                    # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Fashion event fallback score: {fallback_score}")
                     return max(fallback_score, 0.5)
             # Casual/athletic
             elif occasion.lower() in ['casual', 'athletic', 'gym', 'beach', 'vacation', 'errands']:
@@ -1778,7 +1778,7 @@ class OutfitService:
                         casual_matches += 1
                 if casual_matches > 0:
                     fallback_score = casual_matches / total_items
-                    print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Casual fallback score: {fallback_score}")
+                    # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Casual fallback score: {fallback_score}")
                     return max(fallback_score, 0.3)
             # Formal
             elif occasion.lower() in ['formal', 'business', 'interview', 'gala', 'wedding']:
@@ -1795,7 +1795,7 @@ class OutfitService:
                         formal_matches += 1
                 if formal_matches > 0:
                     fallback_score = formal_matches / total_items
-                    print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Formal fallback score: {fallback_score}")
+                    # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Formal fallback score: {fallback_score}")
                     return max(fallback_score, 0.4)
             # Party/social
             elif occasion.lower() in ['party', 'cocktail', 'night out', 'date night', 'brunch']:
@@ -1812,7 +1812,7 @@ class OutfitService:
                         social_matches += 1
                 if social_matches > 0:
                     fallback_score = social_matches / total_items
-                    print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Social fallback score: {fallback_score}")
+                    # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Social fallback score: {fallback_score}")
                     return max(fallback_score, 0.4)
             # Outdoor/athletic
             elif occasion.lower() in ['athletic', 'gym', 'workout', 'sports', 'outdoor', 'hiking']:
@@ -1829,7 +1829,7 @@ class OutfitService:
                         athletic_matches += 1
                 if athletic_matches > 0:
                     fallback_score = athletic_matches / total_items
-                    print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Athletic fallback score: {fallback_score}")
+                    # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Athletic fallback score: {fallback_score}")
                     return max(fallback_score, 0.3)
             # Travel/vacation
             elif occasion.lower() in ['travel', 'vacation', 'airport', 'beach', 'holiday']:
@@ -1846,11 +1846,11 @@ class OutfitService:
                         travel_matches += 1
                 if travel_matches > 0:
                     fallback_score = travel_matches / total_items
-                    print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Travel fallback score: {fallback_score}")
+                    # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - Travel fallback score: {fallback_score}")
                     return max(fallback_score, 0.3)
             # General fallback
             else:
-                print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - General fallback for occasion: {occasion}")
+                # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - General fallback for occasion: {occasion}")
                 basic_items = ['shirt', 'pants', 'shoes', 'dress', 'jacket', 'sweater', 't-shirt', 'jeans']
                 basic_count = 0
                 for item in items:
@@ -1859,7 +1859,7 @@ class OutfitService:
                         basic_count += 1
                 if basic_count >= 2:
                     fallback_score = basic_count / total_items
-                    print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - General fallback score: {fallback_score}")
+                    # print(f"DEBUG: _calculate_occasion_appropriateness_enhanced - General fallback score: {fallback_score}")
                     return max(fallback_score, 0.3)
         
         return base_score
@@ -2087,14 +2087,14 @@ class OutfitService:
                 filtered_items.append(item)
         # ⛑️ Ensure base_item is preserved
         if base_item and base_item not in filtered_items and base_item in items:
-            print(f"[Mood Filter] Preserving base item despite mismatch: {base_item.name}")
+#             print(f"[Mood Filter] Preserving base item despite mismatch: {base_item.name}")
             filtered_items.append(base_item)
         # STRICT: If no items match mood, return empty list except for base_item
         if not filtered_items and base_item and base_item in items:
-            print(f"DEBUG: _filter_items_by_mood - No items match mood {mood_rule.mood}, but preserving base item")
+            # print(f"DEBUG: _filter_items_by_mood - No items match mood {mood_rule.mood}, but preserving base item")
             return [base_item]
         elif not filtered_items:
-            print(f"DEBUG: _filter_items_by_mood - No items match mood {mood_rule.mood}, returning empty list")
+            # print(f"DEBUG: _filter_items_by_mood - No items match mood {mood_rule.mood}, returning empty list")
             return []
         return filtered_items
 
@@ -2115,7 +2115,7 @@ class OutfitService:
         
         # If no items match body/skin criteria, return original items
         if not filtered_items:
-            print(f"DEBUG: _filter_items_by_body_and_skin - No items match body type {user_profile.bodyType} or skin tone {user_profile.skinTone}, returning original items")
+            # print(f"DEBUG: _filter_items_by_body_and_skin - No items match body type {user_profile.bodyType} or skin tone {user_profile.skinTone}, returning original items")
             return items
         
         return filtered_items
@@ -2138,7 +2138,7 @@ class OutfitService:
         # Step 1: Start with base item if provided
         if baseItem:
             selected_items.append(baseItem)
-            print(f"DEBUG: _compose_outfit_with_limits - Added base item: {baseItem.name} (type: {baseItem.type})")
+            # print(f"DEBUG: _compose_outfit_with_limits - Added base item: {baseItem.name} (type: {baseItem.type})")
         
         # Step 2: Build outfit around base item or add essential items
         if baseItem:
@@ -2146,77 +2146,77 @@ class OutfitService:
             selected_items = self._build_outfit_around_base_item(baseItem, selected_items, wardrobe, occasion, style, layering_rule)
         else:
             # No base item, add essential items for the occasion
-            print(f"DEBUG: _compose_outfit_with_limits - Looking for essential items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Looking for essential items")
             essential_items = self._get_essential_items_enhanced(occasion, wardrobe, style)
-            print(f"DEBUG: _compose_outfit_with_limits - Found {len(essential_items)} essential items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Found {len(essential_items)} essential items")
             
             # Limit essential items to 2-3 most important pieces
             essential_items = essential_items[:3]  # Take first 3
             for item in essential_items:
                 if item not in selected_items:
                     selected_items.append(item)
-                    print(f"DEBUG: _compose_outfit_with_limits - Added essential item: {item.name}")
+                    # print(f"DEBUG: _compose_outfit_with_limits - Added essential item: {item.name}")
         
         # Step 3: Add style items (limit to 1-2 items)
         if style and len(selected_items) < 4:  # Only add if we have room
-            print(f"DEBUG: _compose_outfit_with_limits - Looking for style items: {style}")
+            # print(f"DEBUG: _compose_outfit_with_limits - Looking for style items: {style}")
             style_items = self._get_style_items_enhanced(style, wardrobe)
-            print(f"DEBUG: _compose_outfit_with_limits - Found {len(style_items)} style items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Found {len(style_items)} style items")
             
             # Limit style items to 1-2 pieces
             style_items = style_items[:2]  # Take first 2
             for item in style_items:
                 if item not in selected_items and len(selected_items) < 4:
                     selected_items.append(item)
-                    print(f"DEBUG: _compose_outfit_with_limits - Added style item: {item.name}")
+                    # print(f"DEBUG: _compose_outfit_with_limits - Added style item: {item.name}")
         
         # Step 4: Apply mood-based filtering
         if mood_rule and selected_items:
-            print(f"DEBUG: _compose_outfit_with_limits - Applying mood rule: {mood_rule.mood}")
+            # print(f"DEBUG: _compose_outfit_with_limits - Applying mood rule: {mood_rule.mood}")
             mood_filtered_items = self._filter_items_by_mood(selected_items, mood_rule, base_item=baseItem)
-            print(f"DEBUG: _compose_outfit_with_limits - Mood filtering: {len(selected_items)} -> {len(mood_filtered_items)} items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Mood filtering: {len(selected_items)} -> {len(mood_filtered_items)} items")
             selected_items = mood_filtered_items
         
         # Step 5: Apply body type and skin tone considerations
         if selected_items:
-            print(f"DEBUG: _compose_outfit_with_limits - Applying body type and skin tone considerations")
+            # print(f"DEBUG: _compose_outfit_with_limits - Applying body type and skin tone considerations")
             body_skin_filtered_items = self._filter_items_by_body_and_skin(selected_items, user_profile)
-            print(f"DEBUG: _compose_outfit_with_limits - Body/skin filtering: {len(selected_items)} -> {len(body_skin_filtered_items)} items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Body/skin filtering: {len(selected_items)} -> {len(body_skin_filtered_items)} items")
             selected_items = body_skin_filtered_items
         
         # Step 6: Add trending items (limit to 1 item)
         if trendingStyles and len(selected_items) < 4:  # Only add if we have room
-            print(f"DEBUG: _compose_outfit_with_limits - Looking for trending items: {trendingStyles}")
+            # print(f"DEBUG: _compose_outfit_with_limits - Looking for trending items: {trendingStyles}")
             trending_items = self._get_trending_items(trendingStyles, wardrobe)
-            print(f"DEBUG: _compose_outfit_with_limits - Found {len(trending_items)} trending items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Found {len(trending_items)} trending items")
             
             # Limit trending items to 1 piece
             trending_items = trending_items[:1]  # Take first 1
             for item in trending_items:
                 if item not in selected_items and len(selected_items) < 4:
                     selected_items.append(item)
-                    print(f"DEBUG: _compose_outfit_with_limits - Added trending item: {item.name}")
+                    # print(f"DEBUG: _compose_outfit_with_limits - Added trending item: {item.name}")
         
         # Step 7: Add liked items (limit to 1 item)
         if likedOutfits and len(selected_items) < 4:  # Only add if we have room
-            print(f"DEBUG: _compose_outfit_with_limits - Looking for liked items: {likedOutfits}")
+            # print(f"DEBUG: _compose_outfit_with_limits - Looking for liked items: {likedOutfits}")
             liked_items = self._get_liked_items(likedOutfits, wardrobe)
-            print(f"DEBUG: _compose_outfit_with_limits - Found {len(liked_items)} liked items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Found {len(liked_items)} liked items")
             
             # Limit liked items to 1 piece
             liked_items = liked_items[:1]  # Take first 1
             for item in liked_items:
                 if item not in selected_items and len(selected_items) < 4:
                     selected_items.append(item)
-                    print(f"DEBUG: _compose_outfit_with_limits - Added liked item: {item.name}")
+                    # print(f"DEBUG: _compose_outfit_with_limits - Added liked item: {item.name}")
         
         # Step 8: ALWAYS ensure we have a proper outfit structure if we have fewer than 4 items
         # This is the key fix - we need to ensure complete outfits regardless of base item
         if len(selected_items) < 4:
-            print(f"DEBUG: _compose_outfit_with_limits - Ensuring outfit structure (current: {len(selected_items)} items)")
+            # print(f"DEBUG: _compose_outfit_with_limits - Ensuring outfit structure (current: {len(selected_items)} items)")
             selected_items = self._ensure_outfit_structure(selected_items, wardrobe, layering_rule, occasion, style, weather_temperature)
         else:
-            print(f"DEBUG: _compose_outfit_with_limits - Skipping _ensure_outfit_structure, have {len(selected_items)} items")
+            # print(f"DEBUG: _compose_outfit_with_limits - Skipping _ensure_outfit_structure, have {len(selected_items)} items")
         
         # Step 9: Limit total items to layering rule requirements, but preserve base item
         max_items = min(layering_rule.required_layers + 2, 5)  # Cap at 5 items maximum, allow 2 extra for accessories
@@ -2235,15 +2235,15 @@ class OutfitService:
                 # Add base item back at the beginning
                 if base_item_in_list:
                     selected_items.insert(0, baseItem)
-                    print(f"DEBUG: _compose_outfit_with_limits - Preserved base item: {baseItem.name}")
+                    # print(f"DEBUG: _compose_outfit_with_limits - Preserved base item: {baseItem.name}")
             else:
                 # No base item, just limit normally
                 selected_items = selected_items[:max_items]
             
-            print(f"DEBUG: _compose_outfit_with_limits - Limited to {max_items} items based on layering rule")
+            # print(f"DEBUG: _compose_outfit_with_limits - Limited to {max_items} items based on layering rule")
         
-        print(f"DEBUG: _compose_outfit_with_limits - Final outfit composition: {len(selected_items)} items")
-        # print(f"DEBUG: _compose_outfit_with_limits - Selected items: {[item.name for item in selected_items]}")
+        # print(f"DEBUG: _compose_outfit_with_limits - Final outfit composition: {len(selected_items)} items")
+        # # print(f"DEBUG: _compose_outfit_with_limits - Selected items: {[item.name for item in selected_items]}")
         
         return selected_items
 
@@ -2252,12 +2252,12 @@ class OutfitService:
                                       layering_rule: LayeringRule) -> List[ClothingItem]:
         """Build a sensible outfit around a base item."""
         base_type = base_item.type.lower()
-        print(f"DEBUG: _build_outfit_around_base_item - Building around {base_item.name} (type: {base_type})")
+        # print(f"DEBUG: _build_outfit_around_base_item - Building around {base_item.name} (type: {base_type})")
         
         # Define what we need based on base item type
         if base_type in ['shoes', 'sneakers', 'boots', 'sandals']:
             # Base item is shoes - we need bottom and top
-            print(f"DEBUG: _build_outfit_around_base_item - Base item is shoes, adding bottom and top")
+            # print(f"DEBUG: _build_outfit_around_base_item - Base item is shoes, adding bottom and top")
             
             # Add bottom item first
             bottom_items = [item for item in wardrobe if item.id != base_item.id and 
@@ -2267,7 +2267,7 @@ class OutfitService:
                 filtered_bottoms = self._filter_items_for_occasion_and_style(bottom_items, occasion, style)
                 if filtered_bottoms:
                     selected_items.append(filtered_bottoms[0])
-                    print(f"DEBUG: _build_outfit_around_base_item - Added bottom: {filtered_bottoms[0].name}")
+                    # print(f"DEBUG: _build_outfit_around_base_item - Added bottom: {filtered_bottoms[0].name}")
             
             # Add top item
             top_items = [item for item in wardrobe if item.id != base_item.id and 
@@ -2277,11 +2277,11 @@ class OutfitService:
                 filtered_tops = self._filter_items_for_occasion_and_style(top_items, occasion, style)
                 if filtered_tops:
                     selected_items.append(filtered_tops[0])
-                    print(f"DEBUG: _build_outfit_around_base_item - Added top: {filtered_tops[0].name}")
+                    # print(f"DEBUG: _build_outfit_around_base_item - Added top: {filtered_tops[0].name}")
         
         elif base_type in ['pants', 'jeans', 'shorts', 'skirt']:
             # Base item is bottom - we need top and shoes
-            print(f"DEBUG: _build_outfit_around_base_item - Base item is bottom, adding top and shoes")
+            # print(f"DEBUG: _build_outfit_around_base_item - Base item is bottom, adding top and shoes")
             
             # Add top item first
             top_items = [item for item in wardrobe if item.id != base_item.id and 
@@ -2290,7 +2290,7 @@ class OutfitService:
                 filtered_tops = self._filter_items_for_occasion_and_style(top_items, occasion, style)
                 if filtered_tops:
                     selected_items.append(filtered_tops[0])
-                    print(f"DEBUG: _build_outfit_around_base_item - Added top: {filtered_tops[0].name}")
+                    # print(f"DEBUG: _build_outfit_around_base_item - Added top: {filtered_tops[0].name}")
             
             # Add shoes
             shoe_items = [item for item in wardrobe if item.id != base_item.id and 
@@ -2299,11 +2299,11 @@ class OutfitService:
                 filtered_shoes = self._filter_items_for_occasion_and_style(shoe_items, occasion, style)
                 if filtered_shoes:
                     selected_items.append(filtered_shoes[0])
-                    print(f"DEBUG: _build_outfit_around_base_item - Added shoes: {filtered_shoes[0].name}")
+                    # print(f"DEBUG: _build_outfit_around_base_item - Added shoes: {filtered_shoes[0].name}")
         
         elif base_type in ['shirt', 't-shirt', 'blouse', 'sweater', 'jacket']:
             # Base item is top - we need bottom and shoes
-            print(f"DEBUG: _build_outfit_around_base_item - Base item is top, adding bottom and shoes")
+            # print(f"DEBUG: _build_outfit_around_base_item - Base item is top, adding bottom and shoes")
             
             # Add bottom item first
             bottom_items = [item for item in wardrobe if item.id != base_item.id and 
@@ -2312,7 +2312,7 @@ class OutfitService:
                 filtered_bottoms = self._filter_items_for_occasion_and_style(bottom_items, occasion, style)
                 if filtered_bottoms:
                     selected_items.append(filtered_bottoms[0])
-                    print(f"DEBUG: _build_outfit_around_base_item - Added bottom: {filtered_bottoms[0].name}")
+                    # print(f"DEBUG: _build_outfit_around_base_item - Added bottom: {filtered_bottoms[0].name}")
             
             # Add shoes
             shoe_items = [item for item in wardrobe if item.id != base_item.id and 
@@ -2321,18 +2321,18 @@ class OutfitService:
                 filtered_shoes = self._filter_items_for_occasion_and_style(shoe_items, occasion, style)
                 if filtered_shoes:
                     selected_items.append(filtered_shoes[0])
-                    print(f"DEBUG: _build_outfit_around_base_item - Added shoes: {filtered_shoes[0].name}")
+                    # print(f"DEBUG: _build_outfit_around_base_item - Added shoes: {filtered_shoes[0].name}")
         
         else:
             # Unknown base item type, add essential items
-            print(f"DEBUG: _build_outfit_around_base_item - Unknown base item type, adding essential items")
+            # print(f"DEBUG: _build_outfit_around_base_item - Unknown base item type, adding essential items")
             essential_items = self._get_essential_items_enhanced(occasion, wardrobe, style)
             essential_items = [item for item in essential_items if item.id != base_item.id]
             essential_items = essential_items[:2]  # Take first 2
             for item in essential_items:
                 if item not in selected_items:
                     selected_items.append(item)
-                    print(f"DEBUG: _build_outfit_around_base_item - Added essential item: {item.name}")
+                    # print(f"DEBUG: _build_outfit_around_base_item - Added essential item: {item.name}")
         
         return selected_items
 
@@ -2345,14 +2345,14 @@ class OutfitService:
         forbidden_types = []
         if occasion_rule:
             forbidden_types = [item_type.value.lower() for item_type in occasion_rule.forbidden_items]
-            print(f"DEBUG: _filter_items_for_occasion_and_style - Forbidden types for {occasion}: {forbidden_types}")
+            # print(f"DEBUG: _filter_items_for_occasion_and_style - Forbidden types for {occasion}: {forbidden_types}")
         
         # Additional forbidden items for specific occasions
         if occasion and 'athletic' in occasion.lower():
             # For athletic occasions, forbid formal and inappropriate items
             athletic_forbidden = ['dress_shirt', 'dress shirt', 'formal shirt', 'button down', 'button-up', 'oxford', 'dress_shoes', 'dress shoes', 'formal shoes', 'heels', 'dress pants', 'slacks', 'formal pants']
             forbidden_types.extend(athletic_forbidden)
-            print(f"DEBUG: _filter_items_for_occasion_and_style - Athletic forbidden types: {athletic_forbidden}")
+            # print(f"DEBUG: _filter_items_for_occasion_and_style - Athletic forbidden types: {athletic_forbidden}")
         
         # Define athletic keywords for strict filtering
         athletic_keywords = ['athletic', 'gym', 'workout', 'running', 'sport', 'exercise', 'training']
@@ -2367,7 +2367,7 @@ class OutfitService:
                           any(forbidden_type in item_name_lower for forbidden_type in forbidden_types)
             
             if is_forbidden:
-                print(f"DEBUG: _filter_items_for_occasion_and_style - Filtering out {item.name} (type: {item.type}) - forbidden for {occasion}")
+                # print(f"DEBUG: _filter_items_for_occasion_and_style - Filtering out {item.name} (type: {item.type}) - forbidden for {occasion}")
                 continue
             
             # STRICT OCCASION FILTERING for athletic occasions
@@ -2397,16 +2397,16 @@ class OutfitService:
                 
                 # For athletic occasions, require at least one athletic attribute
                 if not (has_athletic_occasion or has_athletic_style or has_athletic_tags):
-                    print(f"DEBUG: _filter_items_for_occasion_and_style - Filtering out {item.name} - no athletic attributes for {occasion}")
-                    print(f"DEBUG:   - Occasions: {item.occasion}")
-                    print(f"DEBUG:   - Style: {item.style}")
-                    print(f"DEBUG:   - Tags: {getattr(item, 'tags', [])}")
+                    # print(f"DEBUG: _filter_items_for_occasion_and_style - Filtering out {item.name} - no athletic attributes for {occasion}")
+                    # print(f"DEBUG:   - Occasions: {item.occasion}")
+                    # print(f"DEBUG:   - Style: {item.style}")
+                    # print(f"DEBUG:   - Tags: {getattr(item, 'tags', [])}")
                     continue
                 
-                print(f"DEBUG: _filter_items_for_occasion_and_style - Including {item.name} for athletic occasion")
-                print(f"DEBUG:   - Has athletic occasion: {has_athletic_occasion}")
-                print(f"DEBUG:   - Has athletic style: {has_athletic_style}")
-                print(f"DEBUG:   - Has athletic tags: {has_athletic_tags}")
+                # print(f"DEBUG: _filter_items_for_occasion_and_style - Including {item.name} for athletic occasion")
+                # print(f"DEBUG:   - Has athletic occasion: {has_athletic_occasion}")
+                # print(f"DEBUG:   - Has athletic style: {has_athletic_style}")
+                # print(f"DEBUG:   - Has athletic tags: {has_athletic_tags}")
             
             else:
                 # For non-athletic occasions, use the original logic
@@ -2439,15 +2439,15 @@ class OutfitService:
         
         # REMOVE THE FALLBACK LOGIC for athletic occasions - be strict!
         if occasion and 'athletic' in occasion.lower():
-            print(f"DEBUG: _filter_items_for_occasion_and_style - Athletic occasion: found {len(filtered_items)} appropriate items")
+            # print(f"DEBUG: _filter_items_for_occasion_and_style - Athletic occasion: found {len(filtered_items)} appropriate items")
             if len(filtered_items) == 0:
-                print(f"DEBUG: _filter_items_for_occasion_and_style - WARNING: No athletic items found! This may cause outfit generation to fail.")
+                # print(f"DEBUG: _filter_items_for_occasion_and_style - WARNING: No athletic items found! This may cause outfit generation to fail.")
             return filtered_items
         
         # For non-athletic occasions, keep the fallback logic
         # If we don't have enough filtered items, be less restrictive and include more items
         if len(filtered_items) < 2:
-            print(f"DEBUG: _filter_items_for_occasion_and_style - Only found {len(filtered_items)} items, being less restrictive")
+            # print(f"DEBUG: _filter_items_for_occasion_and_style - Only found {len(filtered_items)} items, being less restrictive")
             # Include items that don't have explicit occasion/style but aren't forbidden
             for item in items:
                 if item not in filtered_items:
@@ -2458,7 +2458,7 @@ class OutfitService:
                                   any(forbidden_type in item_name_lower for forbidden_type in forbidden_types)
                     if not is_forbidden:
                         filtered_items.append(item)
-                        print(f"DEBUG: _filter_items_for_occasion_and_style - Added fallback item: {item.name}")
+                        # print(f"DEBUG: _filter_items_for_occasion_and_style - Added fallback item: {item.name}")
         
         return filtered_items
 
@@ -2511,7 +2511,7 @@ class OutfitService:
                 seen_ids.add(item.id)
         
         if len(unique_items) != len(selected_items):
-            print(f"DEBUG: _ensure_outfit_structure - Removed {len(selected_items) - len(unique_items)} duplicate items")
+            # print(f"DEBUG: _ensure_outfit_structure - Removed {len(selected_items) - len(unique_items)} duplicate items")
             selected_items = unique_items
         
         # Define required categories for a complete outfit
@@ -2544,9 +2544,9 @@ class OutfitService:
                     category_items[category].append(item)
                     break
         
-        print(f"DEBUG: _ensure_outfit_structure - Current categories: {current_categories}")
-        print(f"DEBUG: _ensure_outfit_structure - Category items: {[f'{cat}: {[item.name for item in items]}' for cat, items in category_items.items() if items]}")
-        print(f"DEBUG: _ensure_outfit_structure - Layering rule: {layering_rule.required_layers} layers, temp range: {layering_rule.min_temperature}-{layering_rule.max_temperature}°F")
+        # print(f"DEBUG: _ensure_outfit_structure - Current categories: {current_categories}")
+        # print(f"DEBUG: _ensure_outfit_structure - Category items: {[f'{cat}: {[item.name for item in items]}' for cat, items in category_items.items() if items]}")
+        # print(f"DEBUG: _ensure_outfit_structure - Layering rule: {layering_rule.required_layers} layers, temp range: {layering_rule.min_temperature}-{layering_rule.max_temperature}°F")
         
         # Check if we have any standalone undergarments that are appropriate
         standalone_undergarments = []
@@ -2558,10 +2558,10 @@ class OutfitService:
         
         # If we have appropriate standalone undergarments, we might not need additional tops
         if standalone_undergarments:
-            print(f"DEBUG: _ensure_outfit_structure - Found standalone undergarments: {[item.name for item in standalone_undergarments]}")
+            # print(f"DEBUG: _ensure_outfit_structure - Found standalone undergarments: {[item.name for item in standalone_undergarments]}")
             # For beach/pool/athleisure, undergarments might be sufficient
             if any(occ in occasion.lower() for occ in ['beach', 'pool', 'swimming', 'athleisure', 'gym']):
-                print(f"DEBUG: _ensure_outfit_structure - Allowing undergarments as standalone for {occasion}")
+                # print(f"DEBUG: _ensure_outfit_structure - Allowing undergarments as standalone for {occasion}")
                 # Still ensure we have bottoms and shoes
                 missing_categories = set(required_categories.keys()) - current_categories
                 missing_categories.discard('top')  # Don't require additional tops
@@ -2576,8 +2576,8 @@ class OutfitService:
         target_items = 4 if occasion.lower() in ['casual', 'business casual', 'fashion event'] else 3
         max_additional = max(target_items - len(selected_items), 3)  # Try to add up to 3 more items
         
-        print(f"DEBUG: _ensure_outfit_structure - Missing categories: {missing_categories}")
-        print(f"DEBUG: _ensure_outfit_structure - Target items: {target_items}, Max additional: {max_additional}")
+        # print(f"DEBUG: _ensure_outfit_structure - Missing categories: {missing_categories}")
+        # print(f"DEBUG: _ensure_outfit_structure - Target items: {target_items}, Max additional: {max_additional}")
         
         # Prioritize essential categories (top, bottom, shoes) over accessories
         priority_categories = ['top', 'bottom', 'shoes']
@@ -2597,7 +2597,7 @@ class OutfitService:
                     # Prevent adding multiple tops unless layering is required
                     num_tops = len([item for item in selected_items if any(t in item.type.lower() for t in required_categories['top'])])
                     if num_tops >= layering_rule.required_layers:
-                        print(f"DEBUG: _ensure_outfit_structure - Skipping adding another top (already have {num_tops}, required layers: {layering_rule.required_layers})")
+                        # print(f"DEBUG: _ensure_outfit_structure - Skipping adding another top (already have {num_tops}, required layers: {layering_rule.required_layers})")
                         continue
                     category_items_to_add = self._filter_items_by_temperature(category_items_to_add, weather_temperature, occasion)
                 
@@ -2608,14 +2608,14 @@ class OutfitService:
                 if category in athletic_preferences and filtered_items:
                     # Sort by athletic preferences using utility function
                     filtered_items.sort(key=lambda item: athletic_sort_key(item, athletic_preferences[category]))
-                    print(f"DEBUG: _ensure_outfit_structure - Sorted {category} items by athletic preferences: {[item.name for item in filtered_items[:3]]}")
+                    # print(f"DEBUG: _ensure_outfit_structure - Sorted {category} items by athletic preferences: {[item.name for item in filtered_items[:3]]}")
                 
                 if filtered_items:
                     best_item = filtered_items[0]
                     selected_items.append(best_item)
                     seen_ids.add(best_item.id)  # Track to prevent duplicates
                     current_categories.add(category)
-                    print(f"DEBUG: _ensure_outfit_structure - Added priority {category}: {best_item.name}")
+                    # print(f"DEBUG: _ensure_outfit_structure - Added priority {category}: {best_item.name}")
         
         # Then add other categories if we still have room
         for category in other_categories:
@@ -2630,11 +2630,11 @@ class OutfitService:
                     selected_items.append(best_item)
                     seen_ids.add(best_item.id)  # Track to prevent duplicates
                     current_categories.add(category)
-                    print(f"DEBUG: _ensure_outfit_structure - Added {category}: {best_item.name}")
+                    # print(f"DEBUG: _ensure_outfit_structure - Added {category}: {best_item.name}")
         
         # If we still don't have enough items, add any available items from different categories
         if len(selected_items) < target_items:
-            print(f"DEBUG: _ensure_outfit_structure - Still need more items, adding any available from different categories")
+            # print(f"DEBUG: _ensure_outfit_structure - Still need more items, adding any available from different categories")
             available_items = [item for item in wardrobe if item.id not in seen_ids]  # Use seen_ids to prevent duplicates
             
             # Group available items by category
@@ -2654,7 +2654,7 @@ class OutfitService:
                         # Prevent adding multiple tops unless layering is required
                         num_tops = len([item for item in selected_items if any(t in item.type.lower() for t in required_categories['top'])])
                         if num_tops >= layering_rule.required_layers:
-                            print(f"DEBUG: _ensure_outfit_structure - Skipping adding another top (already have {num_tops}, required layers: {layering_rule.required_layers})")
+                            # print(f"DEBUG: _ensure_outfit_structure - Skipping adding another top (already have {num_tops}, required layers: {layering_rule.required_layers})")
                             continue
                         available_by_category[category] = self._filter_items_by_temperature(available_by_category[category], weather_temperature, occasion)
                     
@@ -2671,7 +2671,7 @@ class OutfitService:
                         selected_items.append(item_to_add)
                         seen_ids.add(item_to_add.id)  # Track to prevent duplicates
                         current_categories.add(category)
-                        print(f"DEBUG: _ensure_outfit_structure - Added fallback {category}: {item_to_add.name}")
+                        # print(f"DEBUG: _ensure_outfit_structure - Added fallback {category}: {item_to_add.name}")
                         if len(selected_items) >= target_items:
                             break
         
@@ -2777,13 +2777,13 @@ class OutfitService:
                 "updatedAt": int(time.time())
             })
             
-            print(f"DEBUG: update_outfit_feedback - Feedback updated for outfit {outfit_id}")
-            print(f"DEBUG: update_outfit_feedback - Feedback: {feedback_data}")
+            # print(f"DEBUG: update_outfit_feedback - Feedback updated for outfit {outfit_id}")
+            # print(f"DEBUG: update_outfit_feedback - Feedback: {feedback_data}")
             
             return True
             
         except Exception as e:
-            print(f"Error updating outfit feedback: {e}")
+#             print(f"Error updating outfit feedback: {e}")
             return False
 
     async def get_outfit_analytics(self, user_id: str = None, start_date: int = None, end_date: int = None) -> Dict[str, Any]:
@@ -2864,11 +2864,11 @@ class OutfitService:
                 "feedback_stats": feedback_stats
             }
             
-            print(f"DEBUG: get_outfit_analytics - Generated analytics for {total_outfits} outfits")
+            # print(f"DEBUG: get_outfit_analytics - Generated analytics for {total_outfits} outfits")
             return analytics
             
         except Exception as e:
-            print(f"Error getting outfit analytics: {e}")
+#             print(f"Error getting outfit analytics: {e}")
             return {} 
 
     def _validate_layering_compatibility(self, items: List[ClothingItem]) -> Dict[str, Any]:
@@ -2999,18 +2999,18 @@ class OutfitService:
     ) -> Dict[str, Any]:
         """Refined outfit generation pipeline with 5 phases."""
         try:
-            print("🔄 Starting refined pipeline...")
+#             print("🔄 Starting refined pipeline...")
             
             # Phase 1: Input Context Gathering
             context = self._gather_input_context(
                 occasion, weather, user_profile, style, mood, 
                 trendingStyles or [], likedOutfits or [], baseItem, outfit_history, wardrobe
             )
-            print(f"✅ Phase 1: Context gathered - {len(wardrobe)} items, {occasion}, {style}")
+            # print(f"✅ Phase 1: Context gathered - {len(wardrobe)} items, {occasion}, {style}")
             
             # Phase 2: Preprocessing & Strict Filtering
             filtered_wardrobe = self._apply_strict_filtering(wardrobe, context)
-            print(f"✅ Phase 2: Filtered to {len(filtered_wardrobe)} items")
+            # print(f"✅ Phase 2: Filtered to {len(filtered_wardrobe)} items")
             
             if len(filtered_wardrobe) < 2:
                 return {
@@ -3031,16 +3031,16 @@ class OutfitService:
                     seen_ids.add(item.id)
             
             if len(unique_items) != len(selected_items):
-                print(f"⚠️  Removed {len(selected_items) - len(unique_items)} duplicate items")
+                # print(f"⚠️  Removed {len(selected_items) - len(unique_items)} duplicate items")
                 selected_items = unique_items
             
             # Phase 4: Structural Integrity Check
             structure_result = self._structural_integrity_check(selected_items, filtered_wardrobe, context)
             if structure_result["is_complete"]:
                 selected_items = structure_result["items"]
-                print(f"✅ Phase 4: Structure validated - {len(selected_items)} items")
+                # print(f"✅ Phase 4: Structure validated - {len(selected_items)} items")
             else:
-                print(f"⚠️  Phase 4: Structure issues - missing categories: {(structure_result.get('missing_categories', []) if structure_result else [])}")
+                # print(f"⚠️  Phase 4: Structure issues - missing categories: {(structure_result.get('missing_categories', []) if structure_result else [])}")
                 # Continue with current items rather than failing completely
 
             self._debug_outfit_generation(selected_items, "After Structural Integrity Check")
@@ -3050,7 +3050,7 @@ class OutfitService:
             base_item_preserved = False
             if base_item:
                 base_item_preserved = any(item.id == base_item.id for item in selected_items)
-                print(f"🔍 DEBUG: Before deduplication - Base item present: {base_item_preserved}")
+                # print(f"🔍 DEBUG: Before deduplication - Base item present: {base_item_preserved}")
 
             # Deduplicate shoes (ensure only one shoe in the final outfit)
             selected_items = self._deduplicate_shoes(selected_items)
@@ -3060,10 +3060,10 @@ class OutfitService:
             
             # NEW: Ensure base item is preserved after deduplication
             if base_item and not base_item_preserved:
-                print(f"⚠️  DEBUG: After deduplication - Base item was lost, adding it back")
+                # print(f"⚠️  DEBUG: After deduplication - Base item was lost, adding it back")
                 # Add base item back at the beginning
                 selected_items.insert(0, base_item)
-                print(f"✅ DEBUG: After deduplication - Restored base item: {base_item.name}")
+                # print(f"✅ DEBUG: After deduplication - Restored base item: {base_item.name}")
             
             self._debug_outfit_generation(selected_items, "After Deduplication")
 
@@ -3074,8 +3074,8 @@ class OutfitService:
             # Phase 5: Final Validation (Orchestrated)
             validation_result = await self._validate_outfit_with_orchestration(selected_items, context)
             if not validation_result["is_valid"]:
-                print(f"⚠️  Phase 5: Orchestrated validation issues - {validation_result['errors']}")
-                print(f"⚠️  Phase 5: Orchestrated validation warnings - {validation_result['warnings']}")
+                # print(f"⚠️  Phase 5: Orchestrated validation issues - {validation_result['errors']}")
+                # print(f"⚠️  Phase 5: Orchestrated validation warnings - {validation_result['warnings']}")
                 # Don't fail completely, just log warnings
             
             # Ensure we have appropriate number of items based on occasion and weather
@@ -3087,7 +3087,7 @@ class OutfitService:
             
             # Determine optimal item count based on circumstances
             if len(selected_items) < min_items:
-                print(f"⚠️  WARNING: _generate_outfit_refined_pipeline - Only {len(selected_items)} items selected (minimum {min_items} required)")
+                # print(f"⚠️  WARNING: _generate_outfit_refined_pipeline - Only {len(selected_items)} items selected (minimum {min_items} required)")
                 
                 # Smart fallback: select items based on occasion and weather requirements
                 if len(wardrobe) >= min_items:
@@ -3150,7 +3150,7 @@ class OutfitService:
                     if len(selected_items) < min_items:
                         selected_items = wardrobe[:min_items]
                     
-                    print(f"✅ DEBUG: _generate_outfit_refined_pipeline - Smart fallback selected {len(selected_items)} items")
+                    # print(f"✅ DEBUG: _generate_outfit_refined_pipeline - Smart fallback selected {len(selected_items)} items")
                 else:
                     return {
                         "success": False,
@@ -3163,19 +3163,19 @@ class OutfitService:
                 # Check if base item is in the first 6 items
                 base_item_in_first_6 = any(item.id == base_item.id for item in selected_items[:6])
                 if not base_item_in_first_6:
-                    print(f"⚠️  DEBUG: Base item would be lost when limiting to 6 items, preserving it")
+                    # print(f"⚠️  DEBUG: Base item would be lost when limiting to 6 items, preserving it")
                     # Remove the last item and add base item at the beginning
                     selected_items = selected_items[:5]  # Keep first 5
                     selected_items.insert(0, base_item)  # Add base item first
-                    print(f"✅ DEBUG: Preserved base item when limiting items")
+                    # print(f"✅ DEBUG: Preserved base item when limiting items")
                 else:
                     selected_items = selected_items[:6]
-                    print(f"⚠️  Limited to 6 items (base item preserved)")
+                    # print(f"⚠️  Limited to 6 items (base item preserved)")
             elif len(selected_items) > 6:
                 selected_items = selected_items[:6]
-                print(f"⚠️  Limited to 6 items")
+                # print(f"⚠️  Limited to 6 items")
             
-            print(f"✅ Refined pipeline completed successfully with {len(selected_items)} items")
+            # print(f"✅ Refined pipeline completed successfully with {len(selected_items)} items")
             return {
                 "success": True,
                 "items": selected_items,
@@ -3183,7 +3183,7 @@ class OutfitService:
             }
             
         except Exception as e:
-            print(f"❌ Refined pipeline error: {str(e)}")
+            # print(f"❌ Refined pipeline error: {str(e)}")
             return {
                 "success": False,
                 "message": f"Pipeline error: {str(e)}"
@@ -3241,41 +3241,41 @@ class OutfitService:
         """Phase 2: Strictly remove unsuitable items BEFORE selection."""
         
         filtered_items = wardrobe.copy()
-        print(f"🔍 DEBUG: _apply_strict_filtering - Starting with {len(filtered_items)} items")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - Starting with {len(filtered_items)} items")
         
         # 1. Weather mismatch filtering
         before_weather = len(filtered_items)
         filtered_items = self._filter_by_weather_strict(filtered_items, context["weather"])
-        print(f"🔍 DEBUG: _apply_strict_filtering - After weather filtering: {len(filtered_items)} items (removed {before_weather - len(filtered_items)})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After weather filtering: {len(filtered_items)} items (removed {before_weather - len(filtered_items)})")
         
         # 2. Occasion mismatch filtering
         before_occasion = len(filtered_items)
         filtered_items = self._filter_by_occasion_strict(filtered_items, context["occasion"])
-        print(f"🔍 DEBUG: _apply_strict_filtering - After occasion filtering: {len(filtered_items)} items (removed {before_occasion - len(filtered_items)})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After occasion filtering: {len(filtered_items)} items (removed {before_occasion - len(filtered_items)})")
         
         # 3. Style mismatch filtering
         if context["style"]:
             before_style = len(filtered_items)
             filtered_items = self._filter_by_style_strict(filtered_items, context["style"], context["style_matrix"])
-            print(f"🔍 DEBUG: _apply_strict_filtering - After style filtering: {len(filtered_items)} items (removed {before_style - len(filtered_items)})")
+            # print(f"🔍 DEBUG: _apply_strict_filtering - After style filtering: {len(filtered_items)} items (removed {before_style - len(filtered_items)})")
         
         # 4. Fit/personal preference filtering
         before_preferences = len(filtered_items)
         filtered_items = self._filter_by_personal_preferences(filtered_items, context["user_profile"])
-        print(f"🔍 DEBUG: _apply_strict_filtering - After preferences filtering: {len(filtered_items)} items (removed {before_preferences - len(filtered_items)})")
+        # print(f"🔍 DEBUG: _apply_strict_filtering - After preferences filtering: {len(filtered_items)} items (removed {before_preferences - len(filtered_items)})")
         
         # 5. Mood filtering (if specified)
         if context["mood_rule"]:
             before_mood = len(filtered_items)
             filtered_items = self._filter_by_mood_strict(filtered_items, context["mood_rule"], base_item=context.get("base_item"))
-            print(f"🔍 DEBUG: _apply_strict_filtering - After mood filtering: {len(filtered_items)} items (removed {before_mood - len(filtered_items)})")
+            # print(f"🔍 DEBUG: _apply_strict_filtering - After mood filtering: {len(filtered_items)} items (removed {before_mood - len(filtered_items)})")
         
         # 6. NEW: Filter out recently used items for wardrobe diversity
         outfit_history = (context.get("outfit_history", []) if context else [])
         if outfit_history:
             before_history = len(filtered_items)
             filtered_items = self._filter_recently_used_items(filtered_items, outfit_history, days=7)
-            print(f"🔍 DEBUG: _apply_strict_filtering - After history filtering: {len(filtered_items)} items (removed {before_history - len(filtered_items)})")
+            # print(f"🔍 DEBUG: _apply_strict_filtering - After history filtering: {len(filtered_items)} items (removed {before_history - len(filtered_items)})")
         
         # FALLBACK: If filtering is too strict and removes too many items, be more lenient
         target_counts = context["target_counts"]
@@ -3286,7 +3286,7 @@ class OutfitService:
         missing_categories = set(required_categories) - set(items_by_category.keys())
         
         if len(filtered_items) < 3 or missing_categories:
-            print(f"DEBUG: _apply_strict_filtering - Only {len(filtered_items)} items after strict filtering, missing categories: {missing_categories}, applying fallback")
+            # print(f"DEBUG: _apply_strict_filtering - Only {len(filtered_items)} items after strict filtering, missing categories: {missing_categories}, applying fallback")
             
             # Start over with more lenient filtering
             filtered_items = wardrobe.copy()
@@ -3314,7 +3314,7 @@ class OutfitService:
             missing_categories = set(required_categories) - set(items_by_category.keys())
             
             if missing_categories:
-                print(f"DEBUG: _apply_strict_filtering - Still missing categories after fallback: {missing_categories}, applying second fallback")
+                # print(f"DEBUG: _apply_strict_filtering - Still missing categories after fallback: {missing_categories}, applying second fallback")
                 
                 # Start over with minimal filtering
                 filtered_items = wardrobe.copy()
@@ -3338,18 +3338,18 @@ class OutfitService:
                 
                 # No recent usage filtering in second fallback
             
-            print(f"DEBUG: _apply_strict_filtering - Final fallback filtering: {len(filtered_items)} items")
+            # print(f"DEBUG: _apply_strict_filtering - Final fallback filtering: {len(filtered_items)} items")
             final_items_by_category = self._get_item_categories(filtered_items)
-            print(f"DEBUG: _apply_strict_filtering - Final categories: {list(final_items_by_category.keys())}")
+            # print(f"DEBUG: _apply_strict_filtering - Final categories: {list(final_items_by_category.keys())}")
         
         # FINAL SAFETY CHECK: If we still have no items, return the original wardrobe
         if len(filtered_items) == 0:
-            print(f"⚠️  WARNING: _apply_strict_filtering - No items after all filtering, returning original wardrobe")
+            # print(f"⚠️  WARNING: _apply_strict_filtering - No items after all filtering, returning original wardrobe")
             return wardrobe
         
         # ADDITIONAL SAFETY: If we have very few items, be more lenient
         if len(filtered_items) < 2:
-            print(f"⚠️  WARNING: _apply_strict_filtering - Only {len(filtered_items)} items after filtering, being more lenient")
+            # print(f"⚠️  WARNING: _apply_strict_filtering - Only {len(filtered_items)} items after filtering, being more lenient")
             # Start over with minimal filtering
             minimal_filtered = wardrobe.copy()
             
@@ -3371,7 +3371,7 @@ class OutfitService:
             minimal_filtered = [item for item in minimal_filtered if self._check_gender_compatibility(item, context["user_profile"].gender)]
             
             if len(minimal_filtered) > len(filtered_items):
-                print(f"✅ DEBUG: _apply_strict_filtering - Minimal filtering found {len(minimal_filtered)} items vs {len(filtered_items)}")
+                # print(f"✅ DEBUG: _apply_strict_filtering - Minimal filtering found {len(minimal_filtered)} items vs {len(filtered_items)}")
                 return minimal_filtered
         
         return filtered_items
@@ -3390,19 +3390,19 @@ class OutfitService:
         # NEW: Handle base item first if provided
         base_item = (context.get("base_item") if context else None)
         if base_item:
-            print(f"🔍 DEBUG: _smart_selection_phase - Starting with base item: {base_item.name} (type: {base_item.type})")
+            # print(f"🔍 DEBUG: _smart_selection_phase - Starting with base item: {base_item.name} (type: {base_item.type})")
             
             # Check if base item is in filtered wardrobe
             base_item_in_wardrobe = any(item.id == base_item.id for item in filtered_wardrobe)
             if not base_item_in_wardrobe:
-                print(f"⚠️  DEBUG: _smart_selection_phase - Base item not in filtered wardrobe, adding it")
+                # print(f"⚠️  DEBUG: _smart_selection_phase - Base item not in filtered wardrobe, adding it")
                 # Add base item to filtered wardrobe temporarily for selection
                 filtered_wardrobe.append(base_item)
             
             # Add base item as the first item
             selected_items.append(base_item)
             selected_ids.add(base_item.id)
-            print(f"✅ DEBUG: _smart_selection_phase - Added base item: {base_item.name}")
+            # print(f"✅ DEBUG: _smart_selection_phase - Added base item: {base_item.name}")
             
             # Build complementary items around the base item
             complementary_items = self._build_outfit_around_base_item(
@@ -3415,11 +3415,11 @@ class OutfitService:
                 if item.id != base_item.id and item.id not in selected_ids:
                     selected_items.append(item)
                     selected_ids.add(item.id)
-                    print(f"✅ DEBUG: _smart_selection_phase - Added complementary item: {item.name}")
+                    # print(f"✅ DEBUG: _smart_selection_phase - Added complementary item: {item.name}")
             
             # If we have enough items, return early
             if len(selected_items) >= target_counts["min_items"]:
-                print(f"✅ DEBUG: _smart_selection_phase - Base item outfit complete with {len(selected_items)} items")
+                # print(f"✅ DEBUG: _smart_selection_phase - Base item outfit complete with {len(selected_items)} items")
                 return selected_items
         
         # 1. Core outfit items (must-have) - only if no base item or not enough items
@@ -3459,25 +3459,25 @@ class OutfitService:
                 final_ids.add(item.id)
         
         if len(final_items) != len(selected_items):
-            print(f"DEBUG: _smart_selection_phase - Removed {len(selected_items) - len(final_items)} duplicate items in final check")
+            # print(f"DEBUG: _smart_selection_phase - Removed {len(selected_items) - len(final_items)} duplicate items in final check")
         
         # NEW: Apply randomization factors to prevent deterministic selection
         final_items = self._add_randomization_factors(final_items, context)
         
         # FINAL SAFETY CHECK: If we have no items, select at least 2 random items from filtered wardrobe
         if len(final_items) == 0:
-            print(f"⚠️  WARNING: _smart_selection_phase - No items selected, selecting random items from filtered wardrobe")
+            # print(f"⚠️  WARNING: _smart_selection_phase - No items selected, selecting random items from filtered wardrobe")
             import random
             if len(filtered_wardrobe) >= 2:
                 final_items = random.sample(filtered_wardrobe, min(2, len(filtered_wardrobe)))
-                print(f"✅ DEBUG: _smart_selection_phase - Selected {len(final_items)} random items as fallback")
+                # print(f"✅ DEBUG: _smart_selection_phase - Selected {len(final_items)} random items as fallback")
             else:
-                print(f"❌ ERROR: _smart_selection_phase - Not enough items in filtered wardrobe for fallback")
+                # print(f"❌ ERROR: _smart_selection_phase - Not enough items in filtered wardrobe for fallback")
         
         # NEW: If we have fewer than minimum items, add more items to meet requirements
         min_items = context["target_counts"]["min_items"]
         if len(final_items) < min_items and len(filtered_wardrobe) > len(final_items):
-            print(f"⚠️  WARNING: _smart_selection_phase - Only {len(final_items)} items selected (need {min_items}), adding more items")
+            # print(f"⚠️  WARNING: _smart_selection_phase - Only {len(final_items)} items selected (need {min_items}), adding more items")
             
             # Get items not already selected
             available_items = [item for item in filtered_wardrobe if item not in final_items]
@@ -3488,7 +3488,7 @@ class OutfitService:
             
             for item in sorted_available[:needed_items]:
                 final_items.append(item)
-                print(f"✅ DEBUG: _smart_selection_phase - Added fallback item: {item.name}")
+                # print(f"✅ DEBUG: _smart_selection_phase - Added fallback item: {item.name}")
         
         return final_items
 
@@ -3508,24 +3508,24 @@ class OutfitService:
         base_item_preserved = False
         if base_item:
             base_item_preserved = any(item.id == base_item.id for item in selected_items)
-            print(f"🔍 DEBUG: _structural_integrity_check - Base item preserved: {base_item_preserved}")
+            # print(f"🔍 DEBUG: _structural_integrity_check - Base item preserved: {base_item_preserved}")
         
         # Check what categories we have
         current_categories = self._get_item_categories(selected_items)
         missing_categories = set(required_categories) - set(current_categories.keys())
         
-        print(f"🔍 DEBUG: _structural_integrity_check - Current categories: {list(current_categories.keys())}")
-        print(f"🔍 DEBUG: _structural_integrity_check - Missing categories: {list(missing_categories)}")
+        # print(f"🔍 DEBUG: _structural_integrity_check - Current categories: {list(current_categories.keys())}")
+        # print(f"🔍 DEBUG: _structural_integrity_check - Missing categories: {list(missing_categories)}")
         
         if missing_categories:
-            print(f"🔧 DEBUG: _structural_integrity_check - Attempting to fill missing categories: {list(missing_categories)}")
+            # print(f"🔧 DEBUG: _structural_integrity_check - Attempting to fill missing categories: {list(missing_categories)}")
             
             # Try to fill missing categories with valid items
             additional_items = self._fill_missing_categories(
                 selected_items, filtered_wardrobe, missing_categories, context
             )
             
-            print(f"🔧 DEBUG: _structural_integrity_check - Found {len(additional_items)} additional items")
+            # print(f"🔧 DEBUG: _structural_integrity_check - Found {len(additional_items)} additional items")
             
             # Prevent duplicates when extending
             selected_ids = {item.id for item in selected_items}
@@ -3533,7 +3533,7 @@ class OutfitService:
                 if item.id not in selected_ids:
                     selected_items.append(item)
                     selected_ids.add(item.id)
-                    print(f"✅ DEBUG: _structural_integrity_check - Added {item.name} ({item.type})")
+                    # print(f"✅ DEBUG: _structural_integrity_check - Added {item.name} ({item.type})")
             
             # Re-check after filling
             current_categories = self._get_item_categories(selected_items)
@@ -3541,8 +3541,8 @@ class OutfitService:
             
             # SECOND ATTEMPT: If still missing categories, try with original wardrobe (less filtered)
             if missing_categories:
-                print(f"⚠️  DEBUG: _structural_integrity_check - Still missing categories after first attempt: {list(missing_categories)}")
-                print(f"⚠️  DEBUG: _structural_integrity_check - Trying with original wardrobe...")
+                # print(f"⚠️  DEBUG: _structural_integrity_check - Still missing categories after first attempt: {list(missing_categories)}")
+                # print(f"⚠️  DEBUG: _structural_integrity_check - Trying with original wardrobe...")
                 
                 # Get original wardrobe from context
                 original_wardrobe = (context.get("original_wardrobe", []) if context else [])
@@ -3552,7 +3552,7 @@ class OutfitService:
                         selected_items, original_wardrobe, missing_categories, context
                     )
                     
-                    print(f"🔧 DEBUG: _structural_integrity_check - Found {len(additional_items)} additional items from original wardrobe")
+                    # print(f"🔧 DEBUG: _structural_integrity_check - Found {len(additional_items)} additional items from original wardrobe")
                     
                     # Prevent duplicates when extending
                     selected_ids = {item.id for item in selected_items}
@@ -3560,7 +3560,7 @@ class OutfitService:
                         if item.id not in selected_ids:
                             selected_items.append(item)
                             selected_ids.add(item.id)
-                            print(f"✅ DEBUG: _structural_integrity_check - Added from original wardrobe: {item.name} ({item.type})")
+                            # print(f"✅ DEBUG: _structural_integrity_check - Added from original wardrobe: {item.name} ({item.type})")
                     
                     # Final re-check
                     current_categories = self._get_item_categories(selected_items)
@@ -3568,20 +3568,20 @@ class OutfitService:
         
         # NEW: Ensure base item is still present if it was originally there
         if base_item and not base_item_preserved:
-            print(f"⚠️  DEBUG: _structural_integrity_check - Base item was lost, adding it back")
+            # print(f"⚠️  DEBUG: _structural_integrity_check - Base item was lost, adding it back")
             # Remove any item from the same category as base item to make room
             base_item_category = self._get_item_category(base_item)
             items_to_remove = [item for item in selected_items if self._get_item_category(item) == base_item_category and item.id != base_item.id]
             if items_to_remove:
                 selected_items.remove(items_to_remove[0])
-                print(f"🔧 DEBUG: _structural_integrity_check - Removed {items_to_remove[0].name} to make room for base item")
+                # print(f"🔧 DEBUG: _structural_integrity_check - Removed {items_to_remove[0].name} to make room for base item")
             
             # Add base item back
             selected_items.insert(0, base_item)  # Put base item first
-            print(f"✅ DEBUG: _structural_integrity_check - Restored base item: {base_item.name}")
+            # print(f"✅ DEBUG: _structural_integrity_check - Restored base item: {base_item.name}")
         
-        print(f"🔍 DEBUG: _structural_integrity_check - Final categories: {list(current_categories.keys())}")
-        print(f"🔍 DEBUG: _structural_integrity_check - Final missing: {list(missing_categories)}")
+        # print(f"🔍 DEBUG: _structural_integrity_check - Final categories: {list(current_categories.keys())}")
+        # print(f"🔍 DEBUG: _structural_integrity_check - Final missing: {list(missing_categories)}")
         
         return {
             "is_complete": len(missing_categories) == 0,
@@ -3644,7 +3644,7 @@ class OutfitService:
             # Allow 2-item outfits for casual occasions in warm weather
             if (occasion_lower in ['casual', 'athletic', 'gym', 'beach', 'vacation', 'errands'] and 
                 temperature > 75 and len(items) >= 2):
-                print(f"DEBUG: _final_outfit_validation - Soft fallback: Allowing 2-item outfit for casual/warm occasion")
+                # print(f"DEBUG: _final_outfit_validation - Soft fallback: Allowing 2-item outfit for casual/warm occasion")
                 # Remove the "too few items" error if it exists
                 errors = [error for error in errors if "too few items" not in error.lower() and "minimum" not in error.lower()]
                 warnings.append("Minimal outfit acceptable for this casual/warm occasion")
@@ -3653,7 +3653,7 @@ class OutfitService:
             if occasion_lower in ['casual', 'athletic', 'gym', 'beach', 'vacation', 'errands']:
                 occasion_errors = [error for error in errors if "occasion" in error.lower()]
                 if occasion_errors:
-                    print(f"DEBUG: _final_outfit_validation - Soft fallback: Allowing low occasion appropriateness for casual occasion")
+                    # print(f"DEBUG: _final_outfit_validation - Soft fallback: Allowing low occasion appropriateness for casual occasion")
                     errors = [error for error in errors if error not in occasion_errors]
                     warnings.append("Relaxed occasion requirements for casual outfit")
         
@@ -3907,7 +3907,7 @@ class OutfitService:
             if not is_forbidden:
                 filtered_items.append(item)
             else:
-                print(f"❌ DEBUG: _filter_by_weather_strict - Removed {item.name} (type: {item.type}) for {temperature}°F weather")
+                # print(f"❌ DEBUG: _filter_by_weather_strict - Removed {item.name} (type: {item.type}) for {temperature}°F weather")
         
         return filtered_items
 
@@ -4091,7 +4091,7 @@ class OutfitService:
     # Helper methods for special occasion filtering
     def _filter_for_wedding_guest(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for wedding guest occasions."""
-        print(f"🔍 DEBUG: _filter_for_wedding_guest - Processing wedding guest occasion")
+        # print(f"🔍 DEBUG: _filter_for_wedding_guest - Processing wedding guest occasion")
         
         wedding_appropriate_items = []
         wedding_keywords = ['business casual', 'dinner', 'brunch', 'formal', 'business', 'professional', 'smart casual', 'classic', 'elegant']
@@ -4121,21 +4121,21 @@ class OutfitService:
             # For wedding guest, accept items with any wedding-appropriate attribute
             if has_wedding_appropriate_occasion or has_wedding_appropriate_style or has_wedding_appropriate_tags:
                 wedding_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_wedding_guest - Wedding appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_wedding_guest - Wedding appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_wedding_guest - Wedding inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_wedding_guest - Wedding inappropriate item: {item.name}")
         
         # If we have wedding-appropriate items, use them; otherwise, be more lenient
         if wedding_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_wedding_guest - Found {len(wedding_appropriate_items)} wedding-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_wedding_guest - Found {len(wedding_appropriate_items)} wedding-appropriate items")
             return wedding_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_wedding_guest - No wedding-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_wedding_guest - No wedding-appropriate items found, being more lenient")
             return items
 
     def _filter_for_airport(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for airport occasions."""
-        print(f"🔍 DEBUG: _filter_for_airport - Processing airport occasion")
+        # print(f"🔍 DEBUG: _filter_for_airport - Processing airport occasion")
         
         airport_appropriate_items = []
         airport_keywords = ['casual', 'business casual', 'travel', 'comfortable', 'practical', 'smart casual', 'minimalist', 'classic']
@@ -4165,21 +4165,21 @@ class OutfitService:
             # For airport, accept items with any airport-appropriate attribute
             if has_airport_appropriate_occasion or has_airport_appropriate_style or has_airport_appropriate_tags:
                 airport_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_airport - Airport appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_airport - Airport appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_airport - Airport inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_airport - Airport inappropriate item: {item.name}")
         
         # If we have airport-appropriate items, use them; otherwise, be more lenient
         if airport_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_airport - Found {len(airport_appropriate_items)} airport-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_airport - Found {len(airport_appropriate_items)} airport-appropriate items")
             return airport_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_airport - No airport-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_airport - No airport-appropriate items found, being more lenient")
             return items
 
     def _filter_for_travel(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for travel occasions."""
-        print(f"🔍 DEBUG: _filter_for_travel - Processing travel occasion")
+        # print(f"🔍 DEBUG: _filter_for_travel - Processing travel occasion")
         
         travel_appropriate_items = []
         travel_keywords = ['casual', 'business casual', 'travel', 'comfortable', 'practical', 'smart casual', 'minimalist', 'classic', 'resort', 'vacation']
@@ -4209,21 +4209,21 @@ class OutfitService:
             # For travel, accept items with any travel-appropriate attribute
             if has_travel_appropriate_occasion or has_travel_appropriate_style or has_travel_appropriate_tags:
                 travel_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_travel - Travel appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_travel - Travel appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_travel - Travel inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_travel - Travel inappropriate item: {item.name}")
         
         # If we have travel-appropriate items, use them; otherwise, be more lenient
         if travel_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_travel - Found {len(travel_appropriate_items)} travel-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_travel - Found {len(travel_appropriate_items)} travel-appropriate items")
             return travel_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_travel - No travel-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_travel - No travel-appropriate items found, being more lenient")
             return items
 
     def _filter_for_business_casual(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for business casual occasions."""
-        print(f"🔍 DEBUG: _filter_for_business_casual - Processing business casual occasion")
+        # print(f"🔍 DEBUG: _filter_for_business_casual - Processing business casual occasion")
         
         business_casual_appropriate_items = []
         business_casual_keywords = ['business casual', 'smart casual', 'refined', 'polished', 'contemporary', 'professional']
@@ -4253,21 +4253,21 @@ class OutfitService:
             # For business casual, accept items with any business casual-appropriate attribute
             if has_business_casual_appropriate_occasion or has_business_casual_appropriate_style or has_business_casual_appropriate_tags:
                 business_casual_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_business_casual - Business casual appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_business_casual - Business casual appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_business_casual - Business casual inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_business_casual - Business casual inappropriate item: {item.name}")
         
         # If we have business casual-appropriate items, use them; otherwise, be more lenient
         if business_casual_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_business_casual - Found {len(business_casual_appropriate_items)} business casual-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_business_casual - Found {len(business_casual_appropriate_items)} business casual-appropriate items")
             return business_casual_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_business_casual - No business casual-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_business_casual - No business casual-appropriate items found, being more lenient")
             return items
 
     def _filter_for_business_formal(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for business formal occasions."""
-        print(f"🔍 DEBUG: _filter_for_business_formal - Processing business formal occasion")
+        # print(f"🔍 DEBUG: _filter_for_business_formal - Processing business formal occasion")
         
         business_formal_appropriate_items = []
         business_formal_keywords = ['formal', 'business', 'professional', 'tailored', 'structured', 'classic', 'sophisticated']
@@ -4297,21 +4297,21 @@ class OutfitService:
             # For business formal, accept items with any business formal-appropriate attribute
             if has_business_formal_appropriate_occasion or has_business_formal_appropriate_style or has_business_formal_appropriate_tags:
                 business_formal_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_business_formal - Business formal appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_business_formal - Business formal appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_business_formal - Business formal inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_business_formal - Business formal inappropriate item: {item.name}")
         
         # If we have business formal-appropriate items, use them; otherwise, be more lenient
         if business_formal_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_business_formal - Found {len(business_formal_appropriate_items)} business formal-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_business_formal - Found {len(business_formal_appropriate_items)} business formal-appropriate items")
             return business_formal_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_business_formal - No business formal-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_business_formal - No business formal-appropriate items found, being more lenient")
             return items
 
     def _filter_for_work(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for work occasions."""
-        print(f"🔍 DEBUG: _filter_for_work - Processing work occasion")
+        # print(f"🔍 DEBUG: _filter_for_work - Processing work occasion")
         
         work_appropriate_items = []
         work_keywords = ['professional', 'practical', 'neat', 'business', 'work_appropriate', 'business casual', 'smart casual']
@@ -4341,21 +4341,21 @@ class OutfitService:
             # For work, accept items with any work-appropriate attribute
             if has_work_appropriate_occasion or has_work_appropriate_style or has_work_appropriate_tags:
                 work_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_work - Work appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_work - Work appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_work - Work inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_work - Work inappropriate item: {item.name}")
         
         # If we have work-appropriate items, use them; otherwise, be more lenient
         if work_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_work - Found {len(work_appropriate_items)} work-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_work - Found {len(work_appropriate_items)} work-appropriate items")
             return work_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_work - No work-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_work - No work-appropriate items found, being more lenient")
             return items
 
     def _filter_for_interview(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for interview occasions."""
-        print(f"🔍 DEBUG: _filter_for_interview - Processing interview occasion")
+        # print(f"🔍 DEBUG: _filter_for_interview - Processing interview occasion")
         
         interview_appropriate_items = []
         interview_keywords = ['conservative', 'professional', 'polished', 'traditional', 'confident', 'formal', 'business']
@@ -4385,21 +4385,21 @@ class OutfitService:
             # For interview, accept items with any interview-appropriate attribute
             if has_interview_appropriate_occasion or has_interview_appropriate_style or has_interview_appropriate_tags:
                 interview_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_interview - Interview appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_interview - Interview appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_interview - Interview inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_interview - Interview inappropriate item: {item.name}")
         
         # If we have interview-appropriate items, use them; otherwise, be more lenient
         if interview_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_interview - Found {len(interview_appropriate_items)} interview-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_interview - Found {len(interview_appropriate_items)} interview-appropriate items")
             return interview_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_interview - No interview-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_interview - No interview-appropriate items found, being more lenient")
             return items
 
     def _filter_for_formal(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for formal occasions."""
-        print(f"🔍 DEBUG: _filter_for_formal - Processing formal occasion")
+        # print(f"🔍 DEBUG: _filter_for_formal - Processing formal occasion")
         
         formal_appropriate_items = []
         formal_keywords = ['formal', 'business', 'dress', 'professional', 'elegant', 'sophisticated', 'refined', 'luxurious', 'classic']
@@ -4429,21 +4429,21 @@ class OutfitService:
             # For formal occasions, require at least one formal attribute
             if has_formal_appropriate_occasion or has_formal_appropriate_style or has_formal_appropriate_tags:
                 formal_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_formal - Formal appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_formal - Formal appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_formal - Formal inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_formal - Formal inappropriate item: {item.name}")
         
         # If we have formal items, use them; otherwise, be more lenient
         if formal_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_formal - Found {len(formal_appropriate_items)} formal-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_formal - Found {len(formal_appropriate_items)} formal-appropriate items")
             return formal_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_formal - No formal-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_formal - No formal-appropriate items found, being more lenient")
             return items
 
     def _filter_for_gala(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for gala occasions."""
-        print(f"🔍 DEBUG: _filter_for_gala - Processing gala occasion")
+        # print(f"🔍 DEBUG: _filter_for_gala - Processing gala occasion")
         
         gala_appropriate_items = []
         gala_keywords = ['luxurious', 'elegant', 'sophisticated', 'high_end', 'glamorous', 'formal', 'dress', 'professional']
@@ -4473,21 +4473,21 @@ class OutfitService:
             # For gala occasions, require at least one gala-appropriate attribute
             if has_gala_appropriate_occasion or has_gala_appropriate_style or has_gala_appropriate_tags:
                 gala_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_gala - Gala appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_gala - Gala appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_gala - Gala inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_gala - Gala inappropriate item: {item.name}")
         
         # If we have gala items, use them; otherwise, be more lenient
         if gala_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_gala - Found {len(gala_appropriate_items)} gala-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_gala - Found {len(gala_appropriate_items)} gala-appropriate items")
             return gala_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_gala - No gala-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_gala - No gala-appropriate items found, being more lenient")
             return items
 
     def _filter_for_party(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for party occasions."""
-        print(f"🔍 DEBUG: _filter_for_party - Processing party occasion")
+        # print(f"🔍 DEBUG: _filter_for_party - Processing party occasion")
         
         party_appropriate_items = []
         party_keywords = ['bold', 'trendy', 'fashion_forward', 'statement', 'playful', 'party', 'glamorous', 'stylish']
@@ -4517,21 +4517,21 @@ class OutfitService:
             # For party occasions, accept items with any party-appropriate attribute
             if has_party_appropriate_occasion or has_party_appropriate_style or has_party_appropriate_tags:
                 party_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_party - Party appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_party - Party appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_party - Party inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_party - Party inappropriate item: {item.name}")
         
         # If we have party-appropriate items, use them; otherwise, be more lenient
         if party_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_party - Found {len(party_appropriate_items)} party-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_party - Found {len(party_appropriate_items)} party-appropriate items")
             return party_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_party - No party-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_party - No party-appropriate items found, being more lenient")
             return items
 
     def _filter_for_date_night(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for date night occasions."""
-        print(f"🔍 DEBUG: _filter_for_date_night - Processing date night occasion")
+        # print(f"🔍 DEBUG: _filter_for_date_night - Processing date night occasion")
         
         date_appropriate_items = []
         date_keywords = ['romantic', 'elegant', 'sophisticated', 'stylish', 'attractive', 'sexy', 'alluring']
@@ -4561,21 +4561,21 @@ class OutfitService:
             # For date night, accept items with any date-appropriate attribute
             if has_date_appropriate_occasion or has_date_appropriate_style or has_date_appropriate_tags:
                 date_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_date_night - Date appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_date_night - Date appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_date_night - Date inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_date_night - Date inappropriate item: {item.name}")
         
         # If we have date-appropriate items, use them; otherwise, be more lenient
         if date_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_date_night - Found {len(date_appropriate_items)} date-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_date_night - Found {len(date_appropriate_items)} date-appropriate items")
             return date_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_date_night - No date-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_date_night - No date-appropriate items found, being more lenient")
             return items
 
     def _filter_for_brunch(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for brunch occasions."""
-        print(f"🔍 DEBUG: _filter_for_brunch - Processing brunch occasion")
+        # print(f"🔍 DEBUG: _filter_for_brunch - Processing brunch occasion")
         
         brunch_appropriate_items = []
         brunch_keywords = ['effortless', 'elegant', 'relaxed', 'sophisticated', 'casual_chic', 'brunch', 'dinner']
@@ -4605,21 +4605,21 @@ class OutfitService:
             # For brunch, accept items with any brunch-appropriate attribute
             if has_brunch_appropriate_occasion or has_brunch_appropriate_style or has_brunch_appropriate_tags:
                 brunch_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_brunch - Brunch appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_brunch - Brunch appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_brunch - Brunch inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_brunch - Brunch inappropriate item: {item.name}")
         
         # If we have brunch-appropriate items, use them; otherwise, be more lenient
         if brunch_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_brunch - Found {len(brunch_appropriate_items)} brunch-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_brunch - Found {len(brunch_appropriate_items)} brunch-appropriate items")
             return brunch_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_brunch - No brunch-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_brunch - No brunch-appropriate items found, being more lenient")
             return items
 
     def _filter_for_cocktail(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for cocktail occasions."""
-        print(f"🔍 DEBUG: _filter_for_cocktail - Processing cocktail occasion")
+        # print(f"🔍 DEBUG: _filter_for_cocktail - Processing cocktail occasion")
         
         cocktail_appropriate_items = []
         cocktail_keywords = ['sophisticated', 'elegant', 'refined', 'stylish', 'upscale', 'cocktail', 'formal']
@@ -4649,21 +4649,21 @@ class OutfitService:
             # For cocktail, accept items with any cocktail-appropriate attribute
             if has_cocktail_appropriate_occasion or has_cocktail_appropriate_style or has_cocktail_appropriate_tags:
                 cocktail_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_cocktail - Cocktail appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_cocktail - Cocktail appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_cocktail - Cocktail inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_cocktail - Cocktail inappropriate item: {item.name}")
         
         # If we have cocktail-appropriate items, use them; otherwise, be more lenient
         if cocktail_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_cocktail - Found {len(cocktail_appropriate_items)} cocktail-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_cocktail - Found {len(cocktail_appropriate_items)} cocktail-appropriate items")
             return cocktail_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_cocktail - No cocktail-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_cocktail - No cocktail-appropriate items found, being more lenient")
             return items
 
     def _filter_for_night_out(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for night out occasions."""
-        print(f"🔍 DEBUG: _filter_for_night_out - Processing night out occasion")
+        # print(f"🔍 DEBUG: _filter_for_night_out - Processing night out occasion")
         
         night_out_appropriate_items = []
         night_out_keywords = ['bold', 'trendy', 'stylish', 'fashion_forward', 'confident', 'night out', 'party']
@@ -4693,21 +4693,21 @@ class OutfitService:
             # For night out, accept items with any night out-appropriate attribute
             if has_night_out_appropriate_occasion or has_night_out_appropriate_style or has_night_out_appropriate_tags:
                 night_out_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_night_out - Night out appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_night_out - Night out appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_night_out - Night out inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_night_out - Night out inappropriate item: {item.name}")
         
         # If we have night out-appropriate items, use them; otherwise, be more lenient
         if night_out_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_night_out - Found {len(night_out_appropriate_items)} night out-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_night_out - Found {len(night_out_appropriate_items)} night out-appropriate items")
             return night_out_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_night_out - No night out-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_night_out - No night out-appropriate items found, being more lenient")
             return items
 
     def _filter_for_beach(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for beach occasions."""
-        print(f"🔍 DEBUG: _filter_for_beach - Processing beach occasion")
+        # print(f"🔍 DEBUG: _filter_for_beach - Processing beach occasion")
         
         beach_appropriate_items = []
         beach_keywords = ['beach', 'vacation', 'resort', 'summer', 'casual', 'relaxed', 'comfortable']
@@ -4737,21 +4737,21 @@ class OutfitService:
             # For beach, accept items with any beach-appropriate attribute
             if has_beach_appropriate_occasion or has_beach_appropriate_style or has_beach_appropriate_tags:
                 beach_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_beach - Beach appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_beach - Beach appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_beach - Beach inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_beach - Beach inappropriate item: {item.name}")
         
         # If we have beach-appropriate items, use them; otherwise, be more lenient
         if beach_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_beach - Found {len(beach_appropriate_items)} beach-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_beach - Found {len(beach_appropriate_items)} beach-appropriate items")
             return beach_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_beach - No beach-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_beach - No beach-appropriate items found, being more lenient")
             return items
 
     def _filter_for_vacation(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for vacation occasions."""
-        print(f"🔍 DEBUG: _filter_for_vacation - Processing vacation occasion")
+        # print(f"🔍 DEBUG: _filter_for_vacation - Processing vacation occasion")
         
         vacation_appropriate_items = []
         vacation_keywords = ['resort', 'vacation', 'relaxed', 'comfortable', 'holiday', 'travel', 'casual']
@@ -4781,21 +4781,21 @@ class OutfitService:
             # For vacation, accept items with any vacation-appropriate attribute
             if has_vacation_appropriate_occasion or has_vacation_appropriate_style or has_vacation_appropriate_tags:
                 vacation_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_vacation - Vacation appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_vacation - Vacation appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_vacation - Vacation inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_vacation - Vacation inappropriate item: {item.name}")
         
         # If we have vacation-appropriate items, use them; otherwise, be more lenient
         if vacation_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_vacation - Found {len(vacation_appropriate_items)} vacation-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_vacation - Found {len(vacation_appropriate_items)} vacation-appropriate items")
             return vacation_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_vacation - No vacation-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_vacation - No vacation-appropriate items found, being more lenient")
             return items
 
     def _filter_for_festival(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for festival occasions."""
-        print(f"🔍 DEBUG: _filter_for_festival - Processing festival occasion")
+        # print(f"🔍 DEBUG: _filter_for_festival - Processing festival occasion")
         
         festival_appropriate_items = []
         festival_keywords = ['festival', 'bohemian', 'trendy', 'creative', 'expressive', 'casual', 'comfortable']
@@ -4825,20 +4825,20 @@ class OutfitService:
             # For festival, accept items with any festival-appropriate attribute
             if has_festival_appropriate_occasion or has_festival_appropriate_style or has_festival_appropriate_tags:
                 festival_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_festival - Festival appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_festival - Festival appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_festival - Festival inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_festival - Festival inappropriate item: {item.name}")
         
         # If we have festival-appropriate items, use them; otherwise, be more lenient
         if festival_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_festival - Found {len(festival_appropriate_items)} festival-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_festival - Found {len(festival_appropriate_items)} festival-appropriate items")
             return festival_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_festival - No festival-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_festival - No festival-appropriate items found, being more lenient")
             return items
     def _filter_for_athletic(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for athletic occasions."""
-        print(f"🔍 DEBUG: _filter_for_athletic - Processing athletic occasion")
+        # print(f"🔍 DEBUG: _filter_for_athletic - Processing athletic occasion")
         
         athletic_appropriate_items = []
         athletic_keywords = ['athletic', 'gym', 'workout', 'running', 'sport', 'exercise', 'training', 'active', 'dynamic']
@@ -4868,21 +4868,21 @@ class OutfitService:
             # For athletic occasions, require at least one athletic attribute
             if has_athletic_appropriate_occasion or has_athletic_appropriate_style or has_athletic_appropriate_tags:
                 athletic_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_athletic - Athletic appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_athletic - Athletic appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_athletic - Athletic inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_athletic - Athletic inappropriate item: {item.name}")
         
         # If we have athletic items, use them; otherwise, be more lenient
         if athletic_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_athletic - Found {len(athletic_appropriate_items)} athletic-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_athletic - Found {len(athletic_appropriate_items)} athletic-appropriate items")
             return athletic_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_athletic - No athletic-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_athletic - No athletic-appropriate items found, being more lenient")
             return items
 
     def _filter_for_school(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for school occasions."""
-        print(f"🔍 DEBUG: _filter_for_school - Processing school occasion")
+        # print(f"🔍 DEBUG: _filter_for_school - Processing school occasion")
         
         school_appropriate_items = []
         # More comprehensive school keywords that match common wardrobe items
@@ -4917,16 +4917,16 @@ class OutfitService:
             # For school, accept items with any school-appropriate attribute
             if has_school_appropriate_occasion or has_school_appropriate_style or has_school_appropriate_tags:
                 school_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_school - School appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_school - School appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_school - School inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_school - School inappropriate item: {item.name}")
         
         # If we have school-appropriate items, use them; otherwise, be more lenient
         if school_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_school - Found {len(school_appropriate_items)} school-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_school - Found {len(school_appropriate_items)} school-appropriate items")
             return school_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_school - No school-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_school - No school-appropriate items found, being more lenient")
             # For school, be very lenient - accept most items except obviously inappropriate ones
             obviously_inappropriate = ['swimwear', 'beach', 'party', 'athletic', 'gym', 'workout', 'sporty', 'revealing', 'sexy', 'club', 'nightclub']
             lenient_items = []
@@ -4941,16 +4941,16 @@ class OutfitService:
                 
                 if not is_inappropriate:
                     lenient_items.append(item)
-                    print(f"✅ DEBUG: _filter_for_school - Lenient inclusion: {item.name}")
+                    # print(f"✅ DEBUG: _filter_for_school - Lenient inclusion: {item.name}")
                 else:
-                    print(f"❌ DEBUG: _filter_for_school - Excluded as inappropriate: {item.name}")
+                    # print(f"❌ DEBUG: _filter_for_school - Excluded as inappropriate: {item.name}")
             
-            print(f"✅ DEBUG: _filter_for_school - Lenient filtering found {len(lenient_items)} items")
+            # print(f"✅ DEBUG: _filter_for_school - Lenient filtering found {len(lenient_items)} items")
             return lenient_items
 
     def _filter_for_holiday(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for holiday occasions."""
-        print(f"🔍 DEBUG: _filter_for_holiday - Processing holiday occasion")
+        # print(f"🔍 DEBUG: _filter_for_holiday - Processing holiday occasion")
         
         holiday_appropriate_items = []
         holiday_keywords = ['festive', 'celebratory', 'traditional', 'elegant', 'seasonal', 'holiday', 'christmas', 'thanksgiving']
@@ -4980,21 +4980,21 @@ class OutfitService:
             # For holiday, accept items with any holiday-appropriate attribute
             if has_holiday_appropriate_occasion or has_holiday_appropriate_style or has_holiday_appropriate_tags:
                 holiday_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_holiday - Holiday appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_holiday - Holiday appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_holiday - Holiday inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_holiday - Holiday inappropriate item: {item.name}")
         
         # If we have holiday-appropriate items, use them; otherwise, be more lenient
         if holiday_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_holiday - Found {len(holiday_appropriate_items)} holiday-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_holiday - Found {len(holiday_appropriate_items)} holiday-appropriate items")
             return holiday_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_holiday - No holiday-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_holiday - No holiday-appropriate items found, being more lenient")
             return items
 
     def _filter_for_concert(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for concert occasions."""
-        print(f"🔍 DEBUG: _filter_for_concert - Processing concert occasion")
+        # print(f"🔍 DEBUG: _filter_for_concert - Processing concert occasion")
         
         concert_appropriate_items = []
         concert_keywords = ['trendy', 'music_inspired', 'expressive', 'stylish', 'concert_ready', 'casual', 'comfortable']
@@ -5024,21 +5024,21 @@ class OutfitService:
             # For concert, accept items with any concert-appropriate attribute
             if has_concert_appropriate_occasion or has_concert_appropriate_style or has_concert_appropriate_tags:
                 concert_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_concert - Concert appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_concert - Concert appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_concert - Concert inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_concert - Concert inappropriate item: {item.name}")
         
         # If we have concert-appropriate items, use them; otherwise, be more lenient
         if concert_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_concert - Found {len(concert_appropriate_items)} concert-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_concert - Found {len(concert_appropriate_items)} concert-appropriate items")
             return concert_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_concert - No concert-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_concert - No concert-appropriate items found, being more lenient")
             return items
 
     def _filter_for_errands(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for errands occasions."""
-        print(f"🔍 DEBUG: _filter_for_errands - Processing errands occasion")
+        # print(f"🔍 DEBUG: _filter_for_errands - Processing errands occasion")
         
         errands_appropriate_items = []
         errands_keywords = ['practical', 'comfortable', 'easy_movement', 'casual', 'functional', 'everyday']
@@ -5068,21 +5068,21 @@ class OutfitService:
             # For errands, accept items with any errands-appropriate attribute
             if has_errands_appropriate_occasion or has_errands_appropriate_style or has_errands_appropriate_tags:
                 errands_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_errands - Errands appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_errands - Errands appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_errands - Errands inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_errands - Errands inappropriate item: {item.name}")
         
         # If we have errands-appropriate items, use them; otherwise, be more lenient
         if errands_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_errands - Found {len(errands_appropriate_items)} errands-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_errands - Found {len(errands_appropriate_items)} errands-appropriate items")
             return errands_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_errands - No errands-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_errands - No errands-appropriate items found, being more lenient")
             return items
 
     def _filter_for_museum(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for museum occasions."""
-        print(f"🔍 DEBUG: _filter_for_museum - Processing museum occasion")
+        # print(f"🔍 DEBUG: _filter_for_museum - Processing museum occasion")
         
         museum_appropriate_items = []
         museum_keywords = ['cultured', 'elegant', 'refined', 'sophisticated', 'artistic', 'casual', 'comfortable']
@@ -5112,21 +5112,21 @@ class OutfitService:
             # For museum, accept items with any museum-appropriate attribute
             if has_museum_appropriate_occasion or has_museum_appropriate_style or has_museum_appropriate_tags:
                 museum_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_museum - Museum appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_museum - Museum appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_museum - Museum inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_museum - Museum inappropriate item: {item.name}")
         
         # If we have museum-appropriate items, use them; otherwise, be more lenient
         if museum_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_museum - Found {len(museum_appropriate_items)} museum-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_museum - Found {len(museum_appropriate_items)} museum-appropriate items")
             return museum_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_museum - No museum-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_museum - No museum-appropriate items found, being more lenient")
             return items
 
     def _filter_for_fashion_event(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for fashion event occasions."""
-        print(f"🔍 DEBUG: _filter_for_fashion_event - Processing fashion event occasion")
+        # print(f"🔍 DEBUG: _filter_for_fashion_event - Processing fashion event occasion")
         
         fashion_event_appropriate_items = []
         fashion_event_keywords = ['fashion_forward', 'trendy', 'sophisticated', 'stylish', 'avant_garde', 'fashion', 'elegant']
@@ -5156,21 +5156,21 @@ class OutfitService:
             # For fashion event, accept items with any fashion event-appropriate attribute
             if has_fashion_event_appropriate_occasion or has_fashion_event_appropriate_style or has_fashion_event_appropriate_tags:
                 fashion_event_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_fashion_event - Fashion event appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_fashion_event - Fashion event appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_fashion_event - Fashion event inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_fashion_event - Fashion event inappropriate item: {item.name}")
         
         # If we have fashion event-appropriate items, use them; otherwise, be more lenient
         if fashion_event_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_fashion_event - Found {len(fashion_event_appropriate_items)} fashion event-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_fashion_event - Found {len(fashion_event_appropriate_items)} fashion event-appropriate items")
             return fashion_event_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_fashion_event - No fashion event-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_fashion_event - No fashion event-appropriate items found, being more lenient")
             return items
 
     def _filter_for_outdoor_gathering(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for outdoor gathering occasions."""
-        print(f"🔍 DEBUG: _filter_for_outdoor_gathering - Processing outdoor gathering occasion")
+        # print(f"🔍 DEBUG: _filter_for_outdoor_gathering - Processing outdoor gathering occasion")
         
         outdoor_gathering_appropriate_items = []
         outdoor_gathering_keywords = ['outdoor_ready', 'casual', 'practical', 'weather_appropriate', 'social', 'comfortable']
@@ -5200,21 +5200,21 @@ class OutfitService:
             # For outdoor gathering, accept items with any outdoor gathering-appropriate attribute
             if has_outdoor_gathering_appropriate_occasion or has_outdoor_gathering_appropriate_style or has_outdoor_gathering_appropriate_tags:
                 outdoor_gathering_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_outdoor_gathering - Outdoor gathering appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_outdoor_gathering - Outdoor gathering appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_outdoor_gathering - Outdoor gathering inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_outdoor_gathering - Outdoor gathering inappropriate item: {item.name}")
         
         # If we have outdoor gathering-appropriate items, use them; otherwise, be more lenient
         if outdoor_gathering_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_outdoor_gathering - Found {len(outdoor_gathering_appropriate_items)} outdoor gathering-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_outdoor_gathering - Found {len(outdoor_gathering_appropriate_items)} outdoor gathering-appropriate items")
             return outdoor_gathering_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_outdoor_gathering - No outdoor gathering-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_outdoor_gathering - No outdoor gathering-appropriate items found, being more lenient")
             return items
 
     def _filter_for_funeral(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for funeral occasions."""
-        print(f"🔍 DEBUG: _filter_for_funeral - Processing funeral occasion")
+        # print(f"🔍 DEBUG: _filter_for_funeral - Processing funeral occasion")
         
         funeral_appropriate_items = []
         funeral_keywords = ['respectful', 'somber', 'traditional', 'formal', 'dignified', 'conservative']
@@ -5244,21 +5244,21 @@ class OutfitService:
             # For funeral, accept items with any funeral-appropriate attribute
             if has_funeral_appropriate_occasion or has_funeral_appropriate_style or has_funeral_appropriate_tags:
                 funeral_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_funeral - Funeral appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_funeral - Funeral appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_funeral - Funeral inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_funeral - Funeral inappropriate item: {item.name}")
         
         # If we have funeral-appropriate items, use them; otherwise, be more lenient
         if funeral_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_funeral - Found {len(funeral_appropriate_items)} funeral-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_funeral - Found {len(funeral_appropriate_items)} funeral-appropriate items")
             return funeral_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_funeral - No funeral-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_funeral - No funeral-appropriate items found, being more lenient")
             return items
 
     def _filter_for_casual(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for casual occasions."""
-        print(f"🔍 DEBUG: _filter_for_casual - Processing casual occasion")
+        # print(f"🔍 DEBUG: _filter_for_casual - Processing casual occasion")
         
         casual_appropriate_items = []
         casual_keywords = ['relaxed', 'comfortable', 'everyday', 'effortless', 'laid_back', 'casual']
@@ -5288,21 +5288,21 @@ class OutfitService:
             # For casual, accept items with any casual-appropriate attribute
             if has_casual_appropriate_occasion or has_casual_appropriate_style or has_casual_appropriate_tags:
                 casual_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_casual - Casual appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_casual - Casual appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_casual - Casual inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_casual - Casual inappropriate item: {item.name}")
         
         # If we have casual-appropriate items, use them; otherwise, be more lenient
         if casual_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_casual - Found {len(casual_appropriate_items)} casual-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_casual - Found {len(casual_appropriate_items)} casual-appropriate items")
             return casual_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_casual - No casual-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_casual - No casual-appropriate items found, being more lenient")
             return items
 
     def _filter_for_loungewear(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for loungewear occasions."""
-        print(f"🔍 DEBUG: _filter_for_loungewear - Processing loungewear occasion")
+        # print(f"🔍 DEBUG: _filter_for_loungewear - Processing loungewear occasion")
         
         loungewear_appropriate_items = []
         loungewear_keywords = ['comfortable', 'relaxed', 'loungewear', 'home', 'casual', 'soft', 'cozy']
@@ -5332,21 +5332,21 @@ class OutfitService:
             # For loungewear, accept items with any loungewear-appropriate attribute
             if has_loungewear_appropriate_occasion or has_loungewear_appropriate_style or has_loungewear_appropriate_tags:
                 loungewear_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_loungewear - Loungewear appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_loungewear - Loungewear appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_loungewear - Loungewear inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_loungewear - Loungewear inappropriate item: {item.name}")
         
         # If we have loungewear-appropriate items, use them; otherwise, be more lenient
         if loungewear_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_loungewear - Found {len(loungewear_appropriate_items)} loungewear-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_loungewear - Found {len(loungewear_appropriate_items)} loungewear-appropriate items")
             return loungewear_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_loungewear - No loungewear-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_loungewear - No loungewear-appropriate items found, being more lenient")
             return items
 
     def _filter_for_rainy_day(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for rainy day occasions."""
-        print(f"🔍 DEBUG: _filter_for_rainy_day - Processing rainy day occasion")
+        # print(f"🔍 DEBUG: _filter_for_rainy_day - Processing rainy day occasion")
         
         rainy_day_appropriate_items = []
         rainy_day_keywords = ['practical', 'waterproof', 'functional', 'weather_appropriate', 'protective', 'water-resistant']
@@ -5376,21 +5376,21 @@ class OutfitService:
             # For rainy day, accept items with any rainy day-appropriate attribute
             if has_rainy_day_appropriate_occasion or has_rainy_day_appropriate_style or has_rainy_day_appropriate_tags:
                 rainy_day_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_rainy_day - Rainy day appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_rainy_day - Rainy day appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_rainy_day - Rainy day inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_rainy_day - Rainy day inappropriate item: {item.name}")
         
         # If we have rainy day-appropriate items, use them; otherwise, be more lenient
         if rainy_day_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_rainy_day - Found {len(rainy_day_appropriate_items)} rainy day-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_rainy_day - Found {len(rainy_day_appropriate_items)} rainy day-appropriate items")
             return rainy_day_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_rainy_day - No rainy day-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_rainy_day - No rainy day-appropriate items found, being more lenient")
             return items
 
     def _filter_for_snow_day(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for snow day occasions."""
-        print(f"🔍 DEBUG: _filter_for_snow_day - Processing snow day occasion")
+        # print(f"🔍 DEBUG: _filter_for_snow_day - Processing snow day occasion")
         
         snow_day_appropriate_items = []
         snow_day_keywords = ['warm', 'protective', 'insulated', 'winter_ready', 'cozy', 'winter', 'cold']
@@ -5420,21 +5420,21 @@ class OutfitService:
             # For snow day, accept items with any snow day-appropriate attribute
             if has_snow_day_appropriate_occasion or has_snow_day_appropriate_style or has_snow_day_appropriate_tags:
                 snow_day_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_snow_day - Snow day appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_snow_day - Snow day appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_snow_day - Snow day inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_snow_day - Snow day inappropriate item: {item.name}")
         
         # If we have snow day-appropriate items, use them; otherwise, be more lenient
         if snow_day_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_snow_day - Found {len(snow_day_appropriate_items)} snow day-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_snow_day - Found {len(snow_day_appropriate_items)} snow day-appropriate items")
             return snow_day_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_snow_day - No snow day-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_snow_day - No snow day-appropriate items found, being more lenient")
             return items
 
     def _filter_for_hot_weather(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for hot weather occasions."""
-        print(f"🔍 DEBUG: _filter_for_hot_weather - Processing hot weather occasion")
+        # print(f"🔍 DEBUG: _filter_for_hot_weather - Processing hot weather occasion")
         
         hot_weather_appropriate_items = []
         hot_weather_keywords = ['breathable', 'light', 'summer', 'cool', 'airy', 'hot', 'warm']
@@ -5464,21 +5464,21 @@ class OutfitService:
             # For hot weather, accept items with any hot weather-appropriate attribute
             if has_hot_weather_appropriate_occasion or has_hot_weather_appropriate_style or has_hot_weather_appropriate_tags:
                 hot_weather_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_hot_weather - Hot weather appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_hot_weather - Hot weather appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_hot_weather - Hot weather inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_hot_weather - Hot weather inappropriate item: {item.name}")
         
         # If we have hot weather-appropriate items, use them; otherwise, be more lenient
         if hot_weather_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_hot_weather - Found {len(hot_weather_appropriate_items)} hot weather-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_hot_weather - Found {len(hot_weather_appropriate_items)} hot weather-appropriate items")
             return hot_weather_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_hot_weather - No hot weather-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_hot_weather - No hot weather-appropriate items found, being more lenient")
             return items
 
     def _filter_for_cold_weather(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for cold weather occasions."""
-        print(f"🔍 DEBUG: _filter_for_cold_weather - Processing cold weather occasion")
+        # print(f"🔍 DEBUG: _filter_for_cold_weather - Processing cold weather occasion")
         
         cold_weather_appropriate_items = []
         cold_weather_keywords = ['warm', 'insulated', 'protective', 'winter', 'cozy', 'cold', 'winter_ready']
@@ -5508,21 +5508,21 @@ class OutfitService:
             # For cold weather, accept items with any cold weather-appropriate attribute
             if has_cold_weather_appropriate_occasion or has_cold_weather_appropriate_style or has_cold_weather_appropriate_tags:
                 cold_weather_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_cold_weather - Cold weather appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_cold_weather - Cold weather appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_cold_weather - Cold weather inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_cold_weather - Cold weather inappropriate item: {item.name}")
         
         # If we have cold weather-appropriate items, use them; otherwise, be more lenient
         if cold_weather_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_cold_weather - Found {len(cold_weather_appropriate_items)} cold weather-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_cold_weather - Found {len(cold_weather_appropriate_items)} cold weather-appropriate items")
             return cold_weather_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_cold_weather - No cold weather-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_cold_weather - No cold weather-appropriate items found, being more lenient")
             return items
 
     def _filter_for_chilly_evening(self, items: List[ClothingItem]) -> List[ClothingItem]:
         """Special filtering for chilly evening occasions."""
-        print(f"🔍 DEBUG: _filter_for_chilly_evening - Processing chilly evening occasion")
+        # print(f"🔍 DEBUG: _filter_for_chilly_evening - Processing chilly evening occasion")
         
         chilly_evening_appropriate_items = []
         chilly_evening_keywords = ['elegant', 'layered', 'sophisticated', 'evening_appropriate', 'refined', 'warm']
@@ -5552,16 +5552,16 @@ class OutfitService:
             # For chilly evening, accept items with any chilly evening-appropriate attribute
             if has_chilly_evening_appropriate_occasion or has_chilly_evening_appropriate_style or has_chilly_evening_appropriate_tags:
                 chilly_evening_appropriate_items.append(item)
-                print(f"✅ DEBUG: _filter_for_chilly_evening - Chilly evening appropriate item: {item.name}")
+                # print(f"✅ DEBUG: _filter_for_chilly_evening - Chilly evening appropriate item: {item.name}")
             else:
-                print(f"❌ DEBUG: _filter_for_chilly_evening - Chilly evening inappropriate item: {item.name}")
+                # print(f"❌ DEBUG: _filter_for_chilly_evening - Chilly evening inappropriate item: {item.name}")
         
         # If we have chilly evening-appropriate items, use them; otherwise, be more lenient
         if chilly_evening_appropriate_items:
-            print(f"✅ DEBUG: _filter_for_chilly_evening - Found {len(chilly_evening_appropriate_items)} chilly evening-appropriate items")
+            # print(f"✅ DEBUG: _filter_for_chilly_evening - Found {len(chilly_evening_appropriate_items)} chilly evening-appropriate items")
             return chilly_evening_appropriate_items
         else:
-            print(f"⚠️  DEBUG: _filter_for_chilly_evening - No chilly evening-appropriate items found, being more lenient")
+            # print(f"⚠️  DEBUG: _filter_for_chilly_evening - No chilly evening-appropriate items found, being more lenient")
             return items
 
     def _filter_by_style_strict(self, items: List[ClothingItem], style: str, style_matrix: Dict[str, Any]) -> List[ClothingItem]:
@@ -5780,61 +5780,61 @@ class OutfitService:
         max_items = context["target_counts"]["max_items"]
         occasion = (context.get("occasion", "") if context else "").lower()
         
-        print(f"🔍 DEBUG: _select_core_items - Starting selection")
-        print(f"   - Occasion: {occasion}")
-        print(f"   - Required categories: {required_categories}")
-        print(f"   - Min items: {min_items}, Max items: {max_items}")
-        print(f"   - Available items: {len(filtered_wardrobe)}")
+        # print(f"🔍 DEBUG: _select_core_items - Starting selection")
+#         print(f"   - Occasion: {occasion}")
+#         print(f"   - Required categories: {required_categories}")
+#         print(f"   - Min items: {min_items}, Max items: {max_items}")
+#         print(f"   - Available items: {len(filtered_wardrobe)}")
         
         # Group items by category
         items_by_category = self._group_items_by_category(filtered_wardrobe)
         
-        print(f"📊 DEBUG: Items by category:")
+#         print(f"📊 DEBUG: Items by category:")
         for category, items in items_by_category.items():
-            print(f"   - {category}: {len(items)} items")
+#             print(f"   - {category}: {len(items)} items")
             for item in items[:3]:  # Show first 3 items
-                print(f"     * {item.name} ({item.type})")
+#                 print(f"     * {item.name} ({item.type})")
             if len(items) > 3:
-                print(f"     ... and {len(items) - 3} more")
+#                 print(f"     ... and {len(items) - 3} more")
         
         # For formal occasions, we need to be more aggressive in selection
         is_formal = "formal" in occasion or "gala" in occasion or "interview" in occasion
-        print(f"🎯 DEBUG: Is formal occasion: {is_formal}")
+#         print(f"🎯 DEBUG: Is formal occasion: {is_formal}")
         
         # Select one item from each required category first
         selected_categories = set()
         for category in required_categories:
-            print(f"\n🔍 DEBUG: Processing required category: {category}")
+#             print(f"\n🔍 DEBUG: Processing required category: {category}")
             if category in items_by_category and items_by_category[category]:
-                print(f"   - Found {len(items_by_category[category])} items in category '{category}'")
+#                 print(f"   - Found {len(items_by_category[category])} items in category '{category}'")
                 
                 # Sort by relevance score and select the best
                 sorted_items = self._sort_items_by_relevance(
                     items_by_category[category], context
                 )
-                print(f"   - Sorted items by relevance:")
+#                 print(f"   - Sorted items by relevance:")
                 for i, item in enumerate(sorted_items[:3]):
-                    print(f"     {i+1}. {item.name} ({item.type})")
+#                     print(f"     {i+1}. {item.name} ({item.type})")
                 
                 if sorted_items:
                     best_item = sorted_items[0]
                     # Check if we already have an item from this category
                     item_category = self._get_item_category(best_item)
-                    print(f"   - Best item: {best_item.name} (category: {item_category})")
+#                     print(f"   - Best item: {best_item.name} (category: {item_category})")
                     
                     if item_category not in selected_categories:
                         core_items.append(best_item)
                         selected_categories.add(item_category)
-                        print(f"✅ DEBUG: _select_core_items - Selected {item_category}: {best_item.name}")
+                        # print(f"✅ DEBUG: _select_core_items - Selected {item_category}: {best_item.name}")
                     else:
-                        print(f"⚠️  DEBUG: _select_core_items - Skipping {best_item.name} (category {item_category} already selected)")
+                        # print(f"⚠️  DEBUG: _select_core_items - Skipping {best_item.name} (category {item_category} already selected)")
             else:
-                print(f"❌ DEBUG: No items found for required category '{category}'")
-                print(f"   - Available categories: {list(items_by_category.keys())}")
+                # print(f"❌ DEBUG: No items found for required category '{category}'")
+#                 print(f"   - Available categories: {list(items_by_category.keys())}")
         
         # For formal occasions, add additional items to meet minimum requirements
         if is_formal and len(core_items) < min_items:
-            print(f"DEBUG: _select_core_items - Formal occasion: only {len(core_items)} items selected, need at least {min_items}")
+            # print(f"DEBUG: _select_core_items - Formal occasion: only {len(core_items)} items selected, need at least {min_items}")
             
             # Prioritize adding layers and accessories for formal occasions
             priority_categories = ["layer", "accessory", "top"]
@@ -5854,11 +5854,11 @@ class OutfitService:
                         if sorted_items:
                             additional_item = sorted_items[0]
                             core_items.append(additional_item)
-                            print(f"DEBUG: _select_core_items - Added additional {category}: {additional_item.name}")
+                            # print(f"DEBUG: _select_core_items - Added additional {category}: {additional_item.name}")
         
         # For formal occasions, try to reach closer to max_items if we have room
         if is_formal and len(core_items) < max_items:
-            print(f"DEBUG: _select_core_items - Formal occasion: {len(core_items)} items selected, can add up to {max_items}")
+            # print(f"DEBUG: _select_core_items - Formal occasion: {len(core_items)} items selected, can add up to {max_items}")
             
             # Add more items from any available category
             for category, items in items_by_category.items():
@@ -5875,14 +5875,14 @@ class OutfitService:
                         if sorted_items:
                             additional_item = sorted_items[0]
                             core_items.append(additional_item)
-                            print(f"DEBUG: _select_core_items - Added {category}: {additional_item.name}")
+                            # print(f"DEBUG: _select_core_items - Added {category}: {additional_item.name}")
         
-        print(f"DEBUG: _select_core_items - Final selection: {len(core_items)} items")
+        # print(f"DEBUG: _select_core_items - Final selection: {len(core_items)} items")
         
         # NEW: If we don't have enough items, add more from available categories
         min_items = context["target_counts"]["min_items"]
         if len(core_items) < min_items:
-            print(f"⚠️  DEBUG: _select_core_items - Only {len(core_items)} items selected (need {min_items}), adding more items")
+            # print(f"⚠️  DEBUG: _select_core_items - Only {len(core_items)} items selected (need {min_items}), adding more items")
             
             # Get all available items not already selected
             available_items = [item for item in filtered_wardrobe if item not in core_items]
@@ -5894,7 +5894,7 @@ class OutfitService:
                 
                 for item in sorted_available[:needed_items]:
                     core_items.append(item)
-                    print(f"✅ DEBUG: _select_core_items - Added fallback item: {item.name}")
+                    # print(f"✅ DEBUG: _select_core_items - Added fallback item: {item.name}")
         
         return core_items
 
@@ -5972,11 +5972,11 @@ class OutfitService:
         result = self._get_item_categories(items)
         
         # Add debug logging
-        print(f"🔍 DEBUG: _group_items_by_category - Categorized {len(items)} items:")
+        # print(f"🔍 DEBUG: _group_items_by_category - Categorized {len(items)} items:")
         for category, category_items in result.items():
-            print(f"   - {category}: {len(category_items)} items")
+#             print(f"   - {category}: {len(category_items)} items")
             for item in category_items:
-                print(f"     * {item.name} ({item.type}) -> {category}")
+#                 print(f"     * {item.name} ({item.type}) -> {category}")
         
         return result
 
@@ -6344,10 +6344,10 @@ class OutfitService:
         Enhanced with context-aware deduplication and robust fallback logic.
         """
         if not items:
-            print("DEBUG: _deduplicate_by_category - No items to deduplicate")
+            # print("DEBUG: _deduplicate_by_category - No items to deduplicate")
             return []
         
-        print(f"DEBUG: _deduplicate_by_category - Starting with {len(items)} items: {[item.name for item in items]}")
+        # print(f"DEBUG: _deduplicate_by_category - Starting with {len(items)} items: {[item.name for item in items]}")
         
         # Enhanced category mapping with better detection
         categories = {
@@ -6373,7 +6373,7 @@ class OutfitService:
         weather_temp = context.get('weather').temperature if context and context.get('weather') else 70
         style = context.get('style') if context else None
         
-        print(f"DEBUG: _deduplicate_by_category - Context: occasion={occasion}, temp={weather_temp}, style={style}")
+        # print(f"DEBUG: _deduplicate_by_category - Context: occasion={occasion}, temp={weather_temp}, style={style}")
         
         # Enhanced category detection with better logic
         def get_item_category_enhanced(item: ClothingItem) -> str:
@@ -6447,7 +6447,7 @@ class OutfitService:
                 categorized_items[category] = []
             categorized_items[category].append(item)
         
-        print(f"DEBUG: _deduplicate_by_category - Categorized items: {[(cat, len(items)) for cat, items in categorized_items.items()]}")
+        # print(f"DEBUG: _deduplicate_by_category - Categorized items: {[(cat, len(items)) for cat, items in categorized_items.items()]}")
         
         # Second pass: Apply smart deduplication
         filtered = []
@@ -6465,13 +6465,13 @@ class OutfitService:
                 # For dresses, keep only the best one
                 filtered.append(category_items[0])
                 removed_items.extend([f"{item.name} - duplicate {category}" for item in category_items[1:]])
-                print(f"DEBUG: _deduplicate_by_category - Keeping best {category}: {category_items[0].name}")
+                # print(f"DEBUG: _deduplicate_by_category - Keeping best {category}: {category_items[0].name}")
                 
             elif category in essential_categories:
                 # For essential categories, keep the best item
                 filtered.append(category_items[0])
                 removed_items.extend([f"{item.name} - duplicate {category}" for item in category_items[1:]])
-                print(f"DEBUG: _deduplicate_by_category - Keeping best essential {category}: {category_items[0].name}")
+                # print(f"DEBUG: _deduplicate_by_category - Keeping best essential {category}: {category_items[0].name}")
                 
             elif category in non_essential_categories:
                 # For non-essential categories, check if we should keep duplicates
@@ -6483,11 +6483,11 @@ class OutfitService:
                     filtered.append(category_items[i])
                 
                 removed_items.extend([f"{item.name} - duplicate {category}" for item in category_items[keep_count:]])
-                print(f"DEBUG: _deduplicate_by_category - Keeping {keep_count} {category} items: {[item.name for item in category_items[:keep_count]]}")
+                # print(f"DEBUG: _deduplicate_by_category - Keeping {keep_count} {category} items: {[item.name for item in category_items[:keep_count]]}")
         
         # Validation and fallback logic
         if len(filtered) < 3 and len(items) >= 3:
-            print(f"⚠️  WARNING: _deduplicate_by_category - Only {len(filtered)} items after deduplication, applying fallback")
+            # print(f"⚠️  WARNING: _deduplicate_by_category - Only {len(filtered)} items after deduplication, applying fallback")
             
             # Fallback: Keep all essential items and be more lenient with others
             filtered = []
@@ -6501,40 +6501,40 @@ class OutfitService:
                     filtered.append(item)
                     if category not in seen_categories:
                         seen_categories.add(category)
-                        print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping essential {category}: {item.name}")
+                        # print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping essential {category}: {item.name}")
                     else:
-                        print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping duplicate essential {category}: {item.name}")
+                        # print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping duplicate essential {category}: {item.name}")
                 
                 # For non-essential, be more lenient
                 elif category in non_essential_categories:
                     if category not in seen_categories or len([i for i in filtered if get_item_category_enhanced(i) == category]) < 2:
                         filtered.append(item)
                         seen_categories.add(category)
-                        print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping {category}: {item.name}")
+                        # print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping {category}: {item.name}")
                     else:
                         removed_items.append(f"{item.name} - duplicate {category} (fallback)")
-                        print(f"DEBUG: _deduplicate_by_category (fallback) - Removing {category}: {item.name}")
+                        # print(f"DEBUG: _deduplicate_by_category (fallback) - Removing {category}: {item.name}")
                 
                 # For dresses, keep only one
                 elif category == 'dress':
                     if category not in seen_categories:
                         filtered.append(item)
                         seen_categories.add(category)
-                        print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping dress: {item.name}")
+                        # print(f"DEBUG: _deduplicate_by_category (fallback) - Keeping dress: {item.name}")
                     else:
                         removed_items.append(f"{item.name} - duplicate dress (fallback)")
-                        print(f"DEBUG: _deduplicate_by_category (fallback) - Removing dress: {item.name}")
+                        # print(f"DEBUG: _deduplicate_by_category (fallback) - Removing dress: {item.name}")
         
         # Final validation
         if len(filtered) < 3:
-            print(f"⚠️  CRITICAL: _deduplicate_by_category - Only {len(filtered)} items after fallback, keeping all items")
+            # print(f"⚠️  CRITICAL: _deduplicate_by_category - Only {len(filtered)} items after fallback, keeping all items")
             filtered = items  # Keep all items as last resort
         
         # Log results
         if removed_items:
-            print(f"DEBUG: _deduplicate_by_category - Removed items: {removed_items}")
+            # print(f"DEBUG: _deduplicate_by_category - Removed items: {removed_items}")
         
-        print(f"DEBUG: _deduplicate_by_category - Final items ({len(filtered)}): {[item.name for item in filtered]}")
+        # print(f"DEBUG: _deduplicate_by_category - Final items ({len(filtered)}): {[item.name for item in filtered]}")
         return filtered
     
     def _get_item_relevance_score(self, item: ClothingItem, category: str, context: Dict[str, Any] = None) -> float:
@@ -6584,7 +6584,7 @@ class OutfitService:
         
         # If missing required components, return empty list to force regeneration
         if not has_bottom or not has_layer:
-            print(f"DEBUG: Formal outfit missing required components - has_bottom: {has_bottom}, has_layer: {has_layer}")
+            # print(f"DEBUG: Formal outfit missing required components - has_bottom: {has_bottom}, has_layer: {has_layer}")
             return []
         
         temperature = weather.temperature
@@ -6632,29 +6632,29 @@ class OutfitService:
                         item.wearCount = item_favorite.usage_count
                         item.lastWorn = item_favorite.last_used_timestamp
                         item.favorite_score = item_favorite.total_score
-                        print(f"DEBUG: Enhanced {item.name} with usage data: {item_favorite.usage_count} uses, last worn: {item_favorite.last_used_timestamp}")
+                        # print(f"DEBUG: Enhanced {item.name} with usage data: {item_favorite.usage_count} uses, last worn: {item_favorite.last_used_timestamp}")
                     else:
                         # Set default values for items without usage data
                         item.wearCount = 0
                         item.lastWorn = 0
                         item.favorite_score = 0.0
-                        print(f"DEBUG: {item.name} has no usage data, setting defaults")
+                        # print(f"DEBUG: {item.name} has no usage data, setting defaults")
                     
                     enhanced_wardrobe.append(item)
                     
                 except Exception as e:
-                    print(f"Warning: Failed to get usage data for item {item.id}: {e}")
+#                     print(f"Warning: Failed to get usage data for item {item.id}: {e}")
                     # Set default values if analytics fails
                     item.wearCount = 0
                     item.lastWorn = 0
                     item.favorite_score = 0.0
                     enhanced_wardrobe.append(item)
             
-            print(f"DEBUG: Enhanced {len(enhanced_wardrobe)} items with usage data")
+            # print(f"DEBUG: Enhanced {len(enhanced_wardrobe)} items with usage data")
             return enhanced_wardrobe
             
         except Exception as e:
-            print(f"Warning: Failed to enhance wardrobe with usage data: {e}")
+#             print(f"Warning: Failed to enhance wardrobe with usage data: {e}")
             # Return original wardrobe if analytics service fails
             for item in wardrobe:
                 if not hasattr(item, 'wearCount'):
@@ -6691,11 +6691,11 @@ class OutfitService:
         
         # NEW: If too many items were filtered out, use fallback diversity
         if len(filtered_items) < len(items) * 0.3:  # If less than 30% remain
-            print(f"DEBUG: Too many items filtered out ({len(filtered_items)}/{len(items)}), using fallback diversity")
+            # print(f"DEBUG: Too many items filtered out ({len(filtered_items)}/{len(items)}), using fallback diversity")
             return self._apply_fallback_diversity(items)
         
         if len(filtered_items) != len(items):
-            print(f"DEBUG: Filtered out {len(items) - len(filtered_items)} recently used items")
+            # print(f"DEBUG: Filtered out {len(items) - len(filtered_items)} recently used items")
         
         return filtered_items
 
@@ -6743,7 +6743,7 @@ class OutfitService:
         # Shuffle the selected items to add more randomness
         random.shuffle(selected_items)
         
-        print(f"DEBUG: Fallback diversity applied - {len(selected_items)}/{len(items)} items selected")
+        # print(f"DEBUG: Fallback diversity applied - {len(selected_items)}/{len(items)} items selected")
         return selected_items
 
     def _add_randomization_factors(self, items: List[ClothingItem], context: Dict[str, Any]) -> List[ClothingItem]:
@@ -6797,7 +6797,7 @@ class OutfitService:
         # Final shuffle for maximum randomness
         random.shuffle(selected_items)
         
-        print(f"DEBUG: Randomization factors applied - {len(selected_items)}/{len(items)} items selected")
+        # print(f"DEBUG: Randomization factors applied - {len(selected_items)}/{len(items)} items selected")
         return selected_items
 
     def _debug_outfit_generation(self, items: List[ClothingItem], phase: str):
@@ -6808,11 +6808,11 @@ class OutfitService:
         # Check if we're in development mode
         is_dev = os.getenv('ENVIRONMENT', 'development').lower() == 'development'
         
-        print(f"DEBUG: {phase} - {len(items)} items selected")
+        # print(f"DEBUG: {phase} - {len(items)} items selected")
         
         # Basic logging for all environments
         for item in items:
-            print(f"  - {item.name} ({item.type})")
+#             print(f"  - {item.name} ({item.type})")
         
         # Enhanced JSON output for development mode
         if is_dev and items:
@@ -6838,8 +6838,8 @@ class OutfitService:
                 debug_data["items"].append(item_data)
             
             # Pretty print JSON for development
-            print(f"DEBUG JSON ({phase}):")
-            print(json.dumps(debug_data, indent=2, default=str))
+            # print(f"DEBUG JSON ({phase}):")
+#             print(json.dumps(debug_data, indent=2, default=str))
 
     async def get_outfits_by_user(self, user_id: str) -> List[OutfitGeneratedOutfit]:
         """Get outfits for a specific user from Firestore."""
@@ -6867,10 +6867,10 @@ class OutfitService:
                                     clothing_item = ClothingItem(**item_data)
                                     converted_items.append(clothing_item)
                                 else:
-                                    print(f"Warning: Item {item} not found in wardrobe, keeping as ID")
+#                                     print(f"Warning: Item {item} not found in wardrobe, keeping as ID")
                                     converted_items.append(item)
                             except Exception as e:
-                                print(f"Warning: Failed to fetch item {item}: {e}, keeping as ID")
+#                                 print(f"Warning: Failed to fetch item {item}: {e}, keeping as ID")
                                 converted_items.append(item)
                         else:
                             # This is already a full object or dict, keep as is
@@ -6882,7 +6882,7 @@ class OutfitService:
                     # Try to validate as OutfitGeneratedOutfit first
                     outfits.append(OutfitGeneratedOutfit(**outfit_data))
                 except Exception as e:
-                    print(f"Validation failed for outfit {doc.id}, creating minimal outfit object")
+#                     print(f"Validation failed for outfit {doc.id}, creating minimal outfit object")
                     # Create a complete outfit object with all required fields
                     minimal_outfit = {
                         "id": doc.id,
@@ -6916,14 +6916,14 @@ class OutfitService:
                     try:
                         outfits.append(OutfitGeneratedOutfit(**minimal_outfit))
                     except Exception as e2:
-                        print(f"Failed to create minimal outfit for {doc.id}: {e2}")
+#                         print(f"Failed to create minimal outfit for {doc.id}: {e2}")
                         continue
             
             # Sort by creation date (newest first) - temporarily disabled to avoid index requirement
         # outfits.sort(key=lambda x: x.createdAt, reverse=True)
             return outfits
         except Exception as e:
-            print(f"Error getting outfits for user {user_id}: {e}")
+#             print(f"Error getting outfits for user {user_id}: {e}")
             raise
     
     def _normalize_user_profile_data(self, user_profile: UserProfile) -> UserProfile:
@@ -6967,7 +6967,7 @@ class OutfitService:
             return UserProfile(**profile_dict)
             
         except Exception as e:
-            print(f"⚠️ Warning: Could not normalize user profile data: {e}")
+            # print(f"⚠️ Warning: Could not normalize user profile data: {e}")
             # Return original profile if normalization fails
             return user_profile
 
@@ -6980,7 +6980,7 @@ class OutfitService:
     ) -> Dict[str, Any]:
         """Use orchestrated validation pipeline with parallel and sequential execution."""
         
-        print(f"🔧 Starting orchestrated validation for {len(items)} items")
+        # print(f"🔧 Starting orchestrated validation for {len(items)} items")
         
         # Use the validation orchestrator
         result = await self.validation_orchestrator.run_validation_pipeline(items, context)
@@ -6994,7 +6994,7 @@ class OutfitService:
             duration=result["total_duration"]
         )
         
-        print(f"✅ Orchestrated validation completed: {len(result['errors'])} errors, {len(result['warnings'])} warnings")
+        # print(f"✅ Orchestrated validation completed: {len(result['errors'])} errors, {len(result['warnings'])} warnings")
         return result
     
     async def _validate_outfit_with_orchestration(

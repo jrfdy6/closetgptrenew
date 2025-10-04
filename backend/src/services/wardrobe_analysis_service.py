@@ -43,39 +43,39 @@ class WardrobeAnalysisService:
     async def get_wardrobe_gaps(self, user_id: str) -> Dict[str, Any]:
         """Analyze wardrobe gaps based on outfit generation history and current wardrobe."""
         
-        print(f"DEBUG: Starting wardrobe gap analysis for user: {user_id}")
+        # print(f"DEBUG: Starting wardrobe gap analysis for user: {user_id}")
         
         # Get user's wardrobe
         wardrobe = await self._get_user_wardrobe(user_id)
-        print(f"DEBUG: Retrieved {len(wardrobe)} wardrobe items")
+        # print(f"DEBUG: Retrieved {len(wardrobe)} wardrobe items")
         
         # Get outfit generation history
         outfit_history = await self._get_outfit_history(user_id)
-        print(f"DEBUG: Retrieved {len(outfit_history)} outfit history items")
+        # print(f"DEBUG: Retrieved {len(outfit_history)} outfit history items")
         
         # Get validation errors
         validation_errors = await self._get_validation_errors(user_id)
-        print(f"DEBUG: Retrieved {len(validation_errors)} validation errors")
+        # print(f"DEBUG: Retrieved {len(validation_errors)} validation errors")
         
         # Get trending styles
         trending_styles = await self._get_trending_styles()
-        print(f"DEBUG: Retrieved {len(trending_styles)} trending styles")
+        # print(f"DEBUG: Retrieved {len(trending_styles)} trending styles")
         
         # Analyze gaps
         gaps = self._analyze_gaps(wardrobe, outfit_history, validation_errors, trending_styles)
-        print(f"DEBUG: Found {len(gaps)} gaps")
+        # print(f"DEBUG: Found {len(gaps)} gaps")
         
         # Calculate coverage metrics
         coverage = self._calculate_coverage(wardrobe, gaps)
-        print(f"DEBUG: Calculated coverage: {coverage}")
+        # print(f"DEBUG: Calculated coverage: {coverage}")
         
         # Generate recommendations
         recommendations = self._generate_recommendations(wardrobe, gaps, validation_errors, trending_styles)
-        print(f"DEBUG: Generated {len(recommendations)} recommendations")
+        # print(f"DEBUG: Generated {len(recommendations)} recommendations")
         
         # Get wardrobe stats
         wardrobe_stats = self._get_wardrobe_stats(wardrobe)
-        print(f"DEBUG: Wardrobe stats: {wardrobe_stats}")
+        # print(f"DEBUG: Wardrobe stats: {wardrobe_stats}")
         
         # Get shopping recommendations if there are gaps
         shopping_recommendations = None
@@ -94,9 +94,9 @@ class WardrobeAnalysisService:
                     budget_range=None,  # Will be determined by user preferences
                     preferred_stores=None
                 )
-                print(f"DEBUG: Generated shopping recommendations: {(shopping_recommendations.get('success', False) if shopping_recommendations else False)}")
+                # print(f"DEBUG: Generated shopping recommendations: {(shopping_recommendations.get('success', False) if shopping_recommendations else False)}")
             except Exception as e:
-                print(f"DEBUG: Error generating shopping recommendations: {e}")
+                # print(f"DEBUG: Error generating shopping recommendations: {e}")
                 shopping_recommendations = None
 
         result = {
@@ -109,7 +109,7 @@ class WardrobeAnalysisService:
             "analysis_timestamp": datetime.now().isoformat()
         }
         
-        print(f"DEBUG: Returning result with {len(wardrobe)} wardrobe items")
+        # print(f"DEBUG: Returning result with {len(wardrobe)} wardrobe items")
         return result
     
     async def _get_user_profile(self, user_id: str) -> Dict[str, Any]:
@@ -140,7 +140,7 @@ class WardrobeAnalysisService:
                     'name': 'User'
                 }
         except Exception as e:
-            print(f"DEBUG: Error getting user profile: {e}")
+            # print(f"DEBUG: Error getting user profile: {e}")
             return {
                 'id': user_id,
                 'gender': 'unisex',
@@ -154,7 +154,7 @@ class WardrobeAnalysisService:
     async def _get_user_wardrobe(self, user_id: str) -> List[ClothingItem]:
         """Get user's complete wardrobe from Firestore."""
         try:
-            print(f"DEBUG: Getting wardrobe for user ID: {user_id}")
+            # print(f"DEBUG: Getting wardrobe for user ID: {user_id}")
             wardrobe_ref = self.db.collection('wardrobe').where('userId', '==', user_id)
             docs = wardrobe_ref.stream()
             
@@ -167,11 +167,11 @@ class WardrobeAnalysisService:
                 item_data = doc.to_dict()
                 raw_data_list.append(item_data)  # Store raw data
                 
-                print(f"DEBUG: Processing doc {doc_count}: {doc.id}")
-                print(f"DEBUG: Item data keys: {list(item_data.keys())}")
-                print(f"DEBUG: Item type: {(item_data.get('type', 'N/A') if item_data else 'N/A')}")
-                print(f"DEBUG: Item brand: {(item_data.get('brand', 'N/A') if item_data else 'N/A')}")
-                print(f"DEBUG: Item userId: {(item_data.get('userId', 'N/A') if item_data else 'N/A')}")
+                # print(f"DEBUG: Processing doc {doc_count}: {doc.id}")
+                # print(f"DEBUG: Item data keys: {list(item_data.keys())}")
+                # print(f"DEBUG: Item type: {(item_data.get('type', 'N/A') if item_data else 'N/A')}")
+                # print(f"DEBUG: Item brand: {(item_data.get('brand', 'N/A') if item_data else 'N/A')}")
+                # print(f"DEBUG: Item userId: {(item_data.get('userId', 'N/A') if item_data else 'N/A')}")
                 
                 # Preprocess the data to fix validation issues
                 processed_data = self._preprocess_item_data(item_data)
@@ -186,11 +186,11 @@ class WardrobeAnalysisService:
                 try:
                     clothing_item = ClothingItem(**processed_data)
                     wardrobe.append(clothing_item)
-                    print(f"DEBUG: ✓ Successfully parsed item {doc.id}")
+                    # print(f"DEBUG: ✓ Successfully parsed item {doc.id}")
                 except Exception as e:
-                    print(f"DEBUG: ✗ Error parsing wardrobe item {doc.id}: {e}")
-                    print(f"DEBUG:   Raw data: {item_data}")
-                    print(f"DEBUG:   Processed data keys: {list(processed_data.keys())}")
+                    # print(f"DEBUG: ✗ Error parsing wardrobe item {doc.id}: {e}")
+                    # print(f"DEBUG:   Raw data: {item_data}")
+                    # print(f"DEBUG:   Processed data keys: {list(processed_data.keys())}")
                     # Try to create a minimal valid item with fallback values
                     try:
                         def create_color_objects(color_list):
@@ -262,20 +262,20 @@ class WardrobeAnalysisService:
                             fallback_data['userId'] = user_id
                         clothing_item = ClothingItem(**fallback_data)
                         wardrobe.append(clothing_item)
-                        print(f"DEBUG: ✓ Created fallback item for {doc.id}")
+                        # print(f"DEBUG: ✓ Created fallback item for {doc.id}")
                     except Exception as fallback_error:
-                        print(f"DEBUG: ✗ Failed to create fallback item for {doc.id}: {fallback_error}")
-                        print(f"DEBUG:   Fallback data: {fallback_data}")
+                        # print(f"DEBUG: ✗ Failed to create fallback item for {doc.id}: {fallback_error}")
+                        # print(f"DEBUG:   Fallback data: {fallback_data}")
                         continue
             
-            print(f"DEBUG: Found {len(wardrobe)} wardrobe items for user {user_id}")
-            print(f"DEBUG: Total documents processed: {doc_count}")
-            print(f"DEBUG: Raw data count: {len(raw_data_list)}")
+            # print(f"DEBUG: Found {len(wardrobe)} wardrobe items for user {user_id}")
+            # print(f"DEBUG: Total documents processed: {doc_count}")
+            # print(f"DEBUG: Raw data count: {len(raw_data_list)}")
             
             # Print summary of raw data
-            print(f"DEBUG: Raw data summary:")
+            # print(f"DEBUG: Raw data summary:")
             for i, raw_data in enumerate(raw_data_list[:5]):  # Show first 5 items
-                print(f"DEBUG:   Item {i+1}: type={((raw_data.get('type', 'N/A') if raw_data else 'N/A') if raw_data else 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
+                # print(f"DEBUG:   Item {i+1}: type={((raw_data.get('type', 'N/A') if raw_data else 'N/A') if raw_data else 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
             
             # Also check if there are any items without userId field
             all_wardrobe_ref = self.db.collection('wardrobe')
@@ -285,9 +285,9 @@ class WardrobeAnalysisService:
                 total_items += 1
                 item_data = doc.to_dict()
                 if 'userId' not in item_data:
-                    print(f"DEBUG: Found item without userId: {doc.id}")
+                    # print(f"DEBUG: Found item without userId: {doc.id}")
             
-            print(f"DEBUG: Total items in wardrobe collection: {total_items}")
+            # print(f"DEBUG: Total items in wardrobe collection: {total_items}")
             
             # Let's also check what user IDs exist in the wardrobe
             user_ids = set()
@@ -298,11 +298,11 @@ class WardrobeAnalysisService:
                 if 'userId' in item_data:
                     user_ids.add(item_data['userId'])
             
-            print(f"DEBUG: User IDs found in wardrobe: {user_ids}")
+            # print(f"DEBUG: User IDs found in wardrobe: {user_ids}")
             
             return wardrobe
         except Exception as e:
-            print(f"DEBUG: Error getting wardrobe: {e}")
+            # print(f"DEBUG: Error getting wardrobe: {e}")
             import traceback
             traceback.print_exc()
             return []
@@ -342,7 +342,7 @@ class WardrobeAnalysisService:
             
             return history
         except Exception as e:
-            print(f"Error getting outfit history: {e}")
+#             print(f"Error getting outfit history: {e}")
             return []
     
     async def _get_validation_errors(self, user_id: str, days: int = 30) -> List[Dict[str, Any]]:
@@ -382,13 +382,13 @@ class WardrobeAnalysisService:
             
             return errors
         except Exception as e:
-            print(f"Error getting validation errors: {e}")
+#             print(f"Error getting validation errors: {e}")
             return []
     
     async def _get_trending_styles(self) -> List[Dict[str, Any]]:
         """Get trending styles from the fashion trends service."""
         try:
-            print("🔄 Attempting to get real trends from fashion trends service...")
+#             print("🔄 Attempting to get real trends from fashion trends service...")
             
             # Import the fashion trends service using absolute import
             from src.services.fashion_trends_service import FashionTrendsService
@@ -397,11 +397,11 @@ class WardrobeAnalysisService:
             trends_service = FashionTrendsService()
             trending_styles = await trends_service.get_trending_styles()
             
-            print(f"📊 Fashion trends service returned {len(trending_styles)} trends")
+#             print(f"📊 Fashion trends service returned {len(trending_styles)} trends")
             
             # If no real trends are available, fall back to curated data
             if not trending_styles:
-                print("⚠️ Warning: No real trends available, using fallback data")
+                # print("⚠️ Warning: No real trends available, using fallback data")
                 trending_styles = [
                     {
                         "name": "Coastal Grandmother",
@@ -440,14 +440,14 @@ class WardrobeAnalysisService:
                     }
                 ]
             else:
-                print("✅ Successfully retrieved real trends!")
+                # print("✅ Successfully retrieved real trends!")
                 for i, trend in enumerate(trending_styles[:3], 1):
-                    print(f"   {i}. {trend['name']} ({trend['popularity']}%)")
+#                     print(f"   {i}. {trend['name']} ({trend['popularity']}%)")
             
             return trending_styles
         except Exception as e:
-            print(f"❌ Error getting trending styles: {e}")
-            print(f"❌ Error type: {type(e)}")
+            # print(f"❌ Error getting trending styles: {e}")
+            # print(f"❌ Error type: {type(e)}")
             import traceback
             traceback.print_exc()
             # Return fallback data if there's an error
@@ -470,10 +470,10 @@ class WardrobeAnalysisService:
     
     def _get_wardrobe_stats(self, wardrobe: List[ClothingItem]) -> Dict[str, Any]:
         """Get comprehensive statistics about the user's wardrobe."""
-        print(f"DEBUG: _get_wardrobe_stats called with {len(wardrobe)} items")
+        # print(f"DEBUG: _get_wardrobe_stats called with {len(wardrobe)} items")
         
         if not wardrobe:
-            print("DEBUG: No wardrobe items found")
+            # print("DEBUG: No wardrobe items found")
             return {
                 "total_items": 0,
                 "item_types": {},
@@ -494,7 +494,7 @@ class WardrobeAnalysisService:
         
         for i, item in enumerate(wardrobe):
             try:
-                print(f"DEBUG: Processing item {i+1}: type={getattr(item, 'type', 'unknown')}, color={getattr(item, 'color', 'unknown')}")
+                # print(f"DEBUG: Processing item {i+1}: type={getattr(item, 'type', 'unknown')}, color={getattr(item, 'color', 'unknown')}")
                 
                 # Item types - safely get type
                 item_type = getattr(item, 'type', 'unknown')
@@ -531,17 +531,17 @@ class WardrobeAnalysisService:
                     try:
                         prices.append(float(item_price))
                     except (ValueError, TypeError):
-                        print(f"DEBUG: Skipping invalid price for item {i+1}: {item_price}")
+                        # print(f"DEBUG: Skipping invalid price for item {i+1}: {item_price}")
                         continue
                         
             except Exception as e:
-                print(f"DEBUG: Error processing item {i+1}: {e}")
-                print(f"DEBUG: Item data: {item}")
+                # print(f"DEBUG: Error processing item {i+1}: {e}")
+                # print(f"DEBUG: Item data: {item}")
                 continue
         
-        print(f"DEBUG: Final item_types: {item_types}")
-        print(f"DEBUG: Final colors: {colors}")
-        print(f"DEBUG: Final styles: {styles}")
+        # print(f"DEBUG: Final item_types: {item_types}")
+        # print(f"DEBUG: Final colors: {colors}")
+        # print(f"DEBUG: Final styles: {styles}")
         
         # Calculate price statistics
         price_stats = {"min": 0, "max": 0, "avg": 0}
@@ -553,7 +553,7 @@ class WardrobeAnalysisService:
                     "avg": sum(prices) / len(prices)
                 }
             except Exception as e:
-                print(f"DEBUG: Error calculating price stats: {e}")
+                # print(f"DEBUG: Error calculating price stats: {e}")
                 price_stats = {"min": 0, "max": 0, "avg": 0}
         
         stats = {
@@ -566,7 +566,7 @@ class WardrobeAnalysisService:
             "price_range": price_stats
         }
         
-        print(f"DEBUG: Returning stats: {stats}")
+        # print(f"DEBUG: Returning stats: {stats}")
         return stats
     
     def _analyze_gaps(self, wardrobe: List[ClothingItem], outfit_history: List[Dict], validation_errors: List[Dict], trending_styles: List[Dict]) -> List[Dict[str, Any]]:
@@ -646,15 +646,15 @@ class WardrobeAnalysisService:
         item_types = [item.type for item in wardrobe]
         
         # Debug: Print all item types found
-        print(f"DEBUG: Found item types in wardrobe: {set(item_types)}")
-        print(f"DEBUG: Total items: {len(wardrobe)}")
+        # print(f"DEBUG: Found item types in wardrobe: {set(item_types)}")
+        # print(f"DEBUG: Total items: {len(wardrobe)}")
         
         # Create a mapping of item types to their counts
         type_counts = {}
         for item_type in item_types:
             type_counts[item_type] = (type_counts.get(item_type, 0) if type_counts else 0) + 1
         
-        print(f"DEBUG: Type counts: {type_counts}")
+        # print(f"DEBUG: Type counts: {type_counts}")
         
         # Updated essential requirements based on actual wardrobe data
         # Map common item types to essential categories
@@ -676,7 +676,7 @@ class WardrobeAnalysisService:
                 count += (type_counts.get(item_type, 0) if type_counts else 0)
             essential_counts[essential] = count
         
-        print(f"DEBUG: Essential category counts: {essential_counts}")
+        # print(f"DEBUG: Essential category counts: {essential_counts}")
         
         essential_requirements = {
             'shirt': {'min': 8, 'name': 'Tops/Shirts', 'priority': 'high'},
@@ -690,7 +690,7 @@ class WardrobeAnalysisService:
         
         for item_type, requirement in essential_requirements.items():
             count = (essential_counts.get(item_type, 0) if essential_counts else 0)
-            print(f"DEBUG: Checking {item_type}: found {count}, need {requirement['min']}")
+            # print(f"DEBUG: Checking {item_type}: found {count}, need {requirement['min']}")
             
             if count < requirement['min']:
                 gaps.append({
@@ -709,7 +709,7 @@ class WardrobeAnalysisService:
                     }
                 })
         
-        print(f"DEBUG: Found {len(gaps)} essential gaps")
+        # print(f"DEBUG: Found {len(gaps)} essential gaps")
         
         # Add some additional gap analysis for better coverage
         additional_gaps = self._analyze_seasonal_gaps(wardrobe)
@@ -730,7 +730,7 @@ class WardrobeAnalysisService:
                     if season in seasonal_items:
                         seasonal_items[season] += 1
         
-        print(f"DEBUG: Seasonal distribution: {seasonal_items}")
+        # print(f"DEBUG: Seasonal distribution: {seasonal_items}")
         
         # Check for summer essentials
         if seasonal_items['summer'] < 3:
@@ -1517,7 +1517,7 @@ class WardrobeAnalysisService:
             return processed_data
             
         except Exception as e:
-            print(f"Error preprocessing item data: {e}")
+#             print(f"Error preprocessing item data: {e}")
             return item_data
     
     def _normalize_material(self, material: str) -> str:
