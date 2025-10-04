@@ -1035,6 +1035,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
             print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
             
+            # Initialize outfit variable to prevent "not defined" errors
+            outfit = None
+            
             # Create generation context - ensure weather is properly formatted
             weather_data = req.weather
             if isinstance(weather_data, dict):
@@ -1250,6 +1253,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     logger.error(f"❌ Conversion error type: {type(conversion_error).__name__}")
                     logger.error(f"❌ Conversion error details: {str(conversion_error)}")
                     raise conversion_error
+                
+                # Ensure outfit was successfully created
+                if outfit is None:
+                    raise Exception("Outfit generation failed - outfit is None")
                 
                 # Log generation strategy for monitoring
                 failed_rules = outfit.get('metadata', {}).get('failed_rules', [])
