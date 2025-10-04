@@ -285,7 +285,7 @@ class WardrobeAnalysisService:
                 total_items += 1
                 item_data = doc.to_dict()
                 if 'userId' not in item_data:
-                    # print(f"DEBUG: Found item without userId: {doc.id}")
+                    print(f"DEBUG: Found item without userId: {doc.id}")
             
             # print(f"DEBUG: Total items in wardrobe collection: {total_items}")
             

@@ -79,19 +79,19 @@ def _is_semantically_appropriate(outfit_items, required_item, occasion):
                 return True
         
         elif required_item == 'shorts' and occasion_lower == 'athletic':
-        # Accept any athletic-appropriate bottom
-        athletic_bottoms = ['shorts', 'athletic', 'sport', 'running', 'training', 'gym']
-        if any(term in item_name or term in item_type for term in athletic_bottoms):
-        return True
+            # Accept any athletic-appropriate bottom
+            athletic_bottoms = ['shorts', 'athletic', 'sport', 'running', 'training', 'gym']
+            if any(term in item_name or term in item_type for term in athletic_bottoms):
+                return True
         
         elif required_item == 'athletic-appropriate footwear' and occasion_lower == 'athletic':
-        # Accept any athletic-appropriate footwear
-        athletic_shoes = ['athletic', 'sport', 'running', 'training', 'gym', 'tennis', 'basketball', 'sneakers']
-        if any(term in item_name or term in item_type for term in athletic_shoes):
-        return True
-        # Accept casual shoes for athletic (more flexible)
-        if 'shoes' in item_type and not any(formal in item_name for formal in ['dress', 'formal', 'oxford', 'loafer']):
-        return True
+            # Accept any athletic-appropriate footwear
+            athletic_shoes = ['athletic', 'sport', 'running', 'training', 'gym', 'tennis', 'basketball', 'sneakers']
+            if any(term in item_name or term in item_type for term in athletic_shoes):
+                return True
+            # Accept casual shoes for athletic (more flexible)
+            if 'shoes' in item_type and not any(formal in item_name for formal in ['dress', 'formal', 'oxford', 'loafer']):
+                return True
         
         elif required_item == 'athletic-appropriate bottoms' and occasion_lower == 'athletic':
         # Accept any athletic-appropriate bottom
