@@ -157,8 +157,8 @@ except ImportError as e:
 class PerformanceMetrics:
     """Mock PerformanceMetrics class"""
     def __init__(self, **kwargs):
-        self.confidence = kwargs.get('confidence', 0.5)
-        self.diversity_score = kwargs.get('diversity_score', 0.0)
+        self.confidence = (kwargs.get('confidence', 0.5) if kwargs else 0.5)
+        self.diversity_score = (kwargs.get('diversity_score', 0.0) if kwargs else 0.0)
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +191,7 @@ def safe_get(obj: Any, key: str, default: Any = None) -> Any:
         
         # Handle dict objects
         if isinstance(obj, dict):
-            return obj.get(key, default)
+            return (obj.get(key, default) if obj else default)
         
         # Handle objects with attributes
         return getattr(obj, key, default)
@@ -220,7 +220,7 @@ def safe_item_access(item: Any, key: str, default: Any = None) -> Any:
         
         # Handle dict items
         if isinstance(item, dict):
-            return item.get(key, default)
+            return (item.get(key, default) if item else default)
         
         # Handle object items
         return getattr(item, key, default)
@@ -312,26 +312,28 @@ class RobustOutfitGenerationService:
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
         # ═══════════════════════════════════════════════════════════════════════
-        # EXCEPTION WRAPPER WITH FULL TRACEBACK LOGGING
+        # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
         # ═══════════════════════════════════════════════════════════════════════
         try:
             return await self._generate_outfit_internal(context)
         except Exception as e:
-            logger.error(f"❌ ROBUST SERVICE FAILED: {str(e)}", exc_info=True)
-            logger.error(f"❌ FULL TRACEBACK:", exc_info=True)
-            
-            # Return a fallback outfit instead of crashing
-            logger.warning(f"⚠️ FALLBACK: Returning emergency outfit due to robust service failure")
-            return OutfitGeneratedOutfit(
-                items=[],
-                confidence=0.1,
-                metadata={
-                    "generation_strategy": "emergency_fallback",
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                    "fallback_reason": "robust_service_exception"
+            import traceback
+            error_details = {
+                "error_type": str(type(e).__name__),
+                "error_message": str(e),
+                "full_traceback": traceback.format_exc(),
+                "context_info": {
+                    "context_type": str(type(context)),
+                    "context_wardrobe_length": len(context.wardrobe) if hasattr(context, 'wardrobe') and context.wardrobe else 0,
+                    "context_occasion": getattr(context, 'occasion', 'NO_OCCASION'),
+                    "context_style": getattr(context, 'style', 'NO_STYLE'),
+                    "context_user_id": getattr(context, 'user_id', 'NO_USER_ID')
                 }
-            )
+            }
+            logger.error("🔥 ROBUST SERVICE CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
+            print(f"🔥 ROBUST SERVICE CRASH: {error_details}")
+            print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+            raise
     
     async def _generate_outfit_internal(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Internal outfit generation logic with full error handling"""
@@ -342,9 +344,9 @@ class RobustOutfitGenerationService:
         
         # DEBUG: Log context details to identify NoneType issues
         print(f"🔍 DEBUG ROBUST INTERNAL: context = {context}")
-        print(f"🔍 DEBUG ROBUST INTERNAL: context.wardrobe = {context.wardrobe}")
+        print(f"🔍 DEBUG ROBUST INTERNAL: (context.wardrobe if context else []) = {context.wardrobe}")
         print(f"🔍 DEBUG ROBUST INTERNAL: context.user_profile = {context.user_profile}")
-        print(f"🔍 DEBUG ROBUST INTERNAL: context.weather = {context.weather}")
+        print(f"🔍 DEBUG ROBUST INTERNAL: (context.weather if context else None) = {context.weather}")
         
         # Hydrate wardrobe items
         logger.debug(f"🔄 Hydrating {len(context.wardrobe)} wardrobe items")
@@ -352,7 +354,7 @@ class RobustOutfitGenerationService:
             if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
                 safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
                 logger.debug(f"✅ Hydrated {len(safe_wardrobe)} items successfully")
-                context.wardrobe = safe_wardrobe
+                (context.wardrobe if context else []) = safe_wardrobe
             else:
                 logger.debug(f"✅ Items already ClothingItem objects")
         except Exception as hydrator_error:
@@ -376,7 +378,7 @@ class RobustOutfitGenerationService:
                         "id": getattr(item, 'id', 'NO_ID'),
                         "name": getattr(item, 'name', 'NO_NAME'),
                         "type": str(getattr(item, 'type', 'NO_TYPE'))
-                    } for item in context.wardrobe[:3]
+                    } for item in (context.wardrobe if context else [])[:3]
                 ]
             }
             return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "user_profile_is_list", "debug_info": debug_info})
@@ -392,7 +394,7 @@ class RobustOutfitGenerationService:
                         "id": getattr(item, 'id', 'NO_ID'),
                         "name": getattr(item, 'name', 'NO_NAME'),
                         "type": str(getattr(item, 'type', 'NO_TYPE'))
-                    } for item in context.wardrobe[:3]
+                    } for item in (context.wardrobe if context else [])[:3]
                 ]
             }
             return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "multi_layered", "error": "weather_is_list", "debug_info": debug_info})
@@ -401,18 +403,18 @@ class RobustOutfitGenerationService:
         temp = 70.0  # Default temperature
         condition = 'clear'  # Default condition
         
-        if context.weather is not None:
+        if (context.weather if context else None) is not None:
             temp = safe_get(context.weather, 'temperature', 70.0)
             condition = safe_get(context.weather, 'condition', 'clear')
         else:
             # Smart default: use occasion-appropriate weather
-            if context.occasion.lower() in ['business', 'formal']:
+            if (context.occasion if context else "unknown").lower() in ['business', 'formal']:
                 temp = 72.0  # Slightly warmer for professional settings
                 condition = 'clear'
-            elif context.occasion.lower() in ['party', 'evening']:
+            elif (context.occasion if context else "unknown").lower() in ['party', 'evening']:
                 temp = 68.0  # Slightly cooler for evening events
                 condition = 'clear'
-            elif context.occasion.lower() == 'athletic':
+            elif (context.occasion if context else "unknown").lower() == 'athletic':
                 temp = 75.0  # Warmer for athletic activities
                 condition = 'clear'
             else:
@@ -429,7 +431,7 @@ class RobustOutfitGenerationService:
                     self.temperature = temp
                     self.condition = condition
             
-            context.weather = MockWeather(temp, condition)
+            (context.weather if context else None) = MockWeather(temp, condition)
             logger.info(f"🔧 Created mock weather object: {context.weather.temperature}°F, {context.weather.condition}")
         
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
@@ -438,7 +440,7 @@ class RobustOutfitGenerationService:
         if not context.user_profile:
             logger.warning(f"⚠️ Missing user profile, using SMART DEFAULTS")
             # Smart defaults based on occasion/style
-            if context.occasion.lower() in ['business', 'formal']:
+            if (context.occasion if context else "unknown").lower() in ['business', 'formal']:
                 context.user_profile = {
                     'bodyType': 'Average',
                     'height': 'Average', 
@@ -447,7 +449,7 @@ class RobustOutfitGenerationService:
                     'skinTone': 'Medium',
                     'stylePreferences': {'preferredStyles': ['classic', 'professional']}
                 }
-            elif context.occasion.lower() in ['party', 'evening']:
+            elif (context.occasion if context else "unknown").lower() in ['party', 'evening']:
                 context.user_profile = {
                     'bodyType': 'Average',
                     'height': 'Average', 
@@ -456,7 +458,7 @@ class RobustOutfitGenerationService:
                     'skinTone': 'Medium',
                     'stylePreferences': {'preferredStyles': ['elegant', 'trendy']}
                 }
-            elif context.occasion.lower() == 'athletic':
+            elif (context.occasion if context else "unknown").lower() == 'athletic':
                 context.user_profile = {
                     'bodyType': 'Athletic',
                     'height': 'Average', 
@@ -480,7 +482,7 @@ class RobustOutfitGenerationService:
             logger.info(f"📊 DEFAULT_APPLIED: profile_default_occasion_{context.occasion.lower()}_body_{context.user_profile['bodyType'].lower()}")
         
         # Log wardrobe breakdown
-        item_types = [item.type for item in context.wardrobe]
+        item_types = [item.type for item in (context.wardrobe if context else [])]
         type_counts = {item_type: item_types.count(item_type) for item_type in set(item_types)}
         logger.info(f"📊 Wardrobe breakdown: {type_counts}")
         
@@ -577,7 +579,7 @@ class RobustOutfitGenerationService:
             )
             
             # Apply soft constraint penalties/bonuses
-            soft_penalty = self._soft_score(scores['item'], context.occasion, context.style, context.mood)
+            soft_penalty = self._soft_score(scores['item'], (context.occasion if context else "unknown"), (context.style if context else "unknown"), (context.mood if context else "unknown"))
             final_score = base_score + soft_penalty
             
             scores['composite_score'] = final_score
@@ -612,7 +614,7 @@ class RobustOutfitGenerationService:
             if temp > 80:  # Extreme heat
                 logger.warning(f"🔥 EXTREME HEAT: {temp}°F - emergency relaxation of weather penalties")
                 # Emergency: create minimal scores for any available items
-                for item in context.wardrobe:
+                for item in (context.wardrobe if context else []):
                     item_id = safe_item_access(item, 'id', f"emergency_{len(item_scores)}")
                     item_scores[item_id] = {
                         'item': item,
@@ -624,9 +626,9 @@ class RobustOutfitGenerationService:
                 logger.info(f"🚨 EMERGENCY: Created {len(item_scores)} emergency scores for extreme heat")
             
             # Emergency fallback: use any available items
-            if context.wardrobe:
+            if (context.wardrobe if context else []):
                 logger.warning(f"🚨 EMERGENCY: Using any available items as fallback")
-                for item in context.wardrobe:
+                for item in (context.wardrobe if context else []):
                     item_id = safe_item_access(item, 'id', f"emergency_{len(item_scores)}")
                     item_scores[item_id] = {
                         'body_type_score': 0.5,
@@ -661,15 +663,15 @@ class RobustOutfitGenerationService:
                 "suitable_items_count": len(suitable_items),
                 "item_scores_count": len(item_scores),
                 "items_with_scores": len([s for s in item_scores.values() if s.get('composite_score', 0) > 0.1]),
-                "context_occasion": context.occasion,
-                "context_style": context.style,
-                "context_mood": context.mood,
+                "context_occasion": (context.occasion if context else "unknown"),
+                "context_style": (context.style if context else "unknown"),
+                "context_mood": (context.mood if context else "unknown"),
                 "wardrobe_items": [
                     {
                         "id": getattr(item, 'id', 'NO_ID'),
                         "name": getattr(item, 'name', 'NO_NAME'),
                         "type": str(getattr(item, 'type', 'NO_TYPE'))
-                    } for item in context.wardrobe[:3]
+                    } for item in (context.wardrobe if context else [])[:3]
                 ],
                 "suitable_items": [
                     {
@@ -682,7 +684,7 @@ class RobustOutfitGenerationService:
                     {
                         "id": item_id,
                         "name": getattr(scores['item'], 'name', 'Unknown'),
-                        "composite_score": scores.get('composite_score', 0)
+                        "composite_score": (scores.get('composite_score', 0) if scores else 0)
                     } for item_id, scores in sorted(item_scores.items(), key=lambda x: x[1].get('composite_score', 0), reverse=True)[:3]
                 ] if item_scores else []
             }
@@ -703,26 +705,26 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════════════════
         
         # Start with all wardrobe items
-        all_items = context.wardrobe.copy()
+        all_items = (context.wardrobe if context else []).copy()
         logger.info(f"🔄 PROGRESSIVE FILTERING: Starting with {len(all_items)} items")
         
         # Level 1: Relax occasion filtering
         logger.info(f"🔄 LEVEL 1: Relaxing occasion filtering...")
-        relaxed_items = await self._relax_occasion_filtering(all_items, context.occasion)
+        relaxed_items = await self._relax_occasion_filtering(all_items, (context.occasion if context else "unknown"))
         if relaxed_items:
             logger.info(f"✅ LEVEL 1 SUCCESS: {len(relaxed_items)} items after relaxing occasion")
             return await self._create_outfit_from_items(relaxed_items, context, "progressive_occasion_relaxed")
         
         # Level 2: Relax style filtering
         logger.info(f"🔄 LEVEL 2: Relaxing style filtering...")
-        relaxed_items = await self._relax_style_filtering(all_items, context.style)
+        relaxed_items = await self._relax_style_filtering(all_items, (context.style if context else "unknown"))
         if relaxed_items:
             logger.info(f"✅ LEVEL 2 SUCCESS: {len(relaxed_items)} items after relaxing style")
             return await self._create_outfit_from_items(relaxed_items, context, "progressive_style_relaxed")
         
         # Level 3: Relax weather filtering
         logger.info(f"🔄 LEVEL 3: Relaxing weather filtering...")
-        relaxed_items = await self._relax_weather_filtering(all_items, context.weather)
+        relaxed_items = await self._relax_weather_filtering(all_items, (context.weather if context else None))
         if relaxed_items:
             logger.info(f"✅ LEVEL 3 SUCCESS: {len(relaxed_items)} items after relaxing weather")
             return await self._create_outfit_from_items(relaxed_items, context, "progressive_weather_relaxed")
@@ -984,8 +986,8 @@ class RobustOutfitGenerationService:
             metadata={
                 "generation_strategy": strategy,
                 "fallback_reason": "progressive_filtering",
-                "original_occasion": context.occasion,
-                "original_style": context.style
+                "original_occasion": (context.occasion if context else "unknown"),
+                "original_style": (context.style if context else "unknown")
             }
         )
     
@@ -1191,11 +1193,11 @@ class RobustOutfitGenerationService:
         
         # Dynamic confidence based on context - cohesive composition is best for style-focused occasions
         base_confidence = 0.85
-        if context.occasion.lower() in ['party', 'date', 'wedding']:
+        if (context.occasion if context else "unknown").lower() in ['party', 'date', 'wedding']:
             base_confidence = 0.92  # High for style-focused occasions
-        elif context.occasion.lower() in ['business', 'formal']:
+        elif (context.occasion if context else "unknown").lower() in ['business', 'formal']:
             base_confidence = 0.88  # Good but body type might be better
-        elif context.occasion.lower() in ['casual', 'vacation']:
+        elif (context.occasion if context else "unknown").lower() in ['casual', 'vacation']:
             base_confidence = 0.87  # Good but weather might be better
         
         # Create outfit response
@@ -1211,7 +1213,7 @@ class RobustOutfitGenerationService:
             reasoning=f"Cohesive {context.style} outfit for {context.occasion} with {context.mood} mood",
             createdAt=int(time.time()),
             userId=context.user_id,
-            weather=context.weather.__dict__ if context.weather else {},
+            weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],  # Will be populated from items
             explanation=f"Carefully curated {context.style} outfit optimized for {context.occasion}",
             styleTags=[context.style.lower().replace(' ', '_')],
@@ -1279,7 +1281,7 @@ class RobustOutfitGenerationService:
             reasoning=f"Body-type optimized {context.style} outfit for {context.occasion}",
             createdAt=int(time.time()),
             userId=context.user_id,
-            weather=context.weather.__dict__ if context.weather else {},
+            weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
             explanation=f"Outfit optimized for {body_type} body type and {height} height",
             styleTags=[context.style.lower().replace(' ', '_'), f"body_type_{body_type}"],
@@ -1302,13 +1304,13 @@ class RobustOutfitGenerationService:
         logger.info(f"🎭 STYLE PROFILE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Get user's style preferences
-        style_preferences = context.user_profile.get('stylePreferences', {}) if context.user_profile else {}
-        favorite_colors = style_preferences.get('favoriteColors', [])
-        preferred_brands = style_preferences.get('preferredBrands', [])
+        style_preferences = context.(user_profile.get('stylePreferences', {}) if user_profile else {}) if context.user_profile else {}
+        favorite_colors = (style_preferences.get('favoriteColors', []) if style_preferences else [])
+        preferred_brands = (style_preferences.get('preferredBrands', []) if style_preferences else [])
         
         # Filter items by style preferences
         style_matched_items = await self._filter_by_style_preferences(
-            context.wardrobe, style_preferences, favorite_colors, preferred_brands
+            (context.wardrobe if context else []), style_preferences, favorite_colors, preferred_brands
         )
         logger.info(f"🎭 STYLE PROFILE: After style preference filtering, {len(style_matched_items)} items")
         
@@ -1340,7 +1342,7 @@ class RobustOutfitGenerationService:
             reasoning=f"Style profile matched {context.style} outfit for {context.occasion}",
             createdAt=int(time.time()),
             userId=context.user_id,
-            weather=context.weather.__dict__ if context.weather else {},
+            weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
             explanation=f"Outfit tailored to your personal style preferences",
             styleTags=[context.style.lower().replace(' ', '_'), "style_matched"],
@@ -1363,7 +1365,7 @@ class RobustOutfitGenerationService:
         logger.info(f"🌤️ WEATHER: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Filter items based on weather
-        weather_appropriate_items = await self._filter_by_weather(context.wardrobe, context.weather)
+        weather_appropriate_items = await self._filter_by_weather(context.wardrobe, (context.weather if context else None))
         logger.info(f"🌤️ WEATHER: After weather filtering, {len(weather_appropriate_items)} items")
         
         # Apply additional filtering for occasion/style
@@ -1394,7 +1396,7 @@ class RobustOutfitGenerationService:
             reasoning=f"Weather-adapted {context.style} outfit for {context.occasion}",
             createdAt=int(time.time()),
             userId=context.user_id,
-            weather=context.weather.__dict__ if context.weather else {},
+            weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
             explanation=f"Outfit adapted for {context.weather.condition} weather at {context.weather.temperature}°F",
             styleTags=[context.style.lower().replace(' ', '_'), "weather_adapted"],
@@ -1402,7 +1404,7 @@ class RobustOutfitGenerationService:
             styleNotes=f"Perfect for {context.weather.condition} weather conditions",
             season=self._determine_season_from_weather(context.weather),
             updatedAt=int(time.time()),
-            metadata={"generation_strategy": "weather_adapted", "temperature": context.weather.temperature},
+            metadata={"generation_strategy": "weather_adapted", "temperature": (context.weather if context else None).temperature},
             wasSuccessful=True,
             baseItemId=context.base_item_id,
             validationErrors=[],
@@ -1432,7 +1434,7 @@ class RobustOutfitGenerationService:
             reasoning=f"Simple {context.style} outfit for {context.occasion}",
             createdAt=int(time.time()),
             userId=context.user_id,
-            weather=context.weather.__dict__ if context.weather else {},
+            weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
             explanation=f"Simple, reliable outfit for {context.occasion}",
             styleTags=[context.style.lower().replace(' ', '_'), "simple"],
@@ -1511,7 +1513,7 @@ class RobustOutfitGenerationService:
             reasoning="Emergency default outfit when all generation strategies fail",
             createdAt=int(time.time()),
             userId=context.user_id,
-            weather=context.weather.__dict__ if context.weather else {},
+            weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
             explanation="Basic emergency outfit",
             styleTags=["emergency", "default"],
@@ -1542,8 +1544,8 @@ class RobustOutfitGenerationService:
         hard_rejected = 0
         
         # Apply proper hard filtering for occasion appropriateness
-        for item in context.wardrobe:
-            if self._is_item_suitable_for_occasion(item, context.occasion, context.style):
+        for item in (context.wardrobe if context else []):
+            if self._is_item_suitable_for_occasion(item, (context.occasion if context else "unknown"), (context.style if context else "unknown")):
                 suitable_items.append(item)
             else:
                 hard_rejected += 1
@@ -1557,7 +1559,7 @@ class RobustOutfitGenerationService:
             
             # Emergency: Use any available items (hard filters were too strict)
             logger.info(f"🆘 EMERGENCY: Using all wardrobe items as fallback")
-            for item in context.wardrobe:
+            for item in (context.wardrobe if context else []):
                 suitable_items.append(item)
                 logger.info(f"🆘 EMERGENCY: Added {getattr(item, 'name', 'Unknown')} (emergency fallback)")
             
@@ -1571,7 +1573,7 @@ class RobustOutfitGenerationService:
         weather_rejected = 0
         
         for item in suitable_items:
-            item_name_lower = item.name.lower()
+            item_name_lower = (item.name if item else "Unknown").lower()
             item_type_lower = str(getattr(item, 'type', '')).lower()
             
             # BALANCED weather filtering - less aggressive
@@ -1605,7 +1607,7 @@ class RobustOutfitGenerationService:
         """Hard constraints - using compatibility matrix for semantic filtering"""
         # Re-enabled compatibility matrix with proper error handling
         
-        item_name = item.name.lower()
+        item_name = (item.name if item else "Unknown").lower()
         item_type = str(getattr(item, 'type', '')).lower()
         occasion_lower = occasion.lower()
         
@@ -1648,7 +1650,7 @@ class RobustOutfitGenerationService:
         # TEMPORARILY DISABLED: Compatibility matrix causing 502 errors
         # TODO: Debug and re-enable compatibility matrix
         
-        item_name = item.name.lower()
+        item_name = (item.name if item else "Unknown").lower()
         occasion_lower = occasion.lower()
         
         # Enhanced string matching with actual wardrobe patterns
@@ -1720,8 +1722,8 @@ class RobustOutfitGenerationService:
                 continue
             
             # STEP 6: Proportional category balancing (no hard-stopping at fixed limits)
-            current_category_count = category_counts.get(item_category, 0)
-            base_limit = base_category_limits.get(item_category, 0)
+            current_category_count = (category_counts.get(item_category, 0) if category_counts else 0)
+            base_limit = (base_category_limits.get(item_category, 0) if base_category_limits else 0)
             
             # Calculate proportional limit based on target count and remaining items needed
             remaining_items_needed = target_count - len(selected_items)
@@ -1767,7 +1769,7 @@ class RobustOutfitGenerationService:
                         
                     if self._get_item_category(item) == category:
                         selected_items.append(item)
-                        category_counts[category] = category_counts.get(category, 0) + 1
+                        category_counts[category] = (category_counts.get(category, 0) if category_counts else 0) + 1
                         logger.info(f"🎯 TARGET-DRIVEN: Added essential {getattr(item, 'name', 'Unknown')} ({category}) - {len(selected_items)}/{target_count} items")
                         break
         
@@ -1777,8 +1779,8 @@ class RobustOutfitGenerationService:
     
     def _get_dynamic_category_limits(self, context: GenerationContext, target_count: int) -> Dict[str, int]:
         """Get category limits that adapt to target count - TARGET-DRIVEN with optional outerwear"""
-        occasion_lower = context.occasion.lower()
-        style_lower = context.style.lower() if context.style else ""
+        occasion_lower = (context.occasion if context else "unknown").lower()
+        style_lower = (context.style if context else "unknown").lower() if (context.style if context else "unknown") else ""
         
         # Check if outerwear is needed based on temperature, occasion, and style
         needs_outerwear = self._needs_outerwear(context)
@@ -1822,9 +1824,9 @@ class RobustOutfitGenerationService:
         """Get target item count based on occasion, style, and mood - SIMPLIFIED"""
         import random
         
-        occasion_lower = context.occasion.lower()
-        style_lower = context.style.lower() if context.style else ""
-        mood_lower = context.mood.lower() if context.mood else ""
+        occasion_lower = (context.occasion if context else "unknown").lower()
+        style_lower = (context.style if context else "unknown").lower() if (context.style if context else "unknown") else ""
+        mood_lower = (context.mood if context else "unknown").lower() if (context.mood if context else "unknown") else ""
         
         # SIMPLIFIED: Focus on 3-6 items with clear logic
         if 'formal' in occasion_lower or 'business' in occasion_lower:
@@ -1847,15 +1849,15 @@ class RobustOutfitGenerationService:
         """Determine if outerwear is needed based on temperature, occasion, and style"""
         # Get temperature from weather context
         temperature = 70.0  # Default
-        if context.weather:
+        if (context.weather if context else None):
             if hasattr(context.weather, 'temperature'):
-                temperature = context.weather.temperature
+                temperature = (context.weather if context else None).temperature
             elif isinstance(context.weather, dict):
-                temperature = context.weather.get('temperature', 70.0) if context.weather else 70.0
+                temperature = context.(weather.get('temperature', 70.0) if weather else 70.0) if (context.weather if context else None) else 70.0
         
-        occasion_lower = context.occasion.lower()
-        style_lower = context.style.lower() if context.style else ""
-        mood_lower = context.mood.lower() if context.mood else ""
+        occasion_lower = (context.occasion if context else "unknown").lower()
+        style_lower = (context.style if context else "unknown").lower() if (context.style if context else "unknown") else ""
+        mood_lower = (context.mood if context else "unknown").lower() if (context.mood if context else "unknown") else ""
         
         # Temperature-based need (below 65°F)
         if temperature < 65:
@@ -1914,12 +1916,12 @@ class RobustOutfitGenerationService:
         category_counts = {}
         for item in outfit.items:
             category = self._get_item_category(item)
-            category_counts[category] = category_counts.get(category, 0) + 1
+            category_counts[category] = (category_counts.get(category, 0) if category_counts else 0) + 1
         
         logger.info(f"🔍 VALIDATION: Category breakdown: {category_counts}")
         
         for category, count in category_counts.items():
-            limit = self.base_category_limits.get(category, 2)
+            limit = self.(base_category_limits.get(category, 2) if base_category_limits else 2)
             if count > limit:
                 issue_msg = f"Too many {category}: {count} (max {limit})"
                 issues.append(issue_msg)
@@ -1984,7 +1986,7 @@ class RobustOutfitGenerationService:
     def _is_occasion_compatible(self, item: ClothingItem, occasion: str, style: str = None, mood: str = None, weather_data: dict = None) -> bool:
         """Balanced occasion compatibility check - not too strict, not too loose"""
         occasion_lower = occasion.lower()
-        item_name = item.name.lower()
+        item_name = (item.name if item else "Unknown").lower()
         
         # MOOD COMPATIBILITY CHECK (NEW)
         if mood:
@@ -2125,7 +2127,7 @@ class RobustOutfitGenerationService:
     def _is_style_compatible(self, item: ClothingItem, style: str) -> bool:
         """Balanced style compatibility check - not too strict, not too loose"""
         style_lower = style.lower()
-        item_name = item.name.lower()
+        item_name = (item.name if item else "Unknown").lower()
         
         # Extract style information
         item_styles = getattr(item, 'style', [])
@@ -2271,7 +2273,7 @@ class RobustOutfitGenerationService:
             'hoodie': 'outerwear'
         }
         
-        return category_map.get(item_type, 'other')
+        return (category_map.get(item_type, 'other') if category_map else 'other')
     
     def _check_inappropriate_combination(self, item1: ClothingItem, item2: ClothingItem) -> bool:
         """Check if two items form an inappropriate combination - simplified version"""
@@ -2287,11 +2289,11 @@ class RobustOutfitGenerationService:
         logger.info(f"👤 BODY TYPE ANALYZER: Scoring {len(item_scores)} items")
         
         # Extract ALL user physical attributes
-        body_type = context.user_profile.get('bodyType', 'Average').lower() if context.user_profile else 'average'
-        height = context.user_profile.get('height', 'Average') if context.user_profile else 'Average'
-        weight = context.user_profile.get('weight', 'Average') if context.user_profile else 'Average'
-        gender = context.user_profile.get('gender', 'Unspecified').lower() if context.user_profile else 'unspecified'
-        skin_tone = context.user_profile.get('skinTone', 'Medium') if context.user_profile else 'Medium'
+        body_type = context.(user_profile.get('bodyType', 'Average') if user_profile else 'Average').lower() if context.user_profile else 'average'
+        height = context.(user_profile.get('height', 'Average') if user_profile else 'Average') if context.user_profile else 'Average'
+        weight = context.(user_profile.get('weight', 'Average') if user_profile else 'Average') if context.user_profile else 'Average'
+        gender = context.(user_profile.get('gender', 'Unspecified') if user_profile else 'Unspecified').lower() if context.user_profile else 'unspecified'
+        skin_tone = context.(user_profile.get('skinTone', 'Medium') if user_profile else 'Medium') if context.user_profile else 'Medium'
         
         logger.info(f"👤 User profile: body_type={body_type}, height={height}, weight={weight}, gender={gender}, skin_tone={skin_tone}")
         
@@ -2328,14 +2330,14 @@ class RobustOutfitGenerationService:
             }
         }
         
-        rules = body_type_rules.get(body_type, body_type_rules['average'])
+        rules = (body_type_rules.get(body_type, body_type_rules['average']) if body_type_rules else body_type_rules['average'])
         
         for item_id, scores in item_scores.items():
             item = scores['item']
             base_score = 0.5  # Default neutral score
             
             # OCCASION-BASED SCORING BOOST
-            requested_occasion = context.occasion.lower()
+            requested_occasion = (context.occasion if context else "unknown").lower()
             item_type_lower = str(getattr(item, 'type', '')).lower()
             
             # Boost appropriate item types for specific occasions
@@ -2350,7 +2352,7 @@ class RobustOutfitGenerationService:
             category = self._get_item_category(item)
             
             # Check if item has body-flattering attributes
-            item_name_lower = item.name.lower()
+            item_name_lower = (item.name if item else "Unknown").lower()
             
             if category in rules:
                 for attribute, score_boost in rules[category].items():
@@ -2447,7 +2449,7 @@ class RobustOutfitGenerationService:
         """Analyze and score each item based on user's style profile and COLOR THEORY matching with skin tone"""
         logger.info(f"🎭 STYLE PROFILE ANALYZER: Scoring {len(item_scores)} items")
         
-        target_style = context.style.lower()
+        target_style = (context.style if context else "unknown").lower()
         
         # Get user style preferences (with safe_get)
         user_style_prefs = safe_get(context.user_profile, 'stylePreferences', {})
@@ -2525,7 +2527,7 @@ class RobustOutfitGenerationService:
                 base_score += 0.3
             
             # Compatible style match
-            compatible_styles = self.style_compatibility.get(target_style, [])
+            compatible_styles = self.(style_compatibility.get(target_style, []) if style_compatibility else [])
             for compat_style in compatible_styles:
                 if compat_style in item_styles_lower:
                     base_score += 0.2
@@ -2535,24 +2537,24 @@ class RobustOutfitGenerationService:
             # COLOR THEORY MATCHING WITH SKIN TONE
             # ═══════════════════════════════════════════════════════════
             item_color = item.color.lower() if item.color else ''
-            item_name_lower = item.name.lower()
+            item_name_lower = (item.name if item else "Unknown").lower()
             
             # Check if color is excellent for skin tone
-            for excellent_color in color_palette.get('excellent', []):
+            for excellent_color in (color_palette.get('excellent', []) if color_palette else []):
                 if excellent_color in item_color or excellent_color in item_name_lower:
                     base_score += 0.25  # Significant boost for excellent colors
                     logger.debug(f"  🎨 {item.name}: Excellent color match for skin tone (+0.25)")
                     break
             
             # Check if color is good for skin tone
-            for good_color in color_palette.get('good', []):
+            for good_color in (color_palette.get('good', []) if color_palette else []):
                 if good_color in item_color or good_color in item_name_lower:
                     base_score += 0.15  # Moderate boost for good colors
                     logger.debug(f"  🎨 {item.name}: Good color match for skin tone (+0.15)")
                     break
             
             # Penalize colors to avoid for skin tone
-            for avoid_color in color_palette.get('avoid', []):
+            for avoid_color in (color_palette.get('avoid', []) if color_palette else []):
                 if avoid_color in item_color or avoid_color in item_name_lower:
                     base_score -= 0.15  # Penalty for unflattering colors
                     logger.debug(f"  🎨 {item.name}: Avoid color for skin tone (-0.15)")
@@ -2579,7 +2581,7 @@ class RobustOutfitGenerationService:
                 item_occasions = [item_occasions]
             
             item_occasions_lower = [occ.lower() for occ in item_occasions]
-            if context.occasion.lower() in item_occasions_lower:
+            if (context.occasion if context else "unknown").lower() in item_occasions_lower:
                 base_score += 0.2
             
             item_scores[item_id]['style_profile_score'] = min(1.0, max(0.0, base_score))
@@ -2592,15 +2594,15 @@ class RobustOutfitGenerationService:
         
         try:
             # Extract weather data with smart defaults
-            if context.weather is None:
+            if (context.weather if context else None) is None:
                 # Smart default: use occasion-appropriate weather
-                if context.occasion.lower() in ['business', 'formal']:
+                if (context.occasion if context else "unknown").lower() in ['business', 'formal']:
                     temp = 72.0
                     condition = 'clear'
-                elif context.occasion.lower() in ['party', 'evening']:
+                elif (context.occasion if context else "unknown").lower() in ['party', 'evening']:
                     temp = 68.0
                     condition = 'clear'
-                elif context.occasion.lower() == 'athletic':
+                elif (context.occasion if context else "unknown").lower() == 'athletic':
                     temp = 75.0
                     condition = 'clear'
                 else:
@@ -2608,19 +2610,19 @@ class RobustOutfitGenerationService:
                     condition = 'clear'
                 logger.warning(f"⚠️ WEATHER ANALYZER: Missing weather data, using SMART DEFAULT: {temp}°F, {condition}")
             elif hasattr(context.weather, 'temperature'):
-                temp = context.weather.temperature
+                temp = (context.weather if context else None).temperature
                 logger.info(f"🌤️ WEATHER ANALYZER: Got temperature from weather object: {temp}°F")
-            elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
-                temp = context.weather.__dict__['temperature']
+            elif hasattr(context.weather, '__dict__') and 'temperature' in (context.weather if context else None).__dict__:
+                temp = (context.weather if context else None).__dict__['temperature']
                 logger.info(f"🌤️ WEATHER ANALYZER: Got temperature from weather.__dict__: {temp}°F")
             else:
                 temp = 70.0
                 logger.warning(f"⚠️ WEATHER ANALYZER: Could not extract temperature, using default: {temp}°F")
             
             if hasattr(context.weather, 'condition'):
-                condition = context.weather.condition.lower() if context.weather.condition else 'clear'
-            elif hasattr(context.weather, '__dict__') and 'condition' in context.weather.__dict__:
-                condition = context.weather.__dict__['condition'].lower() if context.weather.__dict__['condition'] else 'clear'
+                condition = (context.weather if context else None).condition.lower() if (context.weather if context else None).condition else 'clear'
+            elif hasattr(context.weather, '__dict__') and 'condition' in (context.weather if context else None).__dict__:
+                condition = (context.weather if context else None).__dict__['condition'].lower() if (context.weather if context else None).__dict__['condition'] else 'clear'
             else:
                 condition = 'clear'
         
@@ -2657,7 +2659,7 @@ class RobustOutfitGenerationService:
                             base_score += 0.2
                 
                 # Material appropriateness for weather
-                item_name_lower = item.name.lower()
+                item_name_lower = (item.name if item else "Unknown").lower()
                 item_type_lower = str(item.type).lower()
                 
                 # Cold weather items
@@ -2750,7 +2752,7 @@ class RobustOutfitGenerationService:
             logger.warning("⚠️ Firebase not available, skipping user feedback scoring")
             return
         
-        user_id = context.user_id
+        user_id = (context.user_id if context else "unknown")
         current_time = time.time()
         one_week_ago = current_time - (7 * 24 * 60 * 60)
         
@@ -2771,13 +2773,13 @@ class RobustOutfitGenerationService:
             
             for outfit_doc in outfits:
                 outfit_data = outfit_doc.to_dict()
-                rating = outfit_data.get('rating')
-                is_liked = outfit_data.get('isLiked', False)
-                is_disliked = outfit_data.get('isDisliked', False)
-                worn_at = outfit_data.get('wornAt')
+                rating = (outfit_data.get('rating') if outfit_data else None)
+                is_liked = (outfit_data.get('isLiked', False) if outfit_data else False)
+                is_disliked = (outfit_data.get('isDisliked', False) if outfit_data else False)
+                worn_at = (outfit_data.get('wornAt') if outfit_data else None)
                 
                 # Get items in this outfit
-                outfit_items = outfit_data.get('items', [])
+                outfit_items = (outfit_data.get('items', []) if outfit_data else [])
                 
                 for item in outfit_items:
                     # Use safe_item_access to handle all formats
@@ -2988,17 +2990,17 @@ class RobustOutfitGenerationService:
                 "context_wardrobe_count": len(context.wardrobe),
                 "item_scores_count": len(item_scores) if item_scores else 0,
                 "item_scores_keys": list(item_scores.keys()) if item_scores else [],
-                "context_occasion": context.occasion,
-                "context_style": context.style,
-                "context_mood": context.mood,
-                "context_user_id": context.user_id,
+                "context_occasion": (context.occasion if context else "unknown"),
+                "context_style": (context.style if context else "unknown"),
+                "context_mood": (context.mood if context else "unknown"),
+                "context_user_id": (context.user_id if context else "unknown"),
                 "wardrobe_items": [
                     {
                         "id": getattr(item, 'id', 'NO_ID'),
                         "name": getattr(item, 'name', 'NO_NAME'),
                         "type": str(getattr(item, 'type', 'NO_TYPE')),
                         "color": getattr(item, 'color', 'NO_COLOR')
-                    } for item in context.wardrobe[:3]  # First 3 items
+                    } for item in (context.wardrobe if context else [])[:3]  # First 3 items
                 ]
             }
             
@@ -3010,17 +3012,17 @@ class RobustOutfitGenerationService:
         
         # Extract weather data for layering decisions
         if hasattr(context.weather, 'temperature'):
-            temp = context.weather.temperature
-        elif hasattr(context.weather, '__dict__') and 'temperature' in context.weather.__dict__:
-            temp = context.weather.__dict__['temperature']
+            temp = (context.weather if context else None).temperature
+        elif hasattr(context.weather, '__dict__') and 'temperature' in (context.weather if context else None).__dict__:
+            temp = (context.weather if context else None).__dict__['temperature']
         else:
             temp = 70.0
         
-        occasion_lower = context.occasion.lower()
+        occasion_lower = (context.occasion if context else "unknown").lower()
         
         # Check if user prefers minimalistic outfits
-        style_lower = context.style.lower()
-        mood_lower = context.mood.lower() if context.mood else ''
+        style_lower = (context.style if context else "unknown").lower()
+        mood_lower = (context.mood if context else "unknown").lower() if (context.mood if context else "unknown") else ''
         is_minimalistic = 'minimal' in style_lower or 'minimal' in mood_lower or style_lower == 'minimalist'
         
         # Determine recommended item count based on weather and occasion
@@ -3089,7 +3091,7 @@ class RobustOutfitGenerationService:
         for item_id, score_data in sorted_items:
             item = score_data['item']
             category = self._get_item_category(item)
-            item_name_lower = item.name.lower()
+            item_name_lower = (item.name if item else "Unknown").lower()
             
             logger.info(f"🔍 DEBUG PHASE 1: Processing item {item.name} - category: {category}, score: {score_data['composite_score']:.2f}")
             
@@ -3139,7 +3141,7 @@ class RobustOutfitGenerationService:
                 continue
             
             category = self._get_item_category(item)
-            item_name_lower = item.name.lower()
+            item_name_lower = (item.name if item else "Unknown").lower()
             
             # Determine layering appropriateness
             if category == 'outerwear' and score_data['composite_score'] > 0.6:
@@ -3185,10 +3187,10 @@ class RobustOutfitGenerationService:
             mood=context.mood
         )
         
-        logger.info(f"🎭 Diversity check: is_diverse={diversity_result.get('is_diverse', True)}, score={diversity_result.get('diversity_score', 0.8):.2f}")
+        logger.info(f"🎭 Diversity check: is_diverse={((diversity_result.get('is_diverse', True) if diversity_result else True) if diversity_result else True)}, score={diversity_result.get('diversity_score', 0.8):.2f}")
         
         # If not diverse enough, apply diversity boost
-        if not diversity_result.get('is_diverse', True):
+        if not (diversity_result.get('is_diverse', True) if diversity_result else True):
             logger.warning(f"⚠️ Outfit not diverse enough, applying diversity boost...")
             
             # Get diversity suggestions
@@ -3204,8 +3206,8 @@ class RobustOutfitGenerationService:
                 
                 # Try to swap out overused items with diverse alternatives
                 for suggestion in diversity_suggestions[:2]:  # Limit to 2 swaps
-                    item_to_replace = suggestion.get('item_to_replace')
-                    alternative = suggestion.get('alternative')
+                    item_to_replace = (suggestion.get('item_to_replace') if suggestion else None)
+                    alternative = (suggestion.get('alternative') if suggestion else None)
                     
                     if item_to_replace and alternative:
                         # Replace in selected items
@@ -3216,7 +3218,7 @@ class RobustOutfitGenerationService:
         # Record outfit for diversity tracking
         diversity_filter.record_outfit_generation(
             user_id=context.user_id,
-            outfit={'items': selected_items, 'occasion': context.occasion},
+            outfit={'items': selected_items, 'occasion': (context.occasion if context else "unknown")},
             items=selected_items
         )
         
@@ -3262,7 +3264,7 @@ class RobustOutfitGenerationService:
                 avg_confidence=final_confidence,
                 avg_generation_time=0.5,
                 avg_validation_time=0.1,
-                diversity_score=diversity_result.get('diversity_score', 0.8),
+                diversity_score=(diversity_result.get('diversity_score', 0.8) if diversity_result else 0.8),
                 user_satisfaction=final_confidence,
                 fallback_rate=0.0,
                 sample_size=1,
@@ -3281,7 +3283,7 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG FINAL SELECTION: Categories filled: {categories_filled}")
         logger.info(f"🔍 DEBUG FINAL SELECTION: Item scores count: {len(item_scores)}")
         if item_scores:
-            logger.info(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, scores.get('composite_score', 0)) for item_id, scores in list(item_scores.items())[:3]]}")
+            logger.info(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, (scores.get('composite_score', 0) if scores else 0)) for item_id, scores in list(item_scores.items())[:3]]}")
         
         # Create outfit
         outfit = OutfitGeneratedOutfit(
@@ -3296,7 +3298,7 @@ class RobustOutfitGenerationService:
             reasoning=f"Created using body type, style profile, and weather analysis with color theory",
             createdAt=int(time.time()),
             userId=context.user_id,
-            weather=context.weather.__dict__ if context.weather else {},
+            weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
             explanation=f"Optimized outfit using multi-layered scoring system (body: 30%, style+color: 40%, weather: 30%)",
             styleTags=[context.style.lower().replace(' ', '_'), 'multi_layered'],
@@ -3307,7 +3309,7 @@ class RobustOutfitGenerationService:
             metadata={
                 "generation_strategy": "multi_layered_cohesive_composition",
                 "avg_composite_score": avg_composite_score,
-                "diversity_score": diversity_result.get('diversity_score', 0.8),
+                "diversity_score": (diversity_result.get('diversity_score', 0.8) if diversity_result else 0.8),
                 "color_theory_applied": True,
                 "analyzers_used": ["body_type", "style_profile", "weather"]
             },
@@ -3363,12 +3365,12 @@ class RobustOutfitGenerationService:
             
             for outfit_doc in outfits:
                 outfit_data = outfit_doc.to_dict()
-                rating = outfit_data.get('rating')
+                rating = (outfit_data.get('rating') if outfit_data else None)
                 if not rating:
                     continue
                 
                 # Get timestamp
-                created_at = outfit_data.get('createdAt')
+                created_at = (outfit_data.get('createdAt') if outfit_data else None)
                 if hasattr(created_at, 'timestamp'):
                     timestamp = created_at.timestamp()
                 elif isinstance(created_at, str):
@@ -3380,21 +3382,21 @@ class RobustOutfitGenerationService:
                     timestamp = current_time
                 
                 # Track style preferences over time
-                outfit_style = outfit_data.get('style', '').lower()
+                outfit_style = (outfit_data.get('style', '') if outfit_data else '').lower()
                 if outfit_style:
                     if outfit_style not in style_ratings_over_time:
                         style_ratings_over_time[outfit_style] = []
                     style_ratings_over_time[outfit_style].append((timestamp, rating))
                 
                 # Track occasion preferences
-                outfit_occasion = outfit_data.get('occasion', '').lower()
+                outfit_occasion = (outfit_data.get('occasion', '') if outfit_data else '').lower()
                 if outfit_occasion:
                     if outfit_occasion not in occasion_ratings_over_time:
                         occasion_ratings_over_time[outfit_occasion] = []
                     occasion_ratings_over_time[outfit_occasion].append((timestamp, rating))
                 
                 # Track color preferences
-                outfit_items = outfit_data.get('items', [])
+                outfit_items = (outfit_data.get('items', []) if outfit_data else [])
                 for outfit_item in outfit_items:
                     # Use safe_item_access to handle all formats
                     color = safe_item_access(outfit_item, 'color', '').lower()
@@ -3470,7 +3472,7 @@ class RobustOutfitGenerationService:
             # 4. OCCASION-SPECIFIC LEARNING
             # ═══════════════════════════════════════════════════════════════
             
-            current_occasion = context.occasion.lower()
+            current_occasion = (context.occasion if context else "unknown").lower()
             
             # Check if this item's occasions align with user's ratings for this occasion
             item_occasions = getattr(item, 'occasion', [])
