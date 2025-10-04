@@ -929,10 +929,10 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
     
     if (req.wardrobe if req else []):
         for i, item in enumerate(req.wardrobe[:3]):  # Log first 3 items
-            # print(f"🔍 DEBUG INPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')} - {getattr(item, 'type', 'NO_TYPE')}")
+            print(f"🔍 DEBUG INPUT ITEM {i+1}: {getattr(item, 'id', 'NO_ID')} - {getattr(item, 'name', 'NO_NAME')} - {getattr(item, 'type', 'NO_TYPE')}")
 
-    # print(f"🔍 DEBUG INPUT: Weather data: {req.weather}")
-    # print(f"🔍 DEBUG INPUT: Base item ID: {req.baseItemId}")
+    print(f"🔍 DEBUG INPUT: Weather data: {req.weather}")
+    print(f"🔍 DEBUG INPUT: Base item ID: {req.baseItemId}")
     
     # Initialize debug info variable at function level
     robust_debug_info = None
