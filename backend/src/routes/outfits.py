@@ -1000,9 +1000,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         if user_profile and user_profile.get('gender'):
             style_validation = await validate_style_gender_compatibility(req.style, user_profile.get('gender'))
         if not (style_validation.get('is_compatible') if style_validation else None):
-        logger.warning(f"⚠️ Style-gender compatibility issue: {(style_validation.get('warning') if style_validation else None)}")
-                # For now, we'll continue but log the warning
-                # In the future, we could suggest alternatives or reject the request
+            logger.warning(f"⚠️ Style-gender compatibility issue: {(style_validation.get('warning') if style_validation else None)}")
+            # For now, we'll continue but log the warning
+            # In the future, we could suggest alternatives or reject the request
         
         # 3. Generate outfit using rule-based decision tree
         # Generating rule-based outfit
@@ -1012,8 +1012,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             try:
                 # Handle both dict and object weather data
                 if isinstance(req.weather, dict):
-        temp = req.weather.get('temperature', 'unknown') if req.weather else 'unknown'
-        condition = req.weather.get('condition', 'unknown') if req.weather else 'unknown'
+                    temp = req.weather.get('temperature', 'unknown') if req.weather else 'unknown'
+                    condition = req.weather.get('condition', 'unknown') if req.weather else 'unknown'
                 else:
                     temp = getattr(req.weather, 'temperature', 'unknown')
                     condition = getattr(req.weather, 'condition', 'unknown')
@@ -1030,38 +1030,39 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         
         # Robust service is required - no fallbacks allowed
         try:
-        # Use robust outfit generation service - NO FALLBACKS ALLOWED
-        logger.info("🚀 Using robust outfit generation service - NO FALLBACKS ALLOWED")
-        print(f"🚀 ROBUST SERVICE: Starting robust outfit generation")
-        # Ensure robust service is available
-        if not RobustOutfitGenerationService or not GenerationContext:
-        raise Exception("RobustOutfitGenerationService or GenerationContext is None - import failed!")
-        
-        # Use robust service
-                logger.info("🚀 Using robust outfit generation service")
-                print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
-                print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
-        # Initialize outfit variable to prevent "not defined" errors
-        outfit = None
-        
-        # DEBUG: Log wardrobe items at the very beginning
-        # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) = {req.wardrobe}")
-        # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
-        print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
-        # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
-                
-                # Create generation context - ensure weather is properly formatted
-        weather_data = (req.weather if req else None)
-                if isinstance(weather_data, dict):
-                    # Convert dict to object-like structure for robust service
-                    from types import SimpleNamespace
-                    weather_data = SimpleNamespace(**weather_data)
-                    logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
-                
-                # WardrobePreprocessor integration
-                logger.info(f"🔧 Starting WardrobePreprocessor integration")
-                
-                # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
+            # Use robust outfit generation service - NO FALLBACKS ALLOWED
+            logger.info("🚀 Using robust outfit generation service - NO FALLBACKS ALLOWED")
+            print(f"🚀 ROBUST SERVICE: Starting robust outfit generation")
+            # Ensure robust service is available
+            if not RobustOutfitGenerationService or not GenerationContext:
+                raise Exception("RobustOutfitGenerationService or GenerationContext is None - import failed!")
+            
+            # Use robust service
+            logger.info("🚀 Using robust outfit generation service")
+            print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
+            print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
+            
+            # Initialize outfit variable to prevent "not defined" errors
+            outfit = None
+            
+            # DEBUG: Log wardrobe items at the very beginning
+            # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) = {req.wardrobe}")
+            # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
+            print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
+            # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
+                    
+            # Create generation context - ensure weather is properly formatted
+            weather_data = (req.weather if req else None)
+            if isinstance(weather_data, dict):
+                # Convert dict to object-like structure for robust service
+                from types import SimpleNamespace
+                weather_data = SimpleNamespace(**weather_data)
+                logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
+            
+            # WardrobePreprocessor integration
+            logger.info(f"🔧 Starting WardrobePreprocessor integration")
+            
+            # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
                 logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
         print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
         # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
