@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/adaptive-tuning", tags=["adaptive-tuning"])
 
-@(router.get("/status") if router else None)
+@router.get("/status")
 async def get_tuning_status() -> Dict[str, Any]:
     """Get current tuning status and recommendations"""
     try:
@@ -26,7 +26,7 @@ async def get_tuning_status() -> Dict[str, Any]:
         logger.error(f"Error retrieving tuning status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve tuning status: {str(e)}")
 
-@(router.get("/parameters") if router else None)
+@router.get("/parameters")
 async def get_current_parameters() -> Dict[str, Any]:
     """Get current parameter values"""
     try:
@@ -40,7 +40,7 @@ async def get_current_parameters() -> Dict[str, Any]:
         logger.error(f"Error retrieving parameters: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve parameters: {str(e)}")
 
-@(router.get("/history") if router else None)
+@router.get("/history")
 async def get_parameter_history(hours: int = Query(default=24, ge=1, le=168)) -> Dict[str, Any]:
     """Get parameter history for the last N hours"""
     try:
@@ -113,7 +113,7 @@ async def record_performance_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
         logger.error(f"Error recording performance metrics: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to record performance metrics: {str(e)}")
 
-@(router.get("/recommendations") if router else None)
+@router.get("/recommendations")
 async def get_tuning_recommendations() -> Dict[str, Any]:
     """Get current tuning recommendations without applying them"""
     try:
@@ -141,7 +141,7 @@ async def get_tuning_recommendations() -> Dict[str, Any]:
         logger.error(f"Error retrieving tuning recommendations: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve tuning recommendations: {str(e)}")
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def health_check() -> Dict[str, Any]:
     """Health check for adaptive tuning service"""
     try:

@@ -15,7 +15,7 @@ except ImportError as e:
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-@(router.get("/debug-stats") if router else None)
+@router.get("/debug-stats")
 async def get_debug_stats(user_id: str = Query(..., description="User ID to get debug stats for")) -> Dict[str, Any]:
     """
     Get debug stats updates for a user (bypasses Railway rate limiting).

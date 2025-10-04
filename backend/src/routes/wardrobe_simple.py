@@ -25,7 +25,7 @@ def get_current_user_mock():
     """Mock authentication for testing"""
     return MockUser("test-user-id")
 
-@(router.get("/test") if router else None)
+@router.get("/test")
 async def test_wardrobe_endpoint() -> Dict[str, Any]:
     """Test endpoint to verify router is working"""
     return {
@@ -34,7 +34,7 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
         "firebase_available": db is not None
     }
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_wardrobe_items() -> Dict[str, Any]:
     """Get user's wardrobe items - simplified version"""
     try:
@@ -215,7 +215,7 @@ async def add_wardrobe_item(item_data: Dict[str, Any], current_user_id: str = De
             detail="Failed to add item"
         )
 
-@(router.get("/top-worn-items") if router else None)
+@router.get("/top-worn-items")
 async def get_top_worn_items(limit: int = 5):
     """Get top worn items from the wardrobe"""
     try:
@@ -266,7 +266,7 @@ async def get_top_worn_items(limit: int = 5):
             detail="Failed to get top worn items"
         )
 
-@(router.get("/wardrobe-stats") if router else None)
+@router.get("/wardrobe-stats")
 async def get_wardrobe_stats():
     """Get wardrobe statistics for the dashboard"""
     try:

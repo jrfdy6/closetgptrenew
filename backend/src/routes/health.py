@@ -26,12 +26,12 @@ health_data = {
 
 start_time = time.time()
 
-@(router.get("/simple") if router else None)
+@router.get("/simple")
 async def simple_health_check():
     """Simple health check for load balancers and monitoring"""
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
-@(router.get("/detailed") if router else None)
+@router.get("/detailed")
 async def detailed_health_check(current_user: UserProfile = Depends(get_current_user_optional)):
     """Detailed health check with system metrics"""
     global health_data
@@ -59,7 +59,7 @@ async def detailed_health_check(current_user: UserProfile = Depends(get_current_
     
     return health_data
 
-@(router.get("/metrics") if router else None)
+@router.get("/metrics")
 async def get_metrics(current_user: UserProfile = Depends(get_current_user_optional)):
     """Get system performance metrics"""
     if not current_user:
@@ -268,7 +268,7 @@ async def check_application_health() -> Dict[str, Any]:
             }
         }
 
-@(router.get("/status") if router else None)
+@router.get("/status")
 async def get_status():
     """Get current system status"""
     return {

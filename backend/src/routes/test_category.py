@@ -153,7 +153,7 @@ async def test_category_mapping(test_item: TestItem):
             detail=f"Test failed: {str(e)}"
         )
 
-@(router.get("/test-category-mapping") if router else None)
+@router.get("/test-category-mapping")
 async def test_category_mapping_get():
     """Test the category mapping with default test data"""
     

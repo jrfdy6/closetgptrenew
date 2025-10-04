@@ -11,7 +11,7 @@ from fastapi import APIRouter
 # Create router
 router = APIRouter()
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def health_check():
     """Simple health check"""
     return {
@@ -20,7 +20,7 @@ async def health_check():
         "timestamp": "2025-09-23T10:25:00Z"
     }
 
-@(router.get("/test") if router else None)
+@router.get("/test")
 async def test_endpoint():
     """Test endpoint"""
     return {

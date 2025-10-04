@@ -215,7 +215,7 @@ async def submit_outfit_feedback(
         logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@(router.get("/outfit/{outfit_id}/summary") if router else None)
+@router.get("/outfit/{outfit_id}/summary")
 async def get_outfit_feedback_summary(
     outfit_id: str,
     current_user: Dict = Depends(get_current_user)
@@ -280,7 +280,7 @@ async def get_outfit_feedback_summary(
         logger.error(f"Error getting feedback summary: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@(router.get("/analytics/summary") if router else None)
+@router.get("/analytics/summary")
 async def get_feedback_analytics_summary(
     current_user: Dict = Depends(get_current_user)
 ):
@@ -353,7 +353,7 @@ async def get_feedback_analytics_summary(
         logger.error(f"Error getting analytics summary: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@(router.get("/user/summary") if router else None)
+@router.get("/user/summary")
 async def get_user_feedback_summary(
     current_user: Dict = Depends(get_current_user)
 ):

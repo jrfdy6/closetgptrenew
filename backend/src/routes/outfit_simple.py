@@ -5,12 +5,12 @@ import uuid
 
 router = APIRouter(prefix="/api/outfit")
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_outfits():
     """Simple test endpoint to verify outfit router loads"""
     return {"message": "Simple outfit router is working!", "status": "success"}
 
-@(router.get("/{outfit_id}") if router else None)
+@router.get("/{outfit_id}")
 async def get_outfit(outfit_id: str):
     """Simple test endpoint to get outfit by ID"""
     return {"message": f"Getting outfit {outfit_id}", "outfit_id": outfit_id}

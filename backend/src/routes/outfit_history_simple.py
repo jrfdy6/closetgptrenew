@@ -9,7 +9,7 @@ from ..custom_types.profile import UserProfile
 
 router = APIRouter(prefix="/outfit-history", tags=["outfit-history-simple"])
 
-@(router.get("/today") if router else None)
+@router.get("/today")
 async def get_todays_outfit_simple(
     current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
@@ -30,7 +30,7 @@ async def get_todays_outfit_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_outfit_history_simple(
     current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
@@ -52,7 +52,7 @@ async def get_outfit_history_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@(router.get("/test") if router else None)
+@router.get("/test")
 async def test_outfit_history_simple() -> Dict[str, Any]:
     """Test endpoint that doesn't require authentication."""
     return {

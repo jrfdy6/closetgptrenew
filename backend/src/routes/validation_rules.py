@@ -27,7 +27,7 @@ class ValidationRulesResponse(BaseModel):
     rules: Dict[str, Any]
     metadata: Dict[str, Any]
 
-@(router.get("/validation-rules") if router else None)
+@router.get("/validation-rules")
 async def get_validation_rules(current_user: Optional[UserProfile] = Depends(get_current_user_optional)) -> ValidationRulesResponse:
     """Get current validation rules."""
     try:
@@ -136,7 +136,7 @@ async def remove_material_rule(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error removing material rule: {str(e)}")
 
-@(router.get("/validation-rules/history") if router else None)
+@router.get("/validation-rules/history")
 async def get_rule_history(
     limit: int = 10,
     current_user: Optional[UserProfile] = Depends(get_current_user_optional)

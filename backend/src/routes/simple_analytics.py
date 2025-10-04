@@ -45,7 +45,7 @@ def parse_datetime_safe(dt_value) -> datetime:
     except:
         return None
 
-@(router.get("/outfits-worn-this-week") if router else None)
+@router.get("/outfits-worn-this-week")
 async def get_outfits_worn_this_week(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -99,7 +99,7 @@ async def get_outfits_worn_this_week(
         logger.error(f"❌ Error counting worn outfits: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to count worn outfits: {e}")
 
-@(router.get("/dashboard-stats") if router else None)
+@router.get("/dashboard-stats")
 async def get_dashboard_stats(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -177,7 +177,7 @@ async def get_dashboard_stats(
         logger.error(f"❌ Error getting dashboard stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get dashboard stats: {e}")
 
-@(router.get("/test") if router else None)
+@router.get("/test")
 async def test_simple_analytics():
     """Simple test endpoint to verify router is loaded"""
     return {

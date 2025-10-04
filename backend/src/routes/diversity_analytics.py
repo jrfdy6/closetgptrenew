@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/diversity-analytics", tags=["diversity-analytics"])
 
-@(router.get("/user/{user_id}") if router else None)
+@router.get("/user/{user_id}")
 async def get_user_diversity_metrics(user_id: str) -> Dict[str, Any]:
     """Get diversity metrics for a specific user"""
     try:
@@ -35,7 +35,7 @@ async def get_user_diversity_metrics(user_id: str) -> Dict[str, Any]:
         logger.error(f"Error retrieving diversity metrics for {user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve diversity metrics: {str(e)}")
 
-@(router.get("/user/{user_id}/suggestions") if router else None)
+@router.get("/user/{user_id}/suggestions")
 async def get_diversity_suggestions(user_id: str) -> Dict[str, Any]:
     """Get diversity improvement suggestions for a user"""
     try:
@@ -108,7 +108,7 @@ async def reset_user_diversity(user_id: str) -> Dict[str, Any]:
         logger.error(f"Error resetting diversity tracking for {user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to reset diversity tracking: {str(e)}")
 
-@(router.get("/user/{user_id}/items/suggest") if router else None)
+@router.get("/user/{user_id}/items/suggest")
 async def suggest_diverse_items(
     user_id: str, 
     target_count: int = Query(default=3, ge=1, le=10)
@@ -130,7 +130,7 @@ async def suggest_diverse_items(
         logger.error(f"Error suggesting diverse items for {user_id}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to suggest diverse items: {str(e)}")
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def health_check() -> Dict[str, Any]:
     """Health check for diversity analytics service"""
     try:

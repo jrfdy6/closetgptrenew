@@ -253,7 +253,7 @@ class OutfitResponse(BaseModel):
     user_interactions: int = 0
     metadata: Dict[str, Any]
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def health_check():
     """Health check for the minimal simple personalization system"""
     try:
@@ -278,7 +278,7 @@ async def health_check():
             "timestamp": time.time()
         }
 
-@(router.get("/test") if router else None)
+@router.get("/test")
 async def test_endpoint():
     """Test endpoint for minimal simple personalization"""
     return {
@@ -660,7 +660,7 @@ async def generate_personalized_outfit(
         
         # Create response
         outfit_response = {
-            "id": (existing_result.get("id", f"personalized_{int(time.time() if existing_result else f"personalized_{int(time.time())}"),
+            "id": (existing_result.get("id", f"personalized_{int(time.time())}") if existing_result else f"personalized_{int(time.time())}"),
             "name": (existing_result.get("name", "Personalized Outfit") if existing_result else "Personalized Outfit"),
             "items": (existing_result.get("items", []) if existing_result else []),
             "style": req.style,
@@ -760,7 +760,7 @@ async def record_enhanced_interaction(
             detail=f"Failed to record interaction: {str(e)}"
         )
 
-@(router.get("/personalization-status", response_model=PersonalizationStatusResponse) if router else response_model=PersonalizationStatusResponse)
+@router.get("/personalization-status", response_model=PersonalizationStatusResponse)
 async def get_enhanced_personalization_status(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -806,7 +806,7 @@ async def get_enhanced_personalization_status(
             detail=f"Failed to get personalization status: {str(e)}"
         )
 
-@(router.get("/user-preferences") if router else None)
+@router.get("/user-preferences")
 async def get_user_preferences(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -847,7 +847,7 @@ async def get_user_preferences(
             detail=f"Failed to get user preferences: {str(e)}"
         )
 
-@(router.get("/analytics") if router else None)
+@router.get("/analytics")
 async def get_system_analytics():
     """Get system-wide analytics"""
     try:

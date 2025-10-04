@@ -122,11 +122,11 @@ except Exception as e:
 
 # Removed conflicting /wardrobe-stats endpoint - using the one in wardrobe_analysis.py instead
 
-@(router.get("/debug-test") if router else None)
+@router.get("/debug-test")
 async def debug_test():
     return {"status": "ok", "message": "Router loading test endpoint"}
 
-@(router.get("/top-worn-items") if router else None)
+@router.get("/top-worn-items")
 async def get_top_worn_items(
     current_user: Optional[UserProfile] = Depends(get_current_user_optional),
     limit: int = 10
@@ -224,7 +224,7 @@ async def get_top_worn_items(
         logger.error(f"Error getting top worn items: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving top worn items: {str(e)}")
 
-@(router.get("/most-worn-by-category") if router else None)
+@router.get("/most-worn-by-category")
 async def get_most_worn_by_category(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -314,7 +314,7 @@ async def get_most_worn_by_category(
         logger.error(f"Error getting most worn by category: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving most worn by category: {str(e)}")
 
-@(router.get("/trending-styles") if router else None)
+@router.get("/trending-styles")
 async def get_trending_styles(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -542,7 +542,7 @@ async def add_wardrobe_item(
         logger.error(f"Error adding wardrobe item: {e}")
         raise HTTPException(status_code=500, detail=f"Error adding wardrobe item: {str(e)}")
 
-@(router.get("/test", include_in_schema=False) if router else include_in_schema=False)
+@router.get("/test", include_in_schema=False)
 async def test_wardrobe_endpoint() -> Dict[str, Any]:
     """Simple test endpoint to verify the wardrobe endpoint is working."""
     return {
@@ -552,7 +552,7 @@ async def test_wardrobe_endpoint() -> Dict[str, Any]:
         "backend": "closetgptrenew-backend-production"
     }
 
-@(router.get("/count", include_in_schema=False) if router else include_in_schema=False)
+@router.get("/count", include_in_schema=False)
 async def count_wardrobe_items() -> Dict[str, Any]:
     """Count all items in wardrobe collection."""
     try:
@@ -574,7 +574,7 @@ async def count_wardrobe_items() -> Dict[str, Any]:
     except Exception as e:
         return {"error": str(e)}
 
-@(router.get("/debug", include_in_schema=False) if router else include_in_schema=False)
+@router.get("/debug", include_in_schema=False)
 async def debug_wardrobe_data() -> Dict[str, Any]:
     """Debug endpoint to check what's actually in the wardrobe collection."""
     try:
@@ -625,7 +625,7 @@ async def debug_wardrobe_data() -> Dict[str, Any]:
 
 
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_wardrobe_items_with_slash(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -816,7 +816,7 @@ async def get_wardrobe_items_with_slash(
         logger.error(f"Error retrieving wardrobe items: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving wardrobe items: {str(e)}")
 
-@(router.get("/{item_id}") if router else None)
+@router.get("/{item_id}")
 async def get_wardrobe_item(
     item_id: str,
     current_user: UserProfile = Depends(get_current_user)

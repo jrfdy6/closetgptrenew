@@ -17,7 +17,7 @@ from ..auth.auth_service import get_current_user
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@(router.get("/metadata") if router else None)
+@router.get("/metadata")
 async def get_outfits_metadata(
     current_user: UserProfile = Depends(get_current_user),
     limit: Optional[int] = Query(100, description="Number of outfits to return metadata for"),
@@ -145,7 +145,7 @@ async def get_outfits_metadata(
         raise HTTPException(status_code=500, detail=f"Failed to fetch outfit metadata: {e}")
 
 
-@(router.get("/summary") if router else None)
+@router.get("/summary")
 async def get_outfits_summary(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -210,7 +210,7 @@ async def get_outfits_summary(
         raise HTTPException(status_code=500, detail=f"Failed to fetch outfit summary: {e}")
 
 
-@(router.get("/filter-options") if router else None)
+@router.get("/filter-options")
 async def get_filter_options(
     current_user: UserProfile = Depends(get_current_user)
 ):

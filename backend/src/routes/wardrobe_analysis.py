@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["wardrobe-analysis"])
 
-@(router.get("/gaps") if router else None)
+@router.get("/gaps")
 async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get comprehensive wardrobe gap analysis for the current user.
@@ -78,7 +78,7 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
             detail="Failed to analyze wardrobe gaps"
         )
 
-@(router.get("/coverage") if router else None)
+@router.get("/coverage")
 async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get wardrobe coverage metrics for the current user.
@@ -114,7 +114,7 @@ async def get_wardrobe_coverage(current_user: UserProfile = Depends(get_current_
             detail="Failed to analyze wardrobe coverage"
         )
 
-@(router.get("/recommendations") if router else None)
+@router.get("/recommendations")
 async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get personalized wardrobe recommendations for the current user.
@@ -158,7 +158,7 @@ async def get_wardrobe_recommendations(current_user: UserProfile = Depends(get_c
             detail="Failed to generate wardrobe recommendations"
         )
 
-@(router.get("/validation-errors") if router else None)
+@router.get("/validation-errors")
 async def get_validation_errors(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get validation errors and outfit generation failures for the current user.
@@ -197,7 +197,7 @@ async def get_validation_errors(current_user: UserProfile = Depends(get_current_
             detail="Failed to analyze validation errors"
         )
 
-@(router.get("/trending-styles") if router else None)
+@router.get("/trending-styles")
 async def get_trending_styles(gender: str = None, current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """
     Get current trending styles and fashion trends, optionally filtered by gender.
@@ -295,7 +295,7 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
             detail="Failed to retrieve trending styles"
         )
 
-@(router.get("/wardrobe-stats") if router else None)
+@router.get("/wardrobe-stats")
 async def get_wardrobe_stats(current_user_id: str = Depends(get_current_user_id)) -> Dict[str, Any]:
     """
     Get comprehensive wardrobe statistics for the current user.

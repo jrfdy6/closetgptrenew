@@ -21,7 +21,7 @@ logger = logging.getLogger("auth_working")
 
 router = APIRouter(tags=["authentication"])
 
-@(router.get("/profile") if router else None)
+@router.get("/profile")
 async def get_user_profile(current_user: UserProfile = Depends(get_current_user)):
     """Get current user's profile."""
     try:

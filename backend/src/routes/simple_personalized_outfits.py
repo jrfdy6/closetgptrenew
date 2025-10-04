@@ -108,7 +108,7 @@ async def generate_simple_personalized_outfit(
             
             # Create outfit response
             outfit_response = {
-                "id": (main_outfit.get("id", f"simple_personalized_{int(time.time() if main_outfit else f"simple_personalized_{int(time.time())}"),
+                "id": (main_outfit.get("id", f"simple_personalized_{int(time.time())}") if main_outfit else f"simple_personalized_{int(time.time())}"),
                 "name": (main_outfit.get("name", "Simple Personalized Outfit") if main_outfit else "Simple Personalized Outfit"),
                 "items": (main_outfit.get("items", []) if main_outfit else []),
                 "style": req.style,
@@ -209,7 +209,7 @@ async def record_simple_interaction(
             detail=f"Failed to record interaction: {str(e)}"
         )
 
-@(router.get("/personalization-status", response_model=PersonalizationStatusResponse) if router else response_model=PersonalizationStatusResponse)
+@router.get("/personalization-status", response_model=PersonalizationStatusResponse)
 async def get_simple_personalization_status(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -243,7 +243,7 @@ async def get_simple_personalization_status(
             detail=f"Failed to get personalization status: {str(e)}"
         )
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def simple_personalization_health_check():
     """Health check for the simple personalization system"""
     try:

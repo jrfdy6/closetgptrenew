@@ -27,7 +27,7 @@ router = APIRouter()
 
 outfit_service = OutfitService()
 
-@(router.get("/outfit-analytics") if router else None)
+@router.get("/outfit-analytics")
 async def get_outfit_analytics(
     start_date: Optional[int] = Query(None, description="Start timestamp"),
     end_date: Optional[int] = Query(None, description="End timestamp"),
@@ -73,7 +73,7 @@ async def get_outfit_analytics(
             detail="Failed to retrieve analytics"
         )
 
-@(router.get("/outfit-analytics/validation-errors") if router else None)
+@router.get("/outfit-analytics/validation-errors")
 async def get_validation_error_analytics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -127,7 +127,7 @@ async def get_validation_error_analytics(
             detail="Failed to retrieve validation error analytics"
         )
 
-@(router.get("/outfit-analytics/feedback") if router else None)
+@router.get("/outfit-analytics/feedback")
 async def get_feedback_analytics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -169,7 +169,7 @@ async def get_feedback_analytics(
             detail="Failed to retrieve feedback analytics"
         )
 
-@(router.get("/outfit-analytics/performance") if router else None)
+@router.get("/outfit-analytics/performance")
 async def get_performance_metrics(
     current_user: UserProfile = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -229,7 +229,7 @@ def create_analytics_event(event: AnalyticsEvent):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-@(router.get("/diagnostics/outfit-traces") if router else None)
+@router.get("/diagnostics/outfit-traces")
 async def get_outfit_generation_traces(
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
     outfit_id: Optional[str] = Query(None, description="Filter by specific outfit ID"),
@@ -299,7 +299,7 @@ async def get_outfit_generation_traces(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving traces: {str(e)}")
 
-@(router.get("/diagnostics/outfit-traces/{outfit_id}") if router else None)
+@router.get("/diagnostics/outfit-traces/{outfit_id}")
 async def get_outfit_trace_detail(
     outfit_id: str,
     current_user: UserProfile = Depends(get_current_user)
@@ -352,7 +352,7 @@ async def get_outfit_trace_detail(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving trace: {str(e)}")
 
-@(router.get("/diagnostics/analytics") if router else None)
+@router.get("/diagnostics/analytics")
 async def get_diagnostic_analytics(
     user_id: Optional[str] = Query(None, description="Filter by user ID"),
     days: Optional[int] = Query(7, description="Number of days to analyze"),
@@ -457,7 +457,7 @@ async def get_diagnostic_analytics(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error calculating analytics: {str(e)}")
 
-@(router.get("/diagnostics/health") if router else None)
+@router.get("/diagnostics/health")
 async def get_system_health(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -543,7 +543,7 @@ async def get_system_health(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking system health: {str(e)}")
 
-@(router.get("/diagnostics/health/public") if router else None)
+@router.get("/diagnostics/health/public")
 async def get_public_system_health():
     """
     Public health check endpoint for diagnostic testing.
@@ -585,7 +585,7 @@ async def get_public_system_health():
             "timestamp": int(time.time())
         }
 
-@(router.get("/diagnostics/outfit-traces/public") if router else None)
+@router.get("/diagnostics/outfit-traces/public")
 async def get_public_outfit_traces():
     """
     Public outfit traces endpoint for diagnostic testing.
@@ -630,7 +630,7 @@ async def get_public_outfit_traces():
             "timestamp": int(time.time())
         }
 
-@(router.get("/test-alive") if router else None)
+@router.get("/test-alive")
 async def test_alive():
     return {"status": "alive"} 
 
@@ -770,7 +770,7 @@ async def track_outfit_history_delete(
         logger.error(f"Error tracking outfit history deletion: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to track outfit history deletion")
 
-@(router.get("/outfit-history-summary/{user_id}") if router else None)
+@router.get("/outfit-history-summary/{user_id}")
 async def get_outfit_history_summary(
     user_id: str,
     current_user: UserProfile = Depends(get_current_user)
@@ -798,7 +798,7 @@ async def get_outfit_history_summary(
         logger.error(f"Error getting outfit history summary: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get outfit history summary")
 
-@(router.get("/outfit-wear-patterns/{user_id}") if router else None)
+@router.get("/outfit-wear-patterns/{user_id}")
 async def get_outfit_wear_patterns(
     user_id: str,
     current_user: UserProfile = Depends(get_current_user)

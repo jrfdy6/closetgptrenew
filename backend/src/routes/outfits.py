@@ -4308,7 +4308,7 @@ async def outfits_debug():
         "firebase_initialized": firebase_initialized if FIREBASE_AVAILABLE else False
     }
 
-@(router.get("/debug/base-item-fix") if router else None)
+@router.get("/debug/base-item-fix")
 async def debug_base_item_fix():
     """Debug endpoint to check if base item fix is deployed"""
     return {
@@ -4318,7 +4318,7 @@ async def debug_base_item_fix():
         "description": "CLEAN ARCHITECTURE: Base item handling consolidated into ensure_base_item_included() helper function"
     }
 
-@(router.get("/debug/rule-engine") if router else None)
+@router.get("/debug/rule-engine")
 async def debug_rule_engine_data():
     """Debug endpoint to check rule engine debug data"""
     global debug_data
@@ -5989,7 +5989,7 @@ async def create_outfit(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@(router.get("/debug") if router else None)
+@router.get("/debug")
 async def debug_outfits():
     """
     Debug route: Dump the last 5 outfits from Firestore for troubleshooting.
@@ -6034,7 +6034,7 @@ async def debug_outfits():
         }
 
 
-@(router.get("/debug-simple") if router else None)
+@router.get("/debug-simple")
 async def debug_outfits_simple():
     """Quick debug: show last 5 outfits"""
     try:
@@ -6356,7 +6356,7 @@ async def list_outfits_no_slash(
         raise HTTPException(status_code=500, detail=f"Failed to fetch user outfits: {e}")
 
 # 📊 Get Outfit Statistics
-@(router.get("/stats/summary") if router else None)
+@router.get("/stats/summary")
 async def get_outfit_stats(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -6640,7 +6640,7 @@ async def get_user_profile_cached(user_id: str) -> Dict:
     
     return profile
 
-@(router.get("/analytics/worn-this-week") if router else None)
+@router.get("/analytics/worn-this-week")
 async def get_outfits_worn_this_week_simple(
     current_user: UserProfile = Depends(get_current_user),
     force_fresh: bool = False

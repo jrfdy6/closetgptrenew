@@ -83,7 +83,7 @@ async def test_input_validation(request: ValidationTestRequest):
         details=results
     )
 
-@(router.get("/test/authentication", response_model=SecurityTestResponse) if router else response_model=SecurityTestResponse)
+@router.get("/test/authentication", response_model=SecurityTestResponse)
 async def test_authentication(user: dict = Depends(get_current_user)):
     """Test authentication middleware."""
     logger.info("Authentication test successful", extra={
@@ -137,7 +137,7 @@ async def test_token_generation():
         }
     )
 
-@(router.get("/test/security-config", response_model=SecurityTestResponse) if router else response_model=SecurityTestResponse)
+@router.get("/test/security-config", response_model=SecurityTestResponse)
 async def test_security_configuration():
     """Test security configuration."""
     config = {
@@ -184,7 +184,7 @@ async def test_file_validation(filename: str, file_size: int, content_type: str)
         }
     )
 
-@(router.get("/test/protected", response_model=SecurityTestResponse) if router else response_model=SecurityTestResponse)
+@router.get("/test/protected", response_model=SecurityTestResponse)
 async def test_protected_endpoint(user: dict = Depends(require_authentication)):
     """Test protected endpoint with authentication."""
     logger.info("Protected endpoint accessed successfully", extra={
@@ -204,7 +204,7 @@ async def test_protected_endpoint(user: dict = Depends(require_authentication)):
         }
     )
 
-@(router.get("/test/rate-limit") if router else None)
+@router.get("/test/rate-limit")
 async def test_rate_limiting():
     """Test rate limiting (this endpoint should be rate limited)."""
     from ..core.security import rate_limiter

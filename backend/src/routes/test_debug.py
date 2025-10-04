@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 router = APIRouter(prefix="/api/test", tags=["test"])
 
-@(router.get("/debug") if router else None)
+@router.get("/debug")
 async def test_debug():
     """Simple test endpoint to verify router mounting"""
     return {"message": "Test debug router is working", "status": "success"}

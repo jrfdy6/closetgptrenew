@@ -349,7 +349,7 @@ async def submit_enhanced_feedback(
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@(router.get("/diagnostics/summary") if router else None)
+@router.get("/diagnostics/summary")
 async def get_diagnostic_summary(
     current_user: Dict = Depends(get_current_user)
 ):

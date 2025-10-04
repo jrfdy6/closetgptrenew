@@ -87,7 +87,7 @@ except ImportError:
     AUTH_AVAILABLE = False
     logger.warning("Auth service not available, uploads will be anonymous")
 
-@(router.get("/create-firebase-bucket") if router else None)
+@router.get("/create-firebase-bucket")
 async def create_firebase_bucket():
     """Try to create a Firebase Storage bucket"""
     try:
@@ -128,7 +128,7 @@ async def create_firebase_bucket():
             "error_type": type(e).__name__
         }
 
-@(router.get("/test-firebase-upload") if router else None)
+@router.get("/test-firebase-upload")
 async def test_firebase_upload():
     """Test Firebase Storage upload with different bucket name formats"""
     try:
@@ -197,7 +197,7 @@ async def test_firebase_upload():
             "error_type": type(e).__name__
         }
 
-@(router.get("/debug-firebase") if router else None)
+@router.get("/debug-firebase")
 async def debug_firebase():
     """Debug Firebase Storage configuration"""
     try:

@@ -28,7 +28,7 @@ class HealthCheck(BaseModel):
     timestamp: float
     details: Dict[str, Any]
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_monitoring_status():
     """Get monitoring service status."""
     return {
@@ -38,7 +38,7 @@ async def get_monitoring_status():
         "timestamp": time.time()
     }
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def health_check():
     """Basic health check."""
     return HealthCheck(
@@ -51,7 +51,7 @@ async def health_check():
         }
     )
 
-@(router.get("/system") if router else None)
+@router.get("/system")
 async def get_system_status():
     """Get system status information."""
     try:
@@ -79,7 +79,7 @@ async def get_system_status():
             timestamp=time.time()
         )
 
-@(router.get("/metrics") if router else None)
+@router.get("/metrics")
 async def get_system_metrics():
     """Get detailed system metrics."""
     try:
@@ -112,7 +112,7 @@ async def get_system_metrics():
             "timestamp": time.time()
         }
 
-@(router.get("/alerts") if router else None)
+@router.get("/alerts")
 async def get_system_alerts():
     """Get current system alerts."""
     alerts = []

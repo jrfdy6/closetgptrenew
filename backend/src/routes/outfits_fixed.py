@@ -164,13 +164,13 @@ def _safe_firestore_query(query_func, timeout=3.0):
         _mark_auth_failure()
         raise
 
-@(router.get("/health", response_model=dict) if router else response_model=dict)
+@router.get("/health", response_model=dict)
 async def outfits_health_check():
     """Health check for outfits router."""
     logger.info("🔍 DEBUG: Outfits health check called")
     return {"status": "healthy", "router": "outfits"}
 
-@(router.get("/debug", response_model=dict) if router else response_model=dict)
+@router.get("/debug", response_model=dict)
 async def outfits_debug():
     """Debug endpoint for outfits router."""
     logger.info("🔍 DEBUG: Outfits debug endpoint called")
@@ -187,7 +187,7 @@ async def outfits_debug():
         "environment": os.(environ.get("ENVIRONMENT", "unknown") if environ else "unknown")
     }
 
-@(router.get("/debug-fields", response_model=dict) if router else response_model=dict)
+@router.get("/debug-fields", response_model=dict)
 async def debug_outfit_fields():
     """Debug endpoint to check field names in outfits collection."""
     logger.info("🔍 DEBUG: Debug fields endpoint called")
@@ -222,7 +222,7 @@ async def debug_outfit_fields():
             "error": str(e)
         }
 
-@(router.get("/test", response_model=List[OutfitResponse]) if router else response_model=List[OutfitResponse])
+@router.get("/test", response_model=List[OutfitResponse])
 async def get_test_outfits():
     """Get test outfits without authentication (for testing)."""
     logger.info("Returning test outfits")
@@ -325,7 +325,7 @@ def _get_mock_outfits():
     
     return [OutfitResponse(**outfit) for outfit in mock_outfits]
 
-@(router.get("/{outfit_id}", response_model=OutfitResponse) if router else response_model=OutfitResponse)
+@router.get("/{outfit_id}", response_model=OutfitResponse)
 async def get_outfit(
     outfit_id: str,
     current_user_id: str = Depends(get_current_user_id)
@@ -366,7 +366,7 @@ async def get_outfit(
             detail="Failed to get outfit"
         )
 
-@(router.get("/", response_model=List[OutfitResponse]) if router else response_model=List[OutfitResponse])
+@router.get("/", response_model=List[OutfitResponse])
 async def get_user_outfits(
     current_user_id: str = Depends(get_current_user_id),
     limit: Optional[int] = 1000,  # High limit to show most outfits, but prevent performance issues

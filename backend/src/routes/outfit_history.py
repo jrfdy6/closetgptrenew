@@ -132,7 +132,7 @@ def serialize_firestore_doc(doc):
     
     return data
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_outfit_history(
     current_user: UserProfile = Depends(get_current_user),
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
@@ -525,7 +525,7 @@ async def delete_outfit_history_entry(
         logger.error(f"Error deleting outfit history entry: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to delete outfit history entry")
 
-@(router.get("/today") if router else None)
+@router.get("/today")
 async def get_todays_outfit(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -618,7 +618,7 @@ async def get_todays_outfit(
         logger.error(f"Error getting today's outfit: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to get today's outfit")
 
-@(router.get("/today-suggestion") if router else None)
+@router.get("/today-suggestion")
 async def get_todays_outfit_suggestion(
     current_user: UserProfile = Depends(get_current_user)
 ):
@@ -1004,7 +1004,7 @@ async def mark_today_suggestion_as_worn(
         logger.error(f"Error marking suggestion as worn: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to mark suggestion as worn")
 
-@(router.get("/stats") if router else None)
+@router.get("/stats")
 async def get_outfit_history_stats(
     current_user: UserProfile = Depends(get_current_user),
     days: int = Query(7, description="Number of days to look back for stats")
@@ -1082,7 +1082,7 @@ async def get_outfit_history_stats(
             "totalThisWeek": 0
         }
 
-@(router.get("/debug-user-docs") if router else None)
+@router.get("/debug-user-docs")
 async def debug_user_outfit_history(
     user_id: str = Query(..., description="User ID to debug"),
     current_user: UserProfile = Depends(get_current_user)

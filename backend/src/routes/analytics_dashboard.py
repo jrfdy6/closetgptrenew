@@ -16,7 +16,7 @@ from ..routes.auth import get_current_user_id
 router = APIRouter()
 logger = get_logger("analytics_dashboard")
 
-@(router.get("/dashboard") if router else None)
+@router.get("/dashboard")
 async def get_dashboard_data(
     range: str = Query("7d", description="Time range: 1d, 7d, 30d, 90d"),
     current_user_id: str = Depends(get_current_user_id)
@@ -304,7 +304,7 @@ def calculate_performance_metrics(events: List[Dict]) -> List[Dict[str, Any]]:
 
     return sorted(performance, key=lambda x: x['total_calls'], reverse=True)
 
-@(router.get("/realtime") if router else None)
+@router.get("/realtime")
 async def get_realtime_metrics(
     current_user_id: str = Depends(get_current_user_id)
 ):

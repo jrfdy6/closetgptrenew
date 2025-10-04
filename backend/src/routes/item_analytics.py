@@ -143,7 +143,7 @@ async def track_outfit_feedback(
         logger.error(f"Error tracking outfit feedback: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@(router.get("/favorites", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
+@router.get("/favorites", response_model=FavoritesResponse)
 async def get_user_favorites_endpoint(
     item_type: Optional[str] = None,
     limit: int = 10,
@@ -167,7 +167,7 @@ async def get_user_favorites_endpoint(
         logger.error(f"Error getting user favorites: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@(router.get("/favorites/{item_type}", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
+@router.get("/favorites/{item_type}", response_model=FavoritesResponse)
 async def get_favorite_by_type_endpoint(
     item_type: str,
     current_user_id: str = Depends(get_current_user_id)
@@ -193,7 +193,7 @@ async def get_favorite_by_type_endpoint(
         logger.error(f"Error getting favorite by type: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@(router.get("/favorites/top/{item_type}", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
+@router.get("/favorites/top/{item_type}", response_model=FavoritesResponse)
 async def get_top_favorites_by_type_endpoint(
     item_type: str,
     limit: int = 3,
@@ -217,7 +217,7 @@ async def get_top_favorites_by_type_endpoint(
         logger.error(f"Error getting top favorites by type: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@(router.get("/test-favorites/{item_type}", response_model=FavoritesResponse) if router else response_model=FavoritesResponse)
+@router.get("/test-favorites/{item_type}", response_model=FavoritesResponse)
 async def test_get_favorite_by_type_endpoint(
     item_type: str,
     current_user_id: str = Depends(get_current_user_id)

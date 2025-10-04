@@ -75,7 +75,7 @@ class PersonalizationStatusResponse(BaseModel):
     data_source: str
     system_parameters: Dict[str, Any]
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def health_check():
     """Health check for the existing data personalization system"""
     try:
@@ -105,7 +105,7 @@ async def health_check():
             "timestamp": time.time()
         }
 
-@(router.get("/test") if router else None)
+@router.get("/test")
 async def test_endpoint():
     """Test endpoint for existing data personalization"""
     return {
@@ -318,7 +318,7 @@ async def generate_personalized_outfit_from_existing_data(
             detail=f"Personalized outfit generation from existing data failed: {str(e)}"
         )
 
-@(router.get("/personalization-status", response_model=PersonalizationStatusResponse) if router else response_model=PersonalizationStatusResponse)
+@router.get("/personalization-status", response_model=PersonalizationStatusResponse)
 async def get_personalization_status_from_existing_data(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -344,7 +344,7 @@ async def get_personalization_status_from_existing_data(
             detail=f"Failed to get personalization status from existing data: {str(e)}"
         )
 
-@(router.get("/user-preferences") if router else None)
+@router.get("/user-preferences")
 async def get_user_preferences_from_existing_data(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -393,7 +393,7 @@ async def get_user_preferences_from_existing_data(
             detail=f"Failed to get user preferences from existing data: {str(e)}"
         )
 
-@(router.get("/analytics") if router else None)
+@router.get("/analytics")
 async def get_existing_data_analytics():
     """Get analytics about existing data usage"""
     try:

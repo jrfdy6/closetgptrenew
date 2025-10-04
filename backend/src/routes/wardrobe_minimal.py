@@ -47,7 +47,7 @@ except Exception as e:
     print(f"Warning: Could not initialize Firestore: {e}")
     db = None
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_wardrobe_items(current_user: UserProfile = Depends(get_current_user)) -> Dict[str, Any]:
     """Get all wardrobe items for the current user."""
     try:
@@ -143,7 +143,7 @@ async def add_wardrobe_item(
         print(f"Error adding wardrobe item: {e}")
         return {"success": False, "error": str(e)}
 
-@(router.get("/{item_id}") if router else None)
+@router.get("/{item_id}")
 async def get_wardrobe_item(
     item_id: str,
     current_user: UserProfile = Depends(get_current_user)

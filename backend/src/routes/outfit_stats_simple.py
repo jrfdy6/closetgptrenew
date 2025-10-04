@@ -34,7 +34,7 @@ def parse_timestamp_safe(ts):
         pass
     return None
 
-@(router.get("/stats") if router else None)
+@router.get("/stats")
 async def get_simple_outfit_stats(
     current_user: UserProfile = Depends(get_current_user),
     days: int = Query(7, description="Number of days to look back")

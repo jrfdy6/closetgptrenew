@@ -37,7 +37,7 @@ def get_current_user_id(credentials: HTTPAuthorizationCredentials = Depends(secu
             detail="Token processing failed"
         )
 
-@(router.get("/profile") if router else None)
+@router.get("/profile")
 async def get_user_profile(current_user_id: str = Depends(get_current_user_id)):
     """Get current user's profile."""
     try:

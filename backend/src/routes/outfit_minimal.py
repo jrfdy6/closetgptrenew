@@ -5,7 +5,7 @@ import uuid
 
 router = APIRouter(prefix="/api/outfit-new")
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_outfits():
     """Get outfits endpoint"""
     return {"message": "Minimal outfit router is working!", "status": "success"}

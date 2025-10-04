@@ -17,7 +17,7 @@ except Exception as e:
     print(f"Warning: Could not initialize Firestore: {e}")
     db = None
 
-@(router.get("/") if router else None)
+@router.get("/")
 async def get_wardrobe_items_simple(
     current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
@@ -52,7 +52,7 @@ async def get_wardrobe_items_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@(router.get("/wardrobe-stats") if router else None)
+@router.get("/wardrobe-stats")
 async def get_wardrobe_stats_simple(
     current_user: UserProfile = Depends(get_current_user_optional)
 ) -> Dict[str, Any]:
@@ -108,7 +108,7 @@ async def get_wardrobe_stats_simple(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-@(router.get("/test") if router else None)
+@router.get("/test")
 async def test_wardrobe_simple() -> Dict[str, Any]:
     """Test endpoint that doesn't require authentication."""
     return {

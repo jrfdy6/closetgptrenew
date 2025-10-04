@@ -108,7 +108,7 @@ async def generate_lightweight_personalized_outfit(
             
             # Create outfit response
             outfit_response = {
-                "id": (main_outfit.get("id", f"lightweight_{int(time.time() if main_outfit else f"lightweight_{int(time.time())}"),
+                "id": (main_outfit.get("id", f"lightweight_{int(time.time())}") if main_outfit else f"lightweight_{int(time.time())}"),
                 "name": (main_outfit.get("name", "Lightweight Personalized Outfit") if main_outfit else "Lightweight Personalized Outfit"),
                 "items": (main_outfit.get("items", []) if main_outfit else []),
                 "style": req.style,
@@ -216,7 +216,7 @@ async def record_lightweight_interaction(
             detail=f"Failed to record interaction: {str(e)}"
         )
 
-@(router.get("/personalization-status", response_model=PersonalizationStatusResponse) if router else response_model=PersonalizationStatusResponse)
+@router.get("/personalization-status", response_model=PersonalizationStatusResponse)
 async def get_lightweight_personalization_status(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -250,7 +250,7 @@ async def get_lightweight_personalization_status(
             detail=f"Failed to get personalization status: {str(e)}"
         )
 
-@(router.get("/analytics", response_model=AnalyticsResponse) if router else response_model=AnalyticsResponse)
+@router.get("/analytics", response_model=AnalyticsResponse)
 async def get_lightweight_recommendation_analytics(
     current_user_id: str = Depends(get_current_user_id)
 ):
@@ -320,7 +320,7 @@ async def update_lightweight_personalization_settings(
             detail=f"Failed to update settings: {str(e)}"
         )
 
-@(router.get("/health") if router else None)
+@router.get("/health")
 async def lightweight_embeddings_health_check():
     """Health check for the lightweight embeddings system"""
     try:
