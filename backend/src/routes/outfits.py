@@ -1056,12 +1056,19 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             
             # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
             logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+            print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
+            print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
+            print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
             try:
                 from ..utils.item_hydration import hydrate_outfit_items
                 hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
                 logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+                print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
             except Exception as hydrator_error:
                 logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
+                print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
+                import traceback
+                print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
                 logger.info(f"🔄 Using original wardrobe_items as fallback")
                 hydrated_wardrobe_items = wardrobe_items
                 
