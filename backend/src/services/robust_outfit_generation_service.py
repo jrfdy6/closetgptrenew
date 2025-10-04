@@ -744,8 +744,19 @@ class RobustOutfitGenerationService:
         item_name = safe_item_access(item, 'name', '').lower()
         item_type = safe_item_access(item, 'type', '').lower()
         
-        # Business/Formal occasion - strict filtering
+        # Business/Formal occasion - intelligent filtering
         if 'business' in occasion_lower or 'formal' in occasion_lower:
+            # Check item's occasion field first (if populated)
+            item_occasions = safe_item_access(item, 'occasion', [])
+            if isinstance(item_occasions, str):
+                item_occasions = [item_occasions]
+            item_occasions_lower = [occ.lower() for occ in item_occasions]
+            
+            # Allow if item explicitly has business occasion
+            if 'business' in item_occasions_lower or 'formal' in item_occasions_lower:
+                return True
+            
+            # INTELLIGENT TYPE-BASED FILTERING for business occasions
             # Explicitly forbidden items for business/formal
             forbidden_patterns = [
                 't-shirt', 't shirt', 'tshirt', 'tank', 'tank top',
@@ -759,7 +770,12 @@ class RobustOutfitGenerationService:
                 if pattern in item_name or pattern in item_type:
                     return False
             
-            # Prefer business-appropriate items
+            # Allow business-appropriate basic items
+            business_appropriate_types = ['shirt', 'pants', 'shoes', 'blouse', 'skirt', 'dress']
+            if item_type in business_appropriate_types:
+                return True
+            
+            # Allow items with business keywords
             business_patterns = [
                 'dress shirt', 'button up', 'button-up', 'oxford shirt',
                 'dress pants', 'slacks', 'trousers', 'dress skirt',
@@ -772,10 +788,7 @@ class RobustOutfitGenerationService:
                 if pattern in item_name or pattern in item_type:
                     return True
             
-            # For business, allow basic items but prefer business-specific ones
-            # Don't reject basic shirt/pants/shoes - they can be business appropriate
-            # The preference scoring will handle the distinction
-            
+            # Default: allow for business (let scoring handle preference)
             return True
         
         # Casual occasion - more lenient
@@ -784,7 +797,7 @@ class RobustOutfitGenerationService:
         
         # Athletic occasion
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
-            # Check item's occasion field first
+            # Check item's occasion field first (if populated)
             item_occasions = safe_item_access(item, 'occasion', [])
             if isinstance(item_occasions, str):
                 item_occasions = [item_occasions]
@@ -794,9 +807,24 @@ class RobustOutfitGenerationService:
             if 'athletic' in item_occasions_lower or 'gym' in item_occasions_lower:
                 return True
             
-            # Also check name/type patterns for athletic items
-            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball']
-            return any(pattern in item_name or pattern in item_type for pattern in athletic_patterns)
+            # INTELLIGENT TYPE-BASED FILTERING for athletic occasions
+            # Allow basic athletic-appropriate items
+            athletic_types = ['shirt', 'pants', 'shorts', 'shoes', 'sneakers', 'tank', 'hoodie', 'sweatshirt']
+            if item_type in athletic_types:
+                return True
+            
+            # Allow items with athletic keywords in name/type
+            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball', 'tennis', 'yoga']
+            if any(pattern in item_name or pattern in item_type for pattern in athletic_patterns):
+                return True
+            
+            # Reject obviously non-athletic items
+            formal_patterns = ['dress', 'suit', 'blazer', 'heels', 'oxford', 'loafers']
+            if any(pattern in item_name or pattern in item_type for pattern in formal_patterns):
+                return False
+            
+            # Default: allow for athletic (most items can work)
+            return True
         
         # Default: allow most items
         return True
