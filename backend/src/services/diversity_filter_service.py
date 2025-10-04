@@ -128,7 +128,7 @@ class DiversityFilterService:
         # Calculate similarity with recent outfits
         similarities = []
         for i, recent_outfit in enumerate(recent_outfits):
-            if 'items' in recent_outfit:
+            if recent_outfit and 'items' in recent_outfit:
                 recent_items = recent_outfit['items']
                 similarity = self.calculate_outfit_similarity(new_outfit, recent_items)
                 similarities.append({
@@ -160,7 +160,9 @@ class DiversityFilterService:
             )
             
             # Check if it's the same occasion/style combination
-            if recent_outfits[most_similar['index']].get('occasion') == occasion:
+            if (most_similar['index'] < len(recent_outfits) and 
+                recent_outfits[most_similar['index']] and 
+                recent_outfits[most_similar['index']].get('occasion') == occasion):
                 diversity_result['recommendations'].append(
                     "Consider different items for the same occasion"
                 )
@@ -276,13 +278,13 @@ class DiversityFilterService:
         
         # Add to user history
         outfit_record = {
-            'id': outfit.get('id', f'outfit_{int(time.time())}'),
+            'id': outfit.get('id', f'outfit_{int(time.time())}') if outfit else f'outfit_{int(time.time())}',
             'items': items,
-            'occasion': outfit.get('occasion', 'unknown'),
-            'style': outfit.get('style', 'unknown'),
-            'mood': outfit.get('mood', 'unknown'),
-            'createdAt': outfit.get('createdAt', int(time.time())),
-            'confidence': outfit.get('confidence', 0.0)
+            'occasion': outfit.get('occasion', 'unknown') if outfit else 'unknown',
+            'style': outfit.get('style', 'unknown') if outfit else 'unknown',
+            'mood': outfit.get('mood', 'unknown') if outfit else 'unknown',
+            'createdAt': outfit.get('createdAt', int(time.time())) if outfit else int(time.time()),
+            'confidence': outfit.get('confidence', 0.0) if outfit else 0.0
         }
         
         self.outfit_history[user_id].append(outfit_record)
@@ -371,7 +373,7 @@ class DiversityFilterService:
         # Calculate rotation effectiveness
         rotation_items = len(self.rotation_schedule[user_id])
         total_unique_items = len(set(item.id for outfit in user_history 
-                                   for item in outfit.get('items', [])))
+                                   for item in (outfit.get('items', []) if outfit else [])))
         rotation_effectiveness = rotation_items / total_unique_items if total_unique_items > 0 else 1.0
         
         return DiversityMetrics(
