@@ -354,7 +354,8 @@ class RobustOutfitGenerationService:
             if isinstance(context.wardrobe, list) and len(context.wardrobe) > 0 and isinstance(context.wardrobe[0], dict):
                 safe_wardrobe = ensure_items_safe_for_pydantic(context.wardrobe)
                 logger.debug(f"✅ Hydrated {len(safe_wardrobe)} items successfully")
-                (context.wardrobe if context else []) = safe_wardrobe
+                if context:
+                    context.wardrobe = safe_wardrobe
             else:
                 logger.debug(f"✅ Items already ClothingItem objects")
         except Exception as hydrator_error:
@@ -431,7 +432,8 @@ class RobustOutfitGenerationService:
                     self.temperature = temp
                     self.condition = condition
             
-            (context.weather if context else None) = MockWeather(temp, condition)
+            if context:
+                context.weather = MockWeather(temp, condition)
             logger.info(f"🔧 Created mock weather object: {context.weather.temperature}°F, {context.weather.condition}")
         
         logger.info(f"🌤️ Weather: {temp}°F, {condition}")
@@ -1304,7 +1306,8 @@ class RobustOutfitGenerationService:
         logger.info(f"🎭 STYLE PROFILE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Get user's style preferences
-        style_preferences = context.(user_profile.get('stylePreferences', {}) if user_profile else {}) if context.user_profile else {}
+        user_profile = getattr(context, 'user_profile', None)
+        style_preferences = user_profile.get('stylePreferences', {}) if user_profile else {}
         favorite_colors = (style_preferences.get('favoriteColors', []) if style_preferences else [])
         preferred_brands = (style_preferences.get('preferredBrands', []) if style_preferences else [])
         
@@ -1853,7 +1856,7 @@ class RobustOutfitGenerationService:
             if hasattr(context.weather, 'temperature'):
                 temperature = (context.weather if context else None).temperature
             elif isinstance(context.weather, dict):
-                temperature = context.(weather.get('temperature', 70.0) if weather else 70.0) if (context.weather if context else None) else 70.0
+                temperature = context.weather.get('temperature', 70.0) if context.weather else 70.0
         
         occasion_lower = (context.occasion if context else "unknown").lower()
         style_lower = (context.style if context else "unknown").lower() if (context.style if context else "unknown") else ""
@@ -1921,7 +1924,7 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 VALIDATION: Category breakdown: {category_counts}")
         
         for category, count in category_counts.items():
-            limit = self.(base_category_limits.get(category, 2) if base_category_limits else 2)
+            limit = base_category_limits.get(category, 2) if base_category_limits else 2
             if count > limit:
                 issue_msg = f"Too many {category}: {count} (max {limit})"
                 issues.append(issue_msg)
@@ -2289,11 +2292,12 @@ class RobustOutfitGenerationService:
         logger.info(f"👤 BODY TYPE ANALYZER: Scoring {len(item_scores)} items")
         
         # Extract ALL user physical attributes
-        body_type = context.(user_profile.get('bodyType', 'Average') if user_profile else 'Average').lower() if context.user_profile else 'average'
-        height = context.(user_profile.get('height', 'Average') if user_profile else 'Average') if context.user_profile else 'Average'
-        weight = context.(user_profile.get('weight', 'Average') if user_profile else 'Average') if context.user_profile else 'Average'
-        gender = context.(user_profile.get('gender', 'Unspecified') if user_profile else 'Unspecified').lower() if context.user_profile else 'unspecified'
-        skin_tone = context.(user_profile.get('skinTone', 'Medium') if user_profile else 'Medium') if context.user_profile else 'Medium'
+        user_profile = getattr(context, 'user_profile', None)
+        body_type = user_profile.get('bodyType', 'Average').lower() if user_profile else 'average'
+        height = user_profile.get('height', 'Average') if user_profile else 'Average'
+        weight = user_profile.get('weight', 'Average') if user_profile else 'Average'
+        gender = user_profile.get('gender', 'Unspecified').lower() if user_profile else 'unspecified'
+        skin_tone = user_profile.get('skinTone', 'Medium') if user_profile else 'Medium'
         
         logger.info(f"👤 User profile: body_type={body_type}, height={height}, weight={weight}, gender={gender}, skin_tone={skin_tone}")
         
@@ -2527,7 +2531,7 @@ class RobustOutfitGenerationService:
                 base_score += 0.3
             
             # Compatible style match
-            compatible_styles = self.(style_compatibility.get(target_style, []) if style_compatibility else [])
+            compatible_styles = style_compatibility.get(target_style, []) if style_compatibility else []
             for compat_style in compatible_styles:
                 if compat_style in item_styles_lower:
                     base_score += 0.2
