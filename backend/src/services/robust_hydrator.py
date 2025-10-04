@@ -10,17 +10,17 @@ logger = logging.getLogger(__name__)
 
 try:
     # Try relative import first
-    from ..custom_types.wardrobe import ClothingItem, Metadata
-    logger.info("✅ Using main ClothingItem and Metadata models from custom_types.wardrobe")
+    from ..custom_types.wardrobe import ClothingItem, Metadata, ColorAnalysis
+    logger.info("✅ Using main ClothingItem, Metadata, and ColorAnalysis models from custom_types.wardrobe")
     USING_FALLBACK_CLASSES = False
 except ImportError:
     try:
         # Try absolute import
-        from custom_types.wardrobe import ClothingItem, Metadata
-        logger.info("✅ Using main ClothingItem and Metadata models from custom_types.wardrobe (absolute)")
+        from custom_types.wardrobe import ClothingItem, Metadata, ColorAnalysis
+        logger.info("✅ Using main ClothingItem, Metadata, and ColorAnalysis models from custom_types.wardrobe (absolute)")
         USING_FALLBACK_CLASSES = False
     except ImportError as e:
-        logger.error(f"❌ Failed to import main ClothingItem and Metadata models: {e}")
+        logger.error(f"❌ Failed to import main ClothingItem, Metadata, and ColorAnalysis models: {e}")
         logger.error("🔄 Falling back to local ClothingItem and Metadata models")
         USING_FALLBACK_CLASSES = True
     
@@ -67,7 +67,11 @@ PLACEHOLDERS = {
     "matchingColors": [],  # Empty list - will be filled by Color validator
     "createdAt": lambda: int(datetime.utcnow().timestamp() * 1000),
     "updatedAt": lambda: int(datetime.utcnow().timestamp() * 1000),
-    "metadata": Metadata() if not USING_FALLBACK_CLASSES else {"basicMetadata": {"analysisTimestamp": int(datetime.utcnow().timestamp() * 1000)}},  # default empty Metadata instance
+    "metadata": Metadata(
+        analysisTimestamp=int(datetime.utcnow().timestamp() * 1000),
+        originalType="unknown",
+        colorAnalysis=ColorAnalysis()
+    ) if not USING_FALLBACK_CLASSES else {"basicMetadata": {"analysisTimestamp": int(datetime.utcnow().timestamp() * 1000)}},  # default empty Metadata instance
     "quality_score": 0.5,
     "pairability_score": 0.5,
     # CRITICAL MISSING FIELDS:
