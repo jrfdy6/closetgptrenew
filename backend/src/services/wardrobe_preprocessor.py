@@ -61,6 +61,21 @@ class WardrobePreprocessor:
         Returns:
             Item in 9-field system format with enhanced data
         """
+        # Handle None items
+        if complex_item is None:
+            self.logger.warning("⚠️ Received None item in _preprocess_item, returning fallback")
+            return {
+                'id': 'fallback',
+                'name': 'Fallback Item',
+                'type': 'unknown',
+                'color': 'Unknown',
+                'imageUrl': 'https://example.com/placeholder.jpg',
+                'userId': 'test_user',
+                'occasion': ['casual'],
+                'style': ['casual'],
+                'tags': ['fallback']
+            }
+        
         # Extract core fields (required)
         processed = {
             'id': complex_item.get('id', 'unknown'),
