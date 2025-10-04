@@ -512,9 +512,9 @@ class ClothingItem(BaseModel):
                 # Handle color objects with name, hex, rgb
                 if 'name' in color:
                     converted_colors.append(Color(
-                        name=color.get('name', 'Unknown'),
-                        hex=color.get('hex', '#000000'),
-                        rgb=color.get('rgb', [0, 0, 0])
+                        name=(color.get('name', 'Unknown') if color else 'Unknown'),
+                        hex=(color.get('hex', '#000000') if color else '#000000'),
+                        rgb=(color.get('rgb', [0, 0, 0]) if color else [0, 0, 0])
                     ))
                 else:
                     # Handle simple color strings
