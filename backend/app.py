@@ -870,30 +870,58 @@ async def debug_wardrobe_structure():
             "structure_tests": {}
         }
         
-        # Test Structure 1: Top-level collection with userId field
+        # First, let's get a few sample documents to see the actual structure
+        print("🔍 Getting sample wardrobe documents...")
+        sample_docs = []
         try:
-            wardrobe_ref = db.collection('wardrobe')
-            docs = wardrobe_ref.where('userId', '==', test_user_id).stream()
-            
-            items_structure1 = []
-            for doc in docs:
+            all_docs = db.collection('wardrobe').limit(3).stream()
+            for doc in all_docs:
                 item_data = doc.to_dict()
-                items_structure1.append(item_data)
+                sample_docs.append({
+                    "doc_id": doc.id,
+                    "data": item_data,
+                    "fields": list(item_data.keys()) if item_data else []
+                })
             
-            results["structure_tests"]["top_level_collection"] = {
-                "found_items": len(items_structure1),
-                "query": "db.collection('wardrobe').where('userId', '==', user_id)",
-                "sample_item": items_structure1[0] if items_structure1 else None
-            }
+            results["sample_documents"] = sample_docs
+            print(f"Found {len(sample_docs)} sample documents")
             
         except Exception as e:
-            results["structure_tests"]["top_level_collection"] = {
-                "error": str(e),
-                "query": "db.collection('wardrobe').where('userId', '==', user_id)"
-            }
+            results["sample_documents"] = {"error": str(e)}
+        
+        # Test different possible field names for user ID
+        user_id_fields = ['userId', 'user_id', 'uid', 'user', 'owner', 'ownerId']
+        
+        for field_name in user_id_fields:
+            try:
+                print(f"🔍 Testing field '{field_name}'...")
+                wardrobe_ref = db.collection('wardrobe')
+                docs = wardrobe_ref.where(field_name, '==', test_user_id).stream()
+                
+                items = []
+                for doc in docs:
+                    item_data = doc.to_dict()
+                    items.append(item_data)
+                
+                results["structure_tests"][f"field_{field_name}"] = {
+                    "found_items": len(items),
+                    "query": f"db.collection('wardrobe').where('{field_name}', '==', user_id)",
+                    "sample_item": items[0] if items else None
+                }
+                
+                if len(items) > 0:
+                    print(f"✅ Found {len(items)} items with field '{field_name}'")
+                    break
+                    
+            except Exception as e:
+                results["structure_tests"][f"field_{field_name}"] = {
+                    "error": str(e),
+                    "query": f"db.collection('wardrobe').where('{field_name}', '==', user_id)"
+                }
         
         # Test Structure 2: Subcollection under users
         try:
+            print("🔍 Testing user subcollection structure...")
             user_ref = db.collection('users').document(test_user_id)
             wardrobe_subcollection = user_ref.collection('wardrobe')
             docs = wardrobe_subcollection.stream()
@@ -909,39 +937,43 @@ async def debug_wardrobe_structure():
                 "sample_item": items_structure2[0] if items_structure2 else None
             }
             
+            if len(items_structure2) > 0:
+                print(f"✅ Found {len(items_structure2)} items in user subcollection")
+            
         except Exception as e:
             results["structure_tests"]["user_subcollection"] = {
                 "error": str(e),
                 "query": "db.collection('users').document(user_id).collection('wardrobe')"
             }
         
-        # Test Structure 3: Check all wardrobe documents (no filter)
+        # Check total items and unique user IDs found
         try:
+            print("🔍 Analyzing all wardrobe items...")
             all_docs = db.collection('wardrobe').stream()
             all_items = []
-            user_items = []
-            user_ids_found = set()
+            user_ids_found = {}
             
             for doc in all_docs:
                 item_data = doc.to_dict()
                 all_items.append(item_data)
-                user_id = item_data.get('userId')
-                if user_id:
-                    user_ids_found.add(user_id)
-                    if user_id == test_user_id:
-                        user_items.append(item_data)
+                
+                # Check all possible user ID fields
+                for field_name in user_id_fields:
+                    user_id = item_data.get(field_name)
+                    if user_id:
+                        if user_id not in user_ids_found:
+                            user_ids_found[user_id] = []
+                        user_ids_found[user_id].append(field_name)
             
-            results["structure_tests"]["all_wardrobe_items"] = {
+            results["analysis"] = {
                 "total_items": len(all_items),
-                "user_items": len(user_items),
-                "unique_user_ids": list(user_ids_found)[:10],  # Limit to first 10
-                "sample_user_item": user_items[0] if user_items else None
+                "unique_user_ids": list(user_ids_found.keys())[:10],  # Limit to first 10
+                "user_id_fields_found": user_ids_found,
+                "test_user_id_in_data": test_user_id in user_ids_found
             }
             
         except Exception as e:
-            results["structure_tests"]["all_wardrobe_items"] = {
-                "error": str(e)
-            }
+            results["analysis"] = {"error": str(e)}
         
         return results
         
