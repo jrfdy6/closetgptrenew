@@ -221,7 +221,28 @@ class OutfitGenerationService:
             logger.error("🔥 Robust outfit generation crash", extra=error_details, exc_info=True)
             print(f"🔥 ROBUST GENERATION CRASH: {error_details}")
             print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
-            raise
+            
+            # Return debug information instead of raising
+            return {
+                'id': str(uuid4()),
+                'name': f"Debug {req.style} outfit",
+                'style': req.style,
+                'mood': req.mood,
+                'occasion': req.occasion,
+                'items': [],
+                'confidence_score': 0.0,
+                'reasoning': f"Robust service failed: {error_details['error_message']}",
+                'createdAt': datetime.now(),
+                'user_id': user_id,
+                'generated_at': datetime.now().isoformat(),
+                'wearCount': 0,
+                'lastWorn': None,
+                'metadata': {
+                    'generation_strategy': 'robust_debug',
+                    'generation_time': time.time(),
+                    'error_details': error_details
+                }
+            }
         
         print(f"🔍 DEBUG ROBUST RETURN: robust_outfit = {robust_outfit}")
         if robust_outfit is None:
