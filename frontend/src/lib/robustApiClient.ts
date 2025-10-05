@@ -375,11 +375,11 @@ export class RobustApiClient {
 export async function generateOutfit(requestData: any, authToken?: string): Promise<any> {
   const client = RobustApiClient.getInstance();
   
-  console.log('🔍 DEBUG: Making API call to ROBUST endpoint with converted data', `/api/outfit/generate`);
+  console.log('🔍 DEBUG: Making API call to MAIN HYBRID endpoint with converted data', `/api/outfits/generate`);
   
   return await client.request({
     method: 'POST',
-        endpoint: '/api/outfits-simple-minimal/generate-personalized',
+        endpoint: '/api/outfits/generate',
     data: requestData,
     retryable: true,
     authToken: authToken

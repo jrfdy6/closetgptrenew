@@ -274,32 +274,30 @@ export default function PersonalizationDemoPage() {
       // Use the selected outfit generation service
       console.log(`🔍 [Demo] Using ${selectedGenerator} generator`);
       
-      let outfit;
-      if (selectedGenerator === 'simple-minimal') {
-        // Use simple-minimal generator (current working version)
-        const { generateOutfit } = await import('@/lib/robustApiClient');
-        const response = await generateOutfit(convertedData, authToken);
-        outfit = response.data;
-        console.log('✅ [Demo] Simple-minimal outfit generated:', outfit);
-      } else {
-        // Use robust generator (advanced version)
-        console.log('🔄 [Demo] Calling robust generator endpoint');
-        const robustResponse = await fetch('/api/outfits', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`,
-          },
-          body: JSON.stringify(convertedData),
-        });
-        
-        if (!robustResponse.ok) {
-          throw new Error(`Robust generator failed: ${robustResponse.status} ${robustResponse.statusText}`);
-        }
-        
-        outfit = await robustResponse.json();
-        console.log('✅ [Demo] Robust outfit generated:', outfit);
+      // Use the new main hybrid endpoint with generation mode
+      console.log('🔄 [Demo] Calling main hybrid outfit generation endpoint');
+      
+      // Add generation_mode to the request data
+      const requestWithMode = {
+        ...convertedData,
+        generation_mode: selectedGenerator
+      };
+      
+      const response = await fetch('/api/outfits/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(requestWithMode),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Main hybrid generator failed: ${response.status} ${response.statusText}`);
       }
+      
+      const outfit = await response.json();
+      console.log(`✅ [Demo] ${selectedGenerator} outfit generated via main hybrid endpoint:`, outfit);
 
       if (outfit) {
         setGeneratedOutfit(outfit);

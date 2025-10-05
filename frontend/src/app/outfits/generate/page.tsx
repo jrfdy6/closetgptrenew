@@ -505,10 +505,16 @@ export default function OutfitGenerationPage() {
         throw new Error('Data validation failed');
       }
       
-      console.log('🔍 DEBUG: Making ROBUST API call to /api/outfit/generate endpoint with converted data');
+      console.log('🔍 DEBUG: Making MAIN HYBRID API call to /api/outfits/generate endpoint with converted data');
+      
+      // Add generation_mode to default to robust for main outfit generation
+      const requestWithMode = {
+        ...convertedData,
+        generation_mode: 'robust'
+      };
       
       // Use robust API client with comprehensive error handling
-      const response = await generateOutfit(convertedData, authToken);
+      const response = await generateOutfit(requestWithMode, authToken);
       const data = response.data;
       console.log('🔍 DEBUG: Generated outfit data:', data);
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
