@@ -125,4 +125,40 @@ async def test_all_imports():
         "results": results
     }
 
+# Test 5: Service imports
+@router.get("/test-services")
+async def test_service_imports():
+    """Test service imports specifically."""
+    results = {}
+    
+    # Test generation service
+    try:
+        from src.services.outfits.generation_service import OutfitGenerationService
+        results["generation_service"] = {"status": "success", "message": "Generation service imported"}
+    except Exception as e:
+        results["generation_service"] = {"status": "error", "error": str(e), "error_type": type(e).__name__}
+        return {"status": "error", "failed_at": "generation_service", "results": results}
+    
+    # Test simple service
+    try:
+        from src.services.outfits.simple_service import SimpleOutfitService
+        results["simple_service"] = {"status": "success", "message": "Simple service imported"}
+    except Exception as e:
+        results["simple_service"] = {"status": "error", "error": str(e), "error_type": type(e).__name__}
+        return {"status": "error", "failed_at": "simple_service", "results": results}
+    
+    # Test rule engine
+    try:
+        from .rule_engine import generate_rule_based_outfit, generate_fallback_outfit
+        results["rule_engine"] = {"status": "success", "message": "Rule engine imported"}
+    except Exception as e:
+        results["rule_engine"] = {"status": "error", "error": str(e), "error_type": type(e).__name__}
+        return {"status": "error", "failed_at": "rule_engine", "results": results}
+    
+    return {
+        "status": "success",
+        "message": "All service imports successful",
+        "results": results
+    }
+
 logger.info("✅ Targeted import test router created successfully")
