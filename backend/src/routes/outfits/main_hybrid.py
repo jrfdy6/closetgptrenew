@@ -28,7 +28,7 @@ router = APIRouter(
 # Security
 security = HTTPBearer(auto_error=False)
 
-# Import the proven personalization service
+# Import the proven personalization service with fallback
 try:
     from src.routes.personalization_demo.personalization_service import PersonalizationService
     from src.routes.personalization_demo.models import (
@@ -40,6 +40,26 @@ try:
 except ImportError as e:
     logger.error(f"❌ Failed to import personalization service: {e}")
     PERSONALIZATION_SERVICE_AVAILABLE = False
+    
+    # Create fallback classes
+    class PersonalizationDemoRequest:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    class PersonalizationDemoResponse:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+    
+    class PersonalizationService:
+        async def generate_personalized_outfit(self, request):
+            return PersonalizationDemoResponse(
+                id="fallback",
+                name="Fallback Outfit",
+                items=[],
+                reasoning="Service unavailable - using fallback"
+            )
 
 # Initialize personalization service
 if PERSONALIZATION_SERVICE_AVAILABLE:
