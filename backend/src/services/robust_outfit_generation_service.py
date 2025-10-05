@@ -771,6 +771,7 @@ class RobustOutfitGenerationService:
             return True
             
         occasion_lower = occasion.lower()
+        item_name = self.safe_get_item_name(item)
         
         # ═══════════════════════════════════════════════════════════════════════
         # PRIMARY FILTER: Use structured metadata (occasion[], style[], type, brand)
@@ -782,6 +783,7 @@ class RobustOutfitGenerationService:
             # If item has explicit occasion tags, use them
             item_occasions_lower = [occ.lower() for occ in item_occasions]
             if occasion_lower in item_occasions_lower:
+                logger.info(f"✅ {item_name}: PASSED by occasion[] match: {item_occasions_lower} contains {occasion_lower}")
                 return True  # Item explicitly tagged for this occasion
         
         # 2. Check style[] field from AI analysis (PRIMARY)
@@ -790,6 +792,7 @@ class RobustOutfitGenerationService:
             # If item has explicit style tags, use them
             item_styles_lower = [s.lower() for s in item_styles]
             if occasion_lower in item_styles_lower:  # Some occasions map to styles
+                logger.info(f"✅ {item_name}: PASSED by style[] match: {item_styles_lower} contains {occasion_lower}")
                 return True
         
         # 3. Check item type (SECONDARY - more reliable than names)
@@ -797,30 +800,35 @@ class RobustOutfitGenerationService:
         if item_type:
             # Type-based filtering for obvious mismatches
             if self._is_type_suitable_for_occasion(item_type, occasion_lower):
+                logger.info(f"✅ {item_name}: PASSED by type match: {item_type} suitable for {occasion_lower}")
                 return True
             elif self._is_type_unsuitable_for_occasion(item_type, occasion_lower):
+                logger.info(f"❌ {item_name}: REJECTED by type mismatch: {item_type} unsuitable for {occasion_lower}")
                 return False
         
         # 4. Check brand (SECONDARY - reliable for athletic/formal brands)
         item_brand = safe_item_access(item, 'brand', '').lower()
         if item_brand:
             if self._is_brand_suitable_for_occasion(item_brand, occasion_lower):
+                logger.info(f"✅ {item_name}: PASSED by brand match: {item_brand} suitable for {occasion_lower}")
                 return True
         
         # ═══════════════════════════════════════════════════════════════════════
         # TERTIARY FILTER: Use item names only as fallback helper (LAST RESORT)
         # ═══════════════════════════════════════════════════════════════════════
         
-        item_name = safe_item_access(item, 'name', '').lower()
-        if item_name:
+        item_name_lower = safe_item_access(item, 'name', '').lower()
+        if item_name_lower:
             # Only use name patterns for obvious mismatches when metadata is missing
-            if self._is_name_obviously_unsuitable(item_name, occasion_lower):
+            if self._is_name_obviously_unsuitable(item_name_lower, occasion_lower):
+                logger.info(f"❌ {item_name}: REJECTED by name pattern: {item_name_lower} unsuitable for {occasion_lower}")
                 return False
         
         # ═══════════════════════════════════════════════════════════════════════
         # DEFAULT: Allow items (let scoring system handle preferences)
         # ═══════════════════════════════════════════════════════════════════════
         
+        logger.info(f"✅ {item_name}: PASSED by default (no hard filters matched)")
         return True  # Conservative approach - allow items, let scoring decide
     
     def _is_type_suitable_for_occasion(self, item_type: str, occasion_lower: str) -> bool:
@@ -1627,19 +1635,27 @@ class RobustOutfitGenerationService:
         
         # DEBUG: Log hydrated items before filtering
         logger.info(f"🔍 DEBUG HYDRATED ITEMS: {len(context.wardrobe)} items received")
-        for i, item in enumerate(context.wardrobe[:3]):  # Log first 3 items
-            logger.info(f"🔍 DEBUG ITEM {i+1}: name='{getattr(item, 'name', 'NO_NAME')}', type='{getattr(item, 'type', 'NO_TYPE')}', color='{getattr(item, 'color', 'NO_COLOR')}'")
+        for i, item in enumerate(context.wardrobe[:5]):  # Log first 5 items
+            item_name = self.safe_get_item_name(item)
+            item_type = self.safe_get_item_type(item)
+            item_occasion = safe_item_access(item, 'occasion', 'NO_OCCASION')
+            item_style = safe_item_access(item, 'style', 'NO_STYLE')
+            logger.info(f"🔍 DEBUG ITEM {i+1}: name='{item_name}', type='{item_type}', occasion='{item_occasion}', style='{item_style}'")
         
         suitable_items = []
         hard_rejected = 0
         
         # Apply proper hard filtering for occasion appropriateness
-        for item in (context.wardrobe if context else []):
-            if self._is_item_suitable_for_occasion(item, (context.occasion if context else "unknown"), (context.style if context else "unknown")):
+        for i, item in enumerate((context.wardrobe if context else [])):
+            item_name = self.safe_get_item_name(item)
+            is_suitable = self._is_item_suitable_for_occasion(item, (context.occasion if context else "unknown"), (context.style if context else "unknown"))
+            
+            if is_suitable:
                 suitable_items.append(item)
+                logger.info(f"✅ ITEM {i+1} PASSED: {item_name} for {context.occasion}")
             else:
                 hard_rejected += 1
-                logger.debug(f"🔍 HARD FILTER: Rejected {getattr(item, 'name', 'Unknown')} for {context.occasion}")
+                logger.info(f"❌ ITEM {i+1} REJECTED: {item_name} for {context.occasion}")
         
         logger.info(f"🔍 HARD FILTER: Results - {len(suitable_items)} passed hard filters, {hard_rejected} rejected")
         
