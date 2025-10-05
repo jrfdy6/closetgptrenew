@@ -91,6 +91,12 @@ async def test_outfit_generation(
     if generation_service:
         try:
             outfit_response = await generation_service.generate_outfit_logic(req, "test-user")
+            
+            # Check if this is a debug response indicating robust service failure
+            if outfit_response.get('metadata', {}).get('generation_strategy') == 'robust_debug':
+                logger.warning(f"⚠️ Robust service failed, falling back to rule-based: {outfit_response.get('reasoning', 'Unknown error')}")
+                raise Exception(f"Robust service debug mode: {outfit_response.get('reasoning', 'Unknown error')}")
+            
             logger.info(f"✅ Test robust outfit generation successful")
             return {
                 "status": "success",
