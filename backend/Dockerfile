@@ -25,5 +25,5 @@ COPY src/ ./src/
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
 
-# Run the FastAPI app with Gunicorn using Railway's PORT env var
-CMD ["sh", "-c", "gunicorn app:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8080} --log-level debug"]
+# Run the FastAPI app with uvicorn using Railway's PORT env var
+CMD ["sh", "-c", "python run.py"]
