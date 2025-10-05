@@ -102,7 +102,7 @@ class OutfitGenerationService:
                 # In the future, we could suggest alternatives or reject the request
         
         # Process wardrobe items
-        wardrobe_items = req.resolved_wardrobe
+        wardrobe_items = req.wardrobe or []
         
         # Create generation context
         try:
