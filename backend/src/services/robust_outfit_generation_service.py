@@ -40,9 +40,9 @@ except (ImportError, ValueError) as e:
     print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
     import traceback
     print(f"❌ ROBUST SERVICE: Import traceback: {traceback.format_exc()}")
-    # FORCE REAL IMPORTS - NO FALLBACKS
-    print(f"🚨 ROBUST SERVICE: CRITICAL - Real imports failed, cannot proceed")
-    raise ImportError(f"Robust service cannot start without real imports: {e}")
+    # TEMPORARILY ALLOW FALLBACKS TO DEBUG THE ISSUE
+    print(f"🔧 ROBUST SERVICE: Using fallback classes for debugging")
+    USING_REAL_CLASSES = False
     
     # Create minimal fallback classes
     class ClothingItem:
@@ -331,8 +331,8 @@ class RobustOutfitGenerationService:
                 }
             }
             logger.error("🔥 ROBUST SERVICE CRASH - NoneType .get() error detected", extra=error_details, exc_info=True)
-            # print(f"🔥 ROBUST SERVICE CRASH: {error_details}")
-            # print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
+            print(f"🔥 ROBUST SERVICE CRASH: {error_details}")
+            print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
             raise
     
     async def _generate_outfit_internal(self, context: GenerationContext) -> OutfitGeneratedOutfit:
