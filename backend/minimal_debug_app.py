@@ -40,6 +40,17 @@ async def health_underscore():
 async def test():
     return {"status": "ok", "message": "Minimal test endpoint"}
 
+# Add the endpoints Railway is looking for
+@app.get("/api/outfits-existing-data/health")
+async def railway_health_check():
+    print("🔍 DEBUG: Railway health check endpoint called")
+    return {"status": "ok", "message": "Railway health check"}
+
+@app.get("/api/outfits-existing-data/analytics")
+async def railway_analytics_check():
+    print("🔍 DEBUG: Railway analytics endpoint called")
+    return {"status": "ok", "message": "Railway analytics check", "analytics": []}
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8080))
