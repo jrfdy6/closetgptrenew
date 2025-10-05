@@ -63,6 +63,99 @@ async def working_complex_health():
         }
     }
 
+@router.post("/test-generate")
+async def test_outfit_generation(
+    req: OutfitRequest
+):
+    """
+    Test outfit generation without authentication for debugging.
+    """
+    start_time = time.time()
+    
+    if not (GENERATION_SERVICE_AVAILABLE or SIMPLE_SERVICE_AVAILABLE or RULE_ENGINE_AVAILABLE):
+        return {
+            "status": "error",
+            "message": "No outfit generation services are available",
+            "services": {
+                "generation_service": GENERATION_SERVICE_AVAILABLE,
+                "simple_service": SIMPLE_SERVICE_AVAILABLE,
+                "rule_engine": RULE_ENGINE_AVAILABLE
+            }
+        }
+    
+    # Initialize services based on availability
+    generation_service = OutfitGenerationService() if GENERATION_SERVICE_AVAILABLE else None
+    simple_service = SimpleOutfitService() if SIMPLE_SERVICE_AVAILABLE else None
+    
+    # Try robust generation first
+    if generation_service:
+        try:
+            outfit_response = await generation_service.generate_outfit_logic(req, "test-user")
+            logger.info(f"✅ Test robust outfit generation successful")
+            return {
+                "status": "success",
+                "strategy": "robust",
+                "outfit": outfit_response,
+                "generation_time": time.time() - start_time
+            }
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Test robust generation failed, trying rule-based: {e}")
+            
+            # Fallback to rule-based generation
+            if RULE_ENGINE_AVAILABLE:
+                try:
+                    user_profile = {}
+                    outfit_response = await generate_rule_based_outfit(req.resolved_wardrobe, user_profile, req)
+                    logger.info(f"✅ Test rule-based outfit generation successful")
+                    return {
+                        "status": "success",
+                        "strategy": "rule_based",
+                        "outfit": outfit_response,
+                        "generation_time": time.time() - start_time
+                    }
+                    
+                except Exception as rule_error:
+                    logger.warning(f"⚠️ Test rule-based generation failed, trying simple: {rule_error}")
+                    
+                    # Final fallback to simple generation
+                    if simple_service:
+                        try:
+                            outfit_response = await simple_service.generate_simple_outfit(req, "test-user")
+                            logger.info(f"✅ Test simple outfit generation successful")
+                            return {
+                                "status": "success",
+                                "strategy": "simple",
+                                "outfit": outfit_response,
+                                "generation_time": time.time() - start_time
+                            }
+                            
+                        except Exception as simple_error:
+                            logger.error(f"❌ Test simple generation failed: {simple_error}")
+                            return {
+                                "status": "error",
+                                "message": f"All generation methods failed: {str(simple_error)}",
+                                "generation_time": time.time() - start_time
+                            }
+                    else:
+                        return {
+                            "status": "error",
+                            "message": "No generation services available",
+                            "generation_time": time.time() - start_time
+                        }
+            else:
+                return {
+                    "status": "error",
+                    "message": "No generation services available",
+                    "generation_time": time.time() - start_time
+                }
+    else:
+        return {
+            "status": "error",
+            "message": "Complex outfit generation service not available",
+            "generation_time": time.time() - start_time
+        }
+
 @router.post("/generate")
 async def working_complex_generate_outfit(
     req: OutfitRequest,
