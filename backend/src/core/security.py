@@ -309,7 +309,7 @@ class SecurityMiddleware:
                 logger.warning(f"Suspicious header detected: {header}", extra={
                     "extra_fields": {
                         "client_ip": request.client.host,
-                        "user_agent": request.headers.get("user-agent") if headers else None),
+                        "user_agent": request.headers.get("user-agent"),
                         "suspicious_header": header
                     }
                 })
