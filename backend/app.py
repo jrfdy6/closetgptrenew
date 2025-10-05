@@ -149,6 +149,7 @@ ROUTERS = [
     # ("test_router", ""),                 # Test router with no dependencies
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
+    ("src.routes.outfits.main_hybrid", "/api/outfits"),   # Main hybrid outfit generation router - MIGRATED FROM PERSONALIZATION DEMO
     # ("src.routes.outfits.working_complex", "/api/outfits"),   # Working complex router - TEMPORARILY DISABLED TO TEST RUNTIME ISSUE
     # ("src.routes.personalization_demo.simple_routes", ""),    # Simple personalization demo router - TEMPORARILY DISABLED DUE TO RUNTIME ISSUES
     # ("src.routes.outfits.targeted_test", "/api/outfits"),   # Targeted import test router - ALL IMPORTS WORKING

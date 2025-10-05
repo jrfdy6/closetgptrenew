@@ -698,11 +698,11 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
             # Get item details for specific warnings
         item_type = (base_item.get('type', '') if base_item else '').lower()
         metadata = (base_item.get('metadata', {}) if base_item else {})
-        material = ""
-        color = ""
-        if isinstance(metadata, dict):
+            material = ""
+            color = ""
+            if isinstance(metadata, dict):
             visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
-            if isinstance(visual_attrs, dict):
+                if isinstance(visual_attrs, dict):
                 material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
                 color = (visual_attrs.get('color', '') if visual_attrs else '').lower()
             
@@ -821,25 +821,25 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                         material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
         color = (item.get('color', '') if item else '').title()
             
-        # Temperature appropriateness analysis
-        temp_appropriateness = "excellent"
-        temp_note = ""
+            # Temperature appropriateness analysis
+            temp_appropriateness = "excellent"
+            temp_note = ""
             
-        if temp >= 85:  # Very hot weather
-            if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
-                temp_appropriateness = "too warm"
-                temp_note = f"may be too warm for {temp}°F weather"
-            elif 'shorts' in item_type or 'tank' in item_type:
-                temp_appropriateness = "excellent"
-                temp_note = f"perfect for {temp}°F hot weather"
-            elif 'cotton' in material or 'linen' in material:
-                temp_appropriateness = "excellent"
-                temp_note = f"breathable fabric ideal for {temp}°F weather"
-            else:
-                temp_appropriateness = "good"
-                temp_note = f"suitable for {temp}°F warm weather"
+            if temp >= 85:  # Very hot weather
+                if any(heavy in item_name for heavy in ['heavy', 'winter', 'thick', 'wool', 'fleece', 'thermal']):
+                    temp_appropriateness = "too warm"
+                    temp_note = f"may be too warm for {temp}°F weather"
+                elif 'shorts' in item_type or 'tank' in item_type:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"perfect for {temp}°F hot weather"
+                elif 'cotton' in material or 'linen' in material:
+                    temp_appropriateness = "excellent"
+                    temp_note = f"breathable fabric ideal for {temp}°F weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"suitable for {temp}°F warm weather"
                     
-        elif temp >= 75:  # Warm weather
+            elif temp >= 75:  # Warm weather
                 if 'shorts' in item_type or 'tank' in item_type:
                     temp_appropriateness = "excellent"
                     temp_note = f"comfortable for {temp}°F warm weather"
@@ -850,11 +850,11 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                     temp_appropriateness = "good"
                     temp_note = f"appropriate for {temp}°F warm weather"
                     
-        elif temp >= 65:  # Mild weather
-            temp_appropriateness = "excellent"
-            temp_note = f"ideal for {temp}°F mild weather"
+            elif temp >= 65:  # Mild weather
+                temp_appropriateness = "excellent"
+                temp_note = f"ideal for {temp}°F mild weather"
                 
-        elif temp >= 55:  # Cool weather
+            elif temp >= 55:  # Cool weather
                 if 'shorts' in item_type:
                     temp_appropriateness = "borderline"
                     temp_note = f"may be cool for {temp}°F weather"
@@ -865,16 +865,16 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                     temp_appropriateness = "good"
                     temp_note = f"suitable for {temp}°F cool weather"
                     
-        else:  # Cold weather
-            if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
-                temp_appropriateness = "inappropriate"
-                temp_note = f"inadequate for {temp}°F cold weather"
-            elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
-                temp_appropriateness = "excellent"
-                temp_note = f"ideal for {temp}°F cold weather"
-            else:
-                temp_appropriateness = "good"
-                temp_note = f"appropriate for {temp}°F cold weather"
+            else:  # Cold weather
+                if any(cool in item_type for cool in ['shorts', 'tank', 'sleeveless']):
+                    temp_appropriateness = "inappropriate"
+                    temp_note = f"inadequate for {temp}°F cold weather"
+                elif any(warm in item_name for warm in ['heavy', 'winter', 'wool', 'fleece']):
+                    temp_appropriateness = "excellent"
+                    temp_note = f"ideal for {temp}°F cold weather"
+                else:
+                    temp_appropriateness = "good"
+                    temp_note = f"appropriate for {temp}°F cold weather"
             
             # Fabric and condition analysis
             fabric_note = ""
@@ -953,7 +953,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         OutfitGeneratedOutfit = None
     
     # Import robust generation service - NO FALLBACKS ALLOWED
-    from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
+        from ..services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
     print(f"✅ MAIN LOGIC: Robust generation service imported successfully")
     logger.info(f"✅ ROBUST IMPORT: Robust generation service imported successfully")
     
@@ -1001,8 +1001,8 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             style_validation = await validate_style_gender_compatibility(req.style, user_profile.get('gender'))
         if not (style_validation.get('is_compatible') if style_validation else None):
             logger.warning(f"⚠️ Style-gender compatibility issue: {(style_validation.get('warning') if style_validation else None)}")
-            # For now, we'll continue but log the warning
-            # In the future, we could suggest alternatives or reject the request
+                # For now, we'll continue but log the warning
+                # In the future, we could suggest alternatives or reject the request
         
         # 3. Generate outfit using rule-based decision tree
         # Generating rule-based outfit
@@ -1038,9 +1038,9 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                 raise Exception("RobustOutfitGenerationService or GenerationContext is None - import failed!")
             
             # Use robust service
-            logger.info("🚀 Using robust outfit generation service")
-            print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
-            print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
+                logger.info("🚀 Using robust outfit generation service")
+                print(f"🔎 DEBUG: RobustOutfitGenerationService available: {RobustOutfitGenerationService is not None}")
+                print(f"🔎 DEBUG: GenerationContext available: {GenerationContext is not None}")
             
             # Initialize outfit variable to prevent "not defined" errors
             outfit = None
@@ -1050,35 +1050,35 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             # print(f"🔍 DEBUG ROBUST START: (req.wardrobe if req else []) type = {type(req.wardrobe)}")
             print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe = {req.resolved_wardrobe}")
             # print(f"🔍 DEBUG ROBUST START: req.resolved_wardrobe type = {type(req.resolved_wardrobe)}")
-                    
-            # Create generation context - ensure weather is properly formatted
+                
+                # Create generation context - ensure weather is properly formatted
             weather_data = (req.weather if req else None)
-            if isinstance(weather_data, dict):
-                # Convert dict to object-like structure for robust service
-                from types import SimpleNamespace
-                weather_data = SimpleNamespace(**weather_data)
-                logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
-            
-            # WardrobePreprocessor integration
-            logger.info(f"🔧 Starting WardrobePreprocessor integration")
-            
-            # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
-            logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+                if isinstance(weather_data, dict):
+                    # Convert dict to object-like structure for robust service
+                    from types import SimpleNamespace
+                    weather_data = SimpleNamespace(**weather_data)
+                    logger.info(f"🔧 CONVERTED WEATHER: dict -> object for robust service")
+                
+                # WardrobePreprocessor integration
+                logger.info(f"🔧 Starting WardrobePreprocessor integration")
+                
+                # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
+                logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
             print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
             # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
-            try:
-                from ..utils.item_hydration import hydrate_outfit_items
-                hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+                try:
+                    from ..utils.item_hydration import hydrate_outfit_items
+                    hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
+                    logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
                 # print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
-            except Exception as hydrator_error:
-                logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
+                except Exception as hydrator_error:
+                    logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
                 print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
                 import traceback
                 # print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
-                logger.info(f"🔄 Using original wardrobe_items as fallback")
-                hydrated_wardrobe_items = wardrobe_items
+                    logger.info(f"🔄 Using original wardrobe_items as fallback")
+                    hydrated_wardrobe_items = wardrobe_items
                 
                 # Update wardrobe_items with hydrated items
                 wardrobe_items = hydrated_wardrobe_items
@@ -1118,7 +1118,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             if item is None:
                 print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
                 
-        context = GenerationContext(
+                context = GenerationContext(
                     user_id=user_id,
                     occasion=req.occasion,
                     style=req.style,
@@ -1323,7 +1323,7 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # Ensure outfit was successfully created
         if outfit is None:
         raise Exception("Outfit generation failed - outfit is None")
-        
+                
                 # Log generation strategy for monitoring
         failed_rules = safe_get_metadata(outfit, 'failed_rules', [])
                 log_generation_strategy(outfit, user_id, failed_rules=failed_rules)
