@@ -12,4 +12,4 @@ cmds = [
 ]
 
 [start]
-cmd = "python ./run.py"
+cmd = "cd /app && python run.py"
