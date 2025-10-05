@@ -208,12 +208,12 @@ async def debug_firebase():
         debug_info = {
             "firebase_initialized": len(firebase_admin._apps) > 0,
             "environment_vars": {
-                "FIREBASE_PROJECT_ID": bool(os.environ.get("FIREBASE_PROJECT_ID") if environ else None)),
-                "FIREBASE_PRIVATE_KEY": bool(os.environ.get("FIREBASE_PRIVATE_KEY") if environ else None)),
-                "FIREBASE_CLIENT_EMAIL": bool(os.environ.get("FIREBASE_CLIENT_EMAIL") if environ else None)),
+                "FIREBASE_PROJECT_ID": bool(os.environ.get("FIREBASE_PROJECT_ID") if environ else None),
+                "FIREBASE_PRIVATE_KEY": bool(os.environ.get("FIREBASE_PRIVATE_KEY") if environ else None),
+                "FIREBASE_CLIENT_EMAIL": bool(os.environ.get("FIREBASE_CLIENT_EMAIL") if environ else None),
             },
-            "project_id": os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET") if environ else "NOT_SET"),
-            "expected_bucket": f"{os.environ.get('FIREBASE_PROJECT_ID', 'unknown') if environ else 'unknown') if environ else 'unknown')}.appspot.com" if os.environ.get("FIREBASE_PROJECT_ID") else "NOT_SET"
+            "project_id": os.environ.get("FIREBASE_PROJECT_ID", "NOT_SET") if environ else "NOT_SET",
+            "expected_bucket": f"{os.environ.get('FIREBASE_PROJECT_ID', 'unknown') if environ else 'unknown'}.appspot.com" if os.environ.get("FIREBASE_PROJECT_ID") else "NOT_SET"
         }
         
         # Try to get the bucket

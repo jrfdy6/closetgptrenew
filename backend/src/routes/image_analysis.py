@@ -25,42 +25,48 @@ try:
     from ..services.openai_service import analyze_image_with_gpt4
     # print("✅ Successfully imported openai_service")
 except Exception as e:
-    # print(f"❌ Failed import: openai_service - {e}")
+    # print statement
+    pass
     analyze_image_with_gpt4 = None
 
 try:
     from ..services.simple_image_analysis_service import simple_analyzer
     # print("✅ Successfully imported simple_image_analysis_service")
 except Exception as e:
-    # print(f"❌ Failed import: simple_image_analysis_service - {e}")
+    # print statement
+    pass
     simple_analyzer = None
 
 try:
     from ..utils.image_processing import process_image_for_analysis
     # print("✅ Successfully imported utils.image_processing")
 except Exception as e:
-    # print(f"❌ Failed import: utils.image_processing - {e}")
+    # print statement
+    pass
     process_image_for_analysis = None
 
 try:
     from ..core.logging import get_logger
     # print("✅ Successfully imported core.logging")
 except Exception as e:
-    # print(f"❌ Failed import: core.logging - {e}")
+    # print statement
+    pass
     get_logger = None
 
 try:
     from ..models.analytics_event import AnalyticsEvent
     # print("✅ Successfully imported models.analytics_event")
 except Exception as e:
-    # print(f"❌ Failed import: models.analytics_event - {e}")
+    # print statement
+    pass
     AnalyticsEvent = None
 
 try:
     from ..services.analytics_service import log_analytics_event
     # print("✅ Successfully imported services.analytics_service")
 except Exception as e:
-    # print(f"❌ Failed import: services.analytics_service - {e}")
+    # print statement
+    pass
     log_analytics_event = None
 # Import auth dependency
 try:
@@ -130,7 +136,6 @@ def convert_to_jpeg(image_url: str) -> str:
             return temp_file.name
             
     except Exception as e:
-#         print(f"Error converting image: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to process image: {str(e)}")
 
 @router.post("/analyze")
@@ -174,7 +179,8 @@ async def analyze_image(
         if process_image_for_analysis:
             processed_image = process_image_for_analysis(temp_file_path)
         else:
-            # print("⚠️ process_image_for_analysis not available, using original image")
+            # print statement
+            pass
             processed_image = temp_file_path
         
         # Use enhanced analysis (GPT-4 + CLIP)
@@ -182,7 +188,8 @@ async def analyze_image(
         if simple_analyzer:
             analysis = await simple_analyzer.analyze_clothing_item(processed_image)
         else:
-            # print("⚠️ simple_analyzer not available, using fallback analysis")
+            # print statement
+            pass
             analysis = {
                 "name": "Analysis Failed - Service Unavailable",
                 "type": "clothing",
@@ -217,10 +224,14 @@ async def analyze_image(
                     }
                 )
                 log_analytics_event(analytics_event)
-            except Exception as analytics_error:
-                # print(f"⚠️ Analytics logging failed: {analytics_error}")
+            except Exception as e:
+                # print statement
+                pass
+                pass
         else:
-            # print("⚠️ Analytics not available, skipping event logging")
+            # print statement
+            pass
+            pass
         
         # Clean up temporary files
         os.unlink(temp_file_path)
@@ -306,8 +317,9 @@ async def analyze_single_image(
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                     temp_file.write(response.content)
                     temp_path = temp_file.name
-            except Exception as download_error:
-#                 print(f"Failed to download image from URL: {str(download_error)}")
+            except Exception as e:
+# print statement
+pass
                 raise HTTPException(status_code=400, detail=f"Failed to download image: {str(download_error)}")
         
         try:
@@ -325,7 +337,8 @@ async def analyze_single_image(
                     # print(f"🔍 Analysis type: {(analysis.get('type', 'No type') if analysis else 'No type')}")
                     # print(f"🔍 Analysis subType: {(analysis.get('subType', 'No subType') if analysis else 'No subType')}")
                 else:
-                    # print("⚠️ analyze_image_with_gpt4 not available, using fallback")
+                    # print statement
+                    pass
                     raise Exception("GPT-4 service not available")
             except Exception as gpt_error:
                 # print(f"❌ GPT-4 analysis failed: {gpt_error}")
@@ -418,8 +431,9 @@ async def analyze_single_image(
                 }
             )
             log_analytics_event(analytics_event)
-        except Exception as analytics_error:
-            # print(f"⚠️ Analytics logging failed: {analytics_error}")
+        except Exception as e:
+            # print statement
+            pass
         
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -802,5 +816,6 @@ async def generate_image_hash(
             os.unlink(temp_path)
             
     except Exception as e:
-        # print(f"❌ Error generating image hash: {str(e)}")
+        # print statement
+        pass
         raise HTTPException(status_code=500, detail=str(e)) 
