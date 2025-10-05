@@ -40,9 +40,9 @@ except (ImportError, ValueError) as e:
     print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
     import traceback
     print(f"❌ ROBUST SERVICE: Import traceback: {traceback.format_exc()}")
-    # TEMPORARILY ALLOW FALLBACKS TO DEBUG THE ISSUE
-    print(f"🔧 ROBUST SERVICE: Using fallback classes for debugging")
-    USING_REAL_CLASSES = False
+    # FORCE REAL IMPORTS - NO FALLBACKS
+    print(f"🚨 ROBUST SERVICE: CRITICAL - Real imports failed, cannot proceed")
+    raise ImportError(f"Robust service cannot start without real imports: {e}")
     
     # Create minimal fallback classes
     class ClothingItem:
