@@ -18,8 +18,9 @@ RUN pip install --no-cache-dir --default-timeout=100 onnxruntime==1.22.1 opencv-
 # Install remaining dependencies with retry logic
 RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt || pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
-# Copy the app.py file and necessary directories
+# Copy the app.py and run.py files and necessary directories
 COPY app.py ./
+COPY run.py ./
 COPY src/ ./src/
 
 # Expose port (Railway will override with its own PORT)
