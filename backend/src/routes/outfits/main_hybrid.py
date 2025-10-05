@@ -117,10 +117,11 @@ async def generate_outfit(
             occasion=request.get("occasion", "casual"),
             style=request.get("style", "casual"),
             mood=request.get("mood", "comfortable"),
-            weather_data=request.get("weather_data"),
-            user_preferences=request.get("user_preferences"),
-            generation_mode=generation_mode,
-            user_id=current_user_id
+            weather=request.get("weather"),  # Changed from weather_data to weather
+            wardrobe=request.get("wardrobe", []),  # CRITICAL: Pass wardrobe data
+            user_profile=request.get("user_profile"),
+            baseItemId=request.get("baseItemId"),
+            generation_mode=generation_mode
         )
         
         # Generate outfit using the proven personalization service
