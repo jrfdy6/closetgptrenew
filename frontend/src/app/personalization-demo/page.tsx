@@ -274,9 +274,38 @@ export default function PersonalizationDemoPage() {
       // Use the selected outfit generation service
       console.log(`🔍 [Demo] Using ${selectedGenerator} generator`);
       
-      // Use the working existing data personalization system directly
-      console.log('🔄 [Demo] Using existing data personalization system (working perfectly!)');
+      // Use the main hybrid endpoint with robust generation
+      console.log('🔄 [Demo] Calling main hybrid outfit generation endpoint');
       
+      // Add generation_mode to the request data
+      const requestWithMode = {
+        ...convertedData,
+        generation_mode: selectedGenerator
+      };
+      
+      const response = await fetch('/api/outfits/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(requestWithMode),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Main hybrid generator failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const outfit = await response.json();
+      console.log(`✅ [Demo] ${selectedGenerator} outfit generated via main hybrid endpoint:`, outfit);
+
+      if (outfit) {
+        setGeneratedOutfit(outfit);
+      }
+    } catch (err) {
+      console.error('❌ [Demo] Real outfit generation failed:', err);
+      // Fallback to existing data personalization for demo purposes
+      console.log('🔄 [Demo] Falling back to existing data personalization');
       const outfit = await generatePersonalizedOutfit({
         occasion: formData.occasion,
         style: formData.style,
@@ -293,10 +322,6 @@ export default function PersonalizationDemoPage() {
       if (outfit) {
         setGeneratedOutfit(outfit);
       }
-    } catch (err) {
-      console.error('❌ [Demo] Outfit generation failed:', err);
-      // Show error to user
-      throw err;
     } finally {
       setGenerating(false);
     }
