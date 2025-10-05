@@ -852,6 +852,102 @@ async def firebase_debug():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/api/wardrobe/debug-structure")
+async def debug_wardrobe_structure():
+    """Debug the actual Firestore wardrobe data structure."""
+    try:
+        from firebase_admin import firestore
+        from src.config.firebase import db
+        
+        if not db:
+            return {"error": "Database not available"}
+        
+        # Test user ID (from your logs)
+        test_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        
+        results = {
+            "test_user_id": test_user_id,
+            "structure_tests": {}
+        }
+        
+        # Test Structure 1: Top-level collection with userId field
+        try:
+            wardrobe_ref = db.collection('wardrobe')
+            docs = wardrobe_ref.where('userId', '==', test_user_id).stream()
+            
+            items_structure1 = []
+            for doc in docs:
+                item_data = doc.to_dict()
+                items_structure1.append(item_data)
+            
+            results["structure_tests"]["top_level_collection"] = {
+                "found_items": len(items_structure1),
+                "query": "db.collection('wardrobe').where('userId', '==', user_id)",
+                "sample_item": items_structure1[0] if items_structure1 else None
+            }
+            
+        except Exception as e:
+            results["structure_tests"]["top_level_collection"] = {
+                "error": str(e),
+                "query": "db.collection('wardrobe').where('userId', '==', user_id)"
+            }
+        
+        # Test Structure 2: Subcollection under users
+        try:
+            user_ref = db.collection('users').document(test_user_id)
+            wardrobe_subcollection = user_ref.collection('wardrobe')
+            docs = wardrobe_subcollection.stream()
+            
+            items_structure2 = []
+            for doc in docs:
+                item_data = doc.to_dict()
+                items_structure2.append(item_data)
+            
+            results["structure_tests"]["user_subcollection"] = {
+                "found_items": len(items_structure2),
+                "query": "db.collection('users').document(user_id).collection('wardrobe')",
+                "sample_item": items_structure2[0] if items_structure2 else None
+            }
+            
+        except Exception as e:
+            results["structure_tests"]["user_subcollection"] = {
+                "error": str(e),
+                "query": "db.collection('users').document(user_id).collection('wardrobe')"
+            }
+        
+        # Test Structure 3: Check all wardrobe documents (no filter)
+        try:
+            all_docs = db.collection('wardrobe').stream()
+            all_items = []
+            user_items = []
+            user_ids_found = set()
+            
+            for doc in all_docs:
+                item_data = doc.to_dict()
+                all_items.append(item_data)
+                user_id = item_data.get('userId')
+                if user_id:
+                    user_ids_found.add(user_id)
+                    if user_id == test_user_id:
+                        user_items.append(item_data)
+            
+            results["structure_tests"]["all_wardrobe_items"] = {
+                "total_items": len(all_items),
+                "user_items": len(user_items),
+                "unique_user_ids": list(user_ids_found)[:10],  # Limit to first 10
+                "sample_user_item": user_items[0] if user_items else None
+            }
+            
+        except Exception as e:
+            results["structure_tests"]["all_wardrobe_items"] = {
+                "error": str(e)
+            }
+        
+        return results
+        
+    except Exception as e:
+        return {"error": f"Failed to debug Firestore structure: {str(e)}"}
+
 @app.post("/api/test-upload")
 async def test_upload():
     """Test endpoint to verify routing is working"""
