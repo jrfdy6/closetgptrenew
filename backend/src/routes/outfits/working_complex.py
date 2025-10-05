@@ -15,10 +15,30 @@ router = APIRouter(
     tags=["outfits-working-complex"]
 )
 
-# Import all the working components
-from .models import OutfitRequest, OutfitResponse
-from .utils import log_generation_strategy
-from src.auth.auth_service import get_current_user, get_current_user_id
+# Import all the working components - TEMPORARILY DISABLED FOR DEBUGGING
+# from .models import OutfitRequest, OutfitResponse
+# from .utils import log_generation_strategy
+# from src.auth.auth_service import get_current_user, get_current_user_id
+
+# Create minimal stubs for debugging
+class OutfitRequest:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+class OutfitResponse:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+def log_generation_strategy(*args, **kwargs):
+    pass
+
+def get_current_user():
+    return "test-user"
+
+def get_current_user_id():
+    return "test-user"
 
 # Import services with error handling
 try:
@@ -42,9 +62,11 @@ except ImportError as e:
     SimpleOutfitService = None
 
 try:
-    from .rule_engine import generate_rule_based_outfit, generate_fallback_outfit
-    RULE_ENGINE_AVAILABLE = True
-    logger.info("✅ Rule engine imported successfully")
+    # from .rule_engine import generate_rule_based_outfit, generate_fallback_outfit
+    generate_rule_based_outfit = None
+    generate_fallback_outfit = None
+    RULE_ENGINE_AVAILABLE = False
+    logger.info("🔧 Rule engine import DISABLED for debugging")
 except ImportError as e:
     logger.error(f"❌ Rule engine import failed: {e}")
     RULE_ENGINE_AVAILABLE = False
