@@ -150,6 +150,7 @@ ROUTERS = [
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
     ("src.routes.outfits.working_complex", "/api/outfits"),   # Working complex router - ALL IMPORTS VERIFIED
+    ("src.routes.personalization_demo.routes", ""),           # Hybrid personalization demo router - NEW MODULAR SYSTEM
     # ("src.routes.outfits.targeted_test", "/api/outfits"),   # Targeted import test router - ALL IMPORTS WORKING
     # ("src.routes.outfits.routes", "/api/outfits"),   # Complex modular outfits router - STILL HAS IMPORT ISSUES
     # ("src.routes.outfits.test_routes", "/api/outfits"),   # Minimal test outfits router - WORKING

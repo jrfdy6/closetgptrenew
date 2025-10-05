@@ -319,7 +319,7 @@ export default function PersonalizationDemoPage() {
           wind_speed: 5,
           location: 'Demo Location'
         }
-      });
+      }, selectedGenerator);
 
       if (outfit) {
         setGeneratedOutfit(outfit);

@@ -35,7 +35,7 @@ export interface UsePersonalizationReturn {
   mostWornItemsCount: number;
   
   // Actions
-  generatePersonalizedOutfit: (request: OutfitGenerationRequest) => Promise<PersonalizedOutfit | null>;
+  generatePersonalizedOutfit: (request: OutfitGenerationRequest, generationMode?: string) => Promise<PersonalizedOutfit | null>;
   refreshPersonalizationData: () => Promise<void>;
   checkHealth: () => Promise<boolean>;
   
@@ -91,7 +91,7 @@ export function useExistingDataPersonalization(): UsePersonalizationReturn {
     }
   }, [user]);
 
-  const generatePersonalizedOutfit = useCallback(async (request: OutfitGenerationRequest): Promise<PersonalizedOutfit | null> => {
+  const generatePersonalizedOutfit = useCallback(async (request: OutfitGenerationRequest, generationMode: string = "simple-minimal"): Promise<PersonalizedOutfit | null> => {
     if (!user) {
       setError('User not authenticated');
       return null;
@@ -101,7 +101,9 @@ export function useExistingDataPersonalization(): UsePersonalizationReturn {
       setIsLoading(true);
       setError(null);
 
-      const outfit = await ExistingDataPersonalizationService.generatePersonalizedOutfit(user, request);
+      // Add generation mode to request
+      const requestWithMode = { ...request, generation_mode: generationMode };
+      const outfit = await ExistingDataPersonalizationService.generatePersonalizedOutfit(user, requestWithMode);
       
       console.log('✅ [useExistingDataPersonalization] Personalized outfit generated:', outfit);
       return outfit;

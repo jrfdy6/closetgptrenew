@@ -95,13 +95,14 @@ export interface OutfitGenerationRequest {
   wardrobe?: any[];
   user_profile?: Record<string, any>;
   baseItemId?: string;
+  generation_mode?: string; // "simple-minimal" or "robust"
 }
 
 // ===== SERVICE CLASS =====
 
 export class ExistingDataPersonalizationService {
   private static readonly API_BASE = '/api';
-  private static readonly ENDPOINT_PREFIX = '/outfits-existing-data';
+  private static readonly ENDPOINT_PREFIX = '/personalization-demo';
 
   // ===== AUTHENTICATION HELPERS =====
   private static async getAuthHeaders(user: User): Promise<HeadersInit> {
@@ -212,7 +213,7 @@ export class ExistingDataPersonalizationService {
       console.log('🔍 [ExistingDataPersonalization] Generating personalized outfit from existing data');
       
       const headers = await this.getAuthHeadersForcedTest(user);
-      const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/generate-personalized`, {
+      const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/generate`, {
         method: 'POST',
         headers,
         body: JSON.stringify(request),

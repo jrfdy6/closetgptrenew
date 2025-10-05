@@ -157,8 +157,8 @@ except ImportError as e:
 class PerformanceMetrics:
     """Mock PerformanceMetrics class"""
     def __init__(self, **kwargs):
-        self.confidence = (kwargs.get('confidence', 0.5) if kwargs else 0.5)
-        self.diversity_score = (kwargs.get('diversity_score', 0.0) if kwargs else 0.0)
+        self.confidence = (safe_get(kwargs, 'confidence', 0.5) if kwargs else 0.5)
+        self.diversity_score = (safe_get(kwargs, 'diversity_score', 0.0) if kwargs else 0.0)
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +191,7 @@ def safe_get(obj: Any, key: str, default: Any = None) -> Any:
         
         # Handle dict objects
         if isinstance(obj, dict):
-            return (obj.get(key, default) if obj else default)
+            return obj.get(key, default)
         
         # Handle objects with attributes
         return getattr(obj, key, default)
@@ -220,7 +220,7 @@ def safe_item_access(item: Any, key: str, default: Any = None) -> Any:
         
         # Handle dict items
         if isinstance(item, dict):
-            return (item.get(key, default) if item else default)
+            return item.get(key, default)
         
         # Handle object items
         return getattr(item, key, default)
@@ -644,7 +644,7 @@ class RobustOutfitGenerationService:
         
         # Check if items have reasonable scores
         total_items = len(item_scores)
-        items_with_scores = len([s for s in item_scores.values() if s.get('composite_score', 0) > 0.1])
+        items_with_scores = len([s for s in item_scores.values() if safe_get(s, 'composite_score', 0) > 0.1])
         logger.info(f"🔍 SCORE CHECK: {total_items} total items, {items_with_scores} with scores > 0.1")
         
         if items_with_scores == 0:
@@ -664,7 +664,7 @@ class RobustOutfitGenerationService:
                 "context_wardrobe_count": len(context.wardrobe),
                 "suitable_items_count": len(suitable_items),
                 "item_scores_count": len(item_scores),
-                "items_with_scores": len([s for s in item_scores.values() if s.get('composite_score', 0) > 0.1]),
+                "items_with_scores": len([s for s in item_scores.values() if safe_get(s, 'composite_score', 0) > 0.1]),
                 "context_occasion": (context.occasion if context else "unknown"),
                 "context_style": (context.style if context else "unknown"),
                 "context_mood": (context.mood if context else "unknown"),
@@ -686,8 +686,8 @@ class RobustOutfitGenerationService:
                     {
                         "id": item_id,
                         "name": getattr(scores['item'], 'name', 'Unknown'),
-                        "composite_score": (scores.get('composite_score', 0) if scores else 0)
-                    } for item_id, scores in sorted(item_scores.items(), key=lambda x: x[1].get('composite_score', 0), reverse=True)[:3]
+                        "composite_score": (safe_get(scores, 'composite_score', 0) if scores else 0)
+                    } for item_id, scores in sorted(item_scores.items(), key=lambda x: safe_get(x[1], 'composite_score', 0), reverse=True)[:3]
                 ] if item_scores else []
             }
             
@@ -1367,9 +1367,9 @@ class RobustOutfitGenerationService:
         
         # Get user's style preferences
         user_profile = getattr(context, 'user_profile', None)
-        style_preferences = user_profile.get('stylePreferences', {}) if user_profile else {}
-        favorite_colors = (style_preferences.get('favoriteColors', []) if style_preferences else [])
-        preferred_brands = (style_preferences.get('preferredBrands', []) if style_preferences else [])
+        style_preferences = safe_get(user_profile, 'stylePreferences', {}) if user_profile else {}
+        favorite_colors = (safe_get(style_preferences, 'favoriteColors', []) if style_preferences else [])
+        preferred_brands = (safe_get(style_preferences, 'preferredBrands', []) if style_preferences else [])
         
         # Filter items by style preferences
         style_matched_items = await self._filter_by_style_preferences(
@@ -1785,8 +1785,8 @@ class RobustOutfitGenerationService:
                 continue
             
             # STEP 6: Proportional category balancing (no hard-stopping at fixed limits)
-            current_category_count = (category_counts.get(item_category, 0) if category_counts else 0)
-            base_limit = (base_category_limits.get(item_category, 0) if base_category_limits else 0)
+            current_category_count = (safe_get(category_counts, item_category, 0) if category_counts else 0)
+            base_limit = (safe_get(base_category_limits, item_category, 0) if base_category_limits else 0)
             
             # Calculate proportional limit based on target count and remaining items needed
             remaining_items_needed = target_count - len(selected_items)
@@ -1814,7 +1814,7 @@ class RobustOutfitGenerationService:
         missing_essentials = []
         
         for category in essential_categories:
-            if category_counts.get(category, 0) == 0:
+            if safe_get(category_counts, category, 0) == 0:
                 missing_essentials.append(category)
         
         # If we're missing essentials and haven't reached target, try to fill them
@@ -1832,7 +1832,7 @@ class RobustOutfitGenerationService:
                         
                     if self._get_item_category(item) == category:
                         selected_items.append(item)
-                        category_counts[category] = (category_counts.get(category, 0) if category_counts else 0) + 1
+                        category_counts[category] = (safe_get(category_counts, category, 0) if category_counts else 0) + 1
                         logger.info(f"🎯 TARGET-DRIVEN: Added essential {getattr(item, 'name', 'Unknown')} ({category}) - {len(selected_items)}/{target_count} items")
                         break
         
@@ -1916,7 +1916,7 @@ class RobustOutfitGenerationService:
             if hasattr(context.weather, 'temperature'):
                 temperature = (context.weather if context else None).temperature
             elif isinstance(context.weather, dict):
-                temperature = context.weather.get('temperature', 70.0) if context.weather else 70.0
+                temperature = safe_get(context.weather, 'temperature', 70.0) if context.weather else 70.0
         
         occasion_lower = (context.occasion if context else "unknown").lower()
         style_lower = (context.style if context else "unknown").lower() if (context.style if context else "unknown") else ""
@@ -1979,12 +1979,18 @@ class RobustOutfitGenerationService:
         category_counts = {}
         for item in outfit.items:
             category = self._get_item_category(item)
-            category_counts[category] = (category_counts.get(category, 0) if category_counts else 0) + 1
+            category_counts[category] = (safe_get(category_counts, category, 0) if category_counts else 0) + 1
         
         logger.info(f"🔍 VALIDATION: Category breakdown: {category_counts}")
         
+        # Define base category limits
+        base_category_limits = {
+            'top': 2, 'bottom': 2, 'shoes': 1, 'outerwear': 1, 
+            'accessories': 3, 'underwear': 1, 'other': 2
+        }
+        
         for category, count in category_counts.items():
-            limit = base_category_limits.get(category, 2) if base_category_limits else 2
+            limit = safe_get(base_category_limits, category, 2)
             if count > limit:
                 issue_msg = f"Too many {category}: {count} (max {limit})"
                 issues.append(issue_msg)
@@ -2336,7 +2342,7 @@ class RobustOutfitGenerationService:
             'hoodie': 'outerwear'
         }
         
-        return (category_map.get(item_type, 'other') if category_map else 'other')
+        return (safe_get(category_map, item_type, 'other') if category_map else 'other')
     
     def _check_inappropriate_combination(self, item1: ClothingItem, item2: ClothingItem) -> bool:
         """Check if two items form an inappropriate combination - simplified version"""
@@ -2353,11 +2359,11 @@ class RobustOutfitGenerationService:
         
         # Extract ALL user physical attributes
         user_profile = getattr(context, 'user_profile', None)
-        body_type = user_profile.get('bodyType', 'Average').lower() if user_profile else 'average'
-        height = user_profile.get('height', 'Average') if user_profile else 'Average'
-        weight = user_profile.get('weight', 'Average') if user_profile else 'Average'
-        gender = user_profile.get('gender', 'Unspecified').lower() if user_profile else 'unspecified'
-        skin_tone = user_profile.get('skinTone', 'Medium') if user_profile else 'Medium'
+        body_type = safe_get(user_profile, 'bodyType', 'Average').lower() if user_profile else 'average'
+        height = safe_get(user_profile, 'height', 'Average') if user_profile else 'Average'
+        weight = safe_get(user_profile, 'weight', 'Average') if user_profile else 'Average'
+        gender = safe_get(user_profile, 'gender', 'Unspecified').lower() if user_profile else 'unspecified'
+        skin_tone = safe_get(user_profile, 'skinTone', 'Medium') if user_profile else 'Medium'
         
         logger.info(f"👤 User profile: body_type={body_type}, height={height}, weight={weight}, gender={gender}, skin_tone={skin_tone}")
         
@@ -2394,7 +2400,7 @@ class RobustOutfitGenerationService:
             }
         }
         
-        rules = (body_type_rules.get(body_type, body_type_rules['average']) if body_type_rules else body_type_rules['average'])
+        rules = (safe_get(body_type_rules, body_type, body_type_rules['average']) if body_type_rules else body_type_rules['average'])
         
         for item_id, scores in item_scores.items():
             item = scores['item']
@@ -2602,7 +2608,7 @@ class RobustOutfitGenerationService:
                 base_score += 0.3
             
             # Compatible style match
-            compatible_styles = style_compatibility.get(target_style, []) if style_compatibility else []
+            compatible_styles = safe_get(style_compatibility, target_style, []) if style_compatibility else []
             for compat_style in compatible_styles:
                 if compat_style in item_styles_lower:
                     base_score += 0.2
@@ -2615,21 +2621,21 @@ class RobustOutfitGenerationService:
             item_name_lower = (item.name if item else "Unknown").lower()
             
             # Check if color is excellent for skin tone
-            for excellent_color in (color_palette.get('excellent', []) if color_palette else []):
+            for excellent_color in (safe_get(color_palette, 'excellent', []) if color_palette else []):
                 if excellent_color in item_color or excellent_color in item_name_lower:
                     base_score += 0.25  # Significant boost for excellent colors
                     logger.debug(f"  🎨 {item.name}: Excellent color match for skin tone (+0.25)")
                     break
             
             # Check if color is good for skin tone
-            for good_color in (color_palette.get('good', []) if color_palette else []):
+            for good_color in (safe_get(color_palette, 'good', []) if color_palette else []):
                 if good_color in item_color or good_color in item_name_lower:
                     base_score += 0.15  # Moderate boost for good colors
                     logger.debug(f"  🎨 {item.name}: Good color match for skin tone (+0.15)")
                     break
             
             # Penalize colors to avoid for skin tone
-            for avoid_color in (color_palette.get('avoid', []) if color_palette else []):
+            for avoid_color in (safe_get(color_palette, 'avoid', []) if color_palette else []):
                 if avoid_color in item_color or avoid_color in item_name_lower:
                     base_score -= 0.15  # Penalty for unflattering colors
                     logger.debug(f"  🎨 {item.name}: Avoid color for skin tone (-0.15)")
@@ -2734,7 +2740,8 @@ class RobustOutfitGenerationService:
                             base_score += 0.2
                 
                 # Material appropriateness for weather
-                item_name_lower = (item.name if item else "Unknown").lower()
+                item_name = (item.name if item else "Unknown")
+                item_name_lower = item_name.lower()
                 item_type_lower = str(item.type).lower()
                 
                 # Cold weather items
@@ -2848,13 +2855,13 @@ class RobustOutfitGenerationService:
             
             for outfit_doc in outfits:
                 outfit_data = outfit_doc.to_dict()
-                rating = (outfit_data.get('rating') if outfit_data else None)
-                is_liked = (outfit_data.get('isLiked', False) if outfit_data else False)
-                is_disliked = (outfit_data.get('isDisliked', False) if outfit_data else False)
-                worn_at = (outfit_data.get('wornAt') if outfit_data else None)
+                rating = (safe_get(outfit_data, 'rating') if outfit_data else None)
+                is_liked = (safe_get(outfit_data, 'isLiked', False) if outfit_data else False)
+                is_disliked = (safe_get(outfit_data, 'isDisliked', False) if outfit_data else False)
+                worn_at = (safe_get(outfit_data, 'wornAt') if outfit_data else None)
                 
                 # Get items in this outfit
-                outfit_items = (outfit_data.get('items', []) if outfit_data else [])
+                outfit_items = (safe_get(outfit_data, 'items', []) if outfit_data else [])
                 
                 for item in outfit_items:
                     # Use safe_item_access to handle all formats
@@ -2898,8 +2905,8 @@ class RobustOutfitGenerationService:
             
             for wardrobe_doc in wardrobe_docs:
                 item_data = wardrobe_doc.to_dict()
-                if item_data.get('isFavorite') or item_data.get('favorite_score', 0) > 0.7:
-                    favorited_items.add(item_data.get('id'))
+                if safe_get(item_data, 'isFavorite') or safe_get(item_data, 'favorite_score', 0) > 0.7:
+                    favorited_items.add(safe_get(item_data, 'id'))
             
             logger.info(f"📊 Feedback data loaded: {len(outfit_ratings)} rated items, {len(favorited_items)} favorites")
             
@@ -3262,10 +3269,10 @@ class RobustOutfitGenerationService:
             mood=context.mood
         )
         
-        logger.info(f"🎭 Diversity check: is_diverse={((diversity_result.get('is_diverse', True) if diversity_result else True) if diversity_result else True)}, score={diversity_result.get('diversity_score', 0.8):.2f}")
+        logger.info(f"🎭 Diversity check: is_diverse={((safe_get(diversity_result, 'is_diverse', True) if diversity_result else True) if diversity_result else True)}, score={safe_get(diversity_result, 'diversity_score', 0.8):.2f}")
         
         # If not diverse enough, apply diversity boost
-        if not (diversity_result.get('is_diverse', True) if diversity_result else True):
+        if not (safe_get(diversity_result, 'is_diverse', True) if diversity_result else True):
             logger.warning(f"⚠️ Outfit not diverse enough, applying diversity boost...")
             
             # Get diversity suggestions
@@ -3279,8 +3286,8 @@ class RobustOutfitGenerationService:
                 
                 # Try to swap out overused items with diverse alternatives
                 for suggestion in diversity_suggestions[:2]:  # Limit to 2 swaps
-                    item_to_replace = (suggestion.get('item_to_replace') if suggestion else None)
-                    alternative = (suggestion.get('alternative') if suggestion else None)
+                    item_to_replace = (safe_get(suggestion, 'item_to_replace') if suggestion else None)
+                    alternative = (safe_get(suggestion, 'alternative') if suggestion else None)
                     
                     if item_to_replace and alternative:
                         # Replace in selected items
@@ -3337,7 +3344,7 @@ class RobustOutfitGenerationService:
                 avg_confidence=final_confidence,
                 avg_generation_time=0.5,
                 avg_validation_time=0.1,
-                diversity_score=(diversity_result.get('diversity_score', 0.8) if diversity_result else 0.8),
+                diversity_score=(safe_get(diversity_result, 'diversity_score', 0.8) if diversity_result else 0.8),
                 user_satisfaction=final_confidence,
                 fallback_rate=0.0,
                 sample_size=1,
@@ -3356,7 +3363,7 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG FINAL SELECTION: Categories filled: {categories_filled}")
         logger.info(f"🔍 DEBUG FINAL SELECTION: Item scores count: {len(item_scores)}")
         if item_scores:
-            logger.info(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, (scores.get('composite_score', 0) if scores else 0)) for item_id, scores in list(item_scores.items())[:3]]}")
+            logger.info(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, (safe_get(scores, 'composite_score', 0) if scores else 0)) for item_id, scores in list(item_scores.items())[:3]]}")
         
         # Create outfit
         outfit = OutfitGeneratedOutfit(
@@ -3382,7 +3389,7 @@ class RobustOutfitGenerationService:
             metadata={
                 "generation_strategy": "multi_layered_cohesive_composition",
                 "avg_composite_score": avg_composite_score,
-                "diversity_score": (diversity_result.get('diversity_score', 0.8) if diversity_result else 0.8),
+                "diversity_score": (safe_get(diversity_result, 'diversity_score', 0.8) if diversity_result else 0.8),
                 "color_theory_applied": True,
                 "analyzers_used": ["body_type", "style_profile", "weather"]
             },
@@ -3438,12 +3445,12 @@ class RobustOutfitGenerationService:
             
             for outfit_doc in outfits:
                 outfit_data = outfit_doc.to_dict()
-                rating = (outfit_data.get('rating') if outfit_data else None)
+                rating = (safe_get(outfit_data, 'rating') if outfit_data else None)
                 if not rating:
                     continue
                 
                 # Get timestamp
-                created_at = (outfit_data.get('createdAt') if outfit_data else None)
+                created_at = (safe_get(outfit_data, 'createdAt') if outfit_data else None)
                 if hasattr(created_at, 'timestamp'):
                     timestamp = created_at.timestamp()
                 elif isinstance(created_at, str):
@@ -3455,21 +3462,21 @@ class RobustOutfitGenerationService:
                     timestamp = current_time
                 
                 # Track style preferences over time
-                outfit_style = (outfit_data.get('style', '') if outfit_data else '').lower()
+                outfit_style = (safe_get(outfit_data, 'style', '') if outfit_data else '').lower()
                 if outfit_style:
                     if outfit_style not in style_ratings_over_time:
                         style_ratings_over_time[outfit_style] = []
                     style_ratings_over_time[outfit_style].append((timestamp, rating))
                 
                 # Track occasion preferences
-                outfit_occasion = (outfit_data.get('occasion', '') if outfit_data else '').lower()
+                outfit_occasion = (safe_get(outfit_data, 'occasion', '') if outfit_data else '').lower()
                 if outfit_occasion:
                     if outfit_occasion not in occasion_ratings_over_time:
                         occasion_ratings_over_time[outfit_occasion] = []
                     occasion_ratings_over_time[outfit_occasion].append((timestamp, rating))
                 
                 # Track color preferences
-                outfit_items = (outfit_data.get('items', []) if outfit_data else [])
+                outfit_items = (safe_get(outfit_data, 'items', []) if outfit_data else [])
                 for outfit_item in outfit_items:
                     # Use safe_item_access to handle all formats
                     color = safe_item_access(outfit_item, 'color', '').lower()
