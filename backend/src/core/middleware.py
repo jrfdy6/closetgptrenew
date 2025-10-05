@@ -325,6 +325,7 @@ def setup_middleware(app: ASGIApp) -> None:
         logger.info("LoggingMiddleware re-enabled - startup issue resolved")
         # print("DEBUG: LoggingMiddleware logging call completed successfully")
     except Exception as e:
+    pass  # Fixed empty control structure
         # print(f"DEBUG: LoggingMiddleware logging call failed: {e}")
         # Continue anyway - don't let logging failure break the app
     

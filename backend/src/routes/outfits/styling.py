@@ -52,9 +52,9 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
             # Skip if item is a list (shouldn't happen but safety check)
             continue
         elif isinstance(item, dict):
-            item_name = (item.get('name', '') if item else '').lower()
-            item_type = (item.get('type', '') if item else '').lower()
-            item_description = (item.get('description', '') if item else '').lower()
+            item_name = strstr(item.get('name', '') if item else '').lower()
+            item_type = strstr(item.get('type', '') if item else '').lower()
+            item_description = strstr(item.get('description', '') if item else '').lower()
         else:
             # Handle object format
             item_name = getattr(item, 'name', '').lower()
@@ -98,10 +98,10 @@ def filter_items_by_style(items: List[Dict[str, Any]], style: str) -> List[Dict[
 
 def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None) -> Optional[str]:
     """Check if an item should be hard-excluded from a specific style."""
-    item_name = (item.get('name', '') if item else '').lower()
-    item_type = (item.get('type', '') if item else '').lower()
-    item_description = (item.get('description', '') if item else '').lower()
-    item_material = (item.get('material', '') if item else '').lower()
+    item_name = str(item.get('name', '') if item else '').lower()
+    item_type = str(item.get('type', '') if item else '').lower()
+    item_description = str(item.get('description', '') if item else '').lower()
+    item_material = str(item.get('material', '') if item else '').lower()
     
     # Combine all text for analysis
     item_text = f"{item_name} {item_type} {item_description} {item_material}"
@@ -229,10 +229,10 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
 
 def calculate_style_appropriateness_score(style: str, item: Dict[str, Any]) -> int:
     """Calculate style appropriateness score with heavy penalties for mismatches."""
-    item_name = (item.get('name', '') if item else '').lower()
-    item_type = (item.get('type', '') if item else '').lower()
-    item_description = (item.get('description', '') if item else '').lower()
-    item_material = (item.get('material', '') if item else '').lower()
+    item_name = str(item.get('name', '') if item else '').lower()
+    item_type = str(item.get('type', '') if item else '').lower()
+    item_description = str(item.get('description', '') if item else '').lower()
+    item_material = str(item.get('material', '') if item else '').lower()
     
     item_text = f"{item_name} {item_type} {item_description} {item_material}"
     

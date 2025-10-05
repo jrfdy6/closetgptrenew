@@ -36,8 +36,8 @@ def _is_semantically_appropriate(outfit_items, required_item, occasion):
             # Skip if item is a list (shouldn't happen but safety check)
             continue
         elif isinstance(item, dict):
-            item_type = (item.get('type', '') if item else '').lower()
-            item_name = (item.get('name', '') if item else '').lower()
+            item_type = str(item.get('type', '') if item else '').lower()
+            item_name = str(item.get('name', '') if item else '').lower()
         else:
             # Handle object format
             item_type = getattr(item, 'type', '').lower()

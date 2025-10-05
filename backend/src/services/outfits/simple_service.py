@@ -87,8 +87,8 @@ class SimpleOutfitService:
         if not item:
             return False
         
-        item_type = (item.get('type', '') if item else '').lower()
-        item_name = (item.get('name', '') if item else '').lower()
+        item_type = str(item.get('type', '') if item else '').lower()
+        item_name = str(item.get('name', '') if item else '').lower()
         
         category_mappings = {
             'top': ['shirt', 'blouse', 't-shirt', 'tank', 'sweater', 'hoodie', 'top'],

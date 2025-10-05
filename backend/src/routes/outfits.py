@@ -1063,22 +1063,22 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
             logger.info(f"🔧 Starting WardrobePreprocessor integration")
             
             # HYDRATE WARDROBE ITEMS BEFORE ROBUST GENERATOR CALL
-                logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
-        print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
-        # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
-        # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
-                try:
-                    from ..utils.item_hydration import hydrate_outfit_items
-                    hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
-                    logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
-        # print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
-                except Exception as hydrator_error:
-                    logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
-        print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
-        import traceback
-        # print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
-                    logger.info(f"🔄 Using original wardrobe_items as fallback")
-                    hydrated_wardrobe_items = wardrobe_items
+            logger.info(f"🔧 HYDRATING WARDROBE ITEMS BEFORE ROBUST GENERATOR")
+            print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items = {wardrobe_items}")
+            # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items type = {type(wardrobe_items)}")
+            # print(f"🔍 DEBUG HYDRATOR CALL: wardrobe_items length = {len(wardrobe_items) if wardrobe_items else 'None'}")
+            try:
+                from ..utils.item_hydration import hydrate_outfit_items
+                hydrated_wardrobe_items = hydrate_outfit_items(wardrobe_items, db if firebase_initialized else None)
+                logger.info(f"✅ HYDRATED {len(hydrated_wardrobe_items)} items successfully")
+                # print(f"🔍 DEBUG HYDRATOR CALL: Successfully hydrated {len(hydrated_wardrobe_items)} items")
+            except Exception as hydrator_error:
+                logger.warning(f"⚠️ HYDATOR ERROR: {hydrator_error}")
+                print(f"🚨 HYDRATOR ERROR: {hydrator_error}")
+                import traceback
+                # print(f"🚨 HYDRATOR TRACEBACK: {traceback.format_exc()}")
+                logger.info(f"🔄 Using original wardrobe_items as fallback")
+                hydrated_wardrobe_items = wardrobe_items
                 
                 # Update wardrobe_items with hydrated items
                 wardrobe_items = hydrated_wardrobe_items
@@ -1091,17 +1091,17 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
                     clothing_items = hydrated_wardrobe_items  # Use raw items if ClothingItem not available
                 else:
                     for i, item_dict in enumerate(hydrated_wardrobe_items):
-        print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
-        # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
+                        print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
+                        # print(f"🔍 DEBUG ITEM CONVERSION: item_dict type = {type(item_dict)}")
                         try:
                             clothing_item = ClothingItem(**item_dict)
                             clothing_items.append(clothing_item)
-        print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
+                            print(f"🔍 DEBUG ITEM CONVERSION: Successfully converted item {i}")
                         except Exception as item_error:
                             logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
-        print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
-        import traceback
-        # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
+                            print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
+                            import traceback
+                            # print(f"🚨 ITEM CONVERSION TRACEBACK: {traceback.format_exc()}")
                             continue
                 
                 logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
@@ -1110,12 +1110,15 @@ async def generate_outfit_logic(req: OutfitRequest, user_id: str) -> Dict[str, A
         # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items length = {len(clothing_items)}")
         # print(f"🔍 DEBUG CONTEXT CREATION: clothing_items type = {type(clothing_items)}")
         for i, item in enumerate(clothing_items):
-        print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
-        # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
-        if item is None:
-        print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
+            pass
+            pass
+            pass
+            print(f"🔍 DEBUG CONTEXT CREATION: item {i} = {item}")
+            # print(f"🔍 DEBUG CONTEXT CREATION: item {i} type = {type(item)}")
+            if item is None:
+                print(f"🚨 CRITICAL: clothing_items[{i}] is None!")
                 
-                context = GenerationContext(
+        context = GenerationContext(
                     user_id=user_id,
                     occasion=req.occasion,
                     style=req.style,

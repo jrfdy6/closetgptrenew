@@ -818,20 +818,61 @@ export default function Onboarding() {
 
   // Hero images mapping for each persona
   const getHeroImageForPersona = (personaId: string): string => {
-    console.log('🖼️ [Hero Image] Persona ID:', personaId);
-    const heroImages: Record<string, string> = {
-      strategist: "/images/style-heroes/strategist-conference-room.jpg",
-      innovator: "/images/style-heroes/innovator-art-gallery.jpg", 
-      classic: "/images/style-heroes/classic-afternoon-tea.jpg",
-      wanderer: "/images/style-heroes/wanderer-bohemian-nature.jpg",
-      rebel: "/images/style-heroes/rebel-graffiti-alley.jpg",
-      connoisseur: "/images/style-heroes/connoisseur-wine-tasting.jpg",
-      modernist: "/images/style-heroes/modernist-office-meeting.jpg",
-      architect: "/images/style-heroes/architect-blueprint-meeting.jpg"
+    console.log('🖼️ [Hero Image] Persona ID:', personaId, 'User Gender:', userGender);
+    
+    // Determine which gender variant to use
+    let genderVariant = 'unisex'; // default fallback
+    if (userGender === 'Male') {
+      genderVariant = 'men';
+    } else if (userGender === 'Female') {
+      genderVariant = 'women';
+    }
+    
+    const heroImages: Record<string, Record<string, string>> = {
+      architect: {
+        men: "/images/style-heroes/architect-men-hero.png",
+        women: "/images/style-heroes/architect-women-hero.png",
+        unisex: "/images/style-heroes/architect-unisex-hero.png"
+      },
+      strategist: {
+        men: "/images/style-heroes/strategist-men-hero.png",
+        women: "/images/style-heroes/strategist-women-hero.png",
+        unisex: "/images/style-heroes/strategist-unisex-hero.png"
+      },
+      innovator: {
+        men: "/images/style-heroes/innovator-men-hero.png",
+        women: "/images/style-heroes/innovator-women-hero.png",
+        unisex: "/images/style-heroes/innovator-unisex-hero.png"
+      },
+      classic: {
+        men: "/images/style-heroes/classic-men-hero.png",
+        women: "/images/style-heroes/classic-women-hero.png",
+        unisex: "/images/style-heroes/classic-unisex-hero.png"
+      },
+      wanderer: {
+        men: "/images/style-heroes/wanderer-men-hero.png",
+        women: "/images/style-heroes/wanderer-women-hero.png",
+        unisex: "/images/style-heroes/wanderer-unisex-hero.png"
+      },
+      rebel: {
+        men: "/images/style-heroes/rebel-men-hero.png",
+        women: "/images/style-heroes/rebel-women-hero.png",
+        unisex: "/images/style-heroes/rebel-unisex-hero.png"
+      },
+      connoisseur: {
+        men: "/images/style-heroes/connoisseur-men-hero.png",
+        women: "/images/style-heroes/connoisseur-women-hero.png",
+        unisex: "/images/style-heroes/connoisseur-unisex-hero.png"
+      },
+      modernist: {
+        men: "/images/style-heroes/modernist-men-hero.png",
+        women: "/images/style-heroes/modernist-women-hero.png",
+        unisex: "/images/style-heroes/modernist-unisex-hero.png"
+      }
     };
     
-    const imageUrl = heroImages[personaId] || "/images/style-heroes/default-hero.jpg";
-    console.log('🖼️ [Hero Image] Selected image:', imageUrl);
+    const imageUrl = heroImages[personaId]?.[genderVariant] || "/images/placeholder.jpg";
+    console.log('🖼️ [Hero Image] Selected image:', imageUrl, 'for gender variant:', genderVariant);
     return imageUrl;
   };
 

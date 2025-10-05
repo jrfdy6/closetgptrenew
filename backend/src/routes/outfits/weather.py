@@ -12,10 +12,10 @@ def check_item_weather_appropriateness(item: Dict[str, Any], weather_data: Dict[
     """Check if an item is appropriate for the current weather conditions."""
     try:
         temperature = float((weather_data.get('temperature', 70) if weather_data else 70))
-        condition = (weather_data.get('condition', '') if weather_data else '').lower()
+        condition = str(weather_data.get('condition', '') if weather_data else '').lower()
         
-        item_type = (item.get('type', '') if item else '').lower()
-        item_name = (item.get('name', '') if item else '').lower()
+        item_type = str(item.get('type', '') if item else '').lower()
+        item_name = str(item.get('name', '') if item else '').lower()
         
         # Get material from metadata if available
         material = ""
@@ -23,7 +23,7 @@ def check_item_weather_appropriateness(item: Dict[str, Any], weather_data: Dict[
         if isinstance(metadata, dict):
             visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
             if isinstance(visual_attrs, dict):
-                material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
+                material = str(visual_attrs.get('material', '') if visual_attrs else '').lower()
         
         # Hot weather checks (85°F+)
         if temperature >= 85:
@@ -83,18 +83,18 @@ def attach_weather_context_to_items(items: List, weather_data: Dict[str, Any]) -
                 if isinstance(metadata, dict):
                     visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
                     if isinstance(visual_attrs, dict):
-                        material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
+                        material = str(visual_attrs.get('material', '') if visual_attrs else '').lower()
                 color = getattr(item, 'color', '').title()
             else:  # Dictionary
                 enhanced_item = item.copy()
-                item_type = (item.get('type', '') if item else '').lower()
-                item_name = (item.get('name', '') if item else '').lower()
+                item_type = str(item.get('type', '') if item else '').lower()
+                item_name = str(item.get('name', '') if item else '').lower()
                 material = ""
                 metadata = (item.get('metadata', {}) if item else {})
                 if isinstance(metadata, dict):
                     visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
                     if isinstance(visual_attrs, dict):
-                        material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
+                        material = str(visual_attrs.get('material', '') if visual_attrs else '').lower()
                 color = (item.get('color', '') if item else '').title()
             
             # Temperature appropriateness analysis

@@ -34,19 +34,19 @@ def ensure_base_item_included(outfit: Dict[str, Any], base_item_id: Optional[str
             
             # Generate specific warning based on weather conditions
             temp = (weather_data.get('temperature', 70) if weather_data else 70)
-            condition = (weather_data.get('condition', '') if weather_data else '').lower()
+            condition = str(weather_data.get('condition', '') if weather_data else '').lower()
             item_name = (base_item.get('name', 'item') if base_item else 'item')
             
             # Get item details for specific warnings
-            item_type = (base_item.get('type', '') if base_item else '').lower()
+            item_type = str(base_item.get('type', '') if base_item else '').lower()
             metadata = (base_item.get('metadata', {}) if base_item else {})
             material = ""
             color = ""
             if isinstance(metadata, dict):
                 visual_attrs = (metadata.get('visualAttributes', {}) if metadata else {})
                 if isinstance(visual_attrs, dict):
-                    material = (visual_attrs.get('material', '') if visual_attrs else '').lower()
-                    color = (visual_attrs.get('color', '') if visual_attrs else '').lower()
+                    material = str(visual_attrs.get('material', '') if visual_attrs else '').lower()
+                    color = str(visual_attrs.get('color', '') if visual_attrs else '').lower()
             
             # Generate specific warning
             if temp >= 85 and any(mat in material for mat in ['wool', 'fleece', 'down', 'heavy']):
