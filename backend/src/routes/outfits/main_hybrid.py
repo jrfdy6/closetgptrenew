@@ -125,7 +125,8 @@ async def generate_outfit(
         
         # Generate outfit using the proven personalization service
         result = await personalization_service.generate_personalized_outfit(
-            demo_request
+            demo_request,
+            current_user_id
         )
         
         logger.info(f"✅ Main outfit generation successful with mode: {generation_mode}")

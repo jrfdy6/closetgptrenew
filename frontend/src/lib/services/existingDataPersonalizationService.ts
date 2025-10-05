@@ -234,7 +234,7 @@ export class ExistingDataPersonalizationService {
       console.log('🔍 [ExistingDataPersonalization] Generating personalized outfit from existing data');
       
       const headers = await this.getAuthHeadersReal(user);
-      const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/generate`, {
+      const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/generate-personalized`, {
         method: 'POST',
         headers,
         body: JSON.stringify(request),
