@@ -517,6 +517,21 @@ async def check_dependencies():
     dependencies = {}
     
     try:
+
+# Add Railway health check endpoints
+@app.get("/api/outfits-existing-data/health")
+async def railway_health_check():
+    """Railway health check endpoint"""
+    print("🔍 DEBUG: Railway health check endpoint called")
+    return {"status": "ok", "message": "Railway health check"}
+
+@app.get("/api/outfits-existing-data/analytics")
+async def railway_analytics_check():
+    """Railway analytics endpoint"""
+    print("🔍 DEBUG: Railway analytics endpoint called")
+    return {"status": "ok", "message": "Railway analytics check", "analytics": []}
+
+try:
         import openai
         dependencies["openai"] = {"status": "ok", "version": openai.__version__}
     except ImportError as e:

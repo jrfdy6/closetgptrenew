@@ -28,4 +28,4 @@ COPY src/ ./src/
 EXPOSE 8080
 
 # Run the FastAPI app with uvicorn using Railway's PORT env var
-CMD ["sh", "-c", "python minimal_debug_app.py"]
+CMD ["sh", "-c", "python run.py"]
