@@ -238,6 +238,8 @@ def ensure_items_safe_for_pydantic(items: List[Dict[str, Any]]) -> List[Clothing
     if items:
         # print(f"🔍 HYDRATOR DEBUG: first item = {items[0]}")
         # print(f"🔍 HYDRATOR DEBUG: first item type = {type(items[0])}")
+        pass
+    
     try:
         safe_items = hydrate_wardrobe_items(items)
         logger.error(f"🚨 FORCE REDEPLOY v11.0: HYDRATOR EXIT: {len(safe_items)} items validated and ready")
