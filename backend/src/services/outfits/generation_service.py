@@ -110,9 +110,11 @@ class OutfitGenerationService:
             clothing_items = []
             
             if ClothingItem is None:
-                logger.warning(f"⚠️ ClothingItem not available, skipping validation")
+                logger.warning(f"⚠️ ClothingItem not available, using raw items")
                 clothing_items = wardrobe_items  # Use raw items if ClothingItem not available
+                print(f"🔍 DEBUG: Using {len(clothing_items)} raw items (ClothingItem not available)")
             else:
+                print(f"🔍 DEBUG: ClothingItem available, attempting conversion of {len(wardrobe_items)} items")
                 for i, item_dict in enumerate(wardrobe_items):
                     print(f"🔍 DEBUG ITEM CONVERSION: Processing item {i}: {item_dict}")
                     try:
@@ -122,7 +124,12 @@ class OutfitGenerationService:
                     except Exception as item_error:
                         logger.warning(f"⚠️ Failed to convert item {i}: {item_error}")
                         print(f"🚨 ITEM CONVERSION ERROR: {item_error}")
+                        # TEMPORARY FIX: Add raw item if conversion fails
+                        clothing_items.append(item_dict)
+                        print(f"🔍 DEBUG: Added raw item {i} as fallback")
                         continue
+                
+                print(f"🔍 DEBUG: Conversion complete - {len(clothing_items)} items in clothing_items")
             
             logger.info(f"✅ Pre-outfit-construction guard completed - {len(clothing_items)} items converted successfully")
         
