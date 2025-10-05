@@ -29,11 +29,11 @@ if src_dir not in sys.path:
 
 # Import real services - force real imports, no fallbacks
 try:
-    from ..custom_types.wardrobe import ClothingItem, Metadata
-    from ..custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
-    from ..custom_types.weather import WeatherData
-    from ..custom_types.profile import UserProfile
-    from .robust_hydrator import ensure_items_safe_for_pydantic
+    from src.custom_types.wardrobe import ClothingItem, Metadata
+    from src.custom_types.outfit import OutfitGeneratedOutfit, OutfitPiece
+    from src.custom_types.weather import WeatherData
+    from src.custom_types.profile import UserProfile
+    from src.services.robust_hydrator import ensure_items_safe_for_pydantic
     print("✅ ROBUST SERVICE: Using real imports")
     USING_REAL_CLASSES = True
 except (ImportError, ValueError) as e:
