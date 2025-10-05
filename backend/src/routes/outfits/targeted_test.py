@@ -49,7 +49,7 @@ async def test_models_import():
 async def test_auth_import():
     """Test auth import specifically."""
     try:
-        from ..auth.auth_service import get_current_user, get_current_user_id
+        from src.auth.auth_service import get_current_user, get_current_user_id
         return {
             "status": "success",
             "test": "auth_import",
@@ -105,7 +105,7 @@ async def test_all_imports():
     
     # Test auth
     try:
-        from ..auth.auth_service import get_current_user, get_current_user_id
+        from src.auth.auth_service import get_current_user, get_current_user_id
         results["auth"] = {"status": "success", "message": "Auth imported"}
     except Exception as e:
         results["auth"] = {"status": "error", "error": str(e), "error_type": type(e).__name__}
