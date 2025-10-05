@@ -3,7 +3,7 @@ builder = "nixpacks"
 sourceDir = "backend"
 
 [deploy]
-startCommand = "python run.py"
+startCommand = "python minimal_test_app.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
