@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .models import OutfitRequest, OutfitResponse
 from .utils import log_generation_strategy
-from ..auth.auth_service import get_current_user, get_current_user_id
+from src.auth.auth_service import get_current_user, get_current_user_id
 
 # Import services with error handling to prevent mount failures
 try:
