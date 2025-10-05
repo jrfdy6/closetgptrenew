@@ -317,7 +317,7 @@ class RobustOutfitGenerationService:
     def safe_get_item_name(self, item):
         """Safely get item name from either ClothingItem object or dict."""
         if hasattr(item, 'name'):
-            return self.safe_get_item_name(item)
+            return item.name
         elif isinstance(item, dict):
             return item.get('name', 'Unknown')
         else:
