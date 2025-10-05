@@ -149,7 +149,7 @@ ROUTERS = [
     # ("test_router", ""),                 # Test router with no dependencies
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
-    # ("src.routes.outfits.working_complex", "/api/outfits"),   # Working complex router - TEMPORARILY DISABLED TO ISOLATE ISSUE
+    ("src.routes.outfits.working_complex", "/api/outfits"),   # Working complex router - RE-ENABLED NOW THAT BACKEND IS STABLE
     # ("src.routes.personalization_demo.simple_routes", ""),    # Simple personalization demo router - TEMPORARILY DISABLED
     # ("src.routes.outfits.targeted_test", "/api/outfits"),   # Targeted import test router - ALL IMPORTS WORKING
     # ("src.routes.outfits.routes", "/api/outfits"),   # Complex modular outfits router - STILL HAS IMPORT ISSUES
