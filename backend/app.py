@@ -156,9 +156,9 @@ ROUTERS = [
     # ("src.routes.outfits.test_routes", "/api/outfits"),   # Minimal test outfits router - WORKING
     # ("src.routes.outfits.progressive_routes", "/api/outfits"),   # Progressive outfits router - FAILED (import error)
     # ("src.routes.outfits.debug", "/api/outfits-debug"), # Debug endpoints for outfits - TEMPORARILY DISABLED
-    ("src.routes.strategy_analytics", ""),           # Strategy analytics router - mounted at /api/strategy-analytics
-    ("src.routes.diversity_analytics", ""),          # Diversity analytics router - mounted at /api/diversity-analytics
-    ("src.routes.adaptive_tuning", ""),              # Adaptive tuning router - mounted at /api/adaptive-tuning
+    # ("src.routes.strategy_analytics", ""),           # Strategy analytics router - TEMPORARILY DISABLED FOR DEBUGGING
+    # ("src.routes.diversity_analytics", ""),          # Diversity analytics router - TEMPORARILY DISABLED FOR DEBUGGING
+    # ("src.routes.adaptive_tuning", ""),              # Adaptive tuning router - TEMPORARILY DISABLED FOR DEBUGGING
     # ("src.routes.outfits_with_embeddings", "/api/outfits-personalized"), # Embedding-based personalized outfit generation - TEMPORARILY DISABLED DUE TO SYNTAX ERRORS
     # ("src.routes.lightweight_outfits", "/api/outfits-lightweight"), # Lightweight embeddings without external dependencies - TEMPORARILY DISABLED FOR DEBUGGING
     # ("src.routes.validation_analytics", "/api/validation-analytics"), # Validation failure analytics and insights - TEMPORARILY DISABLED FOR DEBUGGING
