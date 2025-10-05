@@ -149,8 +149,9 @@ ROUTERS = [
     # ("test_router", ""),                 # Test router with no dependencies
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
-    ("src.routes.outfits.routes", "/api/outfits"),   # New modular outfits router - mounted at /api/outfits for frontend compatibility
-    ("src.routes.outfits.debug", "/api/outfits-debug"), # Debug endpoints for outfits
+    ("src.routes.outfits.test_routes", "/api/outfits"),   # Minimal test outfits router - mounted at /api/outfits for frontend compatibility
+    # ("src.routes.outfits.routes", "/api/outfits"),   # New modular outfits router - TEMPORARILY DISABLED
+    # ("src.routes.outfits.debug", "/api/outfits-debug"), # Debug endpoints for outfits - TEMPORARILY DISABLED
     ("src.routes.strategy_analytics", ""),           # Strategy analytics router - mounted at /api/strategy-analytics
     ("src.routes.diversity_analytics", ""),          # Diversity analytics router - mounted at /api/diversity-analytics
     ("src.routes.adaptive_tuning", ""),              # Adaptive tuning router - mounted at /api/adaptive-tuning
