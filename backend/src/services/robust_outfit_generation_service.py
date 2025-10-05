@@ -34,14 +34,14 @@ try:
     from ..custom_types.weather import WeatherData
     from ..custom_types.profile import UserProfile
     from .robust_hydrator import ensure_items_safe_for_pydantic
-    # print("✅ ROBUST SERVICE: Using real imports")
+    print("✅ ROBUST SERVICE: Using real imports")
     USING_REAL_CLASSES = True
 except (ImportError, ValueError) as e:
-    # print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
+    print(f"❌ ROBUST SERVICE: Real imports failed: {e}")
     import traceback
-    # print(f"❌ ROBUST SERVICE: Import traceback: {traceback.format_exc()}")
+    print(f"❌ ROBUST SERVICE: Import traceback: {traceback.format_exc()}")
     # TEMPORARILY ALLOW FALLBACKS TO DEBUG THE ISSUE
-    # print(f"🔧 ROBUST SERVICE: Using fallback classes for debugging")
+    print(f"🔧 ROBUST SERVICE: Using fallback classes for debugging")
     USING_REAL_CLASSES = False
     
     # Create minimal fallback classes
