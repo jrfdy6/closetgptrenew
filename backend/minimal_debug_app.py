@@ -20,11 +20,21 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
+    print("🔍 DEBUG: Root endpoint called")
     return {"message": "Minimal app is working!", "port": os.getenv("PORT", "unknown")}
 
 @app.get("/health")
 async def health():
+    print("🔍 DEBUG: Health endpoint called")
     return {"status": "ok", "message": "Minimal health check"}
+
+@app.get("/health/")
+async def health_slash():
+    return {"status": "ok", "message": "Minimal health check with slash"}
+
+@app.get("/_health")
+async def health_underscore():
+    return {"status": "ok", "message": "Minimal health check with underscore"}
 
 @app.get("/test")
 async def test():
