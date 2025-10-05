@@ -255,7 +255,7 @@ async def require_authentication(request: Request) -> dict:
         )
     
     # Get authorization header
-    auth_header = request.headers.get("Authorization") if headers else None)
+    auth_header = request.headers.get("Authorization") if headers else None
     if not auth_header or not auth_header.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
