@@ -305,6 +305,33 @@ class RobustOutfitGenerationService:
             "streetwear": ["casual", "athleisure"]
         }
     
+    def safe_get_item_type(self, item):
+        """Safely get item type from either ClothingItem object or dict."""
+        if hasattr(item, 'type'):
+            return item.type
+        elif isinstance(item, dict):
+            return item.get('type', 'unknown')
+        else:
+            return 'unknown'
+    
+    def safe_get_item_name(self, item):
+        """Safely get item name from either ClothingItem object or dict."""
+        if hasattr(item, 'name'):
+            return self.safe_get_item_name(item)
+        elif isinstance(item, dict):
+            return item.get('name', 'Unknown')
+        else:
+            return 'Unknown'
+    
+    def safe_get_item_attr(self, item, attr, default=None):
+        """Safely get any attribute from either ClothingItem object or dict."""
+        if hasattr(item, attr):
+            return getattr(item, attr)
+        elif isinstance(item, dict):
+            return item.get(attr, default)
+        else:
+            return default
+    
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with multi-layered scoring system"""
         logger.info(f"🎨 Starting robust outfit generation for user {context.user_id}")
@@ -484,7 +511,7 @@ class RobustOutfitGenerationService:
             logger.info(f"📊 DEFAULT_APPLIED: profile_default_occasion_{context.occasion.lower()}_body_{context.user_profile['bodyType'].lower()}")
         
         # Log wardrobe breakdown
-        item_types = [item.type for item in (context.wardrobe if context else [])]
+        item_types = [self.safe_get_item_type(item) for item in (context.wardrobe if context else [])]
         type_counts = {item_type: item_types.count(item_type) for item_type in set(item_types)}
         logger.info(f"📊 Wardrobe breakdown: {type_counts}")
         
@@ -592,7 +619,7 @@ class RobustOutfitGenerationService:
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
         logger.info(f"🏆 Top 3 scored items:")
         for i, (item_id, scores) in enumerate(sorted_items[:3]):
-            logger.info(f"  {i+1}. {scores['item'].name}: {scores['composite_score']:.2f}")
+            logger.info(f"  {i+1}. {self.safe_get_item_name(scores['item'])}: {scores['composite_score']:.2f}")
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: Cohesive Composition with Multi-Layered Scores
@@ -1636,26 +1663,26 @@ class RobustOutfitGenerationService:
         weather_rejected = 0
         
         for item in suitable_items:
-            item_name_lower = (item.name if item else "Unknown").lower()
-            item_type_lower = str(getattr(item, 'type', '')).lower()
+            item_name_lower = self.safe_get_item_name(item).lower()
+            item_type_lower = str(self.safe_get_item_type(item)).lower()
             
             # BALANCED weather filtering - less aggressive
             if temp >= 90:  # Extreme heat only
                 hot_inappropriate = ['wool', 'fleece', 'sweater', 'jacket', 'coat', 'heavy', 'long sleeve']
                 if any(keyword in item_name_lower or keyword in item_type_lower for keyword in hot_inappropriate):
-                    logger.warning(f"🔥 HARD FILTER: {item.name} REMOVED for {temp}°F extreme heat")
+                    logger.warning(f"🔥 HARD FILTER: {self.safe_get_item_name(item)} REMOVED for {temp}°F extreme heat")
                     weather_rejected += 1
                     continue
             elif temp >= 80:  # Hot weather - more permissive
                 hot_inappropriate = ['wool', 'fleece', 'sweater', 'jacket', 'coat', 'heavy']
                 if any(keyword in item_name_lower or keyword in item_type_lower for keyword in hot_inappropriate):
-                    logger.warning(f"🌡️ HARD FILTER: {item.name} REMOVED for {temp}°F hot weather")
+                    logger.warning(f"🌡️ HARD FILTER: {self.safe_get_item_name(item)} REMOVED for {temp}°F hot weather")
                     weather_rejected += 1
                     continue
             elif temp < 40:  # Cold weather - more permissive
                 cold_inappropriate = ['shorts', 'sandals', 'tank', 'light', 'summer']
                 if any(keyword in item_name_lower or keyword in item_type_lower for keyword in cold_inappropriate):
-                    logger.warning(f"❄️ HARD FILTER: {item.name} REMOVED for {temp}°F cold weather")
+                    logger.warning(f"❄️ HARD FILTER: {self.safe_get_item_name(item)} REMOVED for {temp}°F cold weather")
                     weather_rejected += 1
                     continue
             
@@ -1670,7 +1697,7 @@ class RobustOutfitGenerationService:
         """Hard constraints - using compatibility matrix for semantic filtering"""
         # Re-enabled compatibility matrix with proper error handling
         
-        item_name = (item.name if item else "Unknown").lower()
+        item_name = self.safe_get_item_name(item).lower()
         item_type = str(getattr(item, 'type', '')).lower()
         occasion_lower = occasion.lower()
         
@@ -1713,7 +1740,7 @@ class RobustOutfitGenerationService:
         # TEMPORARILY DISABLED: Compatibility matrix causing 502 errors
         # TODO: Debug and re-enable compatibility matrix
         
-        item_name = (item.name if item else "Unknown").lower()
+        item_name = self.safe_get_item_name(item).lower()
         occasion_lower = occasion.lower()
         
         # Enhanced string matching with actual wardrobe patterns
@@ -2055,7 +2082,7 @@ class RobustOutfitGenerationService:
     def _is_occasion_compatible(self, item: ClothingItem, occasion: str, style: str = None, mood: str = None, weather_data: dict = None) -> bool:
         """Balanced occasion compatibility check - not too strict, not too loose"""
         occasion_lower = occasion.lower()
-        item_name = (item.name if item else "Unknown").lower()
+        item_name = self.safe_get_item_name(item).lower()
         
         # MOOD COMPATIBILITY CHECK (NEW)
         if mood:
@@ -2196,7 +2223,7 @@ class RobustOutfitGenerationService:
     def _is_style_compatible(self, item: ClothingItem, style: str) -> bool:
         """Balanced style compatibility check - not too strict, not too loose"""
         style_lower = style.lower()
-        item_name = (item.name if item else "Unknown").lower()
+        item_name = self.safe_get_item_name(item).lower()
         
         # Extract style information
         item_styles = getattr(item, 'style', [])
@@ -2297,10 +2324,11 @@ class RobustOutfitGenerationService:
         
         # Add bonuses for various factors
         if hasattr(item, 'favorite_score'):
-            score += item.favorite_score * 20
+            score += self.safe_get_item_attr(item, 'favorite_score', 0) * 20
         
-        if hasattr(item, 'wearCount') and item.wearCount > 0:
-            score += min(item.wearCount * 2, 20)  # Cap at 20
+        wear_count = self.safe_get_item_attr(item, 'wearCount', 0)
+        if wear_count > 0:
+            score += min(wear_count * 2, 20)  # Cap at 20
         
         return score
     
@@ -2422,7 +2450,7 @@ class RobustOutfitGenerationService:
             category = self._get_item_category(item)
             
             # Check if item has body-flattering attributes
-            item_name_lower = (item.name if item else "Unknown").lower()
+            item_name_lower = self.safe_get_item_name(item).lower()
             
             if category in rules:
                 for attribute, score_boost in rules[category].items():
@@ -2430,9 +2458,11 @@ class RobustOutfitGenerationService:
                         base_score = max(base_score, score_boost)
             
             # Additional scoring based on fit
-            if hasattr(item, 'metadata') and item.metadata:
-                if hasattr(item.metadata, 'visualAttributes') and item.metadata.visualAttributes:
-                    fit = getattr(item.metadata.visualAttributes, 'fit', '')
+            metadata = self.safe_get_item_attr(item, 'metadata')
+            if metadata:
+                visual_attrs = self.safe_get_item_attr(metadata, 'visualAttributes')
+                if visual_attrs:
+                    fit = self.safe_get_item_attr(visual_attrs, 'fit', '')
                     if fit:
                         fit_lower = fit.lower()
                         # Adjust based on body type preferences
@@ -2494,9 +2524,11 @@ class RobustOutfitGenerationService:
             # GENDER SCORING - Style appropriateness
             # ═══════════════════════════════════════════════════════════
             if gender and gender != 'unspecified':
-                if hasattr(item, 'metadata') and item.metadata:
-                    if hasattr(item.metadata, 'visualAttributes') and item.metadata.visualAttributes:
-                        gender_target = getattr(item.metadata.visualAttributes, 'genderTarget', '').lower()
+                metadata = self.safe_get_item_attr(item, 'metadata')
+                if metadata:
+                    visual_attrs = self.safe_get_item_attr(metadata, 'visualAttributes')
+                    if visual_attrs:
+                        gender_target = self.safe_get_item_attr(visual_attrs, 'genderTarget', '').lower()
                         
                         # If item has gender target, check match
                         if gender_target:
@@ -2617,28 +2649,28 @@ class RobustOutfitGenerationService:
             # ═══════════════════════════════════════════════════════════
             # COLOR THEORY MATCHING WITH SKIN TONE
             # ═══════════════════════════════════════════════════════════
-            item_color = item.color.lower() if item.color else ''
-            item_name_lower = (item.name if item else "Unknown").lower()
+            item_color = self.safe_get_item_attr(item, 'color', '').lower()
+            item_name_lower = self.safe_get_item_name(item).lower()
             
             # Check if color is excellent for skin tone
             for excellent_color in (safe_get(color_palette, 'excellent', []) if color_palette else []):
                 if excellent_color in item_color or excellent_color in item_name_lower:
                     base_score += 0.25  # Significant boost for excellent colors
-                    logger.debug(f"  🎨 {item.name}: Excellent color match for skin tone (+0.25)")
+                    logger.debug(f"  🎨 {self.safe_get_item_name(item)}: Excellent color match for skin tone (+0.25)")
                     break
             
             # Check if color is good for skin tone
             for good_color in (safe_get(color_palette, 'good', []) if color_palette else []):
                 if good_color in item_color or good_color in item_name_lower:
                     base_score += 0.15  # Moderate boost for good colors
-                    logger.debug(f"  🎨 {item.name}: Good color match for skin tone (+0.15)")
+                    logger.debug(f"  🎨 {self.safe_get_item_name(item)}: Good color match for skin tone (+0.15)")
                     break
             
             # Penalize colors to avoid for skin tone
             for avoid_color in (safe_get(color_palette, 'avoid', []) if color_palette else []):
                 if avoid_color in item_color or avoid_color in item_name_lower:
                     base_score -= 0.15  # Penalty for unflattering colors
-                    logger.debug(f"  🎨 {item.name}: Avoid color for skin tone (-0.15)")
+                    logger.debug(f"  🎨 {self.safe_get_item_name(item)}: Avoid color for skin tone (-0.15)")
                     break
             
             # Favorite color bonus (user preference still matters)
@@ -2734,15 +2766,15 @@ class RobustOutfitGenerationService:
                 
                 # Temperature compatibility
                 if hasattr(item, 'temperatureCompatibility'):
-                    temp_compat = item.temperatureCompatibility
+                    temp_compat = self.safe_get_item_attr(item, "temperatureCompatibility")
                     if temp_compat and hasattr(temp_compat, 'minTemp') and hasattr(temp_compat, 'maxTemp'):
                         if temp_compat.minTemp <= temp <= temp_compat.maxTemp:
                             base_score += 0.2
                 
                 # Material appropriateness for weather
-                item_name = (item.name if item else "Unknown")
+                item_name = self.safe_get_item_name(item) if item else "Unknown"
                 item_name_lower = item_name.lower()
-                item_type_lower = str(item.type).lower()
+                item_type_lower = str(self.safe_get_item_type(item)).lower()
                 
                 # Cold weather items
                 if temp < 50:
@@ -2947,7 +2979,7 @@ class RobustOutfitGenerationService:
                 rating_score = (avg_rating - 1) / 4  # Maps 1-5 to 0-1
                 base_score += rating_score * 0.3  # Up to +0.3 for perfect ratings
                 
-                logger.debug(f"  ⭐ {item.name}: Avg outfit rating {avg_rating:.1f} → +{rating_score * 0.3:.2f}")
+                logger.debug(f"  ⭐ {self.safe_get_item_name(item)}: Avg outfit rating {avg_rating:.1f} → +{rating_score * 0.3:.2f}")
             
             # ─────────────────────────────────────────────────────────────
             # 2. LIKES/DISLIKES (same weight as ratings)
@@ -2962,12 +2994,12 @@ class RobustOutfitGenerationService:
                     like_score = like_ratio  # 0-1 scale
                     base_score += like_score * 0.3  # Up to +0.3 (same weight as ratings)
                     
-                    logger.debug(f"  👍 {item.name}: {likes}L/{dislikes}D (ratio={like_ratio:.2f}) → +{like_score * 0.3:.2f}")
+                    logger.debug(f"  👍 {self.safe_get_item_name(item)}: {likes}L/{dislikes}D (ratio={like_ratio:.2f}) → +{like_score * 0.3:.2f}")
                     
                     # Penalty for heavily disliked items
                     if dislikes > likes and dislikes >= 2:
                         base_score -= 0.2
-                        logger.debug(f"  👎 {item.name}: Heavily disliked → -0.20")
+                        logger.debug(f"  👎 {self.safe_get_item_name(item)}: Heavily disliked → -0.20")
             
             # ─────────────────────────────────────────────────────────────
             # 3. FAVORITED ITEMS (prioritize if not worn this week)
@@ -2982,11 +3014,11 @@ class RobustOutfitGenerationService:
                 if not worn_this_week:
                     # PRIORITIZE: Big boost for favorited items not worn this week
                     base_score += 0.4
-                    logger.info(f"  ⭐💎 {item.name}: FAVORITE not worn this week → +0.40 (PRIORITY)")
+                    logger.info(f"  ⭐💎 {self.safe_get_item_name(item)}: FAVORITE not worn this week → +0.40 (PRIORITY)")
                 else:
                     # Still boost, but less
                     base_score += 0.15
-                    logger.debug(f"  ⭐ {item.name}: Favorite (worn this week) → +0.15")
+                    logger.debug(f"  ⭐ {self.safe_get_item_name(item)}: Favorite (worn this week) → +0.15")
             
             # ─────────────────────────────────────────────────────────────
             # 4. WEAR COUNT ALTERNATION (explore vs exploit)
@@ -2997,21 +3029,21 @@ class RobustOutfitGenerationService:
                 # BOOST RARELY-WORN ITEMS (discovery/diversity mode)
                 if item_wear_count == 0:
                     base_score += 0.25  # Never worn - high boost
-                    logger.debug(f"  🆕 {item.name}: Never worn → +0.25 (discovery)")
+                    logger.debug(f"  🆕 {self.safe_get_item_name(item)}: Never worn → +0.25 (discovery)")
                 elif item_wear_count <= 3:
                     base_score += 0.15  # Lightly worn - moderate boost
-                    logger.debug(f"  🌱 {item.name}: Lightly worn ({item_wear_count}) → +0.15")
+                    logger.debug(f"  🌱 {self.safe_get_item_name(item)}: Lightly worn ({item_wear_count}) → +0.15")
                 elif item_wear_count > 15:
                     base_score -= 0.10  # Overused - penalty
-                    logger.debug(f"  🔁 {item.name}: Overused ({item_wear_count}) → -0.10")
+                    logger.debug(f"  🔁 {self.safe_get_item_name(item)}: Overused ({item_wear_count}) → -0.10")
             else:
                 # BOOST POPULAR ITEMS (reliability/favorites mode)
                 if item_wear_count >= 5 and item_wear_count <= 15:
                     base_score += 0.20  # Sweet spot - proven favorites
-                    logger.debug(f"  🌟 {item.name}: Popular ({item_wear_count} wears) → +0.20")
+                    logger.debug(f"  🌟 {self.safe_get_item_name(item)}: Popular ({item_wear_count} wears) → +0.20")
                 elif item_wear_count > 15:
                     base_score += 0.10  # Very popular - still boost but less
-                    logger.debug(f"  ⭐ {item.name}: Very popular ({item_wear_count}) → +0.10")
+                    logger.debug(f"  ⭐ {self.safe_get_item_name(item)}: Very popular ({item_wear_count}) → +0.10")
                 elif item_wear_count == 0:
                     base_score -= 0.05  # Never worn - small penalty in favorites mode
             
@@ -3022,7 +3054,7 @@ class RobustOutfitGenerationService:
                 recent_wears = [w for w in item_wear_history[item_id] if w > one_week_ago]
                 if len(recent_wears) >= 2:
                     base_score -= 0.10  # Worn 2+ times this week - give it a rest
-                    logger.debug(f"  🔄 {item.name}: Worn {len(recent_wears)} times this week → -0.10")
+                    logger.debug(f"  🔄 {self.safe_get_item_name(item)}: Worn {len(recent_wears)} times this week → -0.10")
             
             # ─────────────────────────────────────────────────────────────
             # 6. ADVANCED STYLE EVOLUTION TRACKING (Netflix/Spotify-style)
@@ -3173,9 +3205,9 @@ class RobustOutfitGenerationService:
         for item_id, score_data in sorted_items:
             item = score_data['item']
             category = self._get_item_category(item)
-            item_name_lower = (item.name if item else "Unknown").lower()
+            item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
             
-            logger.info(f"🔍 DEBUG PHASE 1: Processing item {item.name} - category: {category}, score: {score_data['composite_score']:.2f}")
+            logger.info(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
             
             # Determine layering level
             layer_level = 'tops'  # Default
@@ -3196,11 +3228,11 @@ class RobustOutfitGenerationService:
                 if category not in categories_filled:
                     selected_items.append(item)
                     categories_filled[category] = True
-                    logger.info(f"  ✅ Essential {category}: {item.name} (score={score_data['composite_score']:.2f})")
+                    logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 else:
-                    logger.info(f"  ⏭️ Essential {category}: {item.name} skipped - category already filled")
+                    logger.info(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
             else:
-                logger.info(f"  ⏭️ Non-essential {category}: {item.name} - will check in Phase 2")
+                logger.info(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
         
         logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
         
@@ -3210,7 +3242,7 @@ class RobustOutfitGenerationService:
             first_item = sorted_items[0][1]['item']
             selected_items.append(first_item)
             categories_filled['tops'] = True  # Assume it's a top
-            logger.info(f"🚨 EMERGENCY BYPASS: Forced selection of {first_item.name}")
+            logger.info(f"🚨 EMERGENCY BYPASS: Forced selection of {self.safe_get_item_name(first_item)}")
         
         # Phase 2: Add layering pieces based on target count
         logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
@@ -3223,26 +3255,26 @@ class RobustOutfitGenerationService:
                 continue
             
             category = self._get_item_category(item)
-            item_name_lower = (item.name if item else "Unknown").lower()
+            item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
             
             # Determine layering appropriateness
             if category == 'outerwear' and score_data['composite_score'] > 0.6:
                 # Check if we need outerwear
                 if temp < 65 or occasion_lower in ['business', 'formal']:
                     selected_items.append(item)
-                    logger.info(f"  ✅ Outerwear: {item.name} (score={score_data['composite_score']:.2f})")
+                    logger.info(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
             
             elif category == 'tops' and score_data['composite_score'] > 0.6:
                 # Additional top layer (sweater, cardigan)
                 if temp < 70 and any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'vest']):
                     selected_items.append(item)
-                    logger.info(f"  ✅ Mid-layer: {item.name} (score={score_data['composite_score']:.2f})")
+                    logger.info(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
             
             elif category == 'accessories' and score_data['composite_score'] > 0.7:
                 # High-scoring accessories
                 if temp < 50 or occasion_lower in ['formal', 'business']:
                     selected_items.append(item)
-                    logger.info(f"  ✅ Accessory: {item.name} (score={score_data['composite_score']:.2f})")
+                    logger.info(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
         
         # Ensure minimum items
         if len(selected_items) < min_items:
@@ -3250,7 +3282,7 @@ class RobustOutfitGenerationService:
             for item_id, score_data in sorted_items:
                 if score_data['item'] not in selected_items and len(selected_items) < min_items:
                     selected_items.append(score_data['item'])
-                    logger.info(f"  ➕ Filler: {score_data['item'].name}")
+                    logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
         
@@ -3291,7 +3323,7 @@ class RobustOutfitGenerationService:
                     
                     if item_to_replace and alternative:
                         # Replace in selected items
-                        selected_items = [alternative if item.id == item_to_replace.id else item 
+                        selected_items = [alternative if self.safe_get_item_attr(item, "id", "") == item_to_replace.id else item 
                                         for item in selected_items]
                         logger.info(f"  🔄 Swapped {item_to_replace.name} → {alternative.name}")
         
@@ -3309,7 +3341,7 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════════════════
         
         # Calculate final confidence based on composite scores
-        avg_composite_score = sum(item_scores[item.id]['composite_score'] for item in selected_items) / len(selected_items)
+        avg_composite_score = sum(item_scores[self.safe_get_item_attr(item, "id", "")]['composite_score'] for item in selected_items) / len(selected_items)
         final_confidence = min(0.95, avg_composite_score)
         
         logger.info(f"📊 ANALYTICS: Recording strategy execution...")
@@ -3543,10 +3575,10 @@ class RobustOutfitGenerationService:
                                 
                                 if trend > 0.5:
                                     evolution_score += 0.15  # Style trending UP
-                                    logger.debug(f"  📈 {item.name}: {style} TRENDING UP (+0.15)")
+                                    logger.debug(f"  📈 {self.safe_get_item_name(item)}: {style} TRENDING UP (+0.15)")
                                 elif trend < -0.5:
                                     evolution_score -= 0.10  # Style trending DOWN
-                                    logger.debug(f"  📉 {item.name}: {style} trending down (-0.10)")
+                                    logger.debug(f"  📉 {self.safe_get_item_name(item)}: {style} trending down (-0.10)")
             
             # ═══════════════════════════════════════════════════════════════
             # 4. OCCASION-SPECIFIC LEARNING
@@ -3567,16 +3599,16 @@ class RobustOutfitGenerationService:
                     
                     if weighted_avg and weighted_avg >= 4.0:
                         evolution_score += 0.15  # User loves outfits for this occasion
-                        logger.debug(f"  🎯 {item.name}: User loves {occasion_lower} outfits (+0.15)")
+                        logger.debug(f"  🎯 {self.safe_get_item_name(item)}: User loves {occasion_lower} outfits (+0.15)")
                     elif weighted_avg and weighted_avg <= 2.5:
                         evolution_score -= 0.10  # User dislikes outfits for this occasion
-                        logger.debug(f"  ⚠️ {item.name}: User dislikes {occasion_lower} outfits (-0.10)")
+                        logger.debug(f"  ⚠️ {self.safe_get_item_name(item)}: User dislikes {occasion_lower} outfits (-0.10)")
             
             # ═══════════════════════════════════════════════════════════════
             # 5. COLOR PATTERN LEARNING
             # ═══════════════════════════════════════════════════════════════
             
-            item_color = item.color.lower() if item.color else ''
+            item_color = self.safe_get_item_attr(item, "color", "").lower() if self.safe_get_item_attr(item, "color", "") else ''
             
             if item_color and item_color in color_ratings_over_time:
                 weighted_avg = calculate_weighted_average(color_ratings_over_time[item_color])
@@ -3587,7 +3619,7 @@ class RobustOutfitGenerationService:
                     evolution_score += color_bonus
                     
                     if weighted_avg >= 4.0:
-                        logger.debug(f"  🎨 {item.name}: {item_color} is trending color (+{color_bonus:.2f})")
+                        logger.debug(f"  🎨 {self.safe_get_item_name(item)}: {item_color} is trending color (+{color_bonus:.2f})")
             
             # ═══════════════════════════════════════════════════════════════
             # 6. SEASONAL PREFERENCE DETECTION
@@ -3614,9 +3646,9 @@ class RobustOutfitGenerationService:
                 # Check historical ratings for this style in this season
                 # (Simplified - could track season-specific style preferences)
                 evolution_score += 0.05
-                logger.debug(f"  🍂 {item.name}: Seasonal match for {current_season} (+0.05)")
+                logger.debug(f"  🍂 {self.safe_get_item_name(item)}: Seasonal match for {current_season} (+0.05)")
             
-            logger.debug(f"  📊 {item.name}: Total evolution score = +{evolution_score:.2f}")
+            logger.debug(f"  📊 {self.safe_get_item_name(item)}: Total evolution score = +{evolution_score:.2f}")
             
             return evolution_score
             
