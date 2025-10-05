@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch(fullBackendUrl, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer test', // Use test token for development
+        'Authorization': authHeader || 'Bearer test', // Use real token if available, fallback to test
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
