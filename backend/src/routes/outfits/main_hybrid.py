@@ -134,11 +134,20 @@ async def generate_outfit(
         # Convert response to main app format
         return {
             "success": True,
-            "outfit": result.outfit if hasattr(result, 'outfit') else None,
-            "reasoning": result.reasoning if hasattr(result, 'reasoning') else "Generated using hybrid architecture",
+            "id": result.id if hasattr(result, 'id') else f"outfit_{int(time.time())}",
+            "name": result.name if hasattr(result, 'name') else f"{request.get('style', 'Unknown')} {request.get('occasion', 'Outfit')}",
+            "items": result.items if hasattr(result, 'items') else [],
+            "style": result.style if hasattr(result, 'style') else request.get('style', 'unknown'),
+            "occasion": result.occasion if hasattr(result, 'occasion') else request.get('occasion', 'unknown'),
+            "mood": result.mood if hasattr(result, 'mood') else request.get('mood', 'unknown'),
+            "weather": result.weather if hasattr(result, 'weather') else {},
+            "confidence_score": result.confidence_score if hasattr(result, 'confidence_score') else 0.8,
+            "personalization_score": result.personalization_score if hasattr(result, 'personalization_score') else None,
+            "personalization_applied": result.personalization_applied if hasattr(result, 'personalization_applied') else True,
             "generation_mode": generation_mode,
-            "personalization_applied": True,
-            "strategy_used": result.strategy_used if hasattr(result, 'strategy_used') else "hybrid",
+            "generation_strategy": result.generation_strategy if hasattr(result, 'generation_strategy') else "hybrid",
+            "data_source": result.data_source if hasattr(result, 'data_source') else "main_hybrid",
+            "metadata": result.metadata if hasattr(result, 'metadata') else {},
             "timestamp": time.time(),
             "user_id": current_user_id
         }
