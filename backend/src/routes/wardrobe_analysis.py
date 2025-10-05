@@ -62,9 +62,11 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
                 analysis["gender_filter"] = gender
             else:
                 # print("⚠️ Gaps Backend: No real trends available, keeping fallback data")
+                pass
         except Exception as e:
             # print(f"❌ Gaps Backend: Error getting real trends: {e}")
             # Keep the fallback trends from the analysis service
+            pass
         
         return {
             "success": True,
@@ -237,8 +239,10 @@ async def get_trending_styles(gender: str = None, current_user: UserProfile = De
                 }
             else:
                 # print("⚠️ API: No real trends available, using fallback data")
+                pass
         except Exception as e:
             # print(f"❌ API: Error getting real trends: {e}")
+            pass
         
         # Fallback to curated trends if real trends fail
         fallback_trends = [
@@ -352,6 +356,7 @@ async def force_refresh_trends() -> Dict[str, Any]:
             print(f"🗑️ Cleared fetch log for {today}")
         except Exception as e:
             # print(f"⚠️ Warning: Could not clear fetch log: {e}")
+            pass
         
         # Force fetch new trends
         result = await trends_service.fetch_and_store_trends()
