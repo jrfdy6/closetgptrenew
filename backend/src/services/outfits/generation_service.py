@@ -61,11 +61,14 @@ class OutfitGenerationService:
             UserProfile = None
             OutfitGeneratedOutfit = None
         
-        # Import robust generation service
+        # Import robust generation service - TEMPORARILY DISABLED FOR DEBUGGING
         try:
-            from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
-            print(f"✅ MAIN LOGIC: Robust generation service imported successfully")
-            logger.info(f"✅ ROBUST IMPORT: Robust generation service imported successfully")
+            # from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
+            RobustOutfitGenerationService = None
+            GenerationContext = None
+            print(f"🔧 MAIN LOGIC: Robust generation service import DISABLED for debugging")
+            logger.info(f"🔧 ROBUST IMPORT: Robust generation service import DISABLED for debugging")
+            raise ImportError("Robust service temporarily disabled for debugging")
         except ImportError as e:
             logger.error(f"🚨 FORCE REDEPLOY v12.0: Robust service import failed: {e}")
             print(f"🚨 MAIN LOGIC: Robust service import FAILED: {e}")
