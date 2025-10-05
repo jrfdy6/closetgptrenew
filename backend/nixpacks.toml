@@ -12,4 +12,4 @@ cmds = [
 ]
 
 [start]
-cmd = "cd /app && python run.py"
+cmd = "ls -la /app && find /app -name 'run.py' && python /app/run.py"
