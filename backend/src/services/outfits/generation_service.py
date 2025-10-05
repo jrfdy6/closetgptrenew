@@ -8,10 +8,10 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from uuid import uuid4
 
-from ...routes.outfits.models import OutfitRequest, OutfitResponse
-from ...routes.outfits.utils import log_generation_strategy, clean_for_firestore
-from ...routes.outfits.validation import validate_style_gender_compatibility
-from ...routes.outfits.generation import ensure_base_item_included
+from src.routes.outfits.models import OutfitRequest, OutfitResponse
+from src.routes.outfits.utils import log_generation_strategy, clean_for_firestore
+from src.routes.outfits.validation import validate_style_gender_compatibility
+from src.routes.outfits.generation import ensure_base_item_included
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +45,10 @@ class OutfitGenerationService:
         
         # Import Firebase inside function to prevent import-time crashes
         try:
-            from ...config.firebase import db, firebase_initialized
-            from ...auth.auth_service import get_current_user
-            from ...custom_types.profile import UserProfile
-            from ...custom_types.outfit import OutfitGeneratedOutfit
+            from src.config.firebase import db, firebase_initialized
+            from src.auth.auth_service import get_current_user
+            from src.custom_types.profile import UserProfile
+            from src.custom_types.outfit import OutfitGeneratedOutfit
             FIREBASE_AVAILABLE = True
             print(f"🔎 MAIN LOGIC: Firebase imports successful")
         except ImportError as e:
@@ -63,7 +63,7 @@ class OutfitGenerationService:
         
         # Import robust generation service
         try:
-            from ..robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
+            from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
             print(f"✅ MAIN LOGIC: Robust generation service imported successfully")
             logger.info(f"✅ ROBUST IMPORT: Robust generation service imported successfully")
         except ImportError as e:
@@ -73,7 +73,7 @@ class OutfitGenerationService:
         
         # Import ClothingItem for validation
         try:
-            from ...custom_types.wardrobe import ClothingItem
+            from src.custom_types.wardrobe import ClothingItem
             print(f"🔎 MAIN LOGIC: ClothingItem import successful")
         except ImportError as e:
             logger.error(f"🚨 FORCE REDEPLOY v12.0: ClothingItem import failed: {e}")

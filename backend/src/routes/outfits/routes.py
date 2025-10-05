@@ -10,9 +10,32 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from .models import OutfitRequest, OutfitResponse
 from .utils import log_generation_strategy
 from ..auth.auth_service import get_current_user, get_current_user_id
-from ...services.outfits.generation_service import OutfitGenerationService
-from ...services.outfits.simple_service import SimpleOutfitService
-from .rule_engine import generate_rule_based_outfit, generate_fallback_outfit
+
+# Import services with error handling to prevent mount failures
+try:
+    from src.services.outfits.generation_service import OutfitGenerationService
+    GENERATION_SERVICE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Generation service not available: {e}")
+    GENERATION_SERVICE_AVAILABLE = False
+    OutfitGenerationService = None
+
+try:
+    from src.services.outfits.simple_service import SimpleOutfitService
+    SIMPLE_SERVICE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Simple service not available: {e}")
+    SIMPLE_SERVICE_AVAILABLE = False
+    SimpleOutfitService = None
+
+try:
+    from .rule_engine import generate_rule_based_outfit, generate_fallback_outfit
+    RULE_ENGINE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"⚠️ Rule engine not available: {e}")
+    RULE_ENGINE_AVAILABLE = False
+    generate_rule_based_outfit = None
+    generate_fallback_outfit = None
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -71,38 +94,98 @@ async def generate_outfit(
         logger.info(f"🎯 Starting robust outfit generation for user: {current_user_id}")
         logger.info(f"📋 Request details: {req.occasion}, {req.style}, {req.mood}")
         
-        # Initialize services
-        generation_service = OutfitGenerationService()
-        simple_service = SimpleOutfitService()
+        # Check service availability and initialize
+        if not GENERATION_SERVICE_AVAILABLE or not SIMPLE_SERVICE_AVAILABLE or not RULE_ENGINE_AVAILABLE:
+            logger.warning("⚠️ Some services not available, using fallback response")
+            outfit_response = {
+                "id": "fallback-outfit-id",
+                "name": f"Fallback {req.style} outfit",
+                "style": req.style,
+                "mood": req.mood,
+                "items": req.resolved_wardrobe[:3] if req.resolved_wardrobe else [],
+                "occasion": req.occasion,
+                "confidence_score": 0.5,
+                "reasoning": "Fallback outfit generated due to service unavailability",
+                "createdAt": time.time(),
+                "user_id": current_user_id,
+                "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "wearCount": 0,
+                "lastWorn": None,
+                "metadata": {
+                    "generation_strategy": "fallback_due_to_service_unavailability",
+                    "generation_time": time.time() - start_time
+                }
+            }
+        else:
+        # Initialize services based on availability
+        if GENERATION_SERVICE_AVAILABLE:
+            generation_service = OutfitGenerationService()
+        else:
+            generation_service = None
+            
+        if SIMPLE_SERVICE_AVAILABLE:
+            simple_service = SimpleOutfitService()
+        else:
+            simple_service = None
         
         # Try robust generation first
-        try:
-            outfit_response = await generation_service.generate_outfit_logic(req, current_user_id)
-            logger.info(f"✅ Robust outfit generation successful")
-            
-        except Exception as e:
-            logger.warning(f"⚠️ Robust generation failed, falling back to simple: {e}")
-            
-            # Fallback to rule-based generation
+        if generation_service:
             try:
-                user_profile = {}  # TODO: Get actual user profile
-                outfit_response = await generate_rule_based_outfit(req.resolved_wardrobe, user_profile, req)
-                logger.info(f"✅ Rule-based outfit generation successful")
+                outfit_response = await generation_service.generate_outfit_logic(req, current_user_id)
+                logger.info(f"✅ Robust outfit generation successful")
                 
-            except Exception as rule_error:
-                logger.warning(f"⚠️ Rule-based generation failed, trying simple fallback: {rule_error}")
+            except Exception as e:
+                logger.warning(f"⚠️ Robust generation failed, falling back to rule-based: {e}")
                 
-                # Final fallback to simple generation
-                try:
-                    outfit_response = await simple_service.generate_simple_outfit(req, current_user_id)
-                    logger.info(f"✅ Simple outfit generation successful")
-                    
-                except Exception as simple_error:
-                    logger.error(f"❌ All generation methods failed: {simple_error}")
-                    raise HTTPException(
-                        status_code=500,
-                        detail=f"Outfit generation failed: {str(simple_error)}"
-                    )
+                # Fallback to rule-based generation
+                if RULE_ENGINE_AVAILABLE:
+                    try:
+                        user_profile = {}  # TODO: Get actual user profile
+                        outfit_response = await generate_rule_based_outfit(req.resolved_wardrobe, user_profile, req)
+                        logger.info(f"✅ Rule-based outfit generation successful")
+                        
+                    except Exception as rule_error:
+                        logger.warning(f"⚠️ Rule-based generation failed, trying simple fallback: {rule_error}")
+                        
+                        # Final fallback to simple generation
+                        if simple_service:
+                            try:
+                                outfit_response = await simple_service.generate_simple_outfit(req, current_user_id)
+                                logger.info(f"✅ Simple outfit generation successful")
+                                
+                            except Exception as simple_error:
+                                logger.error(f"❌ All generation methods failed: {simple_error}")
+                                raise HTTPException(
+                                    status_code=500,
+                                    detail=f"Outfit generation failed: {str(simple_error)}"
+                                )
+                        else:
+                            raise HTTPException(
+                                status_code=500,
+                                detail="No outfit generation services available"
+                            )
+                else:
+                    # Try simple service directly
+                    if simple_service:
+                        try:
+                            outfit_response = await simple_service.generate_simple_outfit(req, current_user_id)
+                            logger.info(f"✅ Simple outfit generation successful")
+                        except Exception as simple_error:
+                            logger.error(f"❌ Simple generation failed: {simple_error}")
+                            raise HTTPException(
+                                status_code=500,
+                                detail=f"Outfit generation failed: {str(simple_error)}"
+                            )
+                    else:
+                        raise HTTPException(
+                            status_code=500,
+                            detail="No outfit generation services available"
+                        )
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail="Complex outfit generation service not available"
+            )
         
         # Log generation strategy
         log_generation_strategy(

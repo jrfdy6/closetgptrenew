@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from uuid import uuid4
 
-from ...routes.outfits.models import OutfitRequest, OutfitResponse
+from src.routes.outfits.models import OutfitRequest, OutfitResponse
 
 logger = logging.getLogger(__name__)
 

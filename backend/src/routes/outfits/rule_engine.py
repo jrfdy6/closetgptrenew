@@ -8,8 +8,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from uuid import uuid4
 
-from .models import OutfitRequest
-from .utils import log_generation_strategy
+from src.routes.outfits.models import OutfitRequest
+from src.routes.outfits.utils import log_generation_strategy
 
 logger = logging.getLogger(__name__)
 

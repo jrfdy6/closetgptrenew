@@ -5,7 +5,7 @@ Robust outfit generation service wrapper.
 import logging
 from typing import Dict, List, Any, Optional
 
-from ...routes.outfits.models import OutfitRequest
+from src.routes.outfits.models import OutfitRequest
 
 logger = logging.getLogger(__name__)
 
