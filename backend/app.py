@@ -149,7 +149,8 @@ ROUTERS = [
     # ("test_router", ""),                 # Test router with no dependencies
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
-    ("src.routes.outfits.test_routes", "/api/outfits"),   # Minimal test outfits router - WORKING
+    ("src.routes.outfits.targeted_test", "/api/outfits"),   # Targeted import test router - identify specific failure
+    # ("src.routes.outfits.test_routes", "/api/outfits"),   # Minimal test outfits router - WORKING
     # ("src.routes.outfits.progressive_routes", "/api/outfits"),   # Progressive outfits router - FAILED (import error)
     # ("src.routes.outfits.routes", "/api/outfits"),   # New modular outfits router - TEMPORARILY DISABLED
     # ("src.routes.outfits.debug", "/api/outfits-debug"), # Debug endpoints for outfits - TEMPORARILY DISABLED
