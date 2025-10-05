@@ -136,6 +136,27 @@ export class ExistingDataPersonalizationService {
     };
   }
 
+  // NEW: Use real Firebase token for personalization demo
+  private static async getAuthHeadersReal(user: User): Promise<HeadersInit> {
+    try {
+      console.log('🔍 [Auth] Getting real Firebase token for user:', user.uid);
+      const token = await user.getIdToken();
+      console.log('🔍 [Auth] Real token generated, length:', token.length);
+      
+      return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+    } catch (error) {
+      console.error('❌ [Auth] Failed to get real token:', error);
+      // Fallback to test token
+      return {
+        'Authorization': `Bearer test`,
+        'Content-Type': 'application/json',
+      };
+    }
+  }
+
   // ===== PERSONALIZATION STATUS =====
 
   /**
@@ -145,7 +166,7 @@ export class ExistingDataPersonalizationService {
     try {
       console.log('🔍 [ExistingDataPersonalization] Getting personalization status from existing data');
       
-      const headers = await this.getAuthHeadersForcedTest(user);
+      const headers = await this.getAuthHeadersReal(user);
       console.log('🔍 [API] Making request to:', `${this.API_BASE}${this.ENDPOINT_PREFIX}/personalization-status`);
       console.log('🔍 [API] Headers:', headers);
       
@@ -180,7 +201,7 @@ export class ExistingDataPersonalizationService {
     try {
       console.log('🔍 [ExistingDataPersonalization] Getting user preferences from existing data');
       
-      const headers = await this.getAuthHeadersForcedTest(user);
+      const headers = await this.getAuthHeadersReal(user);
       const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/user-preferences`, {
         method: 'GET',
         headers,
@@ -212,7 +233,7 @@ export class ExistingDataPersonalizationService {
     try {
       console.log('🔍 [ExistingDataPersonalization] Generating personalized outfit from existing data');
       
-      const headers = await this.getAuthHeadersForcedTest(user);
+      const headers = await this.getAuthHeadersReal(user);
       const response = await fetch(`${this.API_BASE}${this.ENDPOINT_PREFIX}/generate`, {
         method: 'POST',
         headers,
