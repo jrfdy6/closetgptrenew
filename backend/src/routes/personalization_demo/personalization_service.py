@@ -93,11 +93,25 @@ class PersonalizationService:
                 personalization_applied = False
                 personalization_score = None
             
+            # Convert ClothingItem objects to dictionaries if needed
+            items = outfit_data.get("items", [])
+            converted_items = []
+            for item in items:
+                if hasattr(item, 'model_dump'):  # Pydantic model
+                    converted_items.append(item.model_dump())
+                elif hasattr(item, '__dict__'):  # Regular object
+                    converted_items.append(item.__dict__)
+                elif isinstance(item, dict):  # Already a dictionary
+                    converted_items.append(item)
+                else:
+                    # Fallback: convert to string representation
+                    converted_items.append({"name": str(item), "type": "unknown"})
+            
             # Create enhanced response
             response = PersonalizationDemoResponse(
                 id=outfit_data.get("id", f"personalized_{int(time.time())}"),
                 name=outfit_data.get("name", f"{req.style} {req.occasion} Outfit"),
-                items=outfit_data.get("items", []),
+                items=converted_items,
                 style=req.style,
                 occasion=req.occasion,
                 mood=req.mood,
