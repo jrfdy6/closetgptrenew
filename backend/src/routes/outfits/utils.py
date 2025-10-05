@@ -41,7 +41,7 @@ def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unk
     
     # Record metrics
     try:
-        from ..services.generation_metrics_service import generation_metrics
+        from src.services.generation_metrics_service import generation_metrics
         generation_metrics.record_generation(
             strategy=strategy,
             occasion=occasion,

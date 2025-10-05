@@ -113,8 +113,8 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
         }
         
         for item in suitable_items:
-            item_type = (item.get('type', '') if item else '').lower()
-            item_name = (item.get('name', '') if item else '').lower()
+            item_type = str(item.get('type', '') if item else '').lower()
+            item_name = str(item.get('name', '') if item else '').lower()
             
             # Enhanced categorization logic
             if any(top in item_type or top in item_name for top in ['shirt', 'blouse', 'top', 't-shirt', 'tank', 'sweater', 'hoodie']):
@@ -305,9 +305,9 @@ def calculate_style_appropriateness_score(style: str, item: Dict[str, Any]) -> i
         if not item or not style:
             return 0
         
-        item_type = (item.get('type', '') if item else '').lower()
-        item_name = (item.get('name', '') if item else '').lower()
-        item_style = (item.get('style', '') if item else '').lower()
+        item_type = str(item.get('type', '') if item else '').lower()
+        item_name = str(item.get('name', '') if item else '').lower()
+        item_style = str(item.get('style', '') if item else '').lower()
         
         style_lower = style.lower()
         
@@ -323,7 +323,7 @@ def calculate_style_appropriateness_score(style: str, item: Dict[str, Any]) -> i
             score += 6
         
         # Occasion appropriateness
-        occasion = (item.get('occasion', '') if item else '').lower()
+        occasion = str(item.get('occasion', '') if item else '').lower()
         if occasion and occasion != 'casual':
             score += 5
         
