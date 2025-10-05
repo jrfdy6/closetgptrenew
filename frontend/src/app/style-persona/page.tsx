@@ -135,14 +135,59 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
   }
 };
 
-const getHeroImageForPersona = (personaId: string): string => {
-  const imageMap: Record<string, string> = {
-    architect: '/images/style-heroes/architect-conference-room.jpg',
-    rebel: '/images/style-heroes/rebel-graffiti-alley.jpg',
-    connoisseur: '/images/style-heroes/connoisseur-luxury-hotel.jpg',
-    modernist: '/images/style-heroes/modernist-minimalist-space.jpg'
+const getHeroImageForPersona = (personaId: string, userGender?: string): string => {
+  // Determine which gender variant to use
+  let genderVariant = 'unisex'; // default fallback
+  if (userGender === 'Male') {
+    genderVariant = 'men';
+  } else if (userGender === 'Female') {
+    genderVariant = 'women';
+  }
+  
+  const heroImages: Record<string, Record<string, string>> = {
+    architect: {
+      men: "/images/style-heroes/architect-men-hero..png",
+      women: "/images/style-heroes/architect-women-hero.png",
+      unisex: "/images/style-heroes/architect-unisex-hero.png"
+    },
+    strategist: {
+      men: "/images/style-heroes/strategist-men-hero.png",
+      women: "/images/style-heroes/strategist-women-hero.png",
+      unisex: "/images/style-heroes/strategist-unisex-hero.png"
+    },
+    innovator: {
+      men: "/images/style-heroes/innovator-men-hero.png",
+      women: "/images/style-heroes/innovator-women-hero.png",
+      unisex: "/images/style-heroes/innovator-unisex-hero.png"
+    },
+    classic: {
+      men: "/images/style-heroes/classic-men-hero.png",
+      women: "/images/style-heroes/classic-women-hero.png",
+      unisex: "/images/style-heroes/classic-unisex-hero.png"
+    },
+    wanderer: {
+      men: "/images/style-heroes/wanderer-men-hero.png",
+      women: "/images/style-heroes/wanderer-women-hero.png",
+      unisex: "/images/style-heroes/wanderer-unisex-hero.png"
+    },
+    rebel: {
+      men: "/images/style-heroes/rebel-men-hero.png",
+      women: "/images/style-heroes/rebel-women-hero.png",
+      unisex: "/images/style-heroes/rebel-unisex-hero.png"
+    },
+    connoisseur: {
+      men: "/images/style-heroes/connoisseur-men-hero.png",
+      women: "/images/style-heroes/connoisseur-women-hero.png",
+      unisex: "/images/style-heroes/connoisseur-unisex-hero.png"
+    },
+    modernist: {
+      men: "/images/style-heroes/modernist-men-hero.png",
+      women: "/images/style-heroes/modernist-women-hero.png",
+      unisex: "/images/style-heroes/modernist-unisex-hero.png"
+    }
   };
-  return imageMap[personaId] || '/images/style-heroes/rebel-graffiti-alley.jpg';
+  
+  return heroImages[personaId]?.[genderVariant] || "/images/placeholder.jpg";
 };
 
 const getStyleExamplesForPersona = (personaId: string) => {
@@ -186,6 +231,30 @@ export default function StylePersonaPage() {
     }
   }, [user, authLoading, router]);
 
+  // Force refresh when page loads (e.g., coming from quiz)
+  useEffect(() => {
+    if (user && !authLoading) {
+      // Add a small delay to ensure backend has processed the quiz
+      const timer = setTimeout(() => {
+        console.log('🔄 [Persona Page] Force refreshing profile data...');
+        fetchProfile();
+      }, 1000); // Increased delay to 1 second
+      return () => clearTimeout(timer);
+    }
+  }, []); // Run once on mount
+
+  // Refresh profile data when page becomes visible (e.g., returning from quiz)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user && !authLoading) {
+        fetchProfile();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, authLoading]);
+
   const fetchProfile = async () => {
     try {
       setLoading(true);
@@ -199,6 +268,7 @@ export default function StylePersonaPage() {
 
       if (response.ok) {
         const profileData = await response.json();
+        console.log('🎭 [Persona Page] Fetched profile data:', profileData);
         setProfile(profileData);
       } else {
         throw new Error('Failed to fetch profile');
@@ -212,6 +282,8 @@ export default function StylePersonaPage() {
   };
 
   const determineStylePersona = (): StylePersona => {
+    console.log('🎭 [Style Persona] Determining persona for profile:', profile);
+    
     // First, try to use the stored persona from the profile
     if (profile?.stylePersona) {
       console.log('🎭 [Style Persona] Using stored persona:', profile.stylePersona);
@@ -307,11 +379,15 @@ export default function StylePersonaPage() {
         {/* Hero Section */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl mb-8">
           {/* Hero Image */}
-          <div className="relative h-[600px] overflow-hidden">
+          <div className="relative h-[500px] overflow-hidden">
             <img 
-              src={getHeroImageForPersona(persona.id)}
+              src={getHeroImageForPersona(persona.id, profile?.gender)}
               alt={`${persona.name} style example`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain bg-white"
+              onError={(e) => {
+                console.error('❌ [Persona Page] Hero image failed to load:', e.currentTarget.src);
+                e.currentTarget.src = '/images/placeholder.jpg';
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/60"></div>
             
@@ -360,51 +436,6 @@ export default function StylePersonaPage() {
           </div>
         </div>
 
-        {/* Style Examples Section */}
-        <div className="relative mb-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-6">Your Style in Action</h2>
-            <p className="text-lg text-stone-600 dark:text-stone-400 max-w-3xl mx-auto leading-relaxed">
-              See how your {persona.name.toLowerCase()} style translates into real outfits and situations
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getStyleExamplesForPersona(persona.id).map((image, index) => (
-              <div key={index} className="group cursor-pointer">
-                <div className="relative overflow-hidden rounded-xl shadow-lg group-hover:shadow-2xl transition-all duration-700 transform group-hover:-translate-y-3 group-hover:scale-[1.02]">
-                  <img 
-                    src={image.url} 
-                    alt={`${persona.name} style example ${index + 1}`}
-                    className="w-full h-80 object-cover transition-transform duration-700 group-hover:scale-110"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `
-                          <div class="w-full h-80 bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-700 flex items-center justify-center rounded-xl">
-                            <div class="text-center text-stone-500 dark:text-stone-400">
-                              <div class="text-4xl mb-2">📷</div>
-                              <div class="text-sm font-medium">Style example unavailable</div>
-                            </div>
-                          </div>
-                        `;
-                      }
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
-                    <h4 className="font-bold text-xl mb-3 group-hover:text-orange-300 transition-colors duration-300">{image.caption}</h4>
-                    <p className="text-sm text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-500 font-medium">
-                      Click to explore this look
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Style Fingerprint Section */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">

@@ -31,7 +31,7 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
     tagline: "Clean fits. Simple choices. Always looks good.",
     description: "You're that person who always looks put together without trying too hard. Your style is built on solid foundations - quality basics, perfect fits, and a neutral palette that works everywhere. You believe in investing in pieces that last and building a wardrobe that makes getting dressed effortless.",
     styleMission: "Your style journey is about adding layers to what you've already built. Start experimenting with textures, subtle patterns, and statement accessories while keeping your core aesthetic intact.",
-    examples: ["Michael B. Jordan", "Ryan Gosling", "John Cho", "Oscar Isaac", "Idris Elba"],
+    examples: ["Michael B. Jordan", "Ryan Gosling", "Zendaya", "Emma Stone", "Idris Elba"],
     traits: [
       "Minimal but fresh",
       "Sticks to what works", 
@@ -47,7 +47,7 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
     tagline: "Street style meets sophistication. Always ready for anything.",
     description: "You know how to mix classic and bold. Your style adapts to any situation - from boardroom to bar - because you understand the power of versatile pieces and smart layering. You're not afraid to take risks, but they're always calculated ones.",
     styleMission: "Keep building your flexible wardrobe. Every move is intentional. Focus on pieces that can transition between formal and casual, and don't be afraid to mix high and low.",
-    examples: ["Donald Glover", "Chris Paul", "John Legend", "Mahershala Ali", "Lakeith Stanfield"],
+    examples: ["Donald Glover", "Chris Paul", "Zendaya", "Mahershala Ali", "Lakeith Stanfield"],
     traits: [
       "Calculated risks",
       "Versatile pieces",
@@ -63,7 +63,7 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
     tagline: "Bold choices. Creative expression. Stand out from the crowd.",
     description: "You're not afraid to be the most stylish person in the room. Your style is a form of self-expression and creativity. You experiment with trends, mix unexpected pieces, and aren't afraid to take fashion risks that pay off.",
     styleMission: "Push boundaries while staying true to your vision. Focus on unique pieces that tell your story and don't be afraid to be the trendsetter in your circle.",
-    examples: ["Pharrell Williams", "Tyler, The Creator", "A$AP Rocky", "Jaden Smith", "Timothée Chalamet"],
+    examples: ["Pharrell Williams", "Tyler, The Creator", "Zendaya", "Jaden Smith", "Timothée Chalamet"],
     traits: [
       "Trendsetter",
       "Creative expression",
@@ -79,7 +79,7 @@ const STYLE_PERSONAS: Record<string, StylePersona> = {
     tagline: "Timeless elegance. Sophisticated style. Never goes out of fashion.",
     description: "You appreciate the finer things and believe in investing in quality pieces that will last decades. Your style is refined, sophisticated, and built on traditional menswear principles. You look polished without being flashy.",
     styleMission: "Refine your existing foundation. Focus on perfect tailoring, quality fabrics, and subtle details that elevate your look without being obvious.",
-    examples: ["George Clooney", "David Beckham", "Henry Golding", "Regé-Jean Page", "Dev Patel"],
+    examples: ["George Clooney", "David Beckham", "Meghan Markle", "Regé-Jean Page", "Dev Patel"],
     traits: [
       "Timeless pieces",
       "Quality investment",
@@ -247,14 +247,22 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: "cup_size",
     question: "What is your cup size? (Optional)",
-    options: ["AA", "A", "B", "C", "D", "DD", "DDD", "E", "F", "FF", "G", "GG", "H", "HH", "I", "J", "K", "L", "M", "N", "O", "P", "Prefer not to say"],
+    options: ["AA", "A", "B", "C", "D", "DD", "DDD+", "Prefer not to say"],
     category: "sizes"
   },
   {
-    id: "shoe_size",
+    id: "shoe_size_female",
     question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16 or larger", "Wide width", "Narrow width", "Custom/Other"],
-    category: "sizes"
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12+"],
+    category: "sizes",
+    gender: "female"
+  },
+  {
+    id: "shoe_size_male",
+    question: "What is your shoe size?",
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "14", "15", "16 or larger"],
+    category: "sizes",
+    gender: "male"
   },
   // Female style questions - using different numbered images for color variety
   {
@@ -510,6 +518,16 @@ export default function Onboarding() {
       }
       if (question.id === 'body_type_male' && currentGender && currentGender !== 'Male') {
         console.log('❌ [Filter] Filtering out body_type_male for non-male');
+        return false;
+      }
+      
+      // Show gender-specific shoe size questions
+      if (question.id === 'shoe_size_female' && currentGender && currentGender !== 'Female') {
+        console.log('❌ [Filter] Filtering out shoe_size_female for non-female');
+        return false;
+      }
+      if (question.id === 'shoe_size_male' && currentGender && currentGender !== 'Male') {
+        console.log('❌ [Filter] Filtering out shoe_size_male for non-male');
         return false;
       }
       
@@ -830,7 +848,7 @@ export default function Onboarding() {
     
     const heroImages: Record<string, Record<string, string>> = {
       architect: {
-        men: "/images/style-heroes/architect-men-hero.png",
+        men: "/images/style-heroes/architect-men-hero..png",
         women: "/images/style-heroes/architect-women-hero.png",
         unisex: "/images/style-heroes/architect-unisex-hero.png"
       },
@@ -1107,6 +1125,11 @@ export default function Onboarding() {
             return acc;
           }, {} as Record<string, string>)
         });
+        
+        // Navigate to persona page immediately after successful submission
+        console.log('🎯 [Quiz] Successfully submitted, redirecting to persona page');
+        // Use replace instead of push to prevent back navigation to quiz
+        router.replace('/style-persona');
       } else {
         throw new Error('Failed to submit quiz');
       }
@@ -1132,6 +1155,10 @@ export default function Onboarding() {
         colorAnalysis: colorAnalysis,
         userAnswers: userAnswers
       });
+      
+      // Navigate to persona page immediately even on fallback
+      console.log('🎯 [Quiz] Using fallback data, redirecting to persona page');
+      router.replace('/style-persona');
     } finally {
       setIsLoading(false);
     }
@@ -1331,27 +1358,31 @@ export default function Onboarding() {
   }
 
 
+  // Show loading state while redirecting after quiz completion
   if (quizCompleted && quizResults) {
-    const persona = determineStylePersona();
-    const styleFingerprint = generateStyleFingerprint();
-    
-    // Debug logging
-    console.log('🎭 [Onboarding] Determined persona:', persona);
-    console.log('🎭 [Onboarding] Persona ID:', persona.id);
-    console.log('🎭 [Onboarding] User answers:', answers);
-    console.log('🎭 [Onboarding] Style fingerprint:', styleFingerprint);
-    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Redirecting to your style persona...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // This should never be reached since we redirect immediately after quiz completion
+  if (false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900">
         <div className="max-w-6xl mx-auto px-4 py-12">
           {/* Hero Section */}
           <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl mb-8">
             {/* Hero Image */}
-            <div className="relative h-[600px] overflow-hidden">
+            <div className="relative aspect-[4/3] overflow-hidden">
               <img 
                 src={getHeroImageForPersona(persona.id)}
                 alt={`${persona.name} style example`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/60"></div>
               
@@ -1400,51 +1431,6 @@ export default function Onboarding() {
               </div>
             </div>
 
-          {/* Style Examples Section */}
-          <div className="relative mb-8">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-6">Your Style in Action</h2>
-              <p className="text-lg text-stone-600 dark:text-stone-400 max-w-3xl mx-auto leading-relaxed">
-                See how your {persona.name.toLowerCase()} style translates into real outfits and situations
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getStyleExamplesForPersona(persona.id).map((image, index) => (
-                <div key={index} className="group cursor-pointer">
-                  <div className="relative overflow-hidden rounded-xl shadow-lg group-hover:shadow-2xl transition-all duration-700 transform group-hover:-translate-y-3 group-hover:scale-[1.02]">
-                    <img 
-                      src={image.url} 
-                      alt={`${persona.name} style example ${index + 1}`}
-                      className="w-full h-80 object-cover transition-transform duration-700 group-hover:scale-110"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = `
-                            <div class="w-full h-80 bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-700 flex items-center justify-center rounded-xl">
-                              <div class="text-center text-stone-500 dark:text-stone-400">
-                                <div class="text-4xl mb-2">📷</div>
-                                <div class="text-sm font-medium">Style example unavailable</div>
-                              </div>
-                            </div>
-                          `;
-                        }
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <div className="absolute bottom-0 left-0 right-0 p-6 text-white transform translate-y-6 group-hover:translate-y-0 transition-transform duration-500">
-                      <h4 className="font-bold text-xl mb-3 group-hover:text-orange-300 transition-colors duration-300">{image.caption}</h4>
-                      <p className="text-sm text-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-500 font-medium">
-                        Click to explore this look
-                      </p>
-                    </div>
-                  </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
             {/* Style Fingerprint Section */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
@@ -1723,20 +1709,20 @@ export default function Onboarding() {
 
   // Show quiz questions
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-900 dark:via-amber-900 dark:to-orange-900 flex flex-col p-4">
+      <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col">
+        <div className="text-center mb-6 flex-shrink-0">
+          <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-4 leading-tight">
             Let's Discover Your Style
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Answer a few questions to unlock your unique style personality and get personalized recommendations
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
-        <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg flex-1 flex flex-col min-h-0">
+        <div className="mb-4 flex-shrink-0">
+            <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
@@ -1752,60 +1738,60 @@ export default function Onboarding() {
             </div>
         </div>
         
-          <div className="mb-8">
-            <h2 className="text-2xl md:text-3xl font-serif text-gray-900 dark:text-white mb-6 text-center">
+          <div className="mb-4 flex-shrink-0">
+            <h2 className="text-lg md:text-xl font-serif text-gray-900 dark:text-white mb-3 text-center">
               {question.question}
             </h2>
             {question.type === "visual" && (
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 Select the option that best represents your style
               </p>
             )}
             {question.type === "rgb_slider" && (
-              <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
                 Drag the slider to select your skin tone
               </p>
             )}
           </div>
           
           {question.type === "visual" ? (
-            <div className="space-y-4">
+            <div className="flex-1 flex flex-col">
               {(question.id === "body_type_female" || question.id === "body_type_male") && (
-                <BodyPositiveMessage variant="profile" className="mb-4" />
+                <BodyPositiveMessage variant="profile" className="mb-3" />
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 flex-1">
                 {question.options.map((option, index) => (
                   <button
                     key={index}
                     onClick={() => handleAnswer(question.id, option)}
-                    className={`p-6 rounded-2xl text-left transition-all duration-300 transform hover:scale-105 ${
+                    className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
                       answers.find(a => a.question_id === question.id)?.selected_option === option
                         ? 'bg-amber-500 text-white shadow-lg'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
                     }`}
                   >
                     <div className="text-center">
-                      <div className="font-semibold text-lg">{option}</div>
+                      <div className="font-semibold text-sm">{option}</div>
                     </div>
                   </button>
                 ))}
               </div>
             </div>
           ) : question.type === "visual_yesno" ? (
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-                <div className="text-center mb-6">
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex-1 flex flex-col min-h-0">
+                <div className="text-center mb-3 flex-1 min-h-0">
                   <img 
                     src={question.images?.[0]} 
                     alt="Style example"
-                    className="w-full max-w-md mx-auto h-64 object-cover rounded-lg shadow-lg"
+                    className="w-full h-full max-h-80 object-cover rounded-lg shadow-lg"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
                       if (parent) {
                         parent.innerHTML = `
-                          <div class="w-full max-w-md mx-auto h-64 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center rounded-lg">
+                          <div class="w-full h-full max-h-96 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center rounded-lg">
                             <div class="text-center text-gray-500 dark:text-gray-400">
                               <div class="text-4xl mb-2">📷</div>
                               <div class="text-sm font-medium">Style image unavailable</div>
@@ -1816,10 +1802,10 @@ export default function Onboarding() {
                     }}
                   />
                 </div>
-                <div className="flex justify-center space-x-4">
+                <div className="flex justify-center space-x-3 flex-shrink-0">
                   <button
                     onClick={() => handleAnswer(question.id, "Yes")}
-                    className={`px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 ${
+                    className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
                       answers.find(a => a.question_id === question.id)?.selected_option === "Yes"
                         ? 'bg-green-500 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700'
@@ -1829,7 +1815,7 @@ export default function Onboarding() {
                   </button>
                   <button
                     onClick={() => handleAnswer(question.id, "No")}
-                    className={`px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 ${
+                    className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
                       answers.find(a => a.question_id === question.id)?.selected_option === "No"
                         ? 'bg-red-500 text-white shadow-lg'
                         : 'bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700'
@@ -1841,21 +1827,18 @@ export default function Onboarding() {
               </div>
             </div>
           ) : question.type === "rgb_slider" ? (
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-                <div className="text-center mb-6">
+            <div className="flex-1 flex flex-col">
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex-1 flex flex-col">
+                <div className="text-center mb-4 flex-shrink-0">
                   <div 
                     key={skinTone}
-                    className="w-32 h-32 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-4" 
-                    style={{
-                      backgroundColor: `rgb(${Math.round(255 - skinTone * 1.2)}, ${Math.round(220 - skinTone * 1.0)}, ${Math.round(180 - skinTone * 0.8)})`
-                    }}
-                    title={`Skin tone: ${skinTone} (RGB: ${Math.round(255 - skinTone * 1.2)}, ${Math.round(220 - skinTone * 1.0)}, ${Math.round(180 - skinTone * 0.8)})`}
+                    className="w-24 h-24 mx-auto rounded-full border-4 border-gray-300 dark:border-gray-600 mb-3" 
+                  style={{
+                    backgroundColor: `hsl(${Math.round(30 - skinTone * 0.2)}, ${Math.round(45 - skinTone * 0.25)}%, ${Math.round(85 - skinTone * 0.65)}%)`
+                  }}
+                    title={`Skin tone: ${skinTone}`}
                   ></div>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">Your skin tone</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    Value: {skinTone} | RGB: ({Math.round(255 - skinTone * 1.2)}, {Math.round(220 - skinTone * 1.0)}, {Math.round(180 - skinTone * 0.8)})
-                  </p>
+                  <p className="text-base text-gray-600 dark:text-gray-400">Your skin tone</p>
                 </div>
                 <input
                   type="range"
@@ -1864,14 +1847,14 @@ export default function Onboarding() {
                   value={skinTone}
                   onChange={(e) => {
                     const newValue = parseInt(e.target.value);
-                    const r = Math.round(255 - newValue * 1.2);
-                    const g = Math.round(220 - newValue * 1.0);
-                    const b = Math.round(180 - newValue * 0.8);
-                    console.log('🎨 Skin tone changed to:', newValue, `RGB: (${r}, ${g}, ${b})`);
+                    console.log('🎨 Skin tone changed to:', newValue);
                     setSkinTone(newValue);
                     handleAnswer('skin_tone', newValue.toString());
                   }}
-                  className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                  className="w-full h-3 rounded-lg appearance-none cursor-pointer slider"
+                  style={{
+                    background: 'linear-gradient(to right, #fef3c7, #fde68a, #fcd34d, #f59e0b, #d97706, #b45309, #92400e, #78350f, #451a03, #1f2937)'
+                  }}
                 />
                 <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-2">
                   <span>Light</span>
@@ -1880,19 +1863,19 @@ export default function Onboarding() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 flex-1">
               {question.options.map((option, index) => (
                 <button
                   key={index}
                   onClick={() => handleAnswer(question.id, option)}
-                  className={`p-6 rounded-2xl text-left transition-all duration-300 transform hover:scale-105 ${
+                  className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
                     answers.find(a => a.question_id === question.id)?.selected_option === option
                       ? 'bg-amber-500 text-white shadow-lg'
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
                   }`}
                 >
                   <div className="text-center">
-                    <div className="font-semibold mb-1">{option}</div>
+                    <div className="font-semibold text-sm">{option}</div>
                   </div>
                 </button>
               ))}
@@ -1900,13 +1883,13 @@ export default function Onboarding() {
           )}
         </div>
 
-        <div className="flex justify-between items-center mt-8">
+        <div className="flex justify-between items-center mt-3 flex-shrink-0">
           <button
             onClick={handlePrevious}
             disabled={currentQuestionIndex === 0}
-            className="flex items-center px-6 py-3 rounded-full font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
           >
-            <ArrowLeft className="h-5 w-5 mr-3 inline-block" />
+            <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
             Previous
           </button>
 
@@ -1914,17 +1897,17 @@ export default function Onboarding() {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex items-center px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="flex items-center px-6 py-2 rounded-full font-semibold text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg"
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                  Analyzing Your Style...
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Analyzing...
                 </>
               ) : (
                 <>
                   Discover My Style
-                  <ArrowRight className="h-5 w-5 ml-3 inline-block" />
+                  <ArrowRight className="h-4 w-4 ml-2 inline-block" />
                 </>
               )}
             </button>
@@ -1932,10 +1915,10 @@ export default function Onboarding() {
             <button
               onClick={handleNext}
               disabled={!answers.find(a => a.question_id === question.id)}
-              className="flex items-center px-6 py-3 rounded-full font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="flex items-center px-4 py-2 rounded-full font-medium text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg"
             >
               Next
-              <ArrowRight className="h-5 w-5 ml-3 inline-block" />
+              <ArrowRight className="h-4 w-4 ml-2 inline-block" />
             </button>
           )}
         </div>
