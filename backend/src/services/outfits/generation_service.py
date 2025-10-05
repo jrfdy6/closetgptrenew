@@ -160,6 +160,15 @@ class OutfitGenerationService:
             logger.info(f"[GENERATION][ROBUST] Context: occasion={req.occasion}, style={req.style}, mood={req.mood}")
             logger.info(f"[GENERATION][ROBUST] Wardrobe categories: {[(item.get('type', 'unknown') if item else 'unknown') for item in wardrobe_items[:10]]}...")
             
+            # CRITICAL DEBUG: Check context wardrobe
+            print(f"🔍 DEBUG CONTEXT WARDROBE: context.wardrobe has {len(context.wardrobe)} items")
+            for i, item in enumerate(context.wardrobe[:3]):
+                print(f"🔍 DEBUG CONTEXT ITEM {i+1}: {item}")
+                if hasattr(item, 'name'):
+                    print(f"🔍 DEBUG CONTEXT ITEM {i+1}: name='{item.name}'")
+                if hasattr(item, 'type'):
+                    print(f"🔍 DEBUG CONTEXT ITEM {i+1}: type='{item.type}'")
+            
         except Exception as e:
             logger.error(f"❌ Error creating generation context: {e}")
             raise
