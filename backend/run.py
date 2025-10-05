@@ -14,16 +14,38 @@ load_dotenv(dotenv_path=env_path)
 # Debug: Print the API key (first few characters)
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
-    raise ValueError(f"No OpenAI API key found in environment variables. Please check {env_path}")
-print(f"API Key loaded (first 10 chars): {api_key[:10]}...")
+    print("⚠️  WARNING: No OpenAI API key found in environment variables")
+    print("   This may cause issues with AI-powered features")
+else:
+    print(f"✅ API Key loaded (first 10 chars): {api_key[:10]}...")
 
 # Now we can import the app
 from app import app
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8080))  # Use Railway's PORT or fallback to 8080 locally
-    print(f"🚀 Starting server on port {port}")
+    
+    # Get port from environment (Railway sets this)
+    port_str = os.getenv("PORT")
+    if port_str:
+        try:
+            port = int(port_str)
+            print(f"✅ Using Railway PORT: {port}")
+        except ValueError:
+            print(f"⚠️  Invalid PORT value: {port_str}, using 8080")
+            port = 8080
+    else:
+        port = 8080
+        print(f"⚠️  No PORT environment variable, using default: {port}")
+    
+    print(f"🚀 Starting server on host=0.0.0.0, port={port}")
     print(f"🔍 Environment PORT: {os.getenv('PORT')}")
-    print(f"🔍 Environment variables: {list(os.environ.keys())}")
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="debug") 
+    print(f"🔍 All environment variables: {sorted(os.environ.keys())}")
+    
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+    except Exception as e:
+        print(f"❌ Failed to start server: {e}")
+        print(f"   Port: {port}")
+        print(f"   Host: 0.0.0.0")
+        raise 
