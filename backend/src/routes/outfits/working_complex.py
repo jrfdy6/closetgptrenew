@@ -22,18 +22,20 @@ from src.auth.auth_service import get_current_user, get_current_user_id
 
 # Import services with error handling
 try:
-    from src.services.outfits.generation_service import OutfitGenerationService
-    GENERATION_SERVICE_AVAILABLE = True
-    logger.info("✅ Generation service imported successfully")
+    # from src.services.outfits.generation_service import OutfitGenerationService
+    OutfitGenerationService = None
+    GENERATION_SERVICE_AVAILABLE = False
+    logger.info("🔧 Generation service import DISABLED for debugging")
 except ImportError as e:
     logger.error(f"❌ Generation service import failed: {e}")
     GENERATION_SERVICE_AVAILABLE = False
     OutfitGenerationService = None
 
 try:
-    from src.services.outfits.simple_service import SimpleOutfitService
-    SIMPLE_SERVICE_AVAILABLE = True
-    logger.info("✅ Simple service imported successfully")
+    # from src.services.outfits.simple_service import SimpleOutfitService
+    SimpleOutfitService = None
+    SIMPLE_SERVICE_AVAILABLE = False
+    logger.info("🔧 Simple service import DISABLED for debugging")
 except ImportError as e:
     logger.error(f"❌ Simple service import failed: {e}")
     SIMPLE_SERVICE_AVAILABLE = False
