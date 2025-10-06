@@ -347,13 +347,19 @@ async def debug_outfit_filtering(request: Request):
         body = await request.json()
         logger.info(f"🔍 DEBUG FILTER: Request data: {body}")
         
-        # For now, return a simple debug response
+        # Get actual request data
+        requested_occasion = body.get("occasion", "unknown")
+        requested_style = body.get("style", "unknown")
+        requested_mood = body.get("mood", "unknown")
+        wardrobe_items = body.get("wardrobe", [])
+        
+        # For now, return a simple debug response with actual request data
         debug_response = {
             "success": True,
             "debug_analysis": {
-                "total_items": 155,
+                "total_items": len(wardrobe_items),
                 "filtered_items": 0,
-                "hard_rejected": 155,
+                "hard_rejected": len(wardrobe_items),
                 "weather_rejected": 0,
                 "debug_analysis": [
                     {
@@ -361,7 +367,7 @@ async def debug_outfit_filtering(request: Request):
                         "name": "Test Item 1",
                         "type": "shirt",
                         "valid": False,
-                        "reasons": ["Occasion mismatch: item occasions ['Casual'] don't include 'Athletic'"],
+                        "reasons": [f"Occasion mismatch: item occasions ['Casual'] don't include '{requested_occasion}'"],
                         "item_data": {
                             "occasion": ["Casual"],
                             "style": ["Classic"],
@@ -371,14 +377,14 @@ async def debug_outfit_filtering(request: Request):
                 ]
             },
             "filters_applied": {
-                "occasion": body.get("occasion", "unknown"),
-                "style": body.get("style", "unknown"),
-                "mood": body.get("mood", "unknown"),
+                "occasion": requested_occasion,
+                "style": requested_style,
+                "mood": requested_mood,
                 "weather": body.get("weather", {})
             },
             "timestamp": time.time(),
             "user_id": uid,
-            "message": "Simple debug endpoint - complex personalization service not available"
+            "message": f"Simple debug endpoint - showing mock analysis for {requested_occasion} occasion"
         }
         
         logger.info(f"✅ DEBUG FILTER: Simple debug response sent")
