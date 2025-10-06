@@ -190,6 +190,68 @@ const getHeroImageForPersona = (personaId: string, userGender?: string): string 
   return heroImages[personaId]?.[genderVariant] || "/images/placeholder.jpg";
 };
 
+const getGenderSpecificCelebrities = (personaId: string, userGender?: string): string[] => {
+  // Define gender-specific celebrity examples for each persona
+  const celebrityExamples: Record<string, Record<string, string[]>> = {
+    architect: {
+      men: ["Michael B. Jordan", "Ryan Gosling", "John Cho", "Oscar Isaac", "Idris Elba"],
+      women: ["Zendaya", "Emma Stone", "Lupita Nyong'o", "Tessa Thompson", "Florence Pugh"],
+      unisex: ["Michael B. Jordan", "Zendaya", "Ryan Gosling", "Emma Stone", "Idris Elba"]
+    },
+    strategist: {
+      men: ["Donald Glover", "Chris Paul", "John Legend", "Mahershala Ali", "Lakeith Stanfield"],
+      women: ["Zendaya", "Viola Davis", "Kerry Washington", "Danai Gurira", "Issa Rae"],
+      unisex: ["Donald Glover", "Zendaya", "Chris Paul", "Viola Davis", "Mahershala Ali"]
+    },
+    innovator: {
+      men: ["Pharrell Williams", "Tyler, The Creator", "A$AP Rocky", "Jaden Smith", "Timothée Chalamet"],
+      women: ["Zendaya", "Rihanna", "Billie Eilish", "Doja Cat", "Lizzo"],
+      unisex: ["Pharrell Williams", "Zendaya", "Tyler, The Creator", "Rihanna", "Jaden Smith"]
+    },
+    classic: {
+      men: ["George Clooney", "David Beckham", "Henry Golding", "Regé-Jean Page", "Dev Patel"],
+      women: ["Meghan Markle", "Blake Lively", "Cate Blanchett", "Lupita Nyong'o", "Emma Stone"],
+      unisex: ["George Clooney", "Meghan Markle", "David Beckham", "Blake Lively", "Regé-Jean Page"]
+    },
+    wanderer: {
+      men: ["Jason Momoa", "Chris Hemsworth", "Timothée Chalamet", "Harry Styles", "Dev Patel"],
+      women: ["Zendaya", "Florence Pugh", "Emma Stone", "Lupita Nyong'o", "Tessa Thompson"],
+      unisex: ["Jason Momoa", "Zendaya", "Chris Hemsworth", "Florence Pugh", "Timothée Chalamet"]
+    },
+    rebel: {
+      men: ["Lil Nas X", "Bad Bunny", "Tyler, The Creator", "A$AP Rocky", "Harry Styles"],
+      women: ["Rihanna", "Billie Eilish", "Doja Cat", "Lizzo", "Megan Thee Stallion"],
+      unisex: ["Lil Nas X", "Rihanna", "Bad Bunny", "Billie Eilish", "Tyler, The Creator"]
+    },
+    connoisseur: {
+      men: ["Ryan Reynolds", "Henry Cavill", "Michael B. Jordan", "Idris Elba", "John Legend"],
+      women: ["Meghan Markle", "Blake Lively", "Cate Blanchett", "Lupita Nyong'o", "Viola Davis"],
+      unisex: ["Ryan Reynolds", "Meghan Markle", "Henry Cavill", "Blake Lively", "Michael B. Jordan"]
+    },
+    modernist: {
+      men: ["Timothée Chalamet", "Harry Styles", "Donald Glover", "Pharrell Williams", "Ryan Gosling"],
+      women: ["Hailey Bieber", "Kendall Jenner", "Anya Taylor-Joy", "Zendaya", "Florence Pugh"],
+      unisex: ["Timothée Chalamet", "Hailey Bieber", "Harry Styles", "Kendall Jenner", "Donald Glover"]
+    }
+  };
+
+  // Determine which gender variant to use
+  let genderVariant = 'unisex'; // default fallback
+  const normalizedGender = userGender?.toLowerCase();
+  if (normalizedGender === 'male') {
+    genderVariant = 'men';
+  } else if (normalizedGender === 'female') {
+    genderVariant = 'women';
+  }
+
+  console.log('🎭 [Gender Celebrities] User gender:', userGender, 'Normalized:', normalizedGender, 'Selected variant:', genderVariant, 'Persona:', personaId);
+  
+  const result = celebrityExamples[personaId]?.[genderVariant] || celebrityExamples[personaId]?.unisex || [];
+  console.log('🎭 [Gender Celebrities] Result:', result);
+  
+  return result;
+};
+
 const getStyleExamplesForPersona = (personaId: string) => {
   const examples: Record<string, Array<{url: string, caption: string}>> = {
     architect: [
@@ -287,7 +349,15 @@ export default function StylePersonaPage() {
     // First, try to use the stored persona from the profile
     if (profile?.stylePersona) {
       console.log('🎭 [Style Persona] Using stored persona:', profile.stylePersona);
-      return profile.stylePersona as StylePersona;
+      
+      // Override the stored persona's examples with gender-specific ones
+      const basePersona = profile.stylePersona as StylePersona;
+      const genderSpecificExamples = getGenderSpecificCelebrities(basePersona.id, profile?.gender);
+      
+      return {
+        ...basePersona,
+        examples: genderSpecificExamples
+      };
     }
 
     // Fallback: determine persona based on style preferences
@@ -379,11 +449,11 @@ export default function StylePersonaPage() {
         {/* Hero Section */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl mb-8">
           {/* Hero Image */}
-          <div className="relative h-[500px] overflow-hidden">
+          <div className="relative h-[600px] overflow-hidden">
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
               alt={`${persona.name} style example`}
-              className="w-full h-full object-contain bg-white"
+              className="w-full h-full object-cover"
               onError={(e) => {
                 console.error('❌ [Persona Page] Hero image failed to load:', e.currentTarget.src);
                 e.currentTarget.src = '/images/placeholder.jpg';
@@ -534,14 +604,17 @@ export default function StylePersonaPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {persona.examples?.map((celebrity, index) => (
+            {getGenderSpecificCelebrities(persona.id, profile?.gender)?.map((celebrity, index) => {
+              console.log('🎭 [Celebrities] Profile gender:', profile?.gender, 'Persona:', persona.id, 'Celebrity:', celebrity);
+              return (
               <div key={index} className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-2xl hover:shadow-lg transition-shadow">
                 <div className="text-4xl mb-3">♪</div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {celebrity}
                 </h3>
               </div>
-            )) || (
+              );
+            }) || (
               // Fallback for personas without celebrities defined
               <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-2xl">
                 <div className="text-4xl mb-3">♪</div>

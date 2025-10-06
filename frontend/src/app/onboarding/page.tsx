@@ -235,13 +235,13 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: "top_size",
     question: "What is your top size?",
-    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL", "6XL", "Plus Size", "Custom/Other"],
+    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
     category: "sizes"
   },
   {
     id: "bottom_size",
     question: "What is your bottom size?",
-    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL", "5XL", "6XL", "Plus Size", "Custom/Other"],
+    options: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL+", "Prefer not to say"],
     category: "sizes"
   },
   {
@@ -253,14 +253,14 @@ const QUIZ_QUESTIONS: QuizQuestion[] = [
   {
     id: "shoe_size_female",
     question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12+"],
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12+", "Prefer not to say"],
     category: "sizes",
     gender: "female"
   },
   {
     id: "shoe_size_male",
     question: "What is your shoe size?",
-    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "14", "15", "16 or larger"],
+    options: ["4 or smaller", "5", "6", "7", "8", "9", "10", "11", "12", "13+", "Prefer not to say"],
     category: "sizes",
     gender: "male"
   },
@@ -892,6 +892,62 @@ export default function Onboarding() {
     const imageUrl = heroImages[personaId]?.[genderVariant] || "/images/placeholder.jpg";
     console.log('🖼️ [Hero Image] Selected image:', imageUrl, 'for gender variant:', genderVariant);
     return imageUrl;
+  };
+
+  const getGenderSpecificCelebrities = (personaId: string, userGender?: string): string[] => {
+    // Define gender-specific celebrity examples for each persona
+    const celebrityExamples: Record<string, Record<string, string[]>> = {
+      architect: {
+        men: ["Michael B. Jordan", "Ryan Gosling", "John Cho", "Oscar Isaac", "Idris Elba"],
+        women: ["Zendaya", "Emma Stone", "Lupita Nyong'o", "Tessa Thompson", "Florence Pugh"],
+        unisex: ["Michael B. Jordan", "Zendaya", "Ryan Gosling", "Emma Stone", "Idris Elba"]
+      },
+      strategist: {
+        men: ["Donald Glover", "Chris Paul", "John Legend", "Mahershala Ali", "Lakeith Stanfield"],
+        women: ["Zendaya", "Viola Davis", "Kerry Washington", "Danai Gurira", "Issa Rae"],
+        unisex: ["Donald Glover", "Zendaya", "Chris Paul", "Viola Davis", "Mahershala Ali"]
+      },
+      innovator: {
+        men: ["Pharrell Williams", "Tyler, The Creator", "A$AP Rocky", "Jaden Smith", "Timothée Chalamet"],
+        women: ["Zendaya", "Rihanna", "Billie Eilish", "Doja Cat", "Lizzo"],
+        unisex: ["Pharrell Williams", "Zendaya", "Tyler, The Creator", "Rihanna", "Jaden Smith"]
+      },
+      classic: {
+        men: ["George Clooney", "David Beckham", "Henry Golding", "Regé-Jean Page", "Dev Patel"],
+        women: ["Meghan Markle", "Blake Lively", "Cate Blanchett", "Lupita Nyong'o", "Emma Stone"],
+        unisex: ["George Clooney", "Meghan Markle", "David Beckham", "Blake Lively", "Regé-Jean Page"]
+      },
+      wanderer: {
+        men: ["Jason Momoa", "Chris Hemsworth", "Timothée Chalamet", "Harry Styles", "Dev Patel"],
+        women: ["Zendaya", "Florence Pugh", "Emma Stone", "Lupita Nyong'o", "Tessa Thompson"],
+        unisex: ["Jason Momoa", "Zendaya", "Chris Hemsworth", "Florence Pugh", "Timothée Chalamet"]
+      },
+      rebel: {
+        men: ["Lil Nas X", "Bad Bunny", "Tyler, The Creator", "A$AP Rocky", "Harry Styles"],
+        women: ["Rihanna", "Billie Eilish", "Doja Cat", "Lizzo", "Megan Thee Stallion"],
+        unisex: ["Lil Nas X", "Rihanna", "Bad Bunny", "Billie Eilish", "Tyler, The Creator"]
+      },
+      connoisseur: {
+        men: ["Ryan Reynolds", "Henry Cavill", "Michael B. Jordan", "Idris Elba", "John Legend"],
+        women: ["Meghan Markle", "Blake Lively", "Cate Blanchett", "Lupita Nyong'o", "Viola Davis"],
+        unisex: ["Ryan Reynolds", "Meghan Markle", "Henry Cavill", "Blake Lively", "Michael B. Jordan"]
+      },
+      modernist: {
+        men: ["Timothée Chalamet", "Harry Styles", "Donald Glover", "Pharrell Williams", "Ryan Gosling"],
+        women: ["Hailey Bieber", "Kendall Jenner", "Anya Taylor-Joy", "Zendaya", "Florence Pugh"],
+        unisex: ["Timothée Chalamet", "Hailey Bieber", "Harry Styles", "Kendall Jenner", "Donald Glover"]
+      }
+    };
+
+    // Determine which gender variant to use
+    let genderVariant = 'unisex'; // default fallback
+    if (userGender === 'Male') {
+      genderVariant = 'men';
+    } else if (userGender === 'Female') {
+      genderVariant = 'women';
+    }
+
+    return celebrityExamples[personaId]?.[genderVariant] || celebrityExamples[personaId]?.unisex || [];
   };
 
   // Style examples mapping for each persona
@@ -1529,7 +1585,7 @@ export default function Onboarding() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {persona.examples?.map((celebrity, index) => (
+                {getGenderSpecificCelebrities(persona.id, currentGender)?.map((celebrity, index) => (
                   <div key={index} className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-2xl hover:shadow-lg transition-shadow">
                     <div className="text-4xl mb-3">♪</div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1640,6 +1696,13 @@ export default function Onboarding() {
       isLastQuestion: currentQuestionIndex === questions.length - 1,
       answersCount: answers.length + 1
     });
+
+    // Auto-advance to next question after a short delay (except for the last question)
+    if (currentQuestionIndex < questions.length - 1) {
+      setTimeout(() => {
+        nextStep();
+      }, 300); // Small delay for visual feedback
+    }
   };
 
   const handleNext = () => {
@@ -1780,18 +1843,18 @@ export default function Onboarding() {
           ) : question.type === "visual_yesno" ? (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex-1 flex flex-col min-h-0">
-                <div className="text-center mb-3 flex-1 min-h-0">
+                <div className="text-center mb-3 flex-1 min-h-0 relative overflow-hidden rounded-lg">
                   <img 
                     src={question.images?.[0]} 
                     alt="Style example"
-                    className="w-full h-full max-h-80 object-cover rounded-lg shadow-lg"
+                    className="absolute inset-0 w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       const parent = target.parentElement;
                       if (parent) {
                         parent.innerHTML = `
-                          <div class="w-full h-full max-h-96 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center rounded-lg">
+                          <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
                             <div class="text-center text-gray-500 dark:text-gray-400">
                               <div class="text-4xl mb-2">📷</div>
                               <div class="text-sm font-medium">Style image unavailable</div>
@@ -1861,6 +1924,38 @@ export default function Onboarding() {
                   <span>Dark</span>
                 </div>
               </div>
+            </div>
+          ) : question.id === "gender" ? (
+            <div className="grid grid-cols-2 gap-3 flex-1">
+              {question.options.map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleAnswer(question.id, option)}
+                  className={`p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${
+                    answers.find(a => a.question_id === question.id)?.selected_option === option
+                      ? 'bg-amber-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
+                  }`}
+                >
+                  <div className="font-semibold text-base">{option}</div>
+                </button>
+              ))}
+            </div>
+          ) : question.id === "daily_activities" || question.id === "style_elements" ? (
+            <div className="grid grid-cols-2 gap-3 flex-1">
+              {question.options.map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleAnswer(question.id, option)}
+                  className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
+                    answers.find(a => a.question_id === question.id)?.selected_option === option
+                      ? 'bg-amber-500 text-white shadow-lg'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
+                  }`}
+                >
+                  <div className="font-semibold text-sm">{option}</div>
+                </button>
+              ))}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 flex-1">
