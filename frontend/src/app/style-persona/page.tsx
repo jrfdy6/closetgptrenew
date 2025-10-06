@@ -453,7 +453,7 @@ export default function StylePersonaPage() {
             <img 
               src={getHeroImageForPersona(persona.id, profile?.gender)}
               alt={`${persona.name} style example`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-top"
               onError={(e) => {
                 console.error('❌ [Persona Page] Hero image failed to load:', e.currentTarget.src);
                 e.currentTarget.src = '/images/placeholder.jpg';
