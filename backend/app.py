@@ -2,6 +2,7 @@ import logging
 import sys
 import os
 from pathlib import Path
+from fastapi import Request, HTTPException
 
 # Configure logging to see what's happening during startup
 logging.basicConfig(level=logging.INFO)
@@ -666,32 +667,54 @@ async def test_wardrobe_direct():
     }
 
 @app.get("/api/wardrobe/")
-async def test_wardrobe_get(current_user_id: str = Depends(get_current_user_id)):
-    """Test wardrobe GET endpoint directly in app.py."""
+async def get_wardrobe(request: Request):
+    """Get wardrobe items for authenticated user."""
     try:
+        # Import auth utils
+        from src.utils.auth_utils import extract_uid_from_request
         from firebase_admin import firestore
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # 1) Get uid or return explicit 401
+        uid = extract_uid_from_request(request)
+        
+        # 2) Debug: log uid
+        logger.info("get_wardrobe called for uid=%s", uid)
+        
+        # 3) Run Firestore query using the exact field name (userId)
         db = firestore.client()
-        
         if not db:
-            return {"error": "Database not available"}
+            return {"success": False, "error": "Database not available"}
         
-        # Get wardrobe items from Firestore for the authenticated user
-        wardrobe_ref = db.collection('wardrobe')
-        docs = wardrobe_ref.where('userId', '==', current_user_id).stream()
-        
+        q = db.collection("wardrobe").where("userId", "==", uid)
+        docs = q.stream()
         items = []
         for doc in docs:
-            item_data = doc.to_dict()
-            items.append(item_data)
+            data = doc.to_dict() or {}
+            data["id"] = doc.id
+            items.append(data)
         
-        return {
-            "success": True,
-            "items": items,
-            "count": len(items),
-            "user_id": current_user_id
-        }
+        logger.info("Found %d wardrobe items for uid=%s", len(items), uid)
+        return {"success": True, "items": items, "count": len(items), "user_id": uid}
+        
+    except HTTPException as e:
+        # Re-raise HTTP exceptions (like 401)
+        raise e
     except Exception as e:
-        return {"error": f"Failed to get wardrobe items: {str(e)}"}
+        logger.exception("Error querying Firestore for wardrobe for uid=%s", getattr(request, 'uid', 'unknown'))
+        return {"success": False, "items": [], "count": 0, "user_id": getattr(request, 'uid', 'unknown'), "error": "server_query_error"}
+
+@app.get("/api/debug/whoami")
+async def debug_whoami(request: Request):
+    """Debug endpoint to verify token extraction."""
+    try:
+        from src.utils.auth_utils import extract_uid_from_request
+        uid = extract_uid_from_request(request)
+        return {"ok": True, "uid": uid}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 @app.post("/api/wardrobe/")
 async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_current_user_id)):
