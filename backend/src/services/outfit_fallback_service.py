@@ -568,11 +568,19 @@ class OutfitFallbackService:
             for doc in wardrobe_docs:
                 item_data = doc.to_dict()
                 item_data['id'] = doc.id
+                
+                # Defensive normalization for older items
                 try:
-                    wardrobe_items.append(ClothingItem(**item_data))
+                    from ..utils.semantic_normalization import normalize_item_metadata
+                    normalized_item = normalize_item_metadata(item_data)
+                    wardrobe_items.append(ClothingItem(**normalized_item))
                 except Exception as e:
+                    # Fallback to original item if normalization fails
+                    try:
+                        wardrobe_items.append(ClothingItem(**item_data))
+                    except Exception as parse_error:
 #                     print(f"Warning: Could not parse wardrobe item {doc.id}: {e}")
-                    continue
+                        continue
             
             if not wardrobe_items:
                 return None

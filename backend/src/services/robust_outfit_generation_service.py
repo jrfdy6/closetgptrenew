@@ -18,6 +18,9 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Robust import strategy to handle different execution contexts
+from ..config.feature_flags import is_semantic_match_enabled, is_debug_output_enabled, is_force_traditional_enabled
+from ..utils.semantic_normalization import normalize_item_metadata
+from ..utils.semantic_compatibility import style_matches, mood_matches, occasion_matches
 import sys
 import os
 
@@ -903,6 +906,28 @@ class RobustOutfitGenerationService:
         
         return False  # Default: don't reject based on name
     
+    def _semantic_item_filter(self, normalized_item: Dict[str, Any], occasion: str, style: str, mood: str) -> Tuple[bool, List[str]]:
+        """
+        Semantic filtering using normalized metadata and compatibility matrices.
+        Returns (is_suitable, rejection_reasons)
+        """
+        rejection_reasons = []
+        
+        # Check occasion compatibility
+        if not occasion_matches(occasion, normalized_item.get('occasion', [])):
+            rejection_reasons.append(f"Occasion mismatch: item occasions {normalized_item.get('occasion', [])}")
+        
+        # Check style compatibility  
+        if not style_matches(style, normalized_item.get('style', [])):
+            rejection_reasons.append(f"Style mismatch: item styles {normalized_item.get('style', [])}")
+        
+        # Check mood compatibility
+        if not mood_matches(mood, normalized_item.get('mood', [])):
+            rejection_reasons.append(f"Mood mismatch: item moods {normalized_item.get('mood', [])}")
+        
+        is_suitable = len(rejection_reasons) == 0
+        return is_suitable, rejection_reasons
+    
     async def _relax_occasion_filtering(self, items: List[Any], occasion: str) -> List[Any]:
         """Relax occasion filtering - allow more flexible occasion matching"""
         if not occasion:
@@ -1649,10 +1674,25 @@ class RobustOutfitGenerationService:
         debug_analysis = await self._filter_suitable_items_with_debug(context)
         return debug_analysis['valid_items']
     
-    async def _filter_suitable_items_with_debug(self, context: GenerationContext) -> Dict[str, Any]:
+    async def _filter_suitable_items_with_debug(self, context: GenerationContext, semantic_filtering: bool = None) -> Dict[str, Any]:
         """Apply hard filters and return both valid items and debug analysis"""
+        
+        # SAFETY: Determine filtering mode using feature flags
+        if semantic_filtering is None:
+            # Use feature flag to determine mode
+            if is_force_traditional_enabled():
+                semantic_filtering = False
+                logger.info("🚩 FEATURE FLAG: Forcing traditional filtering (rollback mode)")
+            elif is_semantic_match_enabled():
+                semantic_filtering = True
+                logger.info("🚩 FEATURE FLAG: Semantic filtering enabled")
+            else:
+                semantic_filtering = False
+                logger.info("🚩 FEATURE FLAG: Traditional filtering (default)")
+        
         logger.info(f"🔍 HARD FILTER: Starting hard filtering for occasion={context.occasion}, style={context.style}")
         logger.info(f"🔍 HARD FILTER: Wardrobe has {len(context.wardrobe)} items")
+        logger.info(f"🔍 HARD FILTER: Mode={'SEMANTIC' if semantic_filtering else 'TRADITIONAL'}")
         
         # DEBUG: Log hydrated items before filtering
         logger.info(f"🔍 DEBUG HYDRATED ITEMS: {len(context.wardrobe)} items received")
@@ -1671,11 +1711,23 @@ class RobustOutfitGenerationService:
         for i, item in enumerate((context.wardrobe if context else [])):
             item_name = self.safe_get_item_name(item)
             item_type = self.safe_get_item_type(item)
-            is_suitable, rejection_reasons = self._is_item_suitable_for_occasion_with_debug(
-                item, 
-                (context.occasion if context else "unknown"), 
-                (context.style if context else "unknown")
-            )
+            
+            if semantic_filtering:
+                # Use semantic filtering with normalized metadata
+                normalized_item = normalize_item_metadata(item)
+                is_suitable, rejection_reasons = self._semantic_item_filter(
+                    normalized_item,
+                    context.occasion if context else "unknown",
+                    context.style if context else "unknown", 
+                    context.mood if context else "unknown"
+                )
+            else:
+                # Use existing hard filtering logic
+                is_suitable, rejection_reasons = self._is_item_suitable_for_occasion_with_debug(
+                    item, 
+                    (context.occasion if context else "unknown"), 
+                    (context.style if context else "unknown")
+                )
             
             # Create debug analysis entry
             debug_entry = {
@@ -1750,8 +1802,28 @@ class RobustOutfitGenerationService:
         logger.info(f"🌤️ HARD WEATHER FILTER: {len(weather_appropriate_items)} items remain after weather filtering")
         logger.info(f"🌤️ HARD WEATHER FILTER: Weather rejections: {weather_rejected}")
         
+        # SAFETY: Add debug output if enabled (non-destructive)
+        debug_output = {}
+        if is_debug_output_enabled():
+            debug_output = {
+                'feature_flags': {
+                    'semantic_match_enabled': is_semantic_match_enabled(),
+                    'debug_output_enabled': is_debug_output_enabled(),
+                    'force_traditional_enabled': is_force_traditional_enabled()
+                },
+                'filtering_mode': 'semantic' if semantic_filtering else 'traditional',
+                'semantic_filtering_used': semantic_filtering,
+                'filtering_stats': {
+                    'initial_items': len(context.wardrobe),
+                    'after_hard_filter': len(suitable_items),
+                    'after_weather_filter': len(weather_appropriate_items),
+                    'hard_rejected': hard_rejected,
+                    'weather_rejected': weather_rejected
+                }
+            }
+        
         # Return debug analysis with valid items
-        return {
+        result = {
             'valid_items': weather_appropriate_items,
             'debug_analysis': debug_analysis,
             'total_items': len(context.wardrobe),
@@ -1759,6 +1831,12 @@ class RobustOutfitGenerationService:
             'hard_rejected': hard_rejected,
             'weather_rejected': weather_rejected
         }
+        
+        # Add debug output if enabled (non-destructive)
+        if debug_output:
+            result['debug_output'] = debug_output
+        
+        return result
     
     def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
         """Hard constraints - using compatibility matrix for semantic filtering"""

@@ -2605,7 +2605,15 @@ async def get_user_wardrobe(user_id: str) -> List[Dict[str, Any]]:
         for doc in docs:
             item_data = doc.to_dict()
             item_data['id'] = doc.id
-            items.append(item_data)
+            
+            # Defensive normalization for older items
+            try:
+                from ..utils.semantic_normalization import normalize_item_metadata
+                normalized_item = normalize_item_metadata(item_data)
+                items.append(normalized_item)
+            except Exception as e:
+                logger.warning(f"Failed to normalize item {doc.id}: {e}")
+                items.append(item_data)  # Fallback to original item
         
         logger.info(f"✅ Retrieved {len(items)} wardrobe items")
         return items

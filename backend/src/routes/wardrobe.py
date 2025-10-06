@@ -509,9 +509,13 @@ async def add_wardrobe_item(
             }
         }
         
+        # Normalize the item metadata before saving
+        from ..utils.semantic_normalization import normalize_item_metadata
+        normalized_item = normalize_item_metadata(wardrobe_item)
+        
         # Save to Firestore
         doc_ref = db.collection('wardrobe').document(item_id)
-        doc_ref.set(wardrobe_item)
+        doc_ref.set(normalized_item)
         
         # Log analytics event
         if ANALYTICS_AVAILABLE:
@@ -533,7 +537,7 @@ async def add_wardrobe_item(
         return {
             "success": True,
             "message": "Wardrobe item added successfully",
-            "item": wardrobe_item
+            "item": normalized_item
         }
         
     except HTTPException:
