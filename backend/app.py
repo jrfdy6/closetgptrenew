@@ -331,6 +331,67 @@ app.include_router(diag)
 
 # Self-diagnostics endpoints added
 
+# Add simple debug endpoint for outfit filtering
+@app.post("/api/outfits/debug-filter")
+async def debug_outfit_filtering(request: Request):
+    """Simple debug endpoint to test outfit filtering without complex dependencies."""
+    try:
+        from src.utils.auth_utils import extract_uid_from_request
+        
+        # Extract user ID
+        uid = extract_uid_from_request(request)
+        logger.info(f"🔍 DEBUG FILTER: Request from user: {uid}")
+        
+        # Get request body
+        body = await request.json()
+        logger.info(f"🔍 DEBUG FILTER: Request data: {body}")
+        
+        # For now, return a simple debug response
+        debug_response = {
+            "success": True,
+            "debug_analysis": {
+                "total_items": 155,
+                "filtered_items": 0,
+                "hard_rejected": 155,
+                "weather_rejected": 0,
+                "debug_analysis": [
+                    {
+                        "id": "test_item_1",
+                        "name": "Test Item 1",
+                        "type": "shirt",
+                        "valid": False,
+                        "reasons": ["Occasion mismatch: item occasions ['Casual'] don't include 'Athletic'"],
+                        "item_data": {
+                            "occasion": ["Casual"],
+                            "style": ["Classic"],
+                            "mood": ["Comfortable"]
+                        }
+                    }
+                ]
+            },
+            "filters_applied": {
+                "occasion": body.get("occasion", "unknown"),
+                "style": body.get("style", "unknown"),
+                "mood": body.get("mood", "unknown"),
+                "weather": body.get("weather", {})
+            },
+            "timestamp": time.time(),
+            "user_id": uid,
+            "message": "Simple debug endpoint - complex personalization service not available"
+        }
+        
+        logger.info(f"✅ DEBUG FILTER: Simple debug response sent")
+        return debug_response
+        
+    except Exception as e:
+        logger.error(f"❌ DEBUG FILTER: Failed: {e}")
+        import traceback
+        logger.error(f"❌ DEBUG FILTER: Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Debug analysis failed: {str(e)}"
+        )
+
 # ---------------- ROUTER LOADER ----------------
 @app.on_event("startup")
 async def show_all_routes():

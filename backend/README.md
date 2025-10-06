@@ -51,3 +51,4 @@ The backend is configured to deploy to Railway with the correct app entry point.
 # Force deployment Mon Sep  8 06:28:18 EDT 2025
 # Trigger Railway deployment
 # Trigger Railway deployment
+# Simple debug endpoint added
