@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
-        'Authorization': authHeader || 'Bearer test', // Use real auth token if available
+        'Authorization': authHeader, // Use ONLY the real auth token
         'Content-Type': 'application/json',
       },
     });
@@ -59,6 +59,7 @@ export async function GET(request: Request) {
     
     if (!response.ok) {
       console.error('🔍 DEBUG: Backend response not ok:', response.status, response.statusText);
+      console.error('🔍 DEBUG: This means the backend rejected the request - likely due to invalid token');
       // Fallback to mock data if backend is not available
       const mockWardrobe = {
         success: true,
