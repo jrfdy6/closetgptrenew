@@ -13,10 +13,10 @@ Based on the successful personalization demo implementation.
 import logging
 import time
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.auth.auth_service import get_current_user_id
+from src.utils.auth_utils import extract_uid_from_request
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +88,71 @@ async def health_check():
             "main_outfit_generation_enabled": False
         }
 
+@router.post("/debug-filter")
+async def debug_outfit_filtering(
+    request: dict,
+    req: Request
+):
+    """Debug endpoint to see why items are being filtered out during outfit generation."""
+    try:
+        if not PERSONALIZATION_SERVICE_AVAILABLE:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Debug service is currently unavailable"
+            )
+        
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
+        
+        logger.info(f"🔍 DEBUG FILTER: Request from user: {current_user_id}")
+        logger.info(f"🔍 DEBUG FILTER: Request data: {request}")
+        
+        # Create debug request
+        demo_request = PersonalizationDemoRequest(
+            occasion=request.get("occasion", "casual"),
+            style=request.get("style", "casual"),
+            mood=request.get("mood", "comfortable"),
+            weather=request.get("weather"),
+            wardrobe=request.get("wardrobe", []),
+            user_profile=request.get("user_profile"),
+            baseItemId=request.get("baseItemId"),
+            generation_mode="debug"  # Special debug mode
+        )
+        
+        # Get debug analysis from personalization service
+        debug_result = await personalization_service.debug_outfit_filtering(
+            demo_request,
+            current_user_id
+        )
+        
+        logger.info(f"✅ DEBUG FILTER: Analysis complete")
+        
+        return {
+            "success": True,
+            "debug_analysis": debug_result,
+            "filters_applied": {
+                "occasion": demo_request.occasion,
+                "style": demo_request.style,
+                "mood": demo_request.mood,
+                "weather": demo_request.weather
+            },
+            "timestamp": time.time(),
+            "user_id": current_user_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ DEBUG FILTER: Failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Debug analysis failed: {str(e)}"
+        )
+
 @router.post("/generate")
 async def generate_outfit(
     request: dict,
-    current_user_id: str = Depends(get_current_user_id)
+    req: Request
 ):
     """
     Main outfit generation endpoint with hybrid architecture.
@@ -105,6 +166,9 @@ async def generate_outfit(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Outfit generation service is currently unavailable"
             )
+        
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
         
         logger.info(f"🎯 Main outfit generation request from user: {current_user_id}")
         logger.info(f"📋 Request data: {request}")
@@ -189,7 +253,7 @@ async def generate_simple_outfit(
 @router.post("/generate-robust")
 async def generate_robust_outfit(
     request: dict,
-    current_user_id: str = Depends(get_current_user_id)
+    req: Request
 ):
     """
     Robust outfit generation endpoint - forces robust mode.
@@ -201,7 +265,7 @@ async def generate_robust_outfit(
         request["generation_mode"] = "robust"
         
         # Use the main generate endpoint
-        return await generate_outfit(request, current_user_id)
+        return await generate_outfit(request, req)
         
     except Exception as e:
         logger.error(f"❌ Robust outfit generation failed: {e}")
@@ -212,12 +276,15 @@ async def generate_robust_outfit(
 
 @router.get("/debug-user")
 async def debug_user_info(
-    current_user_id: str = Depends(get_current_user_id)
+    req: Request
 ):
     """
     Debug endpoint to check user authentication and service availability.
     """
     try:
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
+        
         return {
             "user_id": current_user_id,
             "personalization_service_available": PERSONALIZATION_SERVICE_AVAILABLE,

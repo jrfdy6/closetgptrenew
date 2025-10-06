@@ -136,9 +136,46 @@ class PersonalizationService:
             
             self.logger.info(f"✅ Generated personalized outfit using {req.generation_mode} mode (personalization: {personalization_applied})")
             return response
+    
+    async def debug_outfit_filtering(self, request: PersonalizationDemoRequest, user_id: str) -> Dict[str, Any]:
+        """
+        Debug method to analyze why items are being filtered out during outfit generation.
+        Returns detailed analysis of item filtering decisions.
+        """
+        try:
+            self.logger.info(f"🔍 DEBUG FILTERING: Starting debug analysis for user {user_id}")
+            self.logger.info(f"🔍 DEBUG FILTERING: Request: occasion={request.occasion}, style={request.style}, mood={request.mood}")
+            self.logger.info(f"🔍 DEBUG FILTERING: Wardrobe items: {len(request.wardrobe)}")
+            
+            if not self.robust_service:
+                raise Exception("Robust service not available for debug analysis")
+            
+            # Create generation context for debug analysis
+            from src.services.outfits.generation_service import GenerationContext
+            
+            context = GenerationContext(
+                occasion=request.occasion,
+                style=request.style,
+                mood=request.mood,
+                weather=request.weather,
+                wardrobe=request.wardrobe,
+                user_profile=request.user_profile,
+                user_id=user_id
+            )
+            
+            # Get debug analysis from robust service
+            debug_result = await self.robust_service._filter_suitable_items_with_debug(context)
+            
+            self.logger.info(f"🔍 DEBUG FILTERING: Analysis complete")
+            self.logger.info(f"🔍 DEBUG FILTERING: {debug_result['total_items']} total items, {debug_result['filtered_items']} passed filters")
+            self.logger.info(f"🔍 DEBUG FILTERING: {debug_result['hard_rejected']} hard rejected, {debug_result['weather_rejected']} weather rejected")
+            
+            return debug_result
             
         except Exception as e:
-            self.logger.error(f"❌ Personalized outfit generation failed: {e}")
+            self.logger.error(f"❌ DEBUG FILTERING: Failed: {e}")
+            import traceback
+            self.logger.error(f"❌ DEBUG FILTERING: Traceback: {traceback.format_exc()}")
             raise
     
     def _convert_to_outfit_request(self, req: PersonalizationDemoRequest) -> OutfitRequest:

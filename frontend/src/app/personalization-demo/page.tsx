@@ -48,6 +48,8 @@ export default function PersonalizationDemoPage() {
   const [generatedOutfit, setGeneratedOutfit] = useState<PersonalizedOutfit | null>(null);
   const [testMode, setTestMode] = useState(false);
   const [selectedGenerator, setSelectedGenerator] = useState<'simple-minimal' | 'robust'>('simple-minimal');
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [debugAnalysis, setDebugAnalysis] = useState<any>(null);
   
   // Form state for testing different combinations
   const [formData, setFormData] = useState({
@@ -55,6 +57,67 @@ export default function PersonalizationDemoPage() {
     style: 'Classic',
     mood: 'Bold'
   });
+
+  const handleDebugFiltering = async () => {
+    try {
+      setGenerating(true);
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Get Firebase ID token
+      const authToken = await user.getIdToken();
+      console.log('🔍 [Debug] Running debug filtering analysis...');
+
+      // First, fetch the user's actual wardrobe items
+      const wardrobeResponse = await fetch('/api/wardrobe', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+      
+      if (!wardrobeResponse.ok) {
+        throw new Error('Failed to fetch wardrobe items');
+      }
+      
+      const wardrobeData = await wardrobeResponse.json();
+      const wardrobeItems = wardrobeData.items || wardrobeData;
+      console.log('✅ [Debug] Fetched wardrobe items:', wardrobeItems.length);
+
+      // Call debug endpoint
+      const debugResponse = await fetch('/api/outfits/debug-filter', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          occasion: formData.occasion,
+          style: formData.style,
+          mood: formData.mood,
+          wardrobe: wardrobeItems,
+          user_profile: { id: user.uid }
+        }),
+      });
+
+      if (!debugResponse.ok) {
+        throw new Error(`Debug analysis failed: ${debugResponse.statusText}`);
+      }
+
+      const debugResult = await debugResponse.json();
+      console.log('✅ [Debug] Debug analysis complete:', debugResult);
+      
+      setDebugAnalysis(debugResult.debug_analysis);
+      setShowDebugPanel(true);
+      
+    } catch (error) {
+      console.error('❌ [Debug] Debug analysis failed:', error);
+      alert(`Debug analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handleGenerateOutfit = async () => {
     try {
@@ -713,6 +776,26 @@ export default function PersonalizationDemoPage() {
                       </>
                     )}
                   </Button>
+                  
+                  {/* Debug Button */}
+                  <Button 
+                    onClick={handleDebugFiltering}
+                    disabled={generating}
+                    variant="outline"
+                    className="w-full mt-2"
+                  >
+                    {generating ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Analyzing Filtering...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Debug Item Filtering
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -894,6 +977,97 @@ export default function PersonalizationDemoPage() {
                         ))}
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Debug Panel */}
+            {showDebugPanel && debugAnalysis && (
+              <Card className="mt-6 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                      🔍 Debug Analysis: Item Filtering Results
+                    </CardTitle>
+                    <Button 
+                      onClick={() => setShowDebugPanel(false)}
+                      variant="ghost"
+                      size="sm"
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Analysis of why items were accepted or rejected during filtering
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-4 gap-4 mb-6">
+                    <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{debugAnalysis.total_items}</div>
+                      <div className="text-sm text-gray-600">Total Items</div>
+                    </div>
+                    <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">{debugAnalysis.filtered_items}</div>
+                      <div className="text-sm text-gray-600">Passed Filters</div>
+                    </div>
+                    <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">{debugAnalysis.hard_rejected}</div>
+                      <div className="text-sm text-gray-600">Hard Rejected</div>
+                    </div>
+                    <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">{debugAnalysis.weather_rejected}</div>
+                      <div className="text-sm text-gray-600">Weather Rejected</div>
+                    </div>
+                  </div>
+
+                  {/* Item Analysis */}
+                  <div className="space-y-3 max-h-96 overflow-auto">
+                    {debugAnalysis.debug_analysis?.map((item: any, index: number) => (
+                      <div key={item.id || index} className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <strong className="text-sm">{item.name}</strong>
+                              <span className="text-xs text-gray-500">({item.type})</span>
+                              {item.valid ? (
+                                <Badge variant="outline" className="text-green-600 border-green-600">
+                                  ✅ Valid
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-red-600 border-red-600">
+                                  ❌ Rejected
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {/* Item Metadata */}
+                            <div className="text-xs text-gray-500 mb-2">
+                              <div>Occasions: {JSON.stringify(item.item_data?.occasion || [])}</div>
+                              <div>Styles: {JSON.stringify(item.item_data?.style || [])}</div>
+                              <div>Mood: {JSON.stringify(item.item_data?.mood || [])}</div>
+                            </div>
+                            
+                            {/* Rejection Reasons */}
+                            {!item.valid && item.reasons && item.reasons.length > 0 && (
+                              <div className="mt-2">
+                                <div className="text-xs font-medium text-red-600 mb-1">Rejection Reasons:</div>
+                                <ul className="text-xs text-red-500 space-y-1">
+                                  {item.reasons.map((reason: string, reasonIndex: number) => (
+                                    <li key={reasonIndex} className="flex items-start gap-1">
+                                      <span>•</span>
+                                      <span>{reason}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>

@@ -27,10 +27,18 @@ export async function POST(
       const fullBackendUrl = `${backendUrl}/api/outfits/generate`;
       console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
       
+      if (!authHeader) {
+        console.error('❌ No Authorization header provided');
+        return NextResponse.json(
+          { error: 'Authorization header required' },
+          { status: 401 }
+        );
+      }
+
       const response = await fetch(fullBackendUrl, {
         method: 'POST',
         headers: {
-          'Authorization': authHeader || 'Bearer test', // Use real token if available, fallback to test
+          'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
