@@ -353,28 +353,82 @@ async def debug_outfit_filtering(request: Request):
         requested_mood = body.get("mood", "unknown")
         wardrobe_items = body.get("wardrobe", [])
         
-        # For now, return a simple debug response with actual request data
+        # If no wardrobe items provided, fetch from database
+        if not wardrobe_items:
+            try:
+                from firebase_admin import firestore
+                db = firestore.client()
+                if db:
+                    q = db.collection("wardrobe").where("userId", "==", uid)
+                    docs = q.stream()
+                    wardrobe_items = []
+                    for doc in docs:
+                        data = doc.to_dict() or {}
+                        data["id"] = doc.id
+                        wardrobe_items.append(data)
+                    logger.info(f"🔍 DEBUG FILTER: Fetched {len(wardrobe_items)} items from database")
+            except Exception as e:
+                logger.error(f"❌ DEBUG FILTER: Failed to fetch wardrobe: {e}")
+                wardrobe_items = []
+        
+        # Analyze actual wardrobe items
+        debug_analysis = []
+        passed_items = 0
+        hard_rejected = 0
+        weather_rejected = 0
+        
+        for item in wardrobe_items[:5]:  # Analyze first 5 items for demo
+            item_occasions = item.get("occasion", [])
+            item_styles = item.get("style", [])
+            item_mood = item.get("mood", [])
+            
+            # Check if item matches requested occasion
+            occasion_match = requested_occasion.lower() in [occ.lower() for occ in item_occasions]
+            
+            reasons = []
+            if not occasion_match:
+                reasons.append(f"Occasion mismatch: item occasions {item_occasions} don't include '{requested_occasion}'")
+            
+            # Simple style check
+            style_match = requested_style.lower() in [style.lower() for style in item_styles] if item_styles else True
+            
+            if not style_match:
+                reasons.append(f"Style mismatch: item styles {item_styles} don't include '{requested_style}'")
+            
+            # Simple mood check
+            mood_match = requested_mood.lower() in [mood.lower() for mood in item_mood] if item_mood else True
+            
+            if not mood_match:
+                reasons.append(f"Mood mismatch: item moods {item_mood} don't include '{requested_mood}'")
+            
+            is_valid = len(reasons) == 0
+            
+            if is_valid:
+                passed_items += 1
+            else:
+                hard_rejected += 1
+            
+            debug_analysis.append({
+                "id": item.get("id", "unknown"),
+                "name": item.get("name", "Unknown Item"),
+                "type": item.get("type", "unknown"),
+                "valid": is_valid,
+                "reasons": reasons,
+                "item_data": {
+                    "occasion": item_occasions,
+                    "style": item_styles,
+                    "mood": item_mood
+                }
+            })
+        
         debug_response = {
             "success": True,
             "debug_analysis": {
                 "total_items": len(wardrobe_items),
-                "filtered_items": 0,
-                "hard_rejected": len(wardrobe_items),
-                "weather_rejected": 0,
-                "debug_analysis": [
-                    {
-                        "id": "test_item_1",
-                        "name": "Test Item 1",
-                        "type": "shirt",
-                        "valid": False,
-                        "reasons": [f"Occasion mismatch: item occasions ['Casual'] don't include '{requested_occasion}'"],
-                        "item_data": {
-                            "occasion": ["Casual"],
-                            "style": ["Classic"],
-                            "mood": ["Comfortable"]
-                        }
-                    }
-                ]
+                "filtered_items": passed_items,
+                "hard_rejected": hard_rejected,
+                "weather_rejected": weather_rejected,
+                "debug_analysis": debug_analysis
             },
             "filters_applied": {
                 "occasion": requested_occasion,
@@ -384,7 +438,7 @@ async def debug_outfit_filtering(request: Request):
             },
             "timestamp": time.time(),
             "user_id": uid,
-            "message": f"Simple debug endpoint - showing mock analysis for {requested_occasion} occasion"
+            "message": f"Real analysis of {len(wardrobe_items)} wardrobe items for {requested_occasion} occasion"
         }
         
         logger.info(f"✅ DEBUG FILTER: Simple debug response sent")
