@@ -50,6 +50,7 @@ export default function PersonalizationDemoPage() {
   const [selectedGenerator, setSelectedGenerator] = useState<'simple-minimal' | 'robust'>('simple-minimal');
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [debugAnalysis, setDebugAnalysis] = useState<any>(null);
+  const [semanticFlag, setSemanticFlag] = useState(false);
   
   // Form state for testing different combinations
   const [formData, setFormData] = useState({
@@ -85,8 +86,8 @@ export default function PersonalizationDemoPage() {
       const wardrobeItems = wardrobeData.items || wardrobeData;
       console.log('✅ [Debug] Fetched wardrobe items:', wardrobeItems.length);
 
-      // Call debug endpoint
-      const debugResponse = await fetch('/api/outfits/debug-filter', {
+      // Call debug endpoint with semantic flag
+      const debugResponse = await fetch(`/api/outfits/debug-filter?semantic=${semanticFlag}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -759,6 +760,49 @@ export default function PersonalizationDemoPage() {
                     </div>
                   </div>
 
+                  {/* Semantic Matching Toggle */}
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <label className="block text-sm font-medium mb-3 text-blue-800 dark:text-blue-200">
+                      🧠 Semantic Matching (Experimental)
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="semantic-off"
+                          name="semantic"
+                          value="false"
+                          checked={!semanticFlag}
+                          onChange={() => setSemanticFlag(false)}
+                          className="mr-2"
+                        />
+                        <label htmlFor="semantic-off" className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                          Traditional (Exact Match)
+                        </label>
+                      </div>
+                      <div className="flex items-center">
+                        <input
+                          type="radio"
+                          id="semantic-on"
+                          name="semantic"
+                          value="true"
+                          checked={semanticFlag}
+                          onChange={() => setSemanticFlag(true)}
+                          className="mr-2"
+                        />
+                        <label htmlFor="semantic-on" className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                          Semantic (Compatible Styles)
+                        </label>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      {!semanticFlag 
+                        ? '🔍 Traditional: Exact style/occasion matches only'
+                        : '🎯 Semantic: Compatible styles (e.g., Classic ≈ Business Casual)'
+                      }
+                    </div>
+                  </div>
+
                   <Button 
                     onClick={handleGenerateOutfit}
                     disabled={generating || isLoading}
@@ -1000,6 +1044,11 @@ export default function PersonalizationDemoPage() {
                   </div>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     Analysis of why items were accepted or rejected during filtering
+                    {semanticFlag && (
+                      <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">
+                        🧠 Semantic Mode Active
+                      </span>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -1022,6 +1071,45 @@ export default function PersonalizationDemoPage() {
                       <div className="text-sm text-gray-600">Weather Rejected</div>
                     </div>
                   </div>
+
+                  {/* Debug Output Information */}
+                  {debugAnalysis.debug_output && (
+                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                        🚩 Feature Flags & System Info
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-blue-700 dark:text-blue-300">Filtering Mode:</span>
+                          <span className="ml-2 font-medium text-blue-800 dark:text-blue-200">
+                            {debugAnalysis.debug_output.filtering_mode || 'Unknown'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-blue-700 dark:text-blue-300">Semantic Filtering:</span>
+                          <span className="ml-2 font-medium text-blue-800 dark:text-blue-200">
+                            {debugAnalysis.debug_output.semantic_filtering_used ? '✅ Enabled' : '❌ Disabled'}
+                          </span>
+                        </div>
+                        {debugAnalysis.debug_output.feature_flags && (
+                          <>
+                            <div>
+                              <span className="text-blue-700 dark:text-blue-300">Semantic Match:</span>
+                              <span className="ml-2 font-medium text-blue-800 dark:text-blue-200">
+                                {debugAnalysis.debug_output.feature_flags.semantic_match_enabled ? '✅' : '❌'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-blue-700 dark:text-blue-300">Debug Output:</span>
+                              <span className="ml-2 font-medium text-blue-800 dark:text-blue-200">
+                                {debugAnalysis.debug_output.feature_flags.debug_output_enabled ? '✅' : '❌'}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Item Analysis */}
                   <div className="space-y-3 max-h-96 overflow-auto">
@@ -1055,13 +1143,46 @@ export default function PersonalizationDemoPage() {
                               <div className="mt-2">
                                 <div className="text-xs font-medium text-red-600 mb-1">Rejection Reasons:</div>
                                 <ul className="text-xs text-red-500 space-y-1">
-                                  {item.reasons.map((reason: string, reasonIndex: number) => (
-                                    <li key={reasonIndex} className="flex items-start gap-1">
-                                      <span>•</span>
-                                      <span>{reason}</span>
-                                    </li>
-                                  ))}
+                                  {item.reasons.map((reason: string, reasonIndex: number) => {
+                                    // Enhanced reason parsing for semantic matching
+                                    const enhancedReason = reason
+                                      .replace(/Style mismatch: item styles \[(.*?)\]/g, (match, styles) => {
+                                        if (semanticFlag) {
+                                          return `Style mismatch: item styles [${styles}] (no semantic compatibility found)`;
+                                        }
+                                        return match;
+                                      })
+                                      .replace(/Occasion mismatch: item occasions \[(.*?)\]/g, (match, occasions) => {
+                                        if (semanticFlag) {
+                                          return `Occasion mismatch: item occasions [${occasions}] (no semantic compatibility found)`;
+                                        }
+                                        return match;
+                                      })
+                                      .replace(/Mood mismatch: item moods \[(.*?)\]/g, (match, moods) => {
+                                        if (semanticFlag) {
+                                          return `Mood mismatch: item moods [${moods}] (no semantic compatibility found)`;
+                                        }
+                                        return match;
+                                      });
+                                    
+                                    return (
+                                      <li key={reasonIndex} className="flex items-start gap-1">
+                                        <span>•</span>
+                                        <span>{enhancedReason}</span>
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
+                              </div>
+                            )}
+                            
+                            {/* Success Reasons for Valid Items */}
+                            {item.valid && semanticFlag && (
+                              <div className="mt-2">
+                                <div className="text-xs font-medium text-green-600 mb-1">✅ Semantic Match Found:</div>
+                                <div className="text-xs text-green-500">
+                                  This item passed semantic compatibility checks
+                                </div>
                               </div>
                             )}
                           </div>
