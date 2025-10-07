@@ -143,7 +143,7 @@ class PersonalizationService:
             self.logger.error(f"Full traceback: {traceback.format_exc()}")
             raise
     
-    async def debug_outfit_filtering(self, request: PersonalizationDemoRequest, user_id: str) -> Dict[str, Any]:
+    async def debug_outfit_filtering(self, request: PersonalizationDemoRequest, user_id: str, semantic_filtering: bool = False) -> Dict[str, Any]:
         """
         Debug method to analyze why items are being filtered out during outfit generation.
         Returns detailed analysis of item filtering decisions.
@@ -170,7 +170,7 @@ class PersonalizationService:
             )
             
             # Get debug analysis from robust service
-            debug_result = await self.robust_service._filter_suitable_items_with_debug(context)
+            debug_result = await self.robust_service._filter_suitable_items_with_debug(context, semantic_filtering=semantic_filtering)
             
             self.logger.info(f"🔍 DEBUG FILTERING: Analysis complete")
             self.logger.info(f"🔍 DEBUG FILTERING: {debug_result['total_items']} total items, {debug_result['filtered_items']} passed filters")
