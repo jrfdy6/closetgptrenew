@@ -1694,86 +1694,80 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 HARD FILTER: Wardrobe has {len(context.wardrobe)} items")
         logger.info(f"🔍 HARD FILTER: Mode={'SEMANTIC' if semantic_filtering else 'TRADITIONAL'}")
         
-        # DEBUG: Log hydrated items before filtering
-        logger.info(f"🔍 DEBUG HYDRATED ITEMS: {len(context.wardrobe)} items received")
-        for i, item in enumerate(context.wardrobe[:5]):  # Log first 5 items
-            item_name = self.safe_get_item_name(item)
-            item_type = self.safe_get_item_type(item)
-            item_occasion = safe_item_access(item, 'occasion', 'NO_OCCASION')
-            item_style = safe_item_access(item, 'style', 'NO_STYLE')
-            logger.info(f"🔍 DEBUG ITEM {i+1}: name='{item_name}', type='{item_type}', occasion='{item_occasion}', style='{item_style}'")
-        
-        suitable_items = []
-        hard_rejected = 0
         debug_analysis = []
+        valid_items = []
         
-        # Apply proper hard filtering for occasion appropriateness
-        for i, item in enumerate((context.wardrobe if context else [])):
-            item_name = self.safe_get_item_name(item)
-            item_type = self.safe_get_item_type(item)
+        # Apply filtering logic matching the JavaScript implementation
+        for raw_item in (context.wardrobe if context else []):
+            # Normalize item metadata
+            item = normalize_item_metadata(raw_item)
+            reasons = []
+            ok_occ = False
+            ok_style = False
+            ok_mood = False
             
             if semantic_filtering:
-                # Use semantic filtering with normalized metadata
-                normalized_item = normalize_item_metadata(item)
-                is_suitable, rejection_reasons = self._semantic_item_filter(
-                    normalized_item,
-                    context.occasion if context else "unknown",
-                    context.style if context else "unknown", 
-                    context.mood if context else "unknown"
-                )
+                # Use semantic filtering with compatibility helpers
+                ok_occ = occasion_matches(context.occasion if context else None, item.get('occasion', []))
+                ok_style = style_matches(context.style if context else None, item.get('style', []))
+                ok_mood = mood_matches(context.mood if context else None, item.get('mood', []))
             else:
-                # Use existing hard filtering logic
-                is_suitable, rejection_reasons = self._is_item_suitable_for_occasion_with_debug(
-                    item, 
-                    (context.occasion if context else "unknown"), 
-                    (context.style if context else "unknown")
-                )
+                # Legacy behavior (exact case-insensitive)
+                item_occasions = item.get('occasion', [])
+                item_styles = item.get('style', [])
+                item_moods = item.get('mood', [])
+                
+                context_occasion = (context.occasion or "").lower() if context else ""
+                context_style = (context.style or "").lower() if context else ""
+                context_mood = (context.mood or "").lower() if context else ""
+                
+                ok_occ = any(s.lower() == context_occasion for s in item_occasions)
+                ok_style = any(s.lower() == context_style for s in item_styles)
+                ok_mood = len(item_moods) == 0 or any(m.lower() == context_mood for m in item_moods)
             
-            # Create debug analysis entry
+            # Build rejection reasons
+            if not ok_occ:
+                reasons.append(f"Occasion mismatch: item occasions {item.get('occasion', [])}")
+            if not ok_style:
+                reasons.append(f"Style mismatch: item styles {item.get('style', [])}")
+            if not ok_mood:
+                reasons.append(f"Mood mismatch: item moods {item.get('mood', [])}")
+            
+            # Create debug entry
             debug_entry = {
-                'id': getattr(item, 'id', f'item_{i}'),
-                'name': item_name,
-                'type': item_type,
-                'valid': is_suitable,
-                'reasons': rejection_reasons if not is_suitable else [],
-                'item_data': {
-                    'occasion': safe_item_access(item, 'occasion', []),
-                    'style': safe_item_access(item, 'style', []),
-                    'mood': safe_item_access(item, 'mood', []),
-                    'weather': safe_item_access(item, 'weatherCompatibility', [])
-                }
+                'id': item.get('id', getattr(raw_item, 'id', 'unknown')),
+                'name': item.get('name', getattr(raw_item, 'name', 'Unknown')),
+                'valid': ok_occ and ok_style and ok_mood,
+                'reasons': reasons
             }
             debug_analysis.append(debug_entry)
             
-            if is_suitable:
-                suitable_items.append(item)
-                logger.info(f"✅ ITEM {i+1} PASSED: {item_name} for {context.occasion}")
-            else:
-                hard_rejected += 1
-                logger.info(f"❌ ITEM {i+1} REJECTED: {item_name} for {context.occasion} - Reasons: {rejection_reasons}")
+            # Add to valid items if all checks pass
+            if ok_occ and ok_style and ok_mood:
+                valid_items.append(raw_item)  # Use original item, not normalized
         
-        logger.info(f"🔍 HARD FILTER: Results - {len(suitable_items)} passed hard filters, {hard_rejected} rejected")
+        logger.info(f"🔍 HARD FILTER: Results - {len(valid_items)} passed filters, {len(debug_analysis) - len(valid_items)} rejected")
         
         # PROGRESSIVE RELAXATION: If no suitable items found, use emergency fallback
-        if len(suitable_items) == 0:
+        if len(valid_items) == 0:
             logger.warning(f"🚨 NO SUITABLE ITEMS: All items rejected by hard filters - using emergency fallback")
             
             # Emergency: Use any available items (hard filters were too strict)
             logger.info(f"🆘 EMERGENCY: Using all wardrobe items as fallback")
             for item in (context.wardrobe if context else []):
-                suitable_items.append(item)
+                valid_items.append(item)
                 logger.info(f"🆘 EMERGENCY: Added {getattr(item, 'name', 'Unknown')} (emergency fallback)")
             
-            logger.info(f"🆘 EMERGENCY FALLBACK: Total items after emergency: {len(suitable_items)}")
+            logger.info(f"🆘 EMERGENCY FALLBACK: Total items after emergency: {len(valid_items)}")
         
-        logger.info(f"📦 Found {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
+        logger.info(f"📦 Found {len(valid_items)} suitable items from {len(context.wardrobe)} total")
         
         # HARD WEATHER FILTER - Remove completely inappropriate items
         temp = safe_get(context.weather, 'temperature', 70.0)
         weather_appropriate_items = []
         weather_rejected = 0
         
-        for item in suitable_items:
+        for item in valid_items:
             item_name_lower = self.safe_get_item_name(item).lower()
             item_type_lower = str(self.safe_get_item_type(item)).lower()
             
@@ -1815,9 +1809,9 @@ class RobustOutfitGenerationService:
                 'semantic_filtering_used': semantic_filtering,
                 'filtering_stats': {
                     'initial_items': len(context.wardrobe),
-                    'after_hard_filter': len(suitable_items),
+                    'after_hard_filter': len(valid_items),
                     'after_weather_filter': len(weather_appropriate_items),
-                    'hard_rejected': hard_rejected,
+                    'hard_rejected': len(debug_analysis) - len(valid_items),
                     'weather_rejected': weather_rejected
                 }
             }
@@ -1828,7 +1822,7 @@ class RobustOutfitGenerationService:
             'debug_analysis': debug_analysis,
             'total_items': len(context.wardrobe),
             'filtered_items': len(weather_appropriate_items),
-            'hard_rejected': hard_rejected,
+            'hard_rejected': len(debug_analysis) - len(valid_items),
             'weather_rejected': weather_rejected
         }
         
