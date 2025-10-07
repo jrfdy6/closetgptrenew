@@ -36,7 +36,7 @@ class PersonalizationService:
         try:
             from src.services.outfits.generation_service import OutfitGenerationService
             from src.services.outfits.simple_service import SimpleOutfitService
-            from src.services.outfits.robust_service import RobustOutfitGenerationService
+            from src.services.robust_outfit_generation_service import RobustOutfitGenerationService
             
             self.generation_service = OutfitGenerationService()
             self.simple_service = SimpleOutfitService()
