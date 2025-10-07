@@ -136,6 +136,12 @@ class PersonalizationService:
             
             self.logger.info(f"✅ Generated personalized outfit using {req.generation_mode} mode (personalization: {personalization_applied})")
             return response
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to generate personalized outfit: {e}")
+            import traceback
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
+            raise
     
     async def debug_outfit_filtering(self, request: PersonalizationDemoRequest, user_id: str) -> Dict[str, Any]:
         """
