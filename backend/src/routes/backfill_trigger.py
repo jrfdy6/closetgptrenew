@@ -4,10 +4,15 @@ Access via: /api/backfill/trigger?dry_run=true&max_items=10
 """
 from fastapi import APIRouter, Query
 from typing import Optional
-from config.firebase import db
-from utils.semantic_normalization import normalize_item_metadata
 from datetime import datetime
 import logging
+
+try:
+    from src.config.firebase import db
+    from src.utils.semantic_normalization import normalize_item_metadata
+except ImportError:
+    from config.firebase import db
+    from utils.semantic_normalization import normalize_item_metadata
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
