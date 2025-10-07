@@ -56,12 +56,20 @@ async def perform_clothing_analysis(image_path: str, image_url: str, file_size: 
         
         # Create the analysis prompt
         prompt = """
-        Analyze this clothing item image and provide detailed information in JSON format. 
+        Analyze the clothing image and return JSON matching this schema: {type, subType, dominantColors, style[], occasion[], mood[], season[], metadata:{visualAttributes:{material, pattern, fit, formalLevel, silhouette}}}
+        
+        Rules:
+        - For 'mood', list 0-3 single-word moods like: relaxed, bold, romantic, confident, playful, minimal, edgy.
+        - Normalize output terms to lowercase where possible. Also return a 'canonical' field mapping for each style/occasion that suggests preferred canonical tags (e.g., "classic" -> "classic").
+        - For ambiguous items, include confidence scores for each tag (0-1).
+        - Return only valid JSON with those keys. Do not include extra prose.
+        
         Focus on:
         - Clothing type (shirt, pants, dress, etc.)
         - Style (casual, formal, sporty, etc.)
         - Occasion (work, casual, party, etc.)
         - Season (spring, summer, fall, winter, all-season)
+        - Mood extraction (0-3 single words)
         - Dominant colors (extract 2-3 main colors with hex codes)
         - Material (cotton, polyester, wool, etc.)
         - Fit (loose, fitted, tight, etc.)
@@ -72,16 +80,32 @@ async def perform_clothing_analysis(image_path: str, image_url: str, file_size: 
         Return ONLY valid JSON in this exact format:
         {
             "type": "string",
-            "style": "string", 
-            "occasion": "string",
-            "season": "string",
+            "subType": "string",
+            "style": ["string"], 
+            "occasion": ["string"],
+            "mood": ["string"],
+            "season": ["string"],
             "dominantColors": [{"name": "string", "hex": "#hexcode"}],
             "matchingColors": [{"name": "string", "hex": "#hexcode"}],
-            "material": "string",
-            "fit": "string",
-            "sleeveLength": "string",
-            "pattern": "string",
-            "confidence": 0.0
+            "canonical": {
+                "style": ["string"],
+                "occasion": ["string"],
+                "mood": ["string"]
+            },
+            "confidence": {
+                "style": 0.0,
+                "occasion": 0.0,
+                "mood": 0.0
+            },
+            "metadata": {
+                "visualAttributes": {
+                    "material": "string",
+                    "pattern": "string",
+                    "fit": "string",
+                    "formalLevel": "string",
+                    "silhouette": "string"
+                }
+            }
         }
         """
         
@@ -119,16 +143,32 @@ async def perform_clothing_analysis(image_path: str, image_url: str, file_size: 
             # Fallback to basic analysis
             analysis = {
                 "type": "clothing",
-                "style": "casual",
-                "occasion": "everyday",
-                "season": "all-season",
+                "subType": "unknown",
+                "style": ["casual"],
+                "occasion": ["everyday"],
+                "mood": ["relaxed"],
+                "season": ["all-season"],
                 "dominantColors": [{"name": "unknown", "hex": "#000000"}],
                 "matchingColors": [{"name": "unknown", "hex": "#000000"}],
-                "material": "unknown",
-                "fit": "unknown",
-                "sleeveLength": "unknown",
-                "pattern": "unknown",
-                "confidence": 0.5
+                "canonical": {
+                    "style": ["casual"],
+                    "occasion": ["everyday"],
+                    "mood": ["relaxed"]
+                },
+                "confidence": {
+                    "style": 0.5,
+                    "occasion": 0.5,
+                    "mood": 0.5
+                },
+                "metadata": {
+                    "visualAttributes": {
+                        "material": "unknown",
+                        "pattern": "unknown",
+                        "fit": "unknown",
+                        "formalLevel": "casual",
+                        "silhouette": "unknown"
+                    }
+                }
             }
         
         # Add metadata

@@ -23,7 +23,7 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
             image_data = base64.b64encode(image_file.read()).decode('utf-8')
             base64_image = f"data:image/jpeg;base64,{image_data}"
         
-        # Define the JSON schema for structured response
+        # Define the JSON schema for structured response with mood and canonical fields
         json_schema = {
             "type": "object",
             "properties": {
@@ -54,10 +54,27 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                     }
                 },
                 "style": {"type": "array", "items": {"type": "string"}},
-                "brand": {"type": "string"},
-                "season": {"type": "array", "items": {"type": "string", "enum": ["spring", "summer", "fall", "winter"]}},
                 "occasion": {"type": "array", "items": {"type": "string"}},
+                "mood": {"type": "array", "items": {"type": "string"}},
+                "season": {"type": "array", "items": {"type": "string", "enum": ["spring", "summer", "fall", "winter"]}},
+                "brand": {"type": "string"},
                 "name": {"type": "string"},
+                "canonical": {
+                    "type": "object",
+                    "properties": {
+                        "style": {"type": "array", "items": {"type": "string"}},
+                        "occasion": {"type": "array", "items": {"type": "string"}},
+                        "mood": {"type": "array", "items": {"type": "string"}}
+                    }
+                },
+                "confidence": {
+                    "type": "object",
+                    "properties": {
+                        "style": {"type": "number", "minimum": 0, "maximum": 1},
+                        "occasion": {"type": "number", "minimum": 0, "maximum": 1},
+                        "mood": {"type": "number", "minimum": 0, "maximum": 1}
+                    }
+                },
                 "metadata": {
                     "type": "object",
                     "properties": {
@@ -66,20 +83,15 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                             "properties": {
                                 "material": {"type": "string"},
                                 "pattern": {"type": "string"},
-                                "textureStyle": {"type": "string"},
-                                "fabricWeight": {"type": "string"},
                                 "fit": {"type": "string"},
-                                "silhouette": {"type": "string"},
-                                "length": {"type": "string"},
-                                "genderTarget": {"type": "string"},
-                                "sleeveLength": {"type": "string"},
-                                "formalLevel": {"type": "string"}
+                                "formalLevel": {"type": "string"},
+                                "silhouette": {"type": "string"}
                             }
                         }
                     }
                 }
             },
-            "required": ["type", "subType", "dominantColors", "matchingColors", "style", "season", "occasion", "name", "metadata"]
+            "required": ["type", "subType", "dominantColors", "style", "occasion", "mood", "season", "metadata"]
         }
 
         # Call OpenAI API for image analysis with structured output
@@ -105,13 +117,23 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                             },
                             {
                                 "type": "text",
-                                "text": """Analyze this clothing item image and provide detailed metadata. Be specific about:
-- The exact type and subtype of clothing
+                                "text": """Analyze the clothing image and return JSON matching this schema: {type, subType, dominantColors, style[], occasion[], mood[], season[], metadata:{visualAttributes:{material, pattern, fit, formalLevel, silhouette}}}
+
+Rules:
+- For 'mood', list 0-3 single-word moods like: relaxed, bold, romantic, confident, playful, minimal, edgy.
+- Normalize output terms to lowercase where possible. Also return a 'canonical' field mapping for each style/occasion that suggests preferred canonical tags (e.g., "classic" -> "classic").
+- For ambiguous items, include confidence scores for each tag (0-1).
+- Return only valid JSON with those keys. Do not include extra prose.
+
+Focus on:
+- Exact clothing type and subtype
 - Accurate color analysis with proper hex codes
 - Detailed style characteristics (not just "casual")
 - Appropriate seasons and occasions
+- Mood extraction (0-3 single words)
 - Material, pattern, fit, and other visual attributes
 - Brand if visible
+- Canonical tag suggestions for better matching
 
 Provide comprehensive, detailed analysis that would be useful for wardrobe management and outfit planning."""
                             }
