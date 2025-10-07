@@ -22,6 +22,7 @@ from ..config.feature_flags import is_semantic_match_enabled, is_debug_output_en
 from ..utils.semantic_normalization import normalize_item_metadata
 from ..utils.semantic_compatibility import style_matches, mood_matches, occasion_matches
 from ..utils.semantic_telemetry import record_semantic_filtering_metrics
+from ..utils.enhanced_debug_output import format_final_debug_response
 import sys
 import os
 

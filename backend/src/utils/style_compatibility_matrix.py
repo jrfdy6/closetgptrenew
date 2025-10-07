@@ -76,7 +76,7 @@ STYLE_COMPATIBILITY: Dict[str, List[str]] = {
     
     # Avant-garde & Experimental Styles
     "avant_garde": ["avant_garde", "artsy", "edgy", "experimental", "fashion_forward"],
-    "experimental": ["experimental", "avant_garde", "artsy", "creative"],
+    "experimental": ["experimental", "avant_garde", "artsy", "creative", "edgy", "modern"],
     "creative": ["creative", "artsy", "avant_garde", "eclectic"],
     
     # Romantic & Feminine Styles
