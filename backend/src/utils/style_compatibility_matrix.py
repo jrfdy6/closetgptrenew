@@ -7,12 +7,12 @@ from typing import Dict, List, Optional
 # Canonical Style Compatibility Matrix
 STYLE_COMPATIBILITY: Dict[str, List[str]] = {
     # Core Professional Styles
-    "classic": ["classic", "casual", "smart casual", "business casual", "traditional", "preppy", "minimalist", "balanced"],
-    "business": ["business", "business casual", "business_casual", "professional", "smart casual", "smart_casual", "classic", "formal"],
-    "business_casual": ["business_casual", "business casual", "business", "smart casual", "smart_casual", "classic", "casual", "preppy"],
+    "classic": ["classic", "casual", "smart_casual", "business_casual", "traditional", "preppy", "minimalist", "balanced"],
+    "business": ["business", "business_casual", "business_casual", "professional", "smart_casual", "smart_casual", "classic", "formal"],
+    "business_casual": ["business_casual", "business_casual", "business", "smart_casual", "smart_casual", "classic", "casual", "preppy"],
     "formal": ["formal", "elegant", "semi-formal", "business", "classic"],
-    "professional": ["professional", "business", "business casual", "business_casual", "smart casual", "smart_casual", "classic", "formal"],
-    "smart_casual": ["smart_casual", "smart casual", "business_casual", "business casual", "business", "professional", "classic", "casual"],
+    "professional": ["professional", "business", "business_casual", "business_casual", "smart_casual", "smart_casual", "classic", "formal"],
+    "smart_casual": ["smart_casual", "smart_casual", "business_casual", "business_casual", "business", "professional", "classic", "casual"],
     
     # Casual & Everyday Styles
     "casual": ["casual", "classic", "streetwear", "athleisure", "relaxed", "everyday", "casual_cool", "business_casual"],
