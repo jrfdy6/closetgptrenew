@@ -152,7 +152,8 @@ ROUTERS = [
     # ("src.routes.outfit_minimal", ""),   # Minimal outfit router - testing import issues
     # ("src.routes.outfit", ""),           # Original outfit router - testing import errors
     ("src.routes.outfits.main_hybrid", "/api/outfits"),   # Main hybrid outfit generation router - MIGRATED FROM PERSONALIZATION DEMO
-    ("src.routes.backfill_trigger", "/api/backfill"),      # Database backfill trigger endpoint
+    ("src.routes.backfill_simple_test", "/api/backfill"), # Simple backfill test endpoint
+    # ("src.routes.backfill_trigger", "/api/backfill"),      # Database backfill trigger endpoint - TEMPORARILY DISABLED DUE TO IMPORT ISSUES
     # ("src.routes.semantic_telemetry", ""),                # Semantic filtering telemetry router - TEMPORARILY DISABLED DUE TO IMPORT ISSUES
     # ("src.routes.outfits.working_complex", "/api/outfits"),   # Working complex router - TEMPORARILY DISABLED TO TEST RUNTIME ISSUE
     # ("src.routes.personalization_demo.simple_routes", ""),    # Simple personalization demo router - TEMPORARILY DISABLED DUE TO RUNTIME ISSUES
