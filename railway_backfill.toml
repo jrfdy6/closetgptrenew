@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python3 railway_backfill_job.py"
+restartPolicyType = "never"
+
+[env]
+BACKFILL_DRY_RUN = "true"
