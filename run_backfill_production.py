@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Database Migration / Backfill Script for Semantic Filtering
-Safely migrates existing wardrobe items to include normalized fields
+Production Database Backfill Script
+Safely migrates existing wardrobe items to include normalized fields for semantic filtering
 """
 
 import os
@@ -12,32 +12,61 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-# Add backend src to path for imports
-backend_src_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend', 'src'))
-sys.path.insert(0, backend_src_path)
+# Set up paths before any imports
+backend_dir = os.path.join(os.path.dirname(__file__), 'backend')
+sys.path.insert(0, backend_dir)
 
+# Direct imports to avoid __init__.py relative import issues
+import importlib.util
+
+# Initialize Firebase directly with service account
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+db = None
+
+# Try to initialize Firebase
 try:
-    from config.firebase import db
-    from utils.semantic_normalization import normalize_item_metadata
-except ImportError as e:
-    print(f"❌ Import error: {e}")
-    print(f"Backend src path: {backend_src_path}")
-    print(f"Python path: {sys.path}")
-    print("Make sure you're running from the project root and Firebase is configured")
+    # Check if already initialized
+    if not firebase_admin._apps:
+        service_account_path = os.path.join(backend_dir, 'service-account-key.json')
+        if os.path.exists(service_account_path):
+            print(f"🔐 Using service account: {service_account_path}")
+            cred = credentials.Certificate(service_account_path)
+            firebase_admin.initialize_app(cred)
+        else:
+            print("❌ Service account key not found")
+            print(f"   Expected at: {service_account_path}")
+            sys.exit(1)
+    
+    db = firestore.client()
+    print("✅ Firebase initialized successfully")
+    
+except Exception as e:
+    print(f"❌ Firebase initialization failed: {e}")
     sys.exit(1)
+
+# Load normalization utilities
+norm_spec = importlib.util.spec_from_file_location(
+    "semantic_normalization",
+    os.path.join(backend_dir, 'src', 'utils', 'semantic_normalization.py')
+)
+norm_module = importlib.util.module_from_spec(norm_spec)
+norm_spec.loader.exec_module(norm_module)
+normalize_item_metadata = norm_module.normalize_item_metadata
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('backfill_normalize.log'),
+        logging.FileHandler('backfill_production.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-class WardrobeBackfill:
+class ProductionBackfill:
     def __init__(self, batch_size: int = 500, dry_run: bool = False):
         self.batch_size = batch_size
         self.dry_run = dry_run
@@ -49,13 +78,6 @@ class WardrobeBackfill:
             'start_time': None,
             'end_time': None
         }
-        
-    def log_stats(self):
-        """Log current statistics"""
-        logger.info(f"📊 Backfill Stats: {self.stats['total_processed']} processed, "
-                   f"{self.stats['total_updated']} updated, "
-                   f"{self.stats['total_skipped']} skipped, "
-                   f"{self.stats['total_errors']} errors")
     
     def get_next_batch(self, cursor: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get next batch of wardrobe items"""
@@ -63,7 +85,10 @@ class WardrobeBackfill:
             query = db.collection('wardrobe').order_by('id').limit(self.batch_size)
             
             if cursor:
-                query = query.start_after({'id': cursor})
+                # Get the document to use as start point
+                cursor_doc = db.collection('wardrobe').document(cursor).get()
+                if cursor_doc.exists:
+                    query = query.start_after(cursor_doc)
             
             docs = query.stream()
             batch = []
@@ -84,7 +109,6 @@ class WardrobeBackfill:
         try:
             # Check if already normalized
             if 'normalized' in item:
-                logger.debug(f"⏭️  Item {item.get('id', 'unknown')} already normalized, skipping")
                 return None
             
             # Normalize the item
@@ -110,7 +134,8 @@ class WardrobeBackfill:
         """Update item with normalized fields"""
         try:
             if self.dry_run:
-                logger.info(f"🔍 DRY RUN: Would update {doc_id} with normalized fields")
+                logger.info(f"🔍 DRY RUN: Would update {doc_id}")
+                logger.debug(f"   Normalized: {json.dumps(normalized_fields, indent=2)}")
                 return True
             
             # Update the document with normalized fields
@@ -151,21 +176,29 @@ class WardrobeBackfill:
                 if doc_id and self.update_item(doc_id, normalized_fields):
                     batch_stats['updated'] += 1
                     self.stats['total_updated'] += 1
-                    logger.debug(f"✅ Updated item {item.get('id', 'unknown')}")
                 else:
                     batch_stats['errors'] += 1
                     self.stats['total_errors'] += 1
                 
             except Exception as e:
-                logger.error(f"❌ Error processing item {item.get('id', 'unknown')}: {e}")
+                logger.error(f"❌ Error processing item: {e}")
                 batch_stats['errors'] += 1
                 self.stats['total_errors'] += 1
         
         return batch_stats
     
-    def run_backfill(self):
+    def run(self):
         """Run the complete backfill process"""
-        logger.info(f"🚀 Starting wardrobe backfill (batch_size: {self.batch_size}, dry_run: {self.dry_run})")
+        mode = "DRY RUN" if self.dry_run else "PRODUCTION"
+        logger.info(f"🚀 Starting wardrobe backfill [{mode}]")
+        logger.info(f"   Batch size: {self.batch_size}")
+        
+        if not self.dry_run:
+            confirm = input("\n⚠️  You are about to modify PRODUCTION data. Type 'YES' to continue: ")
+            if confirm != 'YES':
+                logger.info("❌ Backfill cancelled")
+                return
+        
         self.stats['start_time'] = datetime.utcnow()
         
         cursor = None
@@ -174,7 +207,7 @@ class WardrobeBackfill:
         try:
             while True:
                 batch_number += 1
-                logger.info(f"📦 Processing batch {batch_number}...")
+                logger.info(f"\n📦 Processing batch {batch_number}...")
                 
                 # Get next batch
                 batch = self.get_next_batch(cursor)
@@ -187,27 +220,28 @@ class WardrobeBackfill:
                 batch_stats = self.process_batch(batch)
                 
                 # Log batch results
-                logger.info(f"📊 Batch {batch_number} complete: "
+                logger.info(f"   Batch {batch_number}: "
                            f"{batch_stats['processed']} processed, "
                            f"{batch_stats['updated']} updated, "
                            f"{batch_stats['skipped']} skipped, "
                            f"{batch_stats['errors']} errors")
                 
-                # Update cursor
+                # Update cursor to last item's doc_id
                 if batch:
-                    cursor = batch[-1].get('id')
+                    cursor = batch[-1].get('doc_id')
                 
-                # Log overall stats every 10 batches
-                if batch_number % 10 == 0:
-                    self.log_stats()
+                # Log overall progress every 5 batches
+                if batch_number % 5 == 0:
+                    logger.info(f"\n📊 Progress: {self.stats['total_processed']} items processed so far")
                 
                 # Small delay to avoid overwhelming the database
-                time.sleep(0.1)
+                if not self.dry_run:
+                    time.sleep(0.2)
                 
         except KeyboardInterrupt:
-            logger.info("⏹️  Backfill interrupted by user")
+            logger.info("\n⏹️  Backfill interrupted by user")
         except Exception as e:
-            logger.error(f"❌ Backfill failed: {e}")
+            logger.error(f"\n❌ Backfill failed: {e}", exc_info=True)
             raise
         finally:
             self.stats['end_time'] = datetime.utcnow()
@@ -217,9 +251,9 @@ class WardrobeBackfill:
         """Log final statistics"""
         duration = self.stats['end_time'] - self.stats['start_time']
         
-        logger.info("=" * 60)
+        logger.info("\n" + "=" * 70)
         logger.info("📊 BACKFILL COMPLETE - FINAL STATISTICS")
-        logger.info("=" * 60)
+        logger.info("=" * 70)
         logger.info(f"⏱️  Duration: {duration}")
         logger.info(f"📦 Total processed: {self.stats['total_processed']}")
         logger.info(f"✅ Total updated: {self.stats['total_updated']}")
@@ -230,41 +264,35 @@ class WardrobeBackfill:
             success_rate = (self.stats['total_updated'] / self.stats['total_processed']) * 100
             logger.info(f"📈 Success rate: {success_rate:.1f}%")
         
-        logger.info("=" * 60)
+        logger.info("=" * 70)
         
         # Save stats to file
         stats_file = f"backfill_stats_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
         with open(stats_file, 'w') as f:
             json.dump(self.stats, f, indent=2, default=str)
-        logger.info(f"💾 Stats saved to {stats_file}")
+        logger.info(f"💾 Stats saved to {stats_file}\n")
 
 def main():
     """Main function"""
     import argparse
     
-    parser = argparse.ArgumentParser(description='Backfill wardrobe items with normalized fields')
+    parser = argparse.ArgumentParser(description='Production database backfill for semantic filtering')
     parser.add_argument('--batch-size', type=int, default=500, help='Batch size for processing')
     parser.add_argument('--dry-run', action='store_true', help='Run in dry-run mode (no updates)')
-    parser.add_argument('--environment', choices=['development', 'staging', 'production'], 
-                       default='staging', help='Target environment')
+    parser.add_argument('--environment', type=str, default='production', help='Environment (for logging)')
     
     args = parser.parse_args()
     
-    # Environment safety check
-    if args.environment == 'production' and not args.dry_run:
-        confirm = input("⚠️  You are about to run backfill on PRODUCTION. Are you sure? (yes/no): ")
-        if confirm.lower() != 'yes':
-            logger.info("❌ Production backfill cancelled")
-            return 1
+    logger.info(f"Environment: {args.environment}")
     
     # Create and run backfill
-    backfill = WardrobeBackfill(
+    backfill = ProductionBackfill(
         batch_size=args.batch_size,
         dry_run=args.dry_run
     )
     
     try:
-        backfill.run_backfill()
+        backfill.run()
         return 0
     except Exception as e:
         logger.error(f"❌ Backfill failed: {e}")
@@ -272,3 +300,4 @@ def main():
 
 if __name__ == "__main__":
     exit(main())
+
