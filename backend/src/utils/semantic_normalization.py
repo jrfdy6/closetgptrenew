@@ -27,15 +27,26 @@ def normalize_item_metadata(item: Any) -> Dict[str, Any]:
     # Handle both dict and object types
     if hasattr(item, '__dict__'):
         base_data = item.__dict__.copy()
+        # For objects, use getattr
+        style_data = getattr(item, 'style', [])
+        occasion_data = getattr(item, 'occasion', [])
+        mood_data = getattr(item, 'mood', [])
+        season_data = getattr(item, 'season', [])
     elif isinstance(item, dict):
         base_data = item.copy()
+        # For dictionaries, use get method
+        style_data = item.get('style', [])
+        occasion_data = item.get('occasion', [])
+        mood_data = item.get('mood', [])
+        season_data = item.get('season', [])
     else:
         base_data = {}
+        style_data = occasion_data = mood_data = season_data = []
     
     return {
         **base_data,
-        'style': normalize_array_strings(getattr(item, 'style', [])),
-        'occasion': normalize_array_strings(getattr(item, 'occasion', [])),
-        'mood': normalize_array_strings(getattr(item, 'mood', [])),
-        'season': normalize_array_strings(getattr(item, 'season', [])),
+        'style': normalize_array_strings(style_data),
+        'occasion': normalize_array_strings(occasion_data),
+        'mood': normalize_array_strings(mood_data),
+        'season': normalize_array_strings(season_data),
     }
