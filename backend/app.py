@@ -649,7 +649,7 @@ async def check_dependencies():
     
     try:
         from PIL import Image
-gh        dependencies["PIL"] = {"status": "ok", "version": Image.__version__}
+        dependencies["PIL"] = {"status": "ok", "version": Image.__version__}
     except ImportError as e:
         dependencies["PIL"] = {"status": "error", "error": str(e)}
     
