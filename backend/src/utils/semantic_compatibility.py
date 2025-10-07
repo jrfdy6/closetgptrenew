@@ -33,8 +33,15 @@ def mood_matches(requested_mood: Optional[str], item_moods: List[str]) -> bool:
     # small mood alias table
     MOOD_COMPAT: Dict[str, List[str]] = {
         'bold': ['bold', 'confident', 'statement', 'vibrant', 'expressive'],
+        'confident': ['confident', 'bold', 'statement', 'vibrant', 'expressive'],
         'relaxed': ['relaxed', 'calm', 'laidback', 'casual', 'neutral'],
-        'romantic': ['romantic', 'soft', 'elegant'],
+        'calm': ['calm', 'relaxed', 'peaceful', 'serene', 'neutral'],
+        'professional': ['professional', 'polished', 'sophisticated', 'elegant', 'refined'],
+        'polished': ['polished', 'professional', 'sophisticated', 'elegant', 'refined'],
+        'romantic': ['romantic', 'soft', 'elegant', 'feminine', 'delicate'],
+        'soft': ['soft', 'romantic', 'gentle', 'delicate', 'feminine'],
+        'casual': ['casual', 'relaxed', 'comfortable', 'easy', 'neutral'],
+        'neutral': ['neutral', 'casual', 'relaxed', 'calm', 'balanced'],
         # extend as needed
     }
     if rm in [m.lower() for m in item_moods]:
@@ -52,9 +59,14 @@ def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str
         return True
     # optionally allow some fallbacks: e.g. athletic <-> casual?
     FALLBACKS: Dict[str, List[str]] = {
-        'athletic': ['casual', 'everyday', 'sport'],
-        'casual': ['everyday', 'casual'],
-        'business': ['business', 'business casual', 'formal', 'smart casual'],
+        'athletic': ['casual', 'everyday', 'sport', 'athletic', 'workout'],
+        'casual': ['everyday', 'casual', 'relaxed', 'weekend'],
+        'business': ['business', 'business casual', 'business_casual', 'formal', 'smart casual', 'smart_casual'],
+        'formal': ['formal', 'business', 'elegant', 'sophisticated'],
+        'everyday': ['everyday', 'casual', 'relaxed', 'comfortable'],
+        'weekend': ['weekend', 'casual', 'relaxed', 'everyday'],
+        'work': ['work', 'business', 'business casual', 'business_casual', 'professional'],
+        'professional': ['professional', 'business', 'business casual', 'business_casual', 'work'],
     }
     fallback = set(FALLBACKS.get(ro, []))
     return any(o.lower() in fallback for o in item_occasions)
