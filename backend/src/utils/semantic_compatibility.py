@@ -11,14 +11,14 @@ def style_matches(requested_style: Optional[str], item_styles: List[str]) -> boo
     """Check if item styles match the requested style with semantic compatibility."""
     if not requested_style:
         return True
-    req = requested_style.lower()
+    req = requested_style.lower().replace(' ', '_')  # Normalize spaces to underscores
     # exact or contained
-    if req in [s.lower() for s in item_styles]:
+    if req in [s.lower().replace(' ', '_') for s in item_styles]:
         return True
     # check group compatibility
     compat_set = set(STYLE_COMPATIBILITY.get(req, []))
     for it in item_styles:
-        if it.lower() in compat_set:
+        if it.lower().replace(' ', '_') in compat_set:
             return True
     return False
 
@@ -54,19 +54,19 @@ def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str
     """Check if item occasions match the requested occasion with semantic compatibility."""
     if not requested_occasion:
         return True
-    ro = requested_occasion.lower()
-    if ro in [o.lower() for o in item_occasions]:
+    ro = requested_occasion.lower().replace(' ', '_')  # Normalize spaces to underscores
+    if ro in [o.lower().replace(' ', '_') for o in item_occasions]:
         return True
     # optionally allow some fallbacks: e.g. athletic <-> casual?
     FALLBACKS: Dict[str, List[str]] = {
         'athletic': ['casual', 'everyday', 'sport', 'athletic', 'workout'],
         'casual': ['everyday', 'casual', 'relaxed', 'weekend'],
-        'business': ['business', 'business casual', 'business_casual', 'formal', 'smart casual', 'smart_casual'],
+        'business': ['business', 'business_casual', 'formal', 'smart_casual'],
         'formal': ['formal', 'business', 'elegant', 'sophisticated'],
         'everyday': ['everyday', 'casual', 'relaxed', 'comfortable'],
         'weekend': ['weekend', 'casual', 'relaxed', 'everyday'],
-        'work': ['work', 'business', 'business casual', 'business_casual', 'professional'],
-        'professional': ['professional', 'business', 'business casual', 'business_casual', 'work'],
+        'work': ['work', 'business', 'business_casual', 'professional'],
+        'professional': ['professional', 'business', 'business_casual', 'work'],
     }
     fallback = set(FALLBACKS.get(ro, []))
-    return any(o.lower() in fallback for o in item_occasions)
+    return any(o.lower().replace(' ', '_') in fallback for o in item_occasions)
