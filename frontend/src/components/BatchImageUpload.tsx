@@ -618,7 +618,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
             };
             
             // Normalize the item metadata before saving
-            const { normalizeItemMetadata } = await import('../../../../lib/normalization');
+            const { normalizeItemMetadata } = await import('../../../lib/normalization');
             const normalizedItem = normalizeItemMetadata(clothingItem);
             
             // Save to database via the wardrobe API
