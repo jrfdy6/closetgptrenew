@@ -621,7 +621,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
             // No need to normalize here - keeps frontend simpler
             
             // Save to database via the wardrobe API
-            try:
+            try {
               console.log(`💾 Saving item ${i + 1} to database...`);
               console.log('🔍 DEBUG: Clothing item being saved:', clothingItem);
               console.log('🔍 DEBUG: About to call /api/wardrobe with:', {
