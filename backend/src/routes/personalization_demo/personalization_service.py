@@ -157,7 +157,7 @@ class PersonalizationService:
                 raise Exception("Robust service not available for debug analysis")
             
             # Create generation context for debug analysis
-            from src.services.outfits.generation_service import GenerationContext
+            from src.services.robust_outfit_generation_service import GenerationContext
             
             context = GenerationContext(
                 occasion=request.occasion,
