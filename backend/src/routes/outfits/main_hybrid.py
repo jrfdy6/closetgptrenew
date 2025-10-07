@@ -91,7 +91,8 @@ async def health_check():
 @router.post("/debug-filter")
 async def debug_outfit_filtering(
     request: dict,
-    req: Request
+    req: Request,
+    semantic: bool = False
 ):
     """Debug endpoint to see why items are being filtered out during outfit generation."""
     try:
@@ -122,23 +123,54 @@ async def debug_outfit_filtering(
         # Get debug analysis from personalization service
         debug_result = await personalization_service.debug_outfit_filtering(
             demo_request,
-            current_user_id
+            current_user_id,
+            semantic_filtering=semantic
         )
         
-        logger.info(f"✅ DEBUG FILTER: Analysis complete")
+        logger.info(f"✅ DEBUG FILTER: Analysis complete (semantic={semantic})")
         
-        return {
-            "success": True,
-            "debug_analysis": debug_result,
-            "filters_applied": {
-                "occasion": demo_request.occasion,
-                "style": demo_request.style,
-                "mood": demo_request.mood,
-                "weather": demo_request.weather
-            },
-            "timestamp": time.time(),
-            "user_id": current_user_id
-        }
+        # Use enhanced debug output format
+        try:
+            from src.utils.enhanced_debug_output import format_final_debug_response
+            
+            enhanced_response = format_final_debug_response(
+                outfits=[],  # No outfits generated in debug mode
+                debug_analysis=debug_result.get('debug_analysis', []),
+                semantic_mode=semantic,
+                requested_style=demo_request.style,
+                requested_occasion=demo_request.occasion,
+                requested_mood=demo_request.mood,
+                debug_output=debug_result.get('debug_output')
+            )
+            
+            return {
+                "success": True,
+                **enhanced_response,
+                "filters_applied": {
+                    "occasion": demo_request.occasion,
+                    "style": demo_request.style,
+                    "mood": demo_request.mood,
+                    "weather": demo_request.weather,
+                    "semantic_mode": semantic
+                },
+                "timestamp": time.time(),
+                "user_id": current_user_id
+            }
+        except ImportError:
+            # Fallback to original format if enhanced output not available
+            return {
+                "success": True,
+                "debug_analysis": debug_result,
+                "filters_applied": {
+                    "occasion": demo_request.occasion,
+                    "style": demo_request.style,
+                    "mood": demo_request.mood,
+                    "weather": demo_request.weather,
+                    "semantic_mode": semantic
+                },
+                "timestamp": time.time(),
+                "user_id": current_user_id
+            }
         
     except HTTPException:
         raise
