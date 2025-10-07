@@ -617,21 +617,20 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               lastWorn: null
             };
             
-            // Normalize the item metadata before saving
-            const { normalizeItemMetadata } = await import('../../../lib/normalization');
-            const normalizedItem = normalizeItemMetadata(clothingItem);
+            // Note: Backend will handle normalization when saving
+            // No need to normalize here - keeps frontend simpler
             
             // Save to database via the wardrobe API
-            try {
+            try:
               console.log(`💾 Saving item ${i + 1} to database...`);
-              console.log('🔍 DEBUG: Clothing item being saved:', normalizedItem);
+              console.log('🔍 DEBUG: Clothing item being saved:', clothingItem);
               console.log('🔍 DEBUG: About to call /api/wardrobe with:', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${await user.getIdToken()}`,
                 },
-                body: JSON.stringify(normalizedItem)
+                body: JSON.stringify(clothingItem)
               });
               
               const saveResponse = await fetch('/api/wardrobe', {
@@ -640,7 +639,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${await user.getIdToken()}`,
                 },
-                body: JSON.stringify(normalizedItem),
+                body: JSON.stringify(clothingItem),
               });
               
               console.log('🔍 DEBUG: Save response status:', saveResponse.status);
