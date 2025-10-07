@@ -21,6 +21,7 @@ from enum import Enum
 from ..config.feature_flags import is_semantic_match_enabled, is_debug_output_enabled, is_force_traditional_enabled
 from ..utils.semantic_normalization import normalize_item_metadata
 from ..utils.semantic_compatibility import style_matches, mood_matches, occasion_matches
+from ..utils.semantic_telemetry import record_semantic_filtering_metrics
 import sys
 import os
 
@@ -1829,6 +1830,34 @@ class RobustOutfitGenerationService:
         # Add debug output if enabled (non-destructive)
         if debug_output:
             result['debug_output'] = debug_output
+        
+        # Record telemetry metrics
+        try:
+            # Extract debug reasons for telemetry
+            debug_reasons = []
+            for item in debug_analysis:
+                if not item.get('valid', False):
+                    debug_reasons.extend(item.get('reasons', []))
+            
+            # Record telemetry
+            record_semantic_filtering_metrics(
+                user_id=getattr(context.user_profile, 'id', 'unknown') if context and context.user_profile else 'unknown',
+                total_items=len(context.wardrobe) if context else 0,
+                passed_items=len(weather_appropriate_items),
+                hard_rejected=len(debug_analysis) - len(valid_items),
+                weather_rejected=weather_rejected,
+                semantic_mode=semantic_filtering,
+                filtering_mode='semantic' if semantic_filtering else 'traditional',
+                request_occasion=context.occasion if context else '',
+                request_style=context.style if context else '',
+                request_mood=context.mood if context else '',
+                composition_success=len(weather_appropriate_items) > 0,  # Basic success metric
+                outfits_generated=0,  # Will be updated by outfit generation
+                processing_time_ms=0,  # Will be updated by timing
+                debug_reasons=debug_reasons
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to record telemetry metrics: {e}")
         
         return result
     
