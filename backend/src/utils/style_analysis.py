@@ -202,7 +202,7 @@ def validate_outfit_against_style(outfit_items: List[ClothingItem], target_style
             # Check tags
             tag_similarities = [
                 calculate_similarity(forbidden_element.lower(), tag.lower())
-                for tag in (item.(metadata.get('tags', []) if metadata else []) if item.metadata else [])
+                for tag in (item.metadata.get('tags', []) if item.metadata else [])
             ]
             tag_similarity = max(tag_similarities) if tag_similarities else 0.0
             

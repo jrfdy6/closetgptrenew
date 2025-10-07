@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.utils.auth_utils import extract_uid_from_request
+from src.auth.auth_service import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
