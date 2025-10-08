@@ -1905,37 +1905,110 @@ class RobustOutfitGenerationService:
         return True
     
     def _soft_score(self, item: ClothingItem, occasion: str, style: str, mood: str = "Professional") -> float:
-        """Soft constraint scoring - temporarily using string matching for stability"""
-        # TEMPORARILY DISABLED: Compatibility matrix causing 502 errors
-        # TODO: Debug and re-enable compatibility matrix
+        """Formality-aware soft constraint scoring with comprehensive semantic matching"""
         
         item_name = self.safe_get_item_name(item).lower()
         occasion_lower = occasion.lower()
         
-        # Enhanced string matching with actual wardrobe patterns
-        if occasion_lower == 'athletic':
-            # Penalize business items
-            if any(word in item_name for word in ['button', 'dress', 'formal', 'business', 'polo ralph lauren', 'dockers']):
-                return -0.3
-            # Penalize dress shoes
-            elif any(word in item_name for word in ['smooth toe', 'oxford', 'loafer', 'dress shoe']):
-                return -0.3
-            # Penalize dress pants
-            elif any(word in item_name for word in ['slim fit pants', 'dress pants', 'slacks']):
-                return -0.4
-            # Boost athletic items
-            elif any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank', 'sneaker']):
-                return +0.3
+        # Get item metadata for semantic analysis
+        item_style = getattr(item, 'style', [])
+        item_occasion = getattr(item, 'occasion', [])
+        if isinstance(item_style, str):
+            item_style = [item_style]
+        if isinstance(item_occasion, str):
+            item_occasion = [item_occasion]
         
-        elif occasion_lower == 'business':
-            # Penalize athletic items
-            if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank']):
-                return -0.3
-            # Boost business items
-            elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
-                return +0.3
+        item_style_lower = [s.lower() for s in item_style] if item_style else []
+        item_occasion_lower = [o.lower() for o in item_occasion] if item_occasion else []
         
-        return 0.0  # Neutral
+        penalty = 0.0
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # FORMAL OCCASIONS: Business, Formal, Interview, Wedding
+        # ═══════════════════════════════════════════════════════════════════════
+        if occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference', 'funeral']:
+            
+            # CRITICAL PENALTIES: Casual attributes for formal occasions
+            if 'short' in item_name and ('sleeve' in item_name or 'button' in item_name):
+                penalty -= 0.8  # Short-sleeve shirts are very casual
+                logger.info(f"  🚫 Short-sleeve penalty for {occasion}: -0.8")
+            
+            if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'jogger']):
+                penalty -= 0.9  # Athletic wear is inappropriate
+                logger.info(f"  🚫 Athletic penalty for {occasion}: -0.9")
+            
+            if any(word in item_name for word in ['sneaker', 'trainer', 'running shoe']):
+                penalty -= 0.7  # Casual footwear
+                logger.info(f"  🚫 Casual shoe penalty for {occasion}: -0.7")
+            
+            if any(word in item_name for word in ['cargo', 'jean', 'denim', 'sweat']):
+                penalty -= 0.6  # Very casual bottoms
+                logger.info(f"  🚫 Casual bottom penalty for {occasion}: -0.6")
+            
+            if any(casual in item_style_lower for casual in ['casual', 'streetwear', 'athletic']):
+                penalty -= 0.4  # Casual style tags
+                logger.info(f"  🚫 Casual style tag penalty for {occasion}: -0.4")
+            
+            # BOOSTS: Formal attributes
+            if any(word in item_name for word in ['dress shirt', 'dress pants', 'suit', 'blazer', 'tie']):
+                penalty += 0.5  # Formal items get boost
+                logger.info(f"  ✅ Formal item boost for {occasion}: +0.5")
+            
+            if 'long' in item_name and any(word in item_name for word in ['sleeve', 'shirt', 'button']):
+                penalty += 0.4  # Long-sleeve shirts are more formal
+                logger.info(f"  ✅ Long-sleeve boost for {occasion}: +0.4")
+            
+            if any(word in item_name for word in ['oxford', 'derby', 'loafer', 'dress shoe']):
+                penalty += 0.5  # Formal footwear
+                logger.info(f"  ✅ Formal shoe boost for {occasion}: +0.5")
+            
+            if any(formal in item_style_lower for formal in ['business', 'formal', 'professional']):
+                penalty += 0.4  # Formal style tags
+                logger.info(f"  ✅ Formal style tag boost for {occasion}: +0.4")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # ATHLETIC OCCASIONS: Athletic, Gym, Workout
+        # ═══════════════════════════════════════════════════════════════════════
+        elif occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
+            
+            # PENALTIES: Formal items for athletic occasions
+            if any(word in item_name for word in ['dress', 'formal', 'business', 'blazer', 'suit']):
+                penalty -= 0.8
+                logger.info(f"  🚫 Formal penalty for {occasion}: -0.8")
+            
+            if any(word in item_name for word in ['oxford', 'derby', 'loafer', 'dress shoe']):
+                penalty -= 0.7
+                logger.info(f"  🚫 Dress shoe penalty for {occasion}: -0.7")
+            
+            if any(word in item_name for word in ['button', 'polo']):
+                penalty -= 0.5
+                logger.info(f"  🚫 Button-up penalty for {occasion}: -0.5")
+            
+            # BOOSTS: Athletic items
+            if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'tank']):
+                penalty += 0.6
+                logger.info(f"  ✅ Athletic boost for {occasion}: +0.6")
+            
+            if any(word in item_name for word in ['sneaker', 'trainer', 'running shoe']):
+                penalty += 0.5
+                logger.info(f"  ✅ Athletic shoe boost for {occasion}: +0.5")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # CASUAL OCCASIONS: Casual, Brunch, Date, Weekend
+        # ═══════════════════════════════════════════════════════════════════════
+        elif occasion_lower in ['casual', 'brunch', 'date', 'weekend', 'vacation', 'beach']:
+            
+            # Moderate penalties for overly formal items
+            if occasion_lower not in ['date'] and any(word in item_name for word in ['suit', 'tuxedo', 'bow tie']):
+                penalty -= 0.4
+                logger.info(f"  🚫 Overly formal penalty for {occasion}: -0.4")
+            
+            # Boosts for casual-appropriate items
+            if any(casual in item_style_lower for casual in ['casual', 'streetwear', 'bohemian']):
+                penalty += 0.3
+                logger.info(f"  ✅ Casual style boost for {occasion}: +0.3")
+        
+        return penalty
     
     async def _intelligent_item_selection(self, suitable_items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
@@ -3415,6 +3488,13 @@ class RobustOutfitGenerationService:
         
         # Phase 2: Add layering pieces based on target count
         logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
+        
+        # Track category counts to prevent duplicates
+        category_counts = {}
+        for item in selected_items:
+            cat = self._get_item_category(item)
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+        
         for item_id, score_data in sorted_items:
             if len(selected_items) >= target_items:
                 break
@@ -3428,21 +3508,39 @@ class RobustOutfitGenerationService:
             
             # Determine layering appropriateness
             if category == 'outerwear' and score_data['composite_score'] > 0.6:
+                # PREVENT DUPLICATE OUTERWEAR: Only add if we don't have outerwear yet
+                if category_counts.get('outerwear', 0) >= 1:
+                    logger.info(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} skipped - already have outerwear")
+                    continue
+                
                 # Check if we need outerwear
                 if temp < 65 or occasion_lower in ['business', 'formal']:
                     selected_items.append(item)
+                    category_counts['outerwear'] = category_counts.get('outerwear', 0) + 1
                     logger.info(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
             
             elif category == 'tops' and score_data['composite_score'] > 0.6:
+                # Additional top layer (sweater, cardigan) - allow max 2 tops total
+                if category_counts.get('tops', 0) >= 2:
+                    logger.info(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} skipped - already have 2 tops")
+                    continue
+                
                 # Additional top layer (sweater, cardigan)
                 if temp < 70 and any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'vest']):
                     selected_items.append(item)
+                    category_counts['tops'] = category_counts.get('tops', 0) + 1
                     logger.info(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
             
             elif category == 'accessories' and score_data['composite_score'] > 0.7:
+                # High-scoring accessories - allow multiple but cap at 3
+                if category_counts.get('accessories', 0) >= 3:
+                    logger.info(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} skipped - already have 3 accessories")
+                    continue
+                
                 # High-scoring accessories
                 if temp < 50 or occasion_lower in ['formal', 'business']:
                     selected_items.append(item)
+                    category_counts['accessories'] = category_counts.get('accessories', 0) + 1
                     logger.info(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
         
         # Ensure minimum items
