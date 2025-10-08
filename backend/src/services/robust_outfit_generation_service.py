@@ -1696,6 +1696,18 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 HARD FILTER: Wardrobe has {len(context.wardrobe)} items")
         logger.info(f"🔍 HARD FILTER: Mode={'SEMANTIC' if semantic_filtering else 'TRADITIONAL'}")
         
+        # Detect style/occasion mismatch for filter relaxation
+        occasion_lower = (context.occasion or "").lower() if context else ""
+        style_lower = (context.style or "").lower() if context else ""
+        
+        filter_mismatch_detected = False
+        if occasion_lower in ['athletic', 'gym', 'workout'] and style_lower in ['classic', 'business', 'formal', 'preppy']:
+            filter_mismatch_detected = True
+            logger.info(f"🔄 FILTER MISMATCH DETECTED: {context.occasion} + {context.style} - using OR logic instead of AND")
+        elif occasion_lower in ['business', 'formal'] and style_lower in ['athletic', 'casual', 'streetwear']:
+            filter_mismatch_detected = True
+            logger.info(f"🔄 FILTER MISMATCH DETECTED: {context.occasion} + {context.style} - using OR logic instead of AND")
+        
         debug_analysis = []
         valid_items = []
         
@@ -1735,17 +1747,25 @@ class RobustOutfitGenerationService:
             if not ok_mood:
                 reasons.append(f"Mood mismatch: item moods {item.get('mood', [])}")
             
+            # ADAPTIVE LOGIC: Use OR when mismatch detected, AND otherwise
+            if filter_mismatch_detected:
+                # Relaxed filter: item passes if it matches EITHER occasion OR style (plus mood)
+                is_valid = (ok_occ or ok_style) and ok_mood
+            else:
+                # Strict filter: item must match ALL criteria
+                is_valid = ok_occ and ok_style and ok_mood
+            
             # Create debug entry
             debug_entry = {
                 'id': item.get('id', getattr(raw_item, 'id', 'unknown')),
                 'name': item.get('name', getattr(raw_item, 'name', 'Unknown')),
-                'valid': ok_occ and ok_style and ok_mood,
+                'valid': is_valid,
                 'reasons': reasons
             }
             debug_analysis.append(debug_entry)
             
-            # Add to valid items if all checks pass
-            if ok_occ and ok_style and ok_mood:
+            # Add to valid items if checks pass
+            if is_valid:
                 valid_items.append(raw_item)  # Use original item, not normalized
         
         logger.info(f"🔍 HARD FILTER: Results - {len(valid_items)} passed filters, {len(debug_analysis) - len(valid_items)} rejected")
