@@ -1749,8 +1749,10 @@ class RobustOutfitGenerationService:
             
             # ADAPTIVE LOGIC: Use OR when mismatch detected, AND otherwise
             if filter_mismatch_detected:
-                # Relaxed filter: item passes if it matches EITHER occasion OR style (plus mood)
-                is_valid = (ok_occ or ok_style) and ok_mood
+                # Relaxed filter: item passes if it matches EITHER occasion OR style
+                # IGNORE mood for mismatches - occasion (functionality) matters more than mood (aesthetic)
+                is_valid = (ok_occ or ok_style)
+                logger.debug(f"  🔄 MISMATCH MODE: Item passes if occasion OR style (mood ignored)")
             else:
                 # Strict filter: item must match ALL criteria
                 is_valid = ok_occ and ok_style and ok_mood
