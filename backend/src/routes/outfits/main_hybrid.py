@@ -235,16 +235,53 @@ async def generate_outfit(
         logger.info(f"✅ Main outfit generation successful with mode: {generation_mode}")
         
         # Convert response to main app format
-        # Ensure validation metadata is set for frontend display
+        # Set validation metadata based on actual outfit quality
         result_metadata = result.metadata if hasattr(result, 'metadata') else {}
         if isinstance(result_metadata, dict):
-            # Add validation flags if not already present
-            if 'validation_applied' not in result_metadata:
-                result_metadata['validation_applied'] = True
-            if 'occasion_requirements_met' not in result_metadata:
-                result_metadata['occasion_requirements_met'] = True
-            if 'deduplication_applied' not in result_metadata:
-                result_metadata['deduplication_applied'] = True
+            # Get the actual items from the result
+            result_items = result.items if hasattr(result, 'items') else []
+            item_count = len(result_items)
+            
+            # Validation checks:
+            # - Minimum 3 items required for a complete outfit
+            # - Must have essential categories (tops, bottoms, shoes)
+            min_items_met = item_count >= 3
+            
+            # Check for essential categories
+            has_top = False
+            has_bottom = False
+            has_shoes = False
+            for item in result_items:
+                item_type = str(getattr(item, 'type', '')).lower()
+                if 'shirt' in item_type or 'top' in item_type or 'blouse' in item_type:
+                    has_top = True
+                elif 'pants' in item_type or 'bottom' in item_type or 'skirt' in item_type or 'shorts' in item_type:
+                    has_bottom = True
+                elif 'shoe' in item_type:
+                    has_shoes = True
+            
+            essential_categories_met = has_top and has_bottom and has_shoes
+            
+            # Overall validation: passed if minimum items AND essential categories
+            validation_passed = min_items_met and essential_categories_met
+            
+            # Set validation flags based on actual checks
+            result_metadata['validation_applied'] = True  # We always apply validation
+            result_metadata['occasion_requirements_met'] = validation_passed
+            result_metadata['deduplication_applied'] = True  # Always applied in robust service
+            
+            # Add debug info
+            if not validation_passed:
+                logger.warning(f"⚠️ VALIDATION FAILED: items={item_count}, min_items_met={min_items_met}, "
+                             f"has_top={has_top}, has_bottom={has_bottom}, has_shoes={has_shoes}")
+                result_metadata['validation_failure_reason'] = {
+                    'item_count': item_count,
+                    'min_items_met': min_items_met,
+                    'essential_categories_met': essential_categories_met,
+                    'has_top': has_top,
+                    'has_bottom': has_bottom,
+                    'has_shoes': has_shoes
+                }
         
         return {
             "success": True,
