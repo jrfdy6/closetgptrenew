@@ -1962,6 +1962,33 @@ class RobustOutfitGenerationService:
         penalty = 0.0
         
         # ═══════════════════════════════════════════════════════════════════════
+        # PRIMARY TAG-BASED SCORING: Check occasion/style tags FIRST
+        # This takes precedence over name-based keyword matching
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # PRIMARY OCCASION TAG MATCH (most important for mismatches)
+        if occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
+            if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
+                penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
+                logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+            elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference']):
+                penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
+                logger.info(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
+        
+        elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
+            if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
+                penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
+                logger.info(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+            elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
+                penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
+                logger.info(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
+        
+        elif occasion_lower in ['casual', 'brunch', 'weekend']:
+            if any(occ in item_occasion_lower for occ in ['casual', 'brunch', 'weekend', 'vacation']):
+                penalty += 1.0 * occasion_multiplier  # Good boost for matching occasion tag
+                logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
+        
+        # ═══════════════════════════════════════════════════════════════════════
         # FORMAL OCCASIONS: Business, Formal, Interview, Wedding
         # ═══════════════════════════════════════════════════════════════════════
         if occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference', 'funeral']:
@@ -2030,11 +2057,6 @@ class RobustOutfitGenerationService:
             if any(word in item_name for word in ['sneaker', 'trainer', 'running shoe']):
                 penalty += 0.7 * occasion_multiplier  # Increased from 0.5 to 0.7
                 logger.info(f"  ✅ Athletic shoe boost for {occasion}: {+0.7 * occasion_multiplier:.2f}")
-            
-            # Check occasion tags directly
-            if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
-                penalty += 0.8 * occasion_multiplier  # New: boost for athletic occasion tags
-                logger.info(f"  ✅ Athletic occasion tag boost for {occasion}: {+0.8 * occasion_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # CASUAL OCCASIONS: Casual, Brunch, Date, Weekend
