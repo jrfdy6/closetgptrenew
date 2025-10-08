@@ -1905,37 +1905,81 @@ class RobustOutfitGenerationService:
         return True
     
     def _soft_score(self, item: ClothingItem, occasion: str, style: str, mood: str = "Professional") -> float:
-        """Soft constraint scoring - temporarily using string matching for stability"""
-        # TEMPORARILY DISABLED: Compatibility matrix causing 502 errors
-        # TODO: Debug and re-enable compatibility matrix
+        """Soft constraint scoring with PRIMARY tag-based matching and adaptive multipliers"""
         
         item_name = self.safe_get_item_name(item).lower()
         occasion_lower = occasion.lower()
+        style_lower = style.lower()
         
-        # Enhanced string matching with actual wardrobe patterns
+        # Get item metadata tags
+        item_occasion = getattr(item, 'occasion', [])
+        item_style = getattr(item, 'style', [])
+        item_occasion_lower = [occ.lower() for occ in item_occasion] if item_occasion else []
+        item_style_lower = [s.lower() for s in item_style] if item_style else []
+        
+        # ADAPTIVE MULTIPLIERS: Detect style/occasion mismatches and prioritize occasion
+        occasion_multiplier = 1.0
+        style_multiplier = 1.0
+        
+        if occasion_lower in ['athletic', 'gym', 'workout'] and style_lower in ['classic', 'business', 'formal', 'preppy']:
+            occasion_multiplier = 1.5  # Boost occasion-based scoring
+            style_multiplier = 0.2  # Reduce style-based scoring
+            logger.info(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - prioritizing OCCASION ({occasion_multiplier}x) over STYLE ({style_multiplier}x)")
+        elif occasion_lower in ['business', 'formal'] and style_lower in ['athletic', 'casual', 'streetwear']:
+            occasion_multiplier = 1.5
+            style_multiplier = 0.2
+            logger.info(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - prioritizing OCCASION ({occasion_multiplier}x) over STYLE ({style_multiplier}x)")
+        
+        penalty = 0.0
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # PRIMARY TAG-BASED SCORING: Check occasion/style tags FIRST
+        # This takes precedence over name-based keyword matching
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # PRIMARY OCCASION TAG MATCH (most important for mismatches)
+        if occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
+            if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
+                penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
+                logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+            elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference']):
+                penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
+                logger.info(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
+        
+        elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
+            if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
+                penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
+                logger.info(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+            elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
+                penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
+                logger.info(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
+        
+        elif occasion_lower in ['casual', 'brunch', 'weekend']:
+            if any(occ in item_occasion_lower for occ in ['casual', 'brunch', 'weekend', 'vacation']):
+                penalty += 1.0 * occasion_multiplier  # Good boost for matching occasion tag
+                logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # KEYWORD-BASED SCORING: Secondary scoring based on item names
+        # ═══════════════════════════════════════════════════════════════════════
+        
         if occasion_lower == 'athletic':
             # Penalize business items
-            if any(word in item_name for word in ['button', 'dress', 'formal', 'business', 'polo ralph lauren', 'dockers']):
-                return -0.3
-            # Penalize dress shoes
-            elif any(word in item_name for word in ['smooth toe', 'oxford', 'loafer', 'dress shoe']):
-                return -0.3
-            # Penalize dress pants
-            elif any(word in item_name for word in ['slim fit pants', 'dress pants', 'slacks']):
-                return -0.4
+            if any(word in item_name for word in ['button', 'dress', 'formal', 'business']):
+                penalty -= 0.3 * occasion_multiplier
             # Boost athletic items
             elif any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank', 'sneaker']):
-                return +0.3
+                penalty += 0.3 * occasion_multiplier
         
         elif occasion_lower == 'business':
             # Penalize athletic items
             if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank']):
-                return -0.3
+                penalty -= 0.3 * occasion_multiplier
             # Boost business items
             elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
-                return +0.3
+                penalty += 0.3 * occasion_multiplier
         
-        return 0.0  # Neutral
+        return penalty
     
     async def _intelligent_item_selection(self, suitable_items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
         """Intelligently select items with TARGET-DRIVEN sizing and proportional category balancing"""
