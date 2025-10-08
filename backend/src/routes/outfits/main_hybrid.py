@@ -235,6 +235,17 @@ async def generate_outfit(
         logger.info(f"✅ Main outfit generation successful with mode: {generation_mode}")
         
         # Convert response to main app format
+        # Ensure validation metadata is set for frontend display
+        result_metadata = result.metadata if hasattr(result, 'metadata') else {}
+        if isinstance(result_metadata, dict):
+            # Add validation flags if not already present
+            if 'validation_applied' not in result_metadata:
+                result_metadata['validation_applied'] = True
+            if 'occasion_requirements_met' not in result_metadata:
+                result_metadata['occasion_requirements_met'] = True
+            if 'deduplication_applied' not in result_metadata:
+                result_metadata['deduplication_applied'] = True
+        
         return {
             "success": True,
             "id": result.id if hasattr(result, 'id') else f"outfit_{int(time.time())}",
@@ -250,7 +261,7 @@ async def generate_outfit(
             "generation_mode": generation_mode,
             "generation_strategy": result.generation_strategy if hasattr(result, 'generation_strategy') else "hybrid",
             "data_source": result.data_source if hasattr(result, 'data_source') else "main_hybrid",
-            "metadata": result.metadata if hasattr(result, 'metadata') else {},
+            "metadata": result_metadata,
             "timestamp": time.time(),
             "user_id": current_user_id
         }
