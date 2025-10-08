@@ -1909,6 +1909,21 @@ class RobustOutfitGenerationService:
         
         item_name = self.safe_get_item_name(item).lower()
         occasion_lower = occasion.lower()
+        style_lower = style.lower() if style else ""
+        
+        # Detect style/occasion mismatch and reduce penalty strength
+        # Example: Athletic occasion + Classic style = mismatch
+        mismatch_detected = False
+        penalty_multiplier = 1.0  # Normal penalties
+        
+        if occasion_lower in ['athletic', 'gym', 'workout'] and style_lower in ['classic', 'business', 'formal', 'preppy']:
+            mismatch_detected = True
+            penalty_multiplier = 0.4  # Reduce penalties by 60%
+            logger.info(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - reducing penalties to {penalty_multiplier}x")
+        elif occasion_lower in ['business', 'formal'] and style_lower in ['athletic', 'casual', 'streetwear']:
+            mismatch_detected = True
+            penalty_multiplier = 0.4
+            logger.info(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - reducing penalties to {penalty_multiplier}x")
         
         # Get item metadata for semantic analysis
         item_style = getattr(item, 'style', [])
@@ -1930,41 +1945,41 @@ class RobustOutfitGenerationService:
             
             # CRITICAL PENALTIES: Casual attributes for formal occasions
             if 'short' in item_name and ('sleeve' in item_name or 'button' in item_name):
-                penalty -= 0.8  # Short-sleeve shirts are very casual
-                logger.info(f"  🚫 Short-sleeve penalty for {occasion}: -0.8")
+                penalty -= 0.8 * penalty_multiplier  # Short-sleeve shirts are very casual
+                logger.info(f"  🚫 Short-sleeve penalty for {occasion}: {-0.8 * penalty_multiplier:.2f}")
             
             if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'jogger']):
-                penalty -= 0.9  # Athletic wear is inappropriate
-                logger.info(f"  🚫 Athletic penalty for {occasion}: -0.9")
+                penalty -= 0.9 * penalty_multiplier  # Athletic wear is inappropriate
+                logger.info(f"  🚫 Athletic penalty for {occasion}: {-0.9 * penalty_multiplier:.2f}")
             
             if any(word in item_name for word in ['sneaker', 'trainer', 'running shoe']):
-                penalty -= 0.7  # Casual footwear
-                logger.info(f"  🚫 Casual shoe penalty for {occasion}: -0.7")
+                penalty -= 0.7 * penalty_multiplier  # Casual footwear
+                logger.info(f"  🚫 Casual shoe penalty for {occasion}: {-0.7 * penalty_multiplier:.2f}")
             
             if any(word in item_name for word in ['cargo', 'jean', 'denim', 'sweat']):
-                penalty -= 0.6  # Very casual bottoms
-                logger.info(f"  🚫 Casual bottom penalty for {occasion}: -0.6")
+                penalty -= 0.6 * penalty_multiplier  # Very casual bottoms
+                logger.info(f"  🚫 Casual bottom penalty for {occasion}: {-0.6 * penalty_multiplier:.2f}")
             
             if any(casual in item_style_lower for casual in ['casual', 'streetwear', 'athletic']):
-                penalty -= 0.4  # Casual style tags
-                logger.info(f"  🚫 Casual style tag penalty for {occasion}: -0.4")
+                penalty -= 0.4 * penalty_multiplier  # Casual style tags
+                logger.info(f"  🚫 Casual style tag penalty for {occasion}: {-0.4 * penalty_multiplier:.2f}")
             
             # BOOSTS: Formal attributes
             if any(word in item_name for word in ['dress shirt', 'dress pants', 'suit', 'blazer', 'tie']):
-                penalty += 0.5  # Formal items get boost
-                logger.info(f"  ✅ Formal item boost for {occasion}: +0.5")
+                penalty += 0.5 * penalty_multiplier  # Formal items get boost
+                logger.info(f"  ✅ Formal item boost for {occasion}: {+0.5 * penalty_multiplier:.2f}")
             
             if 'long' in item_name and any(word in item_name for word in ['sleeve', 'shirt', 'button']):
-                penalty += 0.4  # Long-sleeve shirts are more formal
-                logger.info(f"  ✅ Long-sleeve boost for {occasion}: +0.4")
+                penalty += 0.4 * penalty_multiplier  # Long-sleeve shirts are more formal
+                logger.info(f"  ✅ Long-sleeve boost for {occasion}: {+0.4 * penalty_multiplier:.2f}")
             
             if any(word in item_name for word in ['oxford', 'derby', 'loafer', 'dress shoe']):
-                penalty += 0.5  # Formal footwear
-                logger.info(f"  ✅ Formal shoe boost for {occasion}: +0.5")
+                penalty += 0.5 * penalty_multiplier  # Formal footwear
+                logger.info(f"  ✅ Formal shoe boost for {occasion}: {+0.5 * penalty_multiplier:.2f}")
             
             if any(formal in item_style_lower for formal in ['business', 'formal', 'professional']):
-                penalty += 0.4  # Formal style tags
-                logger.info(f"  ✅ Formal style tag boost for {occasion}: +0.4")
+                penalty += 0.4 * penalty_multiplier  # Formal style tags
+                logger.info(f"  ✅ Formal style tag boost for {occasion}: {+0.4 * penalty_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # ATHLETIC OCCASIONS: Athletic, Gym, Workout
@@ -1973,25 +1988,25 @@ class RobustOutfitGenerationService:
             
             # PENALTIES: Formal items for athletic occasions
             if any(word in item_name for word in ['dress', 'formal', 'business', 'blazer', 'suit']):
-                penalty -= 0.8
-                logger.info(f"  🚫 Formal penalty for {occasion}: -0.8")
+                penalty -= 0.8 * penalty_multiplier
+                logger.info(f"  🚫 Formal penalty for {occasion}: {-0.8 * penalty_multiplier:.2f}")
             
             if any(word in item_name for word in ['oxford', 'derby', 'loafer', 'dress shoe']):
-                penalty -= 0.7
-                logger.info(f"  🚫 Dress shoe penalty for {occasion}: -0.7")
+                penalty -= 0.7 * penalty_multiplier
+                logger.info(f"  🚫 Dress shoe penalty for {occasion}: {-0.7 * penalty_multiplier:.2f}")
             
             if any(word in item_name for word in ['button', 'polo']):
-                penalty -= 0.5
-                logger.info(f"  🚫 Button-up penalty for {occasion}: -0.5")
+                penalty -= 0.5 * penalty_multiplier
+                logger.info(f"  🚫 Button-up penalty for {occasion}: {-0.5 * penalty_multiplier:.2f}")
             
             # BOOSTS: Athletic items
             if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'tank']):
-                penalty += 0.6
-                logger.info(f"  ✅ Athletic boost for {occasion}: +0.6")
+                penalty += 0.6 * penalty_multiplier
+                logger.info(f"  ✅ Athletic boost for {occasion}: {+0.6 * penalty_multiplier:.2f}")
             
             if any(word in item_name for word in ['sneaker', 'trainer', 'running shoe']):
-                penalty += 0.5
-                logger.info(f"  ✅ Athletic shoe boost for {occasion}: +0.5")
+                penalty += 0.5 * penalty_multiplier
+                logger.info(f"  ✅ Athletic shoe boost for {occasion}: {+0.5 * penalty_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # CASUAL OCCASIONS: Casual, Brunch, Date, Weekend
@@ -2000,13 +2015,13 @@ class RobustOutfitGenerationService:
             
             # Moderate penalties for overly formal items
             if occasion_lower not in ['date'] and any(word in item_name for word in ['suit', 'tuxedo', 'bow tie']):
-                penalty -= 0.4
-                logger.info(f"  🚫 Overly formal penalty for {occasion}: -0.4")
+                penalty -= 0.4 * penalty_multiplier
+                logger.info(f"  🚫 Overly formal penalty for {occasion}: {-0.4 * penalty_multiplier:.2f}")
             
             # Boosts for casual-appropriate items
             if any(casual in item_style_lower for casual in ['casual', 'streetwear', 'bohemian']):
-                penalty += 0.3
-                logger.info(f"  ✅ Casual style boost for {occasion}: +0.3")
+                penalty += 0.3 * penalty_multiplier
+                logger.info(f"  ✅ Casual style boost for {occasion}: {+0.3 * penalty_multiplier:.2f}")
         
         return penalty
     
