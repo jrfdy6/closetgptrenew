@@ -1001,6 +1001,44 @@ async def firebase_debug():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/api/wardrobe/debug-metadata-public")
+async def debug_metadata_public():
+    """PUBLIC DEBUG: Check wardrobe metadata without auth (TEMPORARY)"""
+    try:
+        from src.config.firebase import db, firebase_initialized
+        
+        if not firebase_initialized or db is None:
+            return {"error": "Firebase not initialized"}
+        
+        # Get a few items from the test user
+        test_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"
+        
+        docs = db.collection('wardrobe').where('userId', '==', test_user_id).limit(5).stream()
+        
+        items_data = []
+        for doc in docs:
+            item = doc.to_dict()
+            items_data.append({
+                "id": item.get("id"),
+                "name": item.get("name"),
+                "type": item.get("type"),
+                "occasion": item.get("occasion", []),
+                "style": item.get("style", []),
+                "mood": item.get("mood", []),
+                "has_metadata_object": "metadata" in item,
+                "metadata_occasionTags": item.get("metadata", {}).get("occasionTags") if "metadata" in item else None,
+                "metadata_styleTags": item.get("metadata", {}).get("styleTags") if "metadata" in item else None,
+            })
+        
+        return {
+            "success": True,
+            "items_checked": len(items_data),
+            "items": items_data
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get("/api/wardrobe/debug-structure")
 async def debug_wardrobe_structure():
     """Debug the actual Firestore wardrobe data structure."""
