@@ -109,10 +109,22 @@ async def debug_outfit_filtering(
         except HTTPException as auth_error:
             # For debug purposes, allow test mode with a fallback user ID
             logger.warning(f"🔍 DEBUG: Authentication failed, using test mode: {auth_error.detail}")
-            current_user_id = "debug-test-user"
+            current_user_id = "dANqjiI0CKgaitxzYtw1bhtvQrG3"  # TEMPORARY: Use real user for debug
         
         logger.info(f"🔍 DEBUG FILTER: Request from user: {current_user_id}")
         logger.info(f"🔍 DEBUG FILTER: Request data: {request}")
+        
+        # TEMPORARY: Auto-fetch wardrobe if empty
+        wardrobe_items = request.get("wardrobe", [])
+        if len(wardrobe_items) == 0:
+            logger.info(f"🔍 DEBUG FILTER: Wardrobe empty, fetching from Firebase...")
+            try:
+                from src.config.firebase import db
+                docs = db.collection('wardrobe').where('userId', '==', current_user_id).stream()
+                wardrobe_items = [doc.to_dict() for doc in docs]
+                logger.info(f"✅ DEBUG FILTER: Fetched {len(wardrobe_items)} items from Firebase")
+            except Exception as e:
+                logger.error(f"❌ DEBUG FILTER: Failed to fetch wardrobe: {e}")
         
         # Create debug request
         demo_request = PersonalizationDemoRequest(
@@ -120,7 +132,7 @@ async def debug_outfit_filtering(
             style=request.get("style", "casual"),
             mood=request.get("mood", "comfortable"),
             weather=request.get("weather"),
-            wardrobe=request.get("wardrobe", []),
+            wardrobe=wardrobe_items,
             user_profile=request.get("user_profile"),
             baseItemId=request.get("baseItemId"),
             generation_mode="debug"  # Special debug mode
