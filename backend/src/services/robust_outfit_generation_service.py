@@ -1750,12 +1750,12 @@ class RobustOutfitGenerationService:
             # ADAPTIVE LOGIC: Use OR when mismatch detected, AND otherwise
             if filter_mismatch_detected:
                 # Relaxed filter: item passes if it matches EITHER occasion OR style
-                # IGNORE mood for mismatches - occasion (functionality) matters more than mood (aesthetic)
+                # MOOD is now a bonus factor, not a requirement
                 is_valid = (ok_occ or ok_style)
-                logger.debug(f"  🔄 MISMATCH MODE: Item passes if occasion OR style (mood ignored)")
+                logger.debug(f"  🔄 MISMATCH MODE: Item passes if occasion OR style (mood becomes bonus points)")
             else:
-                # Strict filter: item must match ALL criteria
-                is_valid = ok_occ and ok_style and ok_mood
+                # Strict filter: item must match occasion AND style (mood is bonus)
+                is_valid = ok_occ and ok_style
             
             # Create debug entry
             debug_entry = {
@@ -1989,6 +1989,44 @@ class RobustOutfitGenerationService:
             if any(occ in item_occasion_lower for occ in ['casual', 'brunch', 'weekend', 'vacation']):
                 penalty += 1.0 * occasion_multiplier  # Good boost for matching occasion tag
                 logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # MOOD BONUS SCORING: Give bonus points for mood matches (but don't require them)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Check mood compatibility using semantic matching
+        if mood and item_mood:
+            mood_lower = mood.lower()
+            item_mood_lower = [m.lower() for m in item_mood] if item_mood else []
+            
+            # Use semantic mood matching for bonuses
+            if mood_lower in item_mood_lower:
+                # Exact match gets strong bonus
+                penalty += 0.6 * style_multiplier
+                logger.info(f"  ✅✅ MOOD BONUS: Exact mood match ({mood}): {+0.6 * style_multiplier:.2f}")
+            else:
+                # Check for semantic compatibility (relaxed≈comfortable, bold≈confident, etc.)
+                mood_aliases = {
+                    'bold': ['confident', 'statement', 'vibrant', 'expressive'],
+                    'confident': ['bold', 'statement', 'vibrant', 'expressive'],
+                    'relaxed': ['calm', 'comfortable', 'laidback', 'casual', 'neutral'],
+                    'comfortable': ['relaxed', 'calm', 'casual', 'neutral'],
+                    'professional': ['polished', 'sophisticated', 'elegant', 'refined'],
+                    'polished': ['professional', 'sophisticated', 'elegant', 'refined'],
+                    'romantic': ['soft', 'elegant', 'feminine', 'delicate'],
+                    'edgy': ['bold', 'confident', 'statement', 'vibrant'],
+                    'minimalist': ['clean', 'simple', 'neutral', 'understated']
+                }
+                
+                compatible_moods = mood_aliases.get(mood_lower, [])
+                if any(alias in item_mood_lower for alias in compatible_moods):
+                    # Compatible mood gets moderate bonus
+                    penalty += 0.3 * style_multiplier
+                    logger.info(f"  ✅ MOOD BONUS: Compatible mood ({mood} ≈ {item_mood}): {+0.3 * style_multiplier:.2f}")
+                else:
+                    # Different mood gets small penalty (but still passes hard filter)
+                    penalty -= 0.1 * style_multiplier
+                    logger.info(f"  ⚠️ MOOD PENALTY: Different mood ({mood} vs {item_mood}): {-0.1 * style_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # FORMAL OCCASIONS: Business, Formal, Interview, Wedding
