@@ -389,12 +389,16 @@ class ExistingDataPersonalizationEngine:
             # Favorite items bonus
             outfit_items = (outfit.get('items', []) if outfit else [])
             for item in outfit_items:
-                if item.get('id') in preference.favorite_items:
+                # Handle both dict and Pydantic ClothingItem objects
+                item_id = item.get('id') if isinstance(item, dict) else getattr(item, 'id', None)
+                if item_id and item_id in preference.favorite_items:
                     score += 1.0  # Bonus for favorite items
             
             # Most worn items bonus
             for item in outfit_items:
-                if item.get('id') in preference.most_worn_items:
+                # Handle both dict and Pydantic ClothingItem objects
+                item_id = item.get('id') if isinstance(item, dict) else getattr(item, 'id', None)
+                if item_id and item_id in preference.most_worn_items:
                     score += 0.5  # Bonus for frequently worn items
             
             # Add personalization info

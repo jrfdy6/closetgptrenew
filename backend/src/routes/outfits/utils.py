@@ -33,7 +33,15 @@ def log_generation_strategy(outfit_response: Dict[str, Any], user_id: str = "unk
     print(f"🔍 DEBUG LOG_GENERATION_STRATEGY: About to log strategy = {strategy}")
     
     # Define which strategies are considered "complex" vs "fallback"
-    complex_strategies = ["cohesive_composition", "body_type_optimized", "style_profile_matched", "weather_adapted", "rule_based"]
+    complex_strategies = [
+        "cohesive_composition", 
+        "body_type_optimized", 
+        "style_profile_matched", 
+        "weather_adapted", 
+        "rule_based",
+        "multi_layered_cohesive_composition",  # Robust service strategy
+        "robust_service"  # Robust service fallback name
+    ]
     fallback_strategies = ["fallback_simple", "emergency_default"]
     
     # Determine if this was a successful generation
