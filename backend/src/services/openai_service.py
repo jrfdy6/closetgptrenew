@@ -75,6 +75,16 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                         "mood": {"type": "number", "minimum": 0, "maximum": 1}
                     }
                 },
+                "bodyTypeCompatibility": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": ["Rectangle", "Hourglass", "Triangle", "Inverted Triangle", "Apple", "Oval"]}
+                },
+                "weatherCompatibility": {
+                    "type": "array", 
+                    "items": {"type": "string"}
+                },
+                "gender": {"type": "string", "enum": ["male", "female", "unisex"]},
+                "backgroundRemoved": {"type": "boolean"},
                 "metadata": {
                     "type": "object",
                     "properties": {
@@ -156,11 +166,52 @@ ADDITIONAL VISUALATTRIBUTES (Required):
 - backgroundRemoved: true/false (is background removed?)
 - hangerPresent: true/false (is item on a hanger?)
 
+ROOT-LEVEL FIELDS (Also required):
+- bodyTypeCompatibility: Array of body types this flatters (Rectangle/Hourglass/Triangle/Inverted Triangle/Apple/Oval)
+- weatherCompatibility: Array of weather conditions (Hot/Warm/Cool/Cold/Summer/Fall/Winter/Spring)
+- gender: male/female/unisex
+- backgroundRemoved: true/false (detect if background is removed in image)
+
 ALSO INCLUDE:
 - naturalDescription: 1-2 sentence description with styling notes (e.g., "A loose, short-sleeve sweater. Should not be worn under long-sleeve shirts.")
-- type, subType, dominantColors, matchingColors, style[], occasion[], mood[], season[]
+- type, subType, dominantColors (with hex codes!), matchingColors (with hex codes!), style[], occasion[], mood[], season[], brand
 
-Return complete JSON with ALL fields for comprehensive wardrobe metadata!"""
+EXAMPLE OUTPUT:
+{
+  "type": "sweater",
+  "subType": "cardigan",
+  "dominantColors": [{"name": "Beige", "hex": "#D9C8A9", "rgb": [217, 200, 169]}],
+  "matchingColors": [{"name": "Black", "hex": "#000000", "rgb": [0, 0, 0]}],
+  "style": ["Casual", "Preppy"],
+  "occasion": ["Beach", "Casual", "Brunch"],
+  "mood": ["Relaxed"],
+  "season": ["fall", "winter"],
+  "brand": "Abercrombie & Fitch",
+  "bodyTypeCompatibility": ["Rectangle", "Apple"],
+  "weatherCompatibility": ["Hot", "Warm", "Fall", "Winter"],
+  "gender": "male",
+  "backgroundRemoved": false,
+  "metadata": {
+    "visualAttributes": {
+      "wearLayer": "Outer",
+      "sleeveLength": "Short",
+      "material": "Cotton",
+      "pattern": "textured",
+      "textureStyle": "ribbed",
+      "fabricWeight": "Medium",
+      "fit": "loose",
+      "silhouette": "Boxy",
+      "length": "Mid-length",
+      "formalLevel": "Casual",
+      "genderTarget": "Unisex",
+      "backgroundRemoved": false,
+      "hangerPresent": true
+    },
+    "naturalDescription": "A loose, short-sleeve, ribbed sweater. This is an outer layer item that should not be worn under long-sleeve shirts."
+  }
+}
+
+Return comprehensive, complete JSON with ALL fields for professional wardrobe management!"""
                             }
                         ]
                     }

@@ -453,16 +453,21 @@ async def add_wardrobe_item(
         metadata_analysis = (analysis.get("metadata", {}) if analysis else {})
         visual_attrs = (metadata_analysis.get("visualAttributes", {}) if metadata_analysis else {})
         
-        # Use AI analysis results or fallback to defaults
+        # Use AI analysis results or fallback to defaults (ALL 13 fields)
         visual_attributes = {
-            "pattern": (visual_attrs.get("pattern", "solid") if visual_attrs else "solid"),
-            "formalLevel": (visual_attrs.get("formalLevel", "casual") if visual_attrs else "casual"),
-            "fit": (visual_attrs.get("fit", "regular") if visual_attrs else "regular"),
+            "wearLayer": (visual_attrs.get("wearLayer", "Mid") if visual_attrs else "Mid"),
+            "sleeveLength": (visual_attrs.get("sleeveLength", "Unknown") if visual_attrs else "Unknown"),
             "material": (visual_attrs.get("material", "cotton") if visual_attrs else "cotton"),
-            "fabricWeight": (visual_attrs.get("fabricWeight", "medium") if visual_attrs else "medium"),
-            "sleeveLength": (visual_attrs.get("sleeveLength", "unknown") if visual_attrs else "unknown"),
+            "pattern": (visual_attrs.get("pattern", "solid") if visual_attrs else "solid"),
+            "textureStyle": (visual_attrs.get("textureStyle", "smooth") if visual_attrs else "smooth"),
+            "fabricWeight": (visual_attrs.get("fabricWeight", "Medium") if visual_attrs else "Medium"),
+            "fit": (visual_attrs.get("fit", "regular") if visual_attrs else "regular"),
             "silhouette": (visual_attrs.get("silhouette", "regular") if visual_attrs else "regular"),
-            "genderTarget": (visual_attrs.get("genderTarget", "unisex") if visual_attrs else "unisex")
+            "length": (visual_attrs.get("length", "regular") if visual_attrs else "regular"),
+            "formalLevel": (visual_attrs.get("formalLevel", "Casual") if visual_attrs else "Casual"),
+            "genderTarget": (visual_attrs.get("genderTarget", "Unisex") if visual_attrs else "Unisex"),
+            "backgroundRemoved": (visual_attrs.get("backgroundRemoved", False) if visual_attrs else False),
+            "hangerPresent": (visual_attrs.get("hangerPresent", False) if visual_attrs else False)
         }
         
         # Extract dominant colors from AI analysis if available
@@ -474,7 +479,7 @@ async def add_wardrobe_item(
         # Extract matching colors from AI analysis if available
         matching_colors = (analysis.get("matchingColors", []) if analysis else [])
         
-        # Prepare item data
+        # Prepare item data with ROOT-level AI fields
         wardrobe_item = {
             "id": item_id,
             "userId": current_user.id,
@@ -488,6 +493,12 @@ async def add_wardrobe_item(
             "dominantColors": dominant_colors,
             "matchingColors": matching_colors,
             "tags": (item_data.get("tags", []) if item_data else []),
+            "mood": (analysis.get("mood", []) if analysis else []),
+            # ROOT-level fields from AI analysis
+            "bodyTypeCompatibility": (analysis.get("bodyTypeCompatibility", []) if analysis else []),
+            "weatherCompatibility": (analysis.get("weatherCompatibility", []) if analysis else []),
+            "gender": (analysis.get("gender", "unisex") if analysis else "unisex"),
+            "backgroundRemoved": (analysis.get("backgroundRemoved", False) if analysis else False),
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
             "metadata": {
@@ -500,9 +511,12 @@ async def add_wardrobe_item(
                     "matching": [(color.get("name", "") if color else "") for color in matching_colors]
                 },
                 "visualAttributes": visual_attributes,
+                "naturalDescription": (metadata_analysis.get("naturalDescription", "") if metadata_analysis else ""),
                 "itemMetadata": {
                     "tags": (item_data.get("tags", []) if item_data else []),
-                    "careInstructions": "Check care label"
+                    "careInstructions": "Check care label",
+                    "brand": (analysis.get("brand") if analysis else None),
+                    "priceEstimate": None
                 },
                 # Store the full AI analysis for reference
                 "aiAnalysis": analysis if analysis else None
