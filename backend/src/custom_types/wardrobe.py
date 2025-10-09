@@ -369,16 +369,22 @@ class Metadata(BaseModel):
     occasionTags: List[str] = Field(default_factory=list)
     brand: Optional[str] = None
     imageHash: Optional[str] = None
-    colorAnalysis: ColorAnalysis
+    colorAnalysis: Optional[ColorAnalysis] = None  # Make optional to prevent validation failure
     basicMetadata: Optional[BasicMetadata] = None
     visualAttributes: Optional[VisualAttributes] = None
     itemMetadata: Optional[ItemMetadata] = None
     naturalDescription: Optional[str] = None
+    normalized: Optional[Dict[str, Any]] = None  # Add normalized field
     temperatureCompatibility: Optional[TemperatureCompatibility] = None
     materialCompatibility: Optional[MaterialCompatibility] = None
     bodyTypeCompatibility: Optional[BodyTypeCompatibility] = None
     skinToneCompatibility: Optional[SkinToneCompatibility] = None
     outfitScoring: Optional[OutfitScoring] = None
+    
+    model_config = ConfigDict(
+        extra='allow',  # Allow extra fields from Firestore
+        arbitrary_types_allowed=True
+    )
 
     @field_validator('colorAnalysis', mode='before')
     def convert_color_analysis(cls, v, info):
