@@ -1018,6 +1018,9 @@ async def debug_metadata_public():
         items_data = []
         for doc in docs:
             item = doc.to_dict()
+            metadata = item.get("metadata", {})
+            visual_attrs = metadata.get("visualAttributes") if isinstance(metadata, dict) else None
+            
             items_data.append({
                 "id": item.get("id"),
                 "name": item.get("name"),
@@ -1026,8 +1029,15 @@ async def debug_metadata_public():
                 "style": item.get("style", []),
                 "mood": item.get("mood", []),
                 "has_metadata_object": "metadata" in item,
-                "metadata_occasionTags": item.get("metadata", {}).get("occasionTags") if "metadata" in item else None,
-                "metadata_styleTags": item.get("metadata", {}).get("styleTags") if "metadata" in item else None,
+                "metadata_type": type(metadata).__name__ if metadata else None,
+                "has_visualAttributes": visual_attrs is not None,
+                "visualAttributes_type": type(visual_attrs).__name__ if visual_attrs else None,
+                "visualAttributes_keys": list(visual_attrs.keys()) if isinstance(visual_attrs, dict) else None,
+                "visualAttributes_wearLayer": visual_attrs.get("wearLayer") if isinstance(visual_attrs, dict) else None,
+                "visualAttributes_sleeveLength": visual_attrs.get("sleeveLength") if isinstance(visual_attrs, dict) else None,
+                "visualAttributes_fit": visual_attrs.get("fit") if isinstance(visual_attrs, dict) else None,
+                "metadata_occasionTags": metadata.get("occasionTags") if isinstance(metadata, dict) else None,
+                "metadata_styleTags": metadata.get("styleTags") if isinstance(metadata, dict) else None,
             })
         
         return {
@@ -1058,7 +1068,7 @@ async def debug_wardrobe_structure():
         }
         
         # First, let's get a few sample documents to see the actual structure
-        print("🔍 Getting sample wardrobe documents...")
+        print("🔍 Getting sample wardrobe documents...") wa
         sample_docs = []
         try:
             all_docs = db.collection('wardrobe').limit(3).stream()
