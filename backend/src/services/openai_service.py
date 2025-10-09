@@ -81,13 +81,23 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                         "visualAttributes": {
                             "type": "object",
                             "properties": {
+                                "wearLayer": {"type": "string", "enum": ["Base", "Inner", "Mid", "Outer", "Bottom", "Footwear", "Accessory"]},
+                                "sleeveLength": {"type": "string", "enum": ["Sleeveless", "Short", "3/4", "Long", "None"]},
                                 "material": {"type": "string"},
                                 "pattern": {"type": "string"},
-                                "fit": {"type": "string"},
-                                "formalLevel": {"type": "string"},
-                                "silhouette": {"type": "string"}
-                            }
-                        }
+                                "textureStyle": {"type": "string"},
+                                "fabricWeight": {"type": "string", "enum": ["Light", "Medium", "Heavy"]},
+                                "fit": {"type": "string", "enum": ["fitted", "slim", "regular", "relaxed", "loose", "oversized"]},
+                                "silhouette": {"type": "string"},
+                                "length": {"type": "string"},
+                                "formalLevel": {"type": "string", "enum": ["Casual", "Smart Casual", "Business Casual", "Semi-Formal", "Formal"]},
+                                "genderTarget": {"type": "string", "enum": ["Men", "Women", "Unisex"]},
+                                "backgroundRemoved": {"type": "boolean"},
+                                "hangerPresent": {"type": "boolean"}
+                            },
+                            "required": ["wearLayer", "sleeveLength", "material", "pattern", "fit", "formalLevel"]
+                        },
+                        "naturalDescription": {"type": "string"}
                     }
                 }
             },
@@ -117,30 +127,45 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                             },
                             {
                                 "type": "text",
-                                "text": """Analyze the clothing image and return JSON matching this schema: {type, subType, dominantColors, style[], occasion[], mood[], season[], metadata:{visualAttributes:{material, pattern, fit, formalLevel, silhouette}}}
+                                "text": """Analyze the clothing image and return comprehensive JSON with ALL visualAttributes fields.
 
-Rules:
-- For 'mood', list 0-3 single-word moods like: relaxed, bold, romantic, confident, playful, minimal, edgy.
-- Normalize output terms to lowercase where possible. Also return a 'canonical' field mapping for each style/occasion that suggests preferred canonical tags (e.g., "classic" -> "classic").
-- For ambiguous items, include confidence scores for each tag (0-1).
-- Return only valid JSON with those keys. Do not include extra prose.
+CRITICAL FIELDS (Required for outfit compatibility):
+- wearLayer: Classify as Base/Inner/Mid/Outer/Bottom/Footwear/Accessory
+  * Base: Underwear, undershirts
+  * Inner: T-shirts, basic tops worn as first layer
+  * Mid: Shirts, sweaters that can layer
+  * Outer: Jackets, coats, cardigans
+  * Bottom: Pants, shorts, skirts
+  * Footwear: Shoes, boots, sandals
+  * Accessory: Belts, scarves, hats
 
-Focus on:
-- Exact clothing type and subtype
-- Accurate color analysis with proper hex codes
-- Detailed style characteristics (not just "casual")
-- Appropriate seasons and occasions
-- Mood extraction (0-3 single words)
-- Material, pattern, fit, and other visual attributes
-- Brand if visible
-- Canonical tag suggestions for better matching
+- sleeveLength: Sleeveless/Short/3\/4/Long/None (critical for layering compatibility!)
 
-Provide comprehensive, detailed analysis that would be useful for wardrobe management and outfit planning."""
+- fit: fitted/slim/regular/relaxed/loose/oversized
+
+- formalLevel: Casual/Smart Casual/Business Casual/Semi-Formal/Formal
+
+ADDITIONAL VISUALATTRIBUTES (Required):
+- pattern: solid/striped/checkered/plaid/floral/geometric/textured/etc.
+- textureStyle: smooth/ribbed/cable knit/textured/silky/rough/etc.
+- fabricWeight: Light/Medium/Heavy
+- silhouette: structured/flowy/boxy/fitted/etc.
+- length: short/mid-length/long/cropped/etc.
+- genderTarget: Men/Women/Unisex
+- material: cotton/wool/silk/polyester/denim/etc.
+- backgroundRemoved: true/false (is background removed?)
+- hangerPresent: true/false (is item on a hanger?)
+
+ALSO INCLUDE:
+- naturalDescription: 1-2 sentence description with styling notes (e.g., "A loose, short-sleeve sweater. Should not be worn under long-sleeve shirts.")
+- type, subType, dominantColors, matchingColors, style[], occasion[], mood[], season[]
+
+Return complete JSON with ALL fields for comprehensive wardrobe metadata!"""
                             }
                         ]
                     }
                 ],
-                max_tokens=2000,
+                max_tokens=3000,  # Increased for comprehensive metadata
                 temperature=0.1
             )
             logger.info("OpenAI API call completed successfully")
