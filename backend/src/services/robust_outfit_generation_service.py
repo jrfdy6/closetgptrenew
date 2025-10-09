@@ -1749,9 +1749,28 @@ class RobustOutfitGenerationService:
             }
             debug_analysis.append(debug_entry)
             
-            # Add to valid items if all checks pass
-            if ok_occ and ok_style and ok_mood:
-                valid_items.append(raw_item)  # Use original item, not normalized
+            # ADAPTIVE LOGIC: For mismatches, use OR (occasion OR style), ignore mood
+            # Detect mismatch between occasion and style
+            filter_mismatch_detected = False
+            if context and context.occasion and context.style:
+                occ_lower = context.occasion.lower()
+                style_lower = context.style.lower()
+                # Athletic + Classic/Formal/Business = mismatch
+                if occ_lower in ['athletic', 'gym', 'workout', 'sport'] and style_lower in ['classic', 'formal', 'business', 'professional']:
+                    filter_mismatch_detected = True
+                # Formal + Casual/Athleisure = mismatch
+                elif occ_lower in ['business', 'formal', 'interview'] and style_lower in ['casual', 'athleisure', 'sporty']:
+                    filter_mismatch_detected = True
+            
+            # Add to valid items based on adaptive logic
+            if filter_mismatch_detected:
+                # MISMATCH MODE: Pass if occasion OR style matches (mood ignored - it's a bonus)
+                if ok_occ or ok_style:
+                    valid_items.append(raw_item)
+            else:
+                # NORMAL MODE: Pass if occasion AND style match (mood ignored - it's a bonus)
+                if ok_occ and ok_style:
+                    valid_items.append(raw_item)
         
         logger.info(f"🔍 HARD FILTER: Results - {len(valid_items)} passed filters, {len(debug_analysis) - len(valid_items)} rejected")
         
