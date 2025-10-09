@@ -579,13 +579,6 @@ class RobustOutfitGenerationService:
         # Wait for all analyzers to complete
         await asyncio.gather(*analyzer_tasks)
         
-        # DEBUG: Check how many items have non-zero scores from analyzers
-        items_with_body_scores = len([s for s in item_scores.values() if s['body_type_score'] > 0])
-        items_with_style_scores = len([s for s in item_scores.values() if s['style_profile_score'] > 0])
-        items_with_weather_scores = len([s for s in item_scores.values() if s['weather_score'] > 0])
-        items_with_feedback_scores = len([s for s in item_scores.values() if s['user_feedback_score'] > 0])
-        logger.info(f"🔍 ANALYZER RESULTS: Body={items_with_body_scores}, Style={items_with_style_scores}, Weather={items_with_weather_scores}, Feedback={items_with_feedback_scores} out of {len(item_scores)} items")
-        
         # Calculate composite scores
         logger.info(f"🧮 Calculating composite scores...")
         # Calculate composite scores with dynamic weights based on weather
@@ -610,10 +603,7 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎯 DYNAMIC WEIGHTS: Weather={weather_weight}, Style={style_weight}, Body={body_weight}, UserFeedback={user_feedback_weight} (temp={temp}°F)")
         
-        logger.info(f"🔍 SOFT SCORING: About to apply soft scores to {len(item_scores)} items")
-        soft_score_count = 0
         for item_id, scores in item_scores.items():
-            soft_score_count += 1
             # Multi-layered scoring with dynamic weights including user feedback
             base_score = (
                 scores['body_type_score'] * body_weight +
@@ -629,8 +619,6 @@ class RobustOutfitGenerationService:
             scores['composite_score'] = final_score
             scores['soft_penalty'] = soft_penalty
             scores['base_score'] = base_score
-        
-        logger.info(f"🔍 SOFT SCORING COMPLETE: Processed {soft_score_count} items")
         
         # Log top scored items (reduced verbosity)
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
@@ -1918,8 +1906,6 @@ class RobustOutfitGenerationService:
     
     def _soft_score(self, item: ClothingItem, occasion: str, style: str, mood: str = "Professional") -> float:
         """Soft constraint scoring with PRIMARY tag-based matching and adaptive multipliers"""
-        
-        # Removed verbose logging - only log important matches/penalties
         
         item_name = self.safe_get_item_name(item).lower()
         occasion_lower = occasion.lower()
