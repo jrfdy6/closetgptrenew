@@ -137,7 +137,7 @@ ROUTERS = [
     ("src.routes.wardrobe_analysis", "/api/wardrobe"), # Router mounted at /api/wardrobe - ENABLED for wardrobe-stats
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
     ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router - RE-ENABLED
-    # ("src.routes.image_analysis", ""),   # Full image analysis router with debug logging - TEMPORARILY DISABLED DUE TO SYNTAX ERRORS
+    ("src.routes.image_analysis", ""),   # Full image analysis router - RE-ENABLED for image hash generation
     ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
     ("src.routes.debug_stats", "/api"),  # Debug stats router for Railway-proof debugging
@@ -491,21 +491,31 @@ async def analyze_image_real(request: dict):
         if not request.get("image") or not request["image"].get("url"):
             return {"error": "No image provided"}
         
-        # Extract base64 image data
+        # Extract image URL (can be base64 OR Firebase Storage URL)
         image_url = request["image"]["url"]
-        if not image_url.startswith("data:image/"):
-            return {"error": "Invalid image format. Expected base64 data URL."}
         
-        # Parse the data URL to get the base64 data
         import base64
         import tempfile
         import os
+        import requests
         
-        # Extract the base64 data (remove data:image/...;base64, prefix)
-        header, base64_data = image_url.split(",", 1)
-        
-        # Decode base64 to bytes
-        image_bytes = base64.b64decode(base64_data)
+        # Handle both base64 data URLs and Firebase Storage URLs
+        if image_url.startswith("data:image/"):
+            # Parse the data URL to get the base64 data
+            header, base64_data = image_url.split(",", 1)
+            
+            # Decode base64 to bytes
+            image_bytes = base64.b64decode(base64_data)
+        elif image_url.startswith("http://") or image_url.startswith("https://"):
+            # Download image from Firebase Storage URL
+            print(f"🔍 Downloading image from Firebase Storage: {image_url[:100]}...")
+            response = requests.get(image_url, timeout=30)
+            if not response.ok:
+                return {"error": f"Failed to download image from URL: {response.status_code}"}
+            image_bytes = response.content
+            print(f"✅ Downloaded {len(image_bytes)} bytes from Firebase Storage")
+        else:
+            return {"error": "Invalid image format. Expected base64 data URL or HTTP(S) URL."}
         
         # Create a temporary file to save the image
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
