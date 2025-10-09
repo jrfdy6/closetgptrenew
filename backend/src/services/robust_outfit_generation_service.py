@@ -531,9 +531,9 @@ class RobustOutfitGenerationService:
         # STEP 1: FILTER SUITABLE ITEMS FIRST
         # ═══════════════════════════════════════════════════════════
         
-        logger.info(f"🔍 FILTERING: Starting item filtering for {context.occasion} occasion")
+        logger.info(f"🔍 FILTERING STEP 1: Starting item filtering for {context.occasion} occasion")
         suitable_items = await self._filter_suitable_items(context)
-        logger.info(f"🔍 FILTERING: {len(suitable_items)} suitable items from {len(context.wardrobe)} total")
+        logger.info(f"✅ FILTERING STEP 1: {len(suitable_items)} suitable items passed from {len(context.wardrobe)} total")
         
         if len(suitable_items) == 0:
             logger.error(f"🚨 CRITICAL: No suitable items found after filtering!")
@@ -1321,8 +1321,9 @@ class RobustOutfitGenerationService:
         logger.info(f"🎨 COHESIVE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # Filter wardrobe items by occasion and style
+        logger.info(f"🔍 FILTERING STEP 2 (Cohesive): Starting with {len(context.wardrobe)} items")
         suitable_items = await self._filter_suitable_items(context)
-        logger.info(f"🎨 COHESIVE: After filtering, {len(suitable_items)} suitable items")
+        logger.info(f"✅ FILTERING STEP 2 (Cohesive): {len(suitable_items)} suitable items passed")
         
         # Apply intelligent selection logic
         selected_items = await self._intelligent_item_selection(suitable_items, context)
