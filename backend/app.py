@@ -136,7 +136,7 @@ ROUTERS = [
     ("src.routes.image_processing_minimal_test", "/api/image-test"),  # Minimal test router
     ("src.routes.wardrobe_analysis", "/api/wardrobe"), # Router mounted at /api/wardrobe - ENABLED for wardrobe-stats
     ("src.routes.wardrobe", "/api/wardrobe"),               # Main wardrobe router - mounted at /api/wardrobe
-    # ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router - TEMPORARILY DISABLED DUE TO SYNTAX ERRORS
+    ("src.routes.image_upload_minimal", "/api/image"),  # Minimal image upload router - RE-ENABLED
     # ("src.routes.image_analysis", ""),   # Full image analysis router with debug logging - TEMPORARILY DISABLED DUE TO SYNTAX ERRORS
     ("src.routes.auth_working", "/api/auth"),    # Using working auth router that follows same pattern as outfits/wardrobe
     ("src.routes.weather", ""),          # Router already has /api/weather prefix
