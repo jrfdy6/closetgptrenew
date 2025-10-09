@@ -1068,7 +1068,7 @@ async def debug_wardrobe_structure():
         }
         
         # First, let's get a few sample documents to see the actual structure
-        print("🔍 Getting sample wardrobe documents...") wa
+        print("🔍 Getting sample wardrobe documents...")
         sample_docs = []
         try:
             all_docs = db.collection('wardrobe').limit(3).stream()
