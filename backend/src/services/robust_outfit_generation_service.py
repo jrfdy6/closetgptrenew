@@ -1994,12 +1994,17 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════════════════
         
         if occasion_lower == 'athletic':
-            # LIGHT penalties for formal items (don't eliminate them completely)
-            if any(word in item_name for word in ['button', 'dress', 'formal']):
+            # BOOST athletic/sport keywords strongly
+            if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'training', 'performance']):
+                penalty += 0.6 * occasion_multiplier  # Strong boost for primary athletic keywords
+                logger.info(f"  ✅ KEYWORD: Athletic keyword in name: {+0.6 * occasion_multiplier:.2f}")
+            elif any(word in item_name for word in ['tank', 'sneaker', 'jogger', 'track', 'jersey', 'nike', 'adidas']):
+                penalty += 0.5 * occasion_multiplier  # Good boost for sport-related items/brands
+                logger.info(f"  ✅ KEYWORD: Sport-related keyword/brand: {+0.5 * occasion_multiplier:.2f}")
+            # LIGHT penalties for formal items (don't eliminate completely)
+            elif any(word in item_name for word in ['button', 'dress', 'formal', 'oxford', 'blazer', 'dockers']):
                 penalty -= 0.1 * occasion_multiplier  # Very light penalty
-            # Boost athletic keywords
-            elif any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank', 'sneaker']):
-                penalty += 0.5 * occasion_multiplier  # Moderate boost
+                logger.info(f"  ⚠️ KEYWORD: Formal keyword penalty: {-0.1 * occasion_multiplier:.2f}")
         
         elif occasion_lower == 'business':
             # Light penalties for athletic items
