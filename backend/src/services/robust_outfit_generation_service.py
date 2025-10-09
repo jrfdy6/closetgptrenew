@@ -1942,9 +1942,12 @@ class RobustOutfitGenerationService:
             if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
                 logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+            elif any(occ in item_occasion_lower for occ in ['casual', 'beach', 'vacation']):
+                penalty += 0.8 * occasion_multiplier  # GOOD boost for casual items (acceptable for athletic)
+                logger.info(f"  ✅ SECONDARY: Casual occasion tag for Athletic (acceptable): {+0.8 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference']):
-                penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
-                logger.info(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
+                penalty -= 1.0 * occasion_multiplier  # REDUCED penalty (was -2.0, now -1.0 to allow some items through)
+                logger.info(f"  🚫 REDUCED: Formal occasion tag for Athletic request: {-1.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
@@ -1960,24 +1963,24 @@ class RobustOutfitGenerationService:
                 logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
-        # KEYWORD-BASED SCORING: Secondary scoring based on item names
+        # KEYWORD-BASED SCORING: Secondary scoring based on item names (LIGHT penalties only)
         # ═══════════════════════════════════════════════════════════════════════
         
         if occasion_lower == 'athletic':
-            # Penalize business items
-            if any(word in item_name for word in ['button', 'dress', 'formal', 'business']):
-                penalty -= 0.3 * occasion_multiplier
-            # Boost athletic items
+            # LIGHT penalties for formal items (don't eliminate them completely)
+            if any(word in item_name for word in ['button', 'dress', 'formal']):
+                penalty -= 0.1 * occasion_multiplier  # Very light penalty
+            # Boost athletic keywords
             elif any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank', 'sneaker']):
-                penalty += 0.3 * occasion_multiplier
+                penalty += 0.5 * occasion_multiplier  # Moderate boost
         
         elif occasion_lower == 'business':
-            # Penalize athletic items
+            # Light penalties for athletic items
             if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'tank']):
-                penalty -= 0.3 * occasion_multiplier
+                penalty -= 0.1 * occasion_multiplier
             # Boost business items
             elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
-                penalty += 0.3 * occasion_multiplier
+                penalty += 0.5 * occasion_multiplier
         
         return penalty
     
