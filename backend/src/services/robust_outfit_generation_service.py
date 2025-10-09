@@ -1963,9 +1963,12 @@ class RobustOutfitGenerationService:
         
         # PRIMARY OCCASION TAG MATCH (most important for mismatches)
         if occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
-            if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
-                penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
+            if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
+                penalty += 1.5 * occasion_multiplier  # HUGE boost for exact athletic match
                 logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+            elif 'sport' in item_occasion_lower:
+                penalty += 1.3 * occasion_multiplier  # VERY HIGH boost for 'sport' (almost as good as athletic)
+                logger.info(f"  ✅✅ SPORT: Sport occasion tag for Athletic: {+1.3 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['casual', 'beach', 'vacation']):
                 penalty += 0.8 * occasion_multiplier  # GOOD boost for casual items (acceptable for athletic)
                 logger.info(f"  ✅ SECONDARY: Casual occasion tag for Athletic (acceptable): {+0.8 * occasion_multiplier:.2f}")
