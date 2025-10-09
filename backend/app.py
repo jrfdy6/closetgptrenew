@@ -1192,6 +1192,58 @@ async def test_upload():
     """Test endpoint to verify routing is working"""
     return {"message": "Test upload endpoint is working", "status": "success"}
 
+@app.post("/api/wardrobe/add-direct")
+async def add_wardrobe_item_direct(item_data: dict, current_user_id: str = Depends(get_current_user_id)):
+    """Direct inline endpoint to add wardrobe items - bypasses router issues"""
+    try:
+        from src.config.firebase import db
+        import uuid
+        from datetime import datetime
+        
+        if not db:
+            return {"success": False, "error": "Database not available"}
+        
+        # Validate required fields
+        required_fields = ['name', 'type', 'color']
+        for field in required_fields:
+            if field not in item_data:
+                return {"success": False, "error": f"Missing required field: {field}"}
+        
+        # Create item ID - use provided ID if available
+        item_id = item_data.get('id') or str(uuid.uuid4())
+        
+        # Prepare simplified item data (store exactly what we receive, plus userId)
+        wardrobe_item = {
+            **item_data,  # Include all fields from item_data
+            "id": item_id,
+            "userId": current_user_id,
+            "createdAt": item_data.get('createdAt') or datetime.now().isoformat(),
+            "updatedAt": datetime.now().isoformat(),
+        }
+        
+        print(f"💾 Saving wardrobe item directly: {item_id} for user {current_user_id}")
+        print(f"💾 Item name: {wardrobe_item.get('name')}")
+        print(f"💾 Item type: {wardrobe_item.get('type')}")
+        
+        # Save to Firestore
+        doc_ref = db.collection('wardrobe').document(item_id)
+        doc_ref.set(wardrobe_item)
+        
+        print(f"✅ Successfully saved item {item_id} to Firestore")
+        
+        return {
+            "success": True,
+            "message": "Item added successfully",
+            "item_id": item_id,
+            "item": wardrobe_item
+        }
+        
+    except Exception as e:
+        print(f"❌ Error adding wardrobe item: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
 @app.get("/api/today-suggestion")
 async def get_todays_outfit_suggestion(current_user_id: str = Depends(get_current_user_id)):
     """Generate today's outfit suggestion using existing outfit generation logic"""

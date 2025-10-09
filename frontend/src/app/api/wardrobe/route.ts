@@ -219,12 +219,12 @@ export async function POST(request: Request) {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
-    // Call the real backend to add the item
-    console.log('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/add`);
+    // Call the real backend to add the item - using direct endpoint to bypass router issues
+    console.log('🔍 DEBUG: About to call backend POST:', `${backendUrl}/api/wardrobe/add-direct`);
     console.log('🔍 DEBUG: Request body:', JSON.stringify(requestBody, null, 2));
     console.log('🔍 DEBUG: Authorization header:', authHeader);
     
-    const response = await fetch(`${backendUrl}/api/wardrobe/add`, {
+    const response = await fetch(`${backendUrl}/api/wardrobe/add-direct`, {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
