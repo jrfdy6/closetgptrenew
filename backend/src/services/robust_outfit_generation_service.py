@@ -271,6 +271,10 @@ class RobustOutfitGenerationService:
     """Enterprise-grade outfit generation service with comprehensive validation and fallback strategies"""
     
     def __init__(self):
+        # Import unified metadata compatibility analyzer
+        from .metadata_compatibility_analyzer import MetadataCompatibilityAnalyzer
+        self.metadata_analyzer = MetadataCompatibilityAnalyzer()
+        
         self.generation_strategies = [
             GenerationStrategy.COHESIVE_COMPOSITION,
             GenerationStrategy.BODY_TYPE_OPTIMIZED,
@@ -336,6 +340,40 @@ class RobustOutfitGenerationService:
             return item.get(attr, default)
         else:
             return default
+    
+    def _get_normalized_or_raw(self, item: Dict, field_name: str) -> List[str]:
+        """
+        Get normalized metadata field with fallback to raw field.
+        
+        Priority:
+        1. metadata.normalized.{field_name} (lowercase, consistent)
+        2. Raw {field_name} field (normalize it)
+        
+        Args:
+            item: Dict item to extract from
+            field_name: 'occasion', 'style', or 'mood'
+        
+        Returns:
+            List of lowercase values
+        """
+        # Try normalized metadata first (most reliable)
+        if isinstance(item, dict):
+            metadata = item.get('metadata', {})
+            if isinstance(metadata, dict):
+                normalized = metadata.get('normalized', {})
+                if isinstance(normalized, dict):
+                    normalized_values = normalized.get(field_name, [])
+                    if normalized_values and isinstance(normalized_values, list):
+                        return normalized_values  # Already lowercase
+        
+        # Fallback to raw field (normalize it ourselves)
+        raw_values = item.get(field_name, [])
+        if isinstance(raw_values, list):
+            return [str(v).lower() for v in raw_values]
+        elif isinstance(raw_values, str):
+            return [raw_values.lower()]
+        
+        return []
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with multi-layered scoring system"""
@@ -566,14 +604,15 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
         
         # Run all analyzers in parallel on filtered items
-        logger.info(f"🚀 Running 4 analyzers in parallel on {len(suitable_items)} filtered items... (body type + style profile + weather + user feedback)")
+        logger.info(f"🚀 Running 5 analyzers in parallel on {len(suitable_items)} filtered items... (body type + style profile + weather + user feedback + metadata compatibility)")
         
         analyzer_tasks = [
-            # RE-ENABLING ANALYZERS: Body type + Style profile + Weather + User Feedback
+            # MULTI-LAYERED SCORING: 5 Analyzers
             asyncio.create_task(self._analyze_body_type_scores(context, item_scores)),
             asyncio.create_task(self._analyze_style_profile_scores(context, item_scores)),
             asyncio.create_task(self._analyze_weather_scores(context, item_scores)),
-            asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores))  # RE-ENABLED!
+            asyncio.create_task(self._analyze_user_feedback_scores(context, item_scores)),
+            asyncio.create_task(self.metadata_analyzer.analyze_compatibility_scores(context, item_scores))  # NEW: Unified Metadata Compatibility
         ]
         
         # Wait for all analyzers to complete
@@ -581,39 +620,47 @@ class RobustOutfitGenerationService:
         
         # DEBUG: Check analyzer outputs for first 3 items
         for i, (item_id, scores) in enumerate(list(item_scores.items())[:3]):
-            logger.info(f"🔍 ITEM {i+1} SCORES: {self.safe_get_item_name(scores['item'])}: body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores['user_feedback_score']:.2f}")
+            compat_score = scores.get('compatibility_score', 1.0)
+            breakdown = scores.get('_compatibility_breakdown', {})
+            logger.info(f"🔍 ITEM {i+1} SCORES: {self.safe_get_item_name(scores['item'])}: body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores['user_feedback_score']:.2f}, compat={compat_score:.2f}")
+            if breakdown:
+                logger.debug(f"   Compatibility breakdown: layer={breakdown.get('layer', 0):.2f}, pattern={breakdown.get('pattern', 0):.2f}, fit={breakdown.get('fit', 0):.2f}, formality={breakdown.get('formality', 0):.2f}, color={breakdown.get('color', 0):.2f}, brand={breakdown.get('brand', 0):.2f}")
         
         # Calculate composite scores
-        logger.info(f"🧮 Calculating composite scores...")
+        logger.info(f"🧮 Calculating composite scores with 5-dimensional analysis...")
         # Calculate composite scores with dynamic weights based on weather
         temp = safe_get(context.weather, 'temperature', 70.0)
         
-        # Dynamic weight adjustment for extreme weather
-        if temp > 75:  # Hot weather - increase weather weight
-            weather_weight = 0.3
-            style_weight = 0.25
-            body_weight = 0.2
-            user_feedback_weight = 0.25
-        elif temp < 50:  # Cold weather - increase weather weight
-            weather_weight = 0.3
-            style_weight = 0.25
-            body_weight = 0.2
-            user_feedback_weight = 0.25
+        # Dynamic weight adjustment for extreme weather (5 dimensions now)
+        if temp > 75:  # Hot weather - increase weather & compatibility weights
+            weather_weight = 0.25
+            compatibility_weight = 0.20  # Layer/pattern/fit compatibility more important
+            style_weight = 0.20
+            body_weight = 0.15
+            user_feedback_weight = 0.20
+        elif temp < 50:  # Cold weather - increase weather & compatibility weights
+            weather_weight = 0.25
+            compatibility_weight = 0.20  # Proper layering/formality more important
+            style_weight = 0.20
+            body_weight = 0.15
+            user_feedback_weight = 0.20
         else:  # Moderate weather - standard weights
-            weather_weight = 0.2
-            style_weight = 0.3
-            body_weight = 0.25
-            user_feedback_weight = 0.25
+            weather_weight = 0.20
+            compatibility_weight = 0.15  # Standard metadata compatibility importance
+            style_weight = 0.25
+            body_weight = 0.20
+            user_feedback_weight = 0.20
         
-        logger.info(f"🎯 DYNAMIC WEIGHTS: Weather={weather_weight}, Style={style_weight}, Body={body_weight}, UserFeedback={user_feedback_weight} (temp={temp}°F)")
+        logger.info(f"🎯 DYNAMIC WEIGHTS (5D): Weather={weather_weight}, Compatibility={compatibility_weight}, Style={style_weight}, Body={body_weight}, UserFeedback={user_feedback_weight} (temp={temp}°F)")
         
         for item_id, scores in item_scores.items():
-            # Multi-layered scoring with dynamic weights including user feedback
+            # Multi-layered scoring with 5 dimensions and dynamic weights
             base_score = (
                 scores['body_type_score'] * body_weight +
                 scores['style_profile_score'] * style_weight +
                 scores['weather_score'] * weather_weight +
-                scores['user_feedback_score'] * user_feedback_weight
+                scores['user_feedback_score'] * user_feedback_weight +
+                scores.get('compatibility_score', 1.0) * compatibility_weight  # NEW: Unified metadata compatibility
             )
             
             # Apply soft constraint penalties/bonuses
@@ -1719,18 +1766,20 @@ class RobustOutfitGenerationService:
                 ok_style = style_matches(context.style if context else None, item.get('style', []))
                 ok_mood = mood_matches(context.mood if context else None, item.get('mood', []))
             else:
-                # Legacy behavior (exact case-insensitive)
-                item_occasions = item.get('occasion', [])
-                item_styles = item.get('style', [])
-                item_moods = item.get('mood', [])
+                # Enhanced: Use normalized metadata for consistent filtering
+                # Try normalized fields first (already lowercase), fallback to raw
+                item_occasions = self._get_normalized_or_raw(item, 'occasion')
+                item_styles = self._get_normalized_or_raw(item, 'style')
+                item_moods = self._get_normalized_or_raw(item, 'mood')
                 
                 context_occasion = (context.occasion or "").lower() if context else ""
                 context_style = (context.style or "").lower() if context else ""
                 context_mood = (context.mood or "").lower() if context else ""
                 
-                ok_occ = any(s.lower() == context_occasion for s in item_occasions)
-                ok_style = any(s.lower() == context_style for s in item_styles)
-                ok_mood = len(item_moods) == 0 or any(m.lower() == context_mood for m in item_moods)
+                # All values already lowercase from normalized or converted
+                ok_occ = any(s == context_occasion for s in item_occasions)
+                ok_style = any(s == context_style for s in item_styles)
+                ok_mood = len(item_moods) == 0 or any(m == context_mood for m in item_moods)
             
             # Build rejection reasons
             if not ok_occ:
@@ -3325,6 +3374,7 @@ class RobustOutfitGenerationService:
         
         logger.info(f"⭐ USER FEEDBACK ANALYZER: Completed scoring with learning algorithm")
         logger.info(f"   Mode: {'🔍 Discovery (boost rarely-worn)' if boost_rare else '⭐ Favorites (boost popular)'}")
+    
     
     async def _cohesive_composition_with_scores(self, context: GenerationContext, item_scores: dict) -> OutfitGeneratedOutfit:
         """Generate cohesive outfit using multi-layered scores with intelligent layering"""

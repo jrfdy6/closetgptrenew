@@ -16,6 +16,46 @@ class OutfitFilteringService:
     def __init__(self):
         pass
     
+    def _get_normalized_field(self, item: ClothingItem, field_name: str) -> List[str]:
+        """
+        Get normalized metadata field with fallback to raw field.
+        
+        Priority:
+        1. metadata.normalized.{field_name} (lowercase, consistent)
+        2. Raw {field_name} field (may have case variations)
+        
+        Args:
+            item: ClothingItem to extract from
+            field_name: 'occasion', 'style', or 'mood'
+        
+        Returns:
+            List of lowercase normalized values
+        """
+        # Try normalized metadata first (most reliable)
+        if hasattr(item, 'metadata') and item.metadata:
+            if hasattr(item.metadata, 'normalized'):
+                normalized = item.metadata.normalized
+                if normalized and hasattr(normalized, field_name):
+                    normalized_values = getattr(normalized, field_name, [])
+                    if normalized_values:
+                        return normalized_values  # Already lowercase
+            # Try dict format
+            elif isinstance(item.metadata, dict):
+                normalized = item.metadata.get('normalized', {})
+                if isinstance(normalized, dict):
+                    normalized_values = normalized.get(field_name, [])
+                    if normalized_values:
+                        return normalized_values  # Already lowercase
+        
+        # Fallback to raw field (normalize it ourselves)
+        raw_values = getattr(item, field_name, [])
+        if isinstance(raw_values, list):
+            return [str(v).lower() for v in raw_values]
+        elif isinstance(raw_values, str):
+            return [raw_values.lower()]
+        
+        return []
+    
     def apply_strict_filtering(self, wardrobe, context):
         # print(f"🔍 DEBUG: _apply_strict_filtering - Starting with {len(wardrobe)} items")
         filtered = wardrobe[:]
@@ -348,18 +388,18 @@ class OutfitFilteringService:
     def _item_matches_style(self, item: ClothingItem, style: str) -> bool:
         """
         Check if item matches the specified style.
-        METADATA-FIRST FILTERING: Uses structured data as primary filter, names only as tertiary helper.
+        METADATA-FIRST FILTERING: Uses normalized metadata for consistency.
         """
         style_lower = style.lower()
         
         # ═══════════════════════════════════════════════════════════════════════
-        # PRIMARY FILTER: Use structured metadata (style[], type, brand)
+        # PRIMARY FILTER: Use normalized metadata (most consistent)
         # ═══════════════════════════════════════════════════════════════════════
         
-        # 1. Check style[] field from AI analysis (PRIMARY)
-        item_styles = [s.lower() for s in getattr(item, 'style', [])]
+        # 1. Check normalized style[] field (PRIMARY - case-consistent)
+        item_styles = self._get_normalized_field(item, 'style')
         if item_styles and style_lower in item_styles:
-            return True  # Item explicitly tagged for this style
+            return True  # Item explicitly tagged for this style (normalized)
         
         # 2. Check item type (SECONDARY - more reliable than names)
         item_type = item.type.lower()
