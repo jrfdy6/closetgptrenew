@@ -579,6 +579,10 @@ class RobustOutfitGenerationService:
         # Wait for all analyzers to complete
         await asyncio.gather(*analyzer_tasks)
         
+        # DEBUG: Check analyzer outputs for first 3 items
+        for i, (item_id, scores) in enumerate(list(item_scores.items())[:3]):
+            logger.info(f"🔍 ITEM {i+1} SCORES: {self.safe_get_item_name(scores['item'])}: body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores['user_feedback_score']:.2f}")
+        
         # Calculate composite scores
         logger.info(f"🧮 Calculating composite scores...")
         # Calculate composite scores with dynamic weights based on weather
