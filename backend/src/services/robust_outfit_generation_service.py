@@ -1907,6 +1907,8 @@ class RobustOutfitGenerationService:
     def _soft_score(self, item: ClothingItem, occasion: str, style: str, mood: str = "Professional") -> float:
         """Soft constraint scoring with PRIMARY tag-based matching and adaptive multipliers"""
         
+        logger.info(f"🆕 SOFT SCORE v2.0: Processing {self.safe_get_item_name(item)} for {occasion}")
+        
         item_name = self.safe_get_item_name(item).lower()
         occasion_lower = occasion.lower()
         style_lower = style.lower()
