@@ -441,18 +441,18 @@ async def get_outfits(
         # Import Firebase
         from src.config.firebase import db
         
-        # Query outfit history collection using Firestore index
-        # Using user_id + date_worn (matches existing index)
-        query = db.collection('outfit_history')\
+        # Query outfits collection (generated outfits with items arrays)
+        # Using user_id + createdAt (matches existing index)
+        query = db.collection('outfits')\
             .where('user_id', '==', current_user_id)\
-            .order_by('date_worn', direction='DESCENDING')\
+            .order_by('createdAt', direction='DESCENDING')\
             .limit(limit)
         
         if offset > 0:
             # Get the last document from the previous page for pagination
-            prev_query = db.collection('outfit_history')\
+            prev_query = db.collection('outfits')\
                 .where('user_id', '==', current_user_id)\
-                .order_by('date_worn', direction='DESCENDING')\
+                .order_by('createdAt', direction='DESCENDING')\
                 .limit(offset)
             prev_docs = list(prev_query.stream())
             if prev_docs:
@@ -467,7 +467,7 @@ async def get_outfits(
             outfit_data['id'] = doc.id
             outfits.append(outfit_data)
         
-        logger.info(f"✅ Retrieved {len(outfits)} outfits for user {current_user_id}")
+        logger.info(f"✅ Retrieved {len(outfits)} generated outfits for user {current_user_id}")
         
         return {
             "success": True,
