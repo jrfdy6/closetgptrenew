@@ -216,6 +216,11 @@ export default function WardrobeItemDetails({
 
   if (!item) return null;
 
+  // Debug: Log the entire item structure
+  console.log('🔍 [DEBUG] Full item object:', item);
+  console.log('🔍 [DEBUG] item.analysis:', item.analysis);
+  console.log('🔍 [DEBUG] item.analysis?.metadata:', item.analysis?.metadata);
+
   // Helper function to get visual attributes from nested AI analysis or top-level
   const getVisualAttribute = (field: string, defaultValue: any = null) => {
     // First check top-level
