@@ -59,15 +59,25 @@ class DiversityFilterService:
         
         logger.info("🎭 Diversity Filter Service initialized")
     
-    def calculate_outfit_similarity(self, outfit1: List[ClothingItem], outfit2: List[ClothingItem]) -> float:
-        """Calculate similarity score between two outfits (0.0 = completely different, 1.0 = identical)"""
+    def calculate_outfit_similarity(self, outfit1, outfit2) -> float:
+        """
+        Calculate similarity score between two outfits (0.0 = completely different, 1.0 = identical)
+        Works with both ClothingItem objects and lightweight dicts
+        """
         
         if not outfit1 or not outfit2:
             return 0.0
         
+        # Helper to get field from either ClothingItem or dict
+        def get_field(item, field, default=None):
+            if isinstance(item, dict):
+                return item.get(field, default)
+            else:
+                return getattr(item, field, default)
+        
         # Extract item IDs
-        items1 = {item.id for item in outfit1}
-        items2 = {item.id for item in outfit2}
+        items1 = {get_field(item, 'id') for item in outfit1 if get_field(item, 'id')}
+        items2 = {get_field(item, 'id') for item in outfit2 if get_field(item, 'id')}
         
         # Calculate Jaccard similarity
         intersection = len(items1 & items2)
@@ -79,15 +89,15 @@ class DiversityFilterService:
         jaccard_similarity = intersection / union
         
         # Calculate type similarity
-        types1 = {item.type for item in outfit1}
-        types2 = {item.type for item in outfit2}
+        types1 = {str(get_field(item, 'type', '')) for item in outfit1 if get_field(item, 'type')}
+        types2 = {str(get_field(item, 'type', '')) for item in outfit2 if get_field(item, 'type')}
         type_intersection = len(types1 & types2)
         type_union = len(types1 | types2)
         type_similarity = type_intersection / type_union if type_union > 0 else 0.0
         
         # Calculate color similarity
-        colors1 = {item.color for item in outfit1}
-        colors2 = {item.color for item in outfit2}
+        colors1 = {str(get_field(item, 'color', '')) for item in outfit1 if get_field(item, 'color')}
+        colors2 = {str(get_field(item, 'color', '')) for item in outfit2 if get_field(item, 'color')}
         color_intersection = len(colors1 & colors2)
         color_union = len(colors1 | colors2)
         color_similarity = color_intersection / color_union if color_union > 0 else 0.0
@@ -96,9 +106,13 @@ class DiversityFilterService:
         styles1 = set()
         styles2 = set()
         for item in outfit1:
-            styles1.update(item.style or [])
+            item_styles = get_field(item, 'style', [])
+            if item_styles:
+                styles1.update(item_styles if isinstance(item_styles, list) else [item_styles])
         for item in outfit2:
-            styles2.update(item.style or [])
+            item_styles = get_field(item, 'style', [])
+            if item_styles:
+                styles2.update(item_styles if isinstance(item_styles, list) else [item_styles])
         
         style_intersection = len(styles1 & styles2)
         style_union = len(styles1 | styles2)
@@ -133,34 +147,61 @@ class DiversityFilterService:
             
             for doc in docs:
                 outfit_data = doc.to_dict()
-                # Convert items to ClothingItem objects if they're dicts
+                # Store items as simple dicts for comparison (no need for full ClothingItem objects)
                 items = outfit_data.get('items', [])
-                clothing_items = []
                 
+                # Convert items to lightweight comparison format
+                lightweight_items = []
                 for item in items:
                     if isinstance(item, dict):
-                        # Create ClothingItem from dict
-                        try:
-                            clothing_item = ClothingItem(**item)
-                            clothing_items.append(clothing_item)
-                        except Exception as e:
-                            logger.warning(f"⚠️ Failed to convert item to ClothingItem: {e}")
-                            # Skip items that can't be converted
-                            continue
+                        # Keep essential fields only for comparison
+                        lightweight_items.append({
+                            'id': item.get('id'),
+                            'type': item.get('type'),
+                            'color': item.get('color'),
+                            'style': item.get('style', []),
+                            'name': item.get('name', 'Unknown')
+                        })
                     elif isinstance(item, ClothingItem):
-                        clothing_items.append(item)
+                        lightweight_items.append({
+                            'id': item.id,
+                            'type': item.type,
+                            'color': item.color,
+                            'style': item.style or [],
+                            'name': item.name
+                        })
+                    elif hasattr(item, 'id'):
+                        # Object with attributes
+                        lightweight_items.append({
+                            'id': getattr(item, 'id', None),
+                            'type': getattr(item, 'type', None),
+                            'color': getattr(item, 'color', None),
+                            'style': getattr(item, 'style', []),
+                            'name': getattr(item, 'name', 'Unknown')
+                        })
                 
-                firestore_outfits.append({
-                    'id': doc.id,
-                    'items': clothing_items,
-                    'occasion': outfit_data.get('occasion', 'unknown'),
-                    'style': outfit_data.get('style', 'unknown'),
-                    'mood': outfit_data.get('mood', 'unknown'),
-                    'createdAt': outfit_data.get('createdAt', 0),
-                    'confidence': outfit_data.get('confidence', 0.0)
-                })
+                if lightweight_items:  # Only add if we got items
+                    firestore_outfits.append({
+                        'id': doc.id,
+                        'items': lightweight_items,
+                        'occasion': outfit_data.get('occasion', 'unknown'),
+                        'style': outfit_data.get('style', 'unknown'),
+                        'mood': outfit_data.get('mood', 'unknown'),
+                        'createdAt': outfit_data.get('createdAt', 0),
+                        'confidence': outfit_data.get('confidence', 0.0)
+                    })
             
             logger.info(f"📊 Loaded {len(firestore_outfits)} outfits from Firestore for user {user_id}")
+            
+            # Log sample outfit for verification
+            if firestore_outfits:
+                sample = firestore_outfits[0]
+                logger.info(f"   Sample outfit: {sample.get('id')} with {len(sample.get('items', []))} items")
+                logger.info(f"   Occasion: {sample.get('occasion')}, Style: {sample.get('style')}")
+                if sample.get('items'):
+                    sample_item = sample['items'][0]
+                    logger.info(f"   Sample item: {sample_item.get('id')} - {sample_item.get('name', 'Unknown')}")
+            
             return firestore_outfits
             
         except Exception as e:
@@ -331,10 +372,16 @@ class DiversityFilterService:
             # Boost items that haven't been used recently in THIS COMBINATION
             # Count usage in same-combination outfits, not globally
             same_combo_usage = 0
+            item_id = getattr(item, 'id', None)
+            
             for outfit in comparison_outfits:
                 if outfit and 'items' in outfit:
-                    if any(hasattr(oi, 'id') and oi.id == item.id for oi in outfit['items']):
-                        same_combo_usage += 1
+                    # Handle both dict and object items in history
+                    for oi in outfit['items']:
+                        oi_id = oi.get('id') if isinstance(oi, dict) else getattr(oi, 'id', None)
+                        if oi_id and oi_id == item_id:
+                            same_combo_usage += 1
+                            break  # Count each outfit only once
             
             if same_combo_usage == 0:
                 diversity_boost += 0.3  # Not used in this combination
@@ -349,11 +396,20 @@ class DiversityFilterService:
             # Boost items that are different from recent SAME-COMBO outfits
             if comparison_outfits:
                 item_similarities = []
+                item_id = getattr(item, 'id', None)
+                
                 for recent_outfit in comparison_outfits:
                     if 'items' in recent_outfit:
                         recent_items = recent_outfit['items']
-                        # Check if this item was in recent outfits
-                        if any(hasattr(ri, 'id') and ri.id == item.id for ri in recent_items):
+                        # Check if this item was in recent outfits (handle both dict and object)
+                        found_exact_match = False
+                        for ri in recent_items:
+                            ri_id = ri.get('id') if isinstance(ri, dict) else getattr(ri, 'id', None)
+                            if ri_id and ri_id == item_id:
+                                found_exact_match = True
+                                break
+                        
+                        if found_exact_match:
                             item_similarities.append(1.0)  # Exact match
                         else:
                             # Calculate similarity with this item
@@ -363,6 +419,10 @@ class DiversityFilterService:
                 if item_similarities:
                     avg_similarity = sum(item_similarities) / len(item_similarities)
                     diversity_boost += (1.0 - avg_similarity) * 0.2  # Boost dissimilar items
+                    
+                    # Log high similarity items for debugging
+                    if avg_similarity > 0.7:
+                        logger.debug(f"  ⚠️  {item.name[:30]}: High similarity ({avg_similarity:.2f}) to recent {occasion}/{style} outfits")
             
             # Boost items that fit rotation schedule
             if item.id in self.rotation_schedule[user_id]:
@@ -374,25 +434,42 @@ class DiversityFilterService:
         
         return boosted_items
     
-    def _calculate_item_similarity(self, item: ClothingItem, outfit_items: List[ClothingItem]) -> float:
-        """Calculate similarity between an item and items in an outfit"""
+    def _calculate_item_similarity(self, item, outfit_items) -> float:
+        """
+        Calculate similarity between an item and items in an outfit
+        Works with both ClothingItem objects and lightweight dicts
+        """
         
         if not outfit_items:
             return 0.0
         
+        # Helper to get field
+        def get_field(obj, field, default=None):
+            if isinstance(obj, dict):
+                return obj.get(field, default)
+            else:
+                return getattr(obj, field, default)
+        
         similarities = []
+        item_type = str(get_field(item, 'type', ''))
+        item_color = str(get_field(item, 'color', ''))
+        item_styles = get_field(item, 'style', [])
+        item_styles_set = set(item_styles if isinstance(item_styles, list) else [item_styles] if item_styles else [])
+        
         for outfit_item in outfit_items:
             # Type similarity
-            type_sim = 1.0 if item.type == outfit_item.type else 0.0
+            outfit_type = str(get_field(outfit_item, 'type', ''))
+            type_sim = 1.0 if item_type == outfit_type else 0.0
             
             # Color similarity
-            color_sim = 1.0 if item.color == outfit_item.color else 0.0
+            outfit_color = str(get_field(outfit_item, 'color', ''))
+            color_sim = 1.0 if item_color == outfit_color else 0.0
             
             # Style similarity
-            item_styles = set(item.style or [])
-            outfit_styles = set(outfit_item.style or [])
-            style_intersection = len(item_styles & outfit_styles)
-            style_union = len(item_styles | outfit_styles)
+            outfit_styles = get_field(outfit_item, 'style', [])
+            outfit_styles_set = set(outfit_styles if isinstance(outfit_styles, list) else [outfit_styles] if outfit_styles else [])
+            style_intersection = len(item_styles_set & outfit_styles_set)
+            style_union = len(item_styles_set | outfit_styles_set)
             style_sim = style_intersection / style_union if style_union > 0 else 0.0
             
             # Weighted similarity
