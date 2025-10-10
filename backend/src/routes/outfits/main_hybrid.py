@@ -264,12 +264,19 @@ async def generate_outfit(
             has_bottom = False
             has_shoes = False
             for item in result_items:
-                item_type = str(getattr(item, 'type', '')).lower()
-                if 'shirt' in item_type or 'top' in item_type or 'blouse' in item_type:
+                # Get the actual enum value, not the enum representation
+                item_type_obj = getattr(item, 'type', None)
+                if item_type_obj:
+                    # Try to get .value for enums, otherwise convert to string
+                    item_type = str(getattr(item_type_obj, 'value', item_type_obj)).lower()
+                else:
+                    item_type = ''
+                
+                if 'shirt' in item_type or 'top' in item_type or 'blouse' in item_type or 'sweater' in item_type or 'jacket' in item_type:
                     has_top = True
-                elif 'pants' in item_type or 'bottom' in item_type or 'skirt' in item_type or 'shorts' in item_type:
+                elif 'pants' in item_type or 'bottom' in item_type or 'skirt' in item_type or 'shorts' in item_type or 'jeans' in item_type:
                     has_bottom = True
-                elif 'shoe' in item_type:
+                elif 'shoe' in item_type or 'boot' in item_type or 'sneaker' in item_type or 'sandal' in item_type:
                     has_shoes = True
             
             essential_categories_met = has_top and has_bottom and has_shoes
