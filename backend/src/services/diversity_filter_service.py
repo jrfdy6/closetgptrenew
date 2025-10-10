@@ -57,7 +57,7 @@ class DiversityFilterService:
         self.rotation_period_days = 7  # Rotate items every 7 days
         self.diversity_boost_factor = 1.5  # Boost score for diverse items
         
-        logger.info("🎭 Diversity Filter Service initialized")
+        logger.info("🎭 Diversity Filter Service initialized v2.0 - Combination-aware filtering active")
     
     def calculate_outfit_similarity(self, outfit1, outfit2) -> float:
         """
