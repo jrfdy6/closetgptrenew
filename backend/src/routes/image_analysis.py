@@ -317,9 +317,8 @@ async def analyze_single_image(
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
                     temp_file.write(response.content)
                     temp_path = temp_file.name
-            except Exception as e:
-# print statement
-pass
+            except Exception as download_error:
+                # Handle download failure
                 raise HTTPException(status_code=400, detail=f"Failed to download image: {str(download_error)}")
         
         try:
