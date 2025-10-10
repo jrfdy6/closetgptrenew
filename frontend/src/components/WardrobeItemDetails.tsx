@@ -548,6 +548,7 @@ export default function WardrobeItemDetails({
                       </SelectContent>
                     </Select>
                   </div>
+                  )}
                   <div>
                     <Label htmlFor="purchasePrice" className="text-stone-700 dark:text-stone-300 font-medium">Purchase Price</Label>
                     <Input
