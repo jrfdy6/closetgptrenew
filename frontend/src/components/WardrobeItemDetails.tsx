@@ -216,6 +216,37 @@ export default function WardrobeItemDetails({
 
   if (!item) return null;
 
+  // Helper function to get visual attributes from nested AI analysis or top-level
+  const getVisualAttribute = (field: string, defaultValue: any = null) => {
+    // First check top-level
+    if (item[field]) return item[field];
+    // Then check nested in analysis.metadata.visualAttributes
+    const visualAttrs = item.analysis?.metadata?.visualAttributes;
+    if (visualAttrs && visualAttrs[field]) return visualAttrs[field];
+    return defaultValue;
+  };
+
+  // Get description from multiple possible sources
+  const getDescription = () => {
+    if (item.description) return item.description;
+    if (item.analysis?.metadata?.naturalDescription) return item.analysis.metadata.naturalDescription;
+    return null;
+  };
+
+  // Get material as array
+  const getMaterials = () => {
+    // Check top-level material field
+    if (item.material) {
+      return Array.isArray(item.material) ? item.material : [item.material];
+    }
+    // Check nested visual attributes
+    const material = getVisualAttribute('material');
+    if (material) {
+      return Array.isArray(material) ? material : [material];
+    }
+    return [];
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -625,7 +656,7 @@ export default function WardrobeItemDetails({
                 <div>
                   <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Description</h3>
                   <p className="text-stone-600 dark:text-stone-400">
-                    {item.description || <span className="text-stone-400 italic">No description provided</span>}
+                    {getDescription() || <span className="text-stone-400 italic">No description provided</span>}
                   </p>
                 </div>
 
@@ -642,25 +673,25 @@ export default function WardrobeItemDetails({
                     <div>
                       <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Sleeve Length</h4>
                       <p className="text-stone-600 dark:text-stone-400">
-                        {item.sleeveLength ? item.sleeveLength.replace('-', ' ').charAt(0).toUpperCase() + item.sleeveLength.replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        {getVisualAttribute('sleeveLength') ? String(getVisualAttribute('sleeveLength')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('sleeveLength')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
                       </p>
                     </div>
                     <div>
                       <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Fit</h4>
                       <p className="text-stone-600 dark:text-stone-400">
-                        {item.fit ? item.fit.charAt(0).toUpperCase() + item.fit.slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        {getVisualAttribute('fit') ? String(getVisualAttribute('fit')).charAt(0).toUpperCase() + String(getVisualAttribute('fit')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
                       </p>
                     </div>
                     <div>
                       <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Neckline</h4>
                       <p className="text-stone-600 dark:text-stone-400">
-                        {item.neckline ? item.neckline.replace('-', ' ').charAt(0).toUpperCase() + item.neckline.replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        {getVisualAttribute('neckline') ? String(getVisualAttribute('neckline')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('neckline')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
                       </p>
                     </div>
                     <div>
                       <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Length</h4>
                       <p className="text-stone-600 dark:text-stone-400">
-                        {item.length ? item.length.charAt(0).toUpperCase() + item.length.slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        {getVisualAttribute('length') ? String(getVisualAttribute('length')).charAt(0).toUpperCase() + String(getVisualAttribute('length')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
                       </p>
                     </div>
                     <div>
@@ -676,8 +707,8 @@ export default function WardrobeItemDetails({
                 <div>
                   <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Materials</h3>
                   <div className="flex flex-wrap gap-2">
-                    {item.material && item.material.length > 0 ? (
-                      item.material.map((material, index) => (
+                    {getMaterials().length > 0 ? (
+                      getMaterials().map((material, index) => (
                         <Badge key={index} variant="outline">
                           {material}
                         </Badge>
