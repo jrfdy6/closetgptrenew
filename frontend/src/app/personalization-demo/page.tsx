@@ -121,9 +121,13 @@ export default function PersonalizationDemoPage() {
 
       const debugResult = await debugResponse.json();
       console.log('✅ [Debug] Debug analysis complete:', debugResult);
+      console.log('✅ [Debug] Summary:', debugResult.summary);
+      console.log('✅ [Debug] Debug items:', debugResult.debug?.length);
       
-      setDebugAnalysis(debugResult.debug_analysis);
+      // Store the entire debug result (not just debug_analysis)
+      setDebugAnalysis(debugResult);
       setShowDebugPanel(true);
+      console.log('✅ [Debug] Panel should now be visible');
       
     } catch (error) {
       console.error('❌ [Debug] Debug analysis failed:', error);
@@ -1068,22 +1072,18 @@ export default function PersonalizationDemoPage() {
                 </CardHeader>
                 <CardContent>
                   {/* Summary Stats */}
-                  <div className="grid grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{debugAnalysis.total_items}</div>
+                      <div className="text-2xl font-bold text-blue-600">{debugAnalysis.summary?.total_items || 0}</div>
                       <div className="text-sm text-gray-600">Total Items</div>
                     </div>
                     <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600">{debugAnalysis.filtered_items}</div>
+                      <div className="text-2xl font-bold text-green-600">{debugAnalysis.summary?.valid_items || 0}</div>
                       <div className="text-sm text-gray-600">Passed Filters</div>
                     </div>
                     <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <div className="text-2xl font-bold text-red-600">{debugAnalysis.hard_rejected}</div>
-                      <div className="text-sm text-gray-600">Hard Rejected</div>
-                    </div>
-                    <div className="text-center p-3 bg-white dark:bg-gray-800 rounded-lg">
-                      <div className="text-2xl font-bold text-orange-600">{debugAnalysis.weather_rejected}</div>
-                      <div className="text-sm text-gray-600">Weather Rejected</div>
+                      <div className="text-2xl font-bold text-red-600">{debugAnalysis.summary?.rejected_items || 0}</div>
+                      <div className="text-sm text-gray-600">Rejected Items</div>
                     </div>
                   </div>
 
@@ -1103,7 +1103,7 @@ export default function PersonalizationDemoPage() {
                         <div>
                           <span className="text-blue-700 dark:text-blue-300">Semantic Filtering:</span>
                           <span className="ml-2 font-medium text-blue-800 dark:text-blue-200">
-                            {debugAnalysis.debug_output.semantic_filtering_used ? '✅ Enabled' : '❌ Disabled'}
+                            {debugAnalysis.semantic_mode ? '✅ Enabled' : '❌ Disabled'}
                           </span>
                         </div>
                         {debugAnalysis.debug_output.feature_flags && (
@@ -1128,7 +1128,7 @@ export default function PersonalizationDemoPage() {
 
                   {/* Item Analysis */}
                   <div className="space-y-3 max-h-96 overflow-auto">
-                    {debugAnalysis.debug_analysis?.map((item: any, index: number) => (
+                    {debugAnalysis.debug?.map((item: any, index: number) => (
                       <div key={item.id || index} className="p-3 bg-white dark:bg-gray-800 rounded-lg border">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
