@@ -1192,6 +1192,55 @@ async def test_upload():
     """Test endpoint to verify routing is working"""
     return {"message": "Test upload endpoint is working", "status": "success"}
 
+@app.get("/api/wardrobe/check-item-public/{user_id}/{item_name}")
+async def check_wardrobe_item_public(user_id: str, item_name: str):
+    """Check the data structure of a specific wardrobe item (no auth required for debugging)"""
+    try:
+        from src.config.firebase import db
+        
+        if not db:
+            return {"error": "Database not available"}
+        
+        # Query for items matching the name
+        items = db.collection('wardrobe').where('userId', '==', user_id).stream()
+        
+        matching_items = []
+        for doc in items:
+            item_data = doc.to_dict()
+            if item_name.lower() in item_data.get('name', '').lower():
+                matching_items.append(item_data)
+        
+        if not matching_items:
+            return {"error": f"No items found matching '{item_name}' for user {user_id}"}
+        
+        item = matching_items[0]  # Get first match
+        
+        # Analyze the structure
+        analysis_summary = {
+            "item_name": item.get('name'),
+            "item_id": item.get('id'),
+            "top_level_fields": {
+                "sleeveLength": item.get('sleeveLength'),
+                "fit": item.get('fit'),
+                "material": item.get('material'),
+                "description": item.get('description'),
+                "length": item.get('length'),
+                "pattern": item.get('pattern'),
+            },
+            "has_analysis": bool(item.get('analysis')),
+            "has_metadata": bool(item.get('analysis', {}).get('metadata')),
+            "has_visual_attributes": bool(item.get('analysis', {}).get('metadata', {}).get('visualAttributes')),
+            "visual_attributes": item.get('analysis', {}).get('metadata', {}).get('visualAttributes', {}),
+            "natural_description": item.get('analysis', {}).get('metadata', {}).get('naturalDescription'),
+            "full_analysis": item.get('analysis')
+        }
+        
+        return analysis_summary
+        
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "traceback": traceback.format_exc()}
+
 @app.get("/api/wardrobe/check-item/{item_name}")
 async def check_wardrobe_item(item_name: str, current_user_id: str = Depends(get_current_user_id)):
     """Check the data structure of a specific wardrobe item"""
