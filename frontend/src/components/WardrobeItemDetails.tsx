@@ -223,11 +223,17 @@ export default function WardrobeItemDetails({
       console.log(`✅ Found ${field} at top level:`, item[field]);
       return item[field];
     }
-    // Then check nested in analysis.metadata.visualAttributes
+    // Then check nested in analysis.metadata.visualAttributes (camelCase)
     const visualAttrs = item.analysis?.metadata?.visualAttributes;
     if (visualAttrs && visualAttrs[field]) {
       console.log(`✅ Found ${field} in nested visualAttributes:`, visualAttrs[field]);
       return visualAttrs[field];
+    }
+    // Also check snake_case version (visual_attributes)
+    const visualAttrsSnake = item.analysis?.metadata?.visual_attributes;
+    if (visualAttrsSnake && visualAttrsSnake[field]) {
+      console.log(`✅ Found ${field} in nested visual_attributes (snake_case):`, visualAttrsSnake[field]);
+      return visualAttrsSnake[field];
     }
     console.log(`❌ ${field} not found in top-level or nested structure`);
     return defaultValue;
@@ -239,9 +245,15 @@ export default function WardrobeItemDetails({
       console.log('✅ Found description at top level');
       return item.description;
     }
+    // Check camelCase version
     if (item.analysis?.metadata?.naturalDescription) {
       console.log('✅ Found naturalDescription in analysis.metadata:', item.analysis.metadata.naturalDescription);
       return item.analysis.metadata.naturalDescription;
+    }
+    // Check snake_case version
+    if (item.analysis?.metadata?.natural_description) {
+      console.log('✅ Found natural_description in analysis.metadata:', item.analysis.metadata.natural_description);
+      return item.analysis.metadata.natural_description;
     }
     console.log('❌ No description found');
     return null;
