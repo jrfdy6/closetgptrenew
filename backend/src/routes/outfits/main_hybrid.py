@@ -421,7 +421,7 @@ async def generation_status():
             "timestamp": time.time()
         }
 
-@router.get("/")
+@router.get("")
 async def get_outfits(
     req: Request,
     limit: int = 50,
