@@ -653,14 +653,66 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎯 DYNAMIC WEIGHTS (5D): Weather={weather_weight}, Compatibility={compatibility_weight}, Style={style_weight}, Body={body_weight}, UserFeedback={user_feedback_weight} (temp={temp}°F)")
         
+        # ═══════════════════════════════════════════════════════════════════════
+        # APPLY DIVERSITY BOOST (6TH DIMENSION)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        logger.info(f"🎭 Applying diversity boost to prevent outfit repetition...")
+        
+        # Get all items for diversity boost calculation
+        all_items = [scores['item'] for scores in item_scores.values()]
+        
+        try:
+            # Apply diversity boost from DiversityFilterService
+            boosted_items = diversity_filter.apply_diversity_boost(
+                items=all_items,
+                user_id=context.user_id,
+                occasion=context.occasion,
+                style=context.style,
+                mood=context.mood
+            )
+            
+            # Create diversity score lookup
+            diversity_scores = {item.id: boost_score for item, boost_score in boosted_items}
+            logger.info(f"✅ Diversity boost applied to {len(diversity_scores)} items")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to apply diversity boost: {e}")
+            diversity_scores = {}
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # CALCULATE FINAL COMPOSITE SCORES (6 DIMENSIONS)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        diversity_weight = 0.10  # 10% weight for diversity (adjust based on weather if needed)
+        
+        # Adjust other weights to accommodate diversity dimension
+        if temp > 75 or temp < 50:  # Extreme weather
+            weather_weight = 0.23
+            compatibility_weight = 0.18
+            style_weight = 0.18
+            body_weight = 0.13
+            user_feedback_weight = 0.18
+        else:  # Moderate weather
+            weather_weight = 0.18
+            compatibility_weight = 0.14
+            style_weight = 0.23
+            body_weight = 0.18
+            user_feedback_weight = 0.17
+        
+        logger.info(f"🎯 DYNAMIC WEIGHTS (6D): Weather={weather_weight}, Compatibility={compatibility_weight}, Style={style_weight}, Body={body_weight}, UserFeedback={user_feedback_weight}, Diversity={diversity_weight}")
+        
         for item_id, scores in item_scores.items():
-            # Multi-layered scoring with 5 dimensions and dynamic weights
+            # Multi-layered scoring with 6 dimensions and dynamic weights
+            diversity_score = diversity_scores.get(item_id, 1.0)  # Default to 1.0 if not found
+            
             base_score = (
                 scores['body_type_score'] * body_weight +
                 scores['style_profile_score'] * style_weight +
                 scores['weather_score'] * weather_weight +
                 scores['user_feedback_score'] * user_feedback_weight +
-                scores.get('compatibility_score', 1.0) * compatibility_weight  # NEW: Unified metadata compatibility
+                scores.get('compatibility_score', 1.0) * compatibility_weight +
+                diversity_score * diversity_weight  # NEW: Diversity dimension
             )
             
             # Apply soft constraint penalties/bonuses
@@ -668,14 +720,16 @@ class RobustOutfitGenerationService:
             final_score = base_score + soft_penalty
             
             scores['composite_score'] = final_score
+            scores['diversity_score'] = diversity_score
             scores['soft_penalty'] = soft_penalty
             scores['base_score'] = base_score
         
         # Log top scored items (reduced verbosity)
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
-        logger.info(f"🏆 Top 3 scored items:")
+        logger.info(f"🏆 Top 3 scored items (with diversity boost):")
         for i, (item_id, scores) in enumerate(sorted_items[:3]):
-            logger.info(f"  {i+1}. {self.safe_get_item_name(scores['item'])}: {scores['composite_score']:.2f}")
+            diversity_score = scores.get('diversity_score', 1.0)
+            logger.info(f"  {i+1}. {self.safe_get_item_name(scores['item'])}: {scores['composite_score']:.2f} (diversity: {diversity_score:.2f})")
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: Cohesive Composition with Multi-Layered Scores
@@ -3699,21 +3753,21 @@ class RobustOutfitGenerationService:
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
             name=f"{context.style} {context.occasion} Outfit",
-            description=f"Multi-layered scored outfit optimized for {context.occasion}",
+            description=f"6D scored outfit optimized for {context.occasion}",
             occasion=context.occasion,
             style=context.style,
             mood=context.mood,
             confidence=final_confidence,  # Use calculated confidence
             items=selected_items,
-            reasoning=f"Created using body type, style profile, and weather analysis with color theory",
+            reasoning=f"Created using 6D analysis: body type, style, weather, user feedback, compatibility, and diversity",
             createdAt=int(time.time()),
             userId=context.user_id,
             weather=context.weather.__dict__ if (context.weather if context else None) else {},
             pieces=[],
-            explanation=f"Optimized outfit using multi-layered scoring system (body: 30%, style+color: 40%, weather: 30%)",
+            explanation=f"Optimized outfit using 6D scoring: body type, style profile, weather, user feedback, metadata compatibility, and diversity boost",
             styleTags=[context.style.lower().replace(' ', '_'), 'multi_layered'],
             colorHarmony="color_theory_optimized",
-            styleNotes=f"Scored across body type (height/weight/gender), style profile (skin tone color theory), and weather",
+            styleNotes=f"6D scoring: body type, style, weather, user feedback, compatibility, diversity",
             season="current",
             updatedAt=int(time.time()),
             metadata={
@@ -3721,7 +3775,7 @@ class RobustOutfitGenerationService:
                 "avg_composite_score": avg_composite_score,
                 "diversity_score": (safe_get(diversity_result, 'diversity_score', 0.8) if diversity_result else 0.8),
                 "color_theory_applied": True,
-                "analyzers_used": ["body_type", "style_profile", "weather"]
+                "analyzers_used": ["body_type", "style_profile", "weather", "user_feedback", "metadata_compatibility", "diversity"]
             },
             wasSuccessful=True,
             baseItemId=context.base_item_id,
