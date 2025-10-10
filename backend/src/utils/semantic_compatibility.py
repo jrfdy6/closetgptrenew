@@ -52,12 +52,24 @@ def mood_matches(requested_mood: Optional[str], item_moods: List[str]) -> bool:
 
 def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str]) -> bool:
     """Check if item occasions match the requested occasion with semantic compatibility."""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     if not requested_occasion:
         return True
+    
     ro = requested_occasion.lower().replace(' ', '_')  # Normalize spaces to underscores
-    if ro in [o.lower().replace(' ', '_') for o in item_occasions]:
+    
+    # Log what we're matching
+    logger.info(f"🔍 SEMANTIC MATCH: requested='{requested_occasion}' (normalized='{ro}'), item_occasions={item_occasions}")
+    
+    # Direct match check
+    normalized_item_occasions = [o.lower().replace(' ', '_') for o in item_occasions]
+    if ro in normalized_item_occasions:
+        logger.info(f"✅ SEMANTIC: Direct match found: '{ro}' in {normalized_item_occasions}")
         return True
-    # optionally allow some fallbacks: e.g. athletic <-> casual?
+    
+    # Fallback compatibility check
     FALLBACKS: Dict[str, List[str]] = {
         'athletic': ['casual', 'everyday', 'sport', 'athletic', 'workout'],
         'casual': ['everyday', 'casual', 'relaxed', 'weekend'],
@@ -69,4 +81,13 @@ def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str
         'professional': ['professional', 'business', 'business_casual', 'work'],
     }
     fallback = set(FALLBACKS.get(ro, []))
-    return any(o.lower().replace(' ', '_') in fallback for o in item_occasions)
+    logger.info(f"🔍 SEMANTIC: fallback set for '{ro}' = {fallback}")
+    
+    for o in item_occasions:
+        normalized_o = o.lower().replace(' ', '_')
+        if normalized_o in fallback:
+            logger.info(f"✅ SEMANTIC: Fallback match! '{o}' (normalized='{normalized_o}') matches '{requested_occasion}'")
+            return True
+    
+    logger.warning(f"❌ SEMANTIC: NO MATCH - '{requested_occasion}' not compatible with {item_occasions}")
+    return False
