@@ -61,7 +61,9 @@ export default function PersonalizationDemoPage() {
 
   const handleDebugFiltering = async (e?: React.MouseEvent) => {
     // Prevent event propagation to avoid triggering other buttons
+    console.log('🔍 [DEBUG BUTTON] Version: 2025-10-10-v2 - Button clicked');
     if (e) {
+      console.log('🔍 [DEBUG BUTTON] Preventing default and stopping propagation');
       e.preventDefault();
       e.stopPropagation();
     }
