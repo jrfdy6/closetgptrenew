@@ -1,0 +1,19 @@
+{
+  "total_items": 155,
+  "items_updated": 155,
+  "total_fields_added": 564,
+  "field_breakdown": {
+    "normalized": 155,
+    "sleeveLength": 52,
+    "silhouette": 51,
+    "length": 72,
+    "wearLayer": 41,
+    "textureStyle": 41,
+    "genderTarget": 9,
+    "gender": 42,
+    "mood": 44,
+    "backgroundRemoved": 41,
+    "fit": 15,
+    "fabricWeight": 1
+  }
+}

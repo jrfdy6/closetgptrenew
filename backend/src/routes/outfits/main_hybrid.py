@@ -420,3 +420,69 @@ async def generation_status():
             "error": str(e),
             "timestamp": time.time()
         }
+
+@router.get("/")
+async def get_outfits(
+    req: Request,
+    limit: int = 50,
+    offset: int = 0
+):
+    """
+    Get outfit history for the authenticated user.
+    
+    This endpoint fetches previously generated outfits from the outfit history.
+    """
+    try:
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
+        
+        logger.info(f"📋 Fetching outfits for user: {current_user_id} (limit={limit}, offset={offset})")
+        
+        # Import Firebase
+        from src.config.firebase import db
+        
+        # Query outfit history collection
+        query = db.collection('outfit_history')\
+            .where('userId', '==', current_user_id)\
+            .order_by('createdAt', direction='DESCENDING')\
+            .limit(limit)
+        
+        if offset > 0:
+            # Get the last document from the previous page for pagination
+            prev_query = db.collection('outfit_history')\
+                .where('userId', '==', current_user_id)\
+                .order_by('createdAt', direction='DESCENDING')\
+                .limit(offset)
+            prev_docs = list(prev_query.stream())
+            if prev_docs:
+                query = query.start_after(prev_docs[-1])
+        
+        # Fetch outfits
+        docs = query.stream()
+        outfits = []
+        
+        for doc in docs:
+            outfit_data = doc.to_dict()
+            outfit_data['id'] = doc.id
+            outfits.append(outfit_data)
+        
+        logger.info(f"✅ Retrieved {len(outfits)} outfits for user {current_user_id}")
+        
+        return {
+            "success": True,
+            "outfits": outfits,
+            "count": len(outfits),
+            "limit": limit,
+            "offset": offset,
+            "user_id": current_user_id,
+            "timestamp": time.time()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch outfits: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch outfits: {str(e)}"
+        )

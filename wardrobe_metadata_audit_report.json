@@ -1,0 +1,25 @@
+{
+  "total_items": 155,
+  "items_with_critical_metadata": 71,
+  "completion_rate": 45.806451612903224,
+  "missing_fields_summary": {
+    "metadata.normalized": 155,
+    "root.bodyTypeCompatibility": 73,
+    "metadata.naturalDescription": 154,
+    "metadata.visualAttributes.sleeveLength": 52,
+    "metadata.visualAttributes.silhouette": 51,
+    "metadata.visualAttributes.length": 72,
+    "root.weatherCompatibility": 44,
+    "root.gender": 42,
+    "root.backgroundRemoved": 41,
+    "root.mood": 44,
+    "metadata.visualAttributes.wearLayer": 41,
+    "metadata.visualAttributes.textureStyle": 41,
+    "metadata.visualAttributes.genderTarget": 9,
+    "metadata.visualAttributes.hangerPresent": 41,
+    "metadata.visualAttributes.backgroundRemoved": 41,
+    "metadata.visualAttributes.fit": 15,
+    "metadata.visualAttributes.fabricWeight": 1
+  },
+  "backfill_needed": 84
+}
