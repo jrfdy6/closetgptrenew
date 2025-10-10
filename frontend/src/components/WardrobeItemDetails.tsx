@@ -219,17 +219,31 @@ export default function WardrobeItemDetails({
   // Helper function to get visual attributes from nested AI analysis or top-level
   const getVisualAttribute = (field: string, defaultValue: any = null) => {
     // First check top-level
-    if (item[field]) return item[field];
+    if (item[field]) {
+      console.log(`✅ Found ${field} at top level:`, item[field]);
+      return item[field];
+    }
     // Then check nested in analysis.metadata.visualAttributes
     const visualAttrs = item.analysis?.metadata?.visualAttributes;
-    if (visualAttrs && visualAttrs[field]) return visualAttrs[field];
+    if (visualAttrs && visualAttrs[field]) {
+      console.log(`✅ Found ${field} in nested visualAttributes:`, visualAttrs[field]);
+      return visualAttrs[field];
+    }
+    console.log(`❌ ${field} not found in top-level or nested structure`);
     return defaultValue;
   };
 
   // Get description from multiple possible sources
   const getDescription = () => {
-    if (item.description) return item.description;
-    if (item.analysis?.metadata?.naturalDescription) return item.analysis.metadata.naturalDescription;
+    if (item.description) {
+      console.log('✅ Found description at top level');
+      return item.description;
+    }
+    if (item.analysis?.metadata?.naturalDescription) {
+      console.log('✅ Found naturalDescription in analysis.metadata:', item.analysis.metadata.naturalDescription);
+      return item.analysis.metadata.naturalDescription;
+    }
+    console.log('❌ No description found');
     return null;
   };
 
@@ -237,13 +251,16 @@ export default function WardrobeItemDetails({
   const getMaterials = () => {
     // Check top-level material field
     if (item.material) {
+      console.log('✅ Found material at top level:', item.material);
       return Array.isArray(item.material) ? item.material : [item.material];
     }
     // Check nested visual attributes
     const material = getVisualAttribute('material');
     if (material) {
+      console.log('✅ Found material in nested structure:', material);
       return Array.isArray(material) ? material : [material];
     }
+    console.log('❌ No material found');
     return [];
   };
 
