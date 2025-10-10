@@ -1212,14 +1212,37 @@ async def add_wardrobe_item_direct(item_data: dict, current_user_id: str = Depen
         # Create item ID - use provided ID if available
         item_id = item_data.get('id') or str(uuid.uuid4())
         
-        # Prepare simplified item data (store exactly what we receive, plus userId)
-        wardrobe_item = {
-            **item_data,  # Include all fields from item_data
+        # Extract visual attributes from nested analysis for easier UI access
+        analysis = item_data.get('analysis', {})
+        visual_attrs = analysis.get('metadata', {}).get('visualAttributes', {})
+        natural_desc = analysis.get('metadata', {}).get('naturalDescription', '')
+        
+        # Flatten important fields to top level for UI display
+        flattened_data = {
+            **item_data,  # Include all original fields
             "id": item_id,
             "userId": current_user_id,
             "createdAt": item_data.get('createdAt') or datetime.now().isoformat(),
             "updatedAt": datetime.now().isoformat(),
+            # Add flattened fields from AI analysis for UI display
+            "description": item_data.get('description') or natural_desc or f"A {item_data.get('type', 'item')} in {item_data.get('color', 'unknown')} color",
+            "sleeveLength": item_data.get('sleeveLength') or visual_attrs.get('sleeveLength'),
+            "fit": item_data.get('fit') or visual_attrs.get('fit'),
+            "neckline": item_data.get('neckline') or visual_attrs.get('neckline'),
+            "length": item_data.get('length') or visual_attrs.get('length'),
+            "pattern": item_data.get('pattern') or visual_attrs.get('pattern'),
+            "fabricWeight": item_data.get('fabricWeight') or visual_attrs.get('fabricWeight'),
+            "textureStyle": item_data.get('textureStyle') or visual_attrs.get('textureStyle'),
+            "silhouette": item_data.get('silhouette') or visual_attrs.get('silhouette'),
+            "formalLevel": item_data.get('formalLevel') or visual_attrs.get('formalLevel'),
         }
+        
+        # Handle material field - convert string to array if needed
+        if not flattened_data.get('material') and visual_attrs.get('material'):
+            material_value = visual_attrs.get('material')
+            flattened_data['material'] = [material_value] if isinstance(material_value, str) else material_value
+        
+        wardrobe_item = flattened_data
         
         print(f"💾 Saving wardrobe item directly: {item_id} for user {current_user_id}")
         print(f"💾 Item name: {wardrobe_item.get('name')}")
