@@ -221,6 +221,40 @@ export default function WardrobeItemDetails({
   console.log('🔍 [DEBUG] item.analysis:', item.analysis);
   console.log('🔍 [DEBUG] item.analysis?.metadata:', item.analysis?.metadata);
 
+  // Helper function to determine if a field is relevant for this item type
+  const isFieldRelevant = (fieldName: string): boolean => {
+    const itemType = item.type?.toLowerCase() || '';
+    
+    // Define item categories
+    const tops = ['shirt', 'blouse', 't-shirt', 'tshirt', 'sweater', 'hoodie', 'jacket', 'coat', 'cardigan', 'vest', 'top', 'tank'];
+    const bottoms = ['pants', 'shorts', 'skirt', 'jeans', 'trousers', 'leggings'];
+    const dresses = ['dress', 'gown', 'jumpsuit', 'romper'];
+    const shoes = ['shoes', 'sneakers', 'boots', 'sandals', 'heels', 'flats'];
+    const accessories = ['hat', 'bag', 'belt', 'scarf', 'gloves', 'tie', 'watch', 'jewelry', 'sunglasses'];
+    
+    const isTop = tops.some(t => itemType.includes(t));
+    const isBottom = bottoms.some(b => itemType.includes(b));
+    const isDress = dresses.some(d => itemType.includes(d));
+    const isShoe = shoes.some(s => itemType.includes(s));
+    const isAccessory = accessories.some(a => itemType.includes(a));
+    
+    switch(fieldName) {
+      case 'sleeveLength':
+        return isTop || isDress; // Only tops and dresses have sleeves
+      case 'neckline':
+        return isTop || isDress; // Only tops and dresses have necklines
+      case 'fit':
+        return !isShoe && !isAccessory; // Most items except shoes and accessories
+      case 'length':
+        return isTop || isBottom || isDress; // Clothing items have length
+      case 'size':
+      case 'material':
+        return true; // Always relevant
+      default:
+        return true;
+    }
+  };
+
   // Helper function to get visual attributes from nested AI analysis or top-level
   const getVisualAttribute = (field: string, defaultValue: any = null) => {
     // First check top-level
@@ -446,89 +480,98 @@ export default function WardrobeItemDetails({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="size" className="text-stone-700 dark:text-stone-300 font-medium">Size</Label>
-                    <Input
-                      id="size"
-                      value={editedItem.size || ''}
-                      onChange={(e) => setEditedItem({ ...editedItem, size: e.target.value })}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="sleeveLength" className="text-stone-700 dark:text-stone-300 font-medium">Sleeve Length</Label>
-                    <Select
-                      value={editedItem.sleeveLength || ''}
-                      onValueChange={(value) => setEditedItem({ ...editedItem, sleeveLength: value })}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select sleeve length" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SLEEVE_LENGTHS.map(length => (
-                          <SelectItem key={length} value={length}>
-                            {length.charAt(0).toUpperCase() + length.slice(1).replace('-', ' ')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {isFieldRelevant('size') && (
+                    <div>
+                      <Label htmlFor="size" className="text-stone-700 dark:text-stone-300 font-medium">Size</Label>
+                      <Input
+                        id="size"
+                        value={editedItem.size || ''}
+                        onChange={(e) => setEditedItem({ ...editedItem, size: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  )}
+                  {isFieldRelevant('sleeveLength') && (
+                    <div>
+                      <Label htmlFor="sleeveLength" className="text-stone-700 dark:text-stone-300 font-medium">Sleeve Length</Label>
+                      <Select
+                        value={editedItem.sleeveLength || ''}
+                        onValueChange={(value) => setEditedItem({ ...editedItem, sleeveLength: value })}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select sleeve length" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SLEEVE_LENGTHS.map(length => (
+                            <SelectItem key={length} value={length}>
+                              {length.charAt(0).toUpperCase() + length.slice(1).replace('-', ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="fit" className="text-stone-700 dark:text-stone-300 font-medium">Fit</Label>
-                    <Select
-                      value={editedItem.fit || ''}
-                      onValueChange={(value) => setEditedItem({ ...editedItem, fit: value })}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select fit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FITS.map(fit => (
-                          <SelectItem key={fit} value={fit}>
-                            {fit.charAt(0).toUpperCase() + fit.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="neckline" className="text-stone-700 dark:text-stone-300 font-medium">Neckline</Label>
-                    <Select
-                      value={editedItem.neckline || ''}
-                      onValueChange={(value) => setEditedItem({ ...editedItem, neckline: value })}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select neckline" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {NECKLINES.map(neckline => (
-                          <SelectItem key={neckline} value={neckline}>
-                            {neckline.charAt(0).toUpperCase() + neckline.slice(1).replace('-', ' ')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {isFieldRelevant('fit') && (
+                    <div>
+                      <Label htmlFor="fit" className="text-stone-700 dark:text-stone-300 font-medium">Fit</Label>
+                      <Select
+                        value={editedItem.fit || ''}
+                        onValueChange={(value) => setEditedItem({ ...editedItem, fit: value })}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select fit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FITS.map(fit => (
+                            <SelectItem key={fit} value={fit}>
+                              {fit.charAt(0).toUpperCase() + fit.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {isFieldRelevant('neckline') && (
+                    <div>
+                      <Label htmlFor="neckline" className="text-stone-700 dark:text-stone-300 font-medium">Neckline</Label>
+                      <Select
+                        value={editedItem.neckline || ''}
+                        onValueChange={(value) => setEditedItem({ ...editedItem, neckline: value })}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select neckline" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NECKLINES.map(neckline => (
+                            <SelectItem key={neckline} value={neckline}>
+                              {neckline.charAt(0).toUpperCase() + neckline.slice(1).replace('-', ' ')}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="length" className="text-stone-700 dark:text-stone-300 font-medium">Length</Label>
-                    <Select
-                      value={editedItem.length || ''}
-                      onValueChange={(value) => setEditedItem({ ...editedItem, length: value })}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select length" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LENGTHS.map(length => (
-                          <SelectItem key={length} value={length}>
-                            {length.charAt(0).toUpperCase() + length.slice(1)}
-                          </SelectItem>
+                  {isFieldRelevant('length') && (
+                    <div>
+                      <Label htmlFor="length" className="text-stone-700 dark:text-stone-300 font-medium">Length</Label>
+                      <Select
+                        value={editedItem.length || ''}
+                        onValueChange={(value) => setEditedItem({ ...editedItem, length: value })}
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select length" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {LENGTHS.map(length => (
+                            <SelectItem key={length} value={length}>
+                              {length.charAt(0).toUpperCase() + length.slice(1)}
+                            </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -698,36 +741,46 @@ export default function WardrobeItemDetails({
                 <div>
                   <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">Physical Attributes</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Size</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {item.size || <span className="text-stone-400 italic">Not specified</span>}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Sleeve Length</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {getVisualAttribute('sleeveLength') ? String(getVisualAttribute('sleeveLength')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('sleeveLength')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Fit</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {getVisualAttribute('fit') ? String(getVisualAttribute('fit')).charAt(0).toUpperCase() + String(getVisualAttribute('fit')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Neckline</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {getVisualAttribute('neckline') ? String(getVisualAttribute('neckline')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('neckline')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Length</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {getVisualAttribute('length') ? String(getVisualAttribute('length')).charAt(0).toUpperCase() + String(getVisualAttribute('length')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                      </p>
-                    </div>
+                    {isFieldRelevant('size') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Size</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {item.size || <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('sleeveLength') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Sleeve Length</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('sleeveLength') ? String(getVisualAttribute('sleeveLength')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('sleeveLength')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('fit') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Fit</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('fit') ? String(getVisualAttribute('fit')).charAt(0).toUpperCase() + String(getVisualAttribute('fit')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('neckline') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Neckline</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('neckline') ? String(getVisualAttribute('neckline')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('neckline')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('length') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Length</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('length') ? String(getVisualAttribute('length')).charAt(0).toUpperCase() + String(getVisualAttribute('length')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Purchase Price</h4>
                       <p className="text-stone-600 dark:text-stone-400">
