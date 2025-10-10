@@ -55,6 +55,9 @@ def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str
     import logging
     logger = logging.getLogger(__name__)
     
+    # DEPLOYMENT CHECK: This log confirms we're running the latest code
+    logger.warning(f"🚀 OCCASION_MATCHES CALLED - VERSION: 2025-10-10-v3 - requested='{requested_occasion}', items={item_occasions}")
+    
     if not requested_occasion:
         return True
     
