@@ -442,29 +442,29 @@ async def get_outfits(
         from src.config.firebase import db
         
         # Query outfit history collection
+        # Fetch all user outfits and sort in Python (no index required)
         query = db.collection('outfit_history')\
-            .where('userId', '==', current_user_id)\
-            .order_by('createdAt', direction='DESCENDING')\
-            .limit(limit)
+            .where('userId', '==', current_user_id)
         
-        if offset > 0:
-            # Get the last document from the previous page for pagination
-            prev_query = db.collection('outfit_history')\
-                .where('userId', '==', current_user_id)\
-                .order_by('createdAt', direction='DESCENDING')\
-                .limit(offset)
-            prev_docs = list(prev_query.stream())
-            if prev_docs:
-                query = query.start_after(prev_docs[-1])
-        
-        # Fetch outfits
+        # Fetch all documents
         docs = query.stream()
-        outfits = []
+        all_outfits = []
         
         for doc in docs:
             outfit_data = doc.to_dict()
             outfit_data['id'] = doc.id
-            outfits.append(outfit_data)
+            all_outfits.append(outfit_data)
+        
+        # Sort by createdAt in Python (descending - most recent first)
+        all_outfits.sort(
+            key=lambda x: x.get('createdAt', 0) if isinstance(x.get('createdAt'), (int, float)) else 0,
+            reverse=True
+        )
+        
+        # Apply pagination in Python
+        start_idx = offset
+        end_idx = offset + limit
+        outfits = all_outfits[start_idx:end_idx]
         
         logger.info(f"✅ Retrieved {len(outfits)} outfits for user {current_user_id}")
         
