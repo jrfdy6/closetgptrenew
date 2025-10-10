@@ -14,6 +14,14 @@ from ..custom_types.wardrobe import ClothingItem
 
 logger = logging.getLogger(__name__)
 
+# Import Firebase
+try:
+    from ..config.firebase import db
+    FIREBASE_AVAILABLE = True
+except ImportError:
+    FIREBASE_AVAILABLE = False
+    logger.warning("⚠️ Firebase not available for diversity filtering")
+
 @dataclass
 class OutfitSimilarity:
     """Represents similarity between two outfits"""
@@ -106,9 +114,69 @@ class DiversityFilterService:
         
         return min(max(similarity_score, 0.0), 1.0)
     
+    def _load_outfit_history_from_firestore(self, user_id: str) -> List[Dict[str, Any]]:
+        """Load outfit history from Firestore for diversity checking"""
+        
+        if not FIREBASE_AVAILABLE:
+            logger.warning("⚠️ Firebase not available, using in-memory history only")
+            return self.outfit_history[user_id]
+        
+        try:
+            # Query recent outfits from Firestore (last 50)
+            outfits_ref = db.collection('outfits')\
+                .where('user_id', '==', user_id)\
+                .order_by('createdAt', direction='DESCENDING')\
+                .limit(self.max_recent_outfits)
+            
+            docs = outfits_ref.stream()
+            firestore_outfits = []
+            
+            for doc in docs:
+                outfit_data = doc.to_dict()
+                # Convert items to ClothingItem objects if they're dicts
+                items = outfit_data.get('items', [])
+                clothing_items = []
+                
+                for item in items:
+                    if isinstance(item, dict):
+                        # Create ClothingItem from dict
+                        try:
+                            clothing_item = ClothingItem(**item)
+                            clothing_items.append(clothing_item)
+                        except Exception as e:
+                            logger.warning(f"⚠️ Failed to convert item to ClothingItem: {e}")
+                            # Skip items that can't be converted
+                            continue
+                    elif isinstance(item, ClothingItem):
+                        clothing_items.append(item)
+                
+                firestore_outfits.append({
+                    'id': doc.id,
+                    'items': clothing_items,
+                    'occasion': outfit_data.get('occasion', 'unknown'),
+                    'style': outfit_data.get('style', 'unknown'),
+                    'mood': outfit_data.get('mood', 'unknown'),
+                    'createdAt': outfit_data.get('createdAt', 0),
+                    'confidence': outfit_data.get('confidence', 0.0)
+                })
+            
+            logger.info(f"📊 Loaded {len(firestore_outfits)} outfits from Firestore for user {user_id}")
+            return firestore_outfits
+            
+        except Exception as e:
+            logger.error(f"❌ Failed to load outfit history from Firestore: {e}")
+            return self.outfit_history[user_id]
+    
     def check_outfit_diversity(self, user_id: str, new_outfit: List[ClothingItem], 
                              occasion: str, style: str, mood: str) -> Dict[str, Any]:
         """Check if a new outfit is diverse enough compared to recent outfits"""
+        
+        # Load outfit history from Firestore if in-memory cache is empty
+        if not self.outfit_history[user_id] or len(self.outfit_history[user_id]) < 5:
+            logger.info(f"🔄 Loading outfit history from Firestore for user {user_id}")
+            firestore_history = self._load_outfit_history_from_firestore(user_id)
+            if firestore_history:
+                self.outfit_history[user_id] = firestore_history
         
         user_history = self.outfit_history[user_id]
         recent_outfits = user_history[-self.max_recent_outfits:]
@@ -150,6 +218,10 @@ class DiversityFilterService:
             diversity_result['is_diverse'] = False
             diversity_result['most_similar_outfit'] = most_similar
             diversity_result['diversity_score'] = 1.0 - most_similar['similarity']
+            
+            # Log the similarity issue
+            logger.warning(f"⚠️ DIVERSITY ALERT: New outfit is {most_similar['similarity']:.1%} similar to recent outfit {most_similar['outfit_id']}")
+            logger.warning(f"   Diversity score: {diversity_result['diversity_score']:.2f}")
             
             # Generate recommendations
             diversity_result['recommendations'].append(
@@ -201,6 +273,13 @@ class DiversityFilterService:
     def apply_diversity_boost(self, items: List[ClothingItem], user_id: str, 
                             occasion: str, style: str, mood: str) -> List[Tuple[ClothingItem, float]]:
         """Apply diversity boost to item scores to encourage variety"""
+        
+        # Load outfit history from Firestore if needed
+        if not self.outfit_history[user_id] or len(self.outfit_history[user_id]) < 5:
+            logger.info(f"🔄 Loading outfit history from Firestore for diversity boost (user {user_id})")
+            firestore_history = self._load_outfit_history_from_firestore(user_id)
+            if firestore_history:
+                self.outfit_history[user_id] = firestore_history
         
         boosted_items = []
         user_history = self.outfit_history[user_id]
