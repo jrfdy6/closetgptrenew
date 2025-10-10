@@ -216,11 +216,6 @@ export default function WardrobeItemDetails({
 
   if (!item) return null;
 
-  // Debug: Log the entire item structure
-  console.log('🔍 [DEBUG] Full item object:', item);
-  console.log('🔍 [DEBUG] item.analysis:', item.analysis);
-  console.log('🔍 [DEBUG] item.analysis?.metadata:', item.analysis?.metadata);
-
   // Helper function to determine if a field is relevant for this item type
   const isFieldRelevant = (fieldName: string): boolean => {
     const itemType = item.type?.toLowerCase() || '';
@@ -258,43 +253,23 @@ export default function WardrobeItemDetails({
   // Helper function to get visual attributes from nested AI analysis or top-level
   const getVisualAttribute = (field: string, defaultValue: any = null) => {
     // First check top-level
-    if (item[field]) {
-      console.log(`✅ Found ${field} at top level:`, item[field]);
-      return item[field];
-    }
+    if (item[field]) return item[field];
     // Then check nested in analysis.metadata.visualAttributes (camelCase)
     const visualAttrs = item.analysis?.metadata?.visualAttributes;
-    if (visualAttrs && visualAttrs[field]) {
-      console.log(`✅ Found ${field} in nested visualAttributes:`, visualAttrs[field]);
-      return visualAttrs[field];
-    }
+    if (visualAttrs && visualAttrs[field]) return visualAttrs[field];
     // Also check snake_case version (visual_attributes)
     const visualAttrsSnake = item.analysis?.metadata?.visual_attributes;
-    if (visualAttrsSnake && visualAttrsSnake[field]) {
-      console.log(`✅ Found ${field} in nested visual_attributes (snake_case):`, visualAttrsSnake[field]);
-      return visualAttrsSnake[field];
-    }
-    console.log(`❌ ${field} not found in top-level or nested structure`);
+    if (visualAttrsSnake && visualAttrsSnake[field]) return visualAttrsSnake[field];
     return defaultValue;
   };
 
   // Get description from multiple possible sources
   const getDescription = () => {
-    if (item.description) {
-      console.log('✅ Found description at top level');
-      return item.description;
-    }
+    if (item.description) return item.description;
     // Check camelCase version
-    if (item.analysis?.metadata?.naturalDescription) {
-      console.log('✅ Found naturalDescription in analysis.metadata:', item.analysis.metadata.naturalDescription);
-      return item.analysis.metadata.naturalDescription;
-    }
+    if (item.analysis?.metadata?.naturalDescription) return item.analysis.metadata.naturalDescription;
     // Check snake_case version
-    if (item.analysis?.metadata?.natural_description) {
-      console.log('✅ Found natural_description in analysis.metadata:', item.analysis.metadata.natural_description);
-      return item.analysis.metadata.natural_description;
-    }
-    console.log('❌ No description found');
+    if (item.analysis?.metadata?.natural_description) return item.analysis.metadata.natural_description;
     return null;
   };
 
@@ -302,16 +277,13 @@ export default function WardrobeItemDetails({
   const getMaterials = () => {
     // Check top-level material field
     if (item.material) {
-      console.log('✅ Found material at top level:', item.material);
       return Array.isArray(item.material) ? item.material : [item.material];
     }
     // Check nested visual attributes
     const material = getVisualAttribute('material');
     if (material) {
-      console.log('✅ Found material in nested structure:', material);
       return Array.isArray(material) ? material : [material];
     }
-    console.log('❌ No material found');
     return [];
   };
 
