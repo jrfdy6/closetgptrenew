@@ -59,9 +59,20 @@ export default function PersonalizationDemoPage() {
     mood: 'Bold'
   });
 
-  const handleDebugFiltering = async () => {
+  const handleDebugFiltering = async (e?: React.MouseEvent) => {
+    // Prevent event propagation to avoid triggering other buttons
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     try {
       setGenerating(true);
+      // Clear previous results first
+      setDebugAnalysis(null);
+      setShowDebugPanel(false);
+      // Also clear generated outfit to avoid confusion
+      setGeneratedOutfit(null);
       
       if (!user) {
         throw new Error('User not authenticated');
@@ -804,6 +815,7 @@ export default function PersonalizationDemoPage() {
                   </div>
 
                   <Button 
+                    type="button"
                     onClick={handleGenerateOutfit}
                     disabled={generating || isLoading}
                     className="w-full"
@@ -823,6 +835,7 @@ export default function PersonalizationDemoPage() {
                   
                   {/* Debug Button */}
                   <Button 
+                    type="button"
                     onClick={handleDebugFiltering}
                     disabled={generating}
                     variant="outline"
