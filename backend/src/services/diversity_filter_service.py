@@ -193,9 +193,30 @@ class DiversityFilterService:
         if not recent_outfits:
             return diversity_result
         
-        # Calculate similarity with recent outfits
+        # CRITICAL FIX: Filter to same occasion/style/mood combination
+        # Compare apples-to-apples, not all outfits globally
+        same_combination_outfits = []
+        for i, outfit in enumerate(recent_outfits):
+            if outfit:
+                # Match by occasion (required) and optionally style/mood
+                occasion_match = outfit.get('occasion', '').lower() == occasion.lower()
+                style_match = outfit.get('style', '').lower() == style.lower()
+                
+                # Strict matching: same occasion AND style
+                if occasion_match and style_match:
+                    same_combination_outfits.append((i, outfit))
+        
+        logger.info(f"🔍 DIVERSITY: Comparing against {len(same_combination_outfits)} outfits with same combination (occasion={occasion}, style={style})")
+        logger.info(f"   Total history: {len(recent_outfits)} outfits, Filtered to same combo: {len(same_combination_outfits)}")
+        
+        # If no matching combinations found, compare against all (fallback)
+        if not same_combination_outfits:
+            logger.info(f"⚠️ No matching combinations found, comparing against all recent outfits")
+            same_combination_outfits = [(i, outfit) for i, outfit in enumerate(recent_outfits)]
+        
+        # Calculate similarity with outfits of the SAME combination
         similarities = []
-        for i, recent_outfit in enumerate(recent_outfits):
+        for i, recent_outfit in same_combination_outfits:
             if recent_outfit and 'items' in recent_outfit:
                 recent_items = recent_outfit['items']
                 similarity = self.calculate_outfit_similarity(new_outfit, recent_items)
@@ -203,7 +224,9 @@ class DiversityFilterService:
                     'index': i,
                     'similarity': similarity,
                     'outfit_id': (recent_outfit.get('id', f'outfit_{i}') if recent_outfit else f'outfit_{i}'),
-                    'created_at': (recent_outfit.get('createdAt', 0) if recent_outfit else 0)
+                    'created_at': (recent_outfit.get('createdAt', 0) if recent_outfit else 0),
+                    'occasion': recent_outfit.get('occasion', 'unknown'),
+                    'style': recent_outfit.get('style', 'unknown')
                 })
         
         # Sort by similarity (highest first)
@@ -285,25 +308,52 @@ class DiversityFilterService:
         user_history = self.outfit_history[user_id]
         recent_outfits = user_history[-self.max_recent_outfits:]
         
+        # CRITICAL FIX: Filter to same occasion/style combination FIRST
+        # This prevents the same outfit for the same combination
+        same_combo_outfits = []
+        for outfit in recent_outfits:
+            if outfit:
+                occasion_match = outfit.get('occasion', '').lower() == occasion.lower()
+                style_match = outfit.get('style', '').lower() == style.lower()
+                
+                if occasion_match and style_match:
+                    same_combo_outfits.append(outfit)
+        
+        logger.info(f"🎭 DIVERSITY BOOST: Checking {len(same_combo_outfits)} outfits with same combination (occasion={occasion}, style={style})")
+        
+        # Use same-combination outfits for similarity check, or all if none found
+        comparison_outfits = same_combo_outfits if same_combo_outfits else recent_outfits
+        
         for item in items:
             base_score = 1.0
             diversity_boost = 0.0
             
-            # Boost items that haven't been used recently
-            item_usage = self.item_usage_count[item.id]
-            if item_usage == 0:
-                diversity_boost += 0.3  # New items get boost
-            elif item_usage < 3:
-                diversity_boost += 0.1  # Lightly used items get small boost
+            # Boost items that haven't been used recently in THIS COMBINATION
+            # Count usage in same-combination outfits, not globally
+            same_combo_usage = 0
+            for outfit in comparison_outfits:
+                if outfit and 'items' in outfit:
+                    if any(hasattr(oi, 'id') and oi.id == item.id for oi in outfit['items']):
+                        same_combo_usage += 1
             
-            # Boost items that are different from recent outfits
-            if recent_outfits:
+            if same_combo_usage == 0:
+                diversity_boost += 0.3  # Not used in this combination
+                logger.debug(f"  🆕 {item.name[:30]}: Not used in {occasion}/{style} → +0.30")
+            elif same_combo_usage < 2:
+                diversity_boost += 0.15  # Lightly used in this combination
+                logger.debug(f"  🌱 {item.name[:30]}: Used {same_combo_usage}x in {occasion}/{style} → +0.15")
+            elif same_combo_usage > 3:
+                diversity_boost -= 0.15  # Overused in this combination
+                logger.debug(f"  🔁 {item.name[:30]}: Overused {same_combo_usage}x in {occasion}/{style} → -0.15")
+            
+            # Boost items that are different from recent SAME-COMBO outfits
+            if comparison_outfits:
                 item_similarities = []
-                for recent_outfit in recent_outfits:
+                for recent_outfit in comparison_outfits:
                     if 'items' in recent_outfit:
                         recent_items = recent_outfit['items']
                         # Check if this item was in recent outfits
-                        if any(recent_item.id == item.id for recent_item in recent_items):
+                        if any(hasattr(ri, 'id') and ri.id == item.id for ri in recent_items):
                             item_similarities.append(1.0)  # Exact match
                         else:
                             # Calculate similarity with this item
