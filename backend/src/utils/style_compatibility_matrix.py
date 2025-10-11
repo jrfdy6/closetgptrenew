@@ -1,6 +1,7 @@
 # backend/src/utils/style_compatibility_matrix.py
 # Canonical Style Compatibility Matrix for Python backend
 # All keys and values are normalized to lowercase for consistent matching
+# VERSION: 2025-10-11-COMPREHENSIVE
 
 from typing import Dict, List, Optional
 

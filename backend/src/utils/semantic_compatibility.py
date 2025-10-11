@@ -30,20 +30,104 @@ def mood_matches(requested_mood: Optional[str], item_moods: List[str]) -> bool:
     if not item_moods or len(item_moods) == 0:
         return True  # treat missing mood as universal
     rm = requested_mood.lower()
-    # Mood compatibility - Expanded for better matching
+    # Comprehensive Mood Compatibility - Expanded for all major moods
     MOOD_COMPAT: Dict[str, List[str]] = {
-        'bold': ['bold', 'confident', 'statement', 'vibrant', 'expressive', 'strong', 'striking', 'eye-catching'],
-        'confident': ['confident', 'bold', 'statement', 'vibrant', 'expressive', 'strong', 'assertive'],
-        'relaxed': ['relaxed', 'calm', 'laidback', 'casual', 'neutral', 'comfortable', 'easy'],
-        'calm': ['calm', 'relaxed', 'peaceful', 'serene', 'neutral', 'tranquil'],
-        'professional': ['professional', 'polished', 'sophisticated', 'elegant', 'refined', 'business-like'],
-        'polished': ['polished', 'professional', 'sophisticated', 'elegant', 'refined', 'sleek'],
-        'romantic': ['romantic', 'soft', 'elegant', 'feminine', 'delicate', 'graceful'],
-        'soft': ['soft', 'romantic', 'gentle', 'delicate', 'feminine', 'subtle'],
-        'casual': ['casual', 'relaxed', 'comfortable', 'easy', 'neutral', 'laid-back'],
-        'neutral': ['neutral', 'casual', 'relaxed', 'calm', 'balanced', 'versatile'],
-        'comfortable': ['comfortable', 'relaxed', 'casual', 'easy', 'cozy'],
-        # extend as needed
+        # === BOLD & CONFIDENT ===
+        'bold': ['bold', 'confident', 'statement', 'vibrant', 'expressive', 'strong', 'striking', 'eye-catching', 'daring', 'fierce', 'powerful', 'dramatic'],
+        'confident': ['confident', 'bold', 'statement', 'vibrant', 'expressive', 'strong', 'assertive', 'self-assured', 'poised'],
+        'daring': ['daring', 'bold', 'edgy', 'adventurous', 'fearless', 'rebellious', 'fierce'],
+        'fierce': ['fierce', 'bold', 'powerful', 'strong', 'daring', 'edgy', 'dramatic'],
+        'powerful': ['powerful', 'strong', 'bold', 'confident', 'commanding', 'authoritative'],
+        'dramatic': ['dramatic', 'bold', 'striking', 'theatrical', 'eye-catching', 'statement'],
+        'statement': ['statement', 'bold', 'eye-catching', 'striking', 'attention-grabbing', 'dramatic'],
+        'striking': ['striking', 'bold', 'eye-catching', 'dramatic', 'impressive', 'remarkable'],
+        
+        # === RELAXED & CALM ===
+        'relaxed': ['relaxed', 'calm', 'laidback', 'casual', 'neutral', 'comfortable', 'easy', 'chill', 'easygoing'],
+        'calm': ['calm', 'relaxed', 'peaceful', 'serene', 'neutral', 'tranquil', 'soothing', 'gentle'],
+        'peaceful': ['peaceful', 'calm', 'serene', 'tranquil', 'harmonious', 'quiet'],
+        'serene': ['serene', 'calm', 'peaceful', 'tranquil', 'composed', 'placid'],
+        'chill': ['chill', 'relaxed', 'casual', 'laid-back', 'easygoing', 'cool'],
+        'easygoing': ['easygoing', 'relaxed', 'chill', 'casual', 'laid-back', 'comfortable'],
+        
+        # === PROFESSIONAL & POLISHED ===
+        'professional': ['professional', 'polished', 'sophisticated', 'elegant', 'refined', 'business-like', 'formal', 'corporate'],
+        'polished': ['polished', 'professional', 'sophisticated', 'elegant', 'refined', 'sleek', 'put-together', 'sharp'],
+        'sophisticated': ['sophisticated', 'elegant', 'refined', 'chic', 'polished', 'cultured', 'classy', 'luxurious'],
+        'elegant': ['elegant', 'sophisticated', 'refined', 'graceful', 'chic', 'polished', 'classic', 'timeless'],
+        'refined': ['refined', 'sophisticated', 'elegant', 'polished', 'cultured', 'distinguished', 'tasteful'],
+        'chic': ['chic', 'sophisticated', 'elegant', 'stylish', 'fashionable', 'trendy', 'polished'],
+        'classy': ['classy', 'elegant', 'sophisticated', 'refined', 'tasteful', 'distinguished'],
+        'luxurious': ['luxurious', 'sophisticated', 'elegant', 'opulent', 'lavish', 'rich'],
+        
+        # === ROMANTIC & SOFT ===
+        'romantic': ['romantic', 'soft', 'elegant', 'feminine', 'delicate', 'graceful', 'dreamy', 'whimsical'],
+        'soft': ['soft', 'romantic', 'gentle', 'delicate', 'feminine', 'subtle', 'tender', 'muted'],
+        'feminine': ['feminine', 'romantic', 'soft', 'delicate', 'graceful', 'elegant', 'pretty'],
+        'delicate': ['delicate', 'soft', 'romantic', 'feminine', 'gentle', 'subtle', 'fragile'],
+        'graceful': ['graceful', 'elegant', 'refined', 'poised', 'fluid', 'romantic'],
+        'dreamy': ['dreamy', 'romantic', 'whimsical', 'ethereal', 'soft', 'imaginative'],
+        'whimsical': ['whimsical', 'playful', 'fun', 'quirky', 'imaginative', 'dreamy'],
+        
+        # === CASUAL & COMFORTABLE ===
+        'casual': ['casual', 'relaxed', 'comfortable', 'easy', 'neutral', 'laid-back', 'everyday', 'informal'],
+        'comfortable': ['comfortable', 'relaxed', 'casual', 'easy', 'cozy', 'soft', 'functional'],
+        'cozy': ['cozy', 'comfortable', 'warm', 'inviting', 'snug', 'homey', 'soft'],
+        'neutral': ['neutral', 'casual', 'relaxed', 'calm', 'balanced', 'versatile', 'understated'],
+        'easy': ['easy', 'casual', 'comfortable', 'effortless', 'simple', 'relaxed'],
+        'effortless': ['effortless', 'easy', 'natural', 'simple', 'casual', 'uncomplicated'],
+        'everyday': ['everyday', 'casual', 'comfortable', 'practical', 'functional', 'relaxed'],
+        
+        # === ENERGETIC & PLAYFUL ===
+        'energetic': ['energetic', 'lively', 'dynamic', 'vibrant', 'spirited', 'active', 'enthusiastic'],
+        'lively': ['lively', 'energetic', 'vibrant', 'spirited', 'animated', 'vivacious'],
+        'dynamic': ['dynamic', 'energetic', 'active', 'powerful', 'vigorous', 'spirited'],
+        'vibrant': ['vibrant', 'energetic', 'lively', 'bold', 'colorful', 'vivid', 'bright'],
+        'playful': ['playful', 'fun', 'whimsical', 'lighthearted', 'cheerful', 'spirited'],
+        'fun': ['fun', 'playful', 'cheerful', 'lively', 'entertaining', 'enjoyable'],
+        'spirited': ['spirited', 'energetic', 'lively', 'enthusiastic', 'passionate', 'vivacious'],
+        
+        # === EDGY & REBELLIOUS ===
+        'edgy': ['edgy', 'bold', 'daring', 'rebellious', 'alternative', 'unconventional', 'fierce'],
+        'rebellious': ['rebellious', 'edgy', 'daring', 'bold', 'defiant', 'nonconformist'],
+        'alternative': ['alternative', 'edgy', 'unconventional', 'unique', 'individual', 'different'],
+        'unconventional': ['unconventional', 'alternative', 'unique', 'individual', 'different', 'nontraditional'],
+        
+        # === MINIMAL & SIMPLE ===
+        'minimal': ['minimal', 'minimalist', 'simple', 'clean', 'understated', 'basic', 'essential'],
+        'minimalist': ['minimalist', 'minimal', 'simple', 'clean', 'understated', 'refined'],
+        'simple': ['simple', 'minimal', 'clean', 'basic', 'effortless', 'uncomplicated', 'straightforward'],
+        'clean': ['clean', 'minimal', 'simple', 'crisp', 'fresh', 'neat', 'sleek'],
+        'understated': ['understated', 'subtle', 'minimal', 'refined', 'modest', 'quiet'],
+        'subtle': ['subtle', 'understated', 'soft', 'delicate', 'muted', 'refined'],
+        
+        # === MODERN & FRESH ===
+        'modern': ['modern', 'contemporary', 'current', 'fresh', 'sleek', 'trendy', 'updated'],
+        'contemporary': ['contemporary', 'modern', 'current', 'fresh', 'up-to-date'],
+        'fresh': ['fresh', 'clean', 'modern', 'crisp', 'new', 'vibrant', 'bright'],
+        'sleek': ['sleek', 'modern', 'polished', 'smooth', 'streamlined', 'refined'],
+        'crisp': ['crisp', 'clean', 'fresh', 'sharp', 'neat', 'polished'],
+        
+        # === CREATIVE & ARTISTIC ===
+        'creative': ['creative', 'artistic', 'imaginative', 'expressive', 'unique', 'original', 'innovative'],
+        'artistic': ['artistic', 'creative', 'expressive', 'aesthetic', 'imaginative', 'bohemian'],
+        'expressive': ['expressive', 'creative', 'artistic', 'bold', 'individual', 'unique'],
+        'unique': ['unique', 'individual', 'distinctive', 'original', 'one-of-a-kind', 'special'],
+        'individual': ['individual', 'unique', 'personal', 'distinctive', 'original', 'unconventional'],
+        'eclectic': ['eclectic', 'diverse', 'varied', 'mixed', 'bohemian', 'artistic'],
+        
+        # === ADVENTUROUS & OUTDOORSY ===
+        'adventurous': ['adventurous', 'daring', 'bold', 'outdoorsy', 'active', 'rugged'],
+        'outdoorsy': ['outdoorsy', 'adventurous', 'rugged', 'active', 'practical', 'nature-loving'],
+        'rugged': ['rugged', 'outdoorsy', 'masculine', 'tough', 'durable', 'sturdy'],
+        'practical': ['practical', 'functional', 'utilitarian', 'sensible', 'efficient', 'everyday'],
+        'functional': ['functional', 'practical', 'utilitarian', 'efficient', 'purposeful', 'comfortable'],
+        
+        # === BALANCED & VERSATILE ===
+        'balanced': ['balanced', 'neutral', 'versatile', 'harmonious', 'moderate', 'composed'],
+        'versatile': ['versatile', 'adaptable', 'flexible', 'multifunctional', 'all-purpose', 'neutral'],
+        'timeless': ['timeless', 'classic', 'enduring', 'eternal', 'ageless', 'traditional'],
+        'classic': ['classic', 'timeless', 'traditional', 'enduring', 'elegant', 'refined'],
     }
     if rm in [m.lower() for m in item_moods]:
         return True
