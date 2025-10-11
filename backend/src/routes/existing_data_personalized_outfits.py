@@ -157,8 +157,7 @@ async def generate_personalized_outfit_from_existing_data(
         if ROBUST_SERVICE_AVAILABLE is None:
             logger.warning("🔍 FIRST REQUEST: Attempting to import RobustOutfitGenerationService...")
             try:
-                from src.services.robust_outfit_generation_service import RobustOutfitGenerationService
-                from src.custom_types.generation_context import GenerationContext
+                from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
                 from src.custom_types.wardrobe import ClothingItem
                 
                 robust_service = RobustOutfitGenerationService()
