@@ -1,0 +1,62 @@
+{
+  "Business": {
+    "total_items": 158,
+    "traditional": {
+      "passed": 43,
+      "pass_rate": 27.21518987341772
+    },
+    "semantic": {
+      "passed": 132,
+      "pass_rate": 83.54430379746836
+    },
+    "improvement": {
+      "additional_items": 89,
+      "pass_rate_increase": 56.32911392405064
+    }
+  },
+  "Casual": {
+    "total_items": 158,
+    "traditional": {
+      "passed": 123,
+      "pass_rate": 77.84810126582279
+    },
+    "semantic": {
+      "passed": 134,
+      "pass_rate": 84.81012658227847
+    },
+    "improvement": {
+      "additional_items": 11,
+      "pass_rate_increase": 6.96202531645568
+    }
+  },
+  "Formal": {
+    "total_items": 158,
+    "traditional": {
+      "passed": 43,
+      "pass_rate": 27.21518987341772
+    },
+    "semantic": {
+      "passed": 48,
+      "pass_rate": 30.37974683544304
+    },
+    "improvement": {
+      "additional_items": 5,
+      "pass_rate_increase": 3.164556962025319
+    }
+  },
+  "Beach": {
+    "total_items": 158,
+    "traditional": {
+      "passed": 58,
+      "pass_rate": 36.708860759493675
+    },
+    "semantic": {
+      "passed": 134,
+      "pass_rate": 84.81012658227847
+    },
+    "improvement": {
+      "additional_items": 76,
+      "pass_rate_increase": 48.1012658227848
+    }
+  }
+}

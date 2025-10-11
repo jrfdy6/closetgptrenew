@@ -8,7 +8,13 @@ from typing import Dict, List, Optional
 # Canonical Style Compatibility Matrix
 STYLE_COMPATIBILITY: Dict[str, List[str]] = {
     # Core Professional Styles
-    "classic": ["classic", "casual", "smart_casual", "business_casual", "traditional", "preppy", "minimalist", "balanced"],
+    "classic": [
+        "classic", "casual", "smart_casual", "business_casual", 
+        "traditional", "preppy", "minimalist", "balanced",
+        # Add bidirectional compatibility
+        "formal", "elegant", "sophisticated", "vintage", "retro", 
+        "timeless", "old_money", "modern", "business"
+    ],
     "business": ["business", "business_casual", "business_casual", "professional", "smart_casual", "smart_casual", "classic", "formal"],
     "business_casual": ["business_casual", "business_casual", "business", "smart_casual", "smart_casual", "classic", "casual", "preppy"],
     "formal": ["formal", "elegant", "semi-formal", "business", "classic"],
@@ -114,6 +120,14 @@ STYLE_COMPATIBILITY: Dict[str, List[str]] = {
     # Gender-neutral & Inclusive Styles
     "unisex": ["unisex", "minimalist", "classic", "modern", "androgynous"],
     "gender_neutral": ["gender_neutral", "unisex", "minimalist", "androgynous", "modern"],
+    
+    # Descriptive Terms & Patterns (often misclassified as styles)
+    "sleek": ["sleek", "modern", "minimalist", "classic", "contemporary", "polished"],
+    "bold": ["bold", "edgy", "statement", "modern", "classic", "streetwear", "retro"],
+    "geometric": ["geometric", "modern", "retro", "classic", "minimalist", "contemporary"],
+    "perforated": ["perforated", "modern", "classic", "contemporary", "casual"],
+    "statement": ["statement", "bold", "edgy", "modern", "fashion_forward", "classic"],
+    "textured": ["textured", "casual", "modern", "bohemian", "classic"],
 }
 
 
