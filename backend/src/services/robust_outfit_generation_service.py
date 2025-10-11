@@ -3744,8 +3744,8 @@ class RobustOutfitGenerationService:
                         # Skip this item if we already have 2 items in same color family (unless neutral)
                         logger.info(f"  ⏭️ COLOR DIVERSITY: {self.safe_get_item_name(item)} ({item_color}) skipped - already have {same_color_count} {color_family} items")
                     else:
-                    selected_items.append(item)
-                    categories_filled[category] = True
+                        selected_items.append(item)
+                        categories_filled[category] = True
                         logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f}, color={item_color})")
                 else:
                     logger.info(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
@@ -3810,7 +3810,7 @@ class RobustOutfitGenerationService:
                     # Limit to 2 accessories max
                     accessory_count = sum(1 for i in selected_items if self._get_item_category(i) == 'accessories')
                     if accessory_count < 2:
-                    selected_items.append(item)
+                        selected_items.append(item)
                         logger.warning(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                     else:
                         logger.warning(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
