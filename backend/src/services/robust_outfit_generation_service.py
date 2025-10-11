@@ -2689,6 +2689,39 @@ class RobustOutfitGenerationService:
         
         return score
     
+    def _get_color_family(self, color: str) -> str:
+        """Get color family for diversity checking"""
+        if not color or color == 'unknown':
+            return 'unknown'
+        
+        color = color.lower()
+        
+        # Neutral colors (can have multiple)
+        if any(neutral in color for neutral in ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'brown']):
+            return 'neutral'
+        
+        # Green family (teal, forest green, olive, money green, etc.)
+        if any(green in color for green in ['green', 'teal', 'olive', 'emerald', 'mint', 'lime', 'sage']):
+            return 'green'
+        
+        # Blue family
+        if any(blue in color for blue in ['blue', 'navy', 'cobalt', 'azure', 'cyan', 'turquoise']):
+            return 'blue'
+        
+        # Red family
+        if any(red in color for red in ['red', 'burgundy', 'crimson', 'maroon', 'wine']):
+            return 'red'
+        
+        # Pink/Purple family
+        if any(pink in color for pink in ['pink', 'purple', 'magenta', 'violet', 'lavender', 'fuchsia']):
+            return 'pink_purple'
+        
+        # Yellow/Orange family
+        if any(yellow in color for yellow in ['yellow', 'orange', 'gold', 'amber', 'mustard', 'coral']):
+            return 'yellow_orange'
+        
+        return 'other'
+    
     def _get_item_category(self, item: ClothingItem) -> str:
         """Get category for an item"""
         item_type = getattr(item, 'type', '')
@@ -3596,9 +3629,22 @@ class RobustOutfitGenerationService:
             # Essential categories first
             if category in ['tops', 'bottoms', 'shoes']:
                 if category not in categories_filled:
-                    selected_items.append(item)
-                    categories_filled[category] = True
-                    logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    # COLOR DIVERSITY CHECK: Avoid too many similar colors
+                    item_color = self.safe_get_item_attr(item, 'color', '').lower()
+                    selected_colors = [self.safe_get_item_attr(i, 'color', '').lower() for i in selected_items]
+                    
+                    # Check if we already have 2 items with similar color base (green, blue, red, etc.)
+                    color_family = self._get_color_family(item_color)
+                    selected_color_families = [self._get_color_family(c) for c in selected_colors if c]
+                    same_color_count = selected_color_families.count(color_family)
+                    
+                    if same_color_count >= 2 and color_family != 'neutral':
+                        # Skip this item if we already have 2 items in same color family (unless neutral)
+                        logger.info(f"  ⏭️ COLOR DIVERSITY: {self.safe_get_item_name(item)} ({item_color}) skipped - already have {same_color_count} {color_family} items")
+                    else:
+                        selected_items.append(item)
+                        categories_filled[category] = True
+                        logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f}, color={item_color})")
                 else:
                     logger.info(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
             else:
