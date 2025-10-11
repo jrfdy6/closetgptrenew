@@ -2189,9 +2189,9 @@ class RobustOutfitGenerationService:
             if current_category_count < proportional_limit:
                 selected_items.append(item)
                 category_counts[item_category] += 1
-                logger.info(f"🎯 TARGET-DRIVEN: Added {getattr(item, 'name', 'Unknown')} ({item_category}) - {len(selected_items)}/{target_count} items (category: {current_category_count + 1}/{proportional_limit})")
+                logger.warning(f"✅ SELECTED: '{getattr(item, 'name', 'Unknown')[:60]}' → category='{item_category}' | Progress: {len(selected_items)}/{target_count} | Category: {current_category_count + 1}/{proportional_limit} | All counts: {dict(category_counts)}")
             else:
-                logger.debug(f"🎯 TARGET-DRIVEN: Skipped {getattr(item, 'name', 'Unknown')} ({item_category}) - category limit reached ({current_category_count}/{proportional_limit})")
+                logger.warning(f"❌ REJECTED: '{getattr(item, 'name', 'Unknown')[:60]}' → category='{item_category}' LIMIT REACHED | Category: {current_category_count}/{proportional_limit} | All counts: {dict(category_counts)}")
         
         # STEP 7: Ensure we have at least the minimum essential categories
         essential_categories = ["tops", "bottoms", "shoes"]
@@ -2692,6 +2692,7 @@ class RobustOutfitGenerationService:
     def _get_item_category(self, item: ClothingItem) -> str:
         """Get category for an item"""
         item_type = getattr(item, 'type', '')
+        item_name = getattr(item, 'name', 'Unknown')
         
         # Handle enum types (e.g., ClothingType.SHIRT)
         if hasattr(item_type, 'value'):
@@ -2727,7 +2728,12 @@ class RobustOutfitGenerationService:
             'hoodie': 'outerwear'
         }
         
-        return (safe_get(category_map, item_type, 'other') if category_map else 'other')
+        category = (safe_get(category_map, item_type, 'other') if category_map else 'other')
+        
+        # 🔍 DIAGNOSTIC LOGGING - Track category assignment for debugging
+        logger.info(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
+        
+        return category
     
     def _check_inappropriate_combination(self, item1: ClothingItem, item2: ClothingItem) -> bool:
         """Check if two items form an inappropriate combination - simplified version"""

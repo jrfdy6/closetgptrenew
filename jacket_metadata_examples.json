@@ -1,0 +1,1459 @@
+[
+  {
+    "metadata": {
+      "originalType": "jacket",
+      "occasionTags": [
+        "casual",
+        "night out"
+      ],
+      "analysisTimestamp": 1757165570,
+      "colorAnalysis": {
+        "dominant": [
+          "brown"
+        ],
+        "matching": [
+          "black",
+          "tan"
+        ]
+      },
+      "styleTags": [
+        "edgy",
+        "vintage",
+        "motorcycle"
+      ],
+      "visualAttributes": {
+        "wearLayer": "Outer",
+        "textureStyle": "smooth",
+        "length": "regular",
+        "fabricWeight": "heavy",
+        "pattern": "solid",
+        "material": "leather",
+        "formalLevel": "semi-formal",
+        "silhouette": "structured",
+        "fit": "fitted",
+        "genderTarget": "unisex",
+        "sleeveLength": "long"
+      },
+      "aiAnalysis": {
+        "matchingColors": [
+          {
+            "rgb": [
+              0,
+              0,
+              0
+            ],
+            "hex": "#000000",
+            "name": "black"
+          },
+          {
+            "rgb": [
+              210,
+              180,
+              140
+            ],
+            "hex": "#D2B48C",
+            "name": "tan"
+          }
+        ],
+        "season": [
+          "fall",
+          "winter"
+        ],
+        "brand": "unknown",
+        "occasion": [
+          "casual",
+          "night out"
+        ],
+        "dominantColors": [
+          {
+            "rgb": [
+              139,
+              69,
+              19
+            ],
+            "hex": "#8B4513",
+            "name": "brown"
+          }
+        ],
+        "type": "jacket",
+        "subType": "biker jacket",
+        "metadata": {
+          "visualAttributes": {
+            "formalLevel": "semi-formal",
+            "length": "waist-length",
+            "fabricWeight": "heavy",
+            "material": "leather",
+            "textureStyle": "smooth",
+            "silhouette": "structured",
+            "fit": "fitted",
+            "genderTarget": "unisex",
+            "sleeveLength": "long"
+          }
+        },
+        "name": "Jacket biker jacket brown by unknown",
+        "style": [
+          "edgy",
+          "vintage",
+          "motorcycle"
+        ]
+      },
+      "itemMetadata": {
+        "careInstructions": "Check care label",
+        "tags": []
+      },
+      "normalized": {
+        "normalized_at": "2025-10-09T17:46:06",
+        "normalized_version": "1.0",
+        "occasion": [
+          "casual",
+          "night out"
+        ],
+        "style": [
+          "edgy",
+          "vintage",
+          "motorcycle"
+        ],
+        "season": [
+          "fall",
+          "winter"
+        ],
+        "mood": []
+      }
+    },
+    "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "lastWorn": "2025-09-23 10:14:46.216941+00:00",
+    "id": "25b2b0fb-5e86-4c33-ba75-15f3d49bb6f6",
+    "dominantColors": [
+      {
+        "rgb": [
+          139,
+          69,
+          19
+        ],
+        "hex": "#8B4513",
+        "name": "brown"
+      }
+    ],
+    "type": "jacket",
+    "imageUrl": "https://storage.googleapis.com/closetgptrenew.firebasestorage.app/wardrobe/dANqjiI0CKgaitxzYtw1bhtvQrG3/c1e78113-4496-4b82-b7c4-e679f1a2c26b_pngtree-male-leather-jacket-men-s-motorcycle-faux-png-image_15777146.png.png",
+    "matchingColors": [
+      {
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "hex": "#000000",
+        "name": "black"
+      },
+      {
+        "rgb": [
+          210,
+          180,
+          140
+        ],
+        "hex": "#D2B48C",
+        "name": "tan"
+      }
+    ],
+    "season": [
+      "fall",
+      "winter"
+    ],
+    "createdAt": 1757165570,
+    "occasion": [
+      "casual",
+      "night out"
+    ],
+    "wearCount": 18,
+    "gender": "unisex",
+    "mood": [
+      "casual"
+    ],
+    "updatedAt": "2025-09-23 10:14:46.216941+00:00",
+    "color": "unknown",
+    "tags": [],
+    "backgroundRemoved": false,
+    "style": [
+      "edgy",
+      "vintage",
+      "motorcycle"
+    ],
+    "normalized": {
+      "normalized_version": "1.0",
+      "normalized_at": "2025-10-07T22:23:35.892202",
+      "occasion": [
+        "casual",
+        "night out"
+      ],
+      "season": [
+        "fall",
+        "winter"
+      ],
+      "style": [
+        "edgy",
+        "vintage",
+        "motorcycle"
+      ],
+      "mood": []
+    },
+    "name": "Jacket biker jacket brown by unknown"
+  },
+  {
+    "matchingColors": [
+      {
+        "rgb": [
+          255,
+          255,
+          255
+        ],
+        "hex": "#FFFFFF",
+        "name": "White"
+      },
+      {
+        "rgb": [
+          128,
+          128,
+          128
+        ],
+        "hex": "#808080",
+        "name": "Gray"
+      },
+      {
+        "rgb": [
+          0,
+          0,
+          128
+        ],
+        "hex": "#000080",
+        "name": "Navy Blue"
+      }
+    ],
+    "wearCount": 2,
+    "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "lastWorn": "2025-09-08 03:08:26.192000+00:00",
+    "colorName": null,
+    "id": "63r2pj0pi5rmby62uvu",
+    "dominantColors": [
+      {
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "name": "Black",
+        "hex": "#000000"
+      }
+    ],
+    "type": "jacket",
+    "subType": "blazer",
+    "weatherCompatibility": [
+      "Spring",
+      "Fall",
+      "Winter"
+    ],
+    "metadata": {
+      "originalType": "jacket",
+      "styleCompatibility": {
+        "avoidStyles": [
+          "Y2K",
+          "Athleisure",
+          "Coastal Chic"
+        ],
+        "primaryStyle": [
+          "Dark Academia",
+          0.2787502706050873
+        ],
+        "compatibleStyles": [
+          "Dark Academia",
+          "Business Casual",
+          "Old Money"
+        ],
+        "styleNotes": "Moderate ('Dark Academia', 0.2787502706050873) influence detected. This item has some ('Dark Academia', 0.2787502706050873) elements."
+      },
+      "analysisTimestamp": 1750151680979,
+      "colorAnalysis": {
+        "dominant": [
+          {
+            "rgb": [
+              0,
+              0,
+              0
+            ],
+            "name": "Black",
+            "hex": "#000000"
+          }
+        ],
+        "matching": [
+          {
+            "rgb": [
+              255,
+              255,
+              255
+            ],
+            "hex": "#FFFFFF",
+            "name": "White"
+          },
+          {
+            "rgb": [
+              128,
+              128,
+              128
+            ],
+            "name": "Gray",
+            "hex": "#808080"
+          }
+        ]
+      },
+      "basicMetadata": {
+        "flashUsed": null,
+        "height": null,
+        "orientation": null,
+        "gps": null,
+        "dateTaken": null,
+        "imageHash": null,
+        "deviceModel": null,
+        "width": null
+      },
+      "visualAttributes": {
+        "temperatureCompatibility": {
+          "materialPreferences": [
+            "wool",
+            "fleece",
+            "knit",
+            "wool",
+            "knit",
+            "cotton",
+            "Wool",
+            "Cotton"
+          ],
+          "recommendedLayers": [
+            "wool",
+            "fleece",
+            "knit",
+            "Shirt",
+            "Sweater"
+          ],
+          "maxTemp": 65,
+          "minTemp": 32
+        },
+        "outfitScoring": {
+          "seasonality": 5,
+          "versatility": 5,
+          "trendiness": 5,
+          "quality": 5,
+          "formality": 5
+        },
+        "wearLayer": "Outer",
+        "formalLevel": "Formal",
+        "pattern": "Solid",
+        "sleeveLength": "Long",
+        "bodyTypeCompatibility": {
+          "rectangle": {
+            "styleRecommendations": [
+              "Emphasize waist"
+            ],
+            "recommendedFits": [
+              "Double-breasted"
+            ]
+          },
+          "styleRecommendations": {
+            "rectangle": [
+              "create_curves",
+              "add_dimension"
+            ],
+            "apple": [
+              "elongate",
+              "define_waist"
+            ],
+            "hourglass": [
+              "balanced",
+              "defined_waist"
+            ],
+            "pear": [
+              "balance_top",
+              "accentuate_waist"
+            ],
+            "inverted_triangle": [
+              "balance_shoulders",
+              "create_waist"
+            ]
+          },
+          "hourglass": {
+            "styleRecommendations": [
+              "Cinched waist"
+            ],
+            "recommendedFits": [
+              "Fitted",
+              "Tailored"
+            ]
+          },
+          "pear": {
+            "styleRecommendations": [
+              "Strong shoulders"
+            ],
+            "recommendedFits": [
+              "Structured"
+            ]
+          },
+          "recommendedFits": {
+            "rectangle": [
+              "fitted",
+              "oversized"
+            ],
+            "apple": [
+              "relaxed_top",
+              "fitted_bottom"
+            ],
+            "hourglass": [
+              "fitted",
+              "relaxed"
+            ],
+            "pear": [
+              "fitted_top",
+              "relaxed_bottom"
+            ],
+            "inverted_triangle": [
+              "relaxed_top",
+              "fitted_bottom"
+            ]
+          },
+          "apple": {
+            "styleRecommendations": [
+              "A-line skirts"
+            ],
+            "recommendedFits": [
+              "V-neck"
+            ]
+          },
+          "inverted_triangle": {
+            "styleRecommendations": [
+              "Minimalist detail"
+            ],
+            "recommendedFits": [
+              "Single-breasted"
+            ]
+          }
+        },
+        "textureStyle": "Smooth",
+        "length": "Mid-length",
+        "skinToneCompatibility": {
+          "cool": {
+            "compatibleColors": [
+              "Blue",
+              "Silver"
+            ],
+            "recommendedColorPalette": [
+              "Jewel tones"
+            ]
+          },
+          "neutral": {
+            "compatibleColors": [
+              "Pink",
+              "Taupe"
+            ],
+            "recommendedColorPalette": [
+              "Soft pinks"
+            ]
+          },
+          "warm": {
+            "compatibleColors": [
+              "Cream",
+              "Olive"
+            ],
+            "recommendedColorPalette": [
+              "Earth tones"
+            ]
+          },
+          "recommendedPalettes": {
+            "warm": [
+              "warm_autumn",
+              "warm_spring"
+            ],
+            "cool": [
+              "cool_winter",
+              "cool_summer"
+            ],
+            "neutral": [
+              "neutral_autumn",
+              "neutral_spring"
+            ]
+          },
+          "compatibleColors": {
+            "warm": [
+              "coral",
+              "peach",
+              "gold",
+              "olive",
+              "terracotta",
+              "warm_red"
+            ],
+            "cool": [
+              "blue",
+              "purple",
+              "pink",
+              "silver",
+              "cool_red",
+              "emerald"
+            ],
+            "neutral": [
+              "navy",
+              "gray",
+              "white",
+              "black",
+              "beige",
+              "mauve"
+            ]
+          }
+        },
+        "material": "Wool",
+        "fabricWeight": "Medium",
+        "fit": "Slim",
+        "hangerPresent": true,
+        "backgroundRemoved": false,
+        "genderTarget": "Unisex",
+        "silhouette": "Tailored",
+        "materialCompatibility": {
+          "weatherAppropriate": {
+            "fall": [
+              "wool",
+              "cotton",
+              "denim",
+              "leather",
+              "Wool",
+              "Cotton"
+            ],
+            "summer": [
+              "cotton",
+              "linen",
+              "silk"
+            ],
+            "spring": [
+              "cotton",
+              "linen",
+              "knit",
+              "Cotton",
+              "Linen"
+            ],
+            "winter": [
+              "wool",
+              "knit",
+              "leather",
+              "fleece",
+              "Wool"
+            ]
+          },
+          "compatibleMaterials": [
+            "denim",
+            "linen",
+            "wool",
+            "silk",
+            "Cotton",
+            "Silk"
+          ]
+        }
+      },
+      "confidenceScores": {
+        "gptAnalysis": 0.85,
+        "overallConfidence": 0.5643751353025437,
+        "styleAnalysis": 0.2787502706050873
+      },
+      "itemMetadata": {
+        "outfitScoring": {
+          "materialCompatibilityScore": 8,
+          "totalScore": 57,
+          "patternMixingScore": 6,
+          "pairabilityScore": 9,
+          "pieceCountScore": 7,
+          "baseScore": 8,
+          "colorHarmonyScore": 9,
+          "formalityConsistencyScore": 10
+        },
+        "brand": null,
+        "tags": [],
+        "careInstructions": "Dry clean only",
+        "priceEstimate": "$100-$300"
+      },
+      "clipAnalysis": {
+        "primaryStyle": [
+          "Dark Academia",
+          0.2787502706050873
+        ],
+        "styleBreakdown": {
+          "Classic": 0.25734248757362366,
+          "Dark Academia": 0.2787502706050873,
+          "Techwear": 0.22558371722698212,
+          "Casual Cool": 0.2375342845916748,
+          "Y2K": 0.20908060669898987,
+          "Minimalist": 0.2409381866455078,
+          "Grunge": 0.21790695190429688,
+          "Edgy": 0.2354576736688614,
+          "Artsy": 0.239029198884964,
+          "Athleisure": 0.2235666960477829,
+          "Avant-Garde": 0.24710465967655182,
+          "Romantic": 0.22012682259082794,
+          "Streetwear": 0.2290877252817154,
+          "Boho": 0.1960068643093109,
+          "Old Money": 0.2709747552871704,
+          "Androgynous": 0.2464287281036377,
+          "Business Casual": 0.27660128474235535,
+          "Preppy": 0.25479739904403687,
+          "Coastal Chic": 0.2106674164533615,
+          "Cottagecore": 0.2043183594942093
+        },
+        "styleConfidence": 0.2787502706050873,
+        "analysisMethod": "CLIP + GPT-4 Vision",
+        "topStyles": [
+          "Dark Academia",
+          "Business Casual",
+          "Old Money",
+          "Classic",
+          "Preppy"
+        ]
+      },
+      "enhancedAnalysisTimestamp": 1056499.722610696,
+      "analysisMethod": "Enhanced (GPT-4 + CLIP)",
+      "normalized": {
+        "normalized_at": "2025-10-09T17:46:09",
+        "normalized_version": "1.0",
+        "occasion": [
+          "business",
+          "interview",
+          "wedding",
+          "formal",
+          "funeral",
+          "conference"
+        ],
+        "style": [
+          "business",
+          "professional",
+          "business casual",
+          "dark academia",
+          "classic",
+          "formal"
+        ],
+        "season": [
+          "fall",
+          "winter",
+          "spring"
+        ],
+        "mood": [
+          "serious",
+          "professional"
+        ]
+      }
+    },
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/closetgptrenew.firebasestorage.app/o/users%2FdANqjiI0CKgaitxzYtw1bhtvQrG3%2Fwardrobe%2F55dc8c31-be14-4185-9274-bc2d259ba902.jpg?alt=media&token=634f1465-4d68-43f0-88be-73091e9e3c87",
+    "brand": null,
+    "bodyTypeCompatibility": [
+      "Hourglass",
+      "Pear"
+    ],
+    "createdAt": 1750151680979,
+    "occasion": [
+      "Business",
+      "Interview",
+      "Wedding",
+      "Formal",
+      "Funeral",
+      "Conference"
+    ],
+    "season": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "mood": [
+      "Serious",
+      "Professional"
+    ],
+    "gender": "male",
+    "updatedAt": "2025-09-08 03:08:26.192000+00:00",
+    "color": "Black",
+    "tags": [
+      "Formal",
+      "Business"
+    ],
+    "backgroundRemoved": false,
+    "name": "A slim, long, textured, smooth jacket",
+    "normalized": {
+      "normalized_version": "1.0",
+      "normalized_at": "2025-10-07T22:23:40.250322",
+      "occasion": [
+        "business",
+        "interview",
+        "wedding",
+        "formal",
+        "funeral",
+        "conference"
+      ],
+      "season": [
+        "fall",
+        "winter",
+        "spring"
+      ],
+      "style": [
+        "business",
+        "professional",
+        "business casual",
+        "dark academia",
+        "classic",
+        "formal"
+      ],
+      "mood": [
+        "serious",
+        "professional"
+      ]
+    },
+    "style": [
+      "Business",
+      "Professional",
+      "Business Casual",
+      "Dark Academia",
+      "Classic",
+      "Formal"
+    ]
+  },
+  {
+    "matchingColors": [
+      {
+        "rgb": [
+          255,
+          255,
+          255
+        ],
+        "hex": "#FFFFFF",
+        "name": "White"
+      },
+      {
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "hex": "#000000",
+        "name": "Black"
+      },
+      {
+        "rgb": [
+          0,
+          0,
+          128
+        ],
+        "hex": "#000080",
+        "name": "Navy"
+      }
+    ],
+    "wearCount": 6,
+    "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "lastWorn": "2025-09-23 01:56:15.553030+00:00",
+    "colorName": null,
+    "id": "83gf9iwrroqmby5trwv",
+    "dominantColors": [
+      {
+        "rgb": [
+          128,
+          128,
+          128
+        ],
+        "hex": "#808080",
+        "name": "Gray"
+      },
+      {
+        "rgb": [
+          119,
+          136,
+          153
+        ],
+        "hex": "#778899",
+        "name": "Blue-gray"
+      }
+    ],
+    "type": "jacket",
+    "subType": "blazer",
+    "weatherCompatibility": [
+      "Cold",
+      "Winter",
+      "Fall",
+      "Spring"
+    ],
+    "metadata": {
+      "originalType": "jacket",
+      "styleCompatibility": {
+        "avoidStyles": [
+          "Grunge",
+          "Streetwear",
+          "Boho"
+        ],
+        "primaryStyle": [
+          "Preppy",
+          0.29124489426612854
+        ],
+        "compatibleStyles": [
+          "Preppy",
+          "Business Casual",
+          "Dark Academia"
+        ],
+        "styleNotes": "Moderate ('Preppy', 0.29124489426612854) influence detected. This item has some ('Preppy', 0.29124489426612854) elements."
+      },
+      "analysisTimestamp": 1750151680984,
+      "colorAnalysis": {
+        "dominant": [
+          {
+            "rgb": [
+              128,
+              128,
+              128
+            ],
+            "hex": "#808080",
+            "name": "Gray"
+          }
+        ],
+        "matching": [
+          {
+            "rgb": [
+              255,
+              255,
+              255
+            ],
+            "name": "White",
+            "hex": "#FFFFFF"
+          },
+          {
+            "rgb": [
+              0,
+              0,
+              0
+            ],
+            "name": "Black",
+            "hex": "#000000"
+          }
+        ]
+      },
+      "basicMetadata": {
+        "flashUsed": null,
+        "height": null,
+        "imageHash": null,
+        "gps": null,
+        "dateTaken": null,
+        "orientation": null,
+        "deviceModel": null,
+        "width": null
+      },
+      "visualAttributes": {
+        "temperatureCompatibility": {
+          "materialPreferences": [
+            "wool",
+            "fleece",
+            "knit",
+            "wool",
+            "knit",
+            "cotton",
+            "Wool",
+            "Cashmere"
+          ],
+          "recommendedLayers": [
+            "wool",
+            "fleece",
+            "knit",
+            "Shirt",
+            "Sweater"
+          ],
+          "maxTemp": "65",
+          "minTemp": "32"
+        },
+        "outfitScoring": {
+          "seasonality": 5,
+          "versatility": 5,
+          "trendiness": 5,
+          "quality": 5,
+          "formality": 5
+        },
+        "wearLayer": "Outer",
+        "formalLevel": "Semi-formal",
+        "pattern": "Herringbone",
+        "sleeveLength": "Long",
+        "bodyTypeCompatibility": {
+          "rectangle": {
+            "styleRecommendations": [
+              "Waist detailing"
+            ],
+            "recommendedFits": [
+              "Fitted"
+            ]
+          },
+          "styleRecommendations": {
+            "rectangle": [
+              "create_curves",
+              "add_dimension"
+            ],
+            "apple": [
+              "elongate",
+              "define_waist"
+            ],
+            "hourglass": [
+              "balanced",
+              "defined_waist"
+            ],
+            "pear": [
+              "balance_top",
+              "accentuate_waist"
+            ],
+            "inverted_triangle": [
+              "balance_shoulders",
+              "create_waist"
+            ]
+          },
+          "hourglass": {
+            "styleRecommendations": [
+              "Structured shoulders"
+            ],
+            "recommendedFits": [
+              "Tailored"
+            ]
+          },
+          "pear": {
+            "styleRecommendations": [
+              "Single-breasted"
+            ],
+            "recommendedFits": [
+              "Structured"
+            ]
+          },
+          "recommendedFits": {
+            "rectangle": [
+              "fitted",
+              "oversized"
+            ],
+            "apple": [
+              "relaxed_top",
+              "fitted_bottom"
+            ],
+            "hourglass": [
+              "fitted",
+              "relaxed"
+            ],
+            "pear": [
+              "fitted_top",
+              "relaxed_bottom"
+            ],
+            "inverted_triangle": [
+              "relaxed_top",
+              "fitted_bottom"
+            ]
+          },
+          "apple": {
+            "styleRecommendations": [
+              "V-neckline"
+            ],
+            "recommendedFits": [
+              "Straight"
+            ]
+          },
+          "inverted_triangle": {
+            "styleRecommendations": [
+              "Narrow lapels"
+            ],
+            "recommendedFits": [
+              "Balanced"
+            ]
+          }
+        },
+        "length": "Mid-length",
+        "textureStyle": "Smooth",
+        "skinToneCompatibility": {
+          "cool": {
+            "compatibleColors": [
+              "White",
+              "Navy"
+            ],
+            "recommendedColorPalette": [
+              "Jewel tones"
+            ]
+          },
+          "neutral": {
+            "compatibleColors": [
+              "Gray",
+              "Soft pink"
+            ],
+            "recommendedColorPalette": [
+              "Balanced neutrals"
+            ]
+          },
+          "warm": {
+            "compatibleColors": [
+              "Beige",
+              "Brown"
+            ],
+            "recommendedColorPalette": [
+              "Earth tones"
+            ]
+          },
+          "recommendedPalettes": {
+            "warm": [
+              "warm_autumn",
+              "warm_spring"
+            ],
+            "cool": [
+              "cool_winter",
+              "cool_summer"
+            ],
+            "neutral": [
+              "neutral_autumn",
+              "neutral_spring"
+            ]
+          },
+          "compatibleColors": {
+            "warm": [
+              "coral",
+              "peach",
+              "gold",
+              "olive",
+              "terracotta",
+              "warm_red"
+            ],
+            "cool": [
+              "blue",
+              "purple",
+              "pink",
+              "silver",
+              "cool_red",
+              "emerald"
+            ],
+            "neutral": [
+              "navy",
+              "gray",
+              "white",
+              "black",
+              "beige",
+              "mauve"
+            ]
+          }
+        },
+        "material": "Wool blend",
+        "fabricWeight": "Medium",
+        "fit": "Slim",
+        "hangerPresent": true,
+        "genderTarget": "Men's",
+        "backgroundRemoved": false,
+        "silhouette": "Tailored",
+        "materialCompatibility": {
+          "weatherAppropriate": {
+            "fall": [
+              "wool",
+              "cotton",
+              "denim",
+              "leather",
+              "Wool"
+            ],
+            "summer": [
+              "cotton",
+              "linen",
+              "silk"
+            ],
+            "spring": [
+              "cotton",
+              "linen",
+              "knit",
+              "Wool",
+              "Cotton"
+            ],
+            "winter": [
+              "wool",
+              "knit",
+              "leather",
+              "fleece",
+              "Wool",
+              "Cashmere"
+            ]
+          },
+          "compatibleMaterials": [
+            "Cotton",
+            "Wool"
+          ]
+        }
+      },
+      "confidenceScores": {
+        "gptAnalysis": 0.85,
+        "overallConfidence": 0.5706224471330643,
+        "styleAnalysis": 0.29124489426612854
+      },
+      "itemMetadata": {
+        "outfitScoring": {
+          "materialCompatibilityScore": "9",
+          "totalScore": "8.5",
+          "patternMixingScore": "7",
+          "pairabilityScore": "8",
+          "pieceCountScore": "9",
+          "baseScore": "8",
+          "colorHarmonyScore": "8",
+          "formalityConsistencyScore": "9"
+        },
+        "brand": null,
+        "tags": [
+          "Formal wear",
+          "Business attire"
+        ],
+        "careInstructions": "Dry clean only",
+        "priceEstimate": "$150 - $250"
+      },
+      "clipAnalysis": {
+        "primaryStyle": [
+          "Preppy",
+          0.29124489426612854
+        ],
+        "styleBreakdown": {
+          "Classic": 0.2549886703491211,
+          "Dark Academia": 0.2756105661392212,
+          "Techwear": 0.18648900091648102,
+          "Casual Cool": 0.24980759620666504,
+          "Y2K": 0.2188735455274582,
+          "Minimalist": 0.23431451618671417,
+          "Grunge": 0.21492335200309753,
+          "Edgy": 0.20460525155067444,
+          "Artsy": 0.22501611709594727,
+          "Athleisure": 0.23306815326213837,
+          "Avant-Garde": 0.22204262018203735,
+          "Romantic": 0.22858576476573944,
+          "Streetwear": 0.22267897427082062,
+          "Boho": 0.19404321908950806,
+          "Old Money": 0.26581060886383057,
+          "Androgynous": 0.23365463316440582,
+          "Business Casual": 0.2776959538459778,
+          "Preppy": 0.29124489426612854,
+          "Coastal Chic": 0.2330808788537979,
+          "Cottagecore": 0.22737695276737213
+        },
+        "styleConfidence": 0.29124489426612854,
+        "analysisMethod": "CLIP + GPT-4 Vision",
+        "topStyles": [
+          "Preppy",
+          "Business Casual",
+          "Dark Academia",
+          "Old Money",
+          "Classic"
+        ]
+      },
+      "enhancedAnalysisTimestamp": 1056686.97290009,
+      "analysisMethod": "Enhanced (GPT-4 + CLIP)",
+      "normalized": {
+        "normalized_at": "2025-10-09T17:46:10",
+        "normalized_version": "1.0",
+        "occasion": [
+          "business",
+          "wedding",
+          "formal",
+          "funeral"
+        ],
+        "style": [
+          "classic",
+          "professional",
+          "preppy",
+          "business casual",
+          "smart casual",
+          "formal"
+        ],
+        "season": [
+          "fall",
+          "winter",
+          "spring"
+        ],
+        "mood": [
+          "serious",
+          "professional"
+        ]
+      }
+    },
+    "imageUrl": "https://firebasestorage.googleapis.com/v0/b/closetgptrenew.firebasestorage.app/o/users%2FdANqjiI0CKgaitxzYtw1bhtvQrG3%2Fwardrobe%2F08015a90-adc8-4c5e-bdba-50dc6624f993.jpg?alt=media&token=b92136a8-f0ca-4102-b121-2b24d4a449f5",
+    "brand": "Savile Row",
+    "season": [
+      "fall",
+      "winter",
+      "spring"
+    ],
+    "createdAt": 1750151680984,
+    "bodyTypeCompatibility": [
+      "Hourglass",
+      "Pear"
+    ],
+    "occasion": [
+      "Business",
+      "Wedding",
+      "Formal",
+      "Funeral"
+    ],
+    "mood": [
+      "Serious",
+      "Professional"
+    ],
+    "gender": "male",
+    "updatedAt": "2025-09-23 01:56:15.553030+00:00",
+    "color": "Gray",
+    "tags": [
+      "Formal"
+    ],
+    "backgroundRemoved": false,
+    "name": "A slim, long, herringbone, smooth jacket by Savile Row",
+    "normalized": {
+      "normalized_version": "1.0",
+      "normalized_at": "2025-10-07T22:23:41.897510",
+      "occasion": [
+        "business",
+        "wedding",
+        "formal",
+        "funeral"
+      ],
+      "season": [
+        "fall",
+        "winter",
+        "spring"
+      ],
+      "style": [
+        "classic",
+        "professional",
+        "preppy",
+        "business casual",
+        "smart casual",
+        "formal"
+      ],
+      "mood": [
+        "serious",
+        "professional"
+      ]
+    },
+    "style": [
+      "Classic",
+      "Professional",
+      "Preppy",
+      "Business Casual",
+      "Smart Casual",
+      "Formal"
+    ]
+  },
+  {
+    "metadata": {
+      "originalType": "jacket",
+      "occasionTags": [
+        "casual",
+        "everyday"
+      ],
+      "analysisTimestamp": 1757062891,
+      "colorAnalysis": {
+        "dominant": [
+          "brown"
+        ],
+        "matching": []
+      },
+      "styleTags": [
+        "biker",
+        "leather",
+        "casual"
+      ],
+      "visualAttributes": {
+        "wearLayer": "Outer",
+        "textureStyle": "smooth",
+        "length": "regular",
+        "fabricWeight": "medium",
+        "pattern": "solid",
+        "material": "cotton",
+        "formalLevel": "casual",
+        "silhouette": "regular",
+        "fit": "regular",
+        "genderTarget": "Unisex",
+        "sleeveLength": "Long"
+      },
+      "itemMetadata": {
+        "careInstructions": "Check care label",
+        "tags": []
+      },
+      "normalized": {
+        "normalized_at": "2025-10-09T17:46:11",
+        "normalized_version": "1.0",
+        "occasion": [
+          "casual",
+          "everyday"
+        ],
+        "style": [
+          "biker",
+          "leather",
+          "casual"
+        ],
+        "season": [
+          "fall",
+          "winter"
+        ],
+        "mood": []
+      }
+    },
+    "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "lastWorn": "2025-09-23 09:56:13.773881+00:00",
+    "id": "9018c247-841e-4732-a25c-69366722e0b4",
+    "dominantColors": [
+      {
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "name": "brown",
+        "hex": "#000000"
+      }
+    ],
+    "type": "jacket",
+    "imageUrl": "data:image/png;base64,test",
+    "matchingColors": [],
+    "season": [
+      "fall",
+      "winter"
+    ],
+    "createdAt": 1757062891,
+    "occasion": [
+      "casual",
+      "everyday"
+    ],
+    "wearCount": 1,
+    "gender": "unisex",
+    "mood": [
+      "casual"
+    ],
+    "updatedAt": "2025-09-23 09:56:13.773881+00:00",
+    "color": "brown",
+    "style": [
+      "biker",
+      "leather",
+      "casual"
+    ],
+    "backgroundRemoved": false,
+    "tags": [],
+    "normalized": {
+      "normalized_version": "1.0",
+      "normalized_at": "2025-10-07T22:23:43.076119",
+      "occasion": [
+        "casual",
+        "everyday"
+      ],
+      "season": [
+        "fall",
+        "winter"
+      ],
+      "style": [
+        "biker",
+        "leather",
+        "casual"
+      ],
+      "mood": []
+    },
+    "name": "Jacket biker jacket brown by unknown"
+  },
+  {
+    "metadata": {
+      "originalType": "jacket",
+      "occasionTags": [
+        "casual",
+        "everyday"
+      ],
+      "analysisTimestamp": 1757034865,
+      "colorAnalysis": {
+        "matching": [],
+        "dominant": [
+          "brown"
+        ]
+      },
+      "styleTags": [
+        "biker",
+        "leather"
+      ],
+      "visualAttributes": {
+        "wearLayer": "Outer",
+        "textureStyle": "smooth",
+        "length": "regular",
+        "fabricWeight": "medium",
+        "pattern": "solid",
+        "material": "cotton",
+        "formalLevel": "casual",
+        "silhouette": "regular",
+        "fit": "regular",
+        "genderTarget": "Unisex",
+        "sleeveLength": "Long"
+      },
+      "itemMetadata": {
+        "careInstructions": "Check care label",
+        "tags": []
+      },
+      "normalized": {
+        "normalized_at": "2025-10-09T17:46:15",
+        "normalized_version": "1.0",
+        "occasion": [
+          "casual",
+          "everyday"
+        ],
+        "style": [
+          "biker",
+          "leather"
+        ],
+        "season": [
+          "fall",
+          "winter"
+        ],
+        "mood": []
+      }
+    },
+    "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+    "lastWorn": "2025-09-21 12:24:10.312746+00:00",
+    "id": "d5e65940-72f3-4b77-a19f-c8a44fc669a6",
+    "dominantColors": [
+      {
+        "rgb": [
+          0,
+          0,
+          0
+        ],
+        "name": "brown",
+        "hex": "#000000"
+      }
+    ],
+    "type": "jacket",
+    "imageUrl": "data:image/png;base64,test",
+    "occasion": [
+      "casual",
+      "everyday"
+    ],
+    "season": [
+      "fall",
+      "winter"
+    ],
+    "createdAt": 1757034865,
+    "matchingColors": [],
+    "wearCount": 1,
+    "gender": "unisex",
+    "mood": [
+      "casual"
+    ],
+    "updatedAt": "2025-09-21 12:24:10.312746+00:00",
+    "color": "brown",
+    "style": [
+      "biker",
+      "leather"
+    ],
+    "backgroundRemoved": false,
+    "name": "Jacket biker jacket brown",
+    "normalized": {
+      "normalized_version": "1.0",
+      "normalized_at": "2025-10-07T22:23:47.134800",
+      "occasion": [
+        "casual",
+        "everyday"
+      ],
+      "season": [
+        "fall",
+        "winter"
+      ],
+      "style": [
+        "biker",
+        "leather"
+      ],
+      "mood": []
+    },
+    "tags": []
+  }
+]
