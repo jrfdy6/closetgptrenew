@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Route Verification</title>
+    <style>
+        body {
+            font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 32px;
+        }
+        .test-section {
+            margin-bottom: 32px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+        .result {
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .pending {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 12px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-success { background: #48bb78; color: white; }
+        .badge-error { background: #f56565; color: white; }
+        .badge-pending { background: #ed8936; color: white; }
+        .summary {
+            background: #edf2f7;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 32px;
+        }
+        .summary-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #2d3748;
+        }
+        .summary-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 API Route Verification</h1>
+        <p class="subtitle">Testing Vercel deployment v2025-10-11-v3</p>
+        
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <!-- Test 1: Test Route GET -->
+        <div class="test-section">
+            <div class="test-title">
+                Test 1: Test Route (GET)
+                <span id="test1-badge"></span>
+            </div>
+            <p style="color: #718096; font-size: 14px;">GET /api/test-route</p>
+            <button onclick="testRoute()">Run Test</button>
+            <div id="test1-result"></div>
+        </div>
+        
+        <!-- Test 2: Test Route POST -->
+        <div class="test-section">
+            <div class="test-title">
+                Test 2: Test Route (POST)
+                <span id="test2-badge"></span>
+            </div>
+            <p style="color: #718096; font-size: 14px;">POST /api/test-route</p>
+            <button onclick="testRoutePOST()">Run Test</button>
+            <div id="test2-result"></div>
+        </div>
+        
+        <!-- Test 3: OPTIONS Preflight -->
+        <div class="test-section">
+            <div class="test-title">
+                Test 3: CORS Preflight (OPTIONS)
+                <span id="test3-badge"></span>
+            </div>
+            <p style="color: #718096; font-size: 14px;">OPTIONS /api/outfits/generate</p>
+            <button onclick="testOPTIONS()">Run Test</button>
+            <div id="test3-result"></div>
+        </div>
+        
+        <!-- Test 4: Generate Route Structure -->
+        <div class="test-section">
+            <div class="test-title">
+                Test 4: Generate Route Availability
+                <span id="test4-badge"></span>
+            </div>
+            <p style="color: #718096; font-size: 14px;">POST /api/outfits/generate (without auth)</p>
+            <button onclick="testGenerateRoute()">Run Test</button>
+            <div id="test4-result"></div>
+        </div>
+        
+        <!-- Summary -->
+        <div class="summary" id="summary" style="display: none;">
+            <div class="summary-title">📊 Test Summary</div>
+            <div class="summary-item" id="summary-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://closetgpt-frontend.vercel.app';
+        let testResults = {
+            test1: null,
+            test2: null,
+            test3: null,
+            test4: null
+        };
+
+        function updateBadge(testId, status) {
+            const badge = document.getElementById(`${testId}-badge`);
+            badge.className = `status-badge badge-${status}`;
+            badge.textContent = status === 'success' ? '✅ PASS' : status === 'error' ? '❌ FAIL' : '⏳ PENDING';
+        }
+
+        function showResult(testId, success, message, data = null) {
+            const resultDiv = document.getElementById(`${testId}-result`);
+            const className = success ? 'success' : 'error';
+            let content = `${success ? '✅' : '❌'} ${message}\n`;
+            if (data) {
+                content += '\n' + JSON.stringify(data, null, 2);
+            }
+            resultDiv.innerHTML = `<div class="result ${className}">${content}</div>`;
+            updateBadge(testId, success ? 'success' : 'error');
+            testResults[testId] = success;
+            updateSummary();
+        }
+
+        async function testRoute() {
+            updateBadge('test1', 'pending');
+            try {
+                const response = await fetch(`${BASE_URL}/api/test-route`);
+                const data = await response.json();
+                
+                if (data.success && data.deployment === 'vercel-2025-10-11-v3') {
+                    showResult('test1', true, 'Test route working! Deployment v3 confirmed.', data);
+                } else {
+                    showResult('test1', false, 'Test route responded but deployment version mismatch', data);
+                }
+            } catch (error) {
+                showResult('test1', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        async function testRoutePOST() {
+            updateBadge('test2', 'pending');
+            try {
+                const response = await fetch(`${BASE_URL}/api/test-route`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: 'data', timestamp: new Date().toISOString() })
+                });
+                const data = await response.json();
+                
+                if (data.success && data.message === 'POST method is working!') {
+                    showResult('test2', true, 'POST method confirmed working!', data);
+                } else {
+                    showResult('test2', false, 'POST responded but unexpected format', data);
+                }
+            } catch (error) {
+                showResult('test2', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        async function testOPTIONS() {
+            updateBadge('test3', 'pending');
+            try {
+                const response = await fetch(`${BASE_URL}/api/outfits/generate`, {
+                    method: 'OPTIONS'
+                });
+                
+                const corsHeaders = {
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin')
+                };
+                
+                if (response.status === 200 && corsHeaders['Access-Control-Allow-Methods']) {
+                    showResult('test3', true, 'CORS preflight handling confirmed!', {
+                        status: response.status,
+                        headers: corsHeaders
+                    });
+                } else {
+                    showResult('test3', false, `OPTIONS returned ${response.status}. CORS headers may be missing.`, {
+                        status: response.status,
+                        headers: corsHeaders
+                    });
+                }
+            } catch (error) {
+                showResult('test3', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        async function testGenerateRoute() {
+            updateBadge('test4', 'pending');
+            try {
+                const response = await fetch(`${BASE_URL}/api/outfits/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ test: true })
+                });
+                
+                // We expect 401 (no auth token) or 400 (validation error), NOT 405
+                if (response.status === 401) {
+                    showResult('test4', true, 'Generate route is accessible! (401 = needs auth, which is expected)', {
+                        status: response.status,
+                        message: 'Route is working, just needs authentication'
+                    });
+                } else if (response.status === 405) {
+                    showResult('test4', false, '405 Method Not Allowed - The main issue persists!', {
+                        status: response.status,
+                        message: 'POST method not being recognized'
+                    });
+                } else {
+                    // Any other status means the route is at least responding
+                    const text = await response.text();
+                    showResult('test4', true, `Generate route responding (Status: ${response.status})`, {
+                        status: response.status,
+                        response: text.substring(0, 200)
+                    });
+                }
+            } catch (error) {
+                showResult('test4', false, `Request failed: ${error.message}`);
+            }
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('summary');
+            const content = document.getElementById('summary-content');
+            
+            const total = Object.keys(testResults).length;
+            const completed = Object.values(testResults).filter(r => r !== null).length;
+            const passed = Object.values(testResults).filter(r => r === true).length;
+            const failed = Object.values(testResults).filter(r => r === false).length;
+            
+            if (completed > 0) {
+                summary.style.display = 'block';
+                content.innerHTML = `
+                    <div><strong>Completed:</strong> ${completed}/${total} tests</div>
+                    <div><strong>Passed:</strong> ${passed} ✅</div>
+                    <div><strong>Failed:</strong> ${failed} ❌</div>
+                    <div style="margin-top: 16px;">
+                        ${completed === total ? 
+                            (passed === total ? 
+                                '<strong style="color: #48bb78;">🎉 All tests passed! API routes are working correctly.</strong>' : 
+                                '<strong style="color: #f56565;">⚠️ Some tests failed. Check results above.</strong>') : 
+                            '<strong style="color: #ed8936;">⏳ Tests in progress...</strong>'}
+                    </div>
+                `;
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            await testRoute();
+            await new Promise(r => setTimeout(r, 500));
+            await testRoutePOST();
+            await new Promise(r => setTimeout(r, 500));
+            await testOPTIONS();
+            await new Promise(r => setTimeout(r, 500));
+            await testGenerateRoute();
+        }
+
+        function clearResults() {
+            testResults = { test1: null, test2: null, test3: null, test4: null };
+            ['test1', 'test2', 'test3', 'test4'].forEach(id => {
+                document.getElementById(`${id}-result`).innerHTML = '';
+                document.getElementById(`${id}-badge`).innerHTML = '';
+            });
+            document.getElementById('summary').style.display = 'none';
+        }
+
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                console.log('🚀 Auto-running tests...');
+                runAllTests();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
+

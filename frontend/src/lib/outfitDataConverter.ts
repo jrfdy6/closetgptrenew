@@ -133,10 +133,44 @@ function convertUserProfile(profile: FrontendUserProfile): any {
 /**
  * Convert frontend weather data to Pydantic-compatible format
  */
+/**
+ * Normalize weather condition to match backend enum
+ */
+function normalizeWeatherCondition(condition: string): string {
+  const conditionMap: Record<string, string> = {
+    // OpenWeatherMap API conditions → Backend enum
+    'Clouds': 'Cloudy',
+    'Clear': 'Clear',
+    'Rain': 'Rainy',
+    'Drizzle': 'Rainy',
+    'Snow': 'Snowy',
+    'Thunderstorm': 'Stormy',
+    'Mist': 'Foggy',
+    'Fog': 'Foggy',
+    'Haze': 'Foggy',
+    'Smoke': 'Foggy',
+    'Dust': 'Windy',
+    'Sand': 'Windy',
+    'Ash': 'Windy',
+    'Squall': 'Windy',
+    'Tornado': 'Stormy',
+    // Already normalized conditions
+    'Cloudy': 'Cloudy',
+    'Rainy': 'Rainy',
+    'Snowy': 'Snowy',
+    'Stormy': 'Stormy',
+    'Foggy': 'Foggy',
+    'Windy': 'Windy',
+    'Sunny': 'Clear'
+  };
+  
+  return conditionMap[condition] || 'Clear';
+}
+
 function convertWeatherData(weather: FrontendWeatherData): any {
   return {
     temperature: weather.temperature,
-    condition: weather.condition,
+    condition: normalizeWeatherCondition(weather.condition),
     humidity: weather.humidity || 0,
     wind_speed: weather.wind_speed || 0,
     location: weather.location || 'Unknown',
