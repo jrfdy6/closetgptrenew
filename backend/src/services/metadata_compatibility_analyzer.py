@@ -718,7 +718,14 @@ class MetadataCompatibilityAnalyzer:
                 'party': 'Smart Casual',
                 'casual': 'Casual',
                 'weekend': 'Casual',
-                'athletic': 'Casual'
+                'athletic': 'Casual',
+                'gym': 'Casual',
+                'workout': 'Casual',
+                'sport': 'Casual',
+                'loungewear': 'Casual',
+                'lounge': 'Casual',
+                'relaxed': 'Casual',
+                'home': 'Casual'
             }
             
             expected_formality = occasion_formality.get(occasion)

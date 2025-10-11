@@ -2384,6 +2384,9 @@ class RobustOutfitGenerationService:
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
             # Athletic: 3-4 items (simple, functional)
             return random.randint(3, 4)
+        elif 'loungewear' in occasion_lower or 'lounge' in occasion_lower or 'relaxed' in occasion_lower:
+            # Loungewear: 2-3 items (minimal, comfortable)
+            return random.randint(2, 3)
         elif 'party' in occasion_lower or 'date' in occasion_lower:
             # Social: 4-5 items (stylish but not overdone)
             return random.randint(4, 5)
