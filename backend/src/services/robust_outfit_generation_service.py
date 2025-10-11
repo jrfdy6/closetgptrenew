@@ -2866,7 +2866,7 @@ class RobustOutfitGenerationService:
         category = (safe_get(category_map, item_type, 'other') if category_map else 'other')
         
         # 🔍 DIAGNOSTIC LOGGING - Track category assignment for debugging
-        logger.info(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
+        logger.debug(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
         
         return category
     
