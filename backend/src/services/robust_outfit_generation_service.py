@@ -3622,6 +3622,7 @@ class RobustOutfitGenerationService:
             item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
             
             # Determine layering appropriateness
+            # VERSION: 2025-10-11-DUPLICATE-FIX
             if category == 'outerwear' and score_data['composite_score'] > 0.6:
                 # ✅ FIX: Check if outerwear already exists before adding
                 has_outerwear = any(self._get_item_category(i) == 'outerwear' for i in selected_items)
