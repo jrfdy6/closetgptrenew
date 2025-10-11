@@ -307,6 +307,32 @@ async def generate_personalized_outfit_from_existing_data(
         }
         
         logger.info(f"✅ Generated personalized outfit from existing data (personalization: {(existing_result.get('personalization_applied', False) if existing_result else False)})")
+        
+        # 🔥 CRITICAL: Save outfit to Firestore for diversity tracking
+        try:
+            from src.config.firebase import db
+            
+            outfit_for_firestore = {
+                'id': outfit_response['id'],
+                'name': outfit_response['name'],
+                'items': outfit_response['items'],
+                'style': outfit_response['style'],
+                'occasion': outfit_response['occasion'],
+                'mood': outfit_response['mood'],
+                'user_id': user_id,
+                'createdAt': int(time.time() * 1000),  # Firestore timestamp in milliseconds
+                'confidence_score': outfit_response['confidence_score'],
+                'personalization_applied': outfit_response['personalization_applied'],
+                'metadata': outfit_response['metadata']
+            }
+            
+            db.collection('outfits').document(outfit_response['id']).set(outfit_for_firestore)
+            logger.warning(f"✅ DIVERSITY: Saved outfit {outfit_response['id']} to Firestore for diversity tracking")
+            
+        except Exception as save_error:
+            # Don't fail the request if save fails, just log it
+            logger.error(f"⚠️ Failed to save outfit to Firestore: {save_error}")
+        
         return OutfitResponse(**outfit_response)
     
     except HTTPException:
