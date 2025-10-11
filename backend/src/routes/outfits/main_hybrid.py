@@ -92,8 +92,7 @@ async def health_check():
 @router.post("/debug-filter")
 async def debug_outfit_filtering(
     request: dict,
-    req: Request,
-    semantic: bool = False
+    req: Request
 ):
     """Debug endpoint to see why items are being filtered out during outfit generation."""
     try:
@@ -103,17 +102,16 @@ async def debug_outfit_filtering(
                 detail="Debug service is currently unavailable"
             )
         
-        # CRITICAL: Parse semantic parameter from query string manually if needed
-        # FastAPI might not parse "true"/"false" strings correctly
-        query_params = dict(req.query_params)
-        semantic_from_query = query_params.get('semantic', 'false').lower()
-        if semantic_from_query in ['true', '1', 'yes']:
-            semantic = True
-        elif semantic_from_query in ['false', '0', 'no']:
-            semantic = False
+        # ✅ FIX: Read semantic flag from POST body instead of query params
+        # Query params were being stripped by Next.js proxy
+        semantic = request.get('semantic', False)
         
-        logger.warning(f"🚀 DEBUG FILTER v5: semantic_param={semantic}, query_string={semantic_from_query}, full_query={query_params}")
-        logger.warning(f"🔍 TYPE CHECK: semantic type={type(semantic)}, value={semantic}, repr={repr(semantic)}")
+        # Ensure it's a boolean
+        if isinstance(semantic, str):
+            semantic = semantic.lower() in ['true', '1', 'yes']
+        
+        logger.warning(f"🚀 DEBUG FILTER v6: semantic from body = {semantic} (type={type(semantic).__name__})")
+        logger.warning(f"🔍 REQUEST BODY KEYS: {list(request.keys())}")
         
         # Extract user ID using robust authentication, with fallback for testing
         try:

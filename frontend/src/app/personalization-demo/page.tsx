@@ -99,8 +99,8 @@ export default function PersonalizationDemoPage() {
       const wardrobeItems = wardrobeData.items || wardrobeData;
       console.log('✅ [Debug] Fetched wardrobe items:', wardrobeItems.length);
 
-      // Call debug endpoint with semantic flag
-      const debugResponse = await fetch(`/api/outfits/debug-filter?semantic=${semanticFlag}`, {
+      // Call debug endpoint with semantic flag in body (not query string)
+      const debugResponse = await fetch(`/api/outfits/debug-filter`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -111,7 +111,8 @@ export default function PersonalizationDemoPage() {
           style: formData.style,
           mood: formData.mood,
           wardrobe: wardrobeItems,
-          user_profile: { id: user.uid }
+          user_profile: { id: user.uid },
+          semantic: semanticFlag  // ← Move semantic flag to POST body
         }),
       });
 
