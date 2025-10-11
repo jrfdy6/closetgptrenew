@@ -535,7 +535,7 @@ OCCASION_FALLBACKS: Dict[str, List[str]] = {
         "winter"
     ],
     "interview": ["business", "business_casual", "formal", "interview", "professional"],
-    "loungewear": ["comfortable", "loungewear"],
+    "loungewear": ["comfortable", "loungewear", "casual", "relaxed", "home", "indoor", "weekend", "cozy", "everyday"],
     "lunch": [
         "brunch", "business_casual", "casual", "date", "dinner",
         "everyday", "lunch", "weekend", "work"
