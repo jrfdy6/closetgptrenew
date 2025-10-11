@@ -54,16 +54,24 @@ router = APIRouter()
 personalization_engine = ExistingDataPersonalizationEngine()
 
 # Initialize robust service if available
+logger.warning(f"🔍 STARTUP: ROBUST_SERVICE_AVAILABLE = {ROBUST_SERVICE_AVAILABLE}")
+
 if ROBUST_SERVICE_AVAILABLE:
     try:
+        logger.warning("🔍 STARTUP: Attempting to initialize RobustOutfitGenerationService...")
         robust_service = RobustOutfitGenerationService()
-        logger.info("✅ ROBUST SERVICE: Initialized successfully for existing-data endpoint")
+        logger.warning("✅ ROBUST SERVICE: Initialized successfully for existing-data endpoint!")
     except Exception as e:
         robust_service = None
         ROBUST_SERVICE_AVAILABLE = False
-        logger.warning(f"⚠️ ROBUST SERVICE: Initialization failed: {e}")
+        logger.error(f"❌ ROBUST SERVICE: Initialization failed: {e}")
+        import traceback
+        logger.error(f"❌ ROBUST SERVICE: Traceback:\n{traceback.format_exc()}")
 else:
     robust_service = None
+    logger.warning("⚠️ STARTUP: Robust service NOT available - imports failed")
+
+logger.warning(f"🔍 STARTUP COMPLETE: robust_service = {robust_service}, ROBUST_SERVICE_AVAILABLE = {ROBUST_SERVICE_AVAILABLE}")
 
 # Pydantic models
 class OutfitGenerationRequest(BaseModel):
@@ -303,18 +311,26 @@ async def generate_personalized_outfit_from_existing_data(
             import random
             from src.config.firebase import db
             
-            # Load recent outfits for diversity tracking
-            recent_outfits_ref = db.collection('outfits')\
-                .where('user_id', '==', user_id)\
-                .where('occasion', '==', req.occasion)\
-                .where('style', '==', req.style)\
-                .order_by('createdAt', direction='DESCENDING')\
-                .limit(10)
-            
-            recent_outfits_docs = list(recent_outfits_ref.stream())
-            recent_outfits = [doc.to_dict() for doc in recent_outfits_docs]
-            
-            logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style}")
+            # Load recent outfits for diversity tracking (simplified query to avoid index requirement)
+            try:
+                recent_outfits_ref = db.collection('outfits')\
+                    .where('user_id', '==', user_id)\
+                    .order_by('createdAt', direction='DESCENDING')\
+                    .limit(50)
+                
+                recent_outfits_docs = list(recent_outfits_ref.stream())
+                all_outfits = [doc.to_dict() for doc in recent_outfits_docs]
+                
+                # Filter in Python to match occasion/style (avoids composite index requirement)
+                recent_outfits = [
+                    outfit for outfit in all_outfits 
+                    if outfit.get('occasion') == req.occasion and outfit.get('style') == req.style
+                ]
+                
+                logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style} (from {len(all_outfits)} total)")
+            except Exception as query_error:
+                logger.warning(f"⚠️ DIVERSITY: Could not load outfit history: {query_error}")
+                recent_outfits = []
             
             # Track item usage in recent outfits
             item_usage_count = {}
@@ -346,18 +362,26 @@ async def generate_personalized_outfit_from_existing_data(
             import random
             from src.config.firebase import db
             
-            # Load recent outfits for diversity tracking
-            recent_outfits_ref = db.collection('outfits')\
-                .where('user_id', '==', user_id)\
-                .where('occasion', '==', req.occasion)\
-                .where('style', '==', req.style)\
-                .order_by('createdAt', direction='DESCENDING')\
-                .limit(10)
-            
-            recent_outfits_docs = list(recent_outfits_ref.stream())
-            recent_outfits = [doc.to_dict() for doc in recent_outfits_docs]
-            
-            logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style}")
+            # Load recent outfits for diversity tracking (simplified query to avoid index requirement)
+            try:
+                recent_outfits_ref = db.collection('outfits')\
+                    .where('user_id', '==', user_id)\
+                    .order_by('createdAt', direction='DESCENDING')\
+                    .limit(50)
+                
+                recent_outfits_docs = list(recent_outfits_ref.stream())
+                all_outfits = [doc.to_dict() for doc in recent_outfits_docs]
+                
+                # Filter in Python to match occasion/style (avoids composite index requirement)
+                recent_outfits = [
+                    outfit for outfit in all_outfits 
+                    if outfit.get('occasion') == req.occasion and outfit.get('style') == req.style
+                ]
+                
+                logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style} (from {len(all_outfits)} total)")
+            except Exception as query_error:
+                logger.warning(f"⚠️ DIVERSITY: Could not load outfit history: {query_error}")
+                recent_outfits = []
             
             # Track item usage in recent outfits
             item_usage_count = {}
