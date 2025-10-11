@@ -2097,6 +2097,13 @@ class RobustOutfitGenerationService:
                 penalty -= 1.5 * occasion_multiplier
                 logger.info(f"  🚫 FORMALITY: Too casual type '{item_type_lower}' for {occasion}: {-1.5 * occasion_multiplier:.2f}")
         
+        elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
+            # Loungewear: Block overly formal types (but allow almost everything casual)
+            inappropriate_types = ['suit', 'tuxedo', 'blazer', 'dress shirt', 'tie', 'dress pants', 'oxford shoes', 'heels']
+            if any(formal in item_type_lower or formal in item_name for formal in inappropriate_types):
+                penalty -= 1.0 * occasion_multiplier
+                logger.info(f"  🚫 FORMALITY: Too formal type '{item_type_lower}' for {occasion}: {-1.0 * occasion_multiplier:.2f}")
+        
         # ═══════════════════════════════════════════════════════════════════════
         # UNIVERSAL COLOR APPROPRIATENESS: Check color suitability for ALL occasions
         # ═══════════════════════════════════════════════════════════════════════
@@ -2170,6 +2177,15 @@ class RobustOutfitGenerationService:
                 penalty += 1.0 * occasion_multiplier  # Good boost for matching occasion tag
                 logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
         
+        elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
+            # Loungewear: Comfortable, casual, at-home clothing
+            if any(occ in item_occasion_lower for occ in ['loungewear', 'lounge', 'relaxed', 'home', 'casual', 'weekend']):
+                penalty += 1.2 * occasion_multiplier  # Strong boost for loungewear/casual items
+                logger.info(f"  ✅✅ PRIMARY: Loungewear occasion tag match: {+1.2 * occasion_multiplier:.2f}")
+            elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview']):
+                penalty -= 1.5 * occasion_multiplier  # Penalize formal items for loungewear
+                logger.info(f"  🚫 PRIMARY: Formal occasion tag for Loungewear request: {-1.5 * occasion_multiplier:.2f}")
+        
         # ═══════════════════════════════════════════════════════════════════════
         # KEYWORD-BASED SCORING: Secondary scoring based on item names (LIGHT penalties only)
         # ═══════════════════════════════════════════════════════════════════════
@@ -2195,6 +2211,19 @@ class RobustOutfitGenerationService:
             elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
                 penalty += 0.5 * occasion_multiplier
             # Note: Color appropriateness check is now handled universally above
+        
+        elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
+            # BOOST loungewear/comfort keywords strongly
+            if any(word in item_name for word in ['lounge', 'sweat', 'jogger', 'hoodie', 'comfort', 'relaxed', 'cozy', 'soft']):
+                penalty += 0.8 * occasion_multiplier  # Strong boost for loungewear keywords
+                logger.info(f"  ✅ KEYWORD: Loungewear keyword in name: {+0.8 * occasion_multiplier:.2f}")
+            elif any(word in item_name for word in ['t-shirt', 'tee', 'tank', 'shorts', 'legging', 'pajama', 'sleep']):
+                penalty += 0.6 * occasion_multiplier  # Good boost for casual comfort items
+                logger.info(f"  ✅ KEYWORD: Casual comfort keyword: {+0.6 * occasion_multiplier:.2f}")
+            # LIGHT penalties for formal items (don't completely eliminate, just discourage)
+            elif any(word in item_name for word in ['suit', 'blazer', 'dress shirt', 'formal', 'oxford', 'heel']):
+                penalty -= 0.3 * occasion_multiplier  # Light penalty for formal items
+                logger.info(f"  ⚠️ KEYWORD: Formal keyword penalty for loungewear: {-0.3 * occasion_multiplier:.2f}")
         
         return penalty
     
