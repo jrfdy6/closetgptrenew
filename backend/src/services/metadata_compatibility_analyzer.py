@@ -151,6 +151,24 @@ class MetadataCompatibilityAnalyzer:
         """
         logger.info(f"🎨 METADATA COMPATIBILITY ANALYZER: Scoring {len(item_scores)} items across 6 dimensions (layer, pattern, fit, formality, color, brand)")
         
+        # PERFORMANCE: Skip detailed compatibility for casual occasions (not critical)
+        occasion_lower = safe_get(context, 'occasion', '').lower()
+        if occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home', 'casual', 'weekend']:
+            logger.info(f"⚡ PERFORMANCE: Skipping detailed metadata compatibility for casual occasion '{occasion_lower}' (using default scores)")
+            # Set default neutral scores for all items
+            for item_id, scores in item_scores.items():
+                scores['compatibility_score'] = 1.0  # Neutral/good score
+                scores['_compatibility_breakdown'] = {
+                    'layer': 1.0,
+                    'pattern': 1.0,
+                    'fit': 1.0,
+                    'formality': 1.0,
+                    'color': 1.0,
+                    'brand': 1.0
+                }
+            logger.info(f"⚡ PERFORMANCE: Set default scores for {len(item_scores)} items")
+            return
+        
         # Collect all items for outfit-level checks
         all_items = [scores['item'] for scores in item_scores.values()]
         
