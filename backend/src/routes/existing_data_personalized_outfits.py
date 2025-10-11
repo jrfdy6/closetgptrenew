@@ -39,11 +39,19 @@ try:
     from src.custom_types.wardrobe import ClothingItem
     ROBUST_SERVICE_AVAILABLE = True
     logger_instance = logging.getLogger(__name__)
-    logger_instance.info("✅ ROBUST SERVICE: Successfully imported RobustOutfitGenerationService")
+    logger_instance.warning("✅ ROBUST SERVICE: Successfully imported RobustOutfitGenerationService")
 except ImportError as e:
     ROBUST_SERVICE_AVAILABLE = False
     logger_instance = logging.getLogger(__name__)
-    logger_instance.warning(f"⚠️ ROBUST SERVICE: Import failed, will use simple fallback: {e}")
+    logger_instance.error(f"❌ ROBUST SERVICE: Import failed - {type(e).__name__}: {e}")
+    import traceback
+    logger_instance.error(f"❌ ROBUST SERVICE: Full import traceback:\n{traceback.format_exc()}")
+except Exception as e:
+    ROBUST_SERVICE_AVAILABLE = False
+    logger_instance = logging.getLogger(__name__)
+    logger_instance.error(f"❌ ROBUST SERVICE: Unexpected error during import: {e}")
+    import traceback
+    logger_instance.error(f"❌ ROBUST SERVICE: Full traceback:\n{traceback.format_exc()}")
 
 logger = logging.getLogger(__name__)
 
