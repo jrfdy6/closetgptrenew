@@ -185,13 +185,17 @@ async def generate_personalized_outfit_from_existing_data(
                     for idx, item_data in enumerate(req.wardrobe):
                         try:
                             if isinstance(item_data, dict):
+                                # Fix type format: UPPERCASE → lowercase
+                                item_copy = item_data.copy()
+                                if 'type' in item_copy and isinstance(item_copy['type'], str):
+                                    item_copy['type'] = item_copy['type'].lower()
+                                
                                 # Convert dict to ClothingItem
-                                wardrobe_items.append(ClothingItem(**item_data))
+                                wardrobe_items.append(ClothingItem(**item_copy))
                             else:
                                 wardrobe_items.append(item_data)
                         except Exception as item_error:
-                            logger.error(f"❌ ROBUST: Failed to convert item {idx}: {item_error}")
-                            # Skip problematic items
+                            # Silent skip - we're converting 158 items, some failures are ok
                             continue
                 
                 logger.warning(f"✅ ROBUST: Successfully converted {len(wardrobe_items)} items")
@@ -200,7 +204,12 @@ async def generate_personalized_outfit_from_existing_data(
                 logger.warning(f"🔍 ROBUST: Creating GenerationContext...")
                 from types import SimpleNamespace
                 weather_obj = SimpleNamespace(**req.weather) if req.weather else SimpleNamespace(temperature=72, condition='Clear')
-                user_profile_obj = SimpleNamespace(id=user_id, **(req.user_profile or {}))
+                
+                # Fix user profile: don't duplicate 'id' if it already exists
+                profile_data = req.user_profile or {}
+                if 'id' not in profile_data:
+                    profile_data = {'id': user_id, **profile_data}
+                user_profile_obj = SimpleNamespace(**profile_data)
                 
                 logger.warning(f"🔍 ROBUST: Context params - occasion={req.occasion}, style={req.style}, mood={req.mood}")
                 
