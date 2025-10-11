@@ -1,0 +1,139 @@
+🚀 Bidirectional Compatibility Audit
+================================================================================
+Checking for cases where A includes B but B doesn't include A
+
+📖 Loading style compatibility matrix...
+
+================================================================================
+🔍 Auditing STYLES Bidirectional Compatibility
+================================================================================
+
+Total styles: 70
+
+⚠️  Found 116 bidirectional compatibility issues:
+
+❌ 'modern' is missing 16 bidirectional match(es):
+   → Should include: 'androgynous'
+   → Should include: 'balanced'
+   → Should include: 'bold'
+   → Should include: 'classic'
+   → Should include: 'clean'
+   → Should include: 'experimental'
+   → Should include: 'fashion_forward'
+   → Should include: 'gender_neutral'
+   ... and 8 more
+
+❌ 'classic' is missing 15 bidirectional match(es):
+   → Should include: 'academic'
+   → Should include: 'androgynous'
+   → Should include: 'bold'
+   → Should include: 'dark_academia'
+   → Should include: 'geometric'
+   → Should include: 'intellectual'
+   → Should include: 'nautical'
+   → Should include: 'perforated'
+   ... and 7 more
+
+❌ 'minimalist' is missing 11 bidirectional match(es):
+   → Should include: 'androgynous'
+   → Should include: 'casual_cool'
+   → Should include: 'contemporary'
+   → Should include: 'everyday'
+   → Should include: 'gender_neutral'
+   → Should include: 'geometric'
+   → Should include: 'intellectual'
+   → Should include: 'sleek'
+   ... and 3 more
+
+❌ 'casual' is missing 10 bidirectional match(es):
+   → Should include: 'balanced'
+   → Should include: 'basic'
+   → Should include: 'coastal_chic'
+   → Should include: 'cozy'
+   → Should include: 'grunge'
+   → Should include: 'nautical'
+   → Should include: 'perforated'
+   → Should include: 'smart_casual'
+   ... and 2 more
+
+❌ 'edgy' is missing 6 bidirectional match(es):
+   → Should include: 'alternative'
+   → Should include: 'bold'
+   → Should include: 'experimental'
+   → Should include: 'punk'
+   → Should include: 'statement'
+   → Should include: 'y2k'
+
+❌ 'streetwear' is missing 5 bidirectional match(es):
+   → Should include: 'alternative'
+   → Should include: 'bold'
+   → Should include: 'casual_cool'
+   → Should include: 'punk'
+   → Should include: 'y2k'
+
+❌ 'formal' is missing 3 bidirectional match(es):
+   → Should include: 'polished'
+   → Should include: 'professional'
+   → Should include: 'sophisticated'
+
+❌ 'contemporary' is missing 3 bidirectional match(es):
+   → Should include: 'geometric'
+   → Should include: 'perforated'
+   → Should include: 'sleek'
+
+❌ 'coastal_chic' is missing 3 bidirectional match(es):
+   → Should include: 'maritime'
+   → Should include: 'nautical'
+   → Should include: 'summer'
+
+❌ 'balanced' is missing 3 bidirectional match(es):
+   → Should include: 'androgynous'
+   → Should include: 'contemporary'
+   → Should include: 'everyday'
+
+❌ 'romantic' is missing 3 bidirectional match(es):
+   → Should include: 'eclectic'
+   → Should include: 'elegant'
+   → Should include: 'summer'
+
+❌ 'business_casual' is missing 2 bidirectional match(es):
+   → Should include: 'balanced'
+   → Should include: 'professional'
+
+❌ 'athleisure' is missing 2 bidirectional match(es):
+   → Should include: 'active'
+   → Should include: 'workout'
+
+❌ 'grunge' is missing 2 bidirectional match(es):
+   → Should include: 'alternative'
+   → Should include: 'punk'
+
+❌ 'vintage' is missing 2 bidirectional match(es):
+   → Should include: 'cottagecore'
+   → Should include: 'traditional'
+
+... and 19 more keys with issues
+
+📖 Loading occasion fallbacks...
+   ❌ Failed to parse occasions
+
+📖 Loading mood compatibility...
+   ⚠️  Could not parse moods (inline dict)
+
+
+================================================================================
+📊 AUDIT SUMMARY
+================================================================================
+
+Styles:    116 issues (70 total styles)
+Occasions: 0 issues (0 total occasions)
+Moods:     0 issues (0 total moods)
+
+⚠️  Total: 116 bidirectional issues found
+
+💡 Action Items:
+   1. Review the missing bidirectional references above
+   2. Update compatibility matrices to add them
+   3. Re-run this audit to verify fixes
+
+================================================================================
