@@ -2216,14 +2216,14 @@ class RobustOutfitGenerationService:
             # BOOST loungewear/comfort keywords strongly
             if any(word in item_name for word in ['lounge', 'sweat', 'jogger', 'hoodie', 'comfort', 'relaxed', 'cozy', 'soft']):
                 penalty += 0.8 * occasion_multiplier  # Strong boost for loungewear keywords
-                logger.info(f"  ✅ KEYWORD: Loungewear keyword in name: {+0.8 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅ KEYWORD: Loungewear keyword in name: {+0.8 * occasion_multiplier:.2f}")
             elif any(word in item_name for word in ['t-shirt', 'tee', 'tank', 'shorts', 'legging', 'pajama', 'sleep']):
                 penalty += 0.6 * occasion_multiplier  # Good boost for casual comfort items
-                logger.info(f"  ✅ KEYWORD: Casual comfort keyword: {+0.6 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅ KEYWORD: Casual comfort keyword: {+0.6 * occasion_multiplier:.2f}")
             # LIGHT penalties for formal items (don't completely eliminate, just discourage)
             elif any(word in item_name for word in ['suit', 'blazer', 'dress shirt', 'formal', 'oxford', 'heel']):
                 penalty -= 0.3 * occasion_multiplier  # Light penalty for formal items
-                logger.info(f"  ⚠️ KEYWORD: Formal keyword penalty for loungewear: {-0.3 * occasion_multiplier:.2f}")
+                logger.debug(f"  ⚠️ KEYWORD: Formal keyword penalty for loungewear: {-0.3 * occasion_multiplier:.2f}")
         
         return penalty
     
