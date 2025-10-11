@@ -1787,16 +1787,19 @@ class RobustOutfitGenerationService:
         
         # SAFETY: Determine filtering mode using feature flags
         if semantic_filtering is None:
-            # Use feature flag to determine mode
+            # Use feature flag to determine mode ONLY if not explicitly set by frontend
             if is_force_traditional_enabled():
                 semantic_filtering = False
-                logger.info("🚩 FEATURE FLAG: Forcing traditional filtering (rollback mode)")
+                logger.warning("🚩 FEATURE FLAG: Forcing traditional filtering (rollback mode)")
             elif is_semantic_match_enabled():
                 semantic_filtering = True
-                logger.info("🚩 FEATURE FLAG: Semantic filtering enabled")
+                logger.warning("🚩 FEATURE FLAG: Semantic filtering enabled by default")
             else:
                 semantic_filtering = False
-                logger.info("🚩 FEATURE FLAG: Traditional filtering (default)")
+                logger.warning("🚩 FEATURE FLAG: Traditional filtering (default)")
+        else:
+            # Frontend explicitly set the mode - respect it!
+            logger.warning(f"🎯 FRONTEND CONTROL: Semantic filtering explicitly set to {semantic_filtering}")
         
         logger.info(f"🔍 HARD FILTER: Starting hard filtering for occasion={context.occasion}, style={context.style}")
         logger.info(f"🔍 HARD FILTER: Wardrobe has {len(context.wardrobe)} items")
