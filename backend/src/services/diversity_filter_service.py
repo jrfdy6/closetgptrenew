@@ -55,7 +55,7 @@ class DiversityFilterService:
         self.similarity_threshold = 0.7  # Outfits with >70% similarity are considered too similar
         self.max_recent_outfits = 50  # Keep track of last 50 outfits per user
         self.rotation_period_days = 7  # Rotate items every 7 days
-        self.diversity_boost_factor = 1.5  # Boost score for diverse items
+        self.diversity_boost_factor = 2.0  # INCREASED: Boost score for diverse items (was 1.5)
         
         logger.info("🎭 Diversity Filter Service initialized v2.0 - Combination-aware filtering active")
     
@@ -384,14 +384,17 @@ class DiversityFilterService:
                             break  # Count each outfit only once
             
             if same_combo_usage == 0:
-                diversity_boost += 0.3  # Not used in this combination
-                logger.debug(f"  🆕 {item.name[:30]}: Not used in {occasion}/{style} → +0.30")
-            elif same_combo_usage < 2:
-                diversity_boost += 0.15  # Lightly used in this combination
-                logger.debug(f"  🌱 {item.name[:30]}: Used {same_combo_usage}x in {occasion}/{style} → +0.15")
-            elif same_combo_usage > 3:
-                diversity_boost -= 0.15  # Overused in this combination
-                logger.debug(f"  🔁 {item.name[:30]}: Overused {same_combo_usage}x in {occasion}/{style} → -0.15")
+                diversity_boost += 0.5  # INCREASED: Not used in this combination (was 0.3)
+                logger.debug(f"  🆕 {item.name[:30]}: Not used in {occasion}/{style} → +0.50")
+            elif same_combo_usage == 1:
+                diversity_boost += 0.3  # INCREASED: Lightly used in this combination (was 0.15)
+                logger.debug(f"  🌱 {item.name[:30]}: Used 1x in {occasion}/{style} → +0.30")
+            elif same_combo_usage == 2:
+                diversity_boost += 0.1  # Moderately used - small boost
+                logger.debug(f"  ➖ {item.name[:30]}: Used 2x in {occasion}/{style} → +0.10")
+            elif same_combo_usage >= 3:
+                diversity_boost -= 0.5  # STRENGTHENED: Overused in this combination (was -0.15)
+                logger.warning(f"  🔁 {item.name[:30]}: Overused {same_combo_usage}x in {occasion}/{style} → -0.50")
             
             # Boost items that are different from recent SAME-COMBO outfits
             if comparison_outfits:

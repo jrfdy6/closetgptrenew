@@ -684,21 +684,21 @@ class RobustOutfitGenerationService:
         # CALCULATE FINAL COMPOSITE SCORES (6 DIMENSIONS)
         # ═══════════════════════════════════════════════════════════════════════
         
-        diversity_weight = 0.10  # 10% weight for diversity (adjust based on weather if needed)
+        diversity_weight = 0.30  # 30% weight for diversity - INCREASED to ensure variety (was 0.10)
         
-        # Adjust other weights to accommodate diversity dimension
+        # Adjust other weights to accommodate diversity dimension (must sum to 100%)
         if temp > 75 or temp < 50:  # Extreme weather
-            weather_weight = 0.23
-            compatibility_weight = 0.18
-            style_weight = 0.18
-            body_weight = 0.13
-            user_feedback_weight = 0.18
+            weather_weight = 0.18  # Reduced to accommodate higher diversity
+            compatibility_weight = 0.12
+            style_weight = 0.16
+            body_weight = 0.12
+            user_feedback_weight = 0.12
         else:  # Moderate weather
-            weather_weight = 0.18
-            compatibility_weight = 0.14
-            style_weight = 0.23
-            body_weight = 0.18
-            user_feedback_weight = 0.17
+            weather_weight = 0.14  # Reduced to accommodate higher diversity
+            compatibility_weight = 0.11
+            style_weight = 0.18
+            body_weight = 0.15
+            user_feedback_weight = 0.12
         
         logger.info(f"🎯 DYNAMIC WEIGHTS (6D): Weather={weather_weight}, Compatibility={compatibility_weight}, Style={style_weight}, Body={body_weight}, UserFeedback={user_feedback_weight}, Diversity={diversity_weight}")
         
@@ -3556,8 +3556,14 @@ class RobustOutfitGenerationService:
             'accessories' # Accessories (scarf, hat, etc.)
         ]
         
-        # Sort items by composite score
-        sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
+        # Sort items by composite score with randomization to break ties
+        import random
+        sorted_items = sorted(
+            item_scores.items(), 
+            key=lambda x: x[1]['composite_score'] + random.uniform(-0.05, 0.05),  # ±5% randomization for variety
+            reverse=True
+        )
+        logger.info(f"🎲 RANDOMIZATION: Added ±5% noise to scores for variety")
         
         # Select items with intelligent layering
         selected_items = []
