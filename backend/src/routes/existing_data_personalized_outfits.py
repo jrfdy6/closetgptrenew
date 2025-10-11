@@ -169,11 +169,51 @@ async def generate_personalized_outfit_from_existing_data(
         
         logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
         
+        # 🔥 DIVERSITY-AWARE SELECTION: Load outfit history and apply diversity boost
+        import random
+        from src.config.firebase import db
+        
+        # Load recent outfits for diversity tracking
+        recent_outfits_ref = db.collection('outfits')\
+            .where('user_id', '==', user_id)\
+            .where('occasion', '==', req.occasion)\
+            .where('style', '==', req.style)\
+            .order_by('createdAt', direction='DESCENDING')\
+            .limit(10)
+        
+        recent_outfits_docs = list(recent_outfits_ref.stream())
+        recent_outfits = [doc.to_dict() for doc in recent_outfits_docs]
+        
+        logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style}")
+        
+        # Track item usage in recent outfits
+        item_usage_count = {}
+        for outfit in recent_outfits:
+            for item in outfit.get('items', []):
+                item_id = item.get('id', 'unknown')
+                item_usage_count[item_id] = item_usage_count.get(item_id, 0) + 1
+        
+        # Score items based on diversity (prefer unused items)
+        def get_diversity_score(item):
+            item_id = getattr(item, 'id', item.get('id', 'unknown') if isinstance(item, dict) else 'unknown')
+            usage = item_usage_count.get(item_id, 0)
+            
+            if usage == 0:
+                return 1.0  # Never used - highest priority
+            elif usage == 1:
+                return 0.7  # Used once - medium priority
+            elif usage == 2:
+                return 0.4  # Used twice - lower priority
+            else:
+                return 0.1  # Overused - lowest priority
+        
         # Select items by category to build a complete outfit
         outfit_items = []
         categories_needed = ['shoes', 'pants', 'shirt', 'jacket']
         
         for category in categories_needed:
+            # Find all matching items for this category
+            category_matches = []
             for item in suitable_items:
                 item_type = str(getattr(item, 'type', item.get('type', '') if isinstance(item, dict) else '')).lower()
                 
@@ -182,35 +222,35 @@ async def generate_personalized_outfit_from_existing_data(
                    (category == 'pants' and ('pant' in item_type or 'jean' in item_type or 'trouser' in item_type)) or \
                    (category == 'shirt' and ('shirt' in item_type or 'blouse' in item_type)) or \
                    (category == 'jacket' and ('jacket' in item_type or 'blazer' in item_type)):
-                    
-                    # Convert to dict format
-                    if hasattr(item, 'dict'):
-                        outfit_items.append(item.dict())
-                    elif isinstance(item, dict):
-                        outfit_items.append(item)
-                    else:
-                        outfit_items.append({
-                            'id': getattr(item, 'id', 'unknown'),
-                            'name': getattr(item, 'name', 'unknown'),
-                            'type': item_type,
-                            'color': getattr(item, 'color', item.get('color', 'unknown') if isinstance(item, dict) else 'unknown'),
-                            'imageUrl': getattr(item, 'imageUrl', item.get('imageUrl', item.get('image_url', '')) if isinstance(item, dict) else '')
-                        })
-                    break  # Got one item for this category
+                    category_matches.append(item)
+            
+            # Sort by diversity score (prefer unused items) + add randomization
+            if category_matches:
+                scored_items = [(item, get_diversity_score(item) + random.uniform(0, 0.3)) for item in category_matches]
+                scored_items.sort(key=lambda x: x[1], reverse=True)
+                
+                # Pick the top-scored item
+                selected_item = scored_items[0][0]
+                item_id = getattr(selected_item, 'id', selected_item.get('id', 'unknown') if isinstance(selected_item, dict) else 'unknown')
+                diversity_score = scored_items[0][1]
+                
+                logger.info(f"  🎯 {category}: Selected item with diversity score {diversity_score:.2f}")
+                
+                # Convert to dict format
+                if hasattr(selected_item, 'dict'):
+                    outfit_items.append(selected_item.dict())
+                elif isinstance(selected_item, dict):
+                    outfit_items.append(selected_item)
+                else:
+                    outfit_items.append({
+                        'id': item_id,
+                        'name': getattr(selected_item, 'name', 'unknown'),
+                        'type': str(getattr(selected_item, 'type', '')).lower(),
+                        'color': getattr(selected_item, 'color', selected_item.get('color', 'unknown') if isinstance(selected_item, dict) else 'unknown'),
+                        'imageUrl': getattr(selected_item, 'imageUrl', selected_item.get('imageUrl', selected_item.get('image_url', '')) if isinstance(selected_item, dict) else '')
+                    })
         
-        # If not enough items, add any remaining suitable items
-        while len(outfit_items) < 3 and len(outfit_items) < len(suitable_items):
-            for item in suitable_items:
-                item_id = getattr(item, 'id', item.get('id', 'unknown') if isinstance(item, dict) else 'unknown')
-                already_added = any(i.get('id') == item_id for i in outfit_items)
-                if not already_added:
-                    if hasattr(item, 'dict'):
-                        outfit_items.append(item.dict())
-                    elif isinstance(item, dict):
-                        outfit_items.append(item)
-                    break
-        
-        logger.info(f"✅ Selected {len(outfit_items)} items from user's actual wardrobe")
+        logger.info(f"✅ Selected {len(outfit_items)} items from user's actual wardrobe with diversity scoring")
         
         existing_result = {
             "id": f"outfit_{int(time.time())}",
