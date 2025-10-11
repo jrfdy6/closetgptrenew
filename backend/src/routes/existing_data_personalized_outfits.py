@@ -221,7 +221,6 @@ async def generate_personalized_outfit_from_existing_data(
                     weather=weather_obj,
                     wardrobe=wardrobe_items,
                     user_profile=user_profile_obj,
-                    outfit_history=[],
                     base_item_id=req.baseItemId
                 )
                 
