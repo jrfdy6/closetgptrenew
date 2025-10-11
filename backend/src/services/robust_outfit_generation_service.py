@@ -2066,7 +2066,78 @@ class RobustOutfitGenerationService:
         penalty = 0.0
         
         # ═══════════════════════════════════════════════════════════════════════
-        # PRIMARY TAG-BASED SCORING: Check occasion/style tags FIRST
+        # UNIVERSAL FORMALITY VALIDATOR: Check item type appropriateness for ALL occasions
+        # This runs FIRST before any tag-based scoring
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        item_type_lower = str(getattr(item, 'type', '')).lower()
+        if hasattr(getattr(item, 'type', None), 'value'):
+            item_type_lower = getattr(item, 'type').value.lower()
+        
+        # Define formality rules for each occasion type
+        if occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
+            # Formal occasions: Block casual types
+            inappropriate_types = ['t-shirt', 'tshirt', 't shirt', 'tank', 'tank top', 'hoodie', 'sweatshirt', 
+                                 'sweatpants', 'athletic shorts', 'sandals', 'flip-flops', 'slides', 'sneakers']
+            if any(casual in item_type_lower or casual in item_name for casual in inappropriate_types):
+                penalty -= 3.0 * occasion_multiplier
+                logger.info(f"  🚫🚫🚫 FORMALITY: Casual type '{item_type_lower}' for {occasion} - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
+        
+        elif occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
+            # Athletic occasions: Block formal types
+            inappropriate_types = ['suit', 'tuxedo', 'dress shirt', 'dress pants', 'blazer', 'oxford shoes', 'loafers', 'heels']
+            if any(formal in item_type_lower or formal in item_name for formal in inappropriate_types):
+                penalty -= 2.0 * occasion_multiplier
+                logger.info(f"  🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} - BLOCKED: {-2.0 * occasion_multiplier:.2f}")
+        
+        elif occasion_lower in ['party', 'dinner', 'date']:
+            # Social occasions: Block extremely casual or athletic types
+            inappropriate_types = ['sweatpants', 'athletic shorts', 'gym', 'workout', 'tank top', 'flip-flops', 'slides']
+            if any(casual in item_type_lower or casual in item_name for casual in inappropriate_types):
+                penalty -= 1.5 * occasion_multiplier
+                logger.info(f"  🚫 FORMALITY: Too casual type '{item_type_lower}' for {occasion}: {-1.5 * occasion_multiplier:.2f}")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # UNIVERSAL COLOR APPROPRIATENESS: Check color suitability for ALL occasions
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        item_color = self.safe_get_item_attr(item, 'color', '').lower()
+        category = self._get_item_category(item)
+        
+        # Business/Formal: Conservative colors only
+        if occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
+            if category == 'shoes':
+                # Only neutral/conservative shoe colors for formal
+                inappropriate_colors = ['red', 'bright red', 'neon', 'pink', 'lime', 'orange', 'yellow', 'purple', 'bright blue']
+                if any(color in item_color for color in inappropriate_colors):
+                    penalty -= 0.8
+                    logger.info(f"  ⚠️ COLOR: Bold shoe color '{item_color}' for {occasion}: {-0.8:.2f}")
+            elif category == 'tops':
+                # Avoid overly bright/neon tops for formal
+                inappropriate_colors = ['neon', 'lime', 'hot pink', 'bright orange', 'electric blue']
+                if any(color in item_color for color in inappropriate_colors):
+                    penalty -= 0.5
+                    logger.info(f"  ⚠️ COLOR: Overly bright top color '{item_color}' for {occasion}: {-0.5:.2f}")
+        
+        # Athletic: Penalize overly formal/muted colors
+        elif occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
+            # Athletic usually benefits from bright/energetic colors, penalize overly formal
+            if category in ['tops', 'bottoms']:
+                overly_formal_colors = ['charcoal', 'navy pinstripe', 'suit gray']
+                if any(color in item_color for color in overly_formal_colors):
+                    penalty -= 0.3
+                    logger.info(f"  ⚠️ COLOR: Overly formal color '{item_color}' for {occasion}: {-0.3:.2f}")
+        
+        # Casual: Very permissive, but avoid formal suit colors
+        elif occasion_lower in ['casual', 'brunch', 'weekend']:
+            if category in ['bottoms', 'tops']:
+                overly_formal_colors = ['tuxedo black', 'suit gray']
+                if any(color in item_color for color in overly_formal_colors):
+                    penalty -= 0.2
+                    logger.info(f"  ⚠️ COLOR: Too formal color '{item_color}' for {occasion}: {-0.2:.2f}")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # PRIMARY TAG-BASED SCORING: Check occasion/style tags AFTER formality validation
         # This takes precedence over name-based keyword matching
         # ═══════════════════════════════════════════════════════════════════════
         
@@ -2086,22 +2157,8 @@ class RobustOutfitGenerationService:
                 logger.info(f"  🚫 REDUCED: Formal occasion tag for Athletic request: {-1.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
-            # FORMALITY TYPE CHECK: Verify item type is appropriate for business/formal
-            item_type_lower = str(getattr(item, 'type', '')).lower()
-            if hasattr(getattr(item, 'type', None), 'value'):
-                item_type_lower = getattr(item, 'type').value.lower()
-            
-            # Casual types that should NEVER appear in business/formal (hard block)
-            casual_types = ['t-shirt', 'tshirt', 't shirt', 'tank', 'tank top', 'hoodie', 'sweatshirt', 
-                          'sweatpants', 'athletic shorts', 'sandals', 'flip-flops', 'slides', 'sneakers']
-            
-            is_casual_type = any(casual in item_type_lower or casual in item_name for casual in casual_types)
-            
-            if is_casual_type:
-                # CRITICAL: Casual type for formal occasion - MASSIVE penalty
-                penalty -= 3.0 * occasion_multiplier  # Eliminate from selection
-                logger.info(f"  🚫🚫🚫 CRITICAL: Casual type '{item_type_lower}' for Business/Formal - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
-            elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
+            # Tag-based scoring (formality check already done above)
+            if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
                 logger.info(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
@@ -2137,17 +2194,7 @@ class RobustOutfitGenerationService:
             # Boost business items
             elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
                 penalty += 0.5 * occasion_multiplier
-            
-            # COLOR APPROPRIATENESS: Penalize overly bold/casual colors for business
-            item_color = self.safe_get_item_attr(item, 'color', '').lower()
-            category = self._get_item_category(item)
-            
-            # Bold/casual colors inappropriate for business shoes
-            if category == 'shoes':
-                bold_shoe_colors = ['red', 'bright red', 'neon', 'pink', 'lime', 'orange', 'yellow', 'purple']
-                if any(color in item_color for color in bold_shoe_colors):
-                    penalty -= 0.8  # Significant penalty for bold shoe colors in business
-                    logger.info(f"  ⚠️ COLOR: Bold shoe color '{item_color}' for Business: {-0.8:.2f}")
+            # Note: Color appropriateness check is now handled universally above
         
         return penalty
     
