@@ -1,10 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// DEPLOYMENT VERSION: 2025-10-11-v3
+// Force this route to be treated as a dynamic server route
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
+
+// Handle CORS preflight requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 DEBUG: Generate outfit API route called - CONNECTING TO BACKEND');
+    console.log('🔍 DEBUG v3: Generate outfit API route called - CONNECTING TO BACKEND');
     
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
