@@ -313,7 +313,8 @@ async def generate_outfit(
                     'has_shoes': has_shoes
                 }
         
-        return {
+        # Build response
+        response = {
             "success": True,
             "id": result.id if hasattr(result, 'id') else f"outfit_{int(time.time())}",
             "name": result.name if hasattr(result, 'name') else f"{request.get('style', 'Unknown')} {request.get('occasion', 'Outfit')}",
@@ -332,6 +333,48 @@ async def generate_outfit(
             "timestamp": time.time(),
             "user_id": current_user_id
         }
+        
+        # 🔥 CRITICAL FIX: Save outfit to Firestore for diversity tracking
+        try:
+            from src.config.firebase import db
+            
+            # Convert ClothingItem objects to dicts for Firestore storage
+            items_for_firestore = []
+            for item in response['items']:
+                if hasattr(item, 'dict'):
+                    items_for_firestore.append(item.dict())
+                elif isinstance(item, dict):
+                    items_for_firestore.append(item)
+                else:
+                    items_for_firestore.append({
+                        'id': getattr(item, 'id', 'unknown'),
+                        'name': getattr(item, 'name', 'unknown'),
+                        'type': getattr(item, 'type', 'unknown')
+                    })
+            
+            outfit_for_firestore = {
+                'id': response['id'],
+                'name': response['name'],
+                'items': items_for_firestore,
+                'style': response['style'],
+                'occasion': response['occasion'],
+                'mood': response['mood'],
+                'user_id': current_user_id,
+                'createdAt': int(time.time() * 1000),  # Firestore timestamp in milliseconds
+                'generation_mode': generation_mode,
+                'generation_strategy': response['generation_strategy'],
+                'confidence_score': response['confidence_score'],
+                'metadata': result_metadata
+            }
+            
+            db.collection('outfits').document(response['id']).set(outfit_for_firestore)
+            logger.info(f"✅ Saved outfit {response['id']} to Firestore for diversity tracking")
+            
+        except Exception as save_error:
+            # Don't fail the request if save fails, just log it
+            logger.error(f"⚠️ Failed to save outfit to Firestore: {save_error}")
+        
+        return response
         
     except HTTPException:
         raise

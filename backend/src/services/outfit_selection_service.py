@@ -216,7 +216,7 @@ class OutfitSelectionService:
                         selected.append(shoes)
                         selected_ids.add(shoes.id)
                         logger.info(f"  ✅ Essential footwear: {shoes.name}")
-                        break
+                break
         
         # Need at least one top layer (Inner, Mid, or Outer)
         has_top = any(
