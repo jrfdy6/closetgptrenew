@@ -377,13 +377,54 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
   
   console.log('🔍 DEBUG: Making API call to MAIN HYBRID endpoint with converted data', `/api/outfits/generate`);
   
-  return await client.request({
-    method: 'POST',
-        endpoint: '/api/outfits/generate',
-    data: requestData,
-    retryable: true,
-    authToken: authToken
-  });
+  try {
+    return await client.request({
+      method: 'POST',
+      endpoint: '/api/outfits/generate',
+      data: requestData,
+      retryable: true,
+      authToken: authToken
+    });
+  } catch (error: any) {
+    // 🔥 FALLBACK: If Vercel proxy fails with 405, call Railway backend directly
+    if (error?.status === 405 || error?.message?.includes('405') || error?.message?.includes('Method Not Allowed')) {
+      console.warn('⚠️ Vercel proxy returned 405, falling back to direct Railway backend call');
+      
+      const railwayBackendUrl = 'https://closetgptrenew-backend-production.up.railway.app/api/outfits/generate';
+      
+      try {
+        const directResponse = await fetch(railwayBackendUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
+        
+        if (!directResponse.ok) {
+          throw new Error(`Direct backend call failed: ${directResponse.status} ${directResponse.statusText}`);
+        }
+        
+        const data = await directResponse.json();
+        console.log('✅ Direct Railway backend call succeeded');
+        
+        return {
+          data,
+          status: directResponse.status,
+          headers: {},
+          timestamp: Date.now(),
+          requestId: 'direct-fallback-' + Date.now()
+        };
+      } catch (directError) {
+        console.error('❌ Direct backend call also failed:', directError);
+        throw directError;
+      }
+    }
+    
+    // Re-throw if it's not a 405 error
+    throw error;
+  }
 }
 
 /**
