@@ -2086,7 +2086,22 @@ class RobustOutfitGenerationService:
                 logger.info(f"  🚫 REDUCED: Formal occasion tag for Athletic request: {-1.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
-            if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
+            # FORMALITY TYPE CHECK: Verify item type is appropriate for business/formal
+            item_type_lower = str(getattr(item, 'type', '')).lower()
+            if hasattr(getattr(item, 'type', None), 'value'):
+                item_type_lower = getattr(item, 'type').value.lower()
+            
+            # Casual types that should NEVER appear in business/formal (hard block)
+            casual_types = ['t-shirt', 'tshirt', 't shirt', 'tank', 'tank top', 'hoodie', 'sweatshirt', 
+                          'sweatpants', 'athletic shorts', 'sandals', 'flip-flops', 'slides', 'sneakers']
+            
+            is_casual_type = any(casual in item_type_lower or casual in item_name for casual in casual_types)
+            
+            if is_casual_type:
+                # CRITICAL: Casual type for formal occasion - MASSIVE penalty
+                penalty -= 3.0 * occasion_multiplier  # Eliminate from selection
+                logger.info(f"  🚫🚫🚫 CRITICAL: Casual type '{item_type_lower}' for Business/Formal - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
+            elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
                 logger.info(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
@@ -2122,6 +2137,17 @@ class RobustOutfitGenerationService:
             # Boost business items
             elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
                 penalty += 0.5 * occasion_multiplier
+            
+            # COLOR APPROPRIATENESS: Penalize overly bold/casual colors for business
+            item_color = self.safe_get_item_attr(item, 'color', '').lower()
+            category = self._get_item_category(item)
+            
+            # Bold/casual colors inappropriate for business shoes
+            if category == 'shoes':
+                bold_shoe_colors = ['red', 'bright red', 'neon', 'pink', 'lime', 'orange', 'yellow', 'purple']
+                if any(color in item_color for color in bold_shoe_colors):
+                    penalty -= 0.8  # Significant penalty for bold shoe colors in business
+                    logger.info(f"  ⚠️ COLOR: Bold shoe color '{item_color}' for Business: {-0.8:.2f}")
         
         return penalty
     
