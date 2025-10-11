@@ -179,36 +179,79 @@ function convertWeatherData(weather: FrontendWeatherData): any {
 }
 
 /**
- * Normalize clothing type to enum-compatible format
+ * Normalize clothing type to backend enum format (UPPERCASE_WITH_UNDERSCORES)
  */
 function normalizeClothingType(type: string): string {
+  // Backend expects: T_SHIRT, SHIRT, PANTS, SHOES, etc.
   const typeMap: Record<string, string> = {
-    't-shirt': 't-shirt',
-    'tshirt': 't-shirt',
-    'shirt': 'shirt',
-    'blouse': 'blouse',
-    'sweater': 'sweater',
-    'jacket': 'jacket',
-    'blazer': 'blazer',
-    'pants': 'pants',
-    'jeans': 'jeans',
-    'shorts': 'shorts',
-    'skirt': 'skirt',
-    'dress': 'dress',
-    'shoes': 'shoes',
-    'sneakers': 'sneakers',
-    'boots': 'boots',
-    'sandals': 'sandals',
-    'heels': 'heels',
-    'accessory': 'accessory',
-    'belt': 'belt',
-    'hat': 'hat',
-    'scarf': 'scarf',
-    'other': 'other'
+    // Tops
+    't-shirt': 'T_SHIRT',
+    'tshirt': 'T_SHIRT',
+    't shirt': 'T_SHIRT',
+    'shirt': 'SHIRT',
+    'blouse': 'BLOUSE',
+    'sweater': 'SWEATER',
+    'tank': 'TANK_TOP',
+    'tank top': 'TANK_TOP',
+    'tank_top': 'TANK_TOP',
+    // Outerwear
+    'jacket': 'JACKET',
+    'blazer': 'BLAZER',
+    'coat': 'COAT',
+    'vest': 'VEST',
+    // Bottoms
+    'pants': 'PANTS',
+    'jeans': 'JEANS',
+    'shorts': 'SHORTS',
+    'skirt': 'SKIRT',
+    'trousers': 'PANTS',
+    // Dresses
+    'dress': 'DRESS',
+    'jumpsuit': 'JUMPSUIT',
+    // Shoes
+    'shoes': 'SHOES',
+    'sneakers': 'SNEAKERS',
+    'boots': 'BOOTS',
+    'sandals': 'SANDALS',
+    'heels': 'HEELS',
+    'loafers': 'LOAFERS',
+    'oxfords': 'OXFORDS',
+    // Accessories
+    'accessory': 'ACCESSORY',
+    'belt': 'BELT',
+    'hat': 'HAT',
+    'scarf': 'SCARF',
+    'tie': 'TIE',
+    'bag': 'BAG',
+    'jewelry': 'JEWELRY',
+    'watch': 'WATCH',
+    'sunglasses': 'SUNGLASSES',
+    // Fallback
+    'other': 'OTHER'
   };
   
-  const normalized = type.toLowerCase().replace(/\s+/g, '_');
-  return typeMap[normalized] || 'other';
+  // Normalize input: lowercase, replace spaces/hyphens with underscores
+  const normalized = type.toLowerCase().trim().replace(/[\s-]+/g, '_');
+  
+  // Try exact match first
+  if (typeMap[normalized]) {
+    return typeMap[normalized];
+  }
+  
+  // Try without underscores (e.g., "t_shirt" → "tshirt")
+  const noUnderscore = normalized.replace(/_/g, '');
+  if (typeMap[noUnderscore]) {
+    return typeMap[noUnderscore];
+  }
+  
+  // Try with hyphen instead (e.g., "t shirt" → "t-shirt")
+  const withHyphen = normalized.replace(/_/g, '-');
+  if (typeMap[withHyphen]) {
+    return typeMap[withHyphen];
+  }
+  
+  // Fallback: return as uppercase with underscores
+  return 'OTHER';
 }
 
 /**
