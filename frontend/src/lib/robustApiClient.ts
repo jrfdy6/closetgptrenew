@@ -375,12 +375,13 @@ export class RobustApiClient {
 export async function generateOutfit(requestData: any, authToken?: string): Promise<any> {
   const client = RobustApiClient.getInstance();
   
-  console.log('🔍 DEBUG: Making API call to MAIN HYBRID endpoint with converted data', `/outfits/generate`);
+  console.log('🔍 DEBUG: Making API call to existing-data endpoint with converted data');
   
   try {
+    // Use the working endpoint that actually exists on the backend
     return await client.request({
       method: 'POST',
-      endpoint: '/outfits/generate',  // Client baseUrl already includes '/api'
+      endpoint: '/outfits-existing-data/generate-personalized',  // Client baseUrl already includes '/api'
       data: requestData,
       retryable: true,
       authToken: authToken
@@ -390,7 +391,7 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
     if (error?.status === 405 || error?.message?.includes('405') || error?.message?.includes('Method Not Allowed')) {
       console.warn('⚠️ Vercel proxy returned 405, falling back to direct Railway backend call');
       
-      const railwayBackendUrl = 'https://closetgptrenew-backend-production.up.railway.app/api/outfits/generate';
+      const railwayBackendUrl = 'https://closetgptrenew-backend-production.up.railway.app/api/outfits-existing-data/generate-personalized';
       
       try {
         const directResponse = await fetch(railwayBackendUrl, {
