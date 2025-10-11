@@ -30,18 +30,19 @@ def mood_matches(requested_mood: Optional[str], item_moods: List[str]) -> bool:
     if not item_moods or len(item_moods) == 0:
         return True  # treat missing mood as universal
     rm = requested_mood.lower()
-    # small mood alias table
+    # Mood compatibility - Expanded for better matching
     MOOD_COMPAT: Dict[str, List[str]] = {
-        'bold': ['bold', 'confident', 'statement', 'vibrant', 'expressive'],
-        'confident': ['confident', 'bold', 'statement', 'vibrant', 'expressive'],
-        'relaxed': ['relaxed', 'calm', 'laidback', 'casual', 'neutral'],
-        'calm': ['calm', 'relaxed', 'peaceful', 'serene', 'neutral'],
-        'professional': ['professional', 'polished', 'sophisticated', 'elegant', 'refined'],
-        'polished': ['polished', 'professional', 'sophisticated', 'elegant', 'refined'],
-        'romantic': ['romantic', 'soft', 'elegant', 'feminine', 'delicate'],
-        'soft': ['soft', 'romantic', 'gentle', 'delicate', 'feminine'],
-        'casual': ['casual', 'relaxed', 'comfortable', 'easy', 'neutral'],
-        'neutral': ['neutral', 'casual', 'relaxed', 'calm', 'balanced'],
+        'bold': ['bold', 'confident', 'statement', 'vibrant', 'expressive', 'strong', 'striking', 'eye-catching'],
+        'confident': ['confident', 'bold', 'statement', 'vibrant', 'expressive', 'strong', 'assertive'],
+        'relaxed': ['relaxed', 'calm', 'laidback', 'casual', 'neutral', 'comfortable', 'easy'],
+        'calm': ['calm', 'relaxed', 'peaceful', 'serene', 'neutral', 'tranquil'],
+        'professional': ['professional', 'polished', 'sophisticated', 'elegant', 'refined', 'business-like'],
+        'polished': ['polished', 'professional', 'sophisticated', 'elegant', 'refined', 'sleek'],
+        'romantic': ['romantic', 'soft', 'elegant', 'feminine', 'delicate', 'graceful'],
+        'soft': ['soft', 'romantic', 'gentle', 'delicate', 'feminine', 'subtle'],
+        'casual': ['casual', 'relaxed', 'comfortable', 'easy', 'neutral', 'laid-back'],
+        'neutral': ['neutral', 'casual', 'relaxed', 'calm', 'balanced', 'versatile'],
+        'comfortable': ['comfortable', 'relaxed', 'casual', 'easy', 'cozy'],
         # extend as needed
     }
     if rm in [m.lower() for m in item_moods]:
@@ -56,7 +57,7 @@ def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str
     logger = logging.getLogger(__name__)
     
     # DEPLOYMENT CHECK: This log confirms we're running the latest code
-    logger.warning(f"🚀 OCCASION_MATCHES CALLED - VERSION: 2025-10-10-v3 - requested='{requested_occasion}', items={item_occasions}")
+    logger.warning(f"🚀 OCCASION_MATCHES CALLED - VERSION: 2025-10-11-EXPANDED - requested='{requested_occasion}', items={item_occasions}")
     
     if not requested_occasion:
         return True
@@ -72,16 +73,31 @@ def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str
         logger.info(f"✅ SEMANTIC: Direct match found: '{ro}' in {normalized_item_occasions}")
         return True
     
-    # Fallback compatibility check
+    # Fallback compatibility check - Expanded for better matching
     FALLBACKS: Dict[str, List[str]] = {
-        'athletic': ['casual', 'everyday', 'sport', 'athletic', 'workout'],
+        'athletic': ['casual', 'everyday', 'sport', 'athletic', 'workout', 'sports'],
         'casual': ['everyday', 'casual', 'relaxed', 'weekend'],
-        'business': ['business', 'business_casual', 'formal', 'smart_casual'],
-        'formal': ['formal', 'business', 'elegant', 'sophisticated'],
+        'business': [
+            # Core business occasions
+            'business', 'business_casual', 'formal', 'work', 'office', 'professional',
+            # Smart casual is business-appropriate
+            'smart_casual',
+            # Upscale social occasions that work with business attire
+            'brunch', 'dinner', 'date',
+            # Business events
+            'conference', 'interview', 'meeting',
+            # Semi-formal is business-appropriate
+            'semi-formal', 'semi_formal'
+        ],
+        'formal': ['formal', 'business', 'elegant', 'sophisticated', 'wedding', 'gala', 'black_tie'],
         'everyday': ['everyday', 'casual', 'relaxed', 'comfortable'],
         'weekend': ['weekend', 'casual', 'relaxed', 'everyday'],
-        'work': ['work', 'business', 'business_casual', 'professional'],
-        'professional': ['professional', 'business', 'business_casual', 'work'],
+        'work': ['work', 'business', 'business_casual', 'professional', 'office'],
+        'professional': ['professional', 'business', 'business_casual', 'work', 'office'],
+        # New: Smart Casual
+        'smart_casual': ['smart_casual', 'business_casual', 'business', 'brunch', 'dinner', 'date'],
+        # New: Semi-formal
+        'semi_formal': ['semi_formal', 'semi-formal', 'formal', 'business', 'wedding'],
     }
     fallback = set(FALLBACKS.get(ro, []))
     logger.info(f"🔍 SEMANTIC: fallback set for '{ro}' = {fallback}")

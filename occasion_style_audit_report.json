@@ -1,0 +1,68 @@
+{
+  "summary": {
+    "total_items": 158,
+    "missing_occasions": 3,
+    "missing_styles": 3,
+    "missing_both": 3,
+    "has_both": 155,
+    "empty_occasion_array": 3,
+    "empty_style_array": 3
+  },
+  "by_type": {
+    "sweater": {
+      "total": 9,
+      "missing_occasions": 0,
+      "missing_styles": 0,
+      "missing_both": 0
+    },
+    "shoes": {
+      "total": 47,
+      "missing_occasions": 0,
+      "missing_styles": 0,
+      "missing_both": 0
+    },
+    "pants": {
+      "total": 10,
+      "missing_occasions": 0,
+      "missing_styles": 0,
+      "missing_both": 0
+    },
+    "shirt": {
+      "total": 57,
+      "missing_occasions": 2,
+      "missing_styles": 2,
+      "missing_both": 2
+    },
+    "shorts": {
+      "total": 8,
+      "missing_occasions": 0,
+      "missing_styles": 0,
+      "missing_both": 0
+    },
+    "accessory": {
+      "total": 13,
+      "missing_occasions": 0,
+      "missing_styles": 0,
+      "missing_both": 0
+    },
+    "jacket": {
+      "total": 12,
+      "missing_occasions": 0,
+      "missing_styles": 0,
+      "missing_both": 0
+    },
+    "object": {
+      "total": 1,
+      "missing_occasions": 1,
+      "missing_styles": 1,
+      "missing_both": 1
+    },
+    "other": {
+      "total": 1,
+      "missing_occasions": 0,
+      "missing_styles": 0,
+      "missing_both": 0
+    }
+  },
+  "business_suitable_items": []
+}

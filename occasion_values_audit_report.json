@@ -1,0 +1,209 @@
+{
+  "summary": {
+    "total_items": 5,
+    "total_business_items": 50,
+    "correctly_classified": 45,
+    "misclassified": 5
+  },
+  "occasion_distribution": {
+    "beach": 58,
+    "vacation": 58,
+    "casual": 123,
+    "brunch": 87,
+    "dinner": 87,
+    "business casual": 34,
+    "everyday": 12,
+    "formal": 43,
+    "wedding": 37,
+    "evening": 3,
+    "outdoor": 4,
+    "travel": 1,
+    "business": 43,
+    "interview": 16,
+    "funeral": 34,
+    "conference": 16,
+    "night out": 1,
+    "sports": 7,
+    "athletic": 1,
+    "sport": 10,
+    "date": 2,
+    "party": 2,
+    "smart casual": 11,
+    "office": 5,
+    "semi-formal": 2,
+    "urban": 3,
+    "streetwear": 1,
+    "sporty": 1,
+    "loungewear": 1,
+    "indoor": 1
+  },
+  "style_distribution": {
+    "casual": 102,
+    "short sleeve": 1,
+    "ribbed": 1,
+    "textured": 1,
+    "professional": 20,
+    "preppy": 56,
+    "business casual": 71,
+    "semi-formal": 3,
+    "classic": 82,
+    "smart casual": 17,
+    "vintage": 5,
+    "formal": 47,
+    "elegant": 6,
+    "urban": 19,
+    "techwear": 15,
+    "streetwear": 28,
+    "athleisure": 32,
+    "sporty": 36,
+    "utility": 1,
+    "outdoor": 1,
+    "business": 24,
+    "minimalist": 40,
+    "old money": 19,
+    "edgy": 16,
+    "motorcycle": 1,
+    "trendy": 18,
+    "y2k": 18,
+    "athletic": 2,
+    "modern": 32,
+    "sleek": 8,
+    "perforated": 6,
+    "dark academia": 20,
+    "grunge": 15,
+    "androgynous": 7,
+    "casual cool": 13,
+    "artistic": 6,
+    "contemporary": 1,
+    "biker": 2,
+    "leather": 2,
+    "coastal chic": 2,
+    "summer": 1,
+    "cozy": 2,
+    "retro": 1,
+    "bold": 1,
+    "geometric": 1,
+    "warm": 2,
+    "perforated design": 1,
+    "romantic": 2,
+    "avant garde": 2,
+    "creative": 1,
+    "avant-garde": 1,
+    "artsy": 1,
+    "boho": 2,
+    "chic": 1,
+    "comfort": 1
+  },
+  "misclassified_items": [
+    {
+      "id": "4dx75ic040pmby5ytwk",
+      "name": "A loose, long, solid, textured button up",
+      "type": "shirt",
+      "category": "dress shirt",
+      "occasions": [
+        "Beach",
+        "Vacation",
+        "Casual",
+        "Brunch",
+        "Dinner"
+      ],
+      "styles": [
+        "Classic",
+        "Business Casual",
+        "Dark Academia",
+        "Casual",
+        "Old Money",
+        "Formal"
+      ],
+      "issue": "Only casual occasions, missing business tags"
+    },
+    {
+      "id": "4swacektsimby63ua7",
+      "name": "A loose, short, floral, smooth short sleeve button up by J.Crew",
+      "type": "shirt",
+      "category": "dress shirt",
+      "occasions": [
+        "Date",
+        "Beach",
+        "Vacation",
+        "Casual",
+        "Brunch",
+        "Dinner",
+        "Party"
+      ],
+      "styles": [
+        "Androgynous",
+        "Modern",
+        "Minimalist",
+        "Trendy",
+        "Casual",
+        "Y2K"
+      ],
+      "issue": "Only casual occasions, missing business tags"
+    },
+    {
+      "id": "k3mfr7199wkmby4ytsj",
+      "name": "A loose, short, striped, smooth button up shirt",
+      "type": "shirt",
+      "category": "dress shirt",
+      "occasions": [
+        "Brunch",
+        "Dinner",
+        "Casual"
+      ],
+      "styles": [
+        "Classic",
+        "Preppy",
+        "Business Casual",
+        "Trendy",
+        "Casual",
+        "Y2K"
+      ],
+      "issue": "Only casual occasions, missing business tags"
+    },
+    {
+      "id": "u3ob4svptimby5lv8i",
+      "name": "A loose, long, solid, smooth button up shirt by GAP",
+      "type": "shirt",
+      "category": "dress shirt",
+      "occasions": [
+        "Beach",
+        "Vacation",
+        "Casual",
+        "Brunch",
+        "Dinner"
+      ],
+      "styles": [
+        "Classic",
+        "Preppy",
+        "Business Casual",
+        "Minimalist",
+        "Casual",
+        "Casual Cool"
+      ],
+      "issue": "Only casual occasions, missing business tags"
+    },
+    {
+      "id": "xnvokgy1y5bmby5mt89",
+      "name": "A loose, short, polka dots, smooth short sleeve button up by D&d",
+      "type": "shirt",
+      "category": "dress shirt",
+      "occasions": [
+        "Beach",
+        "Vacation",
+        "Casual",
+        "Brunch",
+        "Dinner"
+      ],
+      "styles": [
+        "Classic",
+        "Preppy",
+        "Business Casual",
+        "Minimalist",
+        "Casual",
+        "Casual Cool"
+      ],
+      "issue": "Only casual occasions, missing business tags"
+    }
+  ]
+}
