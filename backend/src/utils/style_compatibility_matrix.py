@@ -7,127 +7,212 @@ from typing import Dict, List, Optional
 
 # Canonical Style Compatibility Matrix
 STYLE_COMPATIBILITY: Dict[str, List[str]] = {
-    # Core Professional Styles
-    "classic": [
-        "classic", "casual", "smart_casual", "business_casual", 
-        "traditional", "preppy", "minimalist", "balanced",
-        # Add bidirectional compatibility
-        "formal", "elegant", "sophisticated", "vintage", "retro", 
-        "timeless", "old_money", "modern", "business"
+    "academic": ["academic", "classic", "dark_academia", "intellectual", "traditional"],
+    "active": ["active", "athleisure", "athletic", "sporty", "workout"],
+    "alternative": ["alternative", "edgy", "grunge", "punk", "streetwear"],
+    "androgynous": [
+        "androgynous", "balanced", "classic", "gender_neutral", "minimalist",
+        "modern", "unisex"
     ],
-    "business": ["business", "business_casual", "business_casual", "professional", "smart_casual", "smart_casual", "classic", "formal"],
-    "business_casual": ["business_casual", "business_casual", "business", "smart_casual", "smart_casual", "classic", "casual", "preppy"],
-    "formal": ["formal", "elegant", "semi-formal", "business", "classic"],
-    "professional": ["professional", "business", "business_casual", "business_casual", "smart_casual", "smart_casual", "classic", "formal"],
-    "smart_casual": ["smart_casual", "smart_casual", "business_casual", "business_casual", "business", "professional", "classic", "casual"],
-    
-    # Casual & Everyday Styles
-    "casual": ["casual", "classic", "streetwear", "athleisure", "relaxed", "everyday", "casual_cool", "business_casual"],
-    "casual_cool": ["casual_cool", "casual", "streetwear", "minimalist", "modern"],
-    "relaxed": ["relaxed", "casual", "everyday", "coastal_grandma", "coastal_chic"],
-    "everyday": ["everyday", "casual", "relaxed", "balanced", "minimalist"],
-    
-    # Athletic & Active Styles
-    "athletic": ["athletic", "sporty", "active", "workout", "athleisure", "techwear"],
-    "athleisure": ["athleisure", "athletic", "sporty", "casual", "techwear"],
-    "sporty": ["sporty", "athletic", "athleisure", "active", "workout"],
-    
-    # Street & Urban Styles
-    "streetwear": ["streetwear", "urban", "edgy", "trendy", "casual", "grunge"],
-    "urban": ["urban", "streetwear", "edgy", "modern", "techwear"],
-    "edgy": ["edgy", "streetwear", "grunge", "urban", "avant_garde"],
-    "grunge": ["grunge", "edgy", "streetwear", "casual"],
-    
-    # Vintage & Retro Styles
-    "vintage": ["vintage", "retro", "classic", "timeless", "old_money", "dark_academia"],
-    "retro": ["retro", "vintage", "y2k", "classic"],
-    "timeless": ["timeless", "classic", "vintage", "old_money", "minimalist"],
-    
-    # Modern & Contemporary Styles
-    "modern": ["modern", "contemporary", "trendy", "fashion-forward", "minimalist", "casual_cool"],
-    "contemporary": ["contemporary", "modern", "minimalist", "balanced"],
-    "trendy": ["trendy", "modern", "streetwear", "y2k"],
-    "fashion_forward": ["fashion_forward", "modern", "avant_garde", "artsy"],
-    
-    # Minimalist & Clean Styles
-    "minimalist": ["minimalist", "simple", "clean", "basic", "classic", "modern", "balanced"],
-    "simple": ["simple", "minimalist", "clean", "basic"],
-    "clean": ["clean", "minimalist", "simple", "modern"],
-    "basic": ["basic", "minimalist", "simple", "casual"],
-    
-    # Bohemian & Artistic Styles
-    "bohemian": ["bohemian", "boho", "eclectic", "artistic", "romantic", "cottagecore"],
-    "boho": ["boho", "bohemian", "eclectic", "romantic", "coastal_grandma"],
-    "eclectic": ["eclectic", "bohemian", "boho", "artsy", "romantic"],
-    "artistic": ["artistic", "eclectic", "artsy", "avant_garde", "bohemian"],
-    "artsy": ["artsy", "artistic", "avant_garde", "eclectic", "creative"],
-    
-    # Preppy & Traditional Styles
-    "preppy": ["preppy", "classic", "traditional", "polished", "old_money", "business_casual"],
-    "traditional": ["traditional", "classic", "preppy", "old_money", "vintage"],
-    "polished": ["polished", "preppy", "classic", "formal", "business"],
-    
-    # Specialized Styles
-    "old_money": ["old_money", "preppy", "classic", "traditional", "polished", "vintage"],
-    "dark_academia": ["dark_academia", "vintage", "classic", "academic", "traditional"],
-    "y2k": ["y2k", "retro", "trendy", "edgy", "streetwear"],
-    "techwear": ["techwear", "athletic", "athleisure", "urban", "modern"],
-    "androgynous": ["androgynous", "minimalist", "modern", "classic", "balanced"],
-    
-    # Coastal & Relaxed Styles
-    "coastal_grandma": ["coastal_grandma", "coastal_chic", "relaxed", "boho", "romantic"],
-    "coastal_chic": ["coastal_chic", "coastal_grandma", "relaxed", "romantic", "casual"],
-    
-    # Balanced & Versatile Styles
-    "balanced": ["balanced", "classic", "minimalist", "modern", "casual", "business_casual"],
-    
-    # Avant-garde & Experimental Styles
-    "avant_garde": ["avant_garde", "artsy", "edgy", "experimental", "fashion_forward"],
-    "experimental": ["experimental", "avant_garde", "artsy", "creative", "edgy", "modern"],
-    "creative": ["creative", "artsy", "avant_garde", "eclectic"],
-    
-    # Romantic & Feminine Styles
-    "romantic": ["romantic", "bohemian", "boho", "cottagecore", "coastal_grandma", "coastal_chic"],
-    "cottagecore": ["cottagecore", "romantic", "bohemian", "vintage", "coastal_grandma"],
-    
-    # Elegant & Sophisticated Styles
-    "elegant": ["elegant", "formal", "classic", "romantic", "sophisticated"],
-    "sophisticated": ["sophisticated", "elegant", "classic", "formal", "old_money"],
-    
-    # Professional & Work Styles (duplicate removed - see line 14)
-    
-    # Workout & Active Styles
-    "workout": ["workout", "athletic", "sporty", "athleisure", "active"],
-    "active": ["active", "athletic", "sporty", "workout", "athleisure"],
-    
-    # Academic & Intellectual Styles
-    "academic": ["academic", "dark_academia", "classic", "traditional", "intellectual"],
-    "intellectual": ["intellectual", "academic", "classic", "dark_academia", "minimalist"],
-    
-    # Nautical & Maritime Styles
-    "nautical": ["nautical", "preppy", "coastal_chic", "classic", "casual"],
-    "maritime": ["maritime", "nautical", "coastal_chic", "preppy"],
-    
-    # Alternative & Subculture Styles
-    "alternative": ["alternative", "grunge", "edgy", "streetwear", "punk"],
-    "punk": ["punk", "edgy", "grunge", "alternative", "streetwear"],
-    
-    # Seasonal & Themed Styles
-    "summer": ["summer", "casual", "coastal_chic", "romantic", "bohemian"],
-    "winter": ["winter", "classic", "dark_academia", "minimalist", "cozy"],
-    "cozy": ["cozy", "winter", "casual", "relaxed", "cottagecore"],
-    
-    # Gender-neutral & Inclusive Styles
-    "unisex": ["unisex", "minimalist", "classic", "modern", "androgynous"],
-    "gender_neutral": ["gender_neutral", "unisex", "minimalist", "androgynous", "modern"],
-    
-    # Descriptive Terms & Patterns (often misclassified as styles)
-    "sleek": ["sleek", "modern", "minimalist", "classic", "contemporary", "polished"],
-    "bold": ["bold", "edgy", "statement", "modern", "classic", "streetwear", "retro"],
-    "geometric": ["geometric", "modern", "retro", "classic", "minimalist", "contemporary"],
-    "perforated": ["perforated", "modern", "classic", "contemporary", "casual"],
-    "statement": ["statement", "bold", "edgy", "modern", "fashion_forward", "classic"],
-    "textured": ["textured", "casual", "modern", "bohemian", "classic"],
+    "artistic": ["artistic", "artsy", "avant_garde", "bohemian", "eclectic"],
+    "artsy": [
+        "artistic", "artsy", "avant_garde", "creative", "eclectic",
+        "experimental", "fashion_forward"
+    ],
+    "athleisure": [
+        "active", "athleisure", "athletic", "casual", "sporty",
+        "techwear", "workout"
+    ],
+    "athletic": [
+        "active", "athleisure", "athletic", "sporty", "techwear",
+        "workout"
+    ],
+    "avant_garde": [
+        "artistic", "artsy", "avant_garde", "creative", "edgy",
+        "experimental", "fashion_forward"
+    ],
+    "balanced": [
+        "androgynous", "balanced", "business_casual", "casual", "classic",
+        "contemporary", "everyday", "minimalist", "modern"
+    ],
+    "basic": ["basic", "casual", "minimalist", "simple"],
+    "bohemian": [
+        "artistic", "bohemian", "boho", "cottagecore", "eclectic",
+        "romantic", "summer", "textured"
+    ],
+    "boho": ["bohemian", "boho", "coastal_grandma", "eclectic", "romantic"],
+    "bold": [
+        "bold", "classic", "edgy", "modern", "retro",
+        "statement", "streetwear"
+    ],
+    "business": [
+        "business", "business_casual", "classic", "formal", "polished",
+        "professional", "smart_casual"
+    ],
+    "business_casual": [
+        "balanced", "business", "business_casual", "casual", "classic",
+        "preppy", "professional", "smart_casual"
+    ],
+    "casual": [
+        "athleisure", "balanced", "basic", "business_casual", "casual",
+        "casual_cool", "classic", "coastal_chic", "cozy", "everyday",
+        "grunge", "nautical", "perforated", "relaxed", "smart_casual",
+        "streetwear", "summer", "textured"
+    ],
+    "casual_cool": ["casual", "casual_cool", "minimalist", "modern", "streetwear"],
+    "classic": [
+        "academic", "androgynous", "balanced", "bold", "business",
+        "business_casual", "casual", "classic", "dark_academia", "elegant",
+        "formal", "geometric", "intellectual", "minimalist", "modern",
+        "nautical", "old_money", "perforated", "polished", "preppy",
+        "professional", "retro", "sleek", "smart_casual", "sophisticated",
+        "statement", "textured", "timeless", "traditional", "unisex",
+        "vintage", "winter"
+    ],
+    "clean": ["clean", "minimalist", "modern", "simple"],
+    "coastal_chic": [
+        "casual", "coastal_chic", "coastal_grandma", "maritime", "nautical",
+        "relaxed", "romantic", "summer"
+    ],
+    "coastal_grandma": [
+        "boho", "coastal_chic", "coastal_grandma", "cottagecore", "relaxed",
+        "romantic"
+    ],
+    "contemporary": [
+        "balanced", "contemporary", "geometric", "minimalist", "modern",
+        "perforated", "sleek"
+    ],
+    "cottagecore": [
+        "bohemian", "coastal_grandma", "cottagecore", "cozy", "romantic",
+        "vintage"
+    ],
+    "cozy": ["casual", "cottagecore", "cozy", "relaxed", "winter"],
+    "creative": ["artsy", "avant_garde", "creative", "eclectic", "experimental"],
+    "dark_academia": [
+        "academic", "classic", "dark_academia", "intellectual", "traditional",
+        "vintage", "winter"
+    ],
+    "eclectic": [
+        "artistic", "artsy", "bohemian", "boho", "creative",
+        "eclectic", "romantic"
+    ],
+    "edgy": [
+        "alternative", "avant_garde", "bold", "edgy", "experimental",
+        "grunge", "punk", "statement", "streetwear", "urban",
+        "y2k"
+    ],
+    "elegant": ["classic", "elegant", "formal", "romantic", "sophisticated"],
+    "everyday": ["balanced", "casual", "everyday", "minimalist", "relaxed"],
+    "experimental": [
+        "artsy", "avant_garde", "creative", "edgy", "experimental",
+        "modern"
+    ],
+    "fashion-forward": ["fashion-forward", "modern"],
+    "fashion_forward": ["artsy", "avant_garde", "fashion_forward", "modern", "statement"],
+    "formal": [
+        "business", "classic", "elegant", "formal", "polished",
+        "professional", "semi-formal", "sophisticated"
+    ],
+    "gender_neutral": ["androgynous", "gender_neutral", "minimalist", "modern", "unisex"],
+    "geometric": [
+        "classic", "contemporary", "geometric", "minimalist", "modern",
+        "retro"
+    ],
+    "grunge": [
+        "alternative", "casual", "edgy", "grunge", "punk",
+        "streetwear"
+    ],
+    "intellectual": ["academic", "classic", "dark_academia", "intellectual", "minimalist"],
+    "maritime": ["coastal_chic", "maritime", "nautical", "preppy"],
+    "minimalist": [
+        "androgynous", "balanced", "basic", "casual_cool", "classic",
+        "clean", "contemporary", "everyday", "gender_neutral", "geometric",
+        "intellectual", "minimalist", "modern", "simple", "sleek",
+        "timeless", "unisex", "winter"
+    ],
+    "modern": [
+        "androgynous", "balanced", "bold", "casual_cool", "classic",
+        "clean", "contemporary", "experimental", "fashion-forward", "fashion_forward",
+        "gender_neutral", "geometric", "minimalist", "modern", "perforated",
+        "sleek", "statement", "techwear", "textured", "trendy",
+        "unisex", "urban"
+    ],
+    "nautical": [
+        "casual", "classic", "coastal_chic", "maritime", "nautical",
+        "preppy"
+    ],
+    "old_money": [
+        "classic", "old_money", "polished", "preppy", "sophisticated",
+        "timeless", "traditional", "vintage"
+    ],
+    "perforated": ["casual", "classic", "contemporary", "modern", "perforated"],
+    "polished": [
+        "business", "classic", "formal", "old_money", "polished",
+        "preppy", "sleek"
+    ],
+    "preppy": [
+        "business_casual", "classic", "maritime", "nautical", "old_money",
+        "polished", "preppy", "traditional"
+    ],
+    "professional": [
+        "business", "business_casual", "classic", "formal", "professional",
+        "smart_casual"
+    ],
+    "punk": ["alternative", "edgy", "grunge", "punk", "streetwear"],
+    "relaxed": [
+        "casual", "coastal_chic", "coastal_grandma", "cozy", "everyday",
+        "relaxed"
+    ],
+    "retro": [
+        "bold", "classic", "geometric", "retro", "vintage",
+        "y2k"
+    ],
+    "romantic": [
+        "bohemian", "boho", "coastal_chic", "coastal_grandma", "cottagecore",
+        "eclectic", "elegant", "romantic", "summer"
+    ],
+    "semi-formal": ["formal", "semi-formal"],
+    "simple": ["basic", "clean", "minimalist", "simple"],
+    "sleek": [
+        "classic", "contemporary", "minimalist", "modern", "polished",
+        "sleek"
+    ],
+    "smart_casual": [
+        "business", "business_casual", "casual", "classic", "professional",
+        "smart_casual"
+    ],
+    "sophisticated": ["classic", "elegant", "formal", "old_money", "sophisticated"],
+    "sporty": ["active", "athleisure", "athletic", "sporty", "workout"],
+    "statement": [
+        "bold", "classic", "edgy", "fashion_forward", "modern",
+        "statement"
+    ],
+    "streetwear": [
+        "alternative", "bold", "casual", "casual_cool", "edgy",
+        "grunge", "punk", "streetwear", "trendy", "urban",
+        "y2k"
+    ],
+    "summer": ["bohemian", "casual", "coastal_chic", "romantic", "summer"],
+    "techwear": ["athleisure", "athletic", "modern", "techwear", "urban"],
+    "textured": ["bohemian", "casual", "classic", "modern", "textured"],
+    "timeless": ["classic", "minimalist", "old_money", "timeless", "vintage"],
+    "traditional": [
+        "academic", "classic", "dark_academia", "old_money", "preppy",
+        "traditional", "vintage"
+    ],
+    "trendy": ["modern", "streetwear", "trendy", "y2k"],
+    "unisex": [
+        "androgynous", "classic", "gender_neutral", "minimalist", "modern",
+        "unisex"
+    ],
+    "urban": ["edgy", "modern", "streetwear", "techwear", "urban"],
+    "vintage": [
+        "classic", "cottagecore", "dark_academia", "old_money", "retro",
+        "timeless", "traditional", "vintage"
+    ],
+    "winter": ["classic", "cozy", "dark_academia", "minimalist", "winter"],
+    "workout": ["active", "athleisure", "athletic", "sporty", "workout"],
+    "y2k": ["edgy", "retro", "streetwear", "trendy", "y2k"],
 }
 
 
