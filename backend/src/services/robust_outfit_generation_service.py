@@ -3751,9 +3751,9 @@ class RobustOutfitGenerationService:
                         categories_filled[category] = True
                         logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f}, color={item_color})")
                 else:
-                    logger.info(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
+                    logger.debug(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
             else:
-                logger.info(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
+                logger.debug(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
         
         logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
         
@@ -3766,9 +3766,19 @@ class RobustOutfitGenerationService:
             logger.info(f"🚨 EMERGENCY BYPASS: Forced selection of {self.safe_get_item_name(first_item)}")
         
         # Phase 2: Add layering pieces based on target count
-        logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
+        logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces (target: {target_items}, current: {len(selected_items)})")
+        phase2_iterations = 0
+        max_phase2_iterations = 100  # Hard cap to prevent infinite loops
+        
         for item_id, score_data in sorted_items:
+            # SAFEGUARD: Hard cap on iterations
+            phase2_iterations += 1
+            if phase2_iterations > max_phase2_iterations:
+                logger.warning(f"🚨 PHASE 2: Hit iteration limit ({max_phase2_iterations}), stopping")
+                break
+            
             if len(selected_items) >= target_items:
+                logger.debug(f"📦 PHASE 2: Reached target ({target_items} items), stopping")
                 break
             
             item = score_data['item']
@@ -3787,9 +3797,9 @@ class RobustOutfitGenerationService:
                 if not has_outerwear and (temp < 65 or occasion_lower in ['business', 'formal']):
                     selected_items.append(item)
                     categories_filled['outerwear'] = True  # Track that we added outerwear
-                    logger.warning(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    logger.info(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif has_outerwear:
-                    logger.warning(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} - SKIPPED (already have outerwear)")
+                    logger.debug(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} - SKIPPED (already have outerwear)")
             
             elif category == 'tops' and score_data['composite_score'] > 0.6:
                 # ✅ FIX: Check if mid-layer already exists before adding
@@ -3803,9 +3813,9 @@ class RobustOutfitGenerationService:
                 if is_mid_layer and not has_mid_layer and temp < 70:
                     selected_items.append(item)
                     categories_filled['mid'] = True  # Track that we added mid-layer
-                    logger.warning(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    logger.info(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif is_mid_layer and has_mid_layer:
-                    logger.warning(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
+                    logger.debug(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
             
             elif category == 'accessories' and score_data['composite_score'] > 0.7:
                 # Accessories can have multiple items (belts, watches, etc.)
@@ -3814,17 +3824,24 @@ class RobustOutfitGenerationService:
                     accessory_count = sum(1 for i in selected_items if self._get_item_category(i) == 'accessories')
                     if accessory_count < 2:
                         selected_items.append(item)
-                        logger.warning(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                        logger.info(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                     else:
-                        logger.warning(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
+                        logger.debug(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
+        
+        logger.info(f"📦 PHASE 2 COMPLETE: Selected {len(selected_items)} items after {phase2_iterations} iterations")
         
         # Ensure minimum items
         if len(selected_items) < min_items:
             logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
+            filler_count = 0
             for item_id, score_data in sorted_items:
                 if score_data['item'] not in selected_items and len(selected_items) < min_items:
                     selected_items.append(score_data['item'])
-                    logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
+                    filler_count += 1
+                    if filler_count <= 3:  # Only log first 3 fillers
+                        logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
+            if filler_count > 3:
+                logger.info(f"  ➕ Added {filler_count - 3} more filler items (not logged)")
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
         
