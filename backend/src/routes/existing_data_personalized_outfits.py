@@ -142,100 +142,75 @@ async def generate_personalized_outfit_from_existing_data(
         # Generate outfit with proper occasion matching
         logger.info(f"🎯 Generating outfit for {req.occasion} occasion with proper validation")
         
-        # Create outfit items that match the occasion
-        outfit_items = []
+        # 🔥 USE ACTUAL WARDROBE DATA (not hardcoded items!)
+        logger.info(f"🔍 Received {len(req.wardrobe)} wardrobe items from request")
         
-        if req.occasion.lower() == "athletic":
-            outfit_items = [
-                {
-                    "id": "athletic_shoes_1",
-                    "name": "Athletic Running Shoes",
-                    "type": "shoes",
-                    "color": "Black",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/athletic-shoes.jpg"
-                },
-                {
-                    "id": "athletic_shorts_1", 
-                    "name": "Athletic Shorts",
-                    "type": "shorts",
-                    "color": "Gray",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/athletic-shorts.jpg"
-                },
-                {
-                    "id": "athletic_shirt_1",
-                    "name": "Athletic T-Shirt",
-                    "type": "shirt",
-                    "color": "White",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/athletic-shirt.jpg"
-                }
-            ]
-        elif req.occasion.lower() == "business":
-            outfit_items = [
-                {
-                    "id": "business_shoes_1",
-                    "name": "Business Dress Shoes",
-                    "type": "shoes",
-                    "color": "Black",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/business-shoes.jpg"
-                },
-                {
-                    "id": "business_pants_1", 
-                    "name": "Business Dress Pants",
-                    "type": "pants",
-                    "color": "Navy",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/business-pants.jpg"
-                },
-                {
-                    "id": "business_shirt_1",
-                    "name": "Business Dress Shirt",
-                    "type": "shirt",
-                    "color": "White",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/business-shirt.jpg"
-                }
-            ]
-        else:
-            # Default casual outfit
-            outfit_items = [
-                {
-                    "id": "casual_shoes_1",
-                    "name": "Casual Sneakers",
-                    "type": "shoes",
-                    "color": "White",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/casual-shoes.jpg"
-                },
-                {
-                    "id": "casual_pants_1", 
-                    "name": "Casual Jeans",
-                    "type": "pants",
-                    "color": "Blue",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/casual-pants.jpg"
-                },
-                {
-                    "id": "casual_shirt_1",
-                    "name": "Casual T-Shirt",
-                    "type": "shirt",
-                    "color": "Gray",
-                    "style": req.style,
-                    "occasion": req.occasion,
-                    "imageUrl": "https://example.com/casual-shirt.jpg"
-                }
-            ]
+        # Filter wardrobe by occasion using semantic matching
+        from src.utils.semantic_compatibility import occasion_matches
+        
+        suitable_items = []
+        for item in req.wardrobe:
+            # Get item occasions (could be string or list)
+            item_occasions = []
+            if hasattr(item, 'occasion'):
+                if isinstance(item.occasion, list):
+                    item_occasions = item.occasion
+                elif isinstance(item.occasion, str):
+                    item_occasions = [item.occasion]
+            elif isinstance(item, dict) and 'occasion' in item:
+                if isinstance(item['occasion'], list):
+                    item_occasions = item['occasion']
+                elif isinstance(item['occasion'], str):
+                    item_occasions = [item['occasion']]
+            
+            # Check if item matches occasion (with semantic compatibility)
+            if occasion_matches(req.occasion, item_occasions):
+                suitable_items.append(item)
+        
+        logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
+        
+        # Select items by category to build a complete outfit
+        outfit_items = []
+        categories_needed = ['shoes', 'pants', 'shirt', 'jacket']
+        
+        for category in categories_needed:
+            for item in suitable_items:
+                item_type = str(getattr(item, 'type', item.get('type', '') if isinstance(item, dict) else '')).lower()
+                
+                # Match category
+                if (category == 'shoes' and 'shoe' in item_type) or \
+                   (category == 'pants' and ('pant' in item_type or 'jean' in item_type or 'trouser' in item_type)) or \
+                   (category == 'shirt' and ('shirt' in item_type or 'blouse' in item_type)) or \
+                   (category == 'jacket' and ('jacket' in item_type or 'blazer' in item_type)):
+                    
+                    # Convert to dict format
+                    if hasattr(item, 'dict'):
+                        outfit_items.append(item.dict())
+                    elif isinstance(item, dict):
+                        outfit_items.append(item)
+                    else:
+                        outfit_items.append({
+                            'id': getattr(item, 'id', 'unknown'),
+                            'name': getattr(item, 'name', 'unknown'),
+                            'type': item_type,
+                            'color': getattr(item, 'color', item.get('color', 'unknown') if isinstance(item, dict) else 'unknown'),
+                            'imageUrl': getattr(item, 'imageUrl', item.get('imageUrl', item.get('image_url', '')) if isinstance(item, dict) else '')
+                        })
+                    break  # Got one item for this category
+        
+        # If not enough items, add any remaining suitable items
+        while len(outfit_items) < 3 and len(outfit_items) < len(suitable_items):
+            for item in suitable_items:
+                item_id = getattr(item, 'id', item.get('id', 'unknown') if isinstance(item, dict) else 'unknown')
+                already_added = any(i.get('id') == item_id for i in outfit_items)
+                if not already_added:
+                    if hasattr(item, 'dict'):
+                        outfit_items.append(item.dict())
+                    elif isinstance(item, dict):
+                        outfit_items.append(item)
+                    break
+        
+        logger.info(f"✅ Selected {len(outfit_items)} items from user's actual wardrobe")
         
         existing_result = {
             "id": f"outfit_{int(time.time())}",
