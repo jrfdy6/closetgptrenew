@@ -13,6 +13,11 @@ Uses existing data:
 - Outfit wear counts (outfit.wearCount)
 - User style profiles (UserStyleProfile)
 - Item analytics (ItemAnalyticsService)
+
+UPGRADED TO USE ROBUST SERVICE:
+- Now uses RobustOutfitGenerationService for full 6D scoring
+- Includes diversity tracking, semantic matching, layer awareness
+- Falls back to simple selection if robust service fails
 """
 
 import logging
@@ -27,6 +32,19 @@ from ..services.existing_data_personalization import ExistingDataPersonalization
 # Import auth
 from ..auth.auth_service import get_current_user_id
 
+# Try to import robust service
+try:
+    from src.services.robust_outfit_generation_service import RobustOutfitGenerationService
+    from src.custom_types.generation_context import GenerationContext
+    from src.custom_types.wardrobe import ClothingItem
+    ROBUST_SERVICE_AVAILABLE = True
+    logger_instance = logging.getLogger(__name__)
+    logger_instance.info("✅ ROBUST SERVICE: Successfully imported RobustOutfitGenerationService")
+except ImportError as e:
+    ROBUST_SERVICE_AVAILABLE = False
+    logger_instance = logging.getLogger(__name__)
+    logger_instance.warning(f"⚠️ ROBUST SERVICE: Import failed, will use simple fallback: {e}")
+
 logger = logging.getLogger(__name__)
 
 # Create router
@@ -34,6 +52,18 @@ router = APIRouter()
 
 # Initialize the existing data personalization engine
 personalization_engine = ExistingDataPersonalizationEngine()
+
+# Initialize robust service if available
+if ROBUST_SERVICE_AVAILABLE:
+    try:
+        robust_service = RobustOutfitGenerationService()
+        logger.info("✅ ROBUST SERVICE: Initialized successfully for existing-data endpoint")
+    except Exception as e:
+        robust_service = None
+        ROBUST_SERVICE_AVAILABLE = False
+        logger.warning(f"⚠️ ROBUST SERVICE: Initialization failed: {e}")
+else:
+    robust_service = None
 
 # Pydantic models
 class OutfitGenerationRequest(BaseModel):
@@ -139,123 +169,249 @@ async def generate_personalized_outfit_from_existing_data(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit from existing data for user {user_id}")
         
-        # Generate outfit with proper occasion matching
-        logger.info(f"🎯 Generating outfit for {req.occasion} occasion with proper validation")
-        
-        # 🔥 USE ACTUAL WARDROBE DATA (not hardcoded items!)
-        logger.info(f"🔍 Received {len(req.wardrobe)} wardrobe items from request")
-        
-        # Filter wardrobe by occasion using semantic matching
-        from src.utils.semantic_compatibility import occasion_matches
-        
-        suitable_items = []
-        for item in req.wardrobe:
-            # Get item occasions (could be string or list)
-            item_occasions = []
-            if hasattr(item, 'occasion'):
-                if isinstance(item.occasion, list):
-                    item_occasions = item.occasion
-                elif isinstance(item.occasion, str):
-                    item_occasions = [item.occasion]
-            elif isinstance(item, dict) and 'occasion' in item:
-                if isinstance(item['occasion'], list):
-                    item_occasions = item['occasion']
-                elif isinstance(item['occasion'], str):
-                    item_occasions = [item['occasion']]
+        # 🔥 TRY ROBUST SERVICE FIRST (if available)
+        if ROBUST_SERVICE_AVAILABLE and robust_service:
+            logger.warning(f"🚀 ROBUST SERVICE: Using full 6D scoring with diversity for {req.occasion}/{req.style}")
             
-            # Check if item matches occasion (with semantic compatibility)
-            if occasion_matches(req.occasion, item_occasions):
-                suitable_items.append(item)
+            try:
+                # Convert wardrobe items to ClothingItem objects
+                wardrobe_items = []
+                if req.wardrobe:
+                    for item_data in req.wardrobe:
+                        if isinstance(item_data, dict):
+                            # Convert dict to ClothingItem
+                            wardrobe_items.append(ClothingItem(**item_data))
+                        else:
+                            wardrobe_items.append(item_data)
+                
+                # Create generation context
+                from types import SimpleNamespace
+                weather_obj = SimpleNamespace(**req.weather) if req.weather else SimpleNamespace(temperature=72, condition='Clear')
+                user_profile_obj = SimpleNamespace(id=user_id, **(req.user_profile or {}))
+                
+                context = GenerationContext(
+                    user_id=user_id,
+                    occasion=req.occasion,
+                    style=req.style,
+                    mood=req.mood,
+                    weather=weather_obj,
+                    wardrobe=wardrobe_items,
+                    user_profile=user_profile_obj,
+                    outfit_history=[],
+                    base_item_id=req.baseItemId
+                )
+                
+                # Generate outfit using robust service
+                logger.warning(f"🚀 ROBUST SERVICE: Calling generate_outfit with {len(wardrobe_items)} items")
+                robust_outfit = await robust_service.generate_outfit(context)
+                
+                # Convert robust outfit to response format
+                outfit_items = []
+                if hasattr(robust_outfit, 'items') and robust_outfit.items:
+                    for item in robust_outfit.items:
+                        if hasattr(item, 'dict'):
+                            outfit_items.append(item.dict())
+                        elif isinstance(item, dict):
+                            outfit_items.append(item)
+                
+                logger.warning(f"✅ ROBUST SERVICE: Generated outfit with {len(outfit_items)} items")
+                
+                # Use robust result
+                existing_result = {
+                    "id": f"outfit_{int(time.time())}",
+                    "name": f"{req.style} {req.occasion} Outfit",
+                    "items": outfit_items,
+                    "confidence_score": getattr(robust_outfit, 'confidence_score', 0.85),
+                    "metadata": {
+                        "generated_by": "robust_service_6d_scoring",
+                        "occasion": req.occasion,
+                        "style": req.style,
+                        "mood": req.mood,
+                        "validation_applied": True,
+                        "occasion_requirements_met": True,
+                        "generation_strategy": "robust_6d_with_diversity",
+                        "deduplication_applied": True,
+                        "unique_items_count": len(outfit_items),
+                        "uses_semantic_matching": True,
+                        "uses_layer_awareness": True,
+                        "diversity_weight": 0.30
+                    }
+                }
+                
+                # Skip the simple selection logic - we have a robust result!
+                logger.warning(f"✅ ROBUST SERVICE: Success! Skipping simple fallback")
+                
+            except Exception as robust_error:
+                logger.error(f"❌ ROBUST SERVICE: Failed, falling back to simple selection: {robust_error}")
+                # Set flag to use simple fallback
+                existing_result = None
+        else:
+            existing_result = None
         
-        logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
-        
-        # 🔥 DIVERSITY-AWARE SELECTION: Load outfit history and apply diversity boost
-        import random
-        from src.config.firebase import db
-        
-        # Load recent outfits for diversity tracking
-        recent_outfits_ref = db.collection('outfits')\
-            .where('user_id', '==', user_id)\
-            .where('occasion', '==', req.occasion)\
-            .where('style', '==', req.style)\
-            .order_by('createdAt', direction='DESCENDING')\
-            .limit(10)
-        
-        recent_outfits_docs = list(recent_outfits_ref.stream())
-        recent_outfits = [doc.to_dict() for doc in recent_outfits_docs]
-        
-        logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style}")
-        
-        # Track item usage in recent outfits
-        item_usage_count = {}
-        for outfit in recent_outfits:
-            for item in outfit.get('items', []):
-                item_id = item.get('id', 'unknown')
-                item_usage_count[item_id] = item_usage_count.get(item_id, 0) + 1
-        
-        # Score items based on diversity (prefer unused items)
-        def get_diversity_score(item):
-            item_id = getattr(item, 'id', item.get('id', 'unknown') if isinstance(item, dict) else 'unknown')
-            usage = item_usage_count.get(item_id, 0)
+        # 🔥 FALLBACK: Simple selection if robust service unavailable or failed
+        if not existing_result:
+            logger.warning(f"⚠️ SIMPLE FALLBACK: Using simple diversity selection")
             
-            if usage == 0:
-                return 1.0  # Never used - highest priority
-            elif usage == 1:
-                return 0.7  # Used once - medium priority
-            elif usage == 2:
-                return 0.4  # Used twice - lower priority
-            else:
-                return 0.1  # Overused - lowest priority
-        
-        # Select items by category to build a complete outfit
-        outfit_items = []
-        categories_needed = ['shoes', 'pants', 'shirt', 'jacket']
-        
-        for category in categories_needed:
-            # Find all matching items for this category
-            category_matches = []
-            for item in suitable_items:
-                item_type = str(getattr(item, 'type', item.get('type', '') if isinstance(item, dict) else '')).lower()
-                
-                # Match category
-                if (category == 'shoes' and 'shoe' in item_type) or \
-                   (category == 'pants' and ('pant' in item_type or 'jean' in item_type or 'trouser' in item_type)) or \
-                   (category == 'shirt' and ('shirt' in item_type or 'blouse' in item_type)) or \
-                   (category == 'jacket' and ('jacket' in item_type or 'blazer' in item_type)):
-                    category_matches.append(item)
+            # Generate outfit with proper occasion matching
+            logger.info(f"🎯 Generating outfit for {req.occasion} occasion with proper validation")
             
-            # Sort by diversity score (prefer unused items) + add randomization
-            if category_matches:
-                scored_items = [(item, get_diversity_score(item) + random.uniform(0, 0.3)) for item in category_matches]
-                scored_items.sort(key=lambda x: x[1], reverse=True)
+            # 🔥 USE ACTUAL WARDROBE DATA (not hardcoded items!)
+            logger.info(f"🔍 Received {len(req.wardrobe)} wardrobe items from request")
+            
+            # Filter wardrobe by occasion using semantic matching
+            from src.utils.semantic_compatibility import occasion_matches
+            
+            suitable_items = []
+            for item in req.wardrobe:
+                # Get item occasions (could be string or list)
+                item_occasions = []
+                if hasattr(item, 'occasion'):
+                    if isinstance(item.occasion, list):
+                        item_occasions = item.occasion
+                    elif isinstance(item.occasion, str):
+                        item_occasions = [item.occasion]
+                elif isinstance(item, dict) and 'occasion' in item:
+                    if isinstance(item['occasion'], list):
+                        item_occasions = item['occasion']
+                    elif isinstance(item['occasion'], str):
+                        item_occasions = [item['occasion']]
                 
-                # Pick the top-scored item
-                selected_item = scored_items[0][0]
-                item_id = getattr(selected_item, 'id', selected_item.get('id', 'unknown') if isinstance(selected_item, dict) else 'unknown')
-                diversity_score = scored_items[0][1]
+                # Check if item matches occasion (with semantic compatibility)
+                if occasion_matches(req.occasion, item_occasions):
+                    suitable_items.append(item)
+            
+            logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
+            
+            # 🔥 DIVERSITY-AWARE SELECTION: Load outfit history and apply diversity boost
+            import random
+            from src.config.firebase import db
+            
+            # Load recent outfits for diversity tracking
+            recent_outfits_ref = db.collection('outfits')\
+                .where('user_id', '==', user_id)\
+                .where('occasion', '==', req.occasion)\
+                .where('style', '==', req.style)\
+                .order_by('createdAt', direction='DESCENDING')\
+                .limit(10)
+            
+            recent_outfits_docs = list(recent_outfits_ref.stream())
+            recent_outfits = [doc.to_dict() for doc in recent_outfits_docs]
+            
+            logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style}")
+            
+            # Track item usage in recent outfits
+            item_usage_count = {}
+            for outfit in recent_outfits:
+                for item in outfit.get('items', []):
+                    item_id = item.get('id', 'unknown')
+                    item_usage_count[item_id] = item_usage_count.get(item_id, 0) + 1
+            
+            # Score items based on diversity (prefer unused items)
+            def get_diversity_score(item):
+                item_id = getattr(item, 'id', item.get('id', 'unknown') if isinstance(item, dict) else 'unknown')
+                usage = item_usage_count.get(item_id, 0)
                 
-                logger.info(f"  🎯 {category}: Selected item with diversity score {diversity_score:.2f}")
-                
-                # Convert to dict format
-                if hasattr(selected_item, 'dict'):
-                    outfit_items.append(selected_item.dict())
-                elif isinstance(selected_item, dict):
-                    outfit_items.append(selected_item)
+                if usage == 0:
+                    return 1.0  # Never used - highest priority
+                elif usage == 1:
+                    return 0.7  # Used once - medium priority
+                elif usage == 2:
+                    return 0.4  # Used twice - lower priority
                 else:
-                    outfit_items.append({
-                        'id': item_id,
-                        'name': getattr(selected_item, 'name', 'unknown'),
-                        'type': str(getattr(selected_item, 'type', '')).lower(),
-                        'color': getattr(selected_item, 'color', selected_item.get('color', 'unknown') if isinstance(selected_item, dict) else 'unknown'),
-                        'imageUrl': getattr(selected_item, 'imageUrl', selected_item.get('imageUrl', selected_item.get('image_url', '')) if isinstance(selected_item, dict) else '')
-                    })
-        
-        logger.info(f"✅ Selected {len(outfit_items)} items from user's actual wardrobe with diversity scoring")
-        
-        existing_result = {
-            "id": f"outfit_{int(time.time())}",
-            "name": f"{req.style} {req.occasion} Outfit",
-            "items": outfit_items,
+                    return 0.1  # Overused - lowest priority
+            
+                if occasion_matches(req.occasion, item_occasions):
+                    suitable_items.append(item)
+            
+            logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
+            
+            # 🔥 DIVERSITY-AWARE SELECTION: Load outfit history and apply diversity boost
+            import random
+            from src.config.firebase import db
+            
+            # Load recent outfits for diversity tracking
+            recent_outfits_ref = db.collection('outfits')\
+                .where('user_id', '==', user_id)\
+                .where('occasion', '==', req.occasion)\
+                .where('style', '==', req.style)\
+                .order_by('createdAt', direction='DESCENDING')\
+                .limit(10)
+            
+            recent_outfits_docs = list(recent_outfits_ref.stream())
+            recent_outfits = [doc.to_dict() for doc in recent_outfits_docs]
+            
+            logger.info(f"🌈 DIVERSITY: Found {len(recent_outfits)} recent outfits for {req.occasion}/{req.style}")
+            
+            # Track item usage in recent outfits
+            item_usage_count = {}
+            for outfit in recent_outfits:
+                for item in outfit.get('items', []):
+                    item_id = item.get('id', 'unknown')
+                    item_usage_count[item_id] = item_usage_count.get(item_id, 0) + 1
+            
+            # Score items based on diversity (prefer unused items)
+            def get_diversity_score(item):
+                item_id = getattr(item, 'id', item.get('id', 'unknown') if isinstance(item, dict) else 'unknown')
+                usage = item_usage_count.get(item_id, 0)
+                
+                if usage == 0:
+                    return 1.0  # Never used - highest priority
+                elif usage == 1:
+                    return 0.7  # Used once - medium priority
+                elif usage == 2:
+                    return 0.4  # Used twice - lower priority
+                else:
+                    return 0.1  # Overused - lowest priority
+            
+            # Select items by category to build a complete outfit
+            outfit_items = []
+            categories_needed = ['shoes', 'pants', 'shirt', 'jacket']
+            
+            for category in categories_needed:
+                # Find all matching items for this category
+                category_matches = []
+                for item in suitable_items:
+                    item_type = str(getattr(item, 'type', item.get('type', '') if isinstance(item, dict) else '')).lower()
+                    
+                    # Match category
+                    if (category == 'shoes' and 'shoe' in item_type) or \
+                       (category == 'pants' and ('pant' in item_type or 'jean' in item_type or 'trouser' in item_type)) or \
+                       (category == 'shirt' and ('shirt' in item_type or 'blouse' in item_type)) or \
+                       (category == 'jacket' and ('jacket' in item_type or 'blazer' in item_type)):
+                        category_matches.append(item)
+                
+                # Sort by diversity score (prefer unused items) + add randomization
+                if category_matches:
+                    scored_items = [(item, get_diversity_score(item) + random.uniform(0, 0.3)) for item in category_matches]
+                    scored_items.sort(key=lambda x: x[1], reverse=True)
+                    
+                    # Pick the top-scored item
+                    selected_item = scored_items[0][0]
+                    item_id = getattr(selected_item, 'id', selected_item.get('id', 'unknown') if isinstance(selected_item, dict) else 'unknown')
+                    diversity_score = scored_items[0][1]
+                    
+                    logger.info(f"  🎯 {category}: Selected item with diversity score {diversity_score:.2f}")
+                    
+                    # Convert to dict format
+                    if hasattr(selected_item, 'dict'):
+                        outfit_items.append(selected_item.dict())
+                    elif isinstance(selected_item, dict):
+                        outfit_items.append(selected_item)
+                    else:
+                        outfit_items.append({
+                            'id': item_id,
+                            'name': getattr(selected_item, 'name', 'unknown'),
+                            'type': str(getattr(selected_item, 'type', '')).lower(),
+                            'color': getattr(selected_item, 'color', selected_item.get('color', 'unknown') if isinstance(selected_item, dict) else 'unknown'),
+                            'imageUrl': getattr(selected_item, 'imageUrl', selected_item.get('imageUrl', selected_item.get('image_url', '')) if isinstance(selected_item, dict) else '')
+                        })
+            
+            logger.info(f"✅ Selected {len(outfit_items)} items from user's actual wardrobe with diversity scoring")
+            
+            existing_result = {
+                "id": f"outfit_{int(time.time())}",
+                "name": f"{req.style} {req.occasion} Outfit",
+                "items": outfit_items,
             "confidence_score": 0.95,
             "metadata": {
                 "generated_by": "existing_data_personalization",
