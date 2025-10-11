@@ -682,32 +682,32 @@ def occasion_matches(requested_occasion: Optional[str], item_occasions: List[str
     import logging
     logger = logging.getLogger(__name__)
     
-    # DEPLOYMENT CHECK: This log confirms we're running the latest code
-    logger.warning(f"🚀 OCCASION_MATCHES CALLED - VERSION: 2025-10-11-COMPREHENSIVE - requested='{requested_occasion}', items={item_occasions}")
+    # Reduced logging to prevent Railway rate limit (500 logs/sec)
+    # logger.warning(f"🚀 OCCASION_MATCHES CALLED - VERSION: 2025-10-11-COMPREHENSIVE - requested='{requested_occasion}', items={item_occasions}")
     
     if not requested_occasion:
         return True
     
     ro = requested_occasion.lower().replace(' ', '_')  # Normalize spaces to underscores
     
-    # Log what we're matching
-    logger.info(f"🔍 SEMANTIC MATCH: requested='{requested_occasion}' (normalized='{ro}'), item_occasions={item_occasions}")
+    # Logging disabled to prevent Railway rate limit (500 logs/sec)
+    # logger.info(f"🔍 SEMANTIC MATCH: requested='{requested_occasion}' (normalized='{ro}'), item_occasions={item_occasions}")
     
     # Direct match check
     normalized_item_occasions = [o.lower().replace(' ', '_') for o in item_occasions]
     if ro in normalized_item_occasions:
-        logger.info(f"✅ SEMANTIC: Direct match found: '{ro}' in {normalized_item_occasions}")
+        # logger.info(f"✅ SEMANTIC: Direct match found: '{ro}' in {normalized_item_occasions}")
         return True
     
     # Semantic fallback check using module-level OCCASION_FALLBACKS
     fallback = set(OCCASION_FALLBACKS.get(ro, []))
-    logger.info(f"🔍 SEMANTIC: fallback set for '{ro}' = {fallback}")
+    # logger.info(f"🔍 SEMANTIC: fallback set for '{ro}' = {fallback}")
     
     for o in item_occasions:
         normalized_o = o.lower().replace(' ', '_')
         if normalized_o in fallback:
-            logger.info(f"✅ SEMANTIC: Fallback match! '{o}' (normalized='{normalized_o}') matches '{requested_occasion}'")
+            # logger.info(f"✅ SEMANTIC: Fallback match! '{o}' (normalized='{normalized_o}') matches '{requested_occasion}'")
             return True
     
-    logger.warning(f"❌ SEMANTIC: NO MATCH - '{requested_occasion}' not compatible with {item_occasions}")
+    # logger.warning(f"❌ SEMANTIC: NO MATCH - '{requested_occasion}' not compatible with {item_occasions}")
     return False

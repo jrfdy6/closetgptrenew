@@ -174,20 +174,31 @@ async def generate_personalized_outfit_from_existing_data(
             logger.warning(f"🚀 ROBUST SERVICE: Using full 6D scoring with diversity for {req.occasion}/{req.style}")
             
             try:
+                logger.warning(f"🔍 ROBUST: Converting {len(req.wardrobe)} wardrobe items to ClothingItem objects...")
                 # Convert wardrobe items to ClothingItem objects
                 wardrobe_items = []
                 if req.wardrobe:
-                    for item_data in req.wardrobe:
-                        if isinstance(item_data, dict):
-                            # Convert dict to ClothingItem
-                            wardrobe_items.append(ClothingItem(**item_data))
-                        else:
-                            wardrobe_items.append(item_data)
+                    for idx, item_data in enumerate(req.wardrobe):
+                        try:
+                            if isinstance(item_data, dict):
+                                # Convert dict to ClothingItem
+                                wardrobe_items.append(ClothingItem(**item_data))
+                            else:
+                                wardrobe_items.append(item_data)
+                        except Exception as item_error:
+                            logger.error(f"❌ ROBUST: Failed to convert item {idx}: {item_error}")
+                            # Skip problematic items
+                            continue
+                
+                logger.warning(f"✅ ROBUST: Successfully converted {len(wardrobe_items)} items")
                 
                 # Create generation context
+                logger.warning(f"🔍 ROBUST: Creating GenerationContext...")
                 from types import SimpleNamespace
                 weather_obj = SimpleNamespace(**req.weather) if req.weather else SimpleNamespace(temperature=72, condition='Clear')
                 user_profile_obj = SimpleNamespace(id=user_id, **(req.user_profile or {}))
+                
+                logger.warning(f"🔍 ROBUST: Context params - occasion={req.occasion}, style={req.style}, mood={req.mood}")
                 
                 context = GenerationContext(
                     user_id=user_id,
@@ -201,9 +212,12 @@ async def generate_personalized_outfit_from_existing_data(
                     base_item_id=req.baseItemId
                 )
                 
+                logger.warning(f"✅ ROBUST: GenerationContext created successfully")
+                
                 # Generate outfit using robust service
                 logger.warning(f"🚀 ROBUST SERVICE: Calling generate_outfit with {len(wardrobe_items)} items")
                 robust_outfit = await robust_service.generate_outfit(context)
+                logger.warning(f"✅ ROBUST SERVICE: generate_outfit returned successfully")
                 
                 # Convert robust outfit to response format
                 outfit_items = []
@@ -242,7 +256,10 @@ async def generate_personalized_outfit_from_existing_data(
                 logger.warning(f"✅ ROBUST SERVICE: Success! Skipping simple fallback")
                 
             except Exception as robust_error:
-                logger.error(f"❌ ROBUST SERVICE: Failed, falling back to simple selection: {robust_error}")
+                import traceback
+                error_details = traceback.format_exc()
+                logger.error(f"❌ ROBUST SERVICE: FAILED with error: {robust_error}")
+                logger.error(f"❌ ROBUST SERVICE: Full traceback:\n{error_details}")
                 # Set flag to use simple fallback
                 existing_result = None
         else:
