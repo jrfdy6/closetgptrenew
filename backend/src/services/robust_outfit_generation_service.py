@@ -3623,22 +3623,42 @@ class RobustOutfitGenerationService:
             
             # Determine layering appropriateness
             if category == 'outerwear' and score_data['composite_score'] > 0.6:
-                # Check if we need outerwear
-                if temp < 65 or occasion_lower in ['business', 'formal']:
+                # ✅ FIX: Check if outerwear already exists before adding
+                has_outerwear = any(self._get_item_category(i) == 'outerwear' for i in selected_items)
+                
+                if not has_outerwear and (temp < 65 or occasion_lower in ['business', 'formal']):
                     selected_items.append(item)
-                    logger.info(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    categories_filled['outerwear'] = True  # Track that we added outerwear
+                    logger.warning(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                elif has_outerwear:
+                    logger.warning(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} - SKIPPED (already have outerwear)")
             
             elif category == 'tops' and score_data['composite_score'] > 0.6:
-                # Additional top layer (sweater, cardigan)
-                if temp < 70 and any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'vest']):
+                # ✅ FIX: Check if mid-layer already exists before adding
+                is_mid_layer = any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'vest'])
+                has_mid_layer = any(
+                    kw in self.safe_get_item_name(i).lower() 
+                    for i in selected_items 
+                    for kw in ['sweater', 'cardigan', 'vest']
+                )
+                
+                if is_mid_layer and not has_mid_layer and temp < 70:
                     selected_items.append(item)
-                    logger.info(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    categories_filled['mid'] = True  # Track that we added mid-layer
+                    logger.warning(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                elif is_mid_layer and has_mid_layer:
+                    logger.warning(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
             
             elif category == 'accessories' and score_data['composite_score'] > 0.7:
-                # High-scoring accessories
+                # Accessories can have multiple items (belts, watches, etc.)
                 if temp < 50 or occasion_lower in ['formal', 'business']:
-                    selected_items.append(item)
-                    logger.info(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    # Limit to 2 accessories max
+                    accessory_count = sum(1 for i in selected_items if self._get_item_category(i) == 'accessories')
+                    if accessory_count < 2:
+                        selected_items.append(item)
+                        logger.warning(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    else:
+                        logger.warning(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
         
         # Ensure minimum items
         if len(selected_items) < min_items:

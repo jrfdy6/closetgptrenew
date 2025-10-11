@@ -1,0 +1,430 @@
+{
+  "system_name": "ClosetGPT Context-Aware Layering System",
+  "file": "backend/src/services/robust_outfit_generation_service.py",
+  "function": "_generate_outfit_internal",
+  "version": "2025-10-11",
+  
+  "phases": [
+    {
+      "phase_number": 1,
+      "name": "Essential Category Selection",
+      "lines": "3566-3601",
+      "purpose": "Fill required categories: tops, bottoms, shoes",
+      "timing": "First - builds foundation outfit",
+      "validation": {
+        "enforces_limits": true,
+        "limit_type": "one per category (tops, bottoms, shoes)",
+        "check_method": "categories_filled dict",
+        "code_snippet": "if category not in categories_filled:\n    selected_items.append(item)\n    categories_filled[category] = True"
+      },
+      "state_tracking": {
+        "list": "selected_items (shared across all phases)",
+        "tracker": "categories_filled = {tops: bool, bottoms: bool, shoes: bool}",
+        "shared_with_phase_2": true
+      },
+      "handles_outerwear": false,
+      "notes": "Skips outerwear - defers to Phase 2"
+    },
+    {
+      "phase_number": 2,
+      "name": "Layering Pieces Addition",
+      "lines": "3611-3641",
+      "purpose": "Add outerwear, mid-layers, accessories based on weather/occasion",
+      "timing": "After Phase 1 - adds optional layers",
+      "validation": {
+        "enforces_limits": false,
+        "limit_type": "NONE - this is the bug!",
+        "check_method": "Only checks: if item in selected_items (duplicate item check)",
+        "missing_check": "Does NOT check if outerwear category already filled",
+        "code_snippet": "if category == 'outerwear' and score > 0.6:\n    if temp < 65 or occasion in ['business', 'formal']:\n        selected_items.append(item)  # NO CATEGORY CHECK!"
+      },
+      "state_tracking": {
+        "list": "selected_items (SAME object as Phase 1)",
+        "tracker": "categories_filled (exists but NOT USED in Phase 2!)",
+        "shared_with_phase_1": true
+      },
+      "handles_outerwear": true,
+      "bug_location": "Lines 3625-3629",
+      "bug_description": "Adds ALL high-scoring jackets without checking if outerwear already exists",
+      "notes": "This is where the two-jacket bug occurs"
+    },
+    {
+      "phase_number": 3,
+      "name": "Diversity Filtering",
+      "lines": "3654-3690",
+      "purpose": "Apply diversity boost/penalty based on outfit history",
+      "timing": "After Phase 2 - post-selection filtering",
+      "validation": {
+        "enforces_limits": false,
+        "type": "diversity_only"
+      },
+      "handles_outerwear": false,
+      "notes": "Does not modify selected items, only applies diversity scoring"
+    }
+  ],
+  
+  "layer_types": {
+    "defined_layers": [
+      {
+        "name": "base",
+        "description": "Base layer (t-shirt, tank, undershirt)",
+        "assignment_logic": "if category=='tops' AND name contains ['tank', 'cami', 'base', 'undershirt']",
+        "source_line": "3579-3580",
+        "priority": 1,
+        "wearLayer_metadata": "Base (from visualAttributes.wearLayer)"
+      },
+      {
+        "name": "tops",
+        "description": "Main top layer (shirts, blouses)",
+        "assignment_logic": "if category=='tops' AND NOT base AND NOT mid",
+        "source_line": "3577-3578",
+        "priority": 2,
+        "wearLayer_metadata": "Inner or Mid (from visualAttributes.wearLayer)"
+      },
+      {
+        "name": "mid",
+        "description": "Mid-layer (sweater, cardigan, hoodie)",
+        "assignment_logic": "if category=='tops' AND name contains ['sweater', 'cardigan', 'hoodie']",
+        "source_line": "3581-3582",
+        "priority": 3,
+        "wearLayer_metadata": "Mid (from visualAttributes.wearLayer)"
+      },
+      {
+        "name": "bottoms",
+        "description": "Bottom wear (pants, skirts, shorts)",
+        "assignment_logic": "if category=='bottoms'",
+        "source_line": "3588",
+        "priority": 4,
+        "wearLayer_metadata": "Bottom (from visualAttributes.wearLayer)"
+      },
+      {
+        "name": "shoes",
+        "description": "Footwear",
+        "assignment_logic": "if category=='shoes'",
+        "source_line": "3588",
+        "priority": 5,
+        "wearLayer_metadata": "Footwear (from visualAttributes.wearLayer)"
+      },
+      {
+        "name": "outerwear",
+        "description": "Outer layer (jacket, blazer, coat)",
+        "assignment_logic": "if category=='outerwear'",
+        "source_line": "3583-3584",
+        "priority": 6,
+        "wearLayer_metadata": "Outer (from visualAttributes.wearLayer)"
+      },
+      {
+        "name": "accessories",
+        "description": "Accessories (belts, hats, scarves)",
+        "assignment_logic": "if category=='accessories'",
+        "source_line": "3585-3586",
+        "priority": 7,
+        "wearLayer_metadata": "Accessory (from visualAttributes.wearLayer)"
+      }
+    ],
+    "assignment_source": "Hybrid approach",
+    "primary_method": "item.type → category_map → layer_level (lines 2692-2736)",
+    "secondary_method": "item.name keywords (lines 3579-3582)",
+    "metadata_used": false,
+    "metadata_available_but_ignored": "metadata.visualAttributes.wearLayer",
+    "note": "System has wearLayer metadata ('Base', 'Inner', 'Mid', 'Outer', 'Bottom', 'Footwear', 'Accessory') but doesn't use it for categorization!"
+  },
+  
+  "rules_and_constraints": {
+    "phase_1_rules": {
+      "essential_categories": ["tops", "bottoms", "shoes"],
+      "limit_per_category": 1,
+      "enforcement": "STRICT",
+      "code": "if category not in categories_filled",
+      "bypasses": "none"
+    },
+    "phase_2_rules": {
+      "outerwear": {
+        "intended_limit": 1,
+        "actual_limit": "UNLIMITED (BUG!)",
+        "enforcement": "NONE",
+        "conditions": [
+          "category == 'outerwear'",
+          "composite_score > 0.6",
+          "temp < 65 OR occasion in ['business', 'formal']"
+        ],
+        "missing_check": "Does NOT check if outerwear already in selected_items",
+        "bug_line": "3628",
+        "allows_multiple": true
+      },
+      "mid_layer": {
+        "limit": "UNLIMITED",
+        "enforcement": "NONE",
+        "conditions": [
+          "category == 'tops'",
+          "composite_score > 0.6",
+          "temp < 70",
+          "name contains ['sweater', 'cardigan', 'vest']"
+        ]
+      },
+      "accessories": {
+        "limit": "UNLIMITED",
+        "enforcement": "NONE",
+        "conditions": [
+          "category == 'accessories'",
+          "composite_score > 0.7",
+          "temp < 50 OR occasion in ['formal', 'business']"
+        ]
+      }
+    },
+    "sleeve_compatibility": {
+      "location": "metadata_compatibility_analyzer.py",
+      "enforcement": "SOFT (scoring penalty, not blocker)",
+      "used_in": "Compatibility score dimension",
+      "does_not_prevent_selection": true
+    },
+    "layer_hierarchy": {
+      "defined_order": ["base", "tops", "mid", "outerwear", "bottoms", "shoes", "accessories"],
+      "enforced": false,
+      "note": "Order defined but not enforced in Phase 2"
+    }
+  },
+  
+  "state_tracking": {
+    "selected_items": {
+      "type": "List[ClothingItem]",
+      "scope": "function-local",
+      "shared_across_phases": true,
+      "initialized_line": "3563",
+      "used_in_phase_1": true,
+      "used_in_phase_2": true,
+      "used_in_phase_3": true,
+      "notes": "Same list object used throughout - modifications in Phase 2 affect final output"
+    },
+    "categories_filled": {
+      "type": "Dict[str, bool]",
+      "scope": "function-local",
+      "shared_across_phases": true,
+      "initialized_line": "3564",
+      "used_in_phase_1": true,
+      "used_in_phase_2": false,
+      "bug": "Phase 2 has access to categories_filled but DOES NOT USE IT!",
+      "notes": "Could be used to prevent duplicate outerwear but isn't"
+    },
+    "category_counts": {
+      "exists_in": "_intelligent_item_selection() function (different code path)",
+      "not_used_in": "_generate_outfit_internal() function",
+      "notes": "There are TWO different selection functions with different state tracking!"
+    }
+  },
+  
+  "code_path_analysis": {
+    "function_1": {
+      "name": "_intelligent_item_selection",
+      "lines": "2128-2225",
+      "purpose": "TARGET-DRIVEN selection with proportional limits",
+      "state_tracking": "category_counts dict",
+      "enforcement": "STRICT - enforces base_limit and proportional_limit",
+      "handles_outerwear": true,
+      "prevents_duplicates": true,
+      "used_by": "Some generation strategies (not multi_layered_cohesive_composition)"
+    },
+    "function_2": {
+      "name": "_generate_outfit_internal (Phase 1 & 2)",
+      "lines": "3566-3651",
+      "purpose": "Two-phase selection: essentials then layering",
+      "state_tracking": "categories_filled dict (only in Phase 1!)",
+      "enforcement": "Phase 1: STRICT | Phase 2: NONE",
+      "handles_outerwear": true,
+      "prevents_duplicates": false,
+      "used_by": "multi_layered_cohesive_composition strategy (YOUR CURRENT STRATEGY)",
+      "bug": "Phase 2 doesn't check for existing outerwear before adding more"
+    }
+  },
+  
+  "bypasses": [
+    {
+      "name": "Phase 2 Outerwear Addition",
+      "location": "Lines 3625-3629",
+      "description": "Phase 2 adds outerwear without checking if outerwear already exists",
+      "severity": "HIGH",
+      "impact": "Allows multiple jackets in same outfit",
+      "triggered_when": "Multiple high-scoring jackets exist AND temp < 65 OR occasion is business/formal",
+      "your_case": "Business occasion + 2 high-scoring jackets → both added"
+    },
+    {
+      "name": "Emergency Bypass",
+      "location": "Lines 3603-3609",
+      "description": "If no items selected in Phase 1, forces first item",
+      "severity": "MEDIUM",
+      "impact": "Can override category limits in edge cases",
+      "triggered_when": "Phase 1 selects 0 items"
+    },
+    {
+      "name": "Filler Addition",
+      "location": "Lines 3644-3649",
+      "description": "Adds any items to reach minimum count",
+      "severity": "MEDIUM",
+      "impact": "Can add inappropriate items if under minimum",
+      "triggered_when": "selected_items < min_items after Phase 2"
+    }
+  ],
+  
+  "examples": {
+    "test_case_1": {
+      "scenario": "Hoodie + Blazer",
+      "items": [
+        {"name": "Hoodie", "type": "hoodie", "category": "outerwear"},
+        {"name": "Blazer", "type": "blazer", "category": "outerwear"}
+      ],
+      "phase_1_result": "Skip both (not essential)",
+      "phase_2_result": "BUG: Adds BOTH if scores > 0.6 and temp < 65",
+      "expected_behavior": "Add only ONE (highest scoring)",
+      "actual_behavior": "Adds BOTH",
+      "passes_validation": false,
+      "why": "Phase 2 doesn't check for existing outerwear"
+    },
+    "test_case_2": {
+      "scenario": "Light Jacket + Coat",
+      "items": [
+        {"name": "Light Jacket", "type": "jacket", "category": "outerwear", "score": 2.5},
+        {"name": "Heavy Coat", "type": "coat", "category": "outerwear", "score": 2.4}
+      ],
+      "phase_1_result": "Skip both (not essential)",
+      "phase_2_result": "BUG: Adds BOTH if temp < 65",
+      "expected_behavior": "Add only highest scoring jacket",
+      "actual_behavior": "Adds BOTH jackets",
+      "passes_validation": false,
+      "why": "Phase 2 loops through all outerwear without duplicate check"
+    },
+    "test_case_3": {
+      "scenario": "Two Blazers (Your Case)",
+      "items": [
+        {"name": "Dark Teal Jacket", "type": "jacket", "category": "outerwear", "score": 2.39},
+        {"name": "Charcoal Savile Row Jacket", "type": "jacket", "category": "outerwear", "score": 2.38}
+      ],
+      "phase_1_result": "Skip both (not essential)",
+      "phase_2_result": "BUG: Adds BOTH (score > 0.6, occasion='business')",
+      "expected_behavior": "Add only Dark Teal (highest score)",
+      "actual_behavior": "Adds BOTH blazers",
+      "passes_validation": false,
+      "why": "Phase 2 doesn't track that first jacket was already added"
+    },
+    "test_case_4": {
+      "scenario": "Sweater + Jacket (Valid)",
+      "items": [
+        {"name": "Sweater", "type": "sweater", "category": "tops", "layer": "mid"},
+        {"name": "Blazer", "type": "blazer", "category": "outerwear", "layer": "outerwear"}
+      ],
+      "phase_1_result": "Adds sweater as tops",
+      "phase_2_result": "Adds blazer as outerwear",
+      "expected_behavior": "Both added (different categories)",
+      "actual_behavior": "Both added ✅",
+      "passes_validation": true,
+      "why": "Different categories - sweater is 'tops', blazer is 'outerwear'"
+    }
+  },
+  
+  "category_mapping": {
+    "file": "robust_outfit_generation_service.py",
+    "function": "_get_item_category",
+    "lines": "2692-2736",
+    "input": "item.type (string)",
+    "output": "category (string)",
+    "map": {
+      "shirt": "tops",
+      "t-shirt": "tops",
+      "blouse": "tops",
+      "sweater": "tops",
+      "tank": "tops",
+      "polo": "tops",
+      "pants": "bottoms",
+      "jeans": "bottoms",
+      "shorts": "bottoms",
+      "skirt": "bottoms",
+      "shoes": "shoes",
+      "sneakers": "shoes",
+      "boots": "shoes",
+      "heels": "shoes",
+      "jacket": "outerwear",
+      "blazer": "outerwear",
+      "coat": "outerwear",
+      "hoodie": "outerwear"
+    },
+    "fallback": "other",
+    "uses_metadata": false,
+    "ignores_field": "metadata.visualAttributes.wearLayer (rich data exists but unused!)"
+  },
+  
+  "metadata_disconnect": {
+    "issue": "System has rich wearLayer metadata but doesn't use it",
+    "available_metadata": {
+      "field": "metadata.visualAttributes.wearLayer",
+      "values": ["Base", "Inner", "Mid", "Outer", "Bottom", "Footwear", "Accessory"],
+      "source": "AI analysis during item upload",
+      "completeness": "~98% of items have this data"
+    },
+    "current_usage": "NOT USED - only item.type is used",
+    "potential_improvement": "Could use wearLayer for more accurate layer detection"
+  },
+  
+  "the_fix": {
+    "location": "Lines 3625-3629 (Phase 2 outerwear addition)",
+    "fix_type": "Add duplicate category check",
+    "complexity": "SIMPLE - 2 lines of code",
+    "fix_code": "has_outerwear = any(self._get_item_category(item) == 'outerwear' for item in selected_items)\nif not has_outerwear:\n    selected_items.append(item)",
+    "alternative_fix": "Update categories_filled in Phase 2 and check it",
+    "recommended": "Direct duplicate check (simpler, safer)",
+    "estimated_time": "5 minutes",
+    "risk": "LOW - simple boolean check"
+  },
+  
+  "additional_issues_found": {
+    "issue_1": {
+      "name": "Phase 2 can add multiple mid-layers",
+      "severity": "MEDIUM",
+      "description": "No limit on sweaters/cardigans - could add 3+ sweaters",
+      "lines": "3631-3635",
+      "fix_needed": true
+    },
+    "issue_2": {
+      "name": "Phase 2 can add unlimited accessories",
+      "severity": "LOW",
+      "description": "Multiple accessories is usually OK, but no upper bound",
+      "lines": "3637-3641",
+      "fix_needed": false
+    },
+    "issue_3": {
+      "name": "Filler phase can add inappropriate items",
+      "severity": "MEDIUM",
+      "description": "If under minimum, adds ANY items without category checks",
+      "lines": "3644-3649",
+      "fix_needed": true
+    }
+  },
+  
+  "comprehensive_fix_plan": {
+    "fix_1_outerwear": {
+      "priority": "CRITICAL",
+      "location": "Line 3628 (before selected_items.append)",
+      "check_to_add": "has_outerwear = any(self._get_item_category(i) == 'outerwear' for i in selected_items)\nif not has_outerwear:",
+      "impact": "Prevents multiple jackets"
+    },
+    "fix_2_mid_layer": {
+      "priority": "HIGH",
+      "location": "Line 3634 (before selected_items.append)",
+      "check_to_add": "has_mid_layer = any('sweater' in self.safe_get_item_name(i).lower() or 'cardigan' in self.safe_get_item_name(i).lower() for i in selected_items)\nif not has_mid_layer:",
+      "impact": "Prevents multiple sweaters"
+    },
+    "fix_3_refactor_phase_2": {
+      "priority": "MEDIUM",
+      "description": "Use categories_filled dict in Phase 2 like Phase 1 does",
+      "approach": "Update categories_filled when adding items in Phase 2",
+      "benefit": "Consistent validation across all phases"
+    }
+  },
+  
+  "testing_strategy": {
+    "step_1": "Apply fix_1 (critical outerwear check)",
+    "step_2": "Generate test outfit with Business + Classic + Bold",
+    "step_3": "Verify logs show: '⏭️ Outerwear: jacket2 - skipped (already have outerwear)'",
+    "step_4": "Verify final outfit has only 1 jacket",
+    "step_5": "Apply fix_2 and fix_3 for completeness"
+  }
+}
+
