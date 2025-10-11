@@ -32,26 +32,10 @@ from ..services.existing_data_personalization import ExistingDataPersonalization
 # Import auth
 from ..auth.auth_service import get_current_user_id
 
-# Try to import robust service
-try:
-    from src.services.robust_outfit_generation_service import RobustOutfitGenerationService
-    from src.custom_types.generation_context import GenerationContext
-    from src.custom_types.wardrobe import ClothingItem
-    ROBUST_SERVICE_AVAILABLE = True
-    logger_instance = logging.getLogger(__name__)
-    logger_instance.warning("✅ ROBUST SERVICE: Successfully imported RobustOutfitGenerationService")
-except ImportError as e:
-    ROBUST_SERVICE_AVAILABLE = False
-    logger_instance = logging.getLogger(__name__)
-    logger_instance.error(f"❌ ROBUST SERVICE: Import failed - {type(e).__name__}: {e}")
-    import traceback
-    logger_instance.error(f"❌ ROBUST SERVICE: Full import traceback:\n{traceback.format_exc()}")
-except Exception as e:
-    ROBUST_SERVICE_AVAILABLE = False
-    logger_instance = logging.getLogger(__name__)
-    logger_instance.error(f"❌ ROBUST SERVICE: Unexpected error during import: {e}")
-    import traceback
-    logger_instance.error(f"❌ ROBUST SERVICE: Full traceback:\n{traceback.format_exc()}")
+# Don't import at module level - avoid circular import issues
+# Imports will happen lazily inside the function when needed
+ROBUST_SERVICE_AVAILABLE = None  # Will be determined at runtime
+robust_service = None
 
 logger = logging.getLogger(__name__)
 
@@ -61,25 +45,7 @@ router = APIRouter()
 # Initialize the existing data personalization engine
 personalization_engine = ExistingDataPersonalizationEngine()
 
-# Initialize robust service if available
-logger.warning(f"🔍 STARTUP: ROBUST_SERVICE_AVAILABLE = {ROBUST_SERVICE_AVAILABLE}")
-
-if ROBUST_SERVICE_AVAILABLE:
-    try:
-        logger.warning("🔍 STARTUP: Attempting to initialize RobustOutfitGenerationService...")
-        robust_service = RobustOutfitGenerationService()
-        logger.warning("✅ ROBUST SERVICE: Initialized successfully for existing-data endpoint!")
-    except Exception as e:
-        robust_service = None
-        ROBUST_SERVICE_AVAILABLE = False
-        logger.error(f"❌ ROBUST SERVICE: Initialization failed: {e}")
-        import traceback
-        logger.error(f"❌ ROBUST SERVICE: Traceback:\n{traceback.format_exc()}")
-else:
-    robust_service = None
-    logger.warning("⚠️ STARTUP: Robust service NOT available - imports failed")
-
-logger.warning(f"🔍 STARTUP COMPLETE: robust_service = {robust_service}, ROBUST_SERVICE_AVAILABLE = {ROBUST_SERVICE_AVAILABLE}")
+logger.warning("🔍 STARTUP: Robust service will be loaded lazily on first request (avoiding circular imports)")
 
 # Pydantic models
 class OutfitGenerationRequest(BaseModel):
@@ -185,8 +151,28 @@ async def generate_personalized_outfit_from_existing_data(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit from existing data for user {user_id}")
         
-        # LOG ROBUST SERVICE STATUS ON EVERY REQUEST
-        logger.warning(f"🔍 REQUEST START: ROBUST_SERVICE_AVAILABLE={ROBUST_SERVICE_AVAILABLE}, robust_service={robust_service is not None}")
+        # 🔥 LAZY IMPORT: Import robust service on first use (avoid circular imports at module load)
+        global ROBUST_SERVICE_AVAILABLE, robust_service
+        
+        if ROBUST_SERVICE_AVAILABLE is None:
+            logger.warning("🔍 FIRST REQUEST: Attempting to import RobustOutfitGenerationService...")
+            try:
+                from src.services.robust_outfit_generation_service import RobustOutfitGenerationService
+                from src.custom_types.generation_context import GenerationContext
+                from src.custom_types.wardrobe import ClothingItem
+                
+                robust_service = RobustOutfitGenerationService()
+                ROBUST_SERVICE_AVAILABLE = True
+                logger.warning("✅ ROBUST SERVICE: Successfully imported and initialized!")
+            except Exception as e:
+                ROBUST_SERVICE_AVAILABLE = False
+                robust_service = None
+                import traceback
+                logger.error(f"❌ ROBUST SERVICE: Import/init failed: {e}")
+                logger.error(f"❌ ROBUST SERVICE: Traceback:\n{traceback.format_exc()}")
+        
+        # LOG ROBUST SERVICE STATUS
+        logger.warning(f"🔍 REQUEST: ROBUST_SERVICE_AVAILABLE={ROBUST_SERVICE_AVAILABLE}, robust_service={robust_service is not None}")
         
         # 🔥 TRY ROBUST SERVICE FIRST (if available)
         if ROBUST_SERVICE_AVAILABLE and robust_service:
