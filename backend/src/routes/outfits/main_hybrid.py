@@ -112,7 +112,8 @@ async def debug_outfit_filtering(
         elif semantic_from_query in ['false', '0', 'no']:
             semantic = False
         
-        logger.warning(f"🚀 DEBUG FILTER v4: semantic_param={semantic}, query_string={semantic_from_query}, full_query={query_params}")
+        logger.warning(f"🚀 DEBUG FILTER v5: semantic_param={semantic}, query_string={semantic_from_query}, full_query={query_params}")
+        logger.warning(f"🔍 TYPE CHECK: semantic type={type(semantic)}, value={semantic}, repr={repr(semantic)}")
         
         # Extract user ID using robust authentication, with fallback for testing
         try:
@@ -150,7 +151,7 @@ async def debug_outfit_filtering(
         )
         
         # Get debug analysis from personalization service
-        logger.warning(f"🔥 CALLING debug_outfit_filtering with semantic_filtering={semantic}")
+        logger.warning(f"🔥 CALLING debug_outfit_filtering with semantic_filtering={semantic} (type={type(semantic).__name__})")
         debug_result = await personalization_service.debug_outfit_filtering(
             demo_request,
             current_user_id,

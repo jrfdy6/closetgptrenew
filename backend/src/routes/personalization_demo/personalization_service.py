@@ -149,6 +149,7 @@ class PersonalizationService:
         Returns detailed analysis of item filtering decisions.
         """
         try:
+            self.logger.warning(f"🔥 PERSONALIZATION SERVICE: Received semantic_filtering={semantic_filtering} (type={type(semantic_filtering).__name__})")
             self.logger.info(f"🔍 DEBUG FILTERING: Starting debug analysis for user {user_id}")
             self.logger.info(f"🔍 DEBUG FILTERING: Request: occasion={request.occasion}, style={request.style}, mood={request.mood}")
             self.logger.info(f"🔍 DEBUG FILTERING: Wardrobe items: {len(request.wardrobe)}")
@@ -170,6 +171,7 @@ class PersonalizationService:
             )
             
             # Get debug analysis from robust service
+            self.logger.warning(f"🚀 PERSONALIZATION SERVICE: Passing semantic_filtering={semantic_filtering} to robust service")
             debug_result = await self.robust_service._filter_suitable_items_with_debug(context, semantic_filtering=semantic_filtering)
             
             self.logger.info(f"🔍 DEBUG FILTERING: Analysis complete")

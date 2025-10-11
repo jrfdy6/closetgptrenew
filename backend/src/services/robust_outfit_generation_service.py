@@ -1785,6 +1785,9 @@ class RobustOutfitGenerationService:
     async def _filter_suitable_items_with_debug(self, context: GenerationContext, semantic_filtering: bool = None) -> Dict[str, Any]:
         """Apply hard filters and return both valid items and debug analysis"""
         
+        # DEPLOYMENT MARKER: v2025-10-11-semantic-debug
+        logger.warning(f"🚀 ROBUST SERVICE: _filter_suitable_items_with_debug called with semantic_filtering={semantic_filtering} (type={type(semantic_filtering).__name__}, is_none={semantic_filtering is None})")
+        
         # SAFETY: Determine filtering mode using feature flags
         if semantic_filtering is None:
             # Use feature flag to determine mode ONLY if not explicitly set by frontend
