@@ -177,6 +177,9 @@ async def generate_personalized_outfit_from_existing_data(
         user_id = current_user_id
         logger.info(f"🎯 Generating personalized outfit from existing data for user {user_id}")
         
+        # LOG ROBUST SERVICE STATUS ON EVERY REQUEST
+        logger.warning(f"🔍 REQUEST START: ROBUST_SERVICE_AVAILABLE={ROBUST_SERVICE_AVAILABLE}, robust_service={robust_service is not None}")
+        
         # 🔥 TRY ROBUST SERVICE FIRST (if available)
         if ROBUST_SERVICE_AVAILABLE and robust_service:
             logger.warning(f"🚀 ROBUST SERVICE: Using full 6D scoring with diversity for {req.occasion}/{req.style}")
