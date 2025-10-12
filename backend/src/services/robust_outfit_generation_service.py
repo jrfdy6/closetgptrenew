@@ -2027,6 +2027,24 @@ class RobustOutfitGenerationService:
             logger.warning(f"⚠️ Compatibility matrix failed, using fallback: {e}")
             # Fallback to basic constraints if matrix fails
         
+        # GYM/ATHLETIC HARD BLOCKS - Block formal/structured items BEFORE scoring
+        if occasion_lower in ['gym', 'athletic', 'workout']:
+            gym_blocks = [
+                'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
+                'oxford', 'loafer', 'heels', 'derby', 'dress shoe',
+                'dress pants', 'slacks', 'chino', 'khaki', 'trouser', 'cargo',
+                'dockers', 'slim fit pants', 'jean', 'denim',
+                'casual shorts', 'bermuda', 'khaki shorts',
+                'leather jacket', 'biker jacket',
+                'button up', 'button-up', 'button down', 'button-down',
+                'polo', 'henley', 'collar', 'rugby shirt',
+                'slide', 'sandal', 'flip-flop', 'flip flop'
+            ]
+            
+            if any(block in item_type or block in item_name for block in gym_blocks):
+                logger.debug(f"🚫 HARD FILTER: Blocked '{item_name[:40]}' for {occasion}")
+                return False
+        
         # Basic hard constraints (fallback)
         hard_constraints = [
             (item_type == 'tuxedo' and occasion_lower == 'athletic'),
