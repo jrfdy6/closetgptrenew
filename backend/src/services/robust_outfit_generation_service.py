@@ -2098,11 +2098,15 @@ class RobustOutfitGenerationService:
                 logger.info(f"  🚫 FORMALITY: Too casual type '{item_type_lower}' for {occasion}: {-1.5 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
-            # Loungewear: Block overly formal types (but allow almost everything casual)
-            inappropriate_types = ['suit', 'tuxedo', 'blazer', 'dress shirt', 'tie', 'dress pants', 'oxford shoes', 'heels']
+            # Loungewear: Block overly formal types AGGRESSIVELY (this is HOME wear!)
+            inappropriate_types = [
+                'suit', 'tuxedo', 'blazer', 'dress shirt', 'tie', 'dress pants',  # Formal business
+                'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',  # Formal footwear
+                'button up', 'button down', 'dress', 'slacks', 'chinos'  # Semi-formal
+            ]
             if any(formal in item_type_lower or formal in item_name for formal in inappropriate_types):
-                penalty -= 1.0 * occasion_multiplier
-                logger.info(f"  🚫 FORMALITY: Too formal type '{item_type_lower}' for {occasion}: {-1.0 * occasion_multiplier:.2f}")
+                penalty -= 3.0 * occasion_multiplier  # MASSIVE penalty (same as business violations)
+                logger.info(f"  🚫🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} (HOME WEAR!) - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # UNIVERSAL COLOR APPROPRIATENESS: Check color suitability for ALL occasions
