@@ -154,20 +154,21 @@ async def generate_personalized_outfit_from_existing_data(
         # 🔥 LAZY IMPORT: Import robust service on first use (avoid circular imports at module load)
         global ROBUST_SERVICE_AVAILABLE, robust_service
         
+        # ALWAYS import the classes (needed for every request, not just first)
+        from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
+        from src.custom_types.wardrobe import ClothingItem
+        
         if ROBUST_SERVICE_AVAILABLE is None:
-            logger.warning("🔍 FIRST REQUEST: Attempting to import RobustOutfitGenerationService...")
+            logger.warning("🔍 FIRST REQUEST: Attempting to initialize RobustOutfitGenerationService...")
             try:
-                from src.services.robust_outfit_generation_service import RobustOutfitGenerationService, GenerationContext
-                from src.custom_types.wardrobe import ClothingItem
-                
                 robust_service = RobustOutfitGenerationService()
                 ROBUST_SERVICE_AVAILABLE = True
-                logger.warning("✅ ROBUST SERVICE: Successfully imported and initialized!")
+                logger.warning("✅ ROBUST SERVICE: Successfully initialized!")
             except Exception as e:
                 ROBUST_SERVICE_AVAILABLE = False
                 robust_service = None
                 import traceback
-                logger.error(f"❌ ROBUST SERVICE: Import/init failed: {e}")
+                logger.error(f"❌ ROBUST SERVICE: Initialization failed: {e}")
                 logger.error(f"❌ ROBUST SERVICE: Traceback:\n{traceback.format_exc()}")
         
         # LOG ROBUST SERVICE STATUS
