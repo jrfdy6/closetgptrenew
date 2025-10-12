@@ -106,6 +106,12 @@ PATTERN_KEYWORDS = {
     'zebra': 'zebra',
 }
 
+WAISTBAND_KEYWORDS = {
+    'elastic': ['sweatpants', 'sweat pants', 'sweat short', 'elastic waist', 'elasticized'],
+    'drawstring': ['drawstring', 'draw string', 'tie waist'],
+    'belt_loops': ['dress pants', 'slacks', 'chinos', 'chino', 'khaki', 'trousers', 'trouser', 'jeans', 'jean', 'denim', 'cargo', 'dockers', 'pleated'],
+}
+
 
 def infer_wear_layer(item_type: str, item_name: str) -> str:
     """Infer wearLayer from item type and name."""
@@ -195,6 +201,48 @@ def infer_pattern(item_name: str) -> str:
             return pattern
     
     return 'solid'
+
+
+def infer_waistband_type(item_name: str, item_type: str, occasions: List[str], formality: str) -> str:
+    """Infer waistband type from item name, type, occasions, and formality."""
+    item_name_lower = item_name.lower()
+    item_type_lower = item_type.lower()
+    
+    # Only analyze bottoms
+    bottom_types = ['pants', 'shorts', 'pant', 'short', 'trouser', 'jogger', 'sweatpants', 'jeans']
+    is_bottom = item_type_lower in bottom_types or any(bt in item_name_lower for bt in bottom_types)
+    
+    if not is_bottom:
+        return 'none'
+    
+    # Check for elastic + drawstring keywords
+    has_elastic = any(keyword in item_name_lower for keyword in WAISTBAND_KEYWORDS['elastic'])
+    has_drawstring = any(keyword in item_name_lower for keyword in WAISTBAND_KEYWORDS['drawstring'])
+    
+    if has_elastic and has_drawstring:
+        return 'elastic_drawstring'
+    elif has_elastic:
+        return 'elastic'
+    elif has_drawstring:
+        return 'drawstring'
+    elif any(keyword in item_name_lower for keyword in WAISTBAND_KEYWORDS['belt_loops']):
+        return 'belt_loops'
+    
+    # Check formality level
+    if formality in ['Formal', 'Semi-Formal', 'Business Casual']:
+        return 'belt_loops'
+    
+    # Check occasions
+    occasions_lower = [o.lower() for o in occasions] if occasions else []
+    if any(occ in occasions_lower for occ in ['athletic', 'gym', 'loungewear', 'lounge']):
+        return 'elastic_drawstring'
+    
+    # For casual formality, default to belt_loops (most casual pants like jeans have belt loops)
+    if formality == 'Casual':
+        return 'belt_loops'
+    
+    # Default: button_zip for ambiguous cases
+    return 'button_zip'
 
 
 def infer_fabric_weight(item_type: str, seasons: List[str]) -> str:
@@ -315,6 +363,11 @@ def backfill_item(item: Dict[str, Any], dry_run: bool = True) -> Dict[str, Any]:
     if not visual_attrs.get('material'):
         visual_attrs['material'] = 'cotton'
         fields_added.append('material')
+    
+    if not visual_attrs.get('waistbandType'):
+        formality = visual_attrs.get('formalLevel', 'Casual')
+        visual_attrs['waistbandType'] = infer_waistband_type(item_name, item_type, item.get('occasion', []), formality)
+        fields_added.append('waistbandType')
     
     # Update metadata with visual_attrs
     metadata['visualAttributes'] = visual_attrs

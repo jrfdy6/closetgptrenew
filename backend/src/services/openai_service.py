@@ -103,7 +103,8 @@ async def analyze_image_with_gpt4(image_path: str) -> dict:
                                 "formalLevel": {"type": "string", "enum": ["Casual", "Smart Casual", "Business Casual", "Semi-Formal", "Formal"]},
                                 "genderTarget": {"type": "string", "enum": ["Men", "Women", "Unisex"]},
                                 "backgroundRemoved": {"type": "boolean"},
-                                "hangerPresent": {"type": "boolean"}
+                                "hangerPresent": {"type": "boolean"},
+                                "waistbandType": {"type": "string", "enum": ["belt_loops", "elastic", "drawstring", "elastic_drawstring", "button_zip", "none"]}
                             },
                             "required": ["wearLayer", "sleeveLength", "material", "pattern", "fit", "formalLevel"]
                         },
@@ -165,6 +166,13 @@ ADDITIONAL VISUALATTRIBUTES (Required):
 - material: cotton/wool/silk/polyester/denim/etc.
 - backgroundRemoved: true/false (is background removed?)
 - hangerPresent: true/false (is item on a hanger?)
+- waistbandType: FOR PANTS/SHORTS ONLY - Analyze waistband closure type:
+  * belt_loops: Traditional pants with belt loops (dress pants, jeans, chinos)
+  * elastic: Full elastic waistband (sweatpants, some athletic wear)
+  * drawstring: Drawstring closure (joggers, some shorts)
+  * elastic_drawstring: Combination of elastic + drawstring (athletic pants, loungewear)
+  * button_zip: Button/zipper only without belt loops (some formal pants)
+  * none: Not applicable (for non-bottom items like tops, dresses, etc.)
 
 ROOT-LEVEL FIELDS (Also required):
 - bodyTypeCompatibility: Array of body types this flatters (Rectangle/Hourglass/Triangle/Inverted Triangle/Apple/Oval)
@@ -205,7 +213,8 @@ EXAMPLE OUTPUT:
       "formalLevel": "Casual",
       "genderTarget": "Unisex",
       "backgroundRemoved": false,
-      "hangerPresent": true
+      "hangerPresent": true,
+      "waistbandType": "none"
     },
     "naturalDescription": "A loose, short-sleeve, ribbed sweater. This is an outer layer item that should not be worn under long-sleeve shirts."
   }

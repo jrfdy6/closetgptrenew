@@ -2087,10 +2087,15 @@ class RobustOutfitGenerationService:
                 'dress pants', 'slacks', 'chinos', 'khaki', 'trouser', 'cargo',
                 'dockers', 'slim fit pants',  # Dockers brand = formal pants
                 'jeans', 'denim',  # Too stiff for working out
+                'casual shorts', 'bermuda shorts', 'khaki shorts',  # Structured shorts, not athletic
                 # Formal outerwear
                 'blazer', 'sport coat', 'leather jacket', 'biker jacket',
-                # Structured shirts
-                'dress shirt', 'button up', 'button down', 'button-up', 'button-down'
+                # Structured/collared shirts (gym should be athletic or basic tees ONLY!)
+                'dress shirt', 'button up', 'button down', 'button-up', 'button-down',
+                'polo', 'henley', 'collared', 'collar',  # NO collared shirts for gym!
+                'rugby shirt',  # Too structured
+                # Non-athletic footwear
+                'slide', 'slides', 'sandal', 'sandals', 'flip-flop', 'flip flop'
             ]
             
             if any(block in item_type_lower or block in item_name for block in gym_blocks):
@@ -2100,37 +2105,65 @@ class RobustOutfitGenerationService:
             # POSITIVE FILTER FOR GYM SHOES: Only allow athletic footwear
             category = self._get_item_category(item)
             if category == 'shoes':
-                # Check if shoes are athletic/casual (allow these)
+                # Check if shoes are athletic (ONLY sneakers/running shoes)
                 athletic_shoe_keywords = ['sneaker', 'athletic', 'running', 'training', 'sport', 
                                          'basketball', 'tennis', 'cross-trainer', 'gym shoe',
-                                         'slide', 'sandal', 'flip-flop']
+                                         'workout shoe', 'performance shoe']
+                # Slides/sandals removed - not appropriate for gym!
                 is_athletic_shoe = any(kw in item_name or kw in item_type_lower for kw in athletic_shoe_keywords)
                 
-                # Check if shoes are formal (block these)
-                formal_shoe_keywords = ['oxford', 'loafer', 'derby', 'monk', 'dress shoe', 
-                                       'heel', 'pump', 'formal', 'brogue', 'wingtip']
-                is_formal_shoe = any(kw in item_name or kw in item_type_lower for kw in formal_shoe_keywords)
+                # Check if shoes are formal OR casual (block both)
+                non_gym_shoe_keywords = ['oxford', 'loafer', 'derby', 'monk', 'dress shoe', 
+                                        'heel', 'pump', 'formal', 'brogue', 'wingtip',
+                                        'slide', 'slides', 'sandal', 'flip-flop', 'flip flop',
+                                        'boat shoe', 'moccasin']
+                is_non_gym_shoe = any(kw in item_name or kw in item_type_lower for kw in non_gym_shoe_keywords)
                 
-                if is_formal_shoe:
-                    penalty -= 5.0 * occasion_multiplier  # Block formal shoes
-                    logger.debug(f"  🚫🚫🚫 GYM SHOES: Blocked formal shoe '{item_name[:40]}' ({-5.0 * occasion_multiplier:.2f})")
+                if is_non_gym_shoe:
+                    penalty -= 5.0 * occasion_multiplier  # Block non-athletic shoes
+                    logger.debug(f"  🚫🚫🚫 GYM SHOES: Blocked non-athletic shoe '{item_name[:40]}' ({-5.0 * occasion_multiplier:.2f})")
                 elif not is_athletic_shoe:
-                    # Generic "shoes" with no clear type - penalize but don't eliminate completely
-                    penalty -= 2.0 * occasion_multiplier
-                    logger.debug(f"  ⚠️ GYM SHOES: Generic/unclear shoe type '{item_name[:40]}' ({-2.0 * occasion_multiplier:.2f})")
+                    # Generic "shoes" with no clear type - penalize heavily
+                    penalty -= 3.0 * occasion_multiplier
+                    logger.debug(f"  🚫🚫 GYM SHOES: Generic/unclear shoe type '{item_name[:40]}' ({-3.0 * occasion_multiplier:.2f})")
+                else:
+                    # Athletic shoes get a bonus!
+                    penalty += 0.5 * occasion_multiplier
+                    logger.debug(f"  ✅ GYM SHOES: Athletic shoe bonus '{item_name[:40]}' ({+0.5 * occasion_multiplier:.2f})")
             # Boost athletic-appropriate items
-            elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
+            if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for exact athletic match
                 logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif 'sport' in item_occasion_lower:
                 penalty += 1.3 * occasion_multiplier  # VERY HIGH boost for 'sport' (almost as good as athletic)
                 logger.info(f"  ✅✅ SPORT: Sport occasion tag for Athletic: {+1.3 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['casual', 'beach', 'vacation']):
-                penalty += 0.8 * occasion_multiplier  # GOOD boost for casual items (acceptable for athletic)
-                logger.info(f"  ✅ SECONDARY: Casual occasion tag for Athletic (acceptable): {+0.8 * occasion_multiplier:.2f}")
+                penalty += 0.4 * occasion_multiplier  # REDUCED boost for casual items (less ideal for gym)
+                logger.info(f"  ⚠️ SECONDARY: Casual occasion tag for Athletic (less ideal): {+0.4 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference']):
-                penalty -= 1.0 * occasion_multiplier  # REDUCED penalty (was -2.0, now -1.0 to allow some items through)
-                logger.info(f"  🚫 REDUCED: Formal occasion tag for Athletic request: {-1.0 * occasion_multiplier:.2f}")
+                penalty -= 2.0 * occasion_multiplier  # STRONG penalty for formal items
+                logger.info(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
+            else:
+                # NO relevant occasion tags for gym - apply penalty
+                penalty -= 0.5 * occasion_multiplier  # Items without athletic/casual tags are less suitable
+                logger.debug(f"  ⚠️ GYM: No relevant occasion tags ({-0.5 * occasion_multiplier:.2f})")
+            
+            # WAISTBAND TYPE ANALYSIS for gym (same logic as loungewear)
+            waistband_type = None
+            if hasattr(item, 'metadata') and item.metadata:
+                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+            
+            if waistband_type:
+                if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
+                    # Perfect for gym - elastic waistbands for flexibility
+                    penalty += 1.5 * occasion_multiplier
+                    logger.debug(f"  ✅✅✅ WAISTBAND: Elastic/drawstring waistband ideal for gym: {+1.5 * occasion_multiplier:.2f}")
+                elif waistband_type == 'belt_loops':
+                    # Belt loops = structured pants, bad for gym
+                    penalty -= 3.0 * occasion_multiplier  # Strong penalty
+                    logger.debug(f"  🚫🚫 WAISTBAND: Belt loops too structured for gym ({-3.0 * occasion_multiplier:.2f})")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
@@ -2198,18 +2231,18 @@ class RobustOutfitGenerationService:
         # KEYWORD-BASED SCORING: Secondary scoring based on item names (LIGHT penalties only)
         # ═══════════════════════════════════════════════════════════════════════
         
-        if occasion_lower == 'athletic':
+        if occasion_lower in ['athletic', 'gym', 'workout']:  # ADD GYM
             # BOOST athletic/sport keywords strongly
             if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'training', 'performance']):
                 penalty += 0.6 * occasion_multiplier  # Strong boost for primary athletic keywords
                 logger.info(f"  ✅ KEYWORD: Athletic keyword in name: {+0.6 * occasion_multiplier:.2f}")
-            elif any(word in item_name for word in ['tank', 'sneaker', 'jogger', 'track', 'jersey', 'nike', 'adidas']):
+            elif any(word in item_name for word in ['tank', 'sneaker', 'jogger', 'track', 'jersey', 'nike', 'adidas', 'shorts']):
                 penalty += 0.5 * occasion_multiplier  # Good boost for sport-related items/brands
                 logger.info(f"  ✅ KEYWORD: Sport-related keyword/brand: {+0.5 * occasion_multiplier:.2f}")
-            # LIGHT penalties for formal items (don't eliminate completely)
-            elif any(word in item_name for word in ['button', 'dress', 'formal', 'oxford', 'blazer', 'dockers']):
-                penalty -= 0.1 * occasion_multiplier  # Very light penalty
-                logger.info(f"  ⚠️ KEYWORD: Formal keyword penalty: {-0.1 * occasion_multiplier:.2f}")
+            # PENALTIES for non-athletic items
+            elif any(word in item_name for word in ['polo', 'button', 'dress', 'formal', 'oxford', 'blazer', 'dockers', 'slide']):
+                penalty -= 0.5 * occasion_multiplier  # Penalty for non-athletic items
+                logger.info(f"  ⚠️ KEYWORD: Non-athletic keyword penalty: {-0.5 * occasion_multiplier:.2f}")
         
         elif occasion_lower == 'business':
             # Light penalties for athletic items
@@ -2242,7 +2275,7 @@ class RobustOutfitGenerationService:
             occasion_formality = {
                 'loungewear': 0,
                 'gym': 0,
-                'athletic': 1,
+                'athletic': 0,  # FIXED: Was 1, should be 0 to match gym
                 'casual': 2,
                 'brunch': 2,
                 'date': 3,

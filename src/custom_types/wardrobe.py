@@ -312,6 +312,7 @@ class VisualAttributes(BaseModel):
     backgroundRemoved: Optional[bool] = None
     wearLayer: Optional[str] = None
     formalLevel: Optional[str] = None
+    waistbandType: Optional[str] = None  # "belt_loops", "elastic", "drawstring", "elastic_drawstring", "button_zip", "none"
     # New layering properties
     layerLevel: Optional[LayerLevel] = None
     warmthFactor: Optional[WarmthFactor] = None
