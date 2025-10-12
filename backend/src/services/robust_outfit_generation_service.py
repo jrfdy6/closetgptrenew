@@ -2106,19 +2106,26 @@ class RobustOutfitGenerationService:
             
             # ABSOLUTE BLOCKS for loungewear (formal/structured items should NEVER appear)
             absolute_blocks = [
+                # Formal wear
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
+                # Formal shoes
                 'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
-                'dress pants', 'slacks', 'chinos',
-                'leather jacket', 'biker jacket', 'jacket', 'coat',  # ALL jackets blocked
+                # Structured bottoms (non-elastic waistbands)
+                'dress pants', 'slacks', 'chinos', 'khaki', 'trouser', 'cargo',
+                'jeans', 'denim',  # Too stiff/structured
+                # All jackets
+                'leather jacket', 'biker jacket', 'jacket', 'coat',
+                # Collared/structured shirts (loungewear should be collarless!)
                 'button up', 'button down', 'button-up', 'button-down',
-                'belt', 'formal',
-                'jeans', 'denim'  # Too stiff/structured for loungewear
+                'polo', 'henley', 'collared', 'collar',  # NO collars for loungewear
+                # Accessories
+                'belt', 'formal'
             ]
             
             if any(block in item_type_lower or block in item_name for block in absolute_blocks):
                 penalty -= 5.0 * occasion_multiplier  # EXTREME penalty - eliminates item
-                logger.debug(f"  🚫🚫🚫 LOUNGEWEAR: Formal/structured item BLOCKED: '{item_type_lower}' ({-5.0 * occasion_multiplier:.2f})")
-            # Boost loungewear-appropriate items
+                logger.debug(f"  🚫🚫🚫 LOUNGEWEAR: Blocked '{item_name[:40]}' - formal/structured/collared ({-5.0 * occasion_multiplier:.2f})")
+            # Boost loungewear-appropriate items (elastic waistbands, no collars)
             elif any(occ in item_occasion_lower for occ in ['loungewear', 'lounge', 'relaxed', 'home', 'casual']):
                 penalty += 1.2 * occasion_multiplier
                 logger.debug(f"  ✅✅ PRIMARY: Loungewear occasion tag match: {+1.2 * occasion_multiplier:.2f}")
