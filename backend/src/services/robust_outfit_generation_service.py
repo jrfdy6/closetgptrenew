@@ -406,13 +406,6 @@ class RobustOutfitGenerationService:
             raise
     
     async def _generate_outfit_internal(self, context: GenerationContext) -> OutfitGeneratedOutfit:
-        import time
-        start_time = time.time()
-        
-        def log_timing(stage):
-            elapsed = time.time() - start_time
-            logger.warning(f"⏱️ TIMING: {stage} completed in {elapsed:.2f}s")
-        
         """Internal outfit generation logic with full error handling"""
         
         # ═══════════════════════════════════════════════════════════════════════
@@ -579,7 +572,6 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 FILTERING STEP 1: Starting item filtering for {context.occasion} occasion")
         suitable_items = await self._filter_suitable_items(context)
         logger.info(f"✅ FILTERING STEP 1: {len(suitable_items)} suitable items passed from {len(context.wardrobe)} total")
-        log_timing("Hard filter")
         
         if len(suitable_items) == 0:
             logger.error(f"🚨 CRITICAL: No suitable items found after filtering!")
@@ -624,9 +616,7 @@ class RobustOutfitGenerationService:
         ]
         
         # Wait for all analyzers to complete
-        logger.warning(f"⏱️ TIMING: About to run analyzers...")
         await asyncio.gather(*analyzer_tasks)
-        log_timing("All analyzers")
         
         # DEBUG: Check analyzer outputs for first 3 items
         for i, (item_id, scores) in enumerate(list(item_scores.items())[:3]):
@@ -799,9 +789,7 @@ class RobustOutfitGenerationService:
             # Don't return here, let cohesive composition try first
         
         # Pass scored items to cohesive composition
-        logger.warning(f"⏱️ TIMING: About to run cohesive composition...")
         outfit = await self._cohesive_composition_with_scores(context, item_scores)
-        log_timing("Cohesive composition")
         
         # Check if cohesive composition failed to generate items
         if not outfit.items or len(outfit.items) == 0:
@@ -2078,89 +2066,7 @@ class RobustOutfitGenerationService:
         penalty = 0.0
         
         # ═══════════════════════════════════════════════════════════════════════
-        # UNIVERSAL FORMALITY VALIDATOR: Check item type appropriateness for ALL occasions
-        # This runs FIRST before any tag-based scoring
-        # ═══════════════════════════════════════════════════════════════════════
-        
-        item_type_lower = str(getattr(item, 'type', '')).lower()
-        if hasattr(getattr(item, 'type', None), 'value'):
-            item_type_lower = getattr(item, 'type').value.lower()
-        
-        # Define formality rules for each occasion type
-        if occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
-            # Formal occasions: Block casual types
-            inappropriate_types = ['t-shirt', 'tshirt', 't shirt', 'tank', 'tank top', 'hoodie', 'sweatshirt', 
-                                 'sweatpants', 'athletic shorts', 'sandals', 'flip-flops', 'slides', 'sneakers']
-            if any(casual in item_type_lower or casual in item_name for casual in inappropriate_types):
-                penalty -= 3.0 * occasion_multiplier
-                logger.debug(f"  🚫🚫🚫 FORMALITY: Casual type '{item_type_lower}' for {occasion} - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
-        
-        elif occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
-            # Athletic occasions: Block formal types
-            inappropriate_types = ['suit', 'tuxedo', 'dress shirt', 'dress pants', 'blazer', 'oxford shoes', 'loafers', 'heels']
-            if any(formal in item_type_lower or formal in item_name for formal in inappropriate_types):
-                penalty -= 2.0 * occasion_multiplier
-                logger.debug(f"  🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} - BLOCKED: {-2.0 * occasion_multiplier:.2f}")
-        
-        elif occasion_lower in ['party', 'dinner', 'date']:
-            # Social occasions: Block extremely casual or athletic types
-            inappropriate_types = ['sweatpants', 'athletic shorts', 'gym', 'workout', 'tank top', 'flip-flops', 'slides']
-            if any(casual in item_type_lower or casual in item_name for casual in inappropriate_types):
-                penalty -= 1.5 * occasion_multiplier
-                logger.debug(f"  🚫 FORMALITY: Too casual type '{item_type_lower}' for {occasion}: {-1.5 * occasion_multiplier:.2f}")
-        
-        elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
-            # Loungewear: Block overly formal types AGGRESSIVELY (this is HOME wear!)
-            inappropriate_types = [
-                'suit', 'tuxedo', 'blazer', 'dress shirt', 'tie', 'dress pants',  # Formal business
-                'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',  # Formal footwear
-                'button up', 'button down', 'dress', 'slacks', 'chinos'  # Semi-formal
-            ]
-            if any(formal in item_type_lower or formal in item_name for formal in inappropriate_types):
-                penalty -= 3.0 * occasion_multiplier  # MASSIVE penalty (same as business violations)
-                logger.debug(f"  🚫🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} (HOME WEAR!) - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
-        
-        # ═══════════════════════════════════════════════════════════════════════
-        # UNIVERSAL COLOR APPROPRIATENESS: Check color suitability for ALL occasions
-        # ═══════════════════════════════════════════════════════════════════════
-        
-        item_color = self.safe_get_item_attr(item, 'color', '').lower()
-        category = self._get_item_category(item)
-        
-        # Business/Formal: Conservative colors only
-        if occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
-            if category == 'shoes':
-                # Only neutral/conservative shoe colors for formal
-                inappropriate_colors = ['red', 'bright red', 'neon', 'pink', 'lime', 'orange', 'yellow', 'purple', 'bright blue']
-                if any(color in item_color for color in inappropriate_colors):
-                    penalty -= 0.8
-                    logger.info(f"  ⚠️ COLOR: Bold shoe color '{item_color}' for {occasion}: {-0.8:.2f}")
-            elif category == 'tops':
-                # Avoid overly bright/neon tops for formal
-                inappropriate_colors = ['neon', 'lime', 'hot pink', 'bright orange', 'electric blue']
-                if any(color in item_color for color in inappropriate_colors):
-                    penalty -= 0.5
-                    logger.info(f"  ⚠️ COLOR: Overly bright top color '{item_color}' for {occasion}: {-0.5:.2f}")
-        
-        # Athletic: Penalize overly formal/muted colors
-        elif occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
-            # Athletic usually benefits from bright/energetic colors, penalize overly formal
-            if category in ['tops', 'bottoms']:
-                overly_formal_colors = ['charcoal', 'navy pinstripe', 'suit gray']
-                if any(color in item_color for color in overly_formal_colors):
-                    penalty -= 0.3
-                    logger.info(f"  ⚠️ COLOR: Overly formal color '{item_color}' for {occasion}: {-0.3:.2f}")
-        
-        # Casual: Very permissive, but avoid formal suit colors
-        elif occasion_lower in ['casual', 'brunch', 'weekend']:
-            if category in ['bottoms', 'tops']:
-                overly_formal_colors = ['tuxedo black', 'suit gray']
-                if any(color in item_color for color in overly_formal_colors):
-                    penalty -= 0.2
-                    logger.info(f"  ⚠️ COLOR: Too formal color '{item_color}' for {occasion}: {-0.2:.2f}")
-        
-        # ═══════════════════════════════════════════════════════════════════════
-        # PRIMARY TAG-BASED SCORING: Check occasion/style tags AFTER formality validation
+        # PRIMARY TAG-BASED SCORING: Check occasion/style tags FIRST
         # This takes precedence over name-based keyword matching
         # ═══════════════════════════════════════════════════════════════════════
         
@@ -2168,7 +2074,7 @@ class RobustOutfitGenerationService:
         if occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
             if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for exact athletic match
-                logger.debug(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+                logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif 'sport' in item_occasion_lower:
                 penalty += 1.3 * occasion_multiplier  # VERY HIGH boost for 'sport' (almost as good as athletic)
                 logger.info(f"  ✅✅ SPORT: Sport occasion tag for Athletic: {+1.3 * occasion_multiplier:.2f}")
@@ -2180,33 +2086,47 @@ class RobustOutfitGenerationService:
                 logger.info(f"  🚫 REDUCED: Formal occasion tag for Athletic request: {-1.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
-            # Tag-based scoring (formality check already done above)
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
-                logger.debug(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+                logger.info(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
                 penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
-                logger.debug(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
+                logger.info(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['casual', 'brunch', 'weekend']:
             if any(occ in item_occasion_lower for occ in ['casual', 'brunch', 'weekend', 'vacation']):
                 penalty += 1.0 * occasion_multiplier  # Good boost for matching occasion tag
-                logger.debug(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
+                logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
-            # Loungewear: Comfortable, casual, at-home clothing
-            if any(occ in item_occasion_lower for occ in ['loungewear', 'lounge', 'relaxed', 'home', 'casual', 'weekend']):
-                penalty += 1.2 * occasion_multiplier  # Strong boost for loungewear/casual items
+            # Loungewear: Block ALL formal and structured items AGGRESSIVELY
+            item_type_lower = str(getattr(item, 'type', '')).lower()
+            if hasattr(getattr(item, 'type', None), 'value'):
+                item_type_lower = getattr(item, 'type').value.lower()
+            
+            # ABSOLUTE BLOCKS for loungewear (formal/structured items should NEVER appear)
+            absolute_blocks = [
+                'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
+                'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
+                'dress pants', 'slacks', 'chinos',
+                'leather jacket', 'biker jacket', 'jacket', 'coat',  # ALL jackets blocked
+                'button up', 'button down', 'button-up', 'button-down',
+                'belt', 'formal'
+            ]
+            
+            if any(block in item_type_lower or block in item_name for block in absolute_blocks):
+                penalty -= 5.0 * occasion_multiplier  # EXTREME penalty - eliminates item
+                logger.debug(f"  🚫🚫🚫 LOUNGEWEAR: Formal/structured item BLOCKED: '{item_type_lower}' ({-5.0 * occasion_multiplier:.2f})")
+            # Boost loungewear-appropriate items
+            elif any(occ in item_occasion_lower for occ in ['loungewear', 'lounge', 'relaxed', 'home', 'casual']):
+                penalty += 1.2 * occasion_multiplier
                 logger.debug(f"  ✅✅ PRIMARY: Loungewear occasion tag match: {+1.2 * occasion_multiplier:.2f}")
-            elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview']):
-                penalty -= 1.5 * occasion_multiplier  # Penalize formal items for loungewear
-                logger.debug(f"  🚫 PRIMARY: Formal occasion tag for Loungewear request: {-1.5 * occasion_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # KEYWORD-BASED SCORING: Secondary scoring based on item names (LIGHT penalties only)
         # ═══════════════════════════════════════════════════════════════════════
         
-        if occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
+        if occasion_lower == 'athletic':
             # BOOST athletic/sport keywords strongly
             if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'training', 'performance']):
                 penalty += 0.6 * occasion_multiplier  # Strong boost for primary athletic keywords
@@ -2226,20 +2146,6 @@ class RobustOutfitGenerationService:
             # Boost business items
             elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
                 penalty += 0.5 * occasion_multiplier
-            # Note: Color appropriateness check is now handled universally above
-        
-        elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
-            # BOOST loungewear/comfort keywords strongly
-            if any(word in item_name for word in ['lounge', 'sweat', 'jogger', 'hoodie', 'comfort', 'relaxed', 'cozy', 'soft']):
-                penalty += 0.8 * occasion_multiplier  # Strong boost for loungewear keywords
-                logger.debug(f"  ✅ KEYWORD: Loungewear keyword in name: {+0.8 * occasion_multiplier:.2f}")
-            elif any(word in item_name for word in ['t-shirt', 'tee', 'tank', 'shorts', 'legging', 'pajama', 'sleep']):
-                penalty += 0.6 * occasion_multiplier  # Good boost for casual comfort items
-                logger.debug(f"  ✅ KEYWORD: Casual comfort keyword: {+0.6 * occasion_multiplier:.2f}")
-            # LIGHT penalties for formal items (don't completely eliminate, just discourage)
-            elif any(word in item_name for word in ['suit', 'blazer', 'dress shirt', 'formal', 'oxford', 'heel']):
-                penalty -= 0.3 * occasion_multiplier  # Light penalty for formal items
-                logger.debug(f"  ⚠️ KEYWORD: Formal keyword penalty for loungewear: {-0.3 * occasion_multiplier:.2f}")
         
         return penalty
     
@@ -2400,9 +2306,6 @@ class RobustOutfitGenerationService:
         elif 'athletic' in occasion_lower or 'gym' in occasion_lower:
             # Athletic: 3-4 items (simple, functional)
             return random.randint(3, 4)
-        elif 'loungewear' in occasion_lower or 'lounge' in occasion_lower or 'relaxed' in occasion_lower:
-            # Loungewear: 2-3 items (minimal, comfortable)
-            return random.randint(2, 3)
         elif 'party' in occasion_lower or 'date' in occasion_lower:
             # Social: 4-5 items (stylish but not overdone)
             return random.randint(4, 5)
@@ -2810,39 +2713,6 @@ class RobustOutfitGenerationService:
         
         return score
     
-    def _get_color_family(self, color: str) -> str:
-        """Get color family for diversity checking"""
-        if not color or color == 'unknown':
-            return 'unknown'
-        
-        color = color.lower()
-        
-        # Neutral colors (can have multiple)
-        if any(neutral in color for neutral in ['black', 'white', 'gray', 'grey', 'beige', 'cream', 'tan', 'khaki', 'brown']):
-            return 'neutral'
-        
-        # Green family (teal, forest green, olive, money green, etc.)
-        if any(green in color for green in ['green', 'teal', 'olive', 'emerald', 'mint', 'lime', 'sage']):
-            return 'green'
-        
-        # Blue family
-        if any(blue in color for blue in ['blue', 'navy', 'cobalt', 'azure', 'cyan', 'turquoise']):
-            return 'blue'
-        
-        # Red family
-        if any(red in color for red in ['red', 'burgundy', 'crimson', 'maroon', 'wine']):
-            return 'red'
-        
-        # Pink/Purple family
-        if any(pink in color for pink in ['pink', 'purple', 'magenta', 'violet', 'lavender', 'fuchsia']):
-            return 'pink_purple'
-        
-        # Yellow/Orange family
-        if any(yellow in color for yellow in ['yellow', 'orange', 'gold', 'amber', 'mustard', 'coral']):
-            return 'yellow_orange'
-        
-        return 'other'
-    
     def _get_item_category(self, item: ClothingItem) -> str:
         """Get category for an item"""
         item_type = getattr(item, 'type', '')
@@ -2885,7 +2755,7 @@ class RobustOutfitGenerationService:
         category = (safe_get(category_map, item_type, 'other') if category_map else 'other')
         
         # 🔍 DIAGNOSTIC LOGGING - Track category assignment for debugging
-        logger.debug(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
+        logger.info(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
         
         return category
     
@@ -3398,12 +3268,11 @@ class RobustOutfitGenerationService:
         favorited_items = set()  # Set of favorited item IDs
         
         try:
-            # Get user's outfit history with ratings (REDUCED LIMIT for performance)
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(20)  # Reduced from 100 to 20
-            outfits = list(outfits_ref.stream())  # Convert to list immediately
-            logger.info(f"📊 Feedback data loaded: {len(outfits)} outfits")
+            # Get user's outfit history with ratings
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(100)
+            outfits = outfits_ref.stream()
             
-            for outfit_doc in outfits[:20]:  # Hard cap at 20 outfits
+            for outfit_doc in outfits:
                 outfit_data = outfit_doc.to_dict()
                 rating = (safe_get(outfit_data, 'rating') if outfit_data else None)
                 is_liked = (safe_get(outfit_data, 'isLiked', False) if outfit_data else False)
@@ -3477,12 +3346,6 @@ class RobustOutfitGenerationService:
             logger.info(f"🔄 WEAR COUNT STRATEGY: Boosting rarely-worn items (diversity mode)")
         else:
             logger.info(f"🔄 WEAR COUNT STRATEGY: Boosting popular items (favorites mode)")
-        
-        # ═══════════════════════════════════════════════════════════════════════
-        # PRE-COMPUTE STYLE EVOLUTION DATA (once for all items, not per-item!)
-        # ═══════════════════════════════════════════════════════════════════════
-        
-        style_evolution_data = await self._precompute_style_evolution_data(user_id, context, db)
         
         # ═══════════════════════════════════════════════════════════════════════
         # SCORE EACH ITEM BASED ON USER FEEDBACK
@@ -3584,11 +3447,14 @@ class RobustOutfitGenerationService:
             # 6. ADVANCED STYLE EVOLUTION TRACKING (Netflix/Spotify-style)
             # ─────────────────────────────────────────────────────────────
             
-            # Build comprehensive preference profile for this item (using pre-computed data)
-            evolution_score = self._calculate_style_evolution_score_from_cache(
+            # Build comprehensive preference profile for this item
+            evolution_score = await self._calculate_style_evolution_score(
                 item=item,
-                style_evolution_data=style_evolution_data,
-                context=context
+                user_id=user_id,
+                current_time=current_time,
+                outfit_ratings=outfit_ratings,
+                context=context,
+                db=db
             )
             
             base_score += evolution_score
@@ -3735,7 +3601,7 @@ class RobustOutfitGenerationService:
             category = self._get_item_category(item)
             item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
             
-            logger.debug(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
+            logger.info(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
             
             # Determine layering level
             layer_level = 'tops'  # Default
@@ -3754,26 +3620,13 @@ class RobustOutfitGenerationService:
             # Essential categories first
             if category in ['tops', 'bottoms', 'shoes']:
                 if category not in categories_filled:
-                    # COLOR DIVERSITY CHECK: Avoid too many similar colors
-                    item_color = self.safe_get_item_attr(item, 'color', '').lower()
-                    selected_colors = [self.safe_get_item_attr(i, 'color', '').lower() for i in selected_items]
-                    
-                    # Check if we already have 2 items with similar color base (green, blue, red, etc.)
-                    color_family = self._get_color_family(item_color)
-                    selected_color_families = [self._get_color_family(c) for c in selected_colors if c]
-                    same_color_count = selected_color_families.count(color_family)
-                    
-                    if same_color_count >= 2 and color_family != 'neutral':
-                        # Skip this item if we already have 2 items in same color family (unless neutral)
-                        logger.info(f"  ⏭️ COLOR DIVERSITY: {self.safe_get_item_name(item)} ({item_color}) skipped - already have {same_color_count} {color_family} items")
-                    else:
-                        selected_items.append(item)
-                        categories_filled[category] = True
-                        logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f}, color={item_color})")
+                    selected_items.append(item)
+                    categories_filled[category] = True
+                    logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 else:
-                    logger.debug(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
+                    logger.info(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
             else:
-                logger.debug(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
+                logger.info(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
         
         logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
         
@@ -3786,19 +3639,9 @@ class RobustOutfitGenerationService:
             logger.info(f"🚨 EMERGENCY BYPASS: Forced selection of {self.safe_get_item_name(first_item)}")
         
         # Phase 2: Add layering pieces based on target count
-        logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces (target: {target_items}, current: {len(selected_items)})")
-        phase2_iterations = 0
-        max_phase2_iterations = 100  # Hard cap to prevent infinite loops
-        
+        logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
         for item_id, score_data in sorted_items:
-            # SAFEGUARD: Hard cap on iterations
-            phase2_iterations += 1
-            if phase2_iterations > max_phase2_iterations:
-                logger.warning(f"🚨 PHASE 2: Hit iteration limit ({max_phase2_iterations}), stopping")
-                break
-            
             if len(selected_items) >= target_items:
-                logger.debug(f"📦 PHASE 2: Reached target ({target_items} items), stopping")
                 break
             
             item = score_data['item']
@@ -3817,9 +3660,9 @@ class RobustOutfitGenerationService:
                 if not has_outerwear and (temp < 65 or occasion_lower in ['business', 'formal']):
                     selected_items.append(item)
                     categories_filled['outerwear'] = True  # Track that we added outerwear
-                    logger.info(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    logger.warning(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif has_outerwear:
-                    logger.debug(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} - SKIPPED (already have outerwear)")
+                    logger.warning(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} - SKIPPED (already have outerwear)")
             
             elif category == 'tops' and score_data['composite_score'] > 0.6:
                 # ✅ FIX: Check if mid-layer already exists before adding
@@ -3833,9 +3676,9 @@ class RobustOutfitGenerationService:
                 if is_mid_layer and not has_mid_layer and temp < 70:
                     selected_items.append(item)
                     categories_filled['mid'] = True  # Track that we added mid-layer
-                    logger.info(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    logger.warning(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif is_mid_layer and has_mid_layer:
-                    logger.debug(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
+                    logger.warning(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
             
             elif category == 'accessories' and score_data['composite_score'] > 0.7:
                 # Accessories can have multiple items (belts, watches, etc.)
@@ -3844,24 +3687,17 @@ class RobustOutfitGenerationService:
                     accessory_count = sum(1 for i in selected_items if self._get_item_category(i) == 'accessories')
                     if accessory_count < 2:
                         selected_items.append(item)
-                        logger.info(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                        logger.warning(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                     else:
-                        logger.debug(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
-        
-        logger.info(f"📦 PHASE 2 COMPLETE: Selected {len(selected_items)} items after {phase2_iterations} iterations")
+                        logger.warning(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
         
         # Ensure minimum items
         if len(selected_items) < min_items:
             logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
-            filler_count = 0
             for item_id, score_data in sorted_items:
                 if score_data['item'] not in selected_items and len(selected_items) < min_items:
                     selected_items.append(score_data['item'])
-                    filler_count += 1
-                    if filler_count <= 3:  # Only log first 3 fillers
-                        logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
-            if filler_count > 3:
-                logger.info(f"  ➕ Added {filler_count - 3} more filler items (not logged)")
+                    logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
         
@@ -4019,73 +3855,7 @@ class RobustOutfitGenerationService:
     # NETFLIX/SPOTIFY-STYLE LEARNING ALGORITHMS
     # ═══════════════════════════════════════════════════════════════════════════
     
-    async def _precompute_style_evolution_data(self, user_id: str, context, db) -> dict:
-        """
-        Pre-compute style evolution data ONCE for all items (not per-item!)
-        This prevents 158 separate database queries
-        """
-        try:
-            # Query outfit history ONCE
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(20)  # Reduced from 50
-            outfits = list(outfits_ref.stream())
-            
-            style_ratings = {}
-            occasion_ratings = {}
-            color_ratings = {}
-            
-            for outfit_doc in outfits:
-                outfit_data = outfit_doc.to_dict()
-                rating = safe_get(outfit_data, 'rating')
-                if not rating:
-                    continue
-                
-                style = safe_get(outfit_data, 'style', '').lower()
-                occasion = safe_get(outfit_data, 'occasion', '').lower()
-                
-                if style:
-                    style_ratings[style] = style_ratings.get(style, []) + [rating]
-                if occasion:
-                    occasion_ratings[occasion] = occasion_ratings.get(occasion, []) + [rating]
-            
-            return {
-                'style_ratings': style_ratings,
-                'occasion_ratings': occasion_ratings,
-                'color_ratings': color_ratings
-            }
-        except Exception as e:
-            logger.warning(f"⚠️ Could not precompute style evolution: {e}")
-            return {'style_ratings': {}, 'occasion_ratings': {}, 'color_ratings': {}}
-    
-    def _calculate_style_evolution_score_from_cache(self, item, style_evolution_data: dict, context) -> float:
-        """
-        Calculate evolution score using pre-computed data (no database queries!)
-        """
-        evolution_score = 0.0
-        
-        try:
-            style_ratings = style_evolution_data.get('style_ratings', {})
-            occasion_ratings = style_evolution_data.get('occasion_ratings', {})
-            
-            # Check if current context style/occasion has positive ratings
-            context_style = context.style.lower() if context and context.style else ''
-            context_occasion = context.occasion.lower() if context and context.occasion else ''
-            
-            if context_style in style_ratings:
-                avg_rating = sum(style_ratings[context_style]) / len(style_ratings[context_style])
-                if avg_rating >= 4.0:
-                    evolution_score += 0.1  # User likes this style
-            
-            if context_occasion in occasion_ratings:
-                avg_rating = sum(occasion_ratings[context_occasion]) / len(occasion_ratings[context_occasion])
-                if avg_rating >= 4.0:
-                    evolution_score += 0.1  # User likes this occasion
-        
-        except Exception as e:
-            logger.debug(f"⚠️ Style evolution scoring failed: {e}")
-        
-        return evolution_score
-    
-    async def _calculate_style_evolution_score_OLD_UNUSED(
+    async def _calculate_style_evolution_score(
         self, 
         item, 
         user_id: str, 
@@ -4095,7 +3865,6 @@ class RobustOutfitGenerationService:
         db
     ) -> float:
         """
-        OLD VERSION - DO NOT USE (causes 158 database queries!)
         Calculate style evolution score using Netflix/Spotify-style algorithm
         
         This implements:
@@ -4112,7 +3881,6 @@ class RobustOutfitGenerationService:
             # 1. TIME-WEIGHTED RATING ANALYSIS (Netflix-style)
             # ═══════════════════════════════════════════════════════════════
             
-            # ❌ OLD CODE - CAUSES 158 DATABASE QUERIES!
             # Fetch ALL user outfit ratings with timestamps
             outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(50)
             outfits = outfits_ref.stream()
