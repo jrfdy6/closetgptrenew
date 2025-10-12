@@ -173,6 +173,12 @@ async def generate_personalized_outfit_from_existing_data(
         # LOG ROBUST SERVICE STATUS
         logger.warning(f"🔍 REQUEST: ROBUST_SERVICE_AVAILABLE={ROBUST_SERVICE_AVAILABLE}, robust_service={robust_service is not None}")
         
+        # 🔥 TEMPORARY: Force simple service for Loungewear to avoid timeouts
+        occasion_lower = req.occasion.lower() if req.occasion else ''
+        if occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
+            logger.warning(f"⚡ TEMPORARY BYPASS: Forcing simple service for {req.occasion} to avoid timeouts")
+            ROBUST_SERVICE_AVAILABLE = False  # Temporarily disable for this request
+        
         # 🔥 TRY ROBUST SERVICE FIRST (if available)
         if ROBUST_SERVICE_AVAILABLE and robust_service:
             logger.warning(f"🚀 ROBUST SERVICE: Using full 6D scoring with diversity for {req.occasion}/{req.style}")
