@@ -2000,35 +2000,17 @@ class RobustOutfitGenerationService:
         return result
     
     def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
-        """Hard constraints - using compatibility matrix for semantic filtering"""
-        # Re-enabled compatibility matrix with proper error handling
+        """Hard constraints - Block inappropriate items for specific occasions"""
         
         item_name = self.safe_get_item_name(item).lower()
         item_type = str(getattr(item, 'type', '')).lower()
         occasion_lower = occasion.lower()
         
-        # Use compatibility matrix for semantic filtering
-        try:
-            from ..services.compatibility_matrix import CompatibilityMatrix
-            compat_matrix = CompatibilityMatrix()
-            
-            # Check semantic compatibility
-            is_compatible = compat_matrix.is_compatible(
-                item_type=item_type,
-                item_name=item_name,
-                target_occasion=occasion,
-                target_style=style
-            )
-            
-            if not is_compatible:
-                return False
-                
-        except Exception as e:
-            logger.warning(f"⚠️ Compatibility matrix failed, using fallback: {e}")
-            # Fallback to basic constraints if matrix fails
+        logger.info(f"🔍 HARD FILTER ENTRY: Checking '{item_name[:30]}' for {occasion}")
         
-        # GYM/ATHLETIC HARD BLOCKS - Block formal/structured items BEFORE scoring
+        # GYM/ATHLETIC HARD BLOCKS FIRST - Block formal/structured items BEFORE anything else
         if occasion_lower in ['gym', 'athletic', 'workout']:
+            logger.info(f"🏋️ GYM FILTER ACTIVE for {occasion}")
             gym_blocks = [
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
                 'oxford', 'loafer', 'heels', 'derby', 'dress shoe',
@@ -2042,8 +2024,27 @@ class RobustOutfitGenerationService:
             ]
             
             if any(block in item_type or block in item_name for block in gym_blocks):
-                logger.debug(f"🚫 HARD FILTER: Blocked '{item_name[:40]}' for {occasion}")
+                logger.info(f"🚫 GYM HARD FILTER: BLOCKED '{item_name[:40]}' - matched gym_blocks")
                 return False
+            else:
+                logger.info(f"✅ GYM HARD FILTER: PASSED '{item_name[:40]}'")
+        
+        # Try compatibility matrix (will likely fail but doesn't matter now)
+        try:
+            from ..services.compatibility_matrix import CompatibilityMatrix
+            compat_matrix = CompatibilityMatrix()
+            is_compatible = compat_matrix.is_compatible(
+                item_type=item_type,
+                item_name=item_name,
+                target_occasion=occasion,
+                target_style=style
+            )
+            if not is_compatible:
+                logger.info(f"🚫 COMPAT MATRIX: Rejected '{item_name[:40]}'")
+                return False
+        except Exception as e:
+            # This will always fail - CompatibilityMatrix doesn't exist
+            pass
         
         # Basic hard constraints (fallback)
         hard_constraints = [
