@@ -314,13 +314,32 @@ class OutfitFilteringService:
             item_type = item.type.lower()
             item_name = item.name.lower()
             
+            # FIRST: Block formal/structured items (critical for gym/athletic)
+            gym_blocks = [
+                'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
+                'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
+                'dress pants', 'slacks', 'chinos', 'khaki', 'trouser', 'cargo',
+                'dockers', 'slim fit pants', 'jeans', 'denim',
+                'casual shorts', 'bermuda shorts', 'khaki shorts',
+                'blazer', 'sport coat', 'leather jacket', 'biker jacket',
+                'dress shirt', 'button up', 'button down', 'button-up', 'button-down',
+                'polo', 'henley', 'collared', 'collar', 'rugby shirt',
+                'slide', 'slides', 'sandal', 'sandals', 'flip-flop', 'flip flop'
+            ]
+            
+            # Skip if item matches any block
+            if any(block in item_type or block in item_name for block in gym_blocks):
+                continue
+            
+            # SECOND: Include athletic/casual items that passed the blocks
             # Include athletic items
             if any(keyword in item_type or keyword in item_name 
-                   for keyword in ['shirt', 'pants', 'shorts', 'sneakers', 'athletic', 'sports']):
+                   for keyword in ['athletic', 'sports', 'workout', 'gym', 'running', 'training', 
+                                  'tank', 't-shirt', 'jersey', 'shorts', 'jogger', 'track',
+                                  'sneaker', 'sneakers', 'athletic shoes']):
                 athletic_items.append(item)
-            # Include casual items that work for athletic activities
-            elif any(keyword in item_type or keyword in item_name 
-                    for keyword in ['t-shirt', 'jeans', 'shoes']):
+            # Include basic items that can work (t-shirts, basic shoes)
+            elif item_type in ['shirt', 'shoes'] and not any(block in item_name for block in ['button', 'dress', 'polo', 'oxford']):
                 athletic_items.append(item)
         
         return athletic_items
