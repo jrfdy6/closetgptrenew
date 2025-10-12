@@ -3268,11 +3268,12 @@ class RobustOutfitGenerationService:
         favorited_items = set()  # Set of favorited item IDs
         
         try:
-            # Get user's outfit history with ratings
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(100)
-            outfits = outfits_ref.stream()
+            # Get user's outfit history with ratings (REDUCED for performance)
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(20)  # Reduced from 100
+            outfits = list(outfits_ref.stream())  # Convert to list immediately
+            logger.info(f"📊 Feedback data: {len(outfits)} outfits")
             
-            for outfit_doc in outfits:
+            for outfit_doc in outfits[:20]:  # Hard cap at 20
                 outfit_data = outfit_doc.to_dict()
                 rating = (safe_get(outfit_data, 'rating') if outfit_data else None)
                 is_liked = (safe_get(outfit_data, 'isLiked', False) if outfit_data else False)
@@ -3447,15 +3448,10 @@ class RobustOutfitGenerationService:
             # 6. ADVANCED STYLE EVOLUTION TRACKING (Netflix/Spotify-style)
             # ─────────────────────────────────────────────────────────────
             
-            # Build comprehensive preference profile for this item
-            evolution_score = await self._calculate_style_evolution_score(
-                item=item,
-                user_id=user_id,
-                current_time=current_time,
-                outfit_ratings=outfit_ratings,
-                context=context,
-                db=db
-            )
+            # DISABLED: This causes 158 database queries (one per item) and times out!
+            # TODO: Re-implement with pre-computed data to avoid per-item queries
+            # evolution_score = await self._calculate_style_evolution_score(...)
+            evolution_score = 0.0  # Disabled for performance
             
             base_score += evolution_score
             
