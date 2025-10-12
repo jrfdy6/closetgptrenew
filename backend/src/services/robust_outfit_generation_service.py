@@ -3398,11 +3398,12 @@ class RobustOutfitGenerationService:
         favorited_items = set()  # Set of favorited item IDs
         
         try:
-            # Get user's outfit history with ratings
-            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(100)
-            outfits = outfits_ref.stream()
+            # Get user's outfit history with ratings (REDUCED LIMIT for performance)
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(20)  # Reduced from 100 to 20
+            outfits = list(outfits_ref.stream())  # Convert to list immediately
+            logger.info(f"📊 Feedback data loaded: {len(outfits)} outfits")
             
-            for outfit_doc in outfits:
+            for outfit_doc in outfits[:20]:  # Hard cap at 20 outfits
                 outfit_data = outfit_doc.to_dict()
                 rating = (safe_get(outfit_data, 'rating') if outfit_data else None)
                 is_liked = (safe_get(outfit_data, 'isLiked', False) if outfit_data else False)
