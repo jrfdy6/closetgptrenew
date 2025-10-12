@@ -125,7 +125,7 @@ class DashboardService {
     console.log('🔍 DEBUG: Authorization header:', `Bearer ${token.substring(0, 20)}...`);
 
     // Apply cache-busting headers for wardrobe and analytics endpoints
-    const needsCacheBusting = endpoint.includes('/wardrobe/') || endpoint.includes('/outfits/analytics/worn-this-week');
+    const needsCacheBusting = endpoint.includes('/wardrobe') || endpoint.includes('/outfits/analytics/worn-this-week');
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ class DashboardService {
       console.log('🔍 DEBUG: Processing topWornItems:', topWornItems);
       
       // Extract data from backend responses with proper fallbacks
-      // Now using /wardrobe/ endpoint which returns individual items
+      // Now using /wardrobe endpoint which returns individual items
       const wardrobeItems = (wardrobeStats as any)?.items || [];
       const totalItems = (wardrobeStats as any)?.total_items || 0;
       
@@ -271,12 +271,12 @@ class DashboardService {
 
   private async getWardrobeStats(user: User) {
     try {
-      console.log('🔍 DEBUG: Fetching wardrobe items from /wardrobe/ (not wardrobe-stats)');
+      console.log('🔍 DEBUG: Fetching wardrobe items from /wardrobe (not wardrobe-stats)');
       console.log('🔍 DEBUG: User ID:', user.uid);
       console.log('🔍 DEBUG: User email:', user.email);
       
-      // Use cache-busting headers (no query params to avoid routing issues)
-      const response = await this.makeAuthenticatedRequest('/wardrobe/', user, {
+      // Use cache-busting headers (no trailing slash to avoid redirect that drops auth header)
+      const response = await this.makeAuthenticatedRequest('/wardrobe', user, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -305,7 +305,7 @@ class DashboardService {
       }
       
       // Process the wardrobe items to create stats with null checks
-      // The /wardrobe/ endpoint returns: {"success": true, "items": [...], "count": N}
+      // The /wardrobe endpoint returns: {"success": true, "items": [...], "count": N}
       const wardrobeItems = response?.items || [];
       const totalItems = response?.count || wardrobeItems.length;
       
@@ -592,7 +592,7 @@ class DashboardService {
   }
 
   private buildStyleCollections(wardrobeStats: any, trendingStyles: any): StyleCollection[] {
-    // Use individual items from /wardrobe/ endpoint
+    // Use individual items from /wardrobe endpoint
     const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
     
@@ -663,7 +663,7 @@ class DashboardService {
   }
 
   private buildSeasonalBalance(wardrobeStats: any): SeasonalBalance {
-    // Use individual items from /wardrobe/ endpoint
+    // Use individual items from /wardrobe endpoint
     const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
     
@@ -777,7 +777,7 @@ class DashboardService {
   private buildWardrobeGaps(wardrobeStats: any): WardrobeGap[] {
     const gaps: WardrobeGap[] = [];
     
-    // Use individual items from /wardrobe/ endpoint
+    // Use individual items from /wardrobe endpoint
     const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
     
