@@ -3735,7 +3735,7 @@ class RobustOutfitGenerationService:
             category = self._get_item_category(item)
             item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
             
-            logger.info(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
+            logger.debug(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
             
             # Determine layering level
             layer_level = 'tops'  # Default
