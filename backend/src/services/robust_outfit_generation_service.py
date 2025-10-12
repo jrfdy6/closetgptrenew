@@ -2111,7 +2111,8 @@ class RobustOutfitGenerationService:
                 'dress pants', 'slacks', 'chinos',
                 'leather jacket', 'biker jacket', 'jacket', 'coat',  # ALL jackets blocked
                 'button up', 'button down', 'button-up', 'button-down',
-                'belt', 'formal'
+                'belt', 'formal',
+                'jeans', 'denim'  # Too stiff/structured for loungewear
             ]
             
             if any(block in item_type_lower or block in item_name for block in absolute_blocks):
