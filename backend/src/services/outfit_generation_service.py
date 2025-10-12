@@ -845,15 +845,22 @@ class OutfitGenerationService:
                 name_lower = item.name.lower()
                 item_type = item.type.lower()
                 
-                # CRITICAL: Block formal items for athletic occasions
-                if any(formal in name_lower or formal in item_type for formal in [
-                    "blazer", "suit", "dress pants", "dress shirt", "oxford", "loafers", "heels",
-                    "formal", "business", "professional", "dress", "suit jacket", "sport coat"
-                ]):
+                # CRITICAL: Block formal/structured items for athletic occasions
+                gym_blocks = [
+                    'blazer', 'suit', 'dress pants', 'dress shirt', 'oxford', 'loafers', 'heels',
+                    'formal', 'business', 'professional', 'dress', 'suit jacket', 'sport coat',
+                    'button up', 'button-up', 'button down', 'button-down',
+                    'polo', 'henley', 'collar', 'rugby shirt',
+                    'chinos', 'khaki', 'trouser', 'cargo', 'jeans', 'denim',
+                    'dockers', 'slim fit pants', 'casual shorts', 'bermuda',
+                    'slide', 'slides', 'sandal', 'sandals', 'flip-flop', 'flip flop'
+                ]
+                
+                if any(formal in name_lower or formal in item_type for formal in gym_blocks):
                     continue
                 
                 # Prefer athletic items
-                if any(athletic in name_lower for athletic in ["athletic", "sport", "gym", "workout", "sneakers", "track", "jersey", "tank", "shorts"]):
+                if any(athletic in name_lower for athletic in ["athletic", "sport", "gym", "workout", "sneakers", "track", "jersey", "tank", "shorts", "jogger"]):
                     appropriate_items.insert(0, item)  # Prioritize athletic items
                 else:
                     appropriate_items.append(item)

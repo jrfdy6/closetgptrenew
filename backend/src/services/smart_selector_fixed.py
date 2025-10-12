@@ -141,8 +141,13 @@ def filter_by_occasion_appropriateness(items: List[ClothingItem], occasion: str)
                 continue  # Skip athletic items for work
         
         elif "athletic" in occasion_lower or "gym" in occasion_lower:
-            if "dress" in item_name_lower or "formal" in item_name_lower:
-                continue  # Skip formal items for athletic
+            # Block formal/structured items for gym/athletic
+            gym_blocks = ['dress', 'formal', 'blazer', 'suit', 'oxford', 'loafer', 
+                         'button up', 'button-up', 'button down', 'button-down',
+                         'polo', 'henley', 'collar', 'slide', 'sandal', 'flip-flop',
+                         'chinos', 'khaki', 'trouser', 'cargo', 'jeans', 'denim']
+            if any(block in item_name_lower or block in item_type_lower for block in gym_blocks):
+                continue  # Skip formal/structured items for athletic
         
         elif "airport" in occasion_lower:
             if "dress" in item_name_lower or "formal" in item_name_lower:
