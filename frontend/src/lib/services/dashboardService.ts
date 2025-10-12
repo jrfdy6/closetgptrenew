@@ -124,16 +124,16 @@ class DashboardService {
     console.log('🔍 DEBUG: Making request to:', fullUrl);
     console.log('🔍 DEBUG: Authorization header:', `Bearer ${token.substring(0, 20)}...`);
 
-    // Only apply aggressive cache-busting for analytics endpoint
-    const isAnalyticsEndpoint = endpoint.includes('/outfits/analytics/worn-this-week');
+    // Apply cache-busting headers for wardrobe and analytics endpoints
+    const needsCacheBusting = endpoint.includes('/wardrobe/') || endpoint.includes('/outfits/analytics/worn-this-week');
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    // Add cache-busting headers only for analytics endpoint
-    if (isAnalyticsEndpoint) {
+    // Add cache-busting headers
+    if (needsCacheBusting) {
       headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
       headers['Pragma'] = 'no-cache';
       headers['Expires'] = '0';
@@ -275,13 +275,15 @@ class DashboardService {
       console.log('🔍 DEBUG: User ID:', user.uid);
       console.log('🔍 DEBUG: User email:', user.email);
       
-      // Add cache-busting to ensure we get fresh data after schema changes
-      const cacheBuster = `?t=${Date.now()}&v=waistband-update`;
-      const response = await this.makeAuthenticatedRequest(`/wardrobe/${cacheBuster}`, user, {
+      // Use cache-busting headers (no query params to avoid routing issues)
+      const response = await this.makeAuthenticatedRequest('/wardrobe/', user, {
         method: 'GET',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          // Add a custom header to force fresh data
+          'X-Force-Refresh': Date.now().toString()
         }
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
