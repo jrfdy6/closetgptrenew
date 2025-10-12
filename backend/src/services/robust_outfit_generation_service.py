@@ -589,7 +589,7 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 DEBUG SCORING: Starting to create scores for {len(suitable_items)} suitable items")
         for i, item in enumerate(suitable_items):
             item_id = safe_item_access(item, 'id', f"item_{len(item_scores)}")
-            logger.info(f"🔍 DEBUG SCORING: Creating score for item {i+1}: {item_id} - {getattr(item, 'name', 'Unknown')}")
+            logger.debug(f"🔍 DEBUG SCORING: Creating score for item {i+1}: {item_id} - {getattr(item, 'name', 'Unknown')}")
             item_scores[item_id] = {
                 'item': item,
                 'body_type_score': 0.0,
@@ -622,7 +622,11 @@ class RobustOutfitGenerationService:
         for i, (item_id, scores) in enumerate(list(item_scores.items())[:3]):
             compat_score = scores.get('compatibility_score', 1.0)
             breakdown = scores.get('_compatibility_breakdown', {})
-            logger.info(f"🔍 ITEM {i+1} SCORES: {self.safe_get_item_name(scores['item'])}: body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores['user_feedback_score']:.2f}, compat={compat_score:.2f}")
+            # Only log first 3 items to avoid spam
+            if i < 3:
+                logger.info(f"🔍 ITEM {i+1} SCORES: {self.safe_get_item_name(scores['item'])}: body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores['user_feedback_score']:.2f}, compat={compat_score:.2f}")
+            else:
+                logger.debug(f"🔍 ITEM {i+1} SCORES: {self.safe_get_item_name(scores['item'])}: body={scores['body_type_score']:.2f}, style={scores['style_profile_score']:.2f}, weather={scores['weather_score']:.2f}, feedback={scores['user_feedback_score']:.2f}, compat={compat_score:.2f}")
             if breakdown:
                 logger.debug(f"   Compatibility breakdown: layer={breakdown.get('layer', 0):.2f}, pattern={breakdown.get('pattern', 0):.2f}, fit={breakdown.get('fit', 0):.2f}, formality={breakdown.get('formality', 0):.2f}, color={breakdown.get('color', 0):.2f}, brand={breakdown.get('brand', 0):.2f}")
         
