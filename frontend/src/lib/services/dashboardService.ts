@@ -169,19 +169,25 @@ class DashboardService {
       console.log('🔍 DEBUG: Fetching dashboard data...');
       
       // Fetch data with individual timeouts to prevent one slow API from blocking everything
-      const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number, fallback: any) => {
+      const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number, fallback: any, endpointName: string = 'unknown') => {
         try {
           return await Promise.race([
             promise,
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Individual timeout')), timeoutMs))
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs))
           ]);
         } catch (error) {
-          console.warn('API call failed, using fallback:', error);
+          console.error(`❌ DEBUG: ${endpointName} failed:`, error);
+          if (error instanceof Error && error.message.includes('Timeout')) {
+            console.error(`⏱️ DEBUG: ${endpointName} timed out after ${timeoutMs}ms - using fallback data`);
+            console.error(`⏱️ DEBUG: This could mean the endpoint is slow or the backend is overloaded`);
+          }
+          console.warn(`⚠️ DEBUG: Using fallback data for ${endpointName}:`, fallback);
           return fallback;
         }
       };
 
       // Fetch data from multiple endpoints with individual timeouts
+      // Increased wardrobe timeout to 20 seconds to handle large wardrobes with new fields
       const [
         wardrobeStats,
         simpleAnalytics,
@@ -189,11 +195,11 @@ class DashboardService {
         todaysOutfit,
         topWornItems
       ] = await Promise.all([
-        fetchWithTimeout(this.getWardrobeStats(user), 8000, { items: [], total_items: 0 }),
-        fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, { success: true, outfits_worn_this_week: 0 }),
-        fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }),
-        fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }),
-        fetchWithTimeout(this.getTopWornItems(user), 8000, { success: true, data: { items: [] } })
+        fetchWithTimeout(this.getWardrobeStats(user), 20000, { items: [], total_items: 0 }, 'WardrobeStats'),
+        fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, { success: true, outfits_worn_this_week: 0 }, 'SimpleAnalytics'),
+        fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }, 'TrendingStyles'),
+        fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }, 'TodaysOutfit'),
+        fetchWithTimeout(this.getTopWornItems(user), 8000, { success: true, data: { items: [] } }, 'TopWornItems')
       ]);
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
@@ -266,14 +272,35 @@ class DashboardService {
   private async getWardrobeStats(user: User) {
     try {
       console.log('🔍 DEBUG: Fetching wardrobe items from /wardrobe/ (not wardrobe-stats)');
-      const response = await this.makeAuthenticatedRequest('/wardrobe/', user, {
-        method: 'GET'
+      console.log('🔍 DEBUG: User ID:', user.uid);
+      console.log('🔍 DEBUG: User email:', user.email);
+      
+      // Add cache-busting to ensure we get fresh data after schema changes
+      const cacheBuster = `?t=${Date.now()}&v=waistband-update`;
+      const response = await this.makeAuthenticatedRequest(`/wardrobe/${cacheBuster}`, user, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
       console.log('🔍 DEBUG: Wardrobe stats response keys:', Object.keys(response || {}));
+      console.log('🔍 DEBUG: response.success:', response?.success);
+      console.log('🔍 DEBUG: response.error:', response?.error);
+      console.log('🔍 DEBUG: response.count:', response?.count);
       console.log('🔍 DEBUG: response.items:', response.items);
+      console.log('🔍 DEBUG: response.items length:', response?.items?.length);
+      console.log('🔍 DEBUG: response.user_id:', response?.user_id);
       console.log('🔍 DEBUG: response.wardrobe_items:', response.wardrobe_items);
+      
+      // Check if the response indicates an error
+      if (response?.error || response?.success === false) {
+        console.error('❌ DEBUG: Backend returned error:', response.error);
+        console.error('❌ DEBUG: This means the backend could not fetch your wardrobe data');
+        console.error('❌ DEBUG: Possible reasons: authentication issue, backend down, or database query failed');
+      }
       
       // Process the wardrobe items to create stats with null checks
       // The /wardrobe/ endpoint returns: {"success": true, "items": [...], "count": N}
@@ -284,6 +311,16 @@ class DashboardService {
       console.log('🔍 DEBUG: WardrobeItems type:', typeof wardrobeItems);
       console.log('🔍 DEBUG: WardrobeItems isArray:', Array.isArray(wardrobeItems));
       console.log('🔍 DEBUG: Total items from response:', totalItems);
+      
+      // Alert if we got 0 items - this is unusual
+      if (totalItems === 0) {
+        console.warn('⚠️ DEBUG: Got 0 wardrobe items from backend!');
+        console.warn('⚠️ DEBUG: This could mean:');
+        console.warn('⚠️ DEBUG: 1. Your wardrobe is empty (unlikely if you just made changes)');
+        console.warn('⚠️ DEBUG: 2. The backend query is not finding your items (field name mismatch?)');
+        console.warn('⚠️ DEBUG: 3. Authentication token is incorrect');
+        console.warn('⚠️ DEBUG: 4. Backend is returning fallback/mock data');
+      }
       
       // Calculate categories and colors from the actual items
       const categories: { [key: string]: number } = {};
