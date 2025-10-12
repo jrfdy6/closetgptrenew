@@ -2096,6 +2096,28 @@ class RobustOutfitGenerationService:
             if any(block in item_type_lower or block in item_name for block in gym_blocks):
                 penalty -= 5.0 * occasion_multiplier  # EXTREME penalty - eliminates item
                 logger.debug(f"  🚫🚫🚫 GYM: Blocked '{item_name[:40]}' - formal/structured item ({-5.0 * occasion_multiplier:.2f})")
+            
+            # POSITIVE FILTER FOR GYM SHOES: Only allow athletic footwear
+            category = self._get_item_category(item)
+            if category == 'shoes':
+                # Check if shoes are athletic/casual (allow these)
+                athletic_shoe_keywords = ['sneaker', 'athletic', 'running', 'training', 'sport', 
+                                         'basketball', 'tennis', 'cross-trainer', 'gym shoe',
+                                         'slide', 'sandal', 'flip-flop']
+                is_athletic_shoe = any(kw in item_name or kw in item_type_lower for kw in athletic_shoe_keywords)
+                
+                # Check if shoes are formal (block these)
+                formal_shoe_keywords = ['oxford', 'loafer', 'derby', 'monk', 'dress shoe', 
+                                       'heel', 'pump', 'formal', 'brogue', 'wingtip']
+                is_formal_shoe = any(kw in item_name or kw in item_type_lower for kw in formal_shoe_keywords)
+                
+                if is_formal_shoe:
+                    penalty -= 5.0 * occasion_multiplier  # Block formal shoes
+                    logger.debug(f"  🚫🚫🚫 GYM SHOES: Blocked formal shoe '{item_name[:40]}' ({-5.0 * occasion_multiplier:.2f})")
+                elif not is_athletic_shoe:
+                    # Generic "shoes" with no clear type - penalize but don't eliminate completely
+                    penalty -= 2.0 * occasion_multiplier
+                    logger.debug(f"  ⚠️ GYM SHOES: Generic/unclear shoe type '{item_name[:40]}' ({-2.0 * occasion_multiplier:.2f})")
             # Boost athletic-appropriate items
             elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for exact athletic match
