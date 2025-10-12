@@ -3691,14 +3691,37 @@ class RobustOutfitGenerationService:
             'accessories' # Accessories (scarf, hat, etc.)
         ]
         
-        # Sort items by composite score with randomization to break ties
+        # Get recently used items to avoid repetition
+        recently_used_item_ids = set()
+        try:
+            recent_outfits = diversity_filter.get_recent_outfits(
+                user_id=context.user_id,
+                limit=5  # Check last 5 outfits
+            )
+            for outfit in recent_outfits:
+                outfit_items = safe_get(outfit, 'items', [])
+                for item in outfit_items:
+                    item_id = safe_item_access(item, 'id')
+                    if item_id:
+                        recently_used_item_ids.add(item_id)
+            
+            if recently_used_item_ids:
+                logger.info(f"🎭 DIVERSITY: Found {len(recently_used_item_ids)} recently used items to de-prioritize")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not load recent items for diversity: {e}")
+        
+        # Sort items by composite score with randomization AND diversity penalty
         import random
         sorted_items = sorted(
             item_scores.items(), 
-            key=lambda x: x[1]['composite_score'] + random.uniform(-0.05, 0.05),  # ±5% randomization for variety
+            key=lambda x: (
+                x[1]['composite_score'] 
+                + random.uniform(-0.05, 0.05)  # ±5% randomization for variety
+                - (0.5 if x[0] in recently_used_item_ids else 0.0)  # -0.5 penalty for recently used items
+            ),
             reverse=True
         )
-        logger.info(f"🎲 RANDOMIZATION: Added ±5% noise to scores for variety")
+        logger.info(f"🎲 DIVERSITY: Added ±5% noise and -0.5 penalty for {len(recently_used_item_ids)} recently used items")
         
         # Select items with intelligent layering
         selected_items = []
