@@ -252,16 +252,15 @@ export default function Dashboard() {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Retry
               </Button>
-              <Button onClick={handleInitializeStats} variant="outline" className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200">
-                <Zap className="w-4 h-4 mr-2" />
-                Initialize Stats System
-              </Button>
+              <Link href="/wardrobe">
+                <Button variant="outline">Go to Wardrobe</Button>
+              </Link>
               <Link href="/profile">
                 <Button variant="outline">Go to Profile</Button>
               </Link>
             </div>
             <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-              If you're seeing this error for the first time, try clicking "Initialize Stats System" to set up your dashboard statistics.
+              If you continue to see this error, please check the browser console (F12) for detailed debug information.
             </p>
           </div>
         </div>
@@ -291,7 +290,7 @@ export default function Dashboard() {
         <div className="flex flex-wrap gap-6 mb-12">
           <Button 
             onClick={() => setShowBatchUpload(true)}
-            className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+            className="glass-button-primary px-8 py-3 rounded-full font-medium glass-transition hover:scale-105"
           >
             <Upload className="w-5 h-5 mr-3" />
             Add Items with AI
@@ -472,7 +471,7 @@ export default function Dashboard() {
                       <h5 className="font-medium text-gray-900 dark:text-white text-sm">Outfit Items:</h5>
                       <div className="grid gap-2">
                         {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
-                          <div key={index} className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                          <div key={index} className="flex items-center space-x-3 p-3 glass-inner rounded-lg">
                             {item.imageUrl ? (
                               <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
                                 <img 
@@ -819,7 +818,7 @@ export default function Dashboard() {
         {/* Batch Upload Modal */}
         {showBatchUpload && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="glass-modal rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-2xl font-serif text-gray-900 dark:text-white">Add Items with AI</h2>
                 <Button

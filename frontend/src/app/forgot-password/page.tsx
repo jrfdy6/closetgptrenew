@@ -41,7 +41,7 @@ export default function ForgotPassword() {
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-0 shadow-xl">
+        <Card className="w-full max-w-md glass-float-hover glass-shadow-strong">
           <CardHeader className="text-center space-y-2">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -63,7 +63,7 @@ export default function ForgotPassword() {
                   setIsSubmitted(false);
                   setError("");
                 }}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="w-full glass-button-primary"
               >
                 Try Again
               </Button>
@@ -123,7 +123,7 @@ export default function ForgotPassword() {
 
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="w-full glass-button-primary"
               disabled={isLoading}
             >
               {isLoading ? "Sending..." : "Send Reset Instructions"}

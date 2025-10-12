@@ -874,7 +874,7 @@ export default function OutfitGenerationPage() {
             variant="outline" 
             size="sm" 
             onClick={() => router.push('/outfits')}
-            className="flex items-center gap-3 border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+            className="flex items-center gap-3 glass-button-secondary text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 px-6 py-3 rounded-full font-medium glass-transition hover:scale-105"
           >
             <ArrowLeft className="h-5 w-5" />
             Back to Outfits

@@ -1783,7 +1783,7 @@ export default function Onboarding() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-lg flex-1 flex flex-col min-h-0">
+        <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow">
         <div className="mb-4 flex-shrink-0">
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -1842,7 +1842,7 @@ export default function Onboarding() {
             </div>
           ) : question.type === "visual_yesno" ? (
             <div className="flex-1 flex flex-col min-h-0">
-              <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex-1 flex flex-col min-h-0">
+              <div className="glass p-3 rounded-lg flex-1 flex flex-col min-h-0">
                 <div className="text-center mb-3 flex-1 min-h-0 relative overflow-hidden rounded-lg">
                   <img 
                     src={question.images?.[0]} 
@@ -1871,7 +1871,7 @@ export default function Onboarding() {
                     className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
                       answers.find(a => a.question_id === question.id)?.selected_option === "Yes"
                         ? 'bg-green-500 text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700'
+                        : 'glass-button text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-300'
                     }`}
                   >
                     Yes
@@ -1881,7 +1881,7 @@ export default function Onboarding() {
                     className={`px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 ${
                       answers.find(a => a.question_id === question.id)?.selected_option === "No"
                         ? 'bg-red-500 text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700'
+                        : 'glass-button text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300'
                     }`}
                   >
                     No
@@ -1891,7 +1891,7 @@ export default function Onboarding() {
             </div>
           ) : question.type === "rgb_slider" ? (
             <div className="flex-1 flex flex-col">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 flex-1 flex flex-col">
+              <div className="glass p-4 rounded-lg flex-1 flex flex-col">
                 <div className="text-center mb-4 flex-shrink-0">
                   <div 
                     key={skinTone}
@@ -1934,7 +1934,7 @@ export default function Onboarding() {
                   className={`p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${
                     answers.find(a => a.question_id === question.id)?.selected_option === option
                       ? 'bg-amber-500 text-white shadow-lg'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
+                      : 'glass-button text-gray-900 dark:text-white hover:bg-amber-100/50 dark:hover:bg-amber-900/30'
                   }`}
                 >
                   <div className="font-semibold text-base">{option}</div>
@@ -1966,7 +1966,7 @@ export default function Onboarding() {
                   className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
                     answers.find(a => a.question_id === question.id)?.selected_option === option
                       ? 'bg-amber-500 text-white shadow-lg'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
+                      : 'glass-button text-gray-900 dark:text-white hover:bg-amber-100/50 dark:hover:bg-amber-900/30'
                   }`}
                 >
                   <div className="text-center">
@@ -1982,7 +1982,7 @@ export default function Onboarding() {
           <button
             onClick={handlePrevious}
             disabled={currentQuestionIndex === 0}
-            className="flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="flex items-center px-4 py-2 rounded-full text-sm font-medium glass-transition disabled:opacity-50 disabled:cursor-not-allowed glass-button-secondary text-gray-700 dark:text-gray-300"
           >
             <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
             Previous
@@ -1992,7 +1992,7 @@ export default function Onboarding() {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex items-center px-6 py-2 rounded-full font-semibold text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg"
+              className="flex items-center px-6 py-2 rounded-full font-semibold text-sm glass-transition disabled:opacity-50 disabled:cursor-not-allowed glass-button-primary"
             >
               {isSubmitting ? (
                 <>
@@ -2010,7 +2010,7 @@ export default function Onboarding() {
             <button
               onClick={handleNext}
               disabled={!answers.find(a => a.question_id === question.id)}
-              className="flex items-center px-4 py-2 rounded-full font-medium text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg"
+              className="flex items-center px-4 py-2 rounded-full font-medium text-sm glass-transition disabled:opacity-50 disabled:cursor-not-allowed glass-button-primary"
             >
               Next
               <ArrowRight className="h-4 w-4 ml-2 inline-block" />

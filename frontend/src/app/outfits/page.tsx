@@ -16,8 +16,8 @@ export default function OutfitsPage() {
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
       
-      {/* Header */}
-      <div className="bg-stone-100 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-700 px-4 py-12">
+      {/* Header with Glass Effect */}
+      <div className="glass-navbar px-4 py-12">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
             <div>
@@ -30,7 +30,7 @@ export default function OutfitsPage() {
             <div className="flex gap-4">
               <Link 
                 href="/outfits/generate"
-                className="group inline-flex items-center px-8 py-4 bg-stone-900 text-white font-medium rounded-full hover:bg-stone-800 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
+                className="group inline-flex items-center px-8 py-4 glass-button-primary font-medium rounded-full glass-transition shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
               >
                 <svg className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -40,7 +40,7 @@ export default function OutfitsPage() {
               
               <Link 
                 href="/outfits/create"
-                className="group inline-flex items-center px-8 py-4 bg-stone-600 text-white font-medium rounded-full hover:bg-stone-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 cursor-pointer"
+                className="group inline-flex items-center px-8 py-4 glass-button-secondary text-stone-900 dark:text-stone-100 font-medium rounded-full glass-transition hover:scale-105 cursor-pointer"
               >
                 <svg className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />

@@ -60,7 +60,7 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm shadow-2xl">
+      <Card className="w-full max-w-md glass-float-hover glass-shadow-strong">
         <CardHeader className="text-center space-y-4 pb-8">
           <Link href="/" className="inline-flex items-center text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 mb-6 font-medium">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -222,7 +222,7 @@ export default function SignUp() {
 
             <Button 
               type="submit" 
-              className="w-full bg-stone-900 hover:bg-stone-800 text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-300 hover:scale-105 shadow-lg"
+              className="w-full glass-button-primary px-8 py-4 rounded-full font-medium text-lg glass-transition hover:scale-105"
               disabled={isLoading || !isFormValid}
             >
               {isLoading ? "Creating account..." : "Create Account"}

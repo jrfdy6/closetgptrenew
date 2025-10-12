@@ -164,7 +164,7 @@ export default function CreateOutfitPage() {
       <Navigation />
       
       {/* Header */}
-      <div className="bg-stone-100 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-700 px-4 py-12">
+      <div className="glass-navbar px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-6 mb-6">
             <Button
@@ -195,7 +195,7 @@ export default function CreateOutfitPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           {/* Outfit Details */}
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-xl font-serif text-stone-900 dark:text-stone-100">
                 <Sparkles className="h-6 w-6 text-stone-600 dark:text-stone-400" />
@@ -271,7 +271,7 @@ export default function CreateOutfitPage() {
 
           {/* Selected Items */}
           {selectedItems.length > 0 && (
-            <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+            <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3 text-xl font-serif text-stone-900 dark:text-stone-100">
                   <Shirt className="h-6 w-6 text-stone-600 dark:text-stone-400" />
@@ -283,7 +283,7 @@ export default function CreateOutfitPage() {
                   {selectedItems.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-4 p-4 bg-stone-50 dark:bg-stone-800/50 rounded-lg border border-stone-200 dark:border-stone-700"
+                      className="flex items-center gap-4 p-4 glass-inner rounded-lg"
                     >
                       <div className="flex-shrink-0">
                         {item.imageUrl ? (
@@ -326,7 +326,7 @@ export default function CreateOutfitPage() {
           )}
 
           {/* Item Selector */}
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <Card className="glass-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-3 text-xl font-serif text-stone-900 dark:text-stone-100">
                 <Plus className="h-6 w-6 text-stone-600 dark:text-stone-400" />
@@ -350,7 +350,7 @@ export default function CreateOutfitPage() {
               variant="outline"
               onClick={() => router.back()}
               disabled={saving}
-              className="border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105"
+              className="glass-button-secondary text-stone-700 dark:text-stone-300 px-8 py-3 rounded-full font-medium glass-transition hover:scale-105"
             >
               Cancel
             </Button>

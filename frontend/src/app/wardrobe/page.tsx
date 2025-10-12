@@ -283,8 +283,8 @@ export default function WardrobePage() {
     <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
       
-      {/* Header */}
-      <div className="bg-stone-100 dark:bg-stone-800/50 border-b border-stone-200 dark:border-stone-700 px-4 py-12">
+      {/* Header with Glass Effect */}
+      <div className="glass-navbar px-4 py-12">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
             <div>
@@ -298,7 +298,7 @@ export default function WardrobePage() {
             <div className="flex gap-4">
               <Button 
                 onClick={() => setShowBatchUpload(true)}
-                className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                className="glass-button-primary px-8 py-3 rounded-full font-medium glass-transition hover:scale-105"
               >
                 <Upload className="w-5 h-5 mr-3" />
                 Add Items with AI
@@ -314,7 +314,7 @@ export default function WardrobePage() {
         
 
         {/* Filters and Search */}
-        <Card className="mb-8 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+        <Card className="mb-8 glass-card">
           <CardContent className="pt-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Search */}

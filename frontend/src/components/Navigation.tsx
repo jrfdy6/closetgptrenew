@@ -44,7 +44,7 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-md border-b border-stone-200/50 dark:border-stone-700/50 shadow-sm">
+    <nav className="sticky top-0 z-50 glass-navbar glass-blur-strong glass-shadow">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 sm:h-18">
           {/* Logo */}
@@ -69,7 +69,7 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="group relative flex items-center space-x-3 px-6 py-3 rounded-full text-sm font-medium text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-md"
+                    className="group relative flex items-center space-x-3 px-6 py-3 rounded-full text-sm font-medium text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white/30 dark:hover:bg-white/10 backdrop-blur-xl glass-transition hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
                     <span>{item.label}</span>
@@ -92,7 +92,7 @@ export default function Navigation() {
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
-                className="rounded-full border-2 border-stone-300 dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-800 hover:border-stone-400 dark:hover:border-stone-500 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 transition-all duration-200 px-6 py-2"
+                className="rounded-full glass-button-secondary px-6 py-2"
               >
                 Sign Out
               </Button>
@@ -104,7 +104,7 @@ export default function Navigation() {
             <ThemeToggle />
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-3 rounded-full text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800/50 focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:ring-offset-2 transition-all duration-200 min-h-[44px] min-w-[44px]"
+              className="inline-flex items-center justify-center p-3 rounded-full text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white/30 dark:hover:bg-white/10 backdrop-blur-xl focus:outline-none focus:ring-2 focus:ring-stone-500/20 focus:ring-offset-2 glass-transition min-h-[44px] min-w-[44px]"
               aria-expanded="false"
             >
               <span className="sr-only">Open main menu</span>
@@ -118,17 +118,17 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation with Glass Overlay */}
       {isMenuOpen && (
         <div className="md:hidden animate-in slide-in-from-top duration-200">
-          <div className="px-4 pt-4 pb-6 space-y-3 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-t border-stone-200/50 dark:border-stone-700/50">
+          <div className="px-4 pt-4 pb-6 space-y-3 glass-strong glass-blur-mega glass-border">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center space-x-4 px-6 py-4 rounded-full text-base font-medium text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-all duration-200 min-h-[44px]"
+                  className="flex items-center space-x-4 px-6 py-4 rounded-2xl text-base font-medium text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 hover:bg-white/30 dark:hover:bg-white/10 backdrop-blur-xl glass-transition min-h-[44px]"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <Icon className="w-5 h-5" />
@@ -147,7 +147,7 @@ export default function Navigation() {
                   handleSignOut();
                   setIsMenuOpen(false);
                 }}
-                className="flex items-center space-x-4 w-full text-left px-6 py-4 rounded-full text-base font-medium text-stone-700 dark:text-stone-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all duration-200 min-h-[44px]"
+                className="flex items-center space-x-4 w-full text-left px-6 py-4 rounded-2xl text-base font-medium text-stone-700 dark:text-stone-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-900/20 backdrop-blur-xl glass-transition min-h-[44px]"
               >
                 <span className="w-5 h-5" />
                 <span>Sign Out</span>

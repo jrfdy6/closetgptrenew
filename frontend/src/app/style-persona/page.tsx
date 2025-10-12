@@ -446,8 +446,8 @@ export default function StylePersonaPage() {
       <Navigation />
       
       <div className="max-w-6xl mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl mb-8">
+        {/* Hero Section with Glass Effect */}
+        <div className="glass-float rounded-3xl overflow-hidden mb-8 glass-shadow-strong">
           {/* Hero Image */}
           <div className="relative h-[600px] overflow-hidden">
             <img 
@@ -495,8 +495,8 @@ export default function StylePersonaPage() {
                 {persona.description}
               </p>
               
-              {/* Style Mission */}
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl p-8">
+              {/* Style Mission with Glass Effect */}
+              <div className="glass-inner rounded-2xl p-8 glass-transition hover:bg-white/30 dark:hover:bg-gray-900/30">
                 <h3 className="text-2xl font-serif font-semibold text-gray-900 dark:text-white mb-4">Your Style Mission</h3>
                 <p className="text-lg text-gray-600 dark:text-gray-400 italic leading-relaxed">
                   {persona.styleMission}
@@ -507,8 +507,8 @@ export default function StylePersonaPage() {
         </div>
 
 
-        {/* Style Fingerprint Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
+        {/* Style Fingerprint Section with Glass Effect */}
+        <div className="glass-float rounded-3xl p-8 mb-8 glass-shadow">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-serif font-bold text-gray-900 dark:text-white mb-4">Your Style Fingerprint</h2>
             <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
@@ -593,7 +593,7 @@ export default function StylePersonaPage() {
         </div>
 
         {/* The [Persona]s You May Know Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mb-8">
+        <div className="glass-float rounded-3xl p-8 mb-8 glass-shadow">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-serif font-bold text-gray-900 dark:text-white mb-4">
               The {persona.name.split(' ')[1]}s You May Know
@@ -607,7 +607,7 @@ export default function StylePersonaPage() {
             {getGenderSpecificCelebrities(persona.id, profile?.gender)?.map((celebrity, index) => {
               console.log('🎭 [Celebrities] Profile gender:', profile?.gender, 'Persona:', persona.id, 'Celebrity:', celebrity);
               return (
-              <div key={index} className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-2xl hover:shadow-lg transition-shadow">
+              <div key={index} className="text-center p-6 glass-inner rounded-2xl glass-transition hover:shadow-lg hover:bg-white/30 dark:hover:bg-gray-900/30 hover:scale-105">
                 <div className="text-4xl mb-3">♪</div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {celebrity}
@@ -616,7 +616,7 @@ export default function StylePersonaPage() {
               );
             }) || (
               // Fallback for personas without celebrities defined
-              <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-2xl">
+              <div className="text-center p-6 glass-inner rounded-2xl">
                 <div className="text-4xl mb-3">♪</div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   Style Icons
@@ -630,20 +630,20 @@ export default function StylePersonaPage() {
         </div>
 
         {/* Call-to-Action Section */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-3xl p-12 text-center text-white shadow-xl">
-          <h2 className="text-4xl font-serif font-bold mb-4">We've Got You Covered</h2>
-          <p className="text-xl text-red-100 mb-8 max-w-2xl mx-auto leading-relaxed">
+        <div className="glass-float rounded-3xl p-12 text-center glass-shadow-strong bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-900/40 dark:to-orange-900/40 backdrop-blur-2xl border-2 border-amber-300/30 dark:border-amber-700/30">
+          <h2 className="text-4xl font-serif font-bold mb-4 text-gray-900 dark:text-white">We've Got You Covered</h2>
+          <p className="text-xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
             Your {persona.name.toLowerCase()} style is ready to shine. Let's build the perfect wardrobe that matches your bold personality.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <button 
               onClick={() => router.push('/outfits')}
-              className="bg-white text-red-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg"
+              className="glass-button-primary px-8 py-4 rounded-full font-semibold text-lg glass-transition hover:scale-105"
             >
               See My Style Plan →
             </button>
-            <div className="flex items-center space-x-2 text-red-100">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
+              <div className="w-8 h-8 glass-inner rounded-full flex items-center justify-center">
                 <span className="text-sm font-bold">4</span>
               </div>
               <span className="text-sm">Personalized recommendations</span>
@@ -654,19 +654,19 @@ export default function StylePersonaPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button 
               onClick={() => router.push('/')}
-              className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+              className="glass-button-secondary text-stone-900 dark:text-stone-100 px-6 py-3 rounded-full font-medium glass-transition"
             >
               🏠 Dashboard
             </button>
             <button 
               onClick={() => router.push('/profile')}
-              className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+              className="glass-button-secondary text-stone-900 dark:text-stone-100 px-6 py-3 rounded-full font-medium glass-transition"
             >
               👤 My Profile
             </button>
             <button 
               onClick={() => router.push('/onboarding')}
-              className="bg-white/20 text-white px-6 py-3 rounded-full font-medium hover:bg-white/30 transition-colors border border-white/30"
+              className="glass-button-secondary text-stone-900 dark:text-stone-100 px-6 py-3 rounded-full font-medium glass-transition"
             >
               🔄 Retake Quiz
             </button>
