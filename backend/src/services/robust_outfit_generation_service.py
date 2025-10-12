@@ -406,6 +406,13 @@ class RobustOutfitGenerationService:
             raise
     
     async def _generate_outfit_internal(self, context: GenerationContext) -> OutfitGeneratedOutfit:
+        import time
+        start_time = time.time()
+        
+        def log_timing(stage):
+            elapsed = time.time() - start_time
+            logger.warning(f"⏱️ TIMING: {stage} completed in {elapsed:.2f}s")
+        
         """Internal outfit generation logic with full error handling"""
         
         # ═══════════════════════════════════════════════════════════════════════
@@ -572,6 +579,7 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 FILTERING STEP 1: Starting item filtering for {context.occasion} occasion")
         suitable_items = await self._filter_suitable_items(context)
         logger.info(f"✅ FILTERING STEP 1: {len(suitable_items)} suitable items passed from {len(context.wardrobe)} total")
+        log_timing("Hard filter")
         
         if len(suitable_items) == 0:
             logger.error(f"🚨 CRITICAL: No suitable items found after filtering!")
@@ -616,7 +624,9 @@ class RobustOutfitGenerationService:
         ]
         
         # Wait for all analyzers to complete
+        logger.warning(f"⏱️ TIMING: About to run analyzers...")
         await asyncio.gather(*analyzer_tasks)
+        log_timing("All analyzers")
         
         # DEBUG: Check analyzer outputs for first 3 items
         for i, (item_id, scores) in enumerate(list(item_scores.items())[:3]):
