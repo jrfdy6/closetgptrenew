@@ -3479,6 +3479,12 @@ class RobustOutfitGenerationService:
             logger.info(f"🔄 WEAR COUNT STRATEGY: Boosting popular items (favorites mode)")
         
         # ═══════════════════════════════════════════════════════════════════════
+        # PRE-COMPUTE STYLE EVOLUTION DATA (once for all items, not per-item!)
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        style_evolution_data = await self._precompute_style_evolution_data(user_id, context, db)
+        
+        # ═══════════════════════════════════════════════════════════════════════
         # SCORE EACH ITEM BASED ON USER FEEDBACK
         # ═══════════════════════════════════════════════════════════════════════
         
@@ -3578,14 +3584,11 @@ class RobustOutfitGenerationService:
             # 6. ADVANCED STYLE EVOLUTION TRACKING (Netflix/Spotify-style)
             # ─────────────────────────────────────────────────────────────
             
-            # Build comprehensive preference profile for this item
-            evolution_score = await self._calculate_style_evolution_score(
+            # Build comprehensive preference profile for this item (using pre-computed data)
+            evolution_score = self._calculate_style_evolution_score_from_cache(
                 item=item,
-                user_id=user_id,
-                current_time=current_time,
-                outfit_ratings=outfit_ratings,
-                context=context,
-                db=db
+                style_evolution_data=style_evolution_data,
+                context=context
             )
             
             base_score += evolution_score
@@ -4016,7 +4019,73 @@ class RobustOutfitGenerationService:
     # NETFLIX/SPOTIFY-STYLE LEARNING ALGORITHMS
     # ═══════════════════════════════════════════════════════════════════════════
     
-    async def _calculate_style_evolution_score(
+    async def _precompute_style_evolution_data(self, user_id: str, context, db) -> dict:
+        """
+        Pre-compute style evolution data ONCE for all items (not per-item!)
+        This prevents 158 separate database queries
+        """
+        try:
+            # Query outfit history ONCE
+            outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(20)  # Reduced from 50
+            outfits = list(outfits_ref.stream())
+            
+            style_ratings = {}
+            occasion_ratings = {}
+            color_ratings = {}
+            
+            for outfit_doc in outfits:
+                outfit_data = outfit_doc.to_dict()
+                rating = safe_get(outfit_data, 'rating')
+                if not rating:
+                    continue
+                
+                style = safe_get(outfit_data, 'style', '').lower()
+                occasion = safe_get(outfit_data, 'occasion', '').lower()
+                
+                if style:
+                    style_ratings[style] = style_ratings.get(style, []) + [rating]
+                if occasion:
+                    occasion_ratings[occasion] = occasion_ratings.get(occasion, []) + [rating]
+            
+            return {
+                'style_ratings': style_ratings,
+                'occasion_ratings': occasion_ratings,
+                'color_ratings': color_ratings
+            }
+        except Exception as e:
+            logger.warning(f"⚠️ Could not precompute style evolution: {e}")
+            return {'style_ratings': {}, 'occasion_ratings': {}, 'color_ratings': {}}
+    
+    def _calculate_style_evolution_score_from_cache(self, item, style_evolution_data: dict, context) -> float:
+        """
+        Calculate evolution score using pre-computed data (no database queries!)
+        """
+        evolution_score = 0.0
+        
+        try:
+            style_ratings = style_evolution_data.get('style_ratings', {})
+            occasion_ratings = style_evolution_data.get('occasion_ratings', {})
+            
+            # Check if current context style/occasion has positive ratings
+            context_style = context.style.lower() if context and context.style else ''
+            context_occasion = context.occasion.lower() if context and context.occasion else ''
+            
+            if context_style in style_ratings:
+                avg_rating = sum(style_ratings[context_style]) / len(style_ratings[context_style])
+                if avg_rating >= 4.0:
+                    evolution_score += 0.1  # User likes this style
+            
+            if context_occasion in occasion_ratings:
+                avg_rating = sum(occasion_ratings[context_occasion]) / len(occasion_ratings[context_occasion])
+                if avg_rating >= 4.0:
+                    evolution_score += 0.1  # User likes this occasion
+        
+        except Exception as e:
+            logger.debug(f"⚠️ Style evolution scoring failed: {e}")
+        
+        return evolution_score
+    
+    async def _calculate_style_evolution_score_OLD_UNUSED(
         self, 
         item, 
         user_id: str, 
@@ -4026,6 +4095,7 @@ class RobustOutfitGenerationService:
         db
     ) -> float:
         """
+        OLD VERSION - DO NOT USE (causes 158 database queries!)
         Calculate style evolution score using Netflix/Spotify-style algorithm
         
         This implements:
@@ -4042,6 +4112,7 @@ class RobustOutfitGenerationService:
             # 1. TIME-WEIGHTED RATING ANALYSIS (Netflix-style)
             # ═══════════════════════════════════════════════════════════════
             
+            # ❌ OLD CODE - CAUSES 158 DATABASE QUERIES!
             # Fetch ALL user outfit ratings with timestamps
             outfits_ref = db.collection('outfits').where('user_id', '==', user_id).limit(50)
             outfits = outfits_ref.stream()
