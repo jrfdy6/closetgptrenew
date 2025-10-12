@@ -3810,12 +3810,17 @@ class RobustOutfitGenerationService:
             else:
                 layer_level = category
             
-            # Essential categories first
+            # Essential categories first (but ONLY if score is positive or close to 0)
             if category in ['tops', 'bottoms', 'shoes']:
                 if category not in categories_filled:
-                    selected_items.append(item)
-                    categories_filled[category] = True
-                    logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    # CRITICAL: Don't select items with very negative scores, even as essentials
+                    composite_score = score_data['composite_score']
+                    if composite_score > -1.0:  # Allow slightly negative scores, but not terrible ones
+                        selected_items.append(item)
+                        categories_filled[category] = True
+                        logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    else:
+                        logger.warning(f"  ⚠️ SKIPPED Essential {category}: {self.safe_get_item_name(item)} (score={composite_score:.2f} too low - inappropriate for occasion)")
                 else:
                     logger.debug(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
             else:
