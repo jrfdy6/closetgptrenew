@@ -124,20 +124,12 @@ class DashboardService {
     console.log('🔍 DEBUG: Making request to:', fullUrl);
     console.log('🔍 DEBUG: Authorization header:', `Bearer ${token.substring(0, 20)}...`);
 
-    // Apply cache-busting headers for wardrobe and analytics endpoints
-    const needsCacheBusting = endpoint.includes('/wardrobe') || endpoint.includes('/outfits/analytics/worn-this-week');
+    // Keep headers simple to avoid CORS issues
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...options.headers,
     };
-
-    // Add cache-busting headers
-    if (needsCacheBusting) {
-      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-      headers['Pragma'] = 'no-cache';
-      headers['Expires'] = '0';
-    }
 
     const response = await fetch(fullUrl, {
       method: 'GET', // Default to GET, can be overridden in options
@@ -275,16 +267,9 @@ class DashboardService {
       console.log('🔍 DEBUG: User ID:', user.uid);
       console.log('🔍 DEBUG: User email:', user.email);
       
-      // Use cache-busting headers (no trailing slash to avoid redirect that drops auth header)
+      // Use simple GET request without custom headers (to avoid CORS issues)
       const response = await this.makeAuthenticatedRequest('/wardrobe', user, {
-        method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-          // Add a custom header to force fresh data
-          'X-Force-Refresh': Date.now().toString()
-        }
+        method: 'GET'
       });
       console.log('🔍 DEBUG: Wardrobe stats response:', response);
       console.log('🔍 DEBUG: Wardrobe stats response type:', typeof response);
