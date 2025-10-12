@@ -2517,6 +2517,17 @@ class RobustOutfitGenerationService:
         else:
             logger.info(f"✅ VALIDATION: All essential categories present")
         
+        # CRITICAL: Gym/Athletic MUST have bottoms (shorts, pants, leggings)
+        occasion_lower = (outfit.occasion if outfit and outfit.occasion else "unknown").lower()
+        if occasion_lower in ['gym', 'athletic', 'workout']:
+            if 'bottoms' not in categories_present:
+                critical_issue_msg = f"CRITICAL: Gym outfit MUST have bottoms (shorts/pants/leggings)"
+                issues.append(critical_issue_msg)
+                score -= 50.0  # Heavy penalty - this is unacceptable
+                logger.error(f"🚫🚫🚫 VALIDATION: {critical_issue_msg}")
+            else:
+                logger.info(f"✅ VALIDATION: Gym outfit has required bottoms")
+        
         # Calculate confidence
         confidence = max(0.0, min(1.0, score / 100.0))
         
