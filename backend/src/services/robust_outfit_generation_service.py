@@ -2072,7 +2072,31 @@ class RobustOutfitGenerationService:
         
         # PRIMARY OCCASION TAG MATCH (most important for mismatches)
         if occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
-            if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
+            # GYM/ATHLETIC FORMALITY RULES: Block formal/structured items
+            item_type_lower = str(getattr(item, 'type', '')).lower()
+            if hasattr(getattr(item, 'type', None), 'value'):
+                item_type_lower = getattr(item, 'type').value.lower()
+            
+            # ABSOLUTE BLOCKS for gym/athletic (formal items should NEVER appear)
+            gym_blocks = [
+                # Formal wear
+                'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
+                # Formal shoes
+                'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
+                # Formal/structured bottoms (NO dress pants, chinos, jeans for gym!)
+                'dress pants', 'slacks', 'chinos', 'khaki', 'trouser', 'cargo',
+                'jeans', 'denim',  # Too stiff for working out
+                # Formal outerwear
+                'blazer', 'sport coat', 'leather jacket', 'biker jacket',
+                # Structured shirts
+                'dress shirt', 'button up', 'button down', 'button-up', 'button-down'
+            ]
+            
+            if any(block in item_type_lower or block in item_name for block in gym_blocks):
+                penalty -= 5.0 * occasion_multiplier  # EXTREME penalty - eliminates item
+                logger.debug(f"  🚫🚫🚫 GYM: Blocked '{item_name[:40]}' - formal/structured item ({-5.0 * occasion_multiplier:.2f})")
+            # Boost athletic-appropriate items
+            elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for exact athletic match
                 logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif 'sport' in item_occasion_lower:
