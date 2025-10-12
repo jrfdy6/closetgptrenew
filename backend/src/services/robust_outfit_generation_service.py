@@ -2129,6 +2129,23 @@ class RobustOutfitGenerationService:
             elif any(occ in item_occasion_lower for occ in ['loungewear', 'lounge', 'relaxed', 'home', 'casual']):
                 penalty += 1.2 * occasion_multiplier
                 logger.debug(f"  ✅✅ PRIMARY: Loungewear occasion tag match: {+1.2 * occasion_multiplier:.2f}")
+            
+            # WAISTBAND TYPE ANALYSIS for loungewear
+            waistband_type = None
+            if hasattr(item, 'metadata') and item.metadata:
+                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+            
+            if waistband_type:
+                if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
+                    # Perfect for loungewear - elastic waistbands
+                    penalty += 1.5 * occasion_multiplier
+                    logger.debug(f"  ✅✅✅ WAISTBAND: Elastic/drawstring waistband ideal for loungewear: {+1.5 * occasion_multiplier:.2f}")
+                elif waistband_type == 'belt_loops':
+                    # Belt loops = structured pants, bad for loungewear
+                    penalty -= 3.0 * occasion_multiplier  # Strong penalty
+                    logger.debug(f"  🚫🚫 WAISTBAND: Belt loops too structured for loungewear ({-3.0 * occasion_multiplier:.2f})")
         
         # ═══════════════════════════════════════════════════════════════════════
         # KEYWORD-BASED SCORING: Secondary scoring based on item names (LIGHT penalties only)
@@ -2154,6 +2171,60 @@ class RobustOutfitGenerationService:
             # Boost business items
             elif any(word in item_name for word in ['business', 'professional', 'formal', 'button', 'dress']):
                 penalty += 0.5 * occasion_multiplier
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # WAISTBAND TYPE FORMALITY SCORING (for all occasions)
+        # ═══════════════════════════════════════════════════════════════════════
+        waistband_type = None
+        if hasattr(item, 'metadata') and item.metadata:
+            visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+            if visual_attrs:
+                waistband_type = getattr(visual_attrs, 'waistbandType', None)
+        
+        if waistband_type and waistband_type != 'none':
+            # Map waistband types to formality levels (0-5 scale)
+            waistband_formality = {
+                'elastic': 1,              # Very casual (sweatpants)
+                'drawstring': 1,           # Very casual (joggers)
+                'elastic_drawstring': 1,   # Very casual (athletic wear)
+                'button_zip': 3,           # Semi-formal
+                'belt_loops': 4            # Formal (dress pants, chinos)
+            }
+            
+            # Map occasions to formality requirements (0-5 scale)
+            occasion_formality = {
+                'loungewear': 0,
+                'gym': 0,
+                'athletic': 1,
+                'casual': 2,
+                'brunch': 2,
+                'date': 3,
+                'smart casual': 3,
+                'business casual': 4,
+                'business': 4,
+                'work': 4,
+                'formal': 5,
+                'wedding': 5
+            }
+            
+            item_formality = waistband_formality.get(waistband_type, 2)
+            required_formality = occasion_formality.get(occasion_lower, 2)
+            
+            formality_gap = abs(item_formality - required_formality)
+            
+            # Only apply penalties for significant mismatches
+            if formality_gap >= 3:
+                # Major mismatch (e.g., elastic sweatpants for formal event)
+                penalty -= 2.0 * occasion_multiplier
+                logger.debug(f"  🚫 WAISTBAND FORMALITY: Major mismatch (gap {formality_gap}): {-2.0 * occasion_multiplier:.2f}")
+            elif formality_gap == 2:
+                # Moderate mismatch
+                penalty -= 0.5 * occasion_multiplier
+                logger.debug(f"  ⚠️ WAISTBAND FORMALITY: Moderate mismatch (gap {formality_gap}): {-0.5 * occasion_multiplier:.2f}")
+            elif formality_gap == 0:
+                # Perfect match
+                penalty += 0.3 * occasion_multiplier
+                logger.debug(f"  ✅ WAISTBAND FORMALITY: Perfect match: {+0.3 * occasion_multiplier:.2f}")
         
         return penalty
     

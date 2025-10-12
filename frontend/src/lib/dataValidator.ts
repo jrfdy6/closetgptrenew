@@ -42,7 +42,7 @@ export class DataValidator {
     const occasionResult = this.validateField(data.occasion, {
       required: true,
       type: 'string',
-      enum: ['Casual', 'Business', 'Formal', 'Athletic', 'Party', 'Date', 'Interview', 'Weekend', 'Loungewear']
+      enum: ['Casual', 'Business', 'Formal', 'Athletic', 'Gym', 'Party', 'Date', 'Interview', 'Weekend', 'Loungewear']
     });
     if (!occasionResult.isValid) errors.push(...occasionResult.errors);
     else sanitized.occasion = occasionResult.sanitizedValue;
