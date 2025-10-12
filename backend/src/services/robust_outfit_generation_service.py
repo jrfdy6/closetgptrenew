@@ -2081,21 +2081,21 @@ class RobustOutfitGenerationService:
                                  'sweatpants', 'athletic shorts', 'sandals', 'flip-flops', 'slides', 'sneakers']
             if any(casual in item_type_lower or casual in item_name for casual in inappropriate_types):
                 penalty -= 3.0 * occasion_multiplier
-                logger.info(f"  🚫🚫🚫 FORMALITY: Casual type '{item_type_lower}' for {occasion} - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫🚫🚫 FORMALITY: Casual type '{item_type_lower}' for {occasion} - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
             # Athletic occasions: Block formal types
             inappropriate_types = ['suit', 'tuxedo', 'dress shirt', 'dress pants', 'blazer', 'oxford shoes', 'loafers', 'heels']
             if any(formal in item_type_lower or formal in item_name for formal in inappropriate_types):
                 penalty -= 2.0 * occasion_multiplier
-                logger.info(f"  🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} - BLOCKED: {-2.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} - BLOCKED: {-2.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['party', 'dinner', 'date']:
             # Social occasions: Block extremely casual or athletic types
             inappropriate_types = ['sweatpants', 'athletic shorts', 'gym', 'workout', 'tank top', 'flip-flops', 'slides']
             if any(casual in item_type_lower or casual in item_name for casual in inappropriate_types):
                 penalty -= 1.5 * occasion_multiplier
-                logger.info(f"  🚫 FORMALITY: Too casual type '{item_type_lower}' for {occasion}: {-1.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫 FORMALITY: Too casual type '{item_type_lower}' for {occasion}: {-1.5 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
             # Loungewear: Block overly formal types AGGRESSIVELY (this is HOME wear!)
@@ -2106,7 +2106,7 @@ class RobustOutfitGenerationService:
             ]
             if any(formal in item_type_lower or formal in item_name for formal in inappropriate_types):
                 penalty -= 3.0 * occasion_multiplier  # MASSIVE penalty (same as business violations)
-                logger.info(f"  🚫🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} (HOME WEAR!) - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫🚫🚫 FORMALITY: Formal type '{item_type_lower}' for {occasion} (HOME WEAR!) - BLOCKED: {-3.0 * occasion_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # UNIVERSAL COLOR APPROPRIATENESS: Check color suitability for ALL occasions
