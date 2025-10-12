@@ -799,7 +799,9 @@ class RobustOutfitGenerationService:
             # Don't return here, let cohesive composition try first
         
         # Pass scored items to cohesive composition
+        logger.warning(f"⏱️ TIMING: About to run cohesive composition...")
         outfit = await self._cohesive_composition_with_scores(context, item_scores)
+        log_timing("Cohesive composition")
         
         # Check if cohesive composition failed to generate items
         if not outfit.items or len(outfit.items) == 0:
