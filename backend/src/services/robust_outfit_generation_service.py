@@ -2085,6 +2085,7 @@ class RobustOutfitGenerationService:
                 'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
                 # Formal/structured bottoms (NO dress pants, chinos, jeans for gym!)
                 'dress pants', 'slacks', 'chinos', 'khaki', 'trouser', 'cargo',
+                'dockers', 'slim fit pants',  # Dockers brand = formal pants
                 'jeans', 'denim',  # Too stiff for working out
                 # Formal outerwear
                 'blazer', 'sport coat', 'leather jacket', 'biker jacket',
