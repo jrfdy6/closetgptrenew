@@ -2168,7 +2168,7 @@ class RobustOutfitGenerationService:
         if occasion_lower in ['athletic', 'gym', 'workout', 'sport']:
             if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for exact athletic match
-                logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif 'sport' in item_occasion_lower:
                 penalty += 1.3 * occasion_multiplier  # VERY HIGH boost for 'sport' (almost as good as athletic)
                 logger.info(f"  ✅✅ SPORT: Sport occasion tag for Athletic: {+1.3 * occasion_multiplier:.2f}")
@@ -2183,24 +2183,24 @@ class RobustOutfitGenerationService:
             # Tag-based scoring (formality check already done above)
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
-                logger.info(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
                 penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
-                logger.info(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['casual', 'brunch', 'weekend']:
             if any(occ in item_occasion_lower for occ in ['casual', 'brunch', 'weekend', 'vacation']):
                 penalty += 1.0 * occasion_multiplier  # Good boost for matching occasion tag
-                logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
             # Loungewear: Comfortable, casual, at-home clothing
             if any(occ in item_occasion_lower for occ in ['loungewear', 'lounge', 'relaxed', 'home', 'casual', 'weekend']):
                 penalty += 1.2 * occasion_multiplier  # Strong boost for loungewear/casual items
-                logger.info(f"  ✅✅ PRIMARY: Loungewear occasion tag match: {+1.2 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ PRIMARY: Loungewear occasion tag match: {+1.2 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview']):
                 penalty -= 1.5 * occasion_multiplier  # Penalize formal items for loungewear
-                logger.info(f"  🚫 PRIMARY: Formal occasion tag for Loungewear request: {-1.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫 PRIMARY: Formal occasion tag for Loungewear request: {-1.5 * occasion_multiplier:.2f}")
         
         # ═══════════════════════════════════════════════════════════════════════
         # KEYWORD-BASED SCORING: Secondary scoring based on item names (LIGHT penalties only)
