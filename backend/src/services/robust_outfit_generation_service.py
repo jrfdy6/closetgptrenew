@@ -2892,7 +2892,7 @@ class RobustOutfitGenerationService:
         category = (safe_get(category_map, item_type, 'other') if category_map else 'other')
         
         # 🔍 DIAGNOSTIC LOGGING - Track category assignment for debugging
-        logger.info(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
+        logger.debug(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
         
         return category
     
@@ -3757,7 +3757,7 @@ class RobustOutfitGenerationService:
             category = self._get_item_category(item)
             item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
             
-            logger.info(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
+            logger.debug(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
             
             # Determine layering level
             layer_level = 'tops'  # Default
@@ -3780,9 +3780,9 @@ class RobustOutfitGenerationService:
                     categories_filled[category] = True
                     logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 else:
-                    logger.info(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
+                    logger.debug(f"  ⏭️ Essential {category}: {self.safe_get_item_name(item)} skipped - category already filled")
             else:
-                logger.info(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
+                logger.debug(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
         
         logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
         
