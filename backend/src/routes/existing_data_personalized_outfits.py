@@ -317,6 +317,30 @@ async def generate_personalized_outfit_from_existing_data(
             
             logger.info(f"🔍 Filtered to {len(suitable_items)} items matching occasion '{req.occasion}'")
             
+            # 🔥 FORMALITY FILTER: Remove inappropriate items for Loungewear (SIMPLE SERVICE)
+            occasion_lower = req.occasion.lower() if req.occasion else ''
+            if occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
+                # Block formal items for loungewear
+                formal_keywords = ['suit', 'tuxedo', 'blazer', 'dress shirt', 'tie', 'dress pants',
+                                  'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
+                                  'button up', 'button down', 'slacks', 'chinos']
+                
+                filtered_suitable = []
+                for item in suitable_items:
+                    item_name = getattr(item, 'name', item.get('name', '') if isinstance(item, dict) else '').lower()
+                    item_type = str(getattr(item, 'type', item.get('type', '') if isinstance(item, dict) else '')).lower()
+                    
+                    # Check if item has formal keywords
+                    is_formal = any(keyword in item_name or keyword in item_type for keyword in formal_keywords)
+                    
+                    if not is_formal:
+                        filtered_suitable.append(item)
+                    else:
+                        logger.debug(f"  🚫 SIMPLE FORMALITY: Blocked '{item_name[:40]}' for Loungewear (formal item)")
+                
+                suitable_items = filtered_suitable
+                logger.info(f"🔍 After formality filter: {len(suitable_items)} comfortable items (removed formal items)")
+            
             # 🔥 DIVERSITY-AWARE SELECTION: Load outfit history and apply diversity boost
             import random
             from src.config.firebase import db
