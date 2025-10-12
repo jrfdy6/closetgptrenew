@@ -363,8 +363,8 @@ class ColorAnalysis(BaseModel):
         arbitrary_types_allowed = True
 
 class Metadata(BaseModel):
-    analysisTimestamp: int
-    originalType: str
+    analysisTimestamp: Optional[int] = None  # Made optional for backwards compatibility
+    originalType: Optional[str] = None  # Made optional for backwards compatibility  
     originalSubType: Optional[str] = None
     styleTags: List[str] = Field(default_factory=list)
     occasionTags: List[str] = Field(default_factory=list)
