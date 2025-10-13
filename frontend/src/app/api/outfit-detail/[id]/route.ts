@@ -14,7 +14,7 @@ export async function GET(
     const apiUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
+      'https://closetgptrenew-production.up.railway.app';
     
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

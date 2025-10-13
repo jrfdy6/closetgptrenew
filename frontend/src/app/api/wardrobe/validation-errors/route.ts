@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
       process.env.BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
+      'https://closetgptrenew-production.up.railway.app';
     
     // Add timeout to prevent hanging during build
     const controller = new AbortController();

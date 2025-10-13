@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  'https://closetgptrenew-backend-production.up.railway.app';
+  'https://closetgptrenew-production.up.railway.app';
 
 export async function POST(request: NextRequest) {
   try {

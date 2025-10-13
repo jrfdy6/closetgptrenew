@@ -25,7 +25,7 @@ export async function POST(
     // Get the backend URL with fallbacks
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
                       process.env.NEXT_PUBLIC_BACKEND_URL || 
-                      'https://closetgptrenew-backend-production.up.railway.app';
+                      'https://closetgptrenew-production.up.railway.app';
 
     console.log(`👕 [API] Marking outfit ${outfitId} as worn`);
 

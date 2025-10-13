@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Forward to backend to get debug stats updates
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
     
     const response = await fetch(`${backendUrl}/api/debug-stats?user_id=${userId}`, {
       method: 'GET',
