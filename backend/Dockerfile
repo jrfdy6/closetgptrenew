@@ -1,9 +1,9 @@
 # Use official Python image (3.11 without slim to avoid registry auth issues)
 FROM python:3.11
 
-# CACHE BUSTER - Force fresh build with new code - v2025-10-13
-ENV BUILD_TIMESTAMP=1760337719
-ENV CODE_VERSION=semantic_fix_debug_v1
+# NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
+ARG CACHE_BUSTER=1760395200
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "This will never be cached because ARG changes"
 
 # Set working directory
 WORKDIR /app

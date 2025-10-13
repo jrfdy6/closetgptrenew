@@ -1,6 +1,8 @@
 [build]
 builder = "dockerfile"
 sourceDir = "backend"
+dockerfilePath = "Dockerfile"
+buildCommand = "echo 'Force no-cache build'"
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
