@@ -17,11 +17,11 @@ class FeatureFlags:
     
     def __init__(self):
         self.flags = {
-            # Semantic filtering feature flag - defaults to False for safety
-            'FEATURE_SEMANTIC_MATCH': self._get_bool_flag('FEATURE_SEMANTIC_MATCH', False),
+            # Semantic filtering feature flag - ENABLED by default for gym occasion fix
+            'FEATURE_SEMANTIC_MATCH': self._get_bool_flag('FEATURE_SEMANTIC_MATCH', True),
             
-            # Debug output flag - defaults to False for production
-            'FEATURE_DEBUG_OUTPUT': self._get_bool_flag('FEATURE_DEBUG_OUTPUT', False),
+            # Debug output flag - ENABLED to debug gym occasion issues
+            'FEATURE_DEBUG_OUTPUT': self._get_bool_flag('FEATURE_DEBUG_OUTPUT', True),
             
             # Staging-specific flags
             'FEATURE_STAGING_SEMANTIC': self._get_bool_flag('FEATURE_STAGING_SEMANTIC', False),
