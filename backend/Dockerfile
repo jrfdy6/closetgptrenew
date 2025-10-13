@@ -20,11 +20,21 @@ RUN pip install --no-cache-dir --default-timeout=100 onnxruntime==1.22.1 opencv-
 # Install remaining dependencies with retry logic
 RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt || pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
+# AGGRESSIVE CACHE BUST - Force complete file copy with no cache
+# Adding timestamp forces Docker to rebuild this layer and all subsequent layers
+RUN echo "Build timestamp: $(date +%s)" > /tmp/build_marker.txt
+
 # Copy the app.py, run.py, and minimal_debug_app.py files and necessary directories
 COPY app.py ./
 COPY run.py ./
 COPY minimal_debug_app.py ./
 COPY src/ ./src/
+
+# Verify files were copied (this will fail if cache is used with old files)
+RUN echo "Verifying new code..." && \
+    grep -q "HARD FILTER ENTRY" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ New code verified: debug logging present" || \
+    (echo "❌ Old code detected: debug logging missing" && exit 1)
 
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
