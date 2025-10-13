@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     // }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 Frontend API: Backend URL:', backendUrl);
     
     // Get query parameters

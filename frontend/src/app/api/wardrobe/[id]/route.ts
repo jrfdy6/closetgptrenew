@@ -23,7 +23,7 @@ export async function DELETE(
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to delete the item

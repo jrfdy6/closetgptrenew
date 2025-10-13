@@ -84,7 +84,7 @@ const uploadImageToFirebaseStorage = async (file: File, userId: string, user: an
     formData.append('name', file.name || 'uploaded-item');
 
     // Upload to backend Firebase Storage (secure)
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     const response = await fetch(`${backendUrl}/api/image/upload`, {
       method: 'POST',
       body: formData,
@@ -124,7 +124,7 @@ const generateImageHashAndMetadata = async (file: File, user: any): Promise<{
     const imageUrl = await uploadImageToFirebaseStorage(file, user.uid, user);
     
     // Then call backend to generate hash and metadata
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
     const response = await fetch(`${backendUrl}/generate-image-hash`, {
       method: 'POST',
       headers: {
@@ -545,7 +545,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
           console.log(`✅ Uploaded to storage: ${imageUrl}`);
 
           // 2️⃣ Send URL to backend for analysis
-          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
           const payload = { image: { url: imageUrl } };
           
           console.log("POSTing to backend:", backendUrl + "/analyze-image");

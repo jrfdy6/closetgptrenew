@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     // Forward request to backend
     const baseUrl =
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+      'https://closetgptrenew-backend-production.up.railway.app';
     
     const backendUrl = `${baseUrl}/api/outfit-history/mark-worn`;
     console.log('🔍 DEBUG: Calling backend URL:', backendUrl);

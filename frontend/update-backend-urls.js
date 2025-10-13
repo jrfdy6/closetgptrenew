@@ -40,5 +40,5 @@ console.log(`\n🎉 Update complete!`);
 console.log(`📁 Updated ${updatedFiles} files`);
 console.log(`🔄 Made ${totalReplacements} total replacements`);
 console.log(`\n💡 Now your frontend will use the backend URL from your .env.local file:`);
-console.log(`   NEXT_PUBLIC_BACKEND_URL=https://closetgptrenew-production.up.railway.app`);
+console.log(`   NEXT_PUBLIC_BACKEND_URL=https://closetgptrenew-backend-production.up.railway.app`);
 console.log(`\n🔄 Restart your frontend server to apply the changes!`);

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     }
     
     // Call the production backend
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
     const fullBackendUrl = `${backendUrl}/api/auth/profile`;
     console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
     
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     console.log('🔍 DEBUG: Profile data:', body);
     
     // Call the production backend
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
     const fullBackendUrl = `${backendUrl}/api/auth/profile`;
     console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
     

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+      'https://closetgptrenew-backend-production.up.railway.app';
     const response = await fetch(`${baseUrl}/api/embed`, {
       method: 'POST',
       body: backendFormData,

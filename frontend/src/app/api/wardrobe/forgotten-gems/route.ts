@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Call the backend forgotten gems endpoint
-    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/wardrobe-insights/insights/forgotten-gems`;
+    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/wardrobe-insights/insights/forgotten-gems`;
     console.log("🔗 Proxying to backend URL:", backendUrl);
     
     const res = await fetch(backendUrl, {

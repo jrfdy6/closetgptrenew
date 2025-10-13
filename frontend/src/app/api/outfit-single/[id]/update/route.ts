@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "https://closetgptrenew-production.up.railway.app";
+  "https://closetgptrenew-backend-production.up.railway.app";
 
 export async function PUT(
   request: Request,

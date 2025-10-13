@@ -39,5 +39,5 @@ console.log(`\n🎉 Fix complete!`);
 console.log(`📁 Fixed ${updatedFiles} files`);
 console.log(`🔄 Made ${totalReplacements} total replacements`);
 console.log(`\n💡 Now your frontend will properly use the environment variable:`);
-console.log(`   NEXT_PUBLIC_BACKEND_URL=https://closetgptrenew-production.up.railway.app`);
+console.log(`   NEXT_PUBLIC_BACKEND_URL=https://closetgptrenew-backend-production.up.railway.app`);
 console.log(`\n🔄 Restart your frontend server to apply the changes!`);

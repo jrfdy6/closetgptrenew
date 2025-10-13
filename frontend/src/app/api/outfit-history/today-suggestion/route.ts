@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+      'https://closetgptrenew-backend-production.up.railway.app';
     const response = await fetch(`${baseUrl}/api/outfit-history/today-suggestion`, {
       method: 'GET',
       headers: {

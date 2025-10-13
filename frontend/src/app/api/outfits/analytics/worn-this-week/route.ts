@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     // Get backend URL from environment variables
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
                       process.env.NEXT_PUBLIC_BACKEND_URL || 
-                      'https://closetgptrenew-production.up.railway.app';
+                      'https://closetgptrenew-backend-production.up.railway.app';
     
     // Call the backend endpoint for worn outfits this week
     const fullBackendUrl = `${backendUrl}/api/simple-analytics/outfits-worn-this-week`;

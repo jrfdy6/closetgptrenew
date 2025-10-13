@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Get the backend URL with fallbacks
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
                       process.env.NEXT_PUBLIC_BACKEND_URL || 
-                      'https://closetgptrenew-production.up.railway.app';
+                      'https://closetgptrenew-backend-production.up.railway.app';
 
     // Forward request to backend with timeout
     const controller = new AbortController();

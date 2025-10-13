@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+      'https://closetgptrenew-backend-production.up.railway.app';
     const fullUrl = `${backendUrl}/analyze-image`;
     console.log('🔍 Debug - Backend URL:', backendUrl);
     console.log('🔍 Debug - Full URL:', fullUrl);
@@ -57,9 +57,9 @@ export async function POST(request: Request) {
     // Forward the request to the real backend server with robust fallbacks
     const candidateBaseUrls = Array.from(new Set([
       backendUrl,
-              process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app',
-        process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-production.up.railway.app',
-              'https://closetgptrenew-production.up.railway.app',
+              process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app',
+        process.env.NEXT_PUBLIC_API_URL || 'https://closetgptrenew-backend-production.up.railway.app',
+              'https://closetgptrenew-backend-production.up.railway.app',
     ].filter(Boolean))) as string[];
 
     const candidatePaths = [

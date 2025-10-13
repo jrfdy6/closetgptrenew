@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-production.up.railway.app';
+      'https://closetgptrenew-backend-production.up.railway.app';
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased to 20 seconds
