@@ -1,7 +1,9 @@
 # Use official Python image (3.11 without slim to avoid registry auth issues)
 FROM python:3.11
 
-# Force redeploy trigger - updated
+# CACHE BUSTER - Force fresh build with new code - v2025-10-13
+ENV BUILD_TIMESTAMP=1760337719
+ENV CODE_VERSION=semantic_fix_debug_v1
 
 # Set working directory
 WORKDIR /app
