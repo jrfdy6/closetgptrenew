@@ -2001,6 +2001,7 @@ class RobustOutfitGenerationService:
     
     def _hard_filter(self, item: ClothingItem, occasion: str, style: str) -> bool:
         """Hard constraints - Block inappropriate items for specific occasions"""
+        # BUILD MARKER v2025-10-13-02:50 - Force Railway to detect change
         
         item_name = self.safe_get_item_name(item).lower()
         item_type = str(getattr(item, 'type', '')).lower()
