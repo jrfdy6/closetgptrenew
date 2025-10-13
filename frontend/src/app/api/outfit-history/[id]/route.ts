@@ -28,7 +28,7 @@ export async function PATCH(
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
+      'https://closetgptrenew-production.up.railway.app';
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'PATCH',
       headers: {
@@ -88,7 +88,7 @@ export async function DELETE(
     const baseUrl =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
-      'https://closetgptrenew-backend-production.up.railway.app';
+      'https://closetgptrenew-production.up.railway.app';
     const response = await fetch(`${baseUrl}/api/outfit-history/${params.id}`, {
       method: 'DELETE',
       headers: {

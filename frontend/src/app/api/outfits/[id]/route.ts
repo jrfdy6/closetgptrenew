@@ -16,7 +16,7 @@ export async function POST(
       console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
       
       // Get backend URL from environment variables
-      const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+      const backendUrl = 'https://closetgptrenew-production.up.railway.app';
       console.log('🔍 DEBUG: Backend URL:', backendUrl);
       
       // Get request body
@@ -116,7 +116,7 @@ export async function PUT(
     console.log('🔍 DEBUG: Updating outfit:', outfitId, 'with data:', body);
     
     // Call the production backend
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
     const fullBackendUrl = `${backendUrl}/api/outfit/${outfitId}`;
     console.log('🔍 DEBUG: About to call backend PUT:', fullBackendUrl);
     
@@ -203,7 +203,7 @@ export async function DELETE(
     console.log('🔍 DEBUG: Deleting outfit:', outfitId);
     
     // Call the production backend
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
     const fullBackendUrl = `${backendUrl}/api/outfit/${outfitId}`;
     console.log('🔍 DEBUG: About to call backend DELETE:', fullBackendUrl);
     

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Get request body

@@ -4,7 +4,7 @@ const BACKEND_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.BACKEND_URL ||
-  'https://closetgptrenew-backend-production.up.railway.app';
+  'https://closetgptrenew-production.up.railway.app';
 
 // Force dynamic rendering since we use request.headers
 export const dynamic = 'force-dynamic';

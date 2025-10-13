@@ -1,0 +1,11 @@
+{
+  "total_items": 182,
+  "items_updated": 182,
+  "items_skipped": 0,
+  "waistband_types": {
+    "belt_loops": 44,
+    "none": 134,
+    "button_zip": 4
+  },
+  "errors": []
+}

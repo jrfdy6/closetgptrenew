@@ -93,10 +93,10 @@ export async function POST(req: NextRequest) {
     // Save to user profile via backend API directly
     try {
       console.log('🔍 [Quiz Submit] Attempting to save profile to backend...');
-      console.log('🔍 [Quiz Submit] Backend URL:', process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app');
+      console.log('🔍 [Quiz Submit] Backend URL:', process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app');
       console.log('🔍 [Quiz Submit] Token present:', !!submission.token);
       
-      const backendResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/auth/profile`, {
+      const backendResponse = await fetch(`${process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

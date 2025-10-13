@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     const tempId = uuidv4();
 
     // Define backend URL once at the top
-    const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = process.env.BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
 
     try {

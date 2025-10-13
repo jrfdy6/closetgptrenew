@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app'; // Force correct backend URL
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app'; // Force correct backend URL
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     console.log('🔍 DEBUG: Environment variable NEXT_PUBLIC_BACKEND_URL:', process.env.NEXT_PUBLIC_BACKEND_URL);
     console.log('🔍 DEBUG: Using hardcoded backend URL to ensure correct backend is called');
@@ -216,7 +216,7 @@ export async function POST(request: Request) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to add the item - using direct endpoint to bypass router issues
@@ -327,7 +327,7 @@ async function handleOutfitHistory(request: Request) {
     //   return NextResponse.json({ error: 'Authorization header required' }, { status: 401 });
     // }
     
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
     const fullBackendUrl = `${backendUrl}/api/outfit-history/`;
     console.log('🔍 DEBUG: Outfit history backend URL:', fullBackendUrl);
     

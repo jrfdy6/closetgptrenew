@@ -322,7 +322,7 @@ export default function StylePersonaPage() {
       setLoading(true);
       const token = await user?.getIdToken();
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app'}/api/auth/profile`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -1,0 +1,21 @@
+{
+  "total_items": 158,
+  "items_updated": 158,
+  "total_fields_added": 197,
+  "field_breakdown": {
+    "waistbandType": 158,
+    "wearLayer": 3,
+    "sleeveLength": 3,
+    "fit": 3,
+    "pattern": 3,
+    "formalLevel": 3,
+    "fabricWeight": 3,
+    "textureStyle": 3,
+    "silhouette": 3,
+    "length": 3,
+    "genderTarget": 3,
+    "material": 3,
+    "normalized": 3,
+    "mood": 3
+  }
+}

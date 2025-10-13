@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
     const res = await fetch(`${backendUrl}/api/wardrobe/wardrobe-stats`, {
       method: "GET", // ✅ explicitly GET
       headers: {

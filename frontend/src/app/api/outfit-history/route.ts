@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   
   try {
     // Use hardcoded Railway URL to ensure correct backend is called
-    const backendUrl = 'https://closetgptrenew-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
     const fullBackendUrl = `${backendUrl}/api/outfit-history/${req.nextUrl.search}`;
     console.log("🔍 DEBUG: Backend URL:", fullBackendUrl);
 

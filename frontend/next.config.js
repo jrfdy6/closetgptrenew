@@ -47,11 +47,11 @@ const nextConfig = {
   //   return [
   //     {
   //       source: '/api/outfit/:path*',
-  //       destination: 'https://closetgptrenew-backend-production.up.railway.app/api/outfit/:path*',
+  //       destination: 'https://closetgptrenew-production.up.railway.app/api/outfit/:path*',
   //     },
   //     {
   //       source: '/api/outfits/:path*',
-  //       destination: 'https://closetgptrenew-backend-production.up.railway.app/api/outfits/:path*',
+  //       destination: 'https://closetgptrenew-production.up.railway.app/api/outfits/:path*',
   //     },
   //   ];
   // },

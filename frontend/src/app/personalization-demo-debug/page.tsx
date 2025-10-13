@@ -100,7 +100,7 @@ export default function PersonalizationDemoDebugPage() {
 
       // Test 5: Check environment variables
       addTestResult(`🔍 NEXT_PUBLIC_BACKEND_URL: ${process.env.NEXT_PUBLIC_BACKEND_URL || 'Not set'}`);
-      addTestResult(`🔍 API_BASE: https://closetgptrenew-backend-production.up.railway.app`);
+      addTestResult(`🔍 API_BASE: https://closetgptrenew-production.up.railway.app`);
 
     } catch (error) {
       addTestResult(`❌ Debug test failed: ${error}`);
@@ -218,7 +218,7 @@ export default function PersonalizationDemoDebugPage() {
                   </div>
                   <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded">
                     <span className="text-sm font-medium">API Base</span>
-                    <Badge variant="outline">https://closetgptrenew-backend-production.up.railway.app</Badge>
+                    <Badge variant="outline">https://closetgptrenew-production.up.railway.app</Badge>
                   </div>
                 </div>
               </CardContent>
