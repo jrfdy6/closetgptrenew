@@ -1,8 +1,5 @@
 [build]
-builder = "dockerfile"
-sourceDir = "backend"
-dockerfilePath = "Dockerfile"
-buildCommand = "echo 'Force no-cache build'"
+builder = "NIXPACKS"
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
