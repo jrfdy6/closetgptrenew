@@ -525,7 +525,7 @@ OCCASION_FALLBACKS: Dict[str, List[str]] = {
     "gathering": ["brunch", "dinner", "gathering"],
     "graduation": ["formal", "graduation"],
     "gym": [
-        "active", "athletic", "exercise", "fitness", "gym",
+        "active", "athletic", "casual", "exercise", "fitness", "gym",
         "sport", "sports", "workout"
     ],
     "hiking": ["hiking", "outdoor"],
