@@ -2186,9 +2186,19 @@ class RobustOutfitGenerationService:
                 penalty -= 2.0 * occasion_multiplier  # STRONG penalty for formal items
                 logger.info(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
             else:
-                # NO relevant occasion tags for gym - apply penalty
-                penalty -= 0.5 * occasion_multiplier  # Items without athletic/casual tags are less suitable
-                logger.debug(f"  ⚠️ GYM: No relevant occasion tags ({-0.5 * occasion_multiplier:.2f})")
+                # NO occasion tags - check if it's a basic athletic item by type/name
+                # T-shirts, tanks, athletic shorts should NOT be penalized!
+                basic_athletic_items = ['t-shirt', 'tshirt', 't shirt', 'tank', 'athletic short', 
+                                       'gym short', 'jogger', 'sweatpant', 'legging']
+                is_basic_athletic = any(basic in item_type_lower or basic in item_name for basic in basic_athletic_items)
+                
+                if is_basic_athletic:
+                    penalty += 0.8 * occasion_multiplier  # BOOST basic athletic items even without tags!
+                    logger.debug(f"  ✅✅ GYM: Basic athletic item (no tags needed): {+0.8 * occasion_multiplier:.2f}")
+                else:
+                    # Other items without relevant tags - small penalty
+                    penalty -= 0.5 * occasion_multiplier
+                    logger.debug(f"  ⚠️ GYM: No relevant occasion tags ({-0.5 * occasion_multiplier:.2f})")
             
             # WAISTBAND TYPE ANALYSIS for gym (same logic as loungewear)
             waistband_type = None
