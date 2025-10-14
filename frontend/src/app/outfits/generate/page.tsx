@@ -520,71 +520,59 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
       setGeneratedOutfit(data);
       
-      // Auto-save the generated outfit so it has an ID for ratings
+      // Auto-save the generated outfit directly to Firestore
       if (user) {
         try {
-          // Skip auto-save if outfit already has an ID (already saved by backend)
-          if (data.id) {
-            console.log('🔍 DEBUG: Skipping auto-save - outfit already has ID:', data.id);
-            
-            // Outfit saved successfully - user can now interact with it
-            // No auto-navigation - let user decide when to go to outfits page
-            return;
-          }
-          
           // Validate minimum items before saving
           if (!data.items || data.items.length < 3) {
             console.warn('🔍 DEBUG: Skipping auto-save - need at least 3 items to save outfit');
             return;
           }
           
-          const saveToken = await user.getIdToken();
+          console.log('💾 Auto-saving outfit to Firestore...');
           
-          // Call the Next.js API route to ensure proper saving
-          const saveResponse = await fetch('/api/outfits', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${saveToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              name: data.name,
-              occasion: data.occasion || formData.occasion, 
-              style: data.style,
-              description: data.reasoning,
-              items: data.items.map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                category: item.category || item.type,
-                color: item.color,
-                imageUrl: item.imageUrl || "",
-                user_id: user.uid
-              })),
-              // createdAt: Math.floor(Date.now() / 1000)  // Let backend handle timestamp
-            }),
-          });
+          // Import Firebase directly to save
+          const { db } = await import('@/lib/firebase/config');
+          const { collection, doc, setDoc } = await import('firebase/firestore');
           
-          if (saveResponse.ok) {
-            const savedOutfit = await saveResponse.json();
-            console.log('🔍 DEBUG: Save response data:', savedOutfit);
-            
-            // Check if the save actually succeeded
-            if (savedOutfit.success !== false && (savedOutfit.id || savedOutfit.outfitId)) {
-              // Update the outfit with the new ID
-              setGeneratedOutfit(prev => prev ? {
-                ...prev,
-                id: savedOutfit.id || savedOutfit.outfitId
-              } : null);
-              console.log('✅ DEBUG: Outfit auto-saved successfully with ID:', savedOutfit.id || savedOutfit.outfitId);
-            } else {
-              console.error('❌ DEBUG: Save response was OK but save failed:', savedOutfit);
-              throw new Error(savedOutfit.error || 'Save failed despite OK response');
-            }
-          } else {
-            const errorData = await saveResponse.json().catch(() => ({}));
-            console.error('❌ DEBUG: Save response not OK:', saveResponse.status, errorData);
-            throw new Error(`Save failed with status ${saveResponse.status}`);
-          }
+          // Prepare outfit data for Firestore
+          const outfitId = data.id || `outfit_${Date.now()}`;
+          const outfitData = {
+            id: outfitId,
+            name: data.name,
+            occasion: data.occasion || formData.occasion,
+            style: data.style,
+            mood: data.mood || 'neutral',
+            description: data.reasoning || data.description || '',
+            items: data.items.map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              category: item.category || item.type,
+              type: item.type || item.category,
+              color: item.color,
+              imageUrl: item.imageUrl || "",
+              user_id: user.uid
+            })),
+            user_id: user.uid,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            wearCount: 0,
+            isFavorite: false,
+            confidence_score: data.confidence_score || 0.8,
+            generation_strategy: data.generation_strategy || 'hybrid'
+          };
+          
+          // Save directly to Firestore
+          const outfitRef = doc(collection(db, 'outfits'), outfitId);
+          await setDoc(outfitRef, outfitData);
+          
+          console.log('✅ Outfit auto-saved successfully to Firestore with ID:', outfitId);
+          
+          // Update the outfit with the confirmed ID
+          setGeneratedOutfit(prev => prev ? {
+            ...prev,
+            id: outfitId
+          } : null);
         } catch (err) {
           console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');
         }
