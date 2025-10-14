@@ -2081,11 +2081,13 @@ class RobustOutfitGenerationService:
         if occasion_lower in ['athletic', 'gym', 'workout'] and style_lower in ['classic', 'business', 'formal', 'preppy']:
             occasion_multiplier = 1.5  # Boost occasion-based scoring
             style_multiplier = 0.2  # Reduce style-based scoring
-            logger.info(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - prioritizing OCCASION ({occasion_multiplier}x) over STYLE ({style_multiplier}x)")
+            # Reduced to debug to prevent Railway rate limiting
+            logger.debug(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - prioritizing OCCASION ({occasion_multiplier}x) over STYLE ({style_multiplier}x)")
         elif occasion_lower in ['business', 'formal'] and style_lower in ['athletic', 'casual', 'streetwear']:
             occasion_multiplier = 1.5
             style_multiplier = 0.2
-            logger.info(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - prioritizing OCCASION ({occasion_multiplier}x) over STYLE ({style_multiplier}x)")
+            # Reduced to debug to prevent Railway rate limiting
+            logger.debug(f"🔄 MISMATCH DETECTED: {occasion} + {style} style - prioritizing OCCASION ({occasion_multiplier}x) over STYLE ({style_multiplier}x)")
         
         penalty = 0.0
         
@@ -2157,13 +2159,13 @@ class RobustOutfitGenerationService:
             # Boost athletic-appropriate items
             if any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for exact athletic match
-                logger.info(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ PRIMARY: Athletic occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif 'sport' in item_occasion_lower:
                 penalty += 1.3 * occasion_multiplier  # VERY HIGH boost for 'sport' (almost as good as athletic)
-                logger.info(f"  ✅✅ SPORT: Sport occasion tag for Athletic: {+1.3 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ SPORT: Sport occasion tag for Athletic: {+1.3 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['casual', 'beach', 'vacation']):
                 penalty += 0.4 * occasion_multiplier  # REDUCED boost for casual items (less ideal for gym)
-                logger.info(f"  ⚠️ SECONDARY: Casual occasion tag for Athletic (less ideal): {+0.4 * occasion_multiplier:.2f}")
+                logger.debug(f"  ⚠️ SECONDARY: Casual occasion tag for Athletic (less ideal): {+0.4 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference']):
                 penalty -= 2.0 * occasion_multiplier  # STRONG penalty for formal items
                 logger.info(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
@@ -2314,14 +2316,14 @@ class RobustOutfitGenerationService:
             # BOOST athletic/sport keywords strongly
             if any(word in item_name for word in ['athletic', 'sport', 'gym', 'running', 'workout', 'training', 'performance']):
                 penalty += 0.6 * occasion_multiplier  # Strong boost for primary athletic keywords
-                logger.info(f"  ✅ KEYWORD: Athletic keyword in name: {+0.6 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅ KEYWORD: Athletic keyword in name: {+0.6 * occasion_multiplier:.2f}")
             elif any(word in item_name for word in ['tank', 'sneaker', 'jogger', 'track', 'jersey', 'nike', 'adidas', 'shorts']):
                 penalty += 0.5 * occasion_multiplier  # Good boost for sport-related items/brands
-                logger.info(f"  ✅ KEYWORD: Sport-related keyword/brand: {+0.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅ KEYWORD: Sport-related keyword/brand: {+0.5 * occasion_multiplier:.2f}")
             # PENALTIES for non-athletic items
             elif any(word in item_name for word in ['polo', 'button', 'dress', 'formal', 'oxford', 'blazer', 'dockers', 'slide']):
                 penalty -= 0.5 * occasion_multiplier  # Penalty for non-athletic items
-                logger.info(f"  ⚠️ KEYWORD: Non-athletic keyword penalty: {-0.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  ⚠️ KEYWORD: Non-athletic keyword penalty: {-0.5 * occasion_multiplier:.2f}")
         
         elif occasion_lower == 'business':
             # Light penalties for athletic items
