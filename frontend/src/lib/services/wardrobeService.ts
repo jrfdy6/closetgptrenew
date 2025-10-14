@@ -19,31 +19,46 @@ export interface WardrobeItemResponse {
 export class WardrobeService {
   /**
    * Transform backend item structure (nested metadata) to frontend structure (flat fields)
-   * Backend: item.metadata.visualAttributes.material
+   * Backend: item.metadata.visualAttributes.material OR item.analysis.material
    * Frontend: item.material
    */
   private static transformBackendItem(backendItem: any): ClothingItem {
     const metadata = backendItem.metadata || {};
     const visualAttributes = metadata.visualAttributes || {};
     
+    // ALSO check analysis object (for newly uploaded items before they're refetched from Firestore)
+    const analysis = backendItem.analysis || {};
+    const analysisMetadata = analysis.metadata || {};
+    const analysisVisualAttrs = analysisMetadata.visualAttributes || {};
+    
+    // Helper to get value from multiple possible locations
+    const getValue = (field: string, defaultValue: any = '') => {
+      // Priority: metadata.visualAttributes > analysis.metadata.visualAttributes > analysis.{field} > backendItem.{field} > default
+      return visualAttributes[field] || 
+             analysisVisualAttrs[field] || 
+             analysis[field] || 
+             backendItem[field] || 
+             defaultValue;
+    };
+    
     return {
       ...backendItem,
       // Extract nested fields to root level for frontend display
-      description: metadata.naturalDescription || backendItem.description || '',
-      material: visualAttributes.material ? [visualAttributes.material] : (backendItem.material || []),
-      sleeveLength: visualAttributes.sleeveLength || backendItem.sleeveLength || '',
-      fit: visualAttributes.fit || backendItem.fit || '',
-      neckline: visualAttributes.neckline || backendItem.neckline || '',
-      length: visualAttributes.length || backendItem.length || '',
+      description: metadata.naturalDescription || analysisMetadata.naturalDescription || analysis.naturalDescription || backendItem.description || '',
+      material: getValue('material') ? [getValue('material')] : (backendItem.material || []),
+      sleeveLength: getValue('sleeveLength'),
+      fit: getValue('fit'),
+      neckline: getValue('neckline'),
+      length: getValue('length'),
       // New fields from Phase 1
-      transparency: visualAttributes.transparency || '',
-      collarType: visualAttributes.collarType || '',
-      embellishments: visualAttributes.embellishments || '',
-      printSpecificity: visualAttributes.printSpecificity || '',
-      rise: visualAttributes.rise || '',
-      legOpening: visualAttributes.legOpening || '',
-      heelHeight: visualAttributes.heelHeight || '',
-      statementLevel: visualAttributes.statementLevel || 0,
+      transparency: getValue('transparency'),
+      collarType: getValue('collarType'),
+      embellishments: getValue('embellishments'),
+      printSpecificity: getValue('printSpecificity'),
+      rise: getValue('rise'),
+      legOpening: getValue('legOpening'),
+      heelHeight: getValue('heelHeight'),
+      statementLevel: getValue('statementLevel', 0),
       // Keep the original metadata for backend updates
       metadata: backendItem.metadata,
     };
@@ -247,7 +262,12 @@ export class WardrobeService {
         console.log(`  material: ${firstItem.material}`);
         console.log(`  description: ${firstItem.description}`);
         console.log(`  neckline: ${firstItem.neckline}`);
-        console.log(`  Source: metadata.visualAttributes.material = ${firstItem.metadata?.visualAttributes?.material}`);
+        console.log(`  fit: ${firstItem.fit}`);
+        console.log(`  sleeveLength: ${firstItem.sleeveLength}`);
+        console.log('  Data sources checked:');
+        console.log(`    - metadata.visualAttributes.material: ${firstItem.metadata?.visualAttributes?.material}`);
+        console.log(`    - analysis.metadata.visualAttributes.material: ${firstItem.analysis?.metadata?.visualAttributes?.material}`);
+        console.log(`    - analysis.material: ${firstItem.analysis?.material}`);
       }
       
       return transformedItems;
