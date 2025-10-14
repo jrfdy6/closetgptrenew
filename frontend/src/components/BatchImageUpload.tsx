@@ -590,31 +590,75 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
             // Generate hash and metadata for the uploaded item
             const { imageHash, metadata } = await generateImageHashAndMetadata(item.file, user);
             
+            // Extract GPT-4 analysis data and properly structure it
+            const analysisData = result.analysis || {};
+            const metadataFromAnalysis = analysisData.metadata || {};
+            const visualAttributesFromAnalysis = metadataFromAnalysis.visualAttributes || {};
+            
+            // Check if analysis data is flat (old format) or nested (new format)
+            const isNestedFormat = metadataFromAnalysis.visualAttributes !== undefined;
+            
+            // If flat format, wrap it in metadata.visualAttributes structure
+            const structuredAnalysis = isNestedFormat ? analysisData : {
+              ...analysisData,
+              metadata: {
+                visualAttributes: {
+                  // Extract all fields from flat analysis
+                  material: analysisData.material || 'cotton',
+                  pattern: analysisData.pattern || 'solid',
+                  fit: analysisData.fit || 'regular',
+                  formalLevel: analysisData.formalLevel || 'casual',
+                  sleeveLength: analysisData.sleeveLength || 'unknown',
+                  fabricWeight: analysisData.fabricWeight || 'medium',
+                  silhouette: analysisData.silhouette || 'regular',
+                  genderTarget: analysisData.genderTarget || 'unisex',
+                  wearLayer: analysisData.wearLayer || 'Mid',
+                  textureStyle: analysisData.textureStyle || 'smooth',
+                  length: analysisData.length || 'regular',
+                  // Phase 1 new fields
+                  neckline: analysisData.neckline || 'none',
+                  transparency: analysisData.transparency || 'opaque',
+                  collarType: analysisData.collarType || 'none',
+                  embellishments: analysisData.embellishments || 'none',
+                  printSpecificity: analysisData.printSpecificity || 'none',
+                  rise: analysisData.rise || 'none',
+                  legOpening: analysisData.legOpening || 'none',
+                  heelHeight: analysisData.heelHeight || 'none',
+                  statementLevel: analysisData.statementLevel || 5,
+                  waistbandType: analysisData.waistbandType || 'none',
+                  backgroundRemoved: analysisData.backgroundRemoved || false,
+                  hangerPresent: analysisData.hangerPresent || false
+                },
+                naturalDescription: analysisData.naturalDescription || ''
+              }
+            };
+            
             const clothingItem = {
               id: `item-${Date.now()}-${i}`,
-              name: result.analysis.name || result.analysis.clothing_type || 'Analyzed Item',
-              type: result.analysis.type || result.analysis.clothing_type || 'unknown',
-              color: result.analysis.color || result.analysis.primary_color || 'unknown',
+              name: analysisData.name || analysisData.clothing_type || 'Analyzed Item',
+              type: analysisData.type || analysisData.clothing_type || 'unknown',
+              color: analysisData.color || analysisData.primary_color || 'unknown',
               imageUrl: imageUrl, // Use Firebase Storage URL
               userId: user.uid,
               createdAt: new Date().toISOString(),
-              analysis: result.analysis,
+              analysis: structuredAnalysis,  // Send properly structured analysis
               // Add duplicate detection fields
               imageHash: imageHash,
-              metadata: metadata,
+              metadata: metadata,  // Keep image file metadata
               fileSize: item.file.size,
               // Add other required fields
-              brand: result.analysis.brand || '',
-              style: result.analysis.style || '',
-              material: result.analysis.material || '',
-              season: result.analysis.season || [],
-              occasion: result.analysis.occasion || [],
-              subType: result.analysis.subType || '',
-              gender: result.analysis.gender || 'unisex',
+              brand: analysisData.brand || '',
+              style: analysisData.style || '',
+              material: analysisData.material || '',
+              season: analysisData.season || [],
+              occasion: analysisData.occasion || [],
+              subType: analysisData.subType || '',
+              gender: analysisData.gender || 'unisex',
               backgroundRemoved: false,
               favorite: false,
               wearCount: 0,
-              lastWorn: null
+              lastWorn: null,
+              mood: analysisData.mood || []
             };
             
             // Normalize the item metadata before saving

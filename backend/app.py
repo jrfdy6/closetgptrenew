@@ -896,7 +896,9 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
         visual_attrs = metadata_analysis.get("visualAttributes", {})
         
         # Use AI analysis results or fallback to defaults
+        # Extract ALL visual attributes that GPT-4 Vision provides
         visual_attributes = {
+            # Core fields
             "pattern": visual_attrs.get("pattern", "solid"),
             "formalLevel": visual_attrs.get("formalLevel", "casual"),
             "fit": visual_attrs.get("fit", "regular"),
@@ -904,7 +906,25 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
             "fabricWeight": visual_attrs.get("fabricWeight", "medium"),
             "sleeveLength": visual_attrs.get("sleeveLength", "unknown"),
             "silhouette": visual_attrs.get("silhouette", "regular"),
-            "genderTarget": visual_attrs.get("genderTarget", "unisex")
+            "genderTarget": visual_attrs.get("genderTarget", "unisex"),
+            # Critical fields for layering
+            "wearLayer": visual_attrs.get("wearLayer", "Mid"),
+            "textureStyle": visual_attrs.get("textureStyle", "smooth"),
+            "length": visual_attrs.get("length", "regular"),
+            # New Phase 1 fields
+            "neckline": visual_attrs.get("neckline", "none"),
+            "transparency": visual_attrs.get("transparency", "opaque"),
+            "collarType": visual_attrs.get("collarType", "none"),
+            "embellishments": visual_attrs.get("embellishments", "none"),
+            "printSpecificity": visual_attrs.get("printSpecificity", "none"),
+            "rise": visual_attrs.get("rise", "none"),
+            "legOpening": visual_attrs.get("legOpening", "none"),
+            "heelHeight": visual_attrs.get("heelHeight", "none"),
+            "statementLevel": visual_attrs.get("statementLevel", 5),
+            # Additional fields
+            "waistbandType": visual_attrs.get("waistbandType", "none"),
+            "backgroundRemoved": visual_attrs.get("backgroundRemoved", False),
+            "hangerPresent": visual_attrs.get("hangerPresent", False)
         }
         
         # Extract dominant colors from AI analysis if available
@@ -942,6 +962,7 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
                     "matching": [color.get("name", "") for color in matching_colors]
                 },
                 "visualAttributes": visual_attributes,
+                "naturalDescription": metadata_analysis.get("naturalDescription", ""),
                 "itemMetadata": {
                     "tags": tags_array,
                     "careInstructions": "Check care label"
