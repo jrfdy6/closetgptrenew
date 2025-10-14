@@ -813,6 +813,7 @@ async def get_wardrobe_items_with_slash(
                 "userId": current_user.id,
                 "createdAt": (item.get('createdAt') if item else None),  # Keep as createdAt for frontend
                 "updatedAt": (item.get('updatedAt') if item else None),  # Keep as updatedAt for frontend
+                "metadata": (item.get('metadata') if item else None),  # Include metadata for pattern/material/fit scoring
                 "analysis": (item.get('analysis') if item else None),  # Include AI analysis metadata for frontend display
             }
             transformed_items.append(transformed_item)
