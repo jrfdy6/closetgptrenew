@@ -537,6 +537,7 @@ export default function OutfitGenerationPage() {
           
           // Prepare outfit data for Firestore
           const outfitId = data.id || `outfit_${Date.now()}`;
+          const now = new Date().toISOString();
           const outfitData = {
             id: outfitId,
             name: data.name,
@@ -554,8 +555,8 @@ export default function OutfitGenerationPage() {
               user_id: user.uid
             })),
             user_id: user.uid,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
+            createdAt: now,
+            updatedAt: now,
             wearCount: 0,
             isFavorite: false,
             confidence_score: data.confidence_score || 0.8,
