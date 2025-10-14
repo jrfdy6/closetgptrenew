@@ -265,17 +265,48 @@ class OutfitGenerationRequest(BaseModel):
 
     @field_validator('wardrobe', mode='before')
     def validate_wardrobe_items(cls, v, info):
+        import logging
+        logger = logging.getLogger(__name__)
+        
         if not isinstance(v, list):
             return v
         
         validated_items = []
-        for item in v:
+        for idx, item in enumerate(v):
             if isinstance(item, dict):
+                # DEBUG: Check if metadata is present in the incoming item
+                has_metadata = 'metadata' in item and item['metadata'] is not None
+                if idx < 3:  # Log first 3 items
+                    logger.info(f"🔍 WARDROBE VALIDATOR: Item {idx} '{item.get('name', 'Unknown')[:30]}' has_metadata={has_metadata}")
+                    if has_metadata and isinstance(item['metadata'], dict):
+                        has_visual_attrs = 'visualAttributes' in item['metadata']
+                        logger.info(f"  → metadata keys: {list(item['metadata'].keys())[:5]}")
+                        logger.info(f"  → has visualAttributes: {has_visual_attrs}")
+                        if has_visual_attrs:
+                            va = item['metadata']['visualAttributes']
+                            logger.info(f"  → pattern: {va.get('pattern')}, material: {va.get('material')}, fit: {va.get('fit')}")
+                
                 # Normalize type to match ClothingType enum values
                 if 'type' in item and isinstance(item['type'], str):
                     from src.services.robust_hydrator import normalize_item_type_to_enum
                     item['type'] = normalize_item_type_to_enum(item['type'], (item.get('name', '') if item else ''))
-                validated_items.append(ClothingItem(**item))
+                
+                try:
+                    clothing_item = ClothingItem(**item)
+                    validated_items.append(clothing_item)
+                    
+                    # DEBUG: Check if metadata survived Pydantic conversion
+                    if idx < 3:
+                        has_metadata_after = clothing_item.metadata is not None
+                        logger.info(f"  ✅ After Pydantic: metadata={has_metadata_after}")
+                        if has_metadata_after and hasattr(clothing_item.metadata, 'visualAttributes'):
+                            va = clothing_item.metadata.visualAttributes
+                            if va:
+                                logger.info(f"  ✅ visualAttributes preserved: pattern={getattr(va, 'pattern', None)}")
+                except Exception as e:
+                    logger.error(f"  ❌ Failed to create ClothingItem: {e}")
+                    logger.error(f"  → Item data keys: {list(item.keys())}")
+                    raise
             else:
                 validated_items.append(item)
         return validated_items
