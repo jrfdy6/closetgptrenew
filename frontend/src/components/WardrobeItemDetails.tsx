@@ -777,6 +777,70 @@ export default function WardrobeItemDetails({
                         </p>
                       </div>
                     )}
+                    {isFieldRelevant('transparency') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Transparency</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('transparency') ? String(getVisualAttribute('transparency')).charAt(0).toUpperCase() + String(getVisualAttribute('transparency')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('collarType') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Collar Type</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('collarType') ? String(getVisualAttribute('collarType')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('collarType')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('embellishments') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Embellishments</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('embellishments') ? String(getVisualAttribute('embellishments')).charAt(0).toUpperCase() + String(getVisualAttribute('embellishments')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('printSpecificity') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Print Type</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('printSpecificity') ? String(getVisualAttribute('printSpecificity')).charAt(0).toUpperCase() + String(getVisualAttribute('printSpecificity')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('rise') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Rise</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('rise') ? String(getVisualAttribute('rise')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('rise')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('legOpening') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Leg Opening</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('legOpening') ? String(getVisualAttribute('legOpening')).charAt(0).toUpperCase() + String(getVisualAttribute('legOpening')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('heelHeight') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Heel Height</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('heelHeight') ? String(getVisualAttribute('heelHeight')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('heelHeight')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
+                    {isFieldRelevant('statementLevel') && (
+                      <div>
+                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Statement Level</h4>
+                        <p className="text-stone-600 dark:text-stone-400">
+                          {getVisualAttribute('statementLevel') !== null && getVisualAttribute('statementLevel') !== undefined ? `${getVisualAttribute('statementLevel')}/10` : <span className="text-stone-400 italic">Not specified</span>}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Purchase Price</h4>
                       <p className="text-stone-600 dark:text-stone-400">
