@@ -3415,9 +3415,18 @@ class RobustOutfitGenerationService:
             
             logger.info(f"🌤️ Weather analysis: {temp}°F, {condition}, season={season}")
             
+            # SPECIAL CASE: Gym/Athletic occasions ignore weather (gyms are climate-controlled!)
+            is_gym = (context.occasion if context else "unknown").lower() in ['gym', 'athletic', 'workout']
+            
             for item_id, scores in item_scores.items():
                 item = scores['item']
                 base_score = 0.5  # Default neutral score
+                
+                # GYM OVERRIDE: Skip weather scoring for gym (climate-controlled environment)
+                if is_gym:
+                    base_score = 0.8  # Higher base score - weather doesn't matter for gym
+                    item_scores[item_id]['weather_score'] = 0.8
+                    continue  # Skip all weather checks for gym items
                 
                 # Season match
                 item_seasons = getattr(item, 'season', [])
