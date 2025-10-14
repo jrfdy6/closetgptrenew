@@ -2188,6 +2188,61 @@ class RobustOutfitGenerationService:
                     # Belt loops = structured pants, bad for gym
                     penalty -= 3.0 * occasion_multiplier  # Strong penalty
                     logger.debug(f"  🚫🚫 WAISTBAND: Belt loops too structured for gym ({-3.0 * occasion_multiplier:.2f})")
+            
+            # ENHANCED T-SHIRT DIFFERENTIATION FOR GYM
+            # Pattern, Material, and Fit analysis for tops
+            category = self._get_item_category(item)
+            if category == 'tops':
+                # Get metadata for pattern, material, fit
+                pattern = None
+                material = None
+                fit = None
+                
+                if hasattr(item, 'metadata') and item.metadata:
+                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                    if visual_attrs:
+                        pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
+                        material = str(getattr(visual_attrs, 'material', '')).lower()
+                        fit = str(getattr(visual_attrs, 'fit', '')).lower()
+                
+                # PATTERN SCORING - Simple patterns better for gym
+                if pattern:
+                    if pattern in ['solid', 'plain']:
+                        penalty += 0.5 * occasion_multiplier
+                        logger.debug(f"  ✅ PATTERN: Solid/plain pattern good for gym (+{0.5 * occasion_multiplier:.2f})")
+                    elif pattern in ['stripe', 'stripes', 'striped']:
+                        penalty += 0.3 * occasion_multiplier  # Still good
+                        logger.debug(f"  ✅ PATTERN: Striped pattern acceptable for gym (+{0.3 * occasion_multiplier:.2f})")
+                    elif pattern in ['graphic', 'logo', 'print']:
+                        penalty += 0.2 * occasion_multiplier  # Athletic graphics common
+                        logger.debug(f"  ✅ PATTERN: Graphic/logo acceptable for gym (+{0.2 * occasion_multiplier:.2f})")
+                    elif pattern in ['floral', 'paisley', 'polka dot', 'checkered', 'plaid']:
+                        penalty -= 0.8 * occasion_multiplier  # Too busy/dressy for gym
+                        logger.debug(f"  ⚠️ PATTERN: Busy pattern less ideal for gym ({-0.8 * occasion_multiplier:.2f})")
+                
+                # MATERIAL SCORING - Performance fabrics better for gym
+                if material:
+                    if material in ['polyester', 'mesh', 'performance', 'synthetic', 'nylon', 'spandex', 'elastane']:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅✅ MATERIAL: Performance fabric ideal for gym (+{0.8 * occasion_multiplier:.2f})")
+                    elif material in ['cotton', 'jersey', 'blend']:
+                        penalty += 0.4 * occasion_multiplier  # Good, common for gym
+                        logger.debug(f"  ✅ MATERIAL: Cotton/jersey good for gym (+{0.4 * occasion_multiplier:.2f})")
+                    elif material in ['silk', 'satin', 'wool', 'cashmere', 'linen']:
+                        penalty -= 1.2 * occasion_multiplier  # Inappropriate for gym
+                        logger.debug(f"  🚫 MATERIAL: Dress material inappropriate for gym ({-1.2 * occasion_multiplier:.2f})")
+                
+                # FIT SCORING - Loose/athletic fit better for gym mobility
+                if fit:
+                    if fit in ['loose', 'relaxed', 'oversized', 'athletic']:
+                        penalty += 0.6 * occasion_multiplier
+                        logger.debug(f"  ✅ FIT: {fit.capitalize()} fit good for gym mobility (+{0.6 * occasion_multiplier:.2f})")
+                    elif fit in ['regular', 'standard']:
+                        penalty += 0.2 * occasion_multiplier  # Neutral
+                        logger.debug(f"  ✅ FIT: Regular fit acceptable for gym (+{0.2 * occasion_multiplier:.2f})")
+                    elif fit in ['slim', 'fitted', 'tailored', 'tight']:
+                        penalty -= 0.5 * occasion_multiplier  # Less ideal for workout mobility
+                        logger.debug(f"  ⚠️ FIT: {fit.capitalize()} fit restricts gym mobility ({-0.5 * occasion_multiplier:.2f})")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
