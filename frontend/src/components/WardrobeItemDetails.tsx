@@ -94,6 +94,15 @@ const LENGTHS = [
   'mini', 'midi', 'maxi', 'knee-length', 'ankle-length', 'crop', 'regular', 'long', 'short'
 ];
 
+// Phase 1 new constants for gender-inclusive outfit generation
+const TRANSPARENCIES = ['opaque', 'semi-sheer', 'sheer', 'textured-opaque'];
+const COLLAR_TYPES = ['button-down', 'spread', 'point', 'band', 'mandarin', 'camp', 'shawl', 'peter-pan', 'none'];
+const EMBELLISHMENTS = ['none', 'minimal', 'moderate', 'heavy'];
+const PRINT_TYPES = ['none', 'logo', 'text', 'graphic', 'abstract', 'geometric', 'floral', 'animal'];
+const RISE_TYPES = ['high-rise', 'mid-rise', 'low-rise'];
+const LEG_OPENINGS = ['straight', 'tapered', 'wide', 'flared', 'bootcut', 'skinny'];
+const HEEL_HEIGHTS = ['flat', 'low', 'mid', 'high', 'very-high', 'platform'];
+
 export default function WardrobeItemDetails({
   item,
   isOpen,
@@ -237,7 +246,21 @@ export default function WardrobeItemDetails({
       case 'sleeveLength':
         return isTop || isDress; // Only tops and dresses have sleeves
       case 'neckline':
-        return isTop || isDress; // Only tops and dresses have necklines
+      case 'collarType':
+        return isTop || isDress; // Only tops and dresses have necklines/collars
+      case 'transparency':
+        return isTop || isBottom || isDress; // Clothing items can be transparent
+      case 'rise':
+        return isBottom; // Only pants/shorts/skirts have rise
+      case 'legOpening':
+        return itemType.includes('pants') || itemType.includes('jeans'); // Only pants have leg openings
+      case 'heelHeight':
+        return isShoe; // Only shoes have heel height
+      case 'embellishments':
+      case 'printSpecificity':
+        return !isAccessory; // All clothing items can have embellishments/prints
+      case 'statementLevel':
+        return true; // All items have a statement level
       case 'fit':
         return !isShoe && !isAccessory; // Most items except shoes and accessories
       case 'length':

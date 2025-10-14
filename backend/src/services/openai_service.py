@@ -162,6 +162,11 @@ ADDITIONAL VISUALATTRIBUTES (Required):
 - fabricWeight: Light/Medium/Heavy
 - silhouette: structured/flowy/boxy/fitted/etc.
 - length: short/mid-length/long/cropped/etc.
+- neckline: FOR TOPS ONLY - crew/v-neck/scoop/turtleneck/collar/henley/tank/halter/off-shoulder/cowl/boat/square/sweetheart/none (use 'none' for bottoms/shoes/accessories)
+- transparency: opaque/semi-sheer/sheer/textured-opaque (affects layering needs and modesty)
+- collarType: FOR SHIRTS/TOPS - button-down/spread/point/band/mandarin/camp/shawl/peter-pan/none (more specific than neckline)
+- embellishments: none/minimal/moderate/heavy (sequins, beading, graphics, patches, etc.)
+- printSpecificity: none/logo/text/graphic/abstract/geometric/floral/animal (more specific than pattern)
 - genderTarget: Men/Women/Unisex
 - material: cotton/wool/silk/polyester/denim/etc.
 - backgroundRemoved: true/false (is background removed?)
@@ -173,6 +178,14 @@ ADDITIONAL VISUALATTRIBUTES (Required):
   * elastic_drawstring: Combination of elastic + drawstring (athletic pants, loungewear)
   * button_zip: Button/zipper only without belt loops (some formal pants)
   * none: Not applicable (for non-bottom items like tops, dresses, etc.)
+- rise: FOR PANTS/SHORTS/SKIRTS - high-rise/mid-rise/low-rise/none (how high it sits on waist)
+- legOpening: FOR PANTS ONLY - straight/tapered/wide/flared/bootcut/skinny/none (leg shape at ankle)
+- heelHeight: FOR SHOES ONLY - flat/low/mid/high/very-high/platform/none (heel measurement)
+- statementLevel: Rate 0-10 how eye-catching the item is:
+  * 0-2: Basic wardrobe staple (plain white tee, basic jeans)
+  * 3-5: Moderate personality (patterned shirt, colored pants)
+  * 6-8: Statement piece (bold print, unique design)
+  * 9-10: Showstopper (sequins, dramatic silhouette)
 
 ROOT-LEVEL FIELDS (Also required):
 - bodyTypeCompatibility: Array of body types this flatters (Rectangle/Hourglass/Triangle/Inverted Triangle/Apple/Oval)
@@ -210,11 +223,20 @@ EXAMPLE OUTPUT:
       "fit": "loose",
       "silhouette": "Boxy",
       "length": "Mid-length",
+      "neckline": "crew",
+      "transparency": "opaque",
+      "collarType": "none",
+      "embellishments": "minimal",
+      "printSpecificity": "none",
       "formalLevel": "Casual",
       "genderTarget": "Unisex",
       "backgroundRemoved": false,
       "hangerPresent": true,
-      "waistbandType": "none"
+      "waistbandType": "none",
+      "rise": "none",
+      "legOpening": "none",
+      "heelHeight": "none",
+      "statementLevel": 4
     },
     "naturalDescription": "A loose, short-sleeve, ribbed sweater. This is an outer layer item that should not be worn under long-sleeve shirts."
   }

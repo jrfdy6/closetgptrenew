@@ -29,6 +29,15 @@ export interface ClothingItem {
   length?: string;
   purchaseDate?: Date;
   purchasePrice?: number;
+  // Phase 1 new fields - gender-inclusive outfit generation
+  transparency?: string;
+  collarType?: string;
+  embellishments?: string;
+  printSpecificity?: string;
+  rise?: string;
+  legOpening?: string;
+  heelHeight?: string;
+  statementLevel?: number;
 }
 
 export interface WardrobeFilters {
