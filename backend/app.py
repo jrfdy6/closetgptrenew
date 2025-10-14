@@ -927,6 +927,16 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
             "hangerPresent": visual_attrs.get("hangerPresent", False)
         }
         
+        # VERIFICATION LOGGING - Confirm material and description are extracted
+        extracted_material = visual_attrs.get("material", "cotton")
+        extracted_description = metadata_analysis.get("naturalDescription", "")
+        print(f"🔍 METADATA EXTRACTION VERIFICATION:")
+        print(f"  ✅ Material extracted: {extracted_material}")
+        print(f"  ✅ Description extracted: {extracted_description}")
+        print(f"  📊 Total visualAttributes fields: {len(visual_attributes)}")
+        print(f"  🎯 Will save to: metadata.visualAttributes.material = {extracted_material}")
+        print(f"  🎯 Will save to: metadata.naturalDescription = {extracted_description}")
+        
         # Extract dominant colors from AI analysis if available
         dominant_colors = analysis.get("dominantColors", [])
         if not dominant_colors:
@@ -978,6 +988,14 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
         # Save to Firestore
         doc_ref = db.collection('wardrobe').document(item_id)
         doc_ref.set(wardrobe_item)
+        
+        # VERIFICATION - Confirm what was saved to Firestore
+        print(f"✅ SAVED TO FIRESTORE:")
+        print(f"  Item ID: {item_id}")
+        print(f"  Item Name: {wardrobe_item['name']}")
+        print(f"  metadata.visualAttributes.material: {wardrobe_item['metadata']['visualAttributes']['material']}")
+        print(f"  metadata.naturalDescription: {wardrobe_item['metadata']['naturalDescription']}")
+        print(f"  metadata.visualAttributes keys: {list(wardrobe_item['metadata']['visualAttributes'].keys())}")
         
         # Item added successfully
         

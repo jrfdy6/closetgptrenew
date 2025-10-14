@@ -240,6 +240,16 @@ export class WardrobeService {
       const transformedItems = items.map(item => this.transformBackendItem(item));
       console.log('🔍 DEBUG: Transformed items with flattened metadata:', transformedItems.slice(0, 2));
       
+      // VERIFICATION - Check first item has material and description
+      if (transformedItems.length > 0) {
+        const firstItem = transformedItems[0];
+        console.log('✅ TRANSFORMATION VERIFICATION (first item):');
+        console.log(`  material: ${firstItem.material}`);
+        console.log(`  description: ${firstItem.description}`);
+        console.log(`  neckline: ${firstItem.neckline}`);
+        console.log(`  Source: metadata.visualAttributes.material = ${firstItem.metadata?.visualAttributes?.material}`);
+      }
+      
       return transformedItems;
     } catch (error) {
       console.error('Error fetching wardrobe items:', error);
