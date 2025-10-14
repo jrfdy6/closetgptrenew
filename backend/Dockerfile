@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1760409128
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "REDUCED LOG NOISE - Debug verbose scoring to see validator logs"
+ARG CACHE_BUSTER=1760409509
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "DIRECT METADATA CHECK - Logging in generate_outfit entry point"
 
 # Set working directory
 WORKDIR /app

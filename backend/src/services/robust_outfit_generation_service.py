@@ -381,6 +381,22 @@ class RobustOutfitGenerationService:
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
+        # 🔍 METADATA DIAGNOSTIC: Check if wardrobe items have metadata on arrival
+        items_with_metadata = sum(1 for item in context.wardrobe if item.metadata is not None)
+        logger.info(f"🔍 METADATA CHECK: {items_with_metadata}/{len(context.wardrobe)} items have metadata")
+        if len(context.wardrobe) > 0:
+            # Sample first 3 items
+            for idx, item in enumerate(context.wardrobe[:3]):
+                has_metadata = item.metadata is not None
+                logger.info(f"🔍 SAMPLE {idx}: '{item.name[:40]}' metadata={has_metadata}")
+                if has_metadata and hasattr(item.metadata, 'visualAttributes') and item.metadata.visualAttributes:
+                    va = item.metadata.visualAttributes
+                    logger.info(f"  ✅ visualAttributes: pattern={getattr(va, 'pattern', None)}, material={getattr(va, 'material', None)}, fit={getattr(va, 'fit', None)}")
+                elif has_metadata:
+                    logger.info(f"  ⚠️ Has metadata but no visualAttributes")
+                else:
+                    logger.info(f"  ❌ No metadata object")
+        
         # ═══════════════════════════════════════════════════════════════════════
         # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
         # ═══════════════════════════════════════════════════════════════════════
