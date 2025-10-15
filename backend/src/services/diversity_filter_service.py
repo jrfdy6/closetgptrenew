@@ -663,6 +663,29 @@ class DiversityFilterService:
         except Exception as e:
             logger.warning(f"⚠️ Error getting diversity suggestions: {e}")
             return []
+    
+    def get_recent_outfits(self, user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get recent outfits for a user from Firestore.
+        
+        Args:
+            user_id: User ID to get outfits for
+            limit: Maximum number of recent outfits to return
+            
+        Returns:
+            List of recent outfit dicts
+        """
+        # Load from Firestore if cache is empty or stale
+        if not self.outfit_history[user_id] or len(self.outfit_history[user_id]) < 5:
+            logger.info(f"🔄 Loading outfit history from Firestore for diversity (user {user_id})")
+            firestore_history = self._load_outfit_history_from_firestore(user_id)
+            if firestore_history:
+                self.outfit_history[user_id] = firestore_history
+        
+        # Return most recent outfits
+        recent = self.outfit_history[user_id][-limit:] if self.outfit_history[user_id] else []
+        logger.info(f"📚 Retrieved {len(recent)} recent outfits for user {user_id} (limit: {limit})")
+        return recent
 
 # Global instance
 diversity_filter = DiversityFilterService()

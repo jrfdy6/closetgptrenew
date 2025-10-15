@@ -308,7 +308,7 @@ class OutfitFilteringService:
         return items
     
     def _filter_for_athletic(self, items: List[ClothingItem]) -> List[ClothingItem]:
-        """Filter items for athletic occasions."""
+        """Filter items for athletic occasions using metadata-first approach."""
         athletic_items = []
         for item in items:
             item_type = item.type.lower()
@@ -331,15 +331,25 @@ class OutfitFilteringService:
             if any(block in item_type or block in item_name for block in gym_blocks):
                 continue
             
-            # SECOND: Include athletic/casual items that passed the blocks
+            # SECOND: Check occasion metadata tags FIRST (metadata-first approach)
+            item_occasions = self._get_normalized_field(item, 'occasion')
+            if item_occasions:
+                # Use semantic compatibility - gym accepts athletic, sport, gym, workout, casual, etc.
+                appropriate_occasions = ['athletic', 'sport', 'gym', 'workout', 'running', 
+                                        'casual', 'everyday', 'active', 'fitness', 'exercise']
+                if any(occ in appropriate_occasions for occ in item_occasions):
+                    athletic_items.append(item)
+                    continue
+            
+            # THIRD: Fall back to name/type checking for items without metadata
             # Include athletic items
             if any(keyword in item_type or keyword in item_name 
                    for keyword in ['athletic', 'sports', 'workout', 'gym', 'running', 'training', 
-                                  'tank', 't-shirt', 'jersey', 'shorts', 'jogger', 'track',
+                                  'tank', 't-shirt', 'tshirt', 't shirt', 'jersey', 'shorts', 'jogger', 'track',
                                   'sneaker', 'sneakers', 'athletic shoes']):
                 athletic_items.append(item)
             # Include basic items that can work (t-shirts, basic shoes)
-            elif item_type in ['shirt', 'shoes'] and not any(block in item_name for block in ['button', 'dress', 'polo', 'oxford']):
+            elif item_type in ['shirt', 'top', 'shoes'] and not any(block in item_name for block in ['button', 'dress', 'polo', 'oxford']):
                 athletic_items.append(item)
         
         return athletic_items

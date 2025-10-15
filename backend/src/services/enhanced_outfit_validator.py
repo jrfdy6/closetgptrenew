@@ -1021,9 +1021,38 @@ class EnhancedOutfitValidator:
         
         # Athletic occasion validation
         elif 'athletic' in occasion or 'gym' in occasion:
-            athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball', 'exercise']
-            if not any(pattern in item_name or pattern in item_type for pattern in athletic_patterns):
-                return False
+            # Check if item has athletic/casual occasion tags (metadata-first approach)
+            if item_occasion:
+                appropriate_occasions = ['athletic', 'sport', 'gym', 'workout', 'running', 'casual', 'everyday', 'active']
+                if any(occ in appropriate_occasions for occ in item_occasion):
+                    # Item has appropriate occasion tags, allow it
+                    pass
+                else:
+                    # Item doesn't have gym/casual tags, check if it's forbidden
+                    forbidden_patterns = [
+                        'dress shirt', 'button up', 'button-up', 'polo', 'blazer', 'suit',
+                        'dress pants', 'slacks', 'chinos', 'formal', 'business',
+                        'oxford shoes', 'dress shoes', 'loafers', 'heels'
+                    ]
+                    if any(pattern in item_name or pattern in item_type for pattern in forbidden_patterns):
+                        return False
+            else:
+                # No occasion metadata, fall back to name/type checking
+                # Allow athletic items
+                athletic_patterns = ['athletic', 'sport', 'gym', 'workout', 'running', 'basketball', 'exercise', 
+                                    't-shirt', 'tshirt', 'tee', 'tank', 'shorts', 'jogger', 'sneaker', 'hoodie']
+                # Block formal items
+                forbidden_patterns = [
+                    'dress shirt', 'button up', 'button-up', 'polo', 'blazer', 'suit',
+                    'dress pants', 'slacks', 'chinos', 'formal', 'business',
+                    'oxford shoes', 'dress shoes', 'loafers', 'heels'
+                ]
+                
+                # If it matches forbidden patterns, reject
+                if any(pattern in item_name or pattern in item_type for pattern in forbidden_patterns):
+                    return False
+                # Otherwise allow (includes t-shirts, basic items, and athletic wear)
+
         
         # Casual occasion - more lenient but still check basic appropriateness
         elif 'casual' in occasion:

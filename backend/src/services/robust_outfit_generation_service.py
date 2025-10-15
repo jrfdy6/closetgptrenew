@@ -3883,16 +3883,40 @@ class RobustOutfitGenerationService:
         
         # Sort items by composite score with randomization AND diversity penalty
         import random
+        
+        # ENHANCED DIVERSITY: Much stronger penalties and boosts to promote variety
+        diversity_adjustments = {}
+        for item_id, score_data in item_scores.items():
+            base_score = score_data['composite_score']
+            adjustment = 0.0
+            
+            # 1. Random noise (±20% instead of ±5%)
+            noise = random.uniform(-0.3, 0.3)
+            adjustment += noise
+            
+            # 2. Recently worn penalty (MUCH STRONGER)
+            if item_id in recently_used_item_ids:
+                adjustment -= 2.0  # Strong penalty to force variety
+                logger.debug(f"  🔄 Recently worn: {score_data['item'].name if hasattr(score_data['item'], 'name') else 'Unknown'} → -2.0 penalty")
+            
+            # 3. Never worn boost
+            item = score_data['item']
+            item_wear_count = getattr(item, 'wearCount', 0) if item else 0
+            if item_wear_count == 0:
+                adjustment += 1.0  # Boost new items
+                logger.debug(f"  🆕 Never worn: {item.name if hasattr(item, 'name') else 'Unknown'} → +1.0 boost")
+            elif item_wear_count <= 2:
+                adjustment += 0.5  # Boost lightly worn items
+                logger.debug(f"  🌱 Lightly worn ({item_wear_count}): {item.name if hasattr(item, 'name') else 'Unknown'} → +0.5 boost")
+            
+            diversity_adjustments[item_id] = adjustment
+        
         sorted_items = sorted(
             item_scores.items(), 
-            key=lambda x: (
-                x[1]['composite_score'] 
-                + random.uniform(-0.05, 0.05)  # ±5% randomization for variety
-                - (0.5 if x[0] in recently_used_item_ids else 0.0)  # -0.5 penalty for recently used items
-            ),
+            key=lambda x: x[1]['composite_score'] + diversity_adjustments.get(x[0], 0.0),
             reverse=True
         )
-        logger.info(f"🎲 DIVERSITY: Added ±5% noise and -0.5 penalty for {len(recently_used_item_ids)} recently used items")
+        logger.info(f"🎲 DIVERSITY: Added ±0.3 noise, -2.0 recently worn penalty, +1.0 new item boost for {len(recently_used_item_ids)} recently used items")
         
         # Select items with intelligent layering
         selected_items = []
