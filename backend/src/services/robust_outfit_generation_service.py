@@ -2029,20 +2029,37 @@ class RobustOutfitGenerationService:
         if occasion_lower in ['gym', 'athletic', 'workout']:
             logger.info(f"🏋️ GYM FILTER ACTIVE for {occasion}")
             
-            # CRITICAL: Block ALL pants for gym (only shorts allowed)
-            pants_blocks = [
-                'pants', 'pant', 'trouser', 'slacks', 'chino', 'khaki pant',
-                'dress pants', 'cargo pants', 'jean', 'jeans', 'denim',
-                'dockers', 'jogger', 'sweatpants', 'track pants', 'legging'
+            # CRITICAL: Block formal/casual pants ONLY (allow athletic pants like joggers/sweatpants)
+            formal_casual_pants_blocks = [
+                'dress pants', 'slacks', 'chino', 'khaki pant', 'khakis',
+                'cargo pants', 'jean', 'jeans', 'denim', 'dockers',
+                'trouser', 'dress trouser', 'suit pants', 'formal pants'
             ]
             
-            # Check if this is a pants item (not shorts!)
-            is_pants = item_type in ['pants', 'jeans', 'trousers'] or \
-                       any(p in item_name for p in pants_blocks if 'short' not in item_name.lower())
+            # Athletic pants that ARE ALLOWED for gym
+            athletic_pants_allowed = [
+                'jogger', 'sweatpants', 'sweat pants', 'track pants', 
+                'athletic pants', 'workout pants', 'gym pants', 'training pants'
+            ]
             
-            if is_pants:
-                logger.info(f"🚫 GYM HARD FILTER: BLOCKED PANTS '{item_name[:40]}' - No pants allowed for gym!")
+            # Check if this is a formal/casual pants item (not athletic pants or shorts!)
+            is_formal_casual_pants = False
+            is_athletic_pants = False
+            
+            if 'short' not in item_name.lower():  # Not shorts
+                # Check if athletic pants (ALLOWED)
+                is_athletic_pants = any(ap in item_name.lower() or ap in item_type for ap in athletic_pants_allowed)
+                
+                # Check if formal/casual pants (BLOCKED)
+                if not is_athletic_pants:
+                    is_formal_casual_pants = item_type in ['pants', 'jeans', 'trousers'] or \
+                                            any(p in item_name.lower() for p in formal_casual_pants_blocks)
+            
+            if is_formal_casual_pants:
+                logger.info(f"🚫 GYM HARD FILTER: BLOCKED FORMAL/CASUAL PANTS '{item_name[:40]}' - Only athletic pants/shorts allowed!")
                 return False
+            elif is_athletic_pants:
+                logger.info(f"✅ GYM HARD FILTER: ALLOWED ATHLETIC PANTS '{item_name[:40]}' - Joggers/sweatpants OK for gym")
             
             # Block other formal items
             gym_blocks = [
@@ -2231,28 +2248,42 @@ class RobustOutfitGenerationService:
                     penalty -= 3.0 * occasion_multiplier  # Strong penalty
                     logger.debug(f"  🚫🚫 WAISTBAND: Belt loops too structured for gym ({-3.0 * occasion_multiplier:.2f})")
             
-            # SHORTS PRIORITIZATION: Athletic shorts > Casual shorts
-            if category == 'bottoms' and 'short' in item_type_lower:
-                # Check if shorts are athletic or casual
-                athletic_short_keywords = ['athletic', 'sport', 'gym', 'workout', 'running', 
-                                          'training', 'basketball', 'performance']
-                casual_short_keywords = ['casual', 'bermuda', 'cargo', 'chino']
+            # BOTTOMS PRIORITIZATION: Shorts > Athletic Pants > Casual Pants (blocked)
+            if category == 'bottoms':
+                # SHORTS: Athletic shorts > Casual shorts
+                if 'short' in item_type_lower:
+                    athletic_short_keywords = ['athletic', 'sport', 'gym', 'workout', 'running', 
+                                              'training', 'basketball', 'performance']
+                    casual_short_keywords = ['casual', 'bermuda', 'cargo', 'chino']
+                    
+                    is_athletic_short = any(kw in item_name or kw in item_type_lower for kw in athletic_short_keywords) or \
+                                       any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
+                    is_casual_short = any(kw in item_name or kw in item_type_lower for kw in casual_short_keywords) or \
+                                     'casual' in item_occasion_lower
+                    
+                    if is_athletic_short:
+                        penalty += 1.5 * occasion_multiplier  # HIGHEST boost for athletic shorts (preferred)
+                        logger.debug(f"  ✅✅✅ SHORTS: Athletic shorts MOST preferred: {+1.5 * occasion_multiplier:.2f}")
+                    elif is_casual_short:
+                        penalty += 0.5 * occasion_multiplier  # Good boost for casual shorts
+                        logger.debug(f"  ✅ SHORTS: Casual shorts acceptable: {+0.5 * occasion_multiplier:.2f}")
+                    else:
+                        # Generic shorts - good boost
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅ SHORTS: Generic shorts acceptable: {+0.8 * occasion_multiplier:.2f}")
                 
-                is_athletic_short = any(kw in item_name or kw in item_type_lower for kw in athletic_short_keywords) or \
-                                   any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
-                is_casual_short = any(kw in item_name or kw in item_type_lower for kw in casual_short_keywords) or \
-                                 'casual' in item_occasion_lower
-                
-                if is_athletic_short:
-                    penalty += 1.0 * occasion_multiplier  # STRONG boost for athletic shorts
-                    logger.debug(f"  ✅✅✅ SHORTS: Athletic shorts prioritized: {+1.0 * occasion_multiplier:.2f}")
-                elif is_casual_short:
-                    penalty += 0.3 * occasion_multiplier  # Smaller boost for casual shorts (allowed but not preferred)
-                    logger.debug(f"  ✅ SHORTS: Casual shorts acceptable: {+0.3 * occasion_multiplier:.2f}")
-                else:
-                    # Generic shorts - small boost
-                    penalty += 0.5 * occasion_multiplier
-                    logger.debug(f"  ✅ SHORTS: Generic shorts acceptable: {+0.5 * occasion_multiplier:.2f}")
+                # ATHLETIC PANTS: Joggers, sweatpants (allowed but lower priority than shorts)
+                else:  # Not shorts, must be pants
+                    athletic_pants_keywords = ['jogger', 'sweatpants', 'sweat pants', 'track pants',
+                                              'athletic pants', 'workout pants', 'gym pants', 'training pants']
+                    
+                    is_athletic_pants = any(kw in item_name.lower() for kw in athletic_pants_keywords) or \
+                                       any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
+                    
+                    if is_athletic_pants:
+                        penalty += 0.8 * occasion_multiplier  # Good boost for athletic pants (but less than shorts)
+                        logger.debug(f"  ✅✅ PANTS: Athletic pants (joggers/sweatpants) allowed: {+0.8 * occasion_multiplier:.2f}")
+                    # Formal/casual pants already blocked in hard filter
             
             # ENHANCED T-SHIRT DIFFERENTIATION FOR GYM
             # Pattern, Material, and Fit analysis for tops

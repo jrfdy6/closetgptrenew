@@ -314,19 +314,28 @@ class OutfitFilteringService:
             item_type = item.type.lower()
             item_name = item.name.lower()
             
-            # FIRST: Block ALL PANTS for gym (only shorts allowed!)
-            pants_blocks = [
-                'pants', 'pant', 'trouser', 'slacks', 'chino', 'khaki pant',
-                'dress pants', 'cargo pants', 'jean', 'jeans', 'denim',
-                'dockers', 'jogger', 'sweatpants', 'track pants', 'legging'
+            # FIRST: Block formal/casual pants ONLY (allow athletic pants like joggers/sweatpants)
+            formal_casual_pants_blocks = [
+                'dress pants', 'slacks', 'chino', 'khaki pant', 'khakis',
+                'cargo pants', 'jean', 'jeans', 'denim', 'dockers',
+                'trouser', 'dress trouser', 'suit pants', 'formal pants'
             ]
             
-            # Check if this is a pants item (not shorts!)
-            is_pants = item_type in ['pants', 'jeans', 'trousers'] or \
-                       any(p in item_name for p in pants_blocks if 'short' not in item_name.lower())
+            # Athletic pants that ARE ALLOWED for gym
+            athletic_pants_allowed = [
+                'jogger', 'sweatpants', 'sweat pants', 'track pants',
+                'athletic pants', 'workout pants', 'gym pants', 'training pants'
+            ]
             
-            if is_pants:
-                continue  # Skip all pants for gym
+            # Check if this is a formal/casual pants item (not athletic pants or shorts!)
+            if 'short' not in item_name.lower():  # Not shorts
+                is_athletic_pants = any(ap in item_name.lower() or ap in item_type for ap in athletic_pants_allowed)
+                
+                if not is_athletic_pants:
+                    is_formal_casual_pants = item_type in ['pants', 'jeans', 'trousers'] or \
+                                            any(p in item_name.lower() for p in formal_casual_pants_blocks)
+                    if is_formal_casual_pants:
+                        continue  # Skip formal/casual pants for gym
             
             # SECOND: Block other formal/structured items
             gym_blocks = [
