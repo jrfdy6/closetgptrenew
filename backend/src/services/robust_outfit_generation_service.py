@@ -2073,21 +2073,59 @@ class RobustOutfitGenerationService:
             elif is_athletic_pants:
                 logger.info(f"✅ GYM HARD FILTER: ALLOWED ATHLETIC PANTS '{item_name[:40]}' - Joggers/sweatpants OK for gym")
             
-            # Block other formal items
+            # COMPREHENSIVE SHOE CHECK FOR GYM
+            if item_type in ['shoes', 'boots', 'footwear'] or 'shoe' in item_type:
+                # Check if shoes are explicitly NON-athletic (BLOCK these)
+                non_athletic_shoe_keywords = [
+                    'oxford', 'loafer', 'derby', 'monk', 'dress shoe', 'dress', 
+                    'heel', 'heels', 'pump', 'formal', 'brogue', 'wingtip',
+                    'slide', 'slides', 'sandal', 'sandals', 'flip-flop', 'flip flop',
+                    'boat shoe', 'moccasin', 'ballet flat', 'slipper', 'casual shoe'
+                ]
+                is_non_athletic_shoe = any(kw in item_name.lower() for kw in non_athletic_shoe_keywords)
+                
+                if is_non_athletic_shoe:
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED NON-ATHLETIC SHOE '{item_name[:40]}'")
+                    return False
+                
+                # Check occasion tags for shoes
+                item_occasions = getattr(item, 'occasion', [])
+                item_occasions_lower = [occ.lower() for occ in item_occasions] if item_occasions else []
+                has_athletic_occasion = any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport', 'running'])
+                
+                # Check if shoes are explicitly athletic (ALLOW these)
+                athletic_shoe_keywords = [
+                    'sneaker', 'sneakers', 'athletic', 'running', 'training', 'sport', 'gym',
+                    'basketball', 'tennis', 'cross-trainer', 'workout', 'performance', 'trainer'
+                ]
+                is_athletic_shoe = any(kw in item_name.lower() or kw in item_type for kw in athletic_shoe_keywords)
+                
+                # STRICT: Shoes must be explicitly athletic OR have athletic occasion tags
+                if not is_athletic_shoe and not has_athletic_occasion:
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED GENERIC/UNCLEAR SHOES '{item_name[:40]}' - Must be explicitly athletic")
+                    return False
+                
+                logger.info(f"✅ GYM HARD FILTER: PASSED ATHLETIC SHOE '{item_name[:40]}'")
+            
+            # Block other formal/structured items (comprehensive list)
             gym_blocks = [
+                # Formal wear
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
-                'oxford', 'loafer', 'heels', 'derby', 'dress shoe',
+                # Jackets  
                 'leather jacket', 'biker jacket',
+                # Collared/structured shirts (NOT appropriate for gym)
                 'button up', 'button-up', 'button down', 'button-down',
-                'polo', 'henley', 'collar', 'rugby shirt',
-                'slide', 'sandal', 'flip-flop', 'flip flop'
+                'polo shirt', 'polo', 'henley', 'collared', 'collar', 
+                'rugby shirt', 'oxford shirt', 'dress top'
             ]
             
-            if any(block in item_type or block in item_name for block in gym_blocks):
-                logger.info(f"🚫 GYM HARD FILTER: BLOCKED '{item_name[:40]}' - matched gym_blocks")
-                return False
-            else:
-                logger.info(f"✅ GYM HARD FILTER: PASSED '{item_name[:40]}'")
+            # Check both item_type and item_name (both already lowercase)
+            for block in gym_blocks:
+                if block in item_type or block in item_name:
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED '{item_name[:40]}' - matched '{block}'")
+                    return False
+            
+            logger.info(f"✅ GYM HARD FILTER: PASSED '{item_name[:40]}'")
         
         # Try compatibility matrix (will likely fail but doesn't matter now)
         try:

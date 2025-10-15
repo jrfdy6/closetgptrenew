@@ -337,21 +337,51 @@ class OutfitFilteringService:
                     if is_formal_casual_pants:
                         continue  # Skip formal/casual pants for gym
             
-            # SECOND: Block other formal/structured items
+            # SECOND: COMPREHENSIVE SHOE CHECK FOR GYM
+            if item_type in ['shoes', 'boots', 'footwear'] or 'shoe' in item_type:
+                # Block non-athletic shoes
+                non_athletic_shoe_keywords = [
+                    'oxford', 'loafer', 'derby', 'monk', 'dress shoe', 'dress',
+                    'heel', 'heels', 'pump', 'formal', 'brogue', 'wingtip',
+                    'slide', 'slides', 'sandal', 'sandals', 'flip-flop', 'flip flop',
+                    'boat shoe', 'moccasin', 'ballet flat', 'slipper'
+                ]
+                is_non_athletic_shoe = any(kw in item_name.lower() for kw in non_athletic_shoe_keywords)
+                
+                if is_non_athletic_shoe:
+                    continue  # Skip non-athletic shoes
+                
+                # Check if shoes are explicitly athletic
+                athletic_shoe_keywords = [
+                    'sneaker', 'athletic', 'running', 'training', 'sport', 'gym',
+                    'basketball', 'tennis', 'cross-trainer', 'workout', 'performance'
+                ]
+                is_athletic_shoe = any(kw in item_name.lower() or kw in item_type for kw in athletic_shoe_keywords)
+                
+                # If generic "shoes" without athletic keywords, BLOCK
+                if not is_athletic_shoe and item_type == 'shoes':
+                    continue  # Skip generic/unclear shoes
+            
+            # THIRD: Block other formal/structured items
             gym_blocks = [
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
-                'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
                 'leather jacket', 'biker jacket',
                 'button up', 'button down', 'button-up', 'button-down',
-                'polo', 'henley', 'collared', 'collar', 'rugby shirt',
-                'slide', 'slides', 'sandal', 'sandals', 'flip-flop', 'flip flop'
+                'polo shirt', 'polo', 'henley', 'collared', 'collar', 
+                'rugby shirt', 'oxford shirt', 'dress top'
             ]
             
             # Skip if item matches any block
-            if any(block in item_type or block in item_name for block in gym_blocks):
-                continue
+            should_skip = False
+            for block in gym_blocks:
+                if block in item_type or block in item_name:
+                    should_skip = True
+                    break
             
-            # SECOND: Check occasion metadata tags FIRST (metadata-first approach)
+            if should_skip:
+                continue  # Skip this item entirely
+            
+            # FOURTH: Check occasion metadata tags FIRST (metadata-first approach)
             item_occasions = self._get_normalized_field(item, 'occasion')
             if item_occasions:
                 # Use semantic compatibility - gym accepts athletic, sport, gym, workout, casual, etc.
