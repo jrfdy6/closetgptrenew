@@ -314,15 +314,26 @@ class OutfitFilteringService:
             item_type = item.type.lower()
             item_name = item.name.lower()
             
-            # FIRST: Block formal/structured items (critical for gym/athletic)
+            # FIRST: Block ALL PANTS for gym (only shorts allowed!)
+            pants_blocks = [
+                'pants', 'pant', 'trouser', 'slacks', 'chino', 'khaki pant',
+                'dress pants', 'cargo pants', 'jean', 'jeans', 'denim',
+                'dockers', 'jogger', 'sweatpants', 'track pants', 'legging'
+            ]
+            
+            # Check if this is a pants item (not shorts!)
+            is_pants = item_type in ['pants', 'jeans', 'trousers'] or \
+                       any(p in item_name for p in pants_blocks if 'short' not in item_name.lower())
+            
+            if is_pants:
+                continue  # Skip all pants for gym
+            
+            # SECOND: Block other formal/structured items
             gym_blocks = [
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
                 'oxford shoes', 'oxford', 'loafers', 'heels', 'derby', 'dress shoes',
-                'dress pants', 'slacks', 'chinos', 'khaki', 'trouser', 'cargo',
-                'dockers', 'slim fit pants', 'jeans', 'denim',
-                'casual shorts', 'bermuda shorts', 'khaki shorts',
-                'blazer', 'sport coat', 'leather jacket', 'biker jacket',
-                'dress shirt', 'button up', 'button down', 'button-up', 'button-down',
+                'leather jacket', 'biker jacket',
+                'button up', 'button down', 'button-up', 'button-down',
                 'polo', 'henley', 'collared', 'collar', 'rugby shirt',
                 'slide', 'slides', 'sandal', 'sandals', 'flip-flop', 'flip flop'
             ]
