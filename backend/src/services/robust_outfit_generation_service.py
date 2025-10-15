@@ -159,11 +159,30 @@ except ImportError as e:
     adaptive_tuning = MockService()
     # print("🔧 ADAPTIVE TUNING: Using mock service")
 
+# Import SESSION TRACKER for within-session diversity
+try:
+    from .session_tracker_service import SessionTrackerService
+    session_tracker = SessionTrackerService(use_firestore=False)  # In-memory by default
+    logger.info("✅ SESSION TRACKER: Real service loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ SessionTrackerService import failed: {e}")
+    session_tracker = MockService()
+    logger.warning("🔧 SESSION TRACKER: Using mock service")
+
 class PerformanceMetrics:
     """Mock PerformanceMetrics class"""
     def __init__(self, **kwargs):
-        self.confidence = (safe_get(kwargs, 'confidence', 0.5) if kwargs else 0.5)
-        self.diversity_score = (safe_get(kwargs, 'diversity_score', 0.0) if kwargs else 0.0)
+        self.success_rate = kwargs.get('success_rate', 1.0)
+        self.avg_confidence = kwargs.get('avg_confidence', 0.5)
+        self.avg_generation_time = kwargs.get('avg_generation_time', 0.5)
+        self.avg_validation_time = kwargs.get('avg_validation_time', 0.1)
+        self.diversity_score = kwargs.get('diversity_score', 0.0)
+        self.user_satisfaction = kwargs.get('user_satisfaction', 0.5)
+        self.fallback_rate = kwargs.get('fallback_rate', 0.0)
+        self.sample_size = kwargs.get('sample_size', 1)
+        self.time_window_hours = kwargs.get('time_window_hours', 24)
+        # Legacy fields for backwards compatibility
+        self.confidence = kwargs.get('confidence', self.avg_confidence)
 
 logger = logging.getLogger(__name__)
 
@@ -381,6 +400,12 @@ class RobustOutfitGenerationService:
         logger.info(f"📋 Context: {context.occasion}, {context.style}, {context.mood}")
         logger.info(f"📦 Wardrobe size: {len(context.wardrobe)} items")
         
+        # Create session ID for within-session diversity tracking
+        import hashlib
+        session_timestamp = str(int(time.time() * 1000))  # millisecond precision
+        session_id = hashlib.md5(f"{context.user_id}_{session_timestamp}".encode()).hexdigest()
+        logger.info(f"📍 Session ID created: {session_id[:8]}... for within-session diversity")
+        
         # 🔍 METADATA DIAGNOSTIC: Check if wardrobe items have metadata on arrival
         items_with_metadata = sum(1 for item in context.wardrobe if item.metadata is not None)
         logger.info(f"🔍 METADATA CHECK: {items_with_metadata}/{len(context.wardrobe)} items have metadata")
@@ -401,7 +426,7 @@ class RobustOutfitGenerationService:
         # 🔥 COMPREHENSIVE ERROR TRACING FOR NoneType .get() DEBUGGING
         # ═══════════════════════════════════════════════════════════════════════
         try:
-            return await self._generate_outfit_internal(context)
+            return await self._generate_outfit_internal(context, session_id)
         except Exception as e:
             import traceback
             error_details = {
@@ -421,8 +446,8 @@ class RobustOutfitGenerationService:
             print(f"🔥 FULL TRACEBACK:\n{traceback.format_exc()}")
             raise
     
-    async def _generate_outfit_internal(self, context: GenerationContext) -> OutfitGeneratedOutfit:
-        """Internal outfit generation logic with full error handling"""
+    async def _generate_outfit_internal(self, context: GenerationContext, session_id: str) -> OutfitGeneratedOutfit:
+        """Internal outfit generation logic with full error handling and session tracking"""
         
         # ═══════════════════════════════════════════════════════════════════════
         # HYDRATION & CONTEXT VALIDATION
@@ -582,12 +607,29 @@ class RobustOutfitGenerationService:
         logger.info(f"🔬 PHASE 1: Filtering & Multi-Layered Analysis & Scoring")
         
         # ═══════════════════════════════════════════════════════════
-        # STEP 1: FILTER SUITABLE ITEMS FIRST
+        # STEP 1: OCCASION-FIRST FILTERING (with fallbacks)
         # ═══════════════════════════════════════════════════════════
         
-        logger.info(f"🔍 FILTERING STEP 1: Starting item filtering for {context.occasion} occasion")
+        logger.info(f"🎯 STEP 1: Occasion-First Filtering")
+        occasion_candidates = self._get_occasion_appropriate_candidates(
+            wardrobe=context.wardrobe,
+            target_occasion=context.occasion,
+            min_items=3  # Require at least 3 items before fallbacks
+        )
+        logger.info(f"✅ STEP 1 COMPLETE: {len(occasion_candidates)} occasion-appropriate items (from {len(context.wardrobe)} total)")
+        
+        # Update context with occasion-filtered wardrobe
+        original_wardrobe_size = len(context.wardrobe)
+        context.wardrobe = occasion_candidates
+        logger.info(f"📦 Wardrobe updated: {original_wardrobe_size} → {len(context.wardrobe)} items (occasion-filtered)")
+        
+        # ═══════════════════════════════════════════════════════════
+        # STEP 2: ADDITIONAL FILTERING (style, mood, weather)
+        # ═══════════════════════════════════════════════════════════
+        
+        logger.info(f"🔍 FILTERING STEP 2: Starting item filtering for {context.occasion} occasion")
         suitable_items = await self._filter_suitable_items(context)
-        logger.info(f"✅ FILTERING STEP 1: {len(suitable_items)} suitable items passed from {len(context.wardrobe)} total")
+        logger.info(f"✅ FILTERING STEP 2: {len(suitable_items)} suitable items passed from {len(context.wardrobe)} occasion-filtered items")
         
         if len(suitable_items) == 0:
             logger.error(f"🚨 CRITICAL: No suitable items found after filtering!")
@@ -737,19 +779,88 @@ class RobustOutfitGenerationService:
             
             # Apply soft constraint penalties/bonuses
             soft_penalty = self._soft_score(scores['item'], (context.occasion if context else "unknown"), (context.style if context else "unknown"), (context.mood if context else "unknown"))
-            final_score = base_score + soft_penalty
+            
+            # Apply session-based diversity penalty (prevents repetition within same generation session)
+            session_penalty = session_tracker.get_diversity_penalty(session_id, item_id)
+            
+            final_score = base_score + soft_penalty + session_penalty
             
             scores['composite_score'] = final_score
             scores['diversity_score'] = diversity_score
             scores['soft_penalty'] = soft_penalty
+            scores['session_penalty'] = session_penalty
             scores['base_score'] = base_score
         
         # Log top scored items (reduced verbosity)
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
-        logger.info(f"🏆 Top 3 scored items (with diversity boost):")
+        logger.info(f"🏆 Top 3 scored items (with diversity + session penalties):")
         for i, (item_id, scores) in enumerate(sorted_items[:3]):
             diversity_score = scores.get('diversity_score', 1.0)
-            logger.info(f"  {i+1}. {self.safe_get_item_name(scores['item'])}: {scores['composite_score']:.2f} (diversity: {diversity_score:.2f})")
+            session_penalty = scores.get('session_penalty', 0.0)
+            penalty_indicator = " 🔴" if session_penalty < 0 else ""
+            logger.info(f"  {i+1}. {self.safe_get_item_name(scores['item'])}: {scores['composite_score']:.2f} (div: {diversity_score:.2f}, session: {session_penalty:+.2f}){penalty_indicator}")
+        
+        # ═══════════════════════════════════════════════════════════
+        # ADAPTIVE WEIGHT ADJUSTMENT (Favorites Mode)
+        # ═══════════════════════════════════════════════════════════
+        
+        # Check if user is in "favorites mode" (has many favorited items in wardrobe)
+        favorites_mode = False
+        if context.user_profile:
+            try:
+                from src.config.firebase import db
+                wardrobe_ref = db.collection('wardrobe').where('userId', '==', context.user_id)
+                wardrobe_docs = list(wardrobe_ref.stream())
+                favorited_count = sum(1 for doc in wardrobe_docs if doc.to_dict().get('isFavorite', False))
+                
+                # If 30%+ of wardrobe is favorited, enable favorites mode
+                if len(wardrobe_docs) > 0 and (favorited_count / len(wardrobe_docs)) >= 0.3:
+                    favorites_mode = True
+                    logger.info(f"⭐ FAVORITES MODE ACTIVATED: {favorited_count}/{len(wardrobe_docs)} items favorited ({favorited_count/len(wardrobe_docs)*100:.0f}%)")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not check favorites mode: {e}")
+        
+        # Adjust weights if in favorites mode
+        if favorites_mode:
+            # Boost user feedback (favorites/wear history), reduce diversity
+            if temp > 75 or temp < 50:  # Extreme weather
+                weather_weight = 0.18
+                compatibility_weight = 0.12
+                style_weight = 0.16
+                body_weight = 0.10
+                user_feedback_weight = 0.30  # ⬆️ BOOSTED from 0.12
+                diversity_weight = 0.14  # ⬇️ REDUCED from 0.30
+            else:  # Moderate weather
+                weather_weight = 0.14
+                compatibility_weight = 0.11
+                style_weight = 0.18
+                body_weight = 0.12
+                user_feedback_weight = 0.30  # ⬆️ BOOSTED from 0.12
+                diversity_weight = 0.15  # ⬇️ REDUCED from 0.30
+            
+            logger.info(f"⭐ FAVORITES MODE WEIGHTS: UserFeedback={user_feedback_weight} (+150%), Diversity={diversity_weight} (-50%)")
+            logger.info(f"🎯 ADJUSTED WEIGHTS (6D): Weather={weather_weight}, Compat={compatibility_weight}, Style={style_weight}, Body={body_weight}, Feedback={user_feedback_weight}, Diversity={diversity_weight}")
+            
+            # Re-calculate composite scores with new weights
+            for item_id, scores in item_scores.items():
+                diversity_score = diversity_scores.get(item_id, 1.0)
+                
+                base_score = (
+                    scores['body_type_score'] * body_weight +
+                    scores['style_profile_score'] * style_weight +
+                    scores['weather_score'] * weather_weight +
+                    scores['user_feedback_score'] * user_feedback_weight +
+                    scores.get('compatibility_score', 1.0) * compatibility_weight +
+                    diversity_score * diversity_weight
+                )
+                
+                # Re-apply soft penalties and session penalties
+                soft_penalty = scores.get('soft_penalty', 0)
+                session_penalty = scores.get('session_penalty', 0)
+                final_score = base_score + soft_penalty + session_penalty
+                
+                scores['composite_score'] = final_score
+                scores['base_score'] = base_score
         
         # ═══════════════════════════════════════════════════════════
         # PHASE 2: Cohesive Composition with Multi-Layered Scores
@@ -1801,6 +1912,84 @@ class RobustOutfitGenerationService:
         """Apply hard filters to remove contextually impossible items"""
         debug_analysis = await self._filter_suitable_items_with_debug(context)
         return debug_analysis['valid_items']
+    
+    def _get_occasion_appropriate_candidates(self, wardrobe: List[Any], target_occasion: str, min_items: int = 3) -> List[Any]:
+        """
+        STEP 2: Strict occasion-first filtering with gradual fallbacks.
+        
+        Returns items that match the occasion (exact or via fallbacks), ensuring
+        all downstream items are occasion-appropriate.
+        
+        Args:
+            wardrobe: List of clothing items to filter
+            target_occasion: Target occasion (e.g., "gym", "business")
+            min_items: Minimum items required before using fallbacks (default: 3)
+            
+        Returns:
+            List of occasion-appropriate items (deduplicated)
+        """
+        from ..utils.semantic_compatibility import OCCASION_FALLBACKS
+        
+        target_occasion_lower = target_occasion.lower() if target_occasion else ""
+        
+        logger.info(f"🎯 OCCASION-FIRST FILTER: Target occasion='{target_occasion_lower}', min_items={min_items}")
+        
+        # 1️⃣ STRICT FILTER FIRST: Exact occasion match
+        candidates = []
+        for item in wardrobe:
+            # Get item's occasions (normalized or raw)
+            item_occasions = self._get_normalized_or_raw(item, 'occasion')
+            
+            # Check for exact match
+            if target_occasion_lower in item_occasions:
+                candidates.append(item)
+        
+        logger.info(f"  ✅ Exact matches: {len(candidates)} items")
+        
+        # 2️⃣ FALLBACK LOGIC: If too few items, use occasion fallbacks
+        if len(candidates) < min_items:
+            logger.info(f"  🔄 Too few exact matches ({len(candidates)} < {min_items}), applying fallbacks...")
+            
+            fallback_occasions = OCCASION_FALLBACKS.get(target_occasion_lower, [])
+            logger.info(f"  📋 Available fallbacks for '{target_occasion_lower}': {fallback_occasions[:5]}{'...' if len(fallback_occasions) > 5 else ''}")
+            
+            # Try each fallback until we have enough items
+            for fallback_occasion in fallback_occasions:
+                if fallback_occasion == target_occasion_lower:
+                    continue  # Skip the original occasion (already tried)
+                
+                # Get items matching this fallback
+                fallback_matches = []
+                for item in wardrobe:
+                    item_occasions = self._get_normalized_or_raw(item, 'occasion')
+                    if fallback_occasion in item_occasions and item not in candidates:
+                        fallback_matches.append(item)
+                
+                if fallback_matches:
+                    candidates.extend(fallback_matches)
+                    logger.info(f"  ➕ Fallback '{fallback_occasion}': added {len(fallback_matches)} items (total: {len(candidates)})")
+                
+                # Stop if we have enough items
+                if len(candidates) >= min_items:
+                    logger.info(f"  ✅ Sufficient items found ({len(candidates)} >= {min_items})")
+                    break
+        
+        # 3️⃣ DEDUPLICATE by ID
+        seen_ids = set()
+        deduplicated = []
+        for item in candidates:
+            item_id = self.safe_get_item_attr(item, 'id', '')
+            if item_id and item_id not in seen_ids:
+                seen_ids.add(item_id)
+                deduplicated.append(item)
+        
+        removed_dupes = len(candidates) - len(deduplicated)
+        if removed_dupes > 0:
+            logger.info(f"  🔧 Removed {removed_dupes} duplicates")
+        
+        logger.info(f"🎯 OCCASION-FIRST RESULT: {len(deduplicated)} occasion-appropriate items")
+        
+        return deduplicated
     
     async def _filter_suitable_items_with_debug(self, context: GenerationContext, semantic_filtering: bool = None) -> Dict[str, Any]:
         """Apply hard filters and return both valid items and debug analysis"""
@@ -3813,7 +4002,7 @@ class RobustOutfitGenerationService:
                     logger.debug(f"  ⭐ {self.safe_get_item_name(item)}: Favorite (worn this week) → +0.15")
             
             # ─────────────────────────────────────────────────────────────
-            # 4. WEAR COUNT ALTERNATION (explore vs exploit)
+            # 4. WEAR COUNT WITH DECAY (explore vs exploit with rotation)
             # ─────────────────────────────────────────────────────────────
             item_wear_count = getattr(item, 'wearCount', 0)
             
@@ -3822,20 +4011,36 @@ class RobustOutfitGenerationService:
                 if item_wear_count == 0:
                     base_score += 0.25  # Never worn - high boost
                     logger.debug(f"  🆕 {self.safe_get_item_name(item)}: Never worn → +0.25 (discovery)")
-                elif item_wear_count <= 3:
-                    base_score += 0.15  # Lightly worn - moderate boost
-                    logger.debug(f"  🌱 {self.safe_get_item_name(item)}: Lightly worn ({item_wear_count}) → +0.15")
+                elif item_wear_count <= 2:
+                    base_score += 0.20  # Very lightly worn - high boost
+                    logger.debug(f"  🌱 {self.safe_get_item_name(item)}: Very lightly worn ({item_wear_count}) → +0.20")
+                elif item_wear_count <= 4:
+                    # DECAY: 3-4 uses = reduced bonus (encourages rotation)
+                    base_score += 0.10  # Moderate boost with decay
+                    logger.debug(f"  🔄 {self.safe_get_item_name(item)}: Moderately worn ({item_wear_count}) → +0.10 (decaying)")
+                elif item_wear_count <= 6:
+                    # Further decay: 5-6 uses = minimal bonus
+                    base_score += 0.05  # Small boost
+                    logger.debug(f"  📉 {self.safe_get_item_name(item)}: Worn often ({item_wear_count}) → +0.05 (minimal)")
                 elif item_wear_count > 15:
-                    base_score -= 0.10  # Overused - penalty
-                    logger.debug(f"  🔁 {self.safe_get_item_name(item)}: Overused ({item_wear_count}) → -0.10")
+                    base_score -= 0.15  # Overused - stronger penalty
+                    logger.debug(f"  🔁 {self.safe_get_item_name(item)}: Overused ({item_wear_count}) → -0.15")
             else:
-                # BOOST POPULAR ITEMS (reliability/favorites mode)
-                if item_wear_count >= 5 and item_wear_count <= 15:
-                    base_score += 0.20  # Sweet spot - proven favorites
-                    logger.debug(f"  🌟 {self.safe_get_item_name(item)}: Popular ({item_wear_count} wears) → +0.20")
+                # BOOST POPULAR ITEMS (reliability/favorites mode) with decay
+                if item_wear_count >= 1 and item_wear_count <= 2:
+                    base_score += 0.25  # Sweet spot - proven but not overused
+                    logger.debug(f"  🌟 {self.safe_get_item_name(item)}: Proven favorite ({item_wear_count} wears) → +0.25")
+                elif item_wear_count <= 4:
+                    # DECAY: 3-4 uses = still good but decaying
+                    base_score += 0.15  # Good boost with decay
+                    logger.debug(f"  ⭐ {self.safe_get_item_name(item)}: Popular ({item_wear_count} wears) → +0.15 (decaying)")
+                elif item_wear_count <= 6:
+                    # Further decay: 5-6 uses = minimal bonus
+                    base_score += 0.08  # Reduced boost
+                    logger.debug(f"  📉 {self.safe_get_item_name(item)}: Very popular ({item_wear_count}) → +0.08 (minimal)")
                 elif item_wear_count > 15:
-                    base_score += 0.10  # Very popular - still boost but less
-                    logger.debug(f"  ⭐ {self.safe_get_item_name(item)}: Very popular ({item_wear_count}) → +0.10")
+                    base_score += 0.02  # Very popular - minimal boost (encourage rotation)
+                    logger.debug(f"  🔁 {self.safe_get_item_name(item)}: Heavily worn ({item_wear_count}) → +0.02 (rotation)")
                 elif item_wear_count == 0:
                     base_score -= 0.05  # Never worn - small penalty in favorites mode
             
@@ -4036,6 +4241,37 @@ class RobustOutfitGenerationService:
         )
         logger.info(f"🎲 DIVERSITY: Added ±0.3 noise, -2.0 recently worn penalty, +1.0 new item boost for {len(recently_used_item_ids)} recently used items")
         
+        # ═══════════════════════════════════════════════════════════
+        # 3:1 EXPLORATION RATIO (Mix high and low scorers)
+        # ═══════════════════════════════════════════════════════════
+        
+        # Split into high and low scorers for exploration/exploitation balance
+        high_score_threshold = 2.5
+        high_score_items = [(id, s) for id, s in sorted_items if s['composite_score'] + diversity_adjustments.get(id, 0.0) > high_score_threshold]
+        low_score_items = [(id, s) for id, s in sorted_items if s['composite_score'] + diversity_adjustments.get(id, 0.0) <= high_score_threshold]
+        
+        logger.info(f"🎯 EXPLORATION RATIO: {len(high_score_items)} high scorers (>{high_score_threshold}), {len(low_score_items)} low scorers (<={high_score_threshold})")
+        
+        # Mix in 3:1 ratio (75% high confidence, 25% exploration)
+        exploration_mixed = []
+        low_score_idx = 0
+        
+        for idx, (item_id, score_data) in enumerate(high_score_items):
+            exploration_mixed.append((item_id, score_data))
+            
+            # Every 3rd high scorer, add one low scorer for exploration
+            if (idx + 1) % 3 == 0 and low_score_idx < len(low_score_items):
+                exploration_mixed.append(low_score_items[low_score_idx])
+                logger.debug(f"  🔍 Exploration: Added low scorer after 3 high scorers")
+                low_score_idx += 1
+        
+        # Add any remaining high scorers
+        exploration_mixed.extend(high_score_items[len(exploration_mixed):])
+        
+        # Use the exploration-mixed list for selection
+        sorted_items = exploration_mixed
+        logger.info(f"✅ EXPLORATION MIX: Created {len(sorted_items)} item list (3:1 high:low ratio)")
+        
         # Select items with intelligent layering
         selected_items = []
         categories_filled = {}
@@ -4152,6 +4388,14 @@ class RobustOutfitGenerationService:
                     logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
+        
+        # Mark selected items as seen in this session (prevents repetition in same session)
+        logger.info(f"📍 Marking {len(selected_items)} items as seen in session {session_id[:8]}...")
+        for item in selected_items:
+            item_id = self.safe_get_item_attr(item, "id", "")
+            if item_id:
+                session_tracker.mark_item_as_seen(session_id, item_id)
+        logger.info(f"✅ Session tracking complete - items marked as seen for this session")
         
         # ═══════════════════════════════════════════════════════════════════════
         # PHASE 3: DIVERSITY FILTERING

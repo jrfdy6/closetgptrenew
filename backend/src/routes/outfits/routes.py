@@ -117,44 +117,61 @@ async def generate_outfit(
                 }
             }
         else:
-        # Initialize services based on availability
-        if GENERATION_SERVICE_AVAILABLE:
-            generation_service = OutfitGenerationService()
-        else:
-            generation_service = None
+            # Initialize services based on availability
+            if GENERATION_SERVICE_AVAILABLE:
+                generation_service = OutfitGenerationService()
+            else:
+                generation_service = None
+                
+            if SIMPLE_SERVICE_AVAILABLE:
+                simple_service = SimpleOutfitService()
+            else:
+                simple_service = None
             
-        if SIMPLE_SERVICE_AVAILABLE:
-            simple_service = SimpleOutfitService()
-        else:
-            simple_service = None
-        
-        # Try robust generation first
-        if generation_service:
-            try:
-                outfit_response = await generation_service.generate_outfit_logic(req, current_user_id)
-                logger.info(f"✅ Robust outfit generation successful")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Robust generation failed, falling back to rule-based: {e}")
-                
-                # Fallback to rule-based generation
-                if RULE_ENGINE_AVAILABLE:
-                    try:
-                        user_profile = {}  # TODO: Get actual user profile
-                        outfit_response = await generate_rule_based_outfit(req.resolved_wardrobe, user_profile, req)
-                        logger.info(f"✅ Rule-based outfit generation successful")
-                        
-                    except Exception as rule_error:
-                        logger.warning(f"⚠️ Rule-based generation failed, trying simple fallback: {rule_error}")
-                        
-                        # Final fallback to simple generation
+            # Try robust generation first
+            if generation_service:
+                try:
+                    outfit_response = await generation_service.generate_outfit_logic(req, current_user_id)
+                    logger.info(f"✅ Robust outfit generation successful")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Robust generation failed, falling back to rule-based: {e}")
+                    
+                    # Fallback to rule-based generation
+                    if RULE_ENGINE_AVAILABLE:
+                        try:
+                            user_profile = {}  # TODO: Get actual user profile
+                            outfit_response = await generate_rule_based_outfit(req.resolved_wardrobe, user_profile, req)
+                            logger.info(f"✅ Rule-based outfit generation successful")
+                            
+                        except Exception as rule_error:
+                            logger.warning(f"⚠️ Rule-based generation failed, trying simple fallback: {rule_error}")
+                            
+                            # Final fallback to simple generation
+                            if simple_service:
+                                try:
+                                    outfit_response = await simple_service.generate_simple_outfit(req, current_user_id)
+                                    logger.info(f"✅ Simple outfit generation successful")
+                                    
+                                except Exception as simple_error:
+                                    logger.error(f"❌ All generation methods failed: {simple_error}")
+                                    raise HTTPException(
+                                        status_code=500,
+                                        detail=f"Outfit generation failed: {str(simple_error)}"
+                                    )
+                            else:
+                                raise HTTPException(
+                                    status_code=500,
+                                    detail="No outfit generation services available"
+                                )
+                    else:
+                        # Try simple service directly
                         if simple_service:
                             try:
                                 outfit_response = await simple_service.generate_simple_outfit(req, current_user_id)
                                 logger.info(f"✅ Simple outfit generation successful")
-                                
                             except Exception as simple_error:
-                                logger.error(f"❌ All generation methods failed: {simple_error}")
+                                logger.error(f"❌ Simple generation failed: {simple_error}")
                                 raise HTTPException(
                                     status_code=500,
                                     detail=f"Outfit generation failed: {str(simple_error)}"
@@ -164,28 +181,11 @@ async def generate_outfit(
                                 status_code=500,
                                 detail="No outfit generation services available"
                             )
-                else:
-                    # Try simple service directly
-                    if simple_service:
-                        try:
-                            outfit_response = await simple_service.generate_simple_outfit(req, current_user_id)
-                            logger.info(f"✅ Simple outfit generation successful")
-                        except Exception as simple_error:
-                            logger.error(f"❌ Simple generation failed: {simple_error}")
-                            raise HTTPException(
-                                status_code=500,
-                                detail=f"Outfit generation failed: {str(simple_error)}"
-                            )
-                    else:
-                        raise HTTPException(
-                            status_code=500,
-                            detail="No outfit generation services available"
-                        )
-        else:
-            raise HTTPException(
-                status_code=500,
-                detail="Complex outfit generation service not available"
-            )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Complex outfit generation service not available"
+                )
         
         # Log generation strategy
         log_generation_strategy(
