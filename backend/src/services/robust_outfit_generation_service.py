@@ -1892,14 +1892,26 @@ class RobustOutfitGenerationService:
                     filter_mismatch_detected = True
             
             # Add to valid items based on adaptive logic
+            passed_semantic = False
             if filter_mismatch_detected:
                 # MISMATCH MODE: Pass if occasion OR style matches (mood ignored - it's a bonus)
                 if ok_occ or ok_style:
-                    valid_items.append(raw_item)
+                    passed_semantic = True
             else:
                 # NORMAL MODE: Pass if occasion AND style match (mood ignored - it's a bonus)
                 if ok_occ and ok_style:
+                    passed_semantic = True
+            
+            # CRITICAL: Apply hard filter AFTER semantic filtering
+            if passed_semantic:
+                # Apply hard filter to block explicitly inappropriate items (polos, dress shoes, etc.)
+                passes_hard_filter = self._hard_filter(raw_item, context.occasion, context.style)
+                if passes_hard_filter:
                     valid_items.append(raw_item)
+                else:
+                    # Item blocked by hard filter
+                    debug_entry['valid'] = False
+                    debug_entry['reasons'].append("Blocked by hard filter (formal/inappropriate item)")
         
         logger.info(f"🔍 HARD FILTER: Results - {len(valid_items)} passed filters, {len(debug_analysis) - len(valid_items)} rejected")
         
