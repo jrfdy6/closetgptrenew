@@ -210,7 +210,7 @@ async def generate_personalized_outfit_from_existing_data(
                 profile_data = req.user_profile or {}
                 if 'id' not in profile_data:
                     profile_data = {'id': user_id, **profile_data}
-                user_profile_obj = SimpleNamespace(**profile_data)
+                # Keep as dict - GenerationContext expects dict or None
                 
                 logger.warning(f"🔍 ROBUST: Context params - occasion={req.occasion}, style={req.style}, mood={req.mood}")
                 
@@ -221,7 +221,7 @@ async def generate_personalized_outfit_from_existing_data(
                     mood=req.mood,
                     weather=weather_obj,
                     wardrobe=wardrobe_items,
-                    user_profile=user_profile_obj,
+                    user_profile=profile_data,  # Pass dict directly, not SimpleNamespace
                     base_item_id=req.baseItemId
                 )
                 
