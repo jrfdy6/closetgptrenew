@@ -31,10 +31,10 @@ COPY minimal_debug_app.py ./
 COPY src/ ./src/
 
 # Verify files were copied (this will fail if cache is used with old files)
-RUN echo "Verifying new code..." && \
-    grep -q "HARD FILTER ENTRY" ./src/services/robust_outfit_generation_service.py && \
-    echo "✅ New code verified: debug logging present" || \
-    (echo "❌ Old code detected: debug logging missing" && exit 1)
+RUN echo "Verifying new code with occasion-first filter..." && \
+    grep -q "STEP 1: Occasion-First Filtering" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ New code verified: Occasion-first filter present" || \
+    (echo "❌ Old code detected: Occasion-first filter MISSING - build failed!" && exit 1)
 
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
