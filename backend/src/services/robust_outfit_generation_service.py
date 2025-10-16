@@ -163,11 +163,12 @@ except ImportError as e:
 try:
     from .session_tracker_service import SessionTrackerService
     session_tracker = SessionTrackerService(use_firestore=False)  # In-memory by default
-    logger.info("✅ SESSION TRACKER: Real service loaded")
+    # logger not defined yet - will log success later
 except ImportError as e:
-    logger.warning(f"⚠️ SessionTrackerService import failed: {e}")
+    # logger not defined yet - use print for import errors
+    print(f"⚠️ SessionTrackerService import failed: {e}")
     session_tracker = MockService()
-    logger.warning("🔧 SESSION TRACKER: Using mock service")
+    print("🔧 SESSION TRACKER: Using mock service")
 
 class PerformanceMetrics:
     """Mock PerformanceMetrics class"""
