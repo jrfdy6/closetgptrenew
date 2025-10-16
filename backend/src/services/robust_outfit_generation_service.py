@@ -387,7 +387,13 @@ class RobustOutfitGenerationService:
                         return normalized_values  # Already lowercase
         
         # Fallback to raw field (normalize it ourselves)
-        raw_values = item.get(field_name, [])
+        # Handle both dict and Pydantic objects
+        if isinstance(item, dict):
+            raw_values = item.get(field_name, [])
+        else:
+            # Pydantic object - use getattr
+            raw_values = getattr(item, field_name, [])
+        
         if isinstance(raw_values, list):
             return [str(v).lower() for v in raw_values]
         elif isinstance(raw_values, str):
