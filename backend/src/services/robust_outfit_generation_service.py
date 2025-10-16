@@ -927,7 +927,7 @@ class RobustOutfitGenerationService:
             # Don't return here, let cohesive composition try first
         
         # Pass scored items to cohesive composition
-        outfit = await self._cohesive_composition_with_scores(context, item_scores)
+        outfit = await self._cohesive_composition_with_scores(context, item_scores, session_id)
         
         # Check if cohesive composition failed to generate items
         if not outfit.items or len(outfit.items) == 0:
@@ -4078,8 +4078,8 @@ class RobustOutfitGenerationService:
         logger.info(f"   Mode: {'🔍 Discovery (boost rarely-worn)' if boost_rare else '⭐ Favorites (boost popular)'}")
     
     
-    async def _cohesive_composition_with_scores(self, context: GenerationContext, item_scores: dict) -> OutfitGeneratedOutfit:
-        """Generate cohesive outfit using multi-layered scores with intelligent layering"""
+    async def _cohesive_composition_with_scores(self, context: GenerationContext, item_scores: dict, session_id: str) -> OutfitGeneratedOutfit:
+        """Generate cohesive outfit using multi-layered scores with intelligent layering and session tracking"""
         logger.info(f"🎨 COHESIVE COMPOSITION: Using scored items to create outfit")
         logger.info(f"🔍 DEBUG: Received {len(item_scores)} scored items")
         logger.info(f"🔍 DEBUG: Context occasion: {context.occasion}, style: {context.style}")
