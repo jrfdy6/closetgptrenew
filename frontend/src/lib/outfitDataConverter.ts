@@ -78,13 +78,22 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
     brand: item.brand || null,
     createdAt: now,
     updatedAt: now,
-    wearCount: 0,
-    favorite_score: 0.0,
-    subType: null,
-    colorName: null,
-    backgroundRemoved: null,
-    embedding: null,
-    metadata: {
+    wearCount: item.wearCount || 0,
+    favorite_score: item.favorite_score || 0.0,
+    subType: item.subType || null,
+    colorName: item.colorName || null,
+    backgroundRemoved: item.backgroundRemoved || null,
+    embedding: item.embedding || null,
+    // Preserve existing metadata if it exists, otherwise create basic structure
+    metadata: item.metadata ? {
+      // Preserve existing metadata fields
+      ...item.metadata,
+      // Ensure critical fields exist
+      analysisTimestamp: item.metadata.analysisTimestamp || now,
+      styleTags: item.metadata.styleTags || normalizeToList(item.style) || [],
+      occasionTags: item.metadata.occasionTags || normalizeToList(item.occasion) || ['casual'],
+    } : {
+      // Create basic metadata if none exists
       analysisTimestamp: now,
       originalType: item.type,
       originalSubType: null,
