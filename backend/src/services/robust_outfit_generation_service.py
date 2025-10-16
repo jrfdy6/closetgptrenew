@@ -2305,7 +2305,7 @@ class RobustOutfitGenerationService:
             
             # GYM FILTERING: Block COLLARED shirts only (allow plain shirts/tees)
             if item_type in ['shirt', 'top', 'blouse']:
-                # Check for collar indicators - INSTANT BLOCK
+                # Check for collar in item NAME
                 collar_indicators = [
                     'collar', 'collared',
                     'polo', 'polo shirt',
@@ -2315,10 +2315,28 @@ class RobustOutfitGenerationService:
                     'dress shirt'
                 ]
                 
-                has_collar = any(kw in item_name.lower() for kw in collar_indicators)
+                has_collar_in_name = any(kw in item_name.lower() for kw in collar_indicators)
                 
-                if has_collar:
-                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED COLLARED SHIRT '{item_name[:40]}' - No collars/polos/button-downs for gym")
+                # CRITICAL: Also check metadata for collar/neckline
+                has_collar_in_metadata = False
+                if hasattr(item, 'metadata') and item.metadata:
+                    # Check visualAttributes.neckline
+                    if hasattr(item.metadata, 'visualAttributes'):
+                        visual_attrs = item.metadata.visualAttributes
+                        if visual_attrs and hasattr(visual_attrs, 'neckline'):
+                            neckline = (visual_attrs.neckline or '').lower()
+                            if 'collar' in neckline or 'polo' in neckline or 'button' in neckline:
+                                has_collar_in_metadata = True
+                    # Also check dict format
+                    elif isinstance(item.metadata, dict):
+                        visual_attrs = item.metadata.get('visualAttributes', {})
+                        if isinstance(visual_attrs, dict):
+                            neckline = (visual_attrs.get('neckline') or '').lower()
+                            if 'collar' in neckline or 'polo' in neckline or 'button' in neckline:
+                                has_collar_in_metadata = True
+                
+                if has_collar_in_name or has_collar_in_metadata:
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED COLLARED SHIRT '{item_name[:40]}' - Collar detected in {'metadata' if has_collar_in_metadata else 'name'}")
                     return False
                 else:
                     # Generic shirt without collar = OK for gym
