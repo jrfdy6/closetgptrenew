@@ -2306,13 +2306,22 @@ class RobustOutfitGenerationService:
             # STRICT GYM FILTERING: Block ALL non-athletic tops
             # For gym, ONLY allow: t-shirt, tank, jersey, athletic shirt
             if item_type in ['shirt', 'top', 'blouse']:
+                # First, check for collar - INSTANT BLOCK for gym
+                collar_indicators = ['collar', 'collared', 'polo', 'button', 'henley']
+                has_collar = any(kw in item_name.lower() for kw in collar_indicators)
+                
+                if has_collar:
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED COLLARED SHIRT '{item_name[:40]}' - No collars allowed for gym")
+                    return False
+                
                 # Check if it's explicitly athletic
                 athletic_top_keywords = [
                     't-shirt', 'tshirt', 't shirt', 'tee',
                     'tank', 'tank top', 'singlet',
                     'sports jersey', 'jersey', 'athletic',
                     'performance', 'workout', 'training',
-                    'moisture wicking', 'dri-fit', 'tech'
+                    'moisture wicking', 'dri-fit', 'tech',
+                    'gym', 'sport', 'active'
                 ]
                 
                 is_athletic_top = any(kw in item_name.lower() for kw in athletic_top_keywords)
@@ -2330,12 +2339,10 @@ class RobustOutfitGenerationService:
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
                 # Jackets  
                 'leather jacket', 'biker jacket',
-                # Collared/structured shirts that might slip through
-                'button up', 'button-up', 'button down', 'button-down',
-                'polo shirt', 'polo', 'henley', 'collared', 
-                'rugby shirt', 'oxford shirt', 'dress top',
-                # Business casual items
-                'van heusen', 'brooks brothers', 'dress'
+                # Business casual brands (known for dress/polo shirts)
+                'van heusen', 'brooks brothers', 'banana republic',
+                # Any remaining collared items
+                'polo shirt', 'rugby shirt', 'oxford shirt', 'dress top'
             ]
             
             # Check both item_type and item_name (both already lowercase)
