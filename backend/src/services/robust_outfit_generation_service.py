@@ -2303,16 +2303,39 @@ class RobustOutfitGenerationService:
                 
                 logger.info(f"✅ GYM HARD FILTER: PASSED ATHLETIC SHOE '{item_name[:40]}'")
             
+            # STRICT GYM FILTERING: Block ALL non-athletic tops
+            # For gym, ONLY allow: t-shirt, tank, jersey, athletic shirt
+            if item_type in ['shirt', 'top', 'blouse']:
+                # Check if it's explicitly athletic
+                athletic_top_keywords = [
+                    't-shirt', 'tshirt', 't shirt', 'tee',
+                    'tank', 'tank top', 'singlet',
+                    'sports jersey', 'jersey', 'athletic',
+                    'performance', 'workout', 'training',
+                    'moisture wicking', 'dri-fit', 'tech'
+                ]
+                
+                is_athletic_top = any(kw in item_name.lower() for kw in athletic_top_keywords)
+                
+                if not is_athletic_top:
+                    # Generic "shirt" without athletic keywords = BLOCK
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED NON-ATHLETIC TOP '{item_name[:40]}' - Must be t-shirt/tank/jersey, not generic shirt")
+                    return False
+                else:
+                    logger.info(f"✅ GYM HARD FILTER: ALLOWED ATHLETIC TOP '{item_name[:40]}'")
+            
             # Block other formal/structured items (comprehensive list)
             gym_blocks = [
                 # Formal wear
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
                 # Jackets  
                 'leather jacket', 'biker jacket',
-                # Collared/structured shirts (NOT appropriate for gym)
+                # Collared/structured shirts that might slip through
                 'button up', 'button-up', 'button down', 'button-down',
-                'polo shirt', 'polo', 'henley', 'collared', 'collar', 
-                'rugby shirt', 'oxford shirt', 'dress top'
+                'polo shirt', 'polo', 'henley', 'collared', 
+                'rugby shirt', 'oxford shirt', 'dress top',
+                # Business casual items
+                'van heusen', 'brooks brothers', 'dress'
             ]
             
             # Check both item_type and item_name (both already lowercase)
