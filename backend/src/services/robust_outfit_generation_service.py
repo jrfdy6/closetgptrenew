@@ -2303,46 +2303,33 @@ class RobustOutfitGenerationService:
                 
                 logger.info(f"✅ GYM HARD FILTER: PASSED ATHLETIC SHOE '{item_name[:40]}'")
             
-            # STRICT GYM FILTERING: Block ALL non-athletic tops
-            # For gym, ONLY allow: t-shirt, tank, jersey, athletic shirt
+            # GYM FILTERING: Block COLLARED shirts only (allow plain shirts/tees)
             if item_type in ['shirt', 'top', 'blouse']:
-                # First, check for collar - INSTANT BLOCK for gym
-                collar_indicators = ['collar', 'collared', 'polo', 'button', 'henley']
+                # Check for collar indicators - INSTANT BLOCK
+                collar_indicators = [
+                    'collar', 'collared',
+                    'polo', 'polo shirt',
+                    'button', 'button-up', 'button-down', 'button up', 'button down',
+                    'henley',
+                    'oxford', 'oxford shirt',
+                    'dress shirt'
+                ]
+                
                 has_collar = any(kw in item_name.lower() for kw in collar_indicators)
                 
                 if has_collar:
-                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED COLLARED SHIRT '{item_name[:40]}' - No collars allowed for gym")
-                    return False
-                
-                # Check if it's explicitly athletic
-                athletic_top_keywords = [
-                    't-shirt', 'tshirt', 't shirt', 'tee',
-                    'tank', 'tank top', 'singlet',
-                    'sports jersey', 'jersey', 'athletic',
-                    'performance', 'workout', 'training',
-                    'moisture wicking', 'dri-fit', 'tech',
-                    'gym', 'sport', 'active'
-                ]
-                
-                is_athletic_top = any(kw in item_name.lower() for kw in athletic_top_keywords)
-                
-                if not is_athletic_top:
-                    # Generic "shirt" without athletic keywords = BLOCK
-                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED NON-ATHLETIC TOP '{item_name[:40]}' - Must be t-shirt/tank/jersey, not generic shirt")
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED COLLARED SHIRT '{item_name[:40]}' - No collars/polos/button-downs for gym")
                     return False
                 else:
-                    logger.info(f"✅ GYM HARD FILTER: ALLOWED ATHLETIC TOP '{item_name[:40]}'")
+                    # Generic shirt without collar = OK for gym
+                    logger.info(f"✅ GYM HARD FILTER: ALLOWED SHIRT '{item_name[:40]}' - No collar detected")
             
             # Block other formal/structured items (comprehensive list)
             gym_blocks = [
                 # Formal wear
-                'suit', 'tuxedo', 'blazer', 'sport coat', 'dress shirt', 'tie', 'bow tie',
+                'suit', 'tuxedo', 'blazer', 'sport coat', 'tie', 'bow tie',
                 # Jackets  
-                'leather jacket', 'biker jacket',
-                # Business casual brands (known for dress/polo shirts)
-                'van heusen', 'brooks brothers', 'banana republic',
-                # Any remaining collared items
-                'polo shirt', 'rugby shirt', 'oxford shirt', 'dress top'
+                'leather jacket', 'biker jacket', 'peacoat', 'trench'
             ]
             
             # Check both item_type and item_name (both already lowercase)
