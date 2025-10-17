@@ -725,7 +725,16 @@ async def get_wardrobe_items_with_slash(
                     item_data['imageUrl'] = 'https://placeholder.com/image.jpg'
                 if 'userId' not in item_data:
                     item_data['userId'] = current_user.id
+                
+                # DEBUG: Check if George shirt has metadata in Firestore
+                if 'george' in (item_data.get('name', '') or '').lower() or 'george' in (item_data.get('brand', '') or '').lower():
+                    logger.info(f"🔍 GEORGE SHIRT IN FIRESTORE: id={doc.id}, hasMetadata={'metadata' in item_data}, metadata={item_data.get('metadata', 'NONE')}")
+                    if 'metadata' in item_data and item_data['metadata']:
+                        visual_attrs = item_data['metadata'].get('visualAttributes', {})
+                        logger.info(f"   visualAttributes={visual_attrs}, neckline={visual_attrs.get('neckline', 'NONE') if visual_attrs else 'NO_VISUAL_ATTRS'}")
+                
                 if 'metadata' not in item_data:
+                    logger.debug(f"⚠️ Item {doc.id} has NO metadata in Firestore - creating basic structure")
                     item_data['metadata'] = {
                         'analysisTimestamp': int(time.time() * 1000),
                         'originalType': (item_data.get('type', 'other') if item_data else 'other'),
