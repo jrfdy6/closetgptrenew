@@ -127,7 +127,7 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
       bodyTypeCompatibility: null,
       skinToneCompatibility: null,
       outfitScoring: null
-    }
+    })
   };
 }
 
