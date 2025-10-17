@@ -309,6 +309,7 @@ class VisualAttributes(BaseModel):
     length: Optional[str] = None
     genderTarget: Optional[str] = None
     sleeveLength: Optional[str] = None
+    neckline: Optional[str] = None  # "collar", "crew", "v-neck", "polo", "button-down", etc.
     hangerPresent: Optional[bool] = None
     backgroundRemoved: Optional[bool] = None
     wearLayer: Optional[str] = None
