@@ -4429,6 +4429,21 @@ class RobustOutfitGenerationService:
                     selected_items.append(score_data['item'])
                     logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
         
+        # CRITICAL: Deduplicate by ID to prevent same item appearing twice
+        seen_ids = set()
+        deduplicated_items = []
+        for item in selected_items:
+            item_id = self.safe_get_item_attr(item, 'id', '')
+            if item_id and item_id not in seen_ids:
+                seen_ids.add(item_id)
+                deduplicated_items.append(item)
+            else:
+                logger.warning(f"🔧 DEDUP: Removed duplicate item {self.safe_get_item_name(item)} (ID already in outfit)")
+        
+        if len(deduplicated_items) != len(selected_items):
+            logger.warning(f"🔧 DEDUPLICATION: Removed {len(selected_items) - len(deduplicated_items)} duplicate items")
+            selected_items = deduplicated_items
+        
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
         
         # Mark selected items as seen in this session (prevents repetition in same session)
