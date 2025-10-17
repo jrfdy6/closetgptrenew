@@ -64,7 +64,7 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
   
   // Debug: Check if this item has metadata
   if ((item.name || '').toLowerCase().includes('george') || (item.brand || '').toLowerCase().includes('george')) {
-    console.log(`🔍 CONVERTER: George shirt metadata check:`, {
+    console.log(`🔍 CONVERTER INPUT: George shirt metadata:`, {
       id: item.id,
       name: item.name,
       hasMetadata: !!item.metadata,
@@ -75,7 +75,7 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
     });
   }
   
-  return {
+  const converted = {
     id: item.id,
     name: item.name,
     type: normalizeClothingType(item.type),
@@ -129,6 +129,21 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
       outfitScoring: null
     })
   };
+  
+  // Debug: Check if converted item has metadata
+  if ((item.name || '').toLowerCase().includes('george') || (item.brand || '').toLowerCase().includes('george')) {
+    console.log(`🔍 CONVERTER OUTPUT: George shirt converted:`, {
+      id: converted.id,
+      name: converted.name,
+      hasMetadata: !!converted.metadata,
+      metadata: converted.metadata,
+      metadataKeys: converted.metadata ? Object.keys(converted.metadata) : null,
+      visualAttributes: converted.metadata?.visualAttributes || null,
+      neckline: converted.metadata?.visualAttributes?.neckline || null
+    });
+  }
+  
+  return converted;
 }
 
 /**
