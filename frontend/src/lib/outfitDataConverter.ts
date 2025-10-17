@@ -62,6 +62,19 @@ export interface FrontendOutfitRequest {
 function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
   const now = Date.now();
   
+  // Debug: Check if this item has metadata
+  if ((item.name || '').toLowerCase().includes('george') || (item.brand || '').toLowerCase().includes('george')) {
+    console.log(`🔍 CONVERTER: George shirt metadata check:`, {
+      id: item.id,
+      name: item.name,
+      hasMetadata: !!item.metadata,
+      metadata: item.metadata,
+      metadataKeys: item.metadata ? Object.keys(item.metadata) : null,
+      visualAttributes: item.metadata?.visualAttributes || null,
+      neckline: item.metadata?.visualAttributes?.neckline || null
+    });
+  }
+  
   return {
     id: item.id,
     name: item.name,
@@ -92,7 +105,7 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
       analysisTimestamp: item.metadata.analysisTimestamp || now,
       styleTags: item.metadata.styleTags || normalizeToList(item.style) || [],
       occasionTags: item.metadata.occasionTags || normalizeToList(item.occasion) || ['casual'],
-    } : {
+    } : (console.warn(`⚠️ Item ${item.id} (${item.name}) has NO metadata - creating basic structure`), {
       // Create basic metadata if none exists
       analysisTimestamp: now,
       originalType: item.type,
