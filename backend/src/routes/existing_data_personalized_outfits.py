@@ -191,12 +191,26 @@ async def generate_personalized_outfit_from_existing_data(
                                 if 'type' in item_copy and isinstance(item_copy['type'], str):
                                     item_copy['type'] = item_copy['type'].lower()
                                 
+                                # DEBUG: Check metadata before Pydantic validation
+                                if 'metadata' in item_copy and item_copy['metadata']:
+                                    item_name = item_copy.get('name', 'Unknown')
+                                    if 'george' in item_name.lower() or 'tommy' in item_name.lower():
+                                        logger.warning(f"🔍 PRE-PYDANTIC: {item_name[:40]} has metadata={bool(item_copy['metadata'])}, keys={list(item_copy['metadata'].keys())[:5] if isinstance(item_copy['metadata'], dict) else 'N/A'}")
+                                
                                 # Convert dict to ClothingItem
-                                wardrobe_items.append(ClothingItem(**item_copy))
+                                clothing_item = ClothingItem(**item_copy)
+                                
+                                # DEBUG: Check metadata after Pydantic validation
+                                if hasattr(clothing_item, 'metadata') and clothing_item.metadata:
+                                    if 'george' in item_copy.get('name', '').lower() or 'tommy' in item_copy.get('name', '').lower():
+                                        logger.warning(f"🔍 POST-PYDANTIC: {item_copy.get('name', 'Unknown')[:40]} has metadata={clothing_item.metadata}, visualAttrs={clothing_item.metadata.visualAttributes if hasattr(clothing_item.metadata, 'visualAttributes') else 'N/A'}")
+                                
+                                wardrobe_items.append(clothing_item)
                             else:
                                 wardrobe_items.append(item_data)
                         except Exception as item_error:
-                            # Silent skip - we're converting 158 items, some failures are ok
+                            # Log conversion errors instead of silently skipping
+                            logger.warning(f"⚠️ Failed to convert item {idx}: {item_error}")
                             continue
                 
                 logger.warning(f"✅ ROBUST: Successfully converted {len(wardrobe_items)} items")
