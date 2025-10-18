@@ -603,6 +603,15 @@ export default function OutfitGenerationPage() {
           'Authorization': `Bearer ${wornToken}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          outfitId: generatedOutfit.id,
+          dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          occasion: generatedOutfit.occasion || 'Casual',
+          mood: generatedOutfit.mood || 'Confident',
+          weather: generatedOutfit.weather || {},
+          notes: `Generated outfit: ${generatedOutfit.name}`,
+          tags: ['generated']
+        }),
       });
       
       if (!response.ok) {

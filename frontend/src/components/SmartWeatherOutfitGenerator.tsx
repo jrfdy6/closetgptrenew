@@ -354,13 +354,22 @@ export function SmartWeatherOutfitGenerator({
       
       const token = await user.getIdToken();
       
-      // Mark outfit as worn
+      // Mark outfit as worn - send required data
       const response = await fetch(`/api/outfit-history/mark-worn`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          outfitId: generatedOutfit.id,
+          dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          occasion: 'Daily',
+          mood: generatedOutfit.mood || 'Confident',
+          weather: generatedOutfit.weather || {},
+          notes: `Weather-based outfit: ${generatedOutfit.name}`,
+          tags: ['weather-optimized', 'daily-suggestion']
+        }),
       });
 
       if (response.ok) {
