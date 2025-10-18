@@ -382,11 +382,6 @@ class Metadata(BaseModel):
     bodyTypeCompatibility: Optional[BodyTypeCompatibility] = None
     skinToneCompatibility: Optional[SkinToneCompatibility] = None
     outfitScoring: Optional[OutfitScoring] = None
-    
-    model_config = ConfigDict(
-        extra='allow',  # Allow extra fields from Firestore
-        arbitrary_types_allowed=True
-    )
 
     @field_validator('colorAnalysis', mode='before')
     def convert_color_analysis(cls, v, info):
@@ -404,6 +399,8 @@ class Metadata(BaseModel):
         return v
 
     model_config = ConfigDict(
+        extra='allow',  # Allow extra fields from Firestore
+        arbitrary_types_allowed=True,
         json_schema_extra={
             "example": {
                 "analysisTimestamp": 1234567890,
