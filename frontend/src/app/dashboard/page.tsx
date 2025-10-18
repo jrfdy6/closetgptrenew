@@ -30,6 +30,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
 import EnhancedWardrobeGapAnalysis from '@/components/ui/enhanced-wardrobe-gap-analysis';
+import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
 
 // Dynamically import components to avoid SSR issues
@@ -381,6 +382,16 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Smart Weather Outfit Generator */}
+        <div className="mb-12">
+          <SmartWeatherOutfitGenerator 
+            onOutfitGenerated={(outfit) => {
+              console.log('🎯 Smart weather outfit generated:', outfit);
+              // Could trigger dashboard refresh or show success message
+            }}
+          />
+        </div>
+
         {/* Backend Status Message */}
         {dashboardData && dashboardData.totalItems === 0 && (
           <Card className="mb-8 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
@@ -404,8 +415,8 @@ export default function Dashboard() {
         {/* Today's Outfit Section */}
         <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Outfit</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your personalized outfit recommendation for today</CardDescription>
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Weather-Perfect Outfit</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your smart outfit generator above creates perfect weather-based recommendations</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
@@ -431,6 +442,11 @@ export default function Dashboard() {
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         Mood: {dashboardData.todaysOutfit.mood}
                       </p>
+                      {dashboardData.todaysOutfit.weather && dashboardData.todaysOutfit.weather.condition && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Weather: {dashboardData.todaysOutfit.weather.condition}, {dashboardData.todaysOutfit.weather.temperature}°C
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       {(dashboardData.todaysOutfit as any).isSuggestion && !(dashboardData.todaysOutfit as any).isWorn ? (
@@ -532,11 +548,19 @@ export default function Dashboard() {
                   <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </div>
                 <p className="text-gray-500 dark:text-gray-500 mb-2 font-medium">
-                  No Outfit Yet
+                  Smart Weather-Perfect Outfits
                 </p>
                 <p className="text-sm text-gray-400 dark:text-gray-600 mb-6 max-w-md mx-auto">
-                  Generate your personalized outfit for today from the outfit generation page!
+                  Use the Smart Weather Outfit Generator above to get instant, location-based outfit recommendations that are perfect for today's weather!
                 </p>
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Automatic location detection</span>
+                  <div className="w-2 h-2 bg-blue-500 rounded-full ml-3"></div>
+                  <span>Real weather data</span>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full ml-3"></div>
+                  <span>Perfect outfit matching</span>
+                </div>
               </div>
             )}
           </CardContent>
