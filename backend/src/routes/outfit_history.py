@@ -366,6 +366,23 @@ async def mark_outfit_as_worn(
             logger.error(f"❌ Firestore error details: {str(firestore_error)}")
             raise HTTPException(status_code=500, detail="Failed to save outfit history entry")
         
+        # Update user_stats for dashboard counter
+        try:
+            from google.cloud.firestore import Increment
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            
+            # Use Firestore Increment to properly add 1 to existing count
+            stats_ref.set({
+                'user_id': current_user.id,
+                'worn_this_week': Increment(1),
+                'last_updated': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }, merge=True)
+            logger.info(f"✅ Updated user_stats for dashboard counter")
+        except Exception as stats_error:
+            logger.warning(f"⚠️ Stats update failed: {stats_error}")
+            # Don't fail the whole request if stats update fails
+        
         # Log analytics event (simplified to avoid serialization issues)
         try:
             # Create a simple dict instead of AnalyticsEvent object
@@ -958,8 +975,40 @@ async def mark_today_suggestion_as_worn(
             'updated_at': current_timestamp
         })
         
-        # Create outfit history entry
+        # Extract and update wardrobe item wear counts
         outfit_data = (suggestion_data.get('outfit_data', {}) if suggestion_data else {})
+        outfit_items = (outfit_data.get('items', []) if outfit_data else [])
+        
+        if outfit_items:
+            try:
+                batch = db.batch()
+                wardrobe_ref = db.collection('wardrobe')
+                
+                for item in outfit_items:
+                    if isinstance(item, dict) and 'id' in item:
+                        item_id = item['id']
+                        item_ref = wardrobe_ref.document(item_id)
+                        item_doc = item_ref.get() if item_ref else None
+                        
+                        if item_doc.exists:
+                            item_data = item_doc.to_dict()
+                            current_wear_count = (item_data.get('wearCount', 0) if item_data else 0)
+                            
+                            # Update wear count and last worn timestamp
+                            batch.update(item_ref, {
+                                'wearCount': current_wear_count + 1,
+                                'lastWorn': current_timestamp,
+                                'updatedAt': current_timestamp
+                            })
+                
+                # Commit the batch update
+                batch.commit()
+                logger.info(f"✅ Updated wear counts for {len(outfit_items)} items in suggestion {suggestion_id}")
+            except Exception as item_error:
+                logger.warning(f"⚠️ Failed to update wardrobe item wear counts: {item_error}")
+                # Don't fail the whole request if item updates fail
+        
+        # Create outfit history entry
         history_entry = {
             'user_id': current_user.id,
             'outfit_id': f"suggestion_{suggestion_id}",  # Special ID for suggested outfits
@@ -978,6 +1027,23 @@ async def mark_today_suggestion_as_worn(
         
         # Save to outfit history
         db.collection('outfit_history').add(history_entry)
+        
+        # Update user_stats for dashboard counter
+        try:
+            from google.cloud.firestore import Increment
+            stats_ref = db.collection('user_stats').document(current_user.id)
+            
+            # Use Firestore Increment to properly add 1 to existing count
+            stats_ref.set({
+                'user_id': current_user.id,
+                'worn_this_week': Increment(1),
+                'last_updated': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            }, merge=True)
+            logger.info(f"✅ Updated user_stats for dashboard counter")
+        except Exception as stats_error:
+            logger.warning(f"⚠️ Stats update failed: {stats_error}")
+            # Don't fail the whole request if stats update fails
         
         # Log analytics event
         try:
