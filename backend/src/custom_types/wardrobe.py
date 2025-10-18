@@ -486,6 +486,9 @@ class ClothingItem(BaseModel):
         import logging
         logger = logging.getLogger(__name__)
         
+        # DEBUG: Log what we're receiving
+        logger.info(f"🔍 METADATA VALIDATOR: Received type={type(v)}, is_dict={isinstance(v, dict)}, is_truthy={bool(v)}, value={str(v)[:200] if v else 'None'}")
+        
         if isinstance(v, dict) and v:
             try:
                 # Make a copy to avoid modifying the original
