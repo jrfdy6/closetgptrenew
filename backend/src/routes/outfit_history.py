@@ -41,7 +41,14 @@ def parse_last_worn(ts):
 from ..auth.auth_service import get_current_user  # Keep this for dependency injection
 from ..custom_types.profile import UserProfile   # Keep this for type hints
 from ..core.logging import get_logger
-# from ..services.analytics_service import log_analytics_event  # Temporarily commented out for debugging
+
+# Try to import analytics service, but don't fail if it's not available
+try:
+    from ..services.analytics_service import log_analytics_event
+except ImportError:
+    def log_analytics_event(*args, **kwargs):
+        """Fallback no-op function if analytics service is not available"""
+        pass
 
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
