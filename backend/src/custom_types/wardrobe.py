@@ -484,6 +484,20 @@ class ClothingItem(BaseModel):
     quality_score: Optional[float] = 0.5  # Add quality_score field for validation
     pairability_score: Optional[float] = 0.5  # Add pairability_score field for validation
 
+    @field_validator('metadata', mode='before')
+    def convert_metadata_dict(cls, v, info):
+        """Convert dict metadata to Metadata object if needed."""
+        if isinstance(v, dict) and v:
+            try:
+                return Metadata(**v)
+            except Exception as e:
+                # If conversion fails, log but don't crash - return None
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to convert metadata dict to Metadata object: {e}")
+                return None
+        return v
+
     @field_validator('style', mode='before')
     def convert_style_to_list(cls, v, info):
         """Convert single string style to list if needed."""
