@@ -286,3 +286,4 @@ All new metadata fields are now properly integrated into the outfit generation s
 
 **The system now uses metadata-first filtering and comprehensive scoring to generate appropriate, varied gym outfits!**
 
+

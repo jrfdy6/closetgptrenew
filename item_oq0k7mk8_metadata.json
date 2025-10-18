@@ -1,0 +1,399 @@
+{
+  "type": "shirt",
+  "tags": [
+    "Casual"
+  ],
+  "brand": "Celine",
+  "colorName": null,
+  "gender": "unisex",
+  "metadata": {
+    "normalized": {
+      "season": [
+        "summer",
+        "fall",
+        "spring"
+      ],
+      "normalized_at": "2025-10-09T17:46:19",
+      "style": [
+        "classic",
+        "minimalist",
+        "old money",
+        "business casual",
+        "casual",
+        "casual cool"
+      ],
+      "normalized_version": "1.0",
+      "mood": [],
+      "occasion": [
+        "casual"
+      ]
+    },
+    "confidenceScores": {
+      "gptAnalysis": 0.85,
+      "overallConfidence": 0.5658235728740693,
+      "styleAnalysis": 0.2816471457481384
+    },
+    "visualAttributes": {
+      "temperatureCompatibility": {
+        "maxTemp": 85,
+        "recommendedLayers": [
+          "shirt"
+        ],
+        "materialPreferences": [
+          "Cotton"
+        ],
+        "minTemp": 50
+      },
+      "fit": "Slim",
+      "neckline": "crew",
+      "formalLevel": "Casual",
+      "bodyTypeCompatibility": {
+        "pear": {
+          "recommendedFits": [
+            "Slim",
+            "Tailored"
+          ],
+          "styleRecommendations": [
+            "Tucked in",
+            "With a jacket"
+          ]
+        },
+        "apple": {
+          "recommendedFits": [
+            "Relaxed",
+            "Slim"
+          ],
+          "styleRecommendations": [
+            "Layered",
+            "With high-waisted pants"
+          ]
+        },
+        "hourglass": {
+          "recommendedFits": [
+            "Slim",
+            "Tailored"
+          ],
+          "styleRecommendations": [
+            "Tucked in",
+            "Layered"
+          ]
+        },
+        "rectangle": {
+          "recommendedFits": [
+            "Tailored",
+            "Slim"
+          ],
+          "styleRecommendations": [
+            "With a belt",
+            "Layered"
+          ]
+        },
+        "inverted_triangle": {
+          "recommendedFits": [
+            "Slim",
+            "Tailored"
+          ],
+          "styleRecommendations": [
+            "With wider pants",
+            "Layered"
+          ]
+        }
+      },
+      "material": "Cotton",
+      "pattern": "Solid",
+      "fabricWeight": "Light",
+      "sleeveLength": "Short",
+      "wearLayer": "Base",
+      "materialCompatibility": {
+        "compatibleMaterials": [
+          "Denim",
+          "Chinos"
+        ],
+        "weatherAppropriate": {
+          "winter": [
+            "Wool",
+            "Fleece"
+          ],
+          "fall": [
+            "Cotton",
+            "Wool Blend"
+          ],
+          "spring": [
+            "Cotton",
+            "Linen"
+          ],
+          "summer": [
+            "Cotton",
+            "Linen"
+          ]
+        }
+      },
+      "silhouette": "Boxy",
+      "waistbandType": "none",
+      "hangerPresent": false,
+      "genderTarget": "Unisex",
+      "backgroundRemoved": true,
+      "length": "Regular",
+      "skinToneCompatibility": {
+        "neutral": {
+          "compatibleColors": [
+            "White",
+            "Gray"
+          ],
+          "recommendedColorPalette": [
+            "Soft tones"
+          ]
+        },
+        "cool": {
+          "compatibleColors": [
+            "Burgundy",
+            "Teal"
+          ],
+          "recommendedColorPalette": [
+            "Jewel tones"
+          ]
+        },
+        "warm": {
+          "compatibleColors": [
+            "Olive",
+            "Mustard"
+          ],
+          "recommendedColorPalette": [
+            "Earth tones"
+          ]
+        }
+      },
+      "textureStyle": "Smooth"
+    },
+    "analysisMethod": "Enhanced (GPT-4 + CLIP)",
+    "styleCompatibility": {
+      "compatibleStyles": [
+        "Casual Cool",
+        "Old Money",
+        "Preppy"
+      ],
+      "avoidStyles": [
+        "Formal",
+        "Avant-Garde"
+      ],
+      "primaryStyle": [
+        "Casual Cool",
+        0.2816471457481384
+      ],
+      "styleNotes": "Moderate ('Casual Cool', 0.2816471457481384) influence detected. This item has some ('Casual Cool', 0.2816471457481384) elements."
+    },
+    "basicMetadata": {
+      "deviceModel": null,
+      "orientation": null,
+      "imageHash": null,
+      "gps": null,
+      "flashUsed": null,
+      "width": null,
+      "dateTaken": null,
+      "height": null
+    },
+    "clipAnalysis": {
+      "styleConfidence": 0.2816471457481384,
+      "primaryStyle": [
+        "Casual Cool",
+        0.2816471457481384
+      ],
+      "topStyles": [
+        "Casual Cool",
+        "Old Money",
+        "Preppy",
+        "Athleisure",
+        "Coastal Chic"
+      ],
+      "styleBreakdown": {
+        "Coastal Chic": 0.2682226300239563,
+        "Casual Cool": 0.2816471457481384,
+        "Y2K": 0.2415916621685028,
+        "Grunge": 0.24079962074756622,
+        "Cottagecore": 0.23400628566741943,
+        "Minimalist": 0.25902611017227173,
+        "Streetwear": 0.2650832235813141,
+        "Classic": 0.2670552134513855,
+        "Androgynous": 0.247613787651062,
+        "Techwear": 0.20799876749515533,
+        "Old Money": 0.2810276448726654,
+        "Artsy": 0.2476281076669693,
+        "Preppy": 0.2810133695602417,
+        "Business Casual": 0.25570642948150635,
+        "Boho": 0.2097523808479309,
+        "Romantic": 0.2486562728881836,
+        "Avant-Garde": 0.24735790491104126,
+        "Dark Academia": 0.21688175201416016,
+        "Edgy": 0.2554331421852112,
+        "Athleisure": 0.27324968576431274
+      },
+      "analysisMethod": "CLIP + GPT-4 Vision"
+    },
+    "enhancedAnalysisTimestamp": 1220415.306167642,
+    "analysisTimestamp": 1750211904623,
+    "originalType": "shirt",
+    "naturalDescription": "A slim cotton shirt with short sleeves by Celine",
+    "colorAnalysis": {
+      "matching": [
+        {
+          "hex": "#000080",
+          "rgb": [
+            0,
+            0,
+            128
+          ],
+          "name": "Navy Blue"
+        },
+        {
+          "hex": "#D3D3D3",
+          "rgb": [
+            211,
+            211,
+            211
+          ],
+          "name": "Light Gray"
+        }
+      ],
+      "dominant": [
+        {
+          "hex": "#FFFFFF",
+          "rgb": [
+            255,
+            255,
+            255
+          ],
+          "name": "White"
+        },
+        {
+          "hex": "#000000",
+          "rgb": [
+            0,
+            0,
+            0
+          ],
+          "name": "Black"
+        }
+      ]
+    },
+    "itemMetadata": {
+      "priceEstimate": "$400 - $600",
+      "outfitScoring": {
+        "colorHarmonyScore": 9,
+        "patternMixingScore": 6,
+        "baseScore": 8,
+        "formalityConsistencyScore": 9,
+        "pieceCountScore": 5,
+        "materialCompatibilityScore": 7,
+        "pairabilityScore": 8,
+        "totalScore": 52
+      },
+      "tags": [
+        "Luxury",
+        "Logo"
+      ],
+      "brand": null,
+      "careInstructions": "Wash cold, do not bleach, iron on low"
+    }
+  },
+  "matchingColors": [
+    {
+      "hex": "#000080",
+      "rgb": [
+        0,
+        0,
+        128
+      ],
+      "name": "Navy Blue"
+    },
+    {
+      "hex": "#D3D3D3",
+      "rgb": [
+        211,
+        211,
+        211
+      ],
+      "name": "Light Gray"
+    },
+    {
+      "hex": "#808080",
+      "rgb": [
+        128,
+        128,
+        128
+      ],
+      "name": "Gray"
+    }
+  ],
+  "lastWorn": "2025-09-20 20:43:25.133346+00:00",
+  "wearCount": 8,
+  "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+  "subType": "t shirt",
+  "favorite": true,
+  "createdAt": 1750211904623,
+  "style": [
+    "Classic",
+    "Minimalist",
+    "Old Money",
+    "Business Casual",
+    "Casual",
+    "Casual Cool"
+  ],
+  "dominantColors": [
+    {
+      "hex": "#FFFFFF",
+      "rgb": [
+        255,
+        255,
+        255
+      ],
+      "name": "White"
+    },
+    {
+      "hex": "#000000",
+      "rgb": [
+        0,
+        0,
+        0
+      ],
+      "name": "Black"
+    }
+  ],
+  "id": "oq0k7mk82fmc1az8mn",
+  "backgroundRemoved": false,
+  "updatedAt": "2025-10-12 10:46:35.955000+00:00",
+  "season": [
+    "summer",
+    "fall",
+    "spring"
+  ],
+  "normalized": {
+    "season": [
+      "summer",
+      "fall",
+      "spring"
+    ],
+    "normalized_at": "2025-10-07T22:23:51.434712",
+    "normalized_version": "1.0",
+    "style": [
+      "classic",
+      "minimalist",
+      "old money",
+      "business casual",
+      "casual",
+      "casual cool"
+    ],
+    "mood": [],
+    "occasion": [
+      "casual"
+    ]
+  },
+  "name": "Shirt t-shirt White by Celine",
+  "mood": [
+    "casual"
+  ],
+  "imageUrl": "https://firebasestorage.googleapis.com/v0/b/closetgptrenew.firebasestorage.app/o/users%2FdANqjiI0CKgaitxzYtw1bhtvQrG3%2Fwardrobe%2Ff8424101-6e50-40f9-a341-30bfebdf4fe1.webp?alt=media&token=36dea40a-9951-4e4c-b889-2ea92508cd26",
+  "occasion": [
+    "Casual"
+  ],
+  "color": "White"
+}

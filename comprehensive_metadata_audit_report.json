@@ -1,0 +1,168 @@
+{
+  "summary": {
+    "total_items": 158,
+    "overall_score": 98.1,
+    "grade": "A - Excellent",
+    "critical_coverage": 98.1,
+    "high_priority_coverage": 98.1
+  },
+  "problems": {
+    "empty_occasion_style": 3,
+    "occasion_in_tags_not_field": 0,
+    "style_in_tags_not_field": 0,
+    "missing_visual_attributes": 0,
+    "missing_normalized": 3
+  },
+  "field_coverage": {
+    "occasion": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "style": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "mood": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "type": {
+      "present": 158,
+      "missing": 0,
+      "empty": 0,
+      "coverage_pct": 100.0
+    },
+    "color": {
+      "present": 158,
+      "missing": 0,
+      "empty": 0,
+      "coverage_pct": 100.0
+    },
+    "season": {
+      "present": 157,
+      "missing": 1,
+      "empty": 0,
+      "coverage_pct": 99.4
+    },
+    "wearLayer": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "sleeveLength": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "pattern": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "material": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "fit": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "formalLevel": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "fabricWeight": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "textureStyle": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "silhouette": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "length": {
+      "present": 155,
+      "missing": 3,
+      "empty": 0,
+      "coverage_pct": 98.1
+    },
+    "normalized.occasion": {
+      "present": 152,
+      "missing": 6,
+      "empty": 0,
+      "coverage_pct": 96.2
+    },
+    "normalized.style": {
+      "present": 152,
+      "missing": 6,
+      "empty": 0,
+      "coverage_pct": 96.2
+    },
+    "normalized.mood": {
+      "present": 111,
+      "missing": 47,
+      "empty": 0,
+      "coverage_pct": 70.3
+    },
+    "bodyTypeCompatibility": {
+      "present": 82,
+      "missing": 76,
+      "empty": 0,
+      "coverage_pct": 51.9
+    },
+    "weatherCompatibility": {
+      "present": 111,
+      "missing": 47,
+      "empty": 0,
+      "coverage_pct": 70.3
+    }
+  },
+  "problem_items": {
+    "empty_occasion_style": [
+      {
+        "id": "0a6fa15c-f697-4190-8",
+        "name": "Test Debug v3",
+        "type": "shirt",
+        "tags": []
+      },
+      {
+        "id": "45403c13-c8f8-4992-9",
+        "name": "Test Debug v7",
+        "type": "shirt",
+        "tags": []
+      },
+      {
+        "id": "e7ad403e-e994-4044-8",
+        "name": "Object",
+        "type": "object",
+        "tags": []
+      }
+    ],
+    "occasion_in_tags_not_field": [],
+    "style_in_tags_not_field": []
+  }
+}

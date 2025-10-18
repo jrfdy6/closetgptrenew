@@ -1,0 +1,125 @@
+{
+  "imageUrl": "https://storage.googleapis.com/closetgptrenew.firebasestorage.app/wardrobe/dANqjiI0CKgaitxzYtw1bhtvQrG3/42c2b7a6-67e6-4334-a033-3e1efc976f6e_tshirtgreen.webp.webp",
+  "occasion": [
+    "everyday",
+    "casual"
+  ],
+  "name": "Shirt t-shirt Teal by Unknown",
+  "favorite": false,
+  "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+  "fileSize": 4540,
+  "gender": "Unisex",
+  "color": "Teal",
+  "updatedAt": "2025-10-14T11:30:07.942591",
+  "material": "Cotton",
+  "imageHash": "c3520ac1e4a7d631fec25bb7cde1195c1463e88a435bd53e9ef55e9fa44f5647",
+  "type": "shirt",
+  "analysis": {
+    "name": "Shirt t-shirt Teal by Unknown",
+    "occasion": [
+      "Everyday",
+      "Casual"
+    ],
+    "fit": "regular",
+    "sleeveLength": "Short",
+    "gender": "Unisex",
+    "color": "Teal",
+    "dominantColors": [
+      {
+        "name": "Teal",
+        "hex": "#006D6F",
+        "rgb": [
+          0,
+          109,
+          111
+        ]
+      }
+    ],
+    "material": "Cotton",
+    "type": "shirt",
+    "brand": "Unknown",
+    "primary_color": "Teal",
+    "season": [
+      "spring",
+      "summer"
+    ],
+    "clothing_type": "shirt",
+    "formalLevel": "Casual",
+    "subType": "t-shirt",
+    "metadata": {
+      "visualAttributes": {
+        "genderTarget": "unisex",
+        "legOpening": "none",
+        "transparency": "opaque",
+        "fit": "regular",
+        "heelHeight": "none",
+        "neckline": "none",
+        "rise": "none",
+        "fabricWeight": "medium",
+        "sleeveLength": "Short",
+        "embellishments": "none",
+        "material": "Cotton",
+        "wearLayer": "Mid",
+        "textureStyle": "smooth",
+        "printSpecificity": "none",
+        "statementLevel": 5,
+        "silhouette": "regular",
+        "hangerPresent": false,
+        "formalLevel": "Casual",
+        "waistbandType": "none",
+        "collarType": "none",
+        "length": "regular",
+        "pattern": "solid",
+        "backgroundRemoved": false
+      },
+      "naturalDescription": ""
+    },
+    "pattern": "solid",
+    "style": [
+      "Casual"
+    ],
+    "matchingColors": [
+      {
+        "name": "White",
+        "hex": "#FFFFFF",
+        "rgb": [
+          255,
+          255,
+          255
+        ]
+      },
+      {
+        "name": "Black",
+        "hex": "#000000",
+        "rgb": [
+          0,
+          0,
+          0
+        ]
+      }
+    ]
+  },
+  "wearCount": 0,
+  "brand": "Unknown",
+  "mood": [],
+  "id": "item-1760441407622-0",
+  "lastWorn": null,
+  "season": [
+    "spring",
+    "summer"
+  ],
+  "subType": "t-shirt",
+  "createdAt": "2025-10-14T11:30:07.622Z",
+  "metadata": {
+    "fileSize": 4540,
+    "width": 300,
+    "height": 411,
+    "type": "image/webp",
+    "lastModified": 1760436260889,
+    "aspectRatio": 0.7299
+  },
+  "style": [
+    "casual"
+  ],
+  "backgroundRemoved": false
+}

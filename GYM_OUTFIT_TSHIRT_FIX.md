@@ -288,3 +288,4 @@ For t-shirts to appear in gym outfits, they should have:
 
 The filtering logic now properly uses metadata fields (occasion tags) BEFORE checking item names/types, allowing casual t-shirts to be included in gym outfits while still blocking inappropriate formal items.
 
+

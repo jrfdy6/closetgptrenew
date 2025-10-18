@@ -1,0 +1,85 @@
+{
+  "userId": "dANqjiI0CKgaitxzYtw1bhtvQrG3",
+  "color": "blue",
+  "gender": "unisex",
+  "name": "Test Debug v3",
+  "type": "shirt",
+  "createdAt": 1757064833,
+  "matchingColors": [],
+  "normalized": {
+    "normalized_at": "2025-10-07T22:23:34.997284",
+    "normalized_version": "1.0",
+    "occasion": [],
+    "season": [
+      "all"
+    ],
+    "mood": [],
+    "style": []
+  },
+  "id": "0a6fa15c-f697-4190-8dbe-c3b6e73069a4",
+  "style": [],
+  "occasion": [],
+  "wearCount": 1,
+  "mood": [
+    "casual"
+  ],
+  "updatedAt": "2025-10-12 10:46:23.107000+00:00",
+  "dominantColors": [
+    {
+      "rgb": [
+        0,
+        0,
+        0
+      ],
+      "name": "blue",
+      "hex": "#000000"
+    }
+  ],
+  "metadata": {
+    "occasionTags": [],
+    "itemMetadata": {
+      "careInstructions": "Check care label",
+      "tags": []
+    },
+    "originalType": "shirt",
+    "styleTags": [],
+    "visualAttributes": {
+      "silhouette": "regular",
+      "textureStyle": "smooth",
+      "wearLayer": "Mid",
+      "fabricWeight": "medium",
+      "sleeveLength": "Long",
+      "genderTarget": "Unisex",
+      "pattern": "solid",
+      "material": "cotton",
+      "fit": "regular",
+      "length": "regular",
+      "formalLevel": "casual",
+      "waistbandType": "none"
+    },
+    "normalized": {
+      "occasion": [],
+      "normalized_version": "1.0",
+      "normalized_at": "2025-10-09T17:46:05",
+      "season": [
+        "all"
+      ],
+      "mood": [],
+      "style": []
+    },
+    "colorAnalysis": {
+      "matching": [],
+      "dominant": [
+        "blue"
+      ]
+    },
+    "analysisTimestamp": 1757064833
+  },
+  "imageUrl": "",
+  "season": [
+    "all"
+  ],
+  "backgroundRemoved": false,
+  "tags": [],
+  "lastWorn": "2025-09-21 12:31:17.805819+00:00"
+}

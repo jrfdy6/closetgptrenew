@@ -62,19 +62,6 @@ export interface FrontendOutfitRequest {
 function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
   const now = Date.now();
   
-  // Debug: Check if this item has metadata
-  if ((item.name || '').toLowerCase().includes('george') || (item.brand || '').toLowerCase().includes('george')) {
-    console.log(`🔍 CONVERTER INPUT: George shirt metadata:`, {
-      id: item.id,
-      name: item.name,
-      hasMetadata: !!item.metadata,
-      metadata: item.metadata,
-      metadataKeys: item.metadata ? Object.keys(item.metadata) : null,
-      visualAttributes: item.metadata?.visualAttributes || null,
-      neckline: item.metadata?.visualAttributes?.neckline || null
-    });
-  }
-  
   const converted = {
     id: item.id,
     name: item.name,
@@ -105,7 +92,7 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
       analysisTimestamp: item.metadata.analysisTimestamp || now,
       styleTags: item.metadata.styleTags || normalizeToList(item.style) || [],
       occasionTags: item.metadata.occasionTags || normalizeToList(item.occasion) || ['casual'],
-    } : (console.warn(`⚠️ Item ${item.id} (${item.name}) has NO metadata - creating basic structure`), {
+    } : {
       // Create basic metadata if none exists
       analysisTimestamp: now,
       originalType: item.type,
@@ -129,19 +116,6 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
       outfitScoring: null
     })
   };
-  
-  // Debug: Check if converted item has metadata
-  if ((item.name || '').toLowerCase().includes('george') || (item.brand || '').toLowerCase().includes('george')) {
-    console.log(`🔍 CONVERTER OUTPUT: George shirt converted:`, {
-      id: converted.id,
-      name: converted.name,
-      hasMetadata: !!converted.metadata,
-      metadata: converted.metadata,
-      metadataKeys: converted.metadata ? Object.keys(converted.metadata) : null,
-      visualAttributes: converted.metadata?.visualAttributes || null,
-      neckline: converted.metadata?.visualAttributes?.neckline || null
-    });
-  }
   
   return converted;
 }
