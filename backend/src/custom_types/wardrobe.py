@@ -445,8 +445,7 @@ class Metadata(BaseModel):
                 },
                 "naturalDescription": "A classic blue denim jacket"
             }
-        },
-        arbitrary_types_allowed=True
+        }
     )
 
 class ClothingItem(BaseModel):
