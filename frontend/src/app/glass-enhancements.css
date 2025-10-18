@@ -1,0 +1,29 @@
+/* Enhanced Glass Effects with Better Visibility */
+.glass-enhanced {
+  @apply bg-white/15 dark:bg-gray-900/15 backdrop-blur-2xl border border-white/25 dark:border-white/15 shadow-xl shadow-black/10;
+  /* Fallback for browsers without backdrop-filter */
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.glass-enhanced-strong {
+  @apply bg-white/25 dark:bg-gray-900/25 backdrop-blur-3xl border border-white/35 dark:border-white/25 shadow-2xl shadow-black/15;
+  /* Fallback for browsers without backdrop-filter */
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Ensure backdrop-filter is supported */
+@supports not (backdrop-filter: blur(10px)) {
+  .glass,
+  .glass-card,
+  .glass-float {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  .dark .glass,
+  .dark .glass-card,
+  .dark .glass-float {
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}

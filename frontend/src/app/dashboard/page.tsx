@@ -270,20 +270,32 @@ export default function Dashboard() {
 
   // Main dashboard - user is authenticated and data is loaded
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-indigo-900/20 relative overflow-hidden">
+      {/* Enhanced Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-20 left-10 w-40 h-40 bg-purple-400/30 rounded-full blur-3xl"></div>
+        <div className="absolute top-40 right-20 w-32 h-32 bg-blue-400/25 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-emerald-400/20 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-20 right-1/3 w-36 h-36 bg-orange-400/25 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 w-60 h-60 bg-violet-400/15 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-rose-400/20 rounded-full blur-2xl"></div>
+      </div>
+      
       <Navigation />
       
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
         {/* Welcome Section */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">
-            Welcome back
-          </h1>
-          <p className="text-xl text-stone-600 dark:text-stone-400 font-light">
-            Ready to explore your wardrobe and create amazing outfits.
-          </p>
+        <div className="mb-12 relative z-10">
+          <div className="glass-card-hover glass-shadow-strong p-8 animate-fade-in">
+            <h1 className="text-5xl font-serif font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+              Welcome back
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 font-light">
+              Ready to explore your wardrobe and create amazing outfits.
+            </p>
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -299,71 +311,71 @@ export default function Dashboard() {
           {/* Clean, simple analytics - no complex initialization needed */}
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+        {/* Enhanced Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 relative z-10">
+          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-1">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Total Items</p>
-                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Items</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.totalItems || 0}
                   </p>
-                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">In your wardrobe</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">In your wardrobe</p>
                 </div>
-                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
-                  <Shirt className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Shirt className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-2">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Favorites</p>
-                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Favorites</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.favorites || 0}
                   </p>
-                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">Loved items</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Loved items</p>
                 </div>
-                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
-                  <Heart className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Heart className="h-7 w-7 text-pink-600 dark:text-pink-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-3">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">Style Goals</p>
-                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Style Goals</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.styleGoalsCompleted || 0}/{dashboardData?.totalStyleGoals || 0}
                   </p>
-                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">Completed</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Completed</p>
                 </div>
-                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
-                  <Target className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Target className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-4">
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-2">This Week</p>
-                  <p className="text-4xl font-bold text-stone-900 dark:text-stone-100 mb-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">This Week</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.outfitsThisWeek || 0}
                   </p>
-                  <p className="text-sm text-stone-500 dark:text-stone-500 font-light">Outfits worn</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Outfits worn</p>
                 </div>
-                <div className="w-12 h-12 bg-stone-100 dark:bg-stone-800 rounded-full flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-stone-600 dark:text-stone-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-purple-500/20 to-violet-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Calendar className="h-7 w-7 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </CardContent>

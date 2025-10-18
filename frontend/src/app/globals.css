@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import glass enhancements */
+@import './glass-enhancements.css';
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
@@ -368,13 +371,37 @@
     @apply animate-out fade-out-0 slide-out-to-top-4 duration-300;
   }
   
-  /* Stagger animations for lists */
+  /* Enhanced Dashboard Animations */
   .stagger-1 { animation-delay: 0ms; }
-  .stagger-2 { animation-delay: 50ms; }
-  .stagger-3 { animation-delay: 100ms; }
-  .stagger-4 { animation-delay: 150ms; }
-  .stagger-5 { animation-delay: 200ms; }
-  .stagger-6 { animation-delay: 250ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 200ms; }
+  .stagger-4 { animation-delay: 300ms; }
+  .stagger-5 { animation-delay: 400ms; }
+  .stagger-6 { animation-delay: 500ms; }
+  
+  /* Enhanced Glass Effects for Dashboard */
+  .glass-card-enhanced {
+    @apply bg-white/15 dark:bg-gray-800/15 backdrop-blur-2xl rounded-3xl border border-white/25 dark:border-white/15 shadow-xl shadow-black/10 transition-all duration-500;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2), 0 0 2px 0 rgba(255, 255, 255, 0.3) inset;
+  }
+  
+  .glass-card-enhanced:hover {
+    @apply bg-white/25 dark:bg-gray-800/25 shadow-2xl shadow-black/15 scale-[1.02] -translate-y-2;
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.3), 0 0 3px 0 rgba(255, 255, 255, 0.4) inset;
+  }
+  
+  /* Gradient Text Effects */
+  .text-gradient-primary {
+    @apply bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent;
+  }
+  
+  .text-gradient-secondary {
+    @apply bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent;
+  }
+  
+  .text-gradient-accent {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent;
+  }
   
   /* Loading animations */
   .loading-pulse {
@@ -428,7 +455,7 @@
   
   /* Liquid Glass / Glassmorphism Effects */
   .glass {
-    @apply bg-white/40 dark:bg-gray-900/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5;
+    @apply bg-white/20 dark:bg-gray-900/20 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg shadow-black/5;
   }
   
   .glass-strong {
@@ -440,7 +467,7 @@
   }
   
   .glass-card {
-    @apply bg-white/40 dark:bg-gray-800/40 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-white/10 shadow-lg shadow-black/5 transition-all duration-300;
+    @apply bg-white/25 dark:bg-gray-800/25 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-white/10 shadow-lg shadow-black/5 transition-all duration-300;
   }
   
   .glass-card-hover {
