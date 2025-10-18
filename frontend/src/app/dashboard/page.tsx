@@ -401,6 +401,147 @@ export default function Dashboard() {
           </Card>
         )}
 
+        {/* Today's Outfit Section */}
+        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Outfit</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your personalized outfit recommendation for today</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {dashboardData?.todaysOutfit ? (
+              <div className="space-y-4">
+                <div className="text-center mb-4">
+                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-2">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                  </p>
+                  <Badge variant="secondary" className="mb-3">
+                    {dashboardData.todaysOutfit.occasion}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-blue-100 dark:from-emerald-900 dark:to-blue-900 rounded-lg flex items-center justify-center">
+                      <Shirt className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-white text-lg">
+                        {dashboardData.todaysOutfit.outfitName}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Mood: {dashboardData.todaysOutfit.mood}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {(dashboardData.todaysOutfit as any).isSuggestion && !(dashboardData.todaysOutfit as any).isWorn ? (
+                        <Button 
+                          onClick={handleMarkAsWorn}
+                          disabled={markingAsWorn}
+                          className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white"
+                          size="sm"
+                        >
+                          {markingAsWorn ? (
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                          )}
+                          {markingAsWorn ? 'Marking...' : 'Wear This'}
+                        </Button>
+                      ) : (dashboardData.todaysOutfit as any).isWorn ? (
+                        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Worn Today
+                        </Badge>
+                      ) : (
+                        <Button variant="outline" size="sm">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          View Details
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Outfit Items */}
+                  {(dashboardData.todaysOutfit as any).items && (dashboardData.todaysOutfit as any).items.length > 0 && (
+                    <div className="space-y-3">
+                      <h5 className="font-medium text-gray-900 dark:text-white text-sm">Outfit Items:</h5>
+                      <div className="grid gap-2">
+                        {(dashboardData.todaysOutfit as any).items.map((item: any, index: number) => (
+                          <div key={index} className="flex items-center space-x-3 p-3 glass-inner rounded-lg">
+                            {item.imageUrl ? (
+                              <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+                                <img 
+                                  src={item.imageUrl} 
+                                  alt={item.name || 'Wardrobe item'}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `
+                                        <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center">
+                                          <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                          </svg>
+                                        </div>
+                                      `;
+                                    }
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center flex-shrink-0">
+                                <Shirt className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 dark:text-white text-sm">
+                                {item.name || 'Wardrobe Item'}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {item.type || 'clothing'} {item.color && `• ${item.color}`}
+                              </p>
+                            </div>
+                            {item.brand && (
+                              <Badge variant="outline" className="text-xs">
+                                {item.brand}
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {dashboardData.todaysOutfit.notes && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-blue-800 dark:text-blue-200 text-sm">
+                      💡 {dashboardData.todaysOutfit.notes}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </p>
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-500 mb-2 font-medium">
+                  No Outfit Yet
+                </p>
+                <p className="text-sm text-gray-400 dark:text-gray-600 mb-6 max-w-md mx-auto">
+                  Generate your personalized outfit for today from the outfit generation page!
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Wardrobe Insights */}
         <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
           <CardHeader className="pb-6">
