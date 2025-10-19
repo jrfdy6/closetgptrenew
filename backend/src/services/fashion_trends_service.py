@@ -165,7 +165,7 @@ class FashionTrendsService:
                                 "score": round(avg_score, 2),
                                 "trend_direction": trend_direction,
                                 "category": self._categorize_trend(trend),
-                                "related_styles": style_mappings.get(trend, []) if style_mappings else []),
+                                "related_styles": style_mappings.get(trend, []) if style_mappings else [],
                                 "source": "google_trends",
                                 "geo": "US",
                                 "timeframe": "7d",
