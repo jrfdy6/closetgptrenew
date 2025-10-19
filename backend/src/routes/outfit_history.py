@@ -52,7 +52,7 @@ except ImportError:
 
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
-# Force Railway redeploy - outfit history routes should work - v2
+# Force Railway redeploy - outfit history mark-worn endpoint fixed - v3 - Oct 19 2025
 
 async def calculate_worn_outfits_this_week(user_id: str) -> int:
     """
@@ -256,7 +256,11 @@ async def mark_outfit_as_worn(
     Mark an outfit as worn on a specific date
     """
     try:
+        logger.info(f"🚨 MARK-WORN ENDPOINT CALLED")
+        logger.info(f"🔍 DEBUG: Request data keys: {list(data.keys()) if data else 'NO DATA'}")
+        
         if not current_user:
+            logger.error(f"❌ No current_user")
             raise HTTPException(status_code=400, detail="User not found")
             
         logger.info(f"👕 Marking outfit as worn for user {current_user.id}")
@@ -420,9 +424,15 @@ async def mark_outfit_as_worn(
             "entryId": str(doc_id)  # Ensure doc_id is serializable
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error marking outfit as worn: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to mark outfit as worn")
+        logger.error(f"❌ CRITICAL ERROR in mark_outfit_as_worn: {str(e)}")
+        logger.error(f"❌ Error type: {type(e).__name__}")
+        logger.error(f"❌ Full traceback:", exc_info=True)
+        import traceback
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to mark outfit as worn: {str(e)}")
 
 @router.patch("/{entry_id}")
 async def update_outfit_history_entry(
