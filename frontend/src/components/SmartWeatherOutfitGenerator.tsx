@@ -385,8 +385,11 @@ export function SmartWeatherOutfitGenerator({
         }),
       });
 
+      console.log('🔍 DEBUG: Mark-worn response status:', response.status);
+      const result = await response.json();
+      console.log('🔍 DEBUG: Mark-worn response data:', result);
+      
       if (response.ok) {
-        const result = await response.json();
         console.log('✅ Outfit marked as worn:', result);
         
         // Update local state
@@ -480,7 +483,11 @@ export function SmartWeatherOutfitGenerator({
           console.log('🎉 Outfit worn successfully!');
         }, 1000);
       } else {
-        throw new Error('Failed to mark outfit as worn');
+        console.error('❌ MARK-WORN FAILED:', {
+          status: response.status,
+          errorData: result
+        });
+        throw new Error(`Failed to mark outfit as worn: ${result.detail || result.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('❌ Error wearing outfit:', error);
