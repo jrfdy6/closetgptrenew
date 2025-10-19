@@ -285,19 +285,23 @@ async def mark_outfit_as_worn(
         else:
             date_timestamp = date_worn
         
-        # Get outfit details from outfits collection
-        db = get_db()
+        # Get outfit details from outfits collection (if it exists)
         outfit_doc = db.collection('outfits').document(outfit_id).get()
         outfit_data = outfit_doc.to_dict() if outfit_doc.exists else {}
         
         # Extract item IDs from the outfit
+        # First try from Firestore outfit_data, then from request data
         item_ids = []
-        if outfit_data.get('items'):
-            for item in outfit_data['items']:
+        items_source = outfit_data.get('items') or data.get('items', [])
+        
+        if items_source:
+            for item in items_source:
                 if isinstance(item, dict) and 'id' in item:
                     item_ids.append(item['id'])
                 elif isinstance(item, str):
                     item_ids.append(item)
+        
+        logger.info(f"🔍 DEBUG: Found {len(item_ids)} items to update wear counts for")
         
         # Increment wear count for all items in the outfit
         current_timestamp = int(datetime.utcnow().timestamp() * 1000)
@@ -325,11 +329,14 @@ async def mark_outfit_as_worn(
             logger.info(f"Updated wear counts for {len(item_ids)} items in outfit {outfit_id}")
         
         # Create outfit history entry
+        # Use outfit name from Firestore, or from request data, or default
+        outfit_name = outfit_data.get('name') or data.get('outfitName') or data.get('name') or 'Generated Outfit'
+        
         entry_data = {
             'user_id': current_user.id,
             'outfit_id': outfit_id,
-            'outfit_name': (outfit_data.get('name', 'Unknown Outfit') if outfit_data else 'Unknown Outfit'),
-            'outfit_image': '',  # We'll leave this empty for now since items are stored as strings
+            'outfit_name': outfit_name,
+            'outfit_image': outfit_data.get('imageUrl', ''),
             'date_worn': date_timestamp,
             'occasion': occasion,
             'mood': mood,
@@ -337,7 +344,8 @@ async def mark_outfit_as_worn(
             'notes': notes,
             'tags': tags,
             'created_at': current_timestamp,
-            'updated_at': current_timestamp
+            'updated_at': current_timestamp,
+            'items': items_source  # Store the items for reference
         }
         
         # Save to Firestore

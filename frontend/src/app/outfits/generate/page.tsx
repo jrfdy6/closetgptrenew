@@ -605,12 +605,14 @@ export default function OutfitGenerationPage() {
         },
         body: JSON.stringify({
           outfitId: generatedOutfit.id,
+          outfitName: generatedOutfit.name,
           dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
           occasion: generatedOutfit.occasion || 'Casual',
           mood: generatedOutfit.mood || 'Confident',
           weather: generatedOutfit.weather || {},
           notes: `Generated outfit: ${generatedOutfit.name}`,
-          tags: ['generated']
+          tags: ['generated'],
+          items: generatedOutfit.items // Include items for wear count updates
         }),
       });
       

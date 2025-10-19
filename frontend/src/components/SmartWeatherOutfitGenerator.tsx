@@ -374,12 +374,14 @@ export function SmartWeatherOutfitGenerator({
         },
         body: JSON.stringify({
           outfitId: generatedOutfit.id,
+          outfitName: generatedOutfit.name,
           dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
           occasion: 'Daily',
           mood: generatedOutfit.mood || 'Confident',
           weather: generatedOutfit.weather || {},
           notes: `Weather-based outfit: ${generatedOutfit.name}`,
-          tags: ['weather-optimized', 'daily-suggestion']
+          tags: ['weather-optimized', 'daily-suggestion'],
+          items: generatedOutfit.items // Include items for wear count updates
         }),
       });
 
