@@ -122,6 +122,14 @@ export function SmartWeatherOutfitGenerator({
           generateTodaysOutfit();
         } else {
           console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
+          console.log('🔍 DEBUG: Loaded outfit items:', storedOutfit.items);
+          console.log('🔍 DEBUG: Loaded items count:', storedOutfit.items?.length || 0);
+          if (!storedOutfit.items || storedOutfit.items.length === 0) {
+            console.warn('⚠️ WARNING: Loaded outfit has no items! Regenerating...');
+            clearTodaysOutfit();
+            generateTodaysOutfit();
+            return;
+          }
           setGeneratedOutfit(storedOutfit);
           setLastGenerated(new Date(storedOutfit.generatedAt));
         }
@@ -294,12 +302,15 @@ export function SmartWeatherOutfitGenerator({
       const data = response.data;
       
       console.log('✅ Today\'s weather-perfect outfit generated:', data);
+      console.log('🔍 DEBUG: Backend response items:', data.items);
+      console.log('🔍 DEBUG: Items count:', data.items?.length || 0);
+      console.log('🔍 DEBUG: Full data structure:', JSON.stringify(data, null, 2));
       
       // Transform the response into our format
       const outfit: GeneratedOutfit = {
-        id: data.id || `daily-outfit-${Date.now()}`,
-        name: `Today's Perfect Weather Outfit`,
-        items: data.items || [],
+        id: data.id || `outfit_${Date.now()}`,
+        name: data.name || `Today's Perfect Weather Outfit`,
+        items: Array.isArray(data.items) ? data.items : [],
         weather: {
           temperature: weather.temperature,
           condition: weather.condition,
