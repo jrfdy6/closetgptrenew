@@ -412,11 +412,12 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Today's Outfit Section */}
+        {/* Today's Outfit Section - Only show if we have backend suggestion data AND no weather generator outfit */}
+        {dashboardData?.todaysOutfit && (dashboardData.todaysOutfit as any)?.suggestionId && (
         <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
           <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Weather-Perfect Outfit</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your smart outfit generator above creates perfect weather-based recommendations</CardDescription>
+            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Today's Outfit Suggestion</CardTitle>
+            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Daily outfit recommendation from our backend</CardDescription>
           </CardHeader>
           <CardContent>
             {dashboardData?.todaysOutfit ? (
@@ -565,6 +566,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Wardrobe Insights */}
         <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
