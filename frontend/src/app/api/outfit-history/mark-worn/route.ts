@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Force dynamic rendering since we use request.headers
+// Force production deployment - Oct 19 2025
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
