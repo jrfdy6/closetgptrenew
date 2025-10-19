@@ -39,14 +39,23 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     });
 
+    console.log('🔍 DEBUG: Backend response status:', response.status);
+    
     const data = await response.json();
+    console.log('🔍 DEBUG: Backend response data:', data);
 
     if (!response.ok) {
+      console.error('❌ Backend returned error:', {
+        status: response.status,
+        detail: data.detail,
+        fullError: data
+      });
       return NextResponse.json(
         { 
           success: false,
           error: data.detail || 'Failed to mark outfit as worn',
-          details: data.detail || 'Backend request failed'
+          details: data.detail || 'Backend request failed',
+          backendError: data
         },
         { status: response.status }
       );
