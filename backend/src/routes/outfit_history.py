@@ -382,15 +382,15 @@ async def mark_outfit_as_worn(
         
         # Update user_stats for dashboard counter
         try:
-            from google.cloud.firestore import Increment
+            from google.cloud.firestore import Increment, SERVER_TIMESTAMP
             stats_ref = db.collection('user_stats').document(current_user.id)
             
             # Use Firestore Increment to properly add 1 to existing count
             stats_ref.set({
                 'user_id': current_user.id,
                 'worn_this_week': Increment(1),
-                'last_updated': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
+                'last_updated': SERVER_TIMESTAMP,
+                'updated_at': SERVER_TIMESTAMP
             }, merge=True)
             logger.info(f"✅ Updated user_stats for dashboard counter")
         except Exception as stats_error:
@@ -1050,15 +1050,15 @@ async def mark_today_suggestion_as_worn(
         
         # Update user_stats for dashboard counter
         try:
-            from google.cloud.firestore import Increment
+            from google.cloud.firestore import Increment, SERVER_TIMESTAMP
             stats_ref = db.collection('user_stats').document(current_user.id)
             
             # Use Firestore Increment to properly add 1 to existing count
             stats_ref.set({
                 'user_id': current_user.id,
                 'worn_this_week': Increment(1),
-                'last_updated': datetime.utcnow(),
-                'updated_at': datetime.utcnow()
+                'last_updated': SERVER_TIMESTAMP,
+                'updated_at': SERVER_TIMESTAMP
             }, merge=True)
             logger.info(f"✅ Updated user_stats for dashboard counter")
         except Exception as stats_error:
