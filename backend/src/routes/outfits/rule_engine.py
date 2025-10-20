@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from src.routes.outfits.models import OutfitRequest
 from src.routes.outfits.utils import log_generation_strategy
+from src.routes.outfits.styling import calculate_style_appropriateness_score
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +82,11 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             if 'name' not in item:
                 item['name'] = f"Item {item.get('id', 'unknown')}"
         
-        # Style-based filtering with scoring
+        # Style-based filtering with scoring (now with occasion awareness)
         for item in wardrobe_items:
             try:
-                # Calculate style appropriateness score
-                style_score = calculate_style_appropriateness_score(req.style, item)
+                # Calculate style appropriateness score WITH occasion context
+                style_score = calculate_style_appropriateness_score(req.style, item, occasion=req.occasion)
                 
                 # Only include items with positive scores
                 if style_score > 0:
@@ -324,48 +325,3 @@ def generate_weather_aware_fallback_reasoning(req: OutfitRequest, selected_items
     except Exception as e:
         logger.warning(f"⚠️ Error generating weather reasoning: {e}")
         return f"Fallback outfit with {len(selected_items)} items from your wardrobe"
-
-
-def calculate_style_appropriateness_score(style: str, item: Dict[str, Any]) -> int:
-    """Calculate style appropriateness score for an item."""
-    try:
-        if not item or not style:
-            return 0
-        
-        item_type = str(item.get('type', '') if item else '').lower()
-        item_name = str(item.get('name', '') if item else '').lower()
-        item_style = str(item.get('style', '') if item else '').lower()
-        
-        style_lower = style.lower()
-        
-        # Base score
-        score = 0
-        
-        # Style matching
-        if style_lower in item_style:
-            score += 10
-        if style_lower in item_type:
-            score += 8
-        if style_lower in item_name:
-            score += 6
-        
-        # Occasion appropriateness
-        occasion = str(item.get('occasion', '') if item else '').lower()
-        if occasion and occasion != 'casual':
-            score += 5
-        
-        # Color scoring
-        colors = item.get('color', [])
-        if colors and isinstance(colors, list):
-            score += 3
-        
-        # Brand/quality indicators
-        brand = item.get('brand', '')
-        if brand:
-            score += 2
-        
-        return max(0, score)
-        
-    except Exception as e:
-        logger.warning(f"⚠️ Error calculating style score: {e}")
-        return 0
