@@ -52,7 +52,7 @@ except ImportError:
 
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
-# Force Railway redeploy - outfit history mark-worn endpoint fixed - v3 - Oct 19 2025
+# Force Railway redeploy - outfit history mark-worn endpoint fixed - v4 - Oct 20 2025 - ALL FIXES APPLIED
 
 async def calculate_worn_outfits_this_week(user_id: str) -> int:
     """
