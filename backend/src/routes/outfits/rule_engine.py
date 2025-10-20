@@ -151,6 +151,33 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             if base_item and base_item not in selected_items:
                 selected_items.insert(0, base_item)
         
+        # VALIDATION: Ensure minimum outfit requirements (at least 2-3 items for complete outfit)
+        MIN_OUTFIT_ITEMS = 2  # Minimum of 2 items for a complete outfit (e.g., top + bottom)
+        RECOMMENDED_OUTFIT_ITEMS = 3  # Recommended 3 items (e.g., top + bottom + shoes)
+        
+        if len(selected_items) < MIN_OUTFIT_ITEMS:
+            logger.warning(f"⚠️ Only {len(selected_items)} items selected, attempting to add more items")
+            
+            # Try to add more items from categories that have multiple options
+            for category, items in categorized_items.items():
+                if len(selected_items) >= RECOMMENDED_OUTFIT_ITEMS:
+                    break
+                    
+                # Add second-best items from categories with multiple options
+                if len(items) > 1:
+                    scored_items = [(item, item_scores.get(item.get('id', 'unknown'), 0)) for item in items]
+                    scored_items.sort(key=lambda x: x[1], reverse=True)
+                    
+                    for item, score in scored_items[1:]:  # Skip first item (already selected)
+                        if item not in selected_items and len(selected_items) < RECOMMENDED_OUTFIT_ITEMS:
+                            selected_items.append(item)
+                            logger.info(f"➕ Added additional {category} item to reach minimum: {item.get('name', 'unknown')}")
+        
+        # If still not enough items, use fallback
+        if len(selected_items) < MIN_OUTFIT_ITEMS:
+            logger.warning(f"⚠️ Could not meet minimum outfit requirements with rule-based selection ({len(selected_items)} items)")
+            return await generate_fallback_outfit(req, req.user_id if hasattr(req, 'user_id') else 'unknown')
+        
         # Create outfit response
         outfit = {
             'id': str(uuid4()),
