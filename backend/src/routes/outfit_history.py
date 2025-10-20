@@ -360,7 +360,9 @@ async def mark_outfit_as_worn(
             logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
             logger.info(f"🔍 DEBUG: Date worn timestamp: {date_timestamp}")
             
-            doc_ref, doc_id = db.collection('outfit_history').add(entry_data)
+            # Firestore add() returns (timestamp, DocumentReference)
+            _, doc_ref = db.collection('outfit_history').add(entry_data)
+            doc_id = doc_ref.id
             logger.info(f"✅ Created outfit history entry with ID: {doc_id}")
             logger.info(f"🔍 DEBUG: Document reference: {doc_ref}")
             logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
