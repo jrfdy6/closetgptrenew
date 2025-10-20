@@ -4967,51 +4967,50 @@ async def mark_outfit_as_worn(
             last_worn_str = datetime.utcnow().isoformat() + "Z"
         
         # ALSO create outfit history entry for today's outfit tracking
+        history_saved_successfully = False
         try:
             current_timestamp = int(datetime.utcnow().timestamp() * 1000)
+            
+            # Create simplified history entry (avoid clean_for_firestore issues)
             history_entry = {
                 'user_id': current_user.id,
                 'outfit_id': outfit_id,
-        'outfit_name': (outfit_data.get('name', 'Outfit') if outfit_data else 'Outfit'),
-        'outfit_image': (outfit_data.get('imageUrl', '') if outfit_data else ''),
-                'date_worn': current_timestamp,
-                'occasion': 'Casual',  # Default values
-                'mood': 'Comfortable',
+                'outfit_name': str(outfit_data.get('name', 'Outfit') if outfit_data else 'Outfit'),
+                'outfit_image': str(outfit_data.get('imageUrl', '') if outfit_data else ''),
+                'date_worn': current_timestamp,  # Milliseconds timestamp
+                'occasion': str(outfit_data.get('occasion', 'Casual') if outfit_data else 'Casual'),
+                'mood': str(outfit_data.get('mood', 'Comfortable') if outfit_data else 'Comfortable'),
                 'weather': {},
                 'notes': '',
                 'tags': [],
                 'created_at': current_timestamp,
-                'updated_at': current_timestamp,
-                'outfit_snapshot': clean_for_firestore(outfit_data)  # Clean outfit snapshot
+                'updated_at': current_timestamp
             }
             
-            # Clean the history entry before saving
-            clean_history_entry = clean_for_firestore(history_entry)
-            logger.info(f"🧹 Cleaned history entry: {clean_history_entry}")
+            logger.info(f"📝 Creating outfit history entry for outfit {outfit_id}")
+            logger.info(f"🔍 History entry data: user_id={current_user.id}, date_worn={current_timestamp}, outfit_name={history_entry['outfit_name']}")
             
-            # Save to outfit_history collection for today's outfit tracking
-            logger.info(f"🔍 DEBUG: About to save outfit history entry to Firestore")
-            logger.info(f"🔍 DEBUG: Clean history entry: {clean_history_entry}")
-            logger.info(f"🔍 DEBUG: User ID: {current_user.id}")
-            logger.info(f"🔍 DEBUG: Outfit ID: {outfit_id}")
-            logger.info(f"🔍 DEBUG: Current timestamp: {current_timestamp}")
-            
-            doc_ref, doc_id = db.collection('outfit_history').add(clean_history_entry)
-            logger.info(f"📅 Created outfit history entry for outfit {outfit_id}")
-            logger.info(f"🔍 DEBUG: Document reference: {doc_ref}")
-            logger.info(f"🔍 DEBUG: Document ID: {doc_id}")
+            # Save to outfit_history collection - NO CLEANING to avoid data loss
+            doc_ref, doc_id = db.collection('outfit_history').add(history_entry)
             
             # Verify the entry was actually saved
-        saved_doc = doc_ref.get() if doc_ref else None if doc_ref else None
+            saved_doc = doc_ref.get()
             if saved_doc.exists:
                 saved_data = saved_doc.to_dict()
-                logger.info(f"✅ VERIFIED: Entry saved successfully with data: {saved_data}")
+                logger.info(f"✅ VERIFIED: Outfit history entry saved successfully!")
+                logger.info(f"   Document ID: {doc_id}")
+                logger.info(f"   date_worn: {saved_data.get('date_worn')}")
+                logger.info(f"   user_id: {saved_data.get('user_id')}")
+                history_saved_successfully = True
             else:
                 logger.error(f"❌ VERIFICATION FAILED: Document {doc_id} does not exist after save")
+                raise Exception(f"History entry verification failed for doc {doc_id}")
             
         except Exception as history_error:
-            # Don't fail the whole request if history creation fails
-            logger.warning(f"⚠️ Failed to create outfit history entry: {history_error}")
+            # Log the error prominently
+            logger.error(f"❌ CRITICAL: Failed to create outfit history entry: {history_error}")
+            logger.error(f"   This means weekly outfit count will NOT update!")
+            # Continue anyway - outfit wear count was still updated
         
         # Update user stats for dashboard counter
         try:
@@ -5025,9 +5024,15 @@ async def mark_outfit_as_worn(
         
         return {
             "success": True,
-            "message": "Outfit marked as worn successfully (outfit + wardrobe items updated)",
-            "wearCount": current_wear_count,
-            "lastWorn": last_worn_str
+            "message": "Outfit marked as worn successfully",
+            "wearCount": current_wear_count + 1,
+            "lastWorn": last_worn_str,
+            "historyEntrySaved": history_saved_successfully,  # NEW: Track if history was saved
+            "debug": {
+                "outfit_updated": True,
+                "history_saved": history_saved_successfully,
+                "timestamp": int(datetime.utcnow().timestamp() * 1000)
+            }
         }
         
     except Exception as stats_error:
