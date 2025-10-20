@@ -364,7 +364,7 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
     return None
 
 
-def calculate_style_appropriateness_score(style: str, item: Dict[str, Any], occasion: str = None) -> int:
+def calculate_style_appropriateness_score(style: str, item: Dict[str, Any], occasion: str = None, mood: str = None) -> int:
     """Calculate style appropriateness score with heavy penalties for mismatches."""
     item_name = str(item.get('name', '') if item else '').lower()
     item_type = str(item.get('type', '') if item else '').lower()
@@ -687,6 +687,101 @@ def calculate_style_appropriateness_score(style: str, item: Dict[str, Any], occa
                 logger.info(f"🏖️ Occasion override: Beach item gets bonus for {occasion_lower} occasion")
                 total_score = max(total_score, 15)
                 total_score += 25
+    
+    # MOOD-BASED SCORING: Adjust scores based on mood to influence outfit vibe
+    if mood:
+        mood_lower = mood.lower()
+        
+        # ROMANTIC MOOD: Prefer soft, delicate, feminine, flowy pieces
+        if mood_lower == 'romantic':
+            romantic_keywords = ['romantic', 'soft', 'delicate', 'flowy', 'lace', 'silk', 'chiffon', 'satin', 'pastel', 'pink', 'cream', 'feminine', 'elegant', 'dress', 'skirt', 'floral']
+            has_romantic = any(keyword in item_text for keyword in romantic_keywords)
+            
+            harsh_keywords = ['harsh', 'rigid', 'athletic', 'sport', 'cargo', 'utility', 'tactical']
+            has_harsh = any(keyword in item_text for keyword in harsh_keywords)
+            
+            if has_romantic:
+                logger.info(f"💕 Romantic mood: Boosting romantic item")
+                total_score += 15
+            if has_harsh:
+                logger.info(f"💕 Romantic mood: Penalizing harsh item")
+                total_score -= 10
+        
+        # PLAYFUL MOOD: Prefer bright colors, fun patterns, casual, energetic pieces
+        elif mood_lower == 'playful':
+            playful_keywords = ['playful', 'fun', 'bright', 'colorful', 'graphic', 'pattern', 'print', 'casual', 'relaxed', 'quirky', 'unique', 'statement', 'bold color', 'vibrant']
+            has_playful = any(keyword in item_text for keyword in playful_keywords)
+            
+            serious_keywords = ['formal', 'business', 'conservative', 'muted', 'plain', 'boring']
+            has_serious = any(keyword in item_text for keyword in serious_keywords)
+            
+            if has_playful:
+                logger.info(f"🎨 Playful mood: Boosting fun item")
+                total_score += 15
+            if has_serious:
+                logger.info(f"🎨 Playful mood: Penalizing serious item")
+                total_score -= 10
+        
+        # SERENE MOOD: Prefer muted tones, comfortable, simple, calming pieces
+        elif mood_lower == 'serene':
+            serene_keywords = ['serene', 'calm', 'peaceful', 'comfortable', 'soft', 'muted', 'neutral', 'beige', 'cream', 'white', 'gray', 'simple', 'minimal', 'relaxed', 'cozy', 'natural']
+            has_serene = any(keyword in item_text for keyword in serene_keywords)
+            
+            chaotic_keywords = ['loud', 'busy', 'flashy', 'neon', 'bright', 'bold pattern', 'maximalist']
+            has_chaotic = any(keyword in item_text for keyword in chaotic_keywords)
+            
+            if has_serene:
+                logger.info(f"🧘 Serene mood: Boosting calming item")
+                total_score += 15
+            if has_chaotic:
+                logger.info(f"🧘 Serene mood: Penalizing chaotic item")
+                total_score -= 10
+        
+        # DYNAMIC MOOD: Prefer bold colors, statement pieces, energetic, attention-grabbing looks
+        elif mood_lower == 'dynamic':
+            dynamic_keywords = ['dynamic', 'bold', 'statement', 'striking', 'vibrant', 'energetic', 'dramatic', 'eye-catching', 'standout', 'colorful', 'bright', 'strong', 'powerful']
+            has_dynamic = any(keyword in item_text for keyword in dynamic_keywords)
+            
+            boring_keywords = ['plain', 'boring', 'basic', 'muted', 'understated', 'subtle']
+            has_boring = any(keyword in item_text for keyword in boring_keywords)
+            
+            if has_dynamic:
+                logger.info(f"⚡ Dynamic mood: Boosting bold item")
+                total_score += 15
+            if has_boring:
+                logger.info(f"⚡ Dynamic mood: Penalizing plain item")
+                total_score -= 10
+        
+        # BOLD MOOD: Prefer daring, unconventional, fashion-forward pieces (already handled in exclusions)
+        # Additional scoring for bold items
+        elif mood_lower == 'bold':
+            bold_keywords = ['bold', 'daring', 'unconventional', 'edgy', 'statement', 'dramatic', 'unique', 'avant-garde', 'fashion-forward', 'striking']
+            has_bold = any(keyword in item_text for keyword in bold_keywords)
+            
+            safe_keywords = ['safe', 'basic', 'conventional', 'traditional', 'conservative']
+            has_safe = any(keyword in item_text for keyword in safe_keywords)
+            
+            if has_bold:
+                logger.info(f"🔥 Bold mood: Boosting daring item")
+                total_score += 15
+            if has_safe:
+                logger.info(f"🔥 Bold mood: Penalizing safe item")
+                total_score -= 8
+        
+        # SUBTLE MOOD: Prefer understated, neutral, minimal, refined pieces
+        elif mood_lower == 'subtle':
+            subtle_keywords = ['subtle', 'understated', 'minimal', 'simple', 'refined', 'elegant', 'neutral', 'muted', 'soft', 'quiet', 'timeless', 'classic', 'clean']
+            has_subtle = any(keyword in item_text for keyword in subtle_keywords)
+            
+            loud_keywords = ['loud', 'flashy', 'bold', 'bright', 'neon', 'statement', 'attention-grabbing', 'maximalist']
+            has_loud = any(keyword in item_text for keyword in loud_keywords)
+            
+            if has_subtle:
+                logger.info(f"🤫 Subtle mood: Boosting understated item")
+                total_score += 15
+            if has_loud:
+                logger.info(f"🤫 Subtle mood: Penalizing loud item")
+                total_score -= 10
     
     return total_score
 

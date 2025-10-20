@@ -82,11 +82,16 @@ async def generate_rule_based_outfit(wardrobe_items: List[Dict], user_profile: D
             if 'name' not in item:
                 item['name'] = f"Item {item.get('id', 'unknown')}"
         
-        # Style-based filtering with scoring (now with occasion awareness)
+        # Style-based filtering with scoring (now with occasion AND mood awareness)
         for item in wardrobe_items:
             try:
-                # Calculate style appropriateness score WITH occasion context
-                style_score = calculate_style_appropriateness_score(req.style, item, occasion=req.occasion)
+                # Calculate style appropriateness score WITH occasion and mood context
+                style_score = calculate_style_appropriateness_score(
+                    req.style, 
+                    item, 
+                    occasion=req.occasion,
+                    mood=req.mood
+                )
                 
                 # Only include items with positive scores
                 if style_score > 0:
