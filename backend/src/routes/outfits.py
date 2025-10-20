@@ -7,7 +7,7 @@ import logging
 import time
 import urllib.parse
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
 
@@ -4642,11 +4642,17 @@ async def mark_outfit_as_worn(
         current_wear_count = (outfit_data.get('wearCount', 0) if outfit_data else 0)
         current_time = datetime.utcnow()
         
+        logger.info(f"📊 COUNTER 1: Updating outfit wear count for {outfit_id}")
+        logger.info(f"   Before: wearCount={current_wear_count}")
+        
         outfit_ref.update({
             'wearCount': current_wear_count + 1,
             'lastWorn': current_time,
             'updatedAt': current_time
         })
+        
+        logger.info(f"✅ COUNTER 1 UPDATED: Outfit {outfit_id} wearCount {current_wear_count} → {current_wear_count + 1}")
+        logger.info(f"   lastWorn set to: {current_time.isoformat()}")
         
         # DEBUG DISABLED: Causing 4000+ log drops on Railway
         try:
@@ -4930,20 +4936,42 @@ async def mark_outfit_as_worn(
             logger.warning(f"⚠️ Old stats service failed: {stats_error}")
         
         # Update individual wardrobe item wear counters
+        logger.info(f"📊 COUNTER 2: Updating individual wardrobe item wear counts")
+        items_updated = 0
         if outfit_data.get('items'):
+            total_items = len(outfit_data['items'])
+            logger.info(f"   Found {total_items} items in outfit to update")
+            
             for item in outfit_data['items']:
-        if isinstance(item, dict) and (item.get('id') if item else None):
-                    item_ref = db.collection('wardrobe').document(item['id'])
-        item_doc = item_ref.get() if item_ref else None if item_ref else None
+                if isinstance(item, dict) and (item.get('id') if item else None):
+                    item_id = item['id']
+                    item_name = item.get('name', 'Unknown Item')
+                    
+                    item_ref = db.collection('wardrobe').document(item_id)
+                    item_doc = item_ref.get() if item_ref else None if item_ref else None
                     if item_doc.exists:
                         item_data = item_doc.to_dict()
                         if item_data.get('userId') == current_user.id:
                             current_item_wear = item_data.get('wearCount', 0)
+                            
+                            logger.info(f"   Updating {item_name}: wearCount {current_item_wear} → {current_item_wear + 1}")
+                            
                             item_ref.update({
                                 'wearCount': current_item_wear + 1,
                                 'lastWorn': current_time,
                                 'updatedAt': current_time
                             })
+                            
+                            items_updated += 1
+                            logger.info(f"   ✅ Updated item {item_id}")
+                        else:
+                            logger.warning(f"   ⚠️ Item {item_id} doesn't belong to user, skipping")
+                    else:
+                        logger.warning(f"   ⚠️ Item {item_id} not found in wardrobe, skipping")
+            
+            logger.info(f"✅ COUNTER 2 UPDATED: {items_updated}/{total_items} wardrobe items updated")
+        else:
+            logger.warning(f"⚠️ COUNTER 2: No items found in outfit data")
         
         # Get updated outfit data to return current wear count
         outfit_ref = db.collection('outfits').document(outfit_id)
@@ -4967,6 +4995,7 @@ async def mark_outfit_as_worn(
             last_worn_str = datetime.utcnow().isoformat() + "Z"
         
         # ALSO create outfit history entry for today's outfit tracking
+        logger.info(f"📊 COUNTER 3: Creating outfit_history entry for weekly count")
         history_saved_successfully = False
         try:
             current_timestamp = int(datetime.utcnow().timestamp() * 1000)
@@ -4987,8 +5016,8 @@ async def mark_outfit_as_worn(
                 'updated_at': current_timestamp
             }
             
-            logger.info(f"📝 Creating outfit history entry for outfit {outfit_id}")
-            logger.info(f"🔍 History entry data: user_id={current_user.id}, date_worn={current_timestamp}, outfit_name={history_entry['outfit_name']}")
+            logger.info(f"   Creating entry: user_id={current_user.id}, outfit_id={outfit_id}")
+            logger.info(f"   date_worn={current_timestamp} ({datetime.fromtimestamp(current_timestamp/1000, tz=timezone.utc).isoformat()})")
             
             # Save to outfit_history collection - NO CLEANING to avoid data loss
             doc_ref, doc_id = db.collection('outfit_history').add(history_entry)
@@ -4997,19 +5026,21 @@ async def mark_outfit_as_worn(
             saved_doc = doc_ref.get()
             if saved_doc.exists:
                 saved_data = saved_doc.to_dict()
-                logger.info(f"✅ VERIFIED: Outfit history entry saved successfully!")
+                logger.info(f"✅ COUNTER 3 UPDATED: Outfit history entry created successfully!")
                 logger.info(f"   Document ID: {doc_id}")
+                logger.info(f"   Collection: outfit_history")
                 logger.info(f"   date_worn: {saved_data.get('date_worn')}")
-                logger.info(f"   user_id: {saved_data.get('user_id')}")
+                logger.info(f"   This entry will be counted in weekly analytics")
                 history_saved_successfully = True
             else:
-                logger.error(f"❌ VERIFICATION FAILED: Document {doc_id} does not exist after save")
+                logger.error(f"❌ COUNTER 3 FAILED: Document {doc_id} does not exist after save")
                 raise Exception(f"History entry verification failed for doc {doc_id}")
             
         except Exception as history_error:
             # Log the error prominently
-            logger.error(f"❌ CRITICAL: Failed to create outfit history entry: {history_error}")
-            logger.error(f"   This means weekly outfit count will NOT update!")
+            logger.error(f"❌ COUNTER 3 FAILED: Could not create outfit history entry: {history_error}")
+            logger.error(f"   Weekly outfit count will NOT update!")
+            logger.error(f"   Outfit and item counters were still updated successfully")
             # Continue anyway - outfit wear count was still updated
         
         # Update user stats for dashboard counter
@@ -5020,7 +5051,18 @@ async def mark_outfit_as_worn(
         except Exception as stats_error:
             logger.error(f"❌ Failed to update user stats: {stats_error}")
         
-        logger.info(f"✅ Successfully marked outfit {outfit_id} as worn (updated outfit + wardrobe items + history + stats)")
+        # Final summary log
+        logger.info(f"")
+        logger.info(f"═══════════════════════════════════════════════════════════")
+        logger.info(f"✅ MARK AS WORN COMPLETE - SUMMARY FOR OUTFIT {outfit_id}")
+        logger.info(f"═══════════════════════════════════════════════════════════")
+        logger.info(f"   Counter 1 (Outfit): ✅ Updated (wearCount: {current_wear_count} → {current_wear_count + 1})")
+        logger.info(f"   Counter 2 (Items): {'✅' if items_updated > 0 else '⚠️'} Updated {items_updated}/{len(outfit_data.get('items', []))} items")
+        logger.info(f"   Counter 3 (Weekly): {'✅' if history_saved_successfully else '❌'} History entry {'saved' if history_saved_successfully else 'FAILED'}")
+        logger.info(f"   User ID: {current_user.id}")
+        logger.info(f"   Timestamp: {datetime.utcnow().isoformat()}")
+        logger.info(f"═══════════════════════════════════════════════════════════")
+        logger.info(f"")
         
         return {
             "success": True,
@@ -5028,8 +5070,10 @@ async def mark_outfit_as_worn(
             "wearCount": current_wear_count + 1,
             "lastWorn": last_worn_str,
             "historyEntrySaved": history_saved_successfully,  # NEW: Track if history was saved
+            "itemsUpdated": items_updated,  # NEW: Track how many items were updated
             "debug": {
                 "outfit_updated": True,
+                "items_updated": items_updated,
                 "history_saved": history_saved_successfully,
                 "timestamp": int(datetime.utcnow().timestamp() * 1000)
             }
