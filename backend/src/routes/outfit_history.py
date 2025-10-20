@@ -336,6 +336,24 @@ async def mark_outfit_as_worn(
         # Use outfit name from Firestore, or from request data, or default
         outfit_name = outfit_data.get('name') or data.get('outfitName') or data.get('name') or 'Generated Outfit'
         
+        # Serialize items to ensure they're JSON-compatible
+        serialized_items = []
+        if items_source:
+            for item in items_source:
+                if isinstance(item, dict):
+                    # Create a clean copy with only serializable fields
+                    clean_item = {
+                        'id': item.get('id', ''),
+                        'name': item.get('name', ''),
+                        'type': item.get('type', ''),
+                        'color': item.get('color', ''),
+                        'brand': item.get('brand', ''),
+                        'imageUrl': item.get('imageUrl', ''),
+                    }
+                    serialized_items.append(clean_item)
+                elif isinstance(item, str):
+                    serialized_items.append({'id': item})
+        
         entry_data = {
             'user_id': current_user.id,
             'outfit_id': outfit_id,
@@ -344,12 +362,12 @@ async def mark_outfit_as_worn(
             'date_worn': date_timestamp,
             'occasion': occasion,
             'mood': mood,
-            'weather': weather,
-            'notes': notes,
-            'tags': tags,
+            'weather': weather if isinstance(weather, dict) else {},
+            'notes': notes if isinstance(notes, str) else '',
+            'tags': tags if isinstance(tags, list) else [],
             'created_at': current_timestamp,
             'updated_at': current_timestamp,
-            'items': items_source  # Store the items for reference
+            'items': serialized_items  # Store the serialized items
         }
         
         # Save to Firestore
