@@ -30,15 +30,24 @@ export async function POST(req: NextRequest) {
     
     const backendUrl = `${baseUrl}/api/outfit-history/mark-worn`;
     console.log('🔍 DEBUG: Calling backend URL:', backendUrl);
+    console.log('🔍 DEBUG: Request headers:', { Authorization: authHeader.substring(0, 20) + '...', 'Content-Type': 'application/json' });
+    console.log('🔍 DEBUG: Request body:', JSON.stringify(body));
     
-    const response = await fetch(backendUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+    let response;
+    try {
+      response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+      console.log('🔍 DEBUG: Fetch completed successfully');
+    } catch (fetchError) {
+      console.error('❌ FETCH ERROR:', fetchError);
+      throw new Error(`Failed to reach backend: ${fetchError instanceof Error ? fetchError.message : 'Network error'}`);
+    }
 
     console.log('🔍 DEBUG: Backend response status:', response.status);
     
