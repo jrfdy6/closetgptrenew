@@ -9,22 +9,19 @@ export async function GET(request: NextRequest) {
     console.log('🔍 DEBUG: Request method:', request.method);
     console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
     
-    // Get the authorization header - try multiple variations
+    // Get the authorization header
     const authHeader = request.headers.get('authorization') || 
                       request.headers.get('Authorization') ||
                       request.headers.get('AUTHORIZATION');
     console.log('🔍 DEBUG: Authorization header received:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
     
-    // For now, let's bypass the auth check to test if the backend call works
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
-    
-    // if (!authHeader) {
-    //   console.log('🔍 DEBUG: No auth header - returning 401');
-    //   return NextResponse.json(
-    //     { error: 'Authorization header required', debug: 'API route called but no auth header provided' },
-    //     { status: 401 }
-    //   );
-    // }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('🔍 DEBUG: No valid auth header - returning 401');
+      return NextResponse.json(
+        { error: 'Authorization header required', debug: 'API route called but no auth header provided' },
+        { status: 401 }
+      );
+    }
     
     // Get backend URL from environment variables
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
@@ -34,10 +31,7 @@ export async function GET(request: NextRequest) {
     // Call the backend endpoint for worn outfits this week
     const fullBackendUrl = `${backendUrl}/api/simple-analytics/outfits-worn-this-week`;
     console.log('🔍 DEBUG: Calling backend URL:', fullBackendUrl);
-    
-    // Use test token if no auth header provided (for testing)
-    const tokenToUse = authHeader || 'test';
-    console.log('🔍 DEBUG: Using token:', tokenToUse.substring(0, 20) + '...');
+    console.log('🔍 DEBUG: Using auth header from request');
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -45,7 +39,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(fullBackendUrl, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${tokenToUse}`,
+        'Authorization': authHeader,
         'Content-Type': 'application/json',
       },
       signal: controller.signal,
@@ -70,18 +64,23 @@ export async function GET(request: NextRequest) {
     
     const data = await response.json();
     console.log('🔍 DEBUG: Backend data received:', data);
-    console.log('🔍 DEBUG: Data structure:', {
+    
+    // Normalize field names - backend returns worn_this_week, frontend expects outfits_worn_this_week
+    const normalizedData = {
       success: data.success,
-      outfits_worn_this_week: data.outfits_worn_this_week,
-      source: data.source,
-      version: data.version,
-      api_version: data.api_version,
+      outfits_worn_this_week: data.worn_this_week || data.outfits_worn_this_week || 0,
+      user_id: data.user_id,
       week_start: data.week_start,
-      calculated_at: data.calculated_at
-    });
+      calculated_at: data.calculated_at,
+      source: 'simple_analytics',
+      version: '2025-10-21',
+      api_version: 'v2.0'
+    };
+    
+    console.log('🔍 DEBUG: Normalized data:', normalizedData);
     
     // Add cache-busting headers to prevent browser/CDN caching
-    return NextResponse.json(data, {
+    return NextResponse.json(normalizedData, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',
         'Pragma': 'no-cache',
