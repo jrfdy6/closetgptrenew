@@ -574,26 +574,26 @@ export function SmartWeatherOutfitGenerator({
       return temp > 85 ? 'Relaxed' : 'Energetic';
     }
     if (condition.includes('rain') || condition.includes('storm')) {
-      return 'Cozy';
+      return 'Comfortable';
     }
     if (condition.includes('snow')) {
-      return 'Warm & Comfortable';
+      return 'Comfortable';
     }
     if (condition.includes('cloud') || condition.includes('overcast')) {
-      return 'Mellow';
+      return 'Relaxed';
     }
     
     // Temperature-based moods
     if (temp >= 85) return 'Relaxed';
-    if (temp >= 75) return 'Cheerful';
-    if (temp <= 35) return 'Warm & Comfortable';
-    if (temp <= 50) return 'Cozy';
+    if (temp >= 75) return 'Playful';
+    if (temp <= 35) return 'Comfortable';
+    if (temp <= 50) return 'Comfortable';
     
     // Environmental factor moods
     if (windSpeed > 15) return 'Bold';
-    if (humidity > 85) return 'Fresh';
+    if (humidity > 85) return 'Energetic';
     
-    return 'Balanced';
+    return 'Comfortable';
   };
 
   const getClothingRecommendations = (weather: any): string[] => {
