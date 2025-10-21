@@ -52,7 +52,7 @@ except ImportError:
 
 router = APIRouter(tags=["outfit-history"])
 logger = get_logger(__name__)
-# Force Railway redeploy - outfit history mark-worn endpoint fixed - v4 - Oct 20 2025 - ALL FIXES APPLIED
+# Force Railway redeploy - outfit history mark-worn endpoint fixed - v5 - Oct 21 2025 - OUTFIT WEARCOUNT UPDATE ADDED
 
 async def calculate_worn_outfits_this_week(user_id: str) -> int:
     """
@@ -292,6 +292,17 @@ async def mark_outfit_as_worn(
         # Get outfit details from outfits collection (if it exists)
         outfit_doc = db.collection('outfits').document(outfit_id).get()
         outfit_data = outfit_doc.to_dict() if outfit_doc.exists else {}
+        
+        # Update outfit's own wear count if it exists in outfits collection
+        if outfit_doc.exists:
+            current_outfit_wear_count = outfit_data.get('wearCount', 0)
+            current_timestamp_now = int(datetime.utcnow().timestamp() * 1000)
+            db.collection('outfits').document(outfit_id).update({
+                'wearCount': current_outfit_wear_count + 1,
+                'lastWorn': current_timestamp_now,
+                'updatedAt': current_timestamp_now
+            })
+            logger.info(f"✅ Updated outfit {outfit_id} wearCount: {current_outfit_wear_count} → {current_outfit_wear_count + 1}")
         
         # Extract item IDs from the outfit
         # First try from Firestore outfit_data, then from request data
