@@ -29,6 +29,19 @@ export async function POST(
 
     console.log(`👕 [API] Marking outfit ${outfitId} as worn`);
 
+    // Prepare request body with required fields
+    const requestBody = {
+      outfitId: outfitId,
+      dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      occasion: 'Daily',
+      mood: 'Confident',
+      weather: {},
+      notes: '',
+      tags: []
+    };
+
+    console.log(`🔍 [API] Request body:`, requestBody);
+
     // Forward request to backend with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -40,6 +53,7 @@ export async function POST(
           'Authorization': authHeader,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
 
