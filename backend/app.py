@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from fastapi import Request, HTTPException
 
+# Force Railway deploy - mark-worn fixes v5 - Oct 20 2025
 # Configure logging to see what's happening during startup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
