@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1760611728
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE REBUILD - All fixes included: session tracking, occasion filter, metadata preservation"
+ARG CACHE_BUSTER=1729649999
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE REBUILD - Timezone fix for analytics endpoint included"
 
 # Set working directory
 WORKDIR /app
