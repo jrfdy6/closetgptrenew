@@ -478,7 +478,7 @@ class ClothingItem(BaseModel):
     colorName: Optional[str] = None
     backgroundRemoved: Optional[bool] = None
     embedding: Optional[List[float]] = None
-    metadata: Optional[Metadata] = None
+    metadata: Optional[Dict[str, Any]] = None  # Accept any dict - don't validate nested structure
     
     # Usage tracking fields for wardrobe diversity
     wearCount: Optional[int] = 0
@@ -487,61 +487,6 @@ class ClothingItem(BaseModel):
     seasonal_score: Optional[float] = 1.0  # Add seasonal_score field for testing
     quality_score: Optional[float] = 0.5  # Add quality_score field for validation
     pairability_score: Optional[float] = 0.5  # Add pairability_score field for validation
-
-    @field_validator('metadata', mode='before')
-    def convert_metadata_dict(cls, v, info):
-        """Convert dict metadata to Metadata object if needed."""
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        if isinstance(v, dict) and v:
-            try:
-                # Make a copy to avoid modifying the original
-                metadata_dict = v.copy()
-                
-                # Convert nested visualAttributes dict to VisualAttributes object
-                if 'visualAttributes' in metadata_dict and isinstance(metadata_dict['visualAttributes'], dict):
-                    try:
-                        # Remove fields that don't have Pydantic models defined
-                        visual_attrs_copy = metadata_dict['visualAttributes'].copy()
-                        # Keep only simple/known fields, put complex nested structures as extra fields
-                        metadata_dict['visualAttributes'] = VisualAttributes(**visual_attrs_copy)
-                        logger.debug(f"✅ Converted visualAttributes with neckline={visual_attrs_copy.get('neckline', 'N/A')}")
-                    except Exception as e:
-                        logger.warning(f"Failed to convert visualAttributes: {e}, setting to None")
-                        metadata_dict['visualAttributes'] = None
-                
-                # Convert nested colorAnalysis dict to ColorAnalysis object
-                if 'colorAnalysis' in metadata_dict and isinstance(metadata_dict['colorAnalysis'], dict):
-                    try:
-                        metadata_dict['colorAnalysis'] = ColorAnalysis(**metadata_dict['colorAnalysis'])
-                    except Exception as e:
-                        logger.warning(f"Failed to convert colorAnalysis: {e}, setting to None")
-                        metadata_dict['colorAnalysis'] = None
-                
-                # Convert nested basicMetadata dict to BasicMetadata object
-                if 'basicMetadata' in metadata_dict and isinstance(metadata_dict['basicMetadata'], dict):
-                    try:
-                        metadata_dict['basicMetadata'] = BasicMetadata(**metadata_dict['basicMetadata'])
-                    except Exception as e:
-                        logger.warning(f"Failed to convert basicMetadata: {e}, setting to None")
-                        metadata_dict['basicMetadata'] = None
-                
-                # Convert nested itemMetadata dict to ItemMetadata object  
-                if 'itemMetadata' in metadata_dict and isinstance(metadata_dict['itemMetadata'], dict):
-                    try:
-                        metadata_dict['itemMetadata'] = ItemMetadata(**metadata_dict['itemMetadata'])
-                    except Exception as e:
-                        logger.warning(f"Failed to convert itemMetadata: {e}, setting to None")
-                        metadata_dict['itemMetadata'] = None
-                
-                # Now convert the full metadata dict to Metadata object
-                return Metadata(**metadata_dict)
-            except Exception as e:
-                # If conversion fails, log but don't crash - return None
-                logger.warning(f"Failed to convert metadata dict to Metadata object: {e}")
-                return None
-        return v
 
     @field_validator('style', mode='before')
     def convert_style_to_list(cls, v, info):

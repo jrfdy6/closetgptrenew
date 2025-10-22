@@ -2320,20 +2320,22 @@ class RobustOutfitGenerationService:
                 # CRITICAL: Also check metadata for collar/neckline
                 has_collar_in_metadata = False
                 if hasattr(item, 'metadata') and item.metadata:
-                    # Check visualAttributes.neckline
-                    if hasattr(item.metadata, 'visualAttributes'):
-                        visual_attrs = item.metadata.visualAttributes
-                        if visual_attrs and hasattr(visual_attrs, 'neckline'):
-                            neckline = (visual_attrs.neckline or '').lower()
-                            if 'collar' in neckline or 'polo' in neckline or 'button' in neckline:
-                                has_collar_in_metadata = True
-                    # Also check dict format
-                    elif isinstance(item.metadata, dict):
+                    # Metadata is now a dict (not a Pydantic object)
+                    if isinstance(item.metadata, dict):
                         visual_attrs = item.metadata.get('visualAttributes', {})
                         if isinstance(visual_attrs, dict):
                             neckline = (visual_attrs.get('neckline') or '').lower()
                             if 'collar' in neckline or 'polo' in neckline or 'button' in neckline:
                                 has_collar_in_metadata = True
+                                logger.info(f"🔍 COLLAR DETECTED in metadata: {item_name[:40]} neckline={neckline}")
+                    # Legacy: Also check Pydantic object format (in case some items still use it)
+                    elif hasattr(item.metadata, 'visualAttributes'):
+                        visual_attrs = item.metadata.visualAttributes
+                        if visual_attrs and hasattr(visual_attrs, 'neckline'):
+                            neckline = (visual_attrs.neckline or '').lower()
+                            if 'collar' in neckline or 'polo' in neckline or 'button' in neckline:
+                                has_collar_in_metadata = True
+                                logger.info(f"🔍 COLLAR DETECTED in metadata (object): {item_name[:40]} neckline={neckline}")
                 
                 if has_collar_in_name or has_collar_in_metadata:
                     logger.info(f"🚫 GYM HARD FILTER: BLOCKED COLLARED SHIRT '{item_name[:40]}' - Collar detected in {'metadata' if has_collar_in_metadata else 'name'}")
