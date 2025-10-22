@@ -348,63 +348,69 @@ class DashboardService {
 
   private async getSimpleAnalytics(user: User, forceFresh: boolean = false) {
     try {
-      console.log('🔍 DEBUG: [FIXED] Fetching outfit analytics directly from Railway backend');
+      console.log('🔍 DEBUG: [FRONTEND FIX] Counting outfits directly from Firestore - bypassing broken backend');
       
-      // Get token
-      const token = await user.getIdToken();
-      if (!token) {
-        throw new Error('Failed to get authentication token');
-      }
+      // Import Firestore
+      const { db } = await import('@/lib/firebase/config');
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
       
-      // Call Railway backend DIRECTLY to avoid Vercel header issues
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 
-                        process.env.NEXT_PUBLIC_API_URL || 
-                        'https://closetgptrenew-production.up.railway.app';
+      // Calculate week start (Sunday 00:00:00)
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+      const daysToSubtract = dayOfWeek; // If Sunday (0), subtract 0 days
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - daysToSubtract);
+      weekStart.setHours(0, 0, 0, 0);
       
-      const fullUrl = `${backendUrl}/api/simple-analytics/outfits-worn-this-week`;
-      console.log('🔍 DEBUG: Calling Railway directly:', fullUrl);
+      console.log('📅 Week starts:', weekStart.toISOString());
       
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+      // Query outfit_history collection for this user, this week
+      const historyRef = collection(db, 'outfit_history');
+      const historyQuery = query(
+        historyRef,
+        where('user_id', '==', user.uid)
+      );
+      
+      const snapshot = await getDocs(historyQuery);
+      console.log(`📊 Found ${snapshot.size} total outfit history entries`);
+      
+      // Count entries worn this week
+      let wornThisWeek = 0;
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const dateWorn = data.date_worn;
+        
+        if (!dateWorn) return;
+        
+        // Handle multiple date formats
+        let wornDate: Date | null = null;
+        if (typeof dateWorn === 'number') {
+          // Unix timestamp in milliseconds
+          wornDate = new Date(dateWorn);
+        } else if (dateWorn.toDate && typeof dateWorn.toDate === 'function') {
+          // Firestore Timestamp
+          wornDate = dateWorn.toDate();
+        } else if (typeof dateWorn === 'string') {
+          // ISO string
+          wornDate = new Date(dateWorn);
+        }
+        
+        if (wornDate && wornDate >= weekStart) {
+          wornThisWeek++;
         }
       });
       
-      console.log('🔍 DEBUG: Railway response status:', response.status);
+      console.log(`✅ DEBUG: Counted ${wornThisWeek} outfits worn this week (frontend calculation)`);
       
-      if (!response.ok) {
-        console.error('❌ Railway backend error:', response.status);
-        const errorData = await response.json().catch(() => ({ error: 'Unknown' }));
-        console.error('❌ Error details:', errorData);
-        return {
-          success: true,
-          outfits_worn_this_week: 0,
-          message: `Railway backend error (${response.status}), using fallback`
-        };
-      }
-      
-      const data = await response.json();
-      console.log('🔍 DEBUG: Worn outfits analytics data:', data);
-      
-      // Normalize field names - backend returns worn_this_week
-      const normalized = {
-        success: data.success,
-        outfits_worn_this_week: data.worn_this_week || data.outfits_worn_this_week || 0,
-        user_id: data.user_id,
-        week_start: data.week_start,
-        calculated_at: data.calculated_at,
-        source: 'simple_analytics_direct',
-        version: '2025-10-22',
-        api_version: 'v2.0'
+      return {
+        success: true,
+        outfits_worn_this_week: wornThisWeek,
+        user_id: user.uid,
+        week_start: weekStart.toISOString(),
+        calculated_at: new Date().toISOString(),
+        source: 'frontend_firestore_direct',
+        version: '2025-10-22-frontend-fix'
       };
-      
-      console.log('✅ DEBUG: Analytics loaded:', normalized.outfits_worn_this_week, 'outfits worn this week');
-      return normalized;
     } catch (error) {
       console.error('Error fetching worn outfits analytics:', error);
       // Return fallback data that matches the expected structure
