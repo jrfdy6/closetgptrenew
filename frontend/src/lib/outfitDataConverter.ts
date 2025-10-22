@@ -67,10 +67,12 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
       (item.name || '').toLowerCase().includes('tommy') ||
       (item.name || '').toLowerCase().includes('van heusen') ||
       (item.name || '').toLowerCase().includes('michael kors')) {
-    console.log(`🔍 FRONTEND CONVERTER: ${item.name}`, {
+    console.log(`🔍 FRONTEND CONVERTER INPUT: ${item.name}`, {
       hasMetadata: !!item.metadata,
+      metadataType: typeof item.metadata,
       visualAttributes: item.metadata?.visualAttributes || null,
-      neckline: item.metadata?.visualAttributes?.neckline || 'NONE'
+      neckline: item.metadata?.visualAttributes?.neckline || 'NONE',
+      metadataKeys: item.metadata ? Object.keys(item.metadata) : []
     });
   }
   
