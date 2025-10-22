@@ -502,7 +502,11 @@ class ClothingItem(BaseModel):
                 # Convert nested visualAttributes dict to VisualAttributes object
                 if 'visualAttributes' in metadata_dict and isinstance(metadata_dict['visualAttributes'], dict):
                     try:
-                        metadata_dict['visualAttributes'] = VisualAttributes(**metadata_dict['visualAttributes'])
+                        # Remove fields that don't have Pydantic models defined
+                        visual_attrs_copy = metadata_dict['visualAttributes'].copy()
+                        # Keep only simple/known fields, put complex nested structures as extra fields
+                        metadata_dict['visualAttributes'] = VisualAttributes(**visual_attrs_copy)
+                        logger.debug(f"✅ Converted visualAttributes with neckline={visual_attrs_copy.get('neckline', 'N/A')}")
                     except Exception as e:
                         logger.warning(f"Failed to convert visualAttributes: {e}, setting to None")
                         metadata_dict['visualAttributes'] = None
