@@ -10,10 +10,25 @@ export async function GET(request: NextRequest) {
     console.log('🔍 DEBUG: Request method:', request.method);
     console.log('🔍 DEBUG: All headers:', Object.fromEntries(request.headers.entries()));
     
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization') || 
-                      request.headers.get('Authorization') ||
-                      request.headers.get('AUTHORIZATION');
+    // Get the authorization header - check standard location and Vercel special headers
+    let authHeader = request.headers.get('authorization') || 
+                     request.headers.get('Authorization') ||
+                     request.headers.get('AUTHORIZATION');
+    
+    // Check Vercel's x-vercel-sc-headers if standard header is missing
+    if (!authHeader) {
+      const vercelScHeaders = request.headers.get('x-vercel-sc-headers');
+      if (vercelScHeaders) {
+        try {
+          const parsedHeaders = JSON.parse(vercelScHeaders);
+          authHeader = parsedHeaders.Authorization || parsedHeaders.authorization;
+          console.log('🔍 DEBUG: Found auth in x-vercel-sc-headers');
+        } catch (e) {
+          console.log('⚠️ DEBUG: Failed to parse x-vercel-sc-headers');
+        }
+      }
+    }
+    
     console.log('🔍 DEBUG: Authorization header received:', authHeader ? authHeader.substring(0, 20) + '...' : 'null');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
