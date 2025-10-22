@@ -348,54 +348,63 @@ class DashboardService {
 
   private async getSimpleAnalytics(user: User, forceFresh: boolean = false) {
     try {
-      console.log('🔍 DEBUG: [FIXED] Fetching outfit analytics from /outfits/analytics/worn-this-week');
+      console.log('🔍 DEBUG: [FIXED] Fetching outfit analytics directly from Railway backend');
       
-      // Enhanced cache-busting with multiple parameters
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const cacheBuster = `?t=${timestamp}&r=${randomId}&v=${Math.floor(timestamp / 1000)}`;
-      const forceParam = forceFresh ? `&force_fresh=true&bypass_cache=true` : '';
+      // Get token
+      const token = await user.getIdToken();
+      if (!token) {
+        throw new Error('Failed to get authentication token');
+      }
       
-      const response = await this.makeAuthenticatedRequest(`/outfits/analytics/worn-this-week${cacheBuster}${forceParam}`, user, {
+      // Call Railway backend DIRECTLY to avoid Vercel header issues
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 
+                        process.env.NEXT_PUBLIC_API_URL || 
+                        'https://closetgptrenew-production.up.railway.app';
+      
+      const fullUrl = `${backendUrl}/api/simple-analytics/outfits-worn-this-week`;
+      console.log('🔍 DEBUG: Calling Railway directly:', fullUrl);
+      
+      const response = await fetch(fullUrl, {
         method: 'GET',
         headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0'
         }
       });
-      console.log('🔍 DEBUG: Worn outfits analytics response:', response);
-      console.log('🔍 DEBUG: Response type:', typeof response);
-      console.log('🔍 DEBUG: Response keys:', Object.keys(response || {}));
       
-      // Validate response version to detect stale data
-      if (response && typeof response === 'object') {
-        const version = response.version || 'unknown';
-        const source = response.source || 'unknown';
-        const apiVersion = response.api_version || 'unknown';
-        const outfitsWorn = response.outfits_worn_this_week || 0;
-        
-        console.log('🔍 DEBUG: Analytics response validation:', {
-          version,
-          source,
-          apiVersion,
-          outfitsWorn,
-          isStale: source === 'user_stats_reliable' || version === 'unknown'
-        });
-        
-        // Alert if we detect stale data
-        if (source === 'user_stats_reliable') {
-          console.warn('⚠️ STALE DATA DETECTED: Response contains old user_stats_reliable source');
-        }
-        
-        if (version === 'unknown') {
-          console.warn('⚠️ VERSION UNKNOWN: Response missing version information');
-        }
-        
-        console.log('🔍 DEBUG: Final outfits_worn_this_week value:', outfitsWorn);
+      console.log('🔍 DEBUG: Railway response status:', response.status);
+      
+      if (!response.ok) {
+        console.error('❌ Railway backend error:', response.status);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown' }));
+        console.error('❌ Error details:', errorData);
+        return {
+          success: true,
+          outfits_worn_this_week: 0,
+          message: `Railway backend error (${response.status}), using fallback`
+        };
       }
       
-      return response;
+      const data = await response.json();
+      console.log('🔍 DEBUG: Worn outfits analytics data:', data);
+      
+      // Normalize field names - backend returns worn_this_week
+      const normalized = {
+        success: data.success,
+        outfits_worn_this_week: data.worn_this_week || data.outfits_worn_this_week || 0,
+        user_id: data.user_id,
+        week_start: data.week_start,
+        calculated_at: data.calculated_at,
+        source: 'simple_analytics_direct',
+        version: '2025-10-22',
+        api_version: 'v2.0'
+      };
+      
+      console.log('✅ DEBUG: Analytics loaded:', normalized.outfits_worn_this_week, 'outfits worn this week');
+      return normalized;
     } catch (error) {
       console.error('Error fetching worn outfits analytics:', error);
       // Return fallback data that matches the expected structure
