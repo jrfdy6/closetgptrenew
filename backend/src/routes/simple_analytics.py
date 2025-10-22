@@ -2,7 +2,7 @@
 Simple, reliable analytics system for ClosetGPT
 NO complex pre-aggregation, NO caching, NO broken services
 Just direct counts when needed.
-FORCE REDEPLOY: Fri Sep 20 17:30
+FORCE REDEPLOY: Oct 22 2025 - Fixed timezone-naive datetime comparison bug
 """
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -35,6 +35,9 @@ def parse_datetime_safe(dt_value) -> datetime:
         if isinstance(dt_value, str):
             # Handle ISO string with Z
             return datetime.fromisoformat(dt_value.replace('Z', '+00:00'))
+        elif isinstance(dt_value, (int, float)):
+            # Handle Unix timestamp in milliseconds
+            return datetime.fromtimestamp(dt_value / 1000, tz=timezone.utc)
         elif hasattr(dt_value, 'timestamp'):
             # Handle Firestore timestamp
             if dt_value.tzinfo is None:
