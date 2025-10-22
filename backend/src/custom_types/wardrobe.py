@@ -540,71 +540,7 @@ class ClothingItem(BaseModel):
         
         return converted_colors
 
-    @field_validator('metadata', mode='before')
-    def convert_metadata_colors(cls, v, info):
-        """Convert metadata color strings to Color objects."""
-        if not v:
-            return v
-        
-        # Handle material name case conversion and validation
-        if 'visualAttributes' in v:
-            va = v['visualAttributes']
-            if va and 'materialCompatibility' in va:
-                mc = va['materialCompatibility']
-                if mc and 'compatibleMaterials' in mc:
-                    mc['compatibleMaterials'] = [
-                        cls._normalize_material(mat) if isinstance(mat, str) else mat 
-                        for mat in mc['compatibleMaterials']
-                    ]
-                if mc and 'weatherAppropriate' in mc:
-                    for season in mc['weatherAppropriate']:
-                        if mc['weatherAppropriate'][season]:
-                            mc['weatherAppropriate'][season] = [
-                                cls._normalize_material(mat) if isinstance(mat, str) else mat 
-                                for mat in mc['weatherAppropriate'][season]
-                            ]
-            
-            if va and 'temperatureCompatibility' in va:
-                tc = va['temperatureCompatibility']
-                if tc and 'materialPreferences' in tc:
-                    tc['materialPreferences'] = [
-                        cls._normalize_material(mat) if isinstance(mat, str) else mat 
-                        for mat in tc['materialPreferences']
-                    ]
-
-            # Handle missing required fields in bodyTypeCompatibility
-            if va and 'bodyTypeCompatibility' in va:
-                btc = va['bodyTypeCompatibility']
-                if btc:
-                    if 'recommendedFits' not in btc or btc['recommendedFits'] is None:
-                        btc['recommendedFits'] = {}
-                    if 'styleRecommendations' not in btc or btc['styleRecommendations'] is None:
-                        btc['styleRecommendations'] = {}
-
-            # Handle missing required fields in skinToneCompatibility
-            if va and 'skinToneCompatibility' in va:
-                stc = va['skinToneCompatibility']
-                if stc:
-                    if 'compatibleColors' not in stc or stc['compatibleColors'] is None:
-                        stc['compatibleColors'] = {}
-                    if 'recommendedPalettes' not in stc or stc['recommendedPalettes'] is None:
-                        stc['recommendedPalettes'] = {}
-
-        # Convert color strings to Color objects
-        if 'colorAnalysis' in v:
-            ca = v['colorAnalysis']
-            if ca and 'dominant' in ca and isinstance(ca['dominant'], list):
-                ca['dominant'] = [
-                    Color.from_string(color) if isinstance(color, str) else color
-                    for color in ca['dominant']
-                ]
-            if ca and 'matching' in ca and isinstance(ca['matching'], list):
-                ca['matching'] = [
-                    Color.from_string(color) if isinstance(color, str) else color
-                    for color in ca['matching']
-                ]
-        
-        return v
+    # Removed metadata validator - accept metadata as raw Dict[str, Any] without validation
 
     @staticmethod
     def _normalize_material(material: str) -> str:

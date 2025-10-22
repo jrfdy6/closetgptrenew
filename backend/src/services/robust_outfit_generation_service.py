@@ -2350,8 +2350,10 @@ class RobustOutfitGenerationService:
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'tie', 'bow tie',
                 # Jackets  
                 'leather jacket', 'biker jacket', 'peacoat', 'trench',
-                # Formal accessories
-                'suspenders', 'cufflinks', 'pocket square', 'formal belt'
+                # ALL accessories (not appropriate for gym)
+                'suspenders', 'cufflinks', 'pocket square', 
+                'belt',  # Block ALL belts (not just formal)
+                'watch', 'bracelet', 'necklace', 'ring', 'chain'
             ]
             
             # Check both item_type and item_name (both already lowercase)
