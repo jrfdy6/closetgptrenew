@@ -62,6 +62,18 @@ export interface FrontendOutfitRequest {
 function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
   const now = Date.now();
   
+  // DEBUG: Track metadata for collared shirts
+  if ((item.name || '').toLowerCase().includes('george') || 
+      (item.name || '').toLowerCase().includes('tommy') ||
+      (item.name || '').toLowerCase().includes('van heusen') ||
+      (item.name || '').toLowerCase().includes('michael kors')) {
+    console.log(`🔍 FRONTEND CONVERTER: ${item.name}`, {
+      hasMetadata: !!item.metadata,
+      visualAttributes: item.metadata?.visualAttributes || null,
+      neckline: item.metadata?.visualAttributes?.neckline || 'NONE'
+    });
+  }
+  
   const converted = {
     id: item.id,
     name: item.name,
@@ -116,6 +128,20 @@ function convertWardrobeItem(item: FrontendWardrobeItem, userId: string): any {
       outfitScoring: null
     }
   };
+  
+  // DEBUG: Verify metadata after conversion
+  if ((item.name || '').toLowerCase().includes('george') || 
+      (item.name || '').toLowerCase().includes('tommy') ||
+      (item.name || '').toLowerCase().includes('van heusen') ||
+      (item.name || '').toLowerCase().includes('michael kors')) {
+    console.log(`✅ FRONTEND CONVERTED: ${item.name}`, {
+      hasMetadata: !!converted.metadata,
+      metadataType: typeof converted.metadata,
+      visualAttributes: converted.metadata?.visualAttributes || null,
+      neckline: converted.metadata?.visualAttributes?.neckline || 'NONE',
+      metadataKeys: converted.metadata ? Object.keys(converted.metadata) : []
+    });
+  }
   
   return converted;
 }
