@@ -1,3 +1,4 @@
+// Force Vercel redeploy - analytics endpoint fix - Oct 22 2025
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
