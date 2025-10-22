@@ -323,20 +323,24 @@ class VisualAttributes(BaseModel):
     maxLayers: Optional[int] = None
     temperatureCompatibility: Optional[TemperatureCompatibility] = None
     materialCompatibility: Optional[MaterialCompatibility] = None
-    bodyTypeCompatibility: Optional[BodyTypeCompatibility] = None
-    skinToneCompatibility: Optional[SkinToneCompatibility] = None
-    outfitScoring: Optional[OutfitScoring] = None
+    bodyTypeCompatibility: Optional[Dict[str, Any]] = None  # Allow dict for complex nested structures
+    skinToneCompatibility: Optional[Dict[str, Any]] = None  # Allow dict for complex nested structures
+    outfitScoring: Optional[Dict[str, Any]] = None  # Allow dict for complex nested structures
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(
+        extra='allow',  # Allow extra fields from Firestore
+        arbitrary_types_allowed=True
+    )
 
 class ItemMetadata(BaseModel):
     priceEstimate: Optional[str] = None
     careInstructions: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(
+        extra='allow',  # Allow extra fields from Firestore
+        arbitrary_types_allowed=True
+    )
 
 class BasicMetadata(BaseModel):
     width: Optional[int] = None
@@ -347,8 +351,10 @@ class BasicMetadata(BaseModel):
     gps: Optional[str] = None
     flashUsed: Optional[bool] = None
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(
+        extra='allow',  # Allow extra fields like imageHash
+        arbitrary_types_allowed=True
+    )
 
 class ColorAnalysis(BaseModel):
     dominant: List[Color] = Field(default_factory=list)
@@ -360,8 +366,10 @@ class ColorAnalysis(BaseModel):
             return [Color.from_string(c) if isinstance(c, str) else c for c in v]
         return v
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(
+        extra='allow',  # Allow extra color fields
+        arbitrary_types_allowed=True
+    )
 
 class Metadata(BaseModel):
     analysisTimestamp: Optional[int] = None  # Made optional for backwards compatibility
