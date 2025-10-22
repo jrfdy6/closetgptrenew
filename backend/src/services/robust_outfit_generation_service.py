@@ -2349,7 +2349,9 @@ class RobustOutfitGenerationService:
                 # Formal wear
                 'suit', 'tuxedo', 'blazer', 'sport coat', 'tie', 'bow tie',
                 # Jackets  
-                'leather jacket', 'biker jacket', 'peacoat', 'trench'
+                'leather jacket', 'biker jacket', 'peacoat', 'trench',
+                # Formal accessories
+                'suspenders', 'cufflinks', 'pocket square', 'formal belt'
             ]
             
             # Check both item_type and item_name (both already lowercase)
@@ -4432,6 +4434,12 @@ class RobustOutfitGenerationService:
                     item_category = self._get_item_category(score_data['item'])
                     if item_category in ['tops', 'bottoms', 'shoes'] and categories_filled.get(item_category, False):
                         logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (category {item_category} already filled)")
+                        continue
+                    
+                    # CRITICAL: Apply hard filter to filler items to prevent inappropriate additions (suspenders for gym, etc.)
+                    passes_hard_filter = self._hard_filter(score_data['item'], context.occasion, context.style)
+                    if not passes_hard_filter:
+                        logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (blocked by hard filter for {context.occasion})")
                         continue
                     
                     selected_items.append(score_data['item'])
