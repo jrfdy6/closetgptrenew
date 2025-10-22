@@ -4426,8 +4426,15 @@ class RobustOutfitGenerationService:
             logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
             for item_id, score_data in sorted_items:
                 if score_data['item'] not in selected_items and len(selected_items) < min_items:
+                    # CRITICAL: Don't add items from already-filled essential categories (prevent duplicate shoes/tops/bottoms)
+                    item_category = self._get_item_category(score_data['item'])
+                    if item_category in ['tops', 'bottoms', 'shoes'] and categories_filled.get(item_category, False):
+                        logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (category {item_category} already filled)")
+                        continue
+                    
                     selected_items.append(score_data['item'])
-                    logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])}")
+                    categories_filled[item_category] = True  # Mark this category as filled
+                    logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])} ({item_category})")
         
         # CRITICAL: Deduplicate by ID to prevent same item appearing twice
         seen_ids = set()
