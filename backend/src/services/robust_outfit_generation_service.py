@@ -4300,25 +4300,59 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎯 EXPLORATION RATIO: {len(high_score_items)} high scorers (>{high_score_threshold}), {len(low_score_items)} low scorers (<={high_score_threshold})")
         
+        # ═══════════════════════════════════════════════════════════
+        # FIX #1: CATEGORY BALANCE - Reserve best from each essential category
+        # ═══════════════════════════════════════════════════════════
+        essential_categories = ['tops', 'bottoms', 'shoes']
+        reserved_items = {}
+        reserved_ids = set()
+        
+        # Find best item from each essential category
+        for category in essential_categories:
+            category_items = [
+                (id, s) for id, s in sorted_items 
+                if self._get_item_category(s['item']) == category
+            ]
+            if category_items:
+                # Get the best scoring item from this category
+                best_item = max(category_items, key=lambda x: x[1]['composite_score'] + diversity_adjustments.get(x[0], 0.0))
+                reserved_items[category] = best_item
+                reserved_ids.add(best_item[0])
+        
+        logger.info(f"🔧 CATEGORY BALANCE: Reserved {len(reserved_items)} essential items: {list(reserved_items.keys())}")
+        for cat, (item_id, score_data) in reserved_items.items():
+            logger.debug(f"  ✅ Reserved {cat}: {self.safe_get_item_name(score_data['item'])} (score={score_data['composite_score']:.2f})")
+        
         # Mix in 3:1 ratio (75% high confidence, 25% exploration)
         exploration_mixed = []
         low_score_idx = 0
         
-        for idx, (item_id, score_data) in enumerate(high_score_items):
-            exploration_mixed.append((item_id, score_data))
-            
-            # Every 3rd high scorer, add one low scorer for exploration
-            if (idx + 1) % 3 == 0 and low_score_idx < len(low_score_items):
-                exploration_mixed.append(low_score_items[low_score_idx])
-                logger.debug(f"  🔍 Exploration: Added low scorer after 3 high scorers")
-                low_score_idx += 1
+        # First, add all reserved items (ensures category balance)
+        for item_tuple in reserved_items.values():
+            exploration_mixed.append(item_tuple)
         
-        # Add any remaining high scorers
-        exploration_mixed.extend(high_score_items[len(exploration_mixed):])
+        # Then add high scorers (excluding reserved items)
+        for idx, (item_id, score_data) in enumerate(high_score_items):
+            if item_id not in reserved_ids:  # Don't duplicate reserved items
+                exploration_mixed.append((item_id, score_data))
+                
+                # Every 3rd high scorer, add one low scorer for exploration
+                if (idx + 1) % 3 == 0 and low_score_idx < len(low_score_items):
+                    if low_score_items[low_score_idx][0] not in reserved_ids:  # Don't duplicate
+                        exploration_mixed.append(low_score_items[low_score_idx])
+                        logger.debug(f"  🔍 Exploration: Added low scorer after 3 high scorers")
+                    low_score_idx += 1
         
         # Use the exploration-mixed list for selection
         sorted_items = exploration_mixed
-        logger.info(f"✅ EXPLORATION MIX: Created {len(sorted_items)} item list (3:1 high:low ratio)")
+        
+        # Log category distribution
+        category_counts = {}
+        for item_id, score_data in sorted_items:
+            cat = self._get_item_category(score_data['item'])
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+        logger.info(f"✅ EXPLORATION MIX: Created {len(sorted_items)} item list (3:1 high:low ratio + category balance)")
+        logger.info(f"   Category distribution: {category_counts}")
         
         # Select items with intelligent layering
         selected_items = []
@@ -4365,6 +4399,65 @@ class RobustOutfitGenerationService:
                 logger.debug(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
         
         logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
+        
+        # ═══════════════════════════════════════════════════════════
+        # FIX #2: SAFETY NET - Ensure all essential categories are filled
+        # ═══════════════════════════════════════════════════════════
+        missing_categories = [cat for cat in ['tops', 'bottoms', 'shoes'] if cat not in categories_filled]
+        
+        if missing_categories:
+            logger.warning(f"🔧 SAFETY NET ACTIVATED: Missing essential categories: {missing_categories}")
+            
+            # Search ALL scored items (not just exploration mix) for best items from missing categories
+            for missing_cat in missing_categories:
+                # Get all items from this category across ALL scored items
+                category_candidates = [
+                    (id, s) for id, s in item_scores.items()
+                    if self._get_item_category(s['item']) == missing_cat
+                ]
+                
+                if category_candidates:
+                    # Sort by composite score (with diversity adjustments)
+                    category_candidates.sort(
+                        key=lambda x: x[1]['composite_score'] + diversity_adjustments.get(x[0], 0.0),
+                        reverse=True
+                    )
+                    
+                    # Try to find an item with score > -2.0 (more lenient than Phase 1's -1.0)
+                    added = False
+                    for item_id, score_data in category_candidates:
+                        item = score_data['item']
+                        composite_score = score_data['composite_score']
+                        
+                        # More lenient threshold for safety net
+                        if composite_score > -2.0:
+                            # Still apply hard filter to ensure occasion appropriateness
+                            passes_hard_filter = self._hard_filter(item, context.occasion, context.style)
+                            
+                            if passes_hard_filter:
+                                selected_items.append(item)
+                                categories_filled[missing_cat] = True
+                                logger.info(f"  ✅ SAFETY NET: Added {missing_cat} '{self.safe_get_item_name(item)}' (score={composite_score:.2f})")
+                                added = True
+                                break
+                            else:
+                                logger.debug(f"  ⏭️ SAFETY NET: Skipped {missing_cat} '{self.safe_get_item_name(item)}' (blocked by hard filter)")
+                        else:
+                            logger.debug(f"  ⏭️ SAFETY NET: Skipped {missing_cat} '{self.safe_get_item_name(item)}' (score too low: {composite_score:.2f})")
+                    
+                    if not added:
+                        logger.warning(f"  ⚠️ SAFETY NET: No valid {missing_cat} found (all items blocked or scored too low)")
+                else:
+                    logger.warning(f"  ⚠️ SAFETY NET: No {missing_cat} items available in wardrobe")
+            
+            # Log final result after safety net
+            final_missing = [cat for cat in ['tops', 'bottoms', 'shoes'] if cat not in categories_filled]
+            if final_missing:
+                logger.warning(f"⚠️ SAFETY NET: Still missing categories after safety net: {final_missing}")
+            else:
+                logger.info(f"✅ SAFETY NET: Successfully filled all essential categories")
+        else:
+            logger.info(f"✅ SAFETY NET: Not needed - all essential categories filled in Phase 1")
         
         # EMERGENCY BYPASS: If no items selected, force select the first item
         if len(selected_items) == 0 and sorted_items:
