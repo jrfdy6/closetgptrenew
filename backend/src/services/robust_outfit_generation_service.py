@@ -2258,10 +2258,54 @@ class RobustOutfitGenerationService:
                 # Check if athletic pants (ALLOWED)
                 is_athletic_pants = any(ap in item_name.lower() or ap in item_type for ap in athletic_pants_allowed)
                 
+                # METADATA CHECK: Check occasion tags
+                item_occasions = getattr(item, 'occasion', [])
+                item_occasions_lower = [occ.lower() for occ in item_occasions] if item_occasions else []
+                has_athletic_occasion = any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
+                has_formal_occasion = any(occ in item_occasions_lower for occ in ['business', 'formal', 'professional', 'work'])
+                
+                # METADATA CHECK: Check material for formality indicators
+                formal_material_detected = False
+                athletic_material_detected = False
+                if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                    visual_attrs = item.metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        material = (visual_attrs.get('material') or '').lower()
+                        fit = (visual_attrs.get('fit') or '').lower()
+                        
+                        # Formal materials
+                        if material in ['wool', 'cotton twill', 'linen', 'cashmere', 'silk']:
+                            formal_material_detected = True
+                            logger.info(f"🔍 FORMAL MATERIAL in metadata: {item_name[:40]} material={material}")
+                        
+                        # Athletic materials
+                        if material in ['polyester', 'mesh', 'performance', 'synthetic', 'nylon', 'spandex', 'elastane']:
+                            athletic_material_detected = True
+                            logger.info(f"🔍 ATHLETIC MATERIAL in metadata: {item_name[:40]} material={material}")
+                        
+                        # Formal fit
+                        if fit in ['tailored', 'dress', 'formal']:
+                            formal_material_detected = True
+                            logger.info(f"🔍 FORMAL FIT in metadata: {item_name[:40]} fit={fit}")
+                        
+                        # Athletic fit
+                        if fit in ['athletic', 'relaxed', 'loose']:
+                            athletic_material_detected = True
+                            logger.info(f"🔍 ATHLETIC FIT in metadata: {item_name[:40]} fit={fit}")
+                
+                # Combine checks: name, type, metadata
+                if has_athletic_occasion or athletic_material_detected:
+                    is_athletic_pants = True
+                
                 # Check if formal/casual pants (BLOCKED)
                 if not is_athletic_pants:
-                    is_formal_casual_pants = item_type in ['pants', 'jeans', 'trousers'] or \
-                                            any(p in item_name.lower() for p in formal_casual_pants_blocks)
+                    # Block if: formal occasions OR formal materials OR explicit formal keywords in name
+                    is_formal_casual_pants = (
+                        item_type in ['pants', 'jeans', 'trousers'] or
+                        any(p in item_name.lower() for p in formal_casual_pants_blocks) or
+                        has_formal_occasion or
+                        formal_material_detected
+                    )
             
             if is_formal_casual_pants:
                 logger.info(f"🚫 GYM HARD FILTER: BLOCKED FORMAL/CASUAL PANTS '{item_name[:40]}' - Only athletic pants/shorts allowed!")
@@ -2280,8 +2324,30 @@ class RobustOutfitGenerationService:
                 ]
                 is_non_athletic_shoe = any(kw in item_name.lower() for kw in non_athletic_shoe_keywords)
                 
-                if is_non_athletic_shoe:
-                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED NON-ATHLETIC SHOE '{item_name[:40]}'")
+                # METADATA CHECK: Check for formal shoe indicators in metadata
+                formal_shoe_in_metadata = False
+                athletic_shoe_in_metadata = False
+                if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                    visual_attrs = item.metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        shoe_type = (visual_attrs.get('shoeType') or '').lower()
+                        material = (visual_attrs.get('material') or '').lower()
+                        
+                        # Check shoe type in metadata
+                        if shoe_type in ['oxford', 'loafer', 'derby', 'dress', 'formal', 'heel']:
+                            formal_shoe_in_metadata = True
+                            logger.info(f"🔍 FORMAL SHOE TYPE in metadata: {item_name[:40]} shoeType={shoe_type}")
+                        elif shoe_type in ['sneaker', 'athletic', 'running', 'training', 'sport']:
+                            athletic_shoe_in_metadata = True
+                            logger.info(f"🔍 ATHLETIC SHOE TYPE in metadata: {item_name[:40]} shoeType={shoe_type}")
+                        
+                        # Check material
+                        if material in ['leather', 'suede', 'patent leather'] and not athletic_shoe_in_metadata:
+                            formal_shoe_in_metadata = True
+                            logger.info(f"🔍 FORMAL SHOE MATERIAL in metadata: {item_name[:40]} material={material}")
+                
+                if is_non_athletic_shoe or formal_shoe_in_metadata:
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED NON-ATHLETIC SHOE '{item_name[:40]}' - Formal shoe detected")
                     return False
                 
                 # Check occasion tags for shoes
@@ -2296,12 +2362,12 @@ class RobustOutfitGenerationService:
                 ]
                 is_athletic_shoe = any(kw in item_name.lower() or kw in item_type for kw in athletic_shoe_keywords)
                 
-                # STRICT: Shoes must be explicitly athletic OR have athletic occasion tags
-                if not is_athletic_shoe and not has_athletic_occasion:
+                # Combine checks: name keywords, occasion tags, metadata
+                if is_athletic_shoe or has_athletic_occasion or athletic_shoe_in_metadata:
+                    logger.info(f"✅ GYM HARD FILTER: PASSED ATHLETIC SHOE '{item_name[:40]}'")
+                else:
                     logger.info(f"🚫 GYM HARD FILTER: BLOCKED GENERIC/UNCLEAR SHOES '{item_name[:40]}' - Must be explicitly athletic")
                     return False
-                
-                logger.info(f"✅ GYM HARD FILTER: PASSED ATHLETIC SHOE '{item_name[:40]}'")
             
             # GYM FILTERING: Block COLLARED shirts only (allow plain shirts/tees)
             if item_type in ['shirt', 'top', 'blouse']:
@@ -2518,12 +2584,19 @@ class RobustOutfitGenerationService:
                     penalty -= 0.5 * occasion_multiplier
                     logger.debug(f"  ⚠️ GYM: No relevant occasion tags ({-0.5 * occasion_multiplier:.2f})")
             
-            # WAISTBAND TYPE ANALYSIS for gym (same logic as loungewear)
+            # METADATA CHECK: WAISTBAND TYPE ANALYSIS for gym (same logic as loungewear)
             waistband_type = None
             if hasattr(item, 'metadata') and item.metadata:
-                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                if visual_attrs:
-                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                if isinstance(item.metadata, dict):
+                    # New dict format
+                    visual_attrs = item.metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        waistband_type = visual_attrs.get('waistbandType')
+                else:
+                    # Legacy Pydantic object format
+                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                    if visual_attrs:
+                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -2576,17 +2649,26 @@ class RobustOutfitGenerationService:
             # Pattern, Material, and Fit analysis for tops
             category = self._get_item_category(item)
             if category == 'tops':
-                # Get metadata for pattern, material, fit
+                # METADATA CHECK: Get metadata for pattern, material, fit
                 pattern = None
                 material = None
                 fit = None
                 
                 if hasattr(item, 'metadata') and item.metadata:
-                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                    if visual_attrs:
-                        pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
-                        material = str(getattr(visual_attrs, 'material', '')).lower()
-                        fit = str(getattr(visual_attrs, 'fit', '')).lower()
+                    if isinstance(item.metadata, dict):
+                        # New dict format
+                        visual_attrs = item.metadata.get('visualAttributes', {})
+                        if isinstance(visual_attrs, dict):
+                            pattern = (visual_attrs.get('pattern') or '').lower()
+                            material = (visual_attrs.get('material') or '').lower()
+                            fit = (visual_attrs.get('fit') or '').lower()
+                    else:
+                        # Legacy Pydantic object format
+                        visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                        if visual_attrs:
+                            pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
+                            material = str(getattr(visual_attrs, 'material', '')).lower()
+                            fit = str(getattr(visual_attrs, 'fit', '')).lower()
                 
                 # PATTERN SCORING - Simple patterns better for gym
                 if pattern:
@@ -2634,6 +2716,34 @@ class RobustOutfitGenerationService:
             elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
                 penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
                 logger.info(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
+            
+            # METADATA CHECK: Boost formal materials and fits
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    material = (visual_attrs.get('material') or '').lower()
+                    fit = (visual_attrs.get('fit') or '').lower()
+                    neckline = (visual_attrs.get('neckline') or '').lower()
+                    
+                    # Boost formal materials
+                    if material in ['wool', 'silk', 'linen', 'cashmere', 'cotton twill']:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅ FORMAL MATERIAL: {material} ideal for formal (+{0.8 * occasion_multiplier:.2f})")
+                    
+                    # Boost formal fits
+                    if fit in ['tailored', 'slim', 'fitted', 'dress']:
+                        penalty += 0.6 * occasion_multiplier
+                        logger.debug(f"  ✅ FORMAL FIT: {fit} appropriate for formal (+{0.6 * occasion_multiplier:.2f})")
+                    
+                    # Boost collared shirts for formal
+                    if 'collar' in neckline or 'button' in neckline:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅ FORMAL NECKLINE: Collar appropriate for formal (+{0.8 * occasion_multiplier:.2f})")
+                    
+                    # Penalty for athletic materials
+                    if material in ['mesh', 'performance', 'synthetic', 'spandex']:
+                        penalty -= 1.5 * occasion_multiplier
+                        logger.debug(f"  🚫 ATHLETIC MATERIAL: {material} inappropriate for formal ({-1.5 * occasion_multiplier:.2f})")
         
         elif occasion_lower in ['casual', 'brunch', 'weekend']:
             if any(occ in item_occasion_lower for occ in ['casual', 'brunch', 'weekend', 'vacation']):
@@ -2672,12 +2782,36 @@ class RobustOutfitGenerationService:
                 penalty += 1.2 * occasion_multiplier
                 logger.debug(f"  ✅✅ PRIMARY: Loungewear occasion tag match: {+1.2 * occasion_multiplier:.2f}")
             
-            # WAISTBAND TYPE ANALYSIS for loungewear
+            # METADATA CHECK: WAISTBAND TYPE ANALYSIS for loungewear
             waistband_type = None
+            collar_detected_in_metadata = False
+            formal_material_detected = False
+            
             if hasattr(item, 'metadata') and item.metadata:
-                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                if visual_attrs:
-                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                if isinstance(item.metadata, dict):
+                    # New dict format
+                    visual_attrs = item.metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        waistband_type = visual_attrs.get('waistbandType')
+                        neckline = (visual_attrs.get('neckline') or '').lower()
+                        material = (visual_attrs.get('material') or '').lower()
+                        
+                        # Check for collar in metadata
+                        if 'collar' in neckline or 'button' in neckline or 'polo' in neckline:
+                            collar_detected_in_metadata = True
+                            penalty -= 5.0 * occasion_multiplier
+                            logger.debug(f"  🚫🚫🚫 LOUNGEWEAR: Collar detected in metadata (neckline={neckline}): {-5.0 * occasion_multiplier:.2f}")
+                        
+                        # Check for formal materials
+                        if material in ['wool', 'silk', 'satin', 'linen', 'cashmere']:
+                            formal_material_detected = True
+                            penalty -= 3.0 * occasion_multiplier
+                            logger.debug(f"  🚫🚫 LOUNGEWEAR: Formal material in metadata (material={material}): {-3.0 * occasion_multiplier:.2f}")
+                else:
+                    # Legacy Pydantic object format
+                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                    if visual_attrs:
+                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -2715,13 +2849,20 @@ class RobustOutfitGenerationService:
                 penalty += 0.5 * occasion_multiplier
         
         # ═══════════════════════════════════════════════════════════════════════
-        # WAISTBAND TYPE FORMALITY SCORING (for all occasions)
+        # METADATA CHECK: WAISTBAND TYPE FORMALITY SCORING (for all occasions)
         # ═══════════════════════════════════════════════════════════════════════
         waistband_type = None
         if hasattr(item, 'metadata') and item.metadata:
-            visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-            if visual_attrs:
-                waistband_type = getattr(visual_attrs, 'waistbandType', None)
+            if isinstance(item.metadata, dict):
+                # New dict format
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    waistband_type = visual_attrs.get('waistbandType')
+            else:
+                # Legacy Pydantic object format
+                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
         
         if waistband_type and waistband_type != 'none':
             # Map waistband types to formality levels (0-5 scale)
