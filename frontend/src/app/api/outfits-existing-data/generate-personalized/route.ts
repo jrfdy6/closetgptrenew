@@ -42,6 +42,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Request body keys:', Object.keys(body));
     
+    // DEBUG: Check if wardrobe has metadata
+    if (body.wardrobe && body.wardrobe.length > 0) {
+      const firstItem = body.wardrobe[0];
+      console.log('🔍 VERCEL PROXY: First wardrobe item keys:', Object.keys(firstItem));
+      console.log('🔍 VERCEL PROXY: metadata field present?', 'metadata' in firstItem);
+      if ('metadata' in firstItem) {
+        console.log('🔍 VERCEL PROXY: metadata value:', JSON.stringify(firstItem.metadata).substring(0, 200));
+      }
+    }
+    
     // Call the real backend generate endpoint (the one that actually exists!)
     const fullBackendUrl = `${backendUrl}/api/outfits-existing-data/generate-personalized`;
     console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
