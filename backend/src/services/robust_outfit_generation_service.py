@@ -2572,24 +2572,26 @@ class RobustOutfitGenerationService:
                 item_occasions = getattr(item, 'occasion', [])
                 item_occasions_lower = [occ.lower() for occ in item_occasions] if item_occasions else []
                 
+                has_athletic_occasion = False
                 if item_occasions_lower:
                     if any(occ in item_occasions_lower for occ in ['formal', 'business', 'professional']):
                         logger.info(f"🚫 GYM OCCASION: BLOCKED TOP {item_name[:40]} - formal occasion")
                         return False
                     elif any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
-                        logger.info(f"✅ GYM OCCASION: ALLOWED TOP {item_name[:40]} - athletic occasion")
-                        return True
+                        logger.info(f"✅ GYM OCCASION: TOP has athletic occasion '{item_name[:40]}' - will check collar next")
+                        has_athletic_occasion = True  # Don't return yet - must check for collar!
                 
-                # STEP 3: Fallback to NAME check (strict)
-                logger.info(f"⚠️ GYM TOP FALLBACK: No metadata, checking name: {item_name[:40]}")
+                # STEP 3: Check for collars/casual features (even if has athletic occasion!)
+                # CRITICAL: Polo shirts, button-ups, dress shirts should NEVER be allowed for gym
+                logger.info(f"⚠️ GYM TOP NAME CHECK: Checking for collars/casual features: {item_name[:40]}")
                 
-                # Block casual sweaters/tops (no metadata = not verified as athletic)
+                # Block collared/casual tops (polo, button-up, dress shirt, sweaters, etc.)
                 casual_top_blocks = [
                     'sweater', 'cardigan', 'pullover', 'turtleneck',
                     'henley', 'flannel', 'cable knit', 'cable-knit',
                     'zip sweater', 'ribbed sweater', 'knit sweater',
                     'casual shirt', 'dress shirt', 'button up', 'button down', 
-                    'button-up', 'button-down', 'polo shirt', 'polo'  # Added 'polo' standalone
+                    'button-up', 'button-down', 'polo shirt', 'polo'  # Polo must be blocked!
                 ]
                 
                 # Only allow if it has explicit athletic qualifier
@@ -2598,9 +2600,15 @@ class RobustOutfitGenerationService:
                 is_casual_top = any(kw in item_name.lower() for kw in casual_top_blocks)
                 has_athletic_qualifier = any(kw in item_name.lower() for kw in athletic_top_qualifiers)
                 
+                # Block casual tops even if they have athletic occasion tags!
                 if is_casual_top and not has_athletic_qualifier:
-                    logger.info(f"🚫 GYM NAME FALLBACK: BLOCKED CASUAL TOP '{item_name[:40]}' - No athletic qualifier")
+                    logger.info(f"🚫 GYM NAME CHECK: BLOCKED CASUAL TOP '{item_name[:40]}' - Polo/button-up/sweater detected")
                     return False
+                
+                # If has athletic occasion and passes casual check, allow it
+                if has_athletic_occasion:
+                    logger.info(f"✅ GYM FINAL CHECK: ALLOWED '{item_name[:40]}' - Athletic occasion + no casual features")
+                    return True
             
             # COMPREHENSIVE SHOE CHECK FOR GYM
             if item_type in ['shoes', 'boots', 'footwear'] or 'shoe' in item_type:
