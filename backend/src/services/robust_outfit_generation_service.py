@@ -2496,40 +2496,102 @@ class RobustOutfitGenerationService:
                     return True  # DONE - Don't check name
                 
                 # STEP 4: FALLBACK - Check NAME (only if ALL above checks were empty/inconclusive)
-                logger.info(f"⚠️ GYM FALLBACK: No metadata found, checking name as fallback: {item_name[:40]}")
-                athletic_keywords = ['jogger', 'sweatpants', 'sweat pants', 'track pants', 'athletic pants', 'workout pants', 'gym pants', 'training pants', 'legging', 'yoga pants', 'running pants']
+                # STRICT: Block by default if no metadata, only allow explicit athletic keywords
+                logger.info(f"⚠️ GYM FALLBACK: No metadata found, applying STRICT name check: {item_name[:40]}")
+                
+                # Very specific athletic keywords (must be explicit)
+                athletic_keywords = [
+                    'jogger', 'joggers',
+                    'sweatpants', 'sweat pants',
+                    'track pants', 'trackpants',
+                    'athletic pants',
+                    'workout pants',
+                    'gym pants',
+                    'training pants',
+                    'legging', 'leggings',
+                    'yoga pants',
+                    'running pants',
+                    'athletic shorts',
+                    'gym shorts',
+                    'basketball shorts',
+                    'running shorts'
+                ]
+                
+                # Check if item name has explicit athletic keywords
                 if any(kw in item_name.lower() for kw in athletic_keywords):
                     logger.info(f"✅ GYM NAME FALLBACK: ALLOWED {item_name[:40]} - athletic keyword found")
                     return True
-                else:
-                    # No metadata, no athletic tags, no athletic keywords = BLOCK
-                    logger.info(f"🚫 GYM NAME FALLBACK: BLOCKED {item_name[:40]} - no athletic indicators")
+                
+                # Block generic terms that could be formal/casual
+                generic_blocks = [
+                    'pants', 'pant',  # Generic "pants" without athletic qualifier = BLOCK
+                    'trouser', 'trousers',
+                    'chino', 'chinos',
+                    'jean', 'jeans',
+                    'slack', 'slacks',
+                    'cargo',
+                    'khaki'
+                ]
+                
+                if any(block in item_name.lower() for block in generic_blocks):
+                    logger.info(f"🚫 GYM NAME FALLBACK: BLOCKED {item_name[:40]} - generic/formal pants term without athletic qualifier")
                     return False
+                
+                # If we get here, it's ambiguous - BLOCK to be safe
+                logger.info(f"🚫 GYM NAME FALLBACK: BLOCKED {item_name[:40]} - no metadata, no explicit athletic indicators")
+                return False
             
             # BLOCK NON-ATHLETIC TOPS (sweaters, hoodies without athletic features, casual tops)
             if item_type in ['shirt', 'top', 'sweater', 'hoodie', 'jacket', 'outerwear']:
-                # Block casual sweaters, non-athletic hoodies, and formal tops
-                non_athletic_top_keywords = [
-                    'sweater', 'cardigan', 'pullover', 'turtleneck', 'v-neck sweater',
-                    'henley', 'flannel', 'casual shirt'
+                logger.info(f"🏋️ GYM TOP CHECK: {item_name[:40]}")
+                
+                # STEP 1: Check METADATA first
+                if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                    visual_attrs = item.metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                        
+                        # Block formal tops immediately
+                        if formal_level in ['formal', 'business', 'dress', 'professional']:
+                            logger.info(f"🚫 GYM METADATA: BLOCKED TOP {item_name[:40]} - formalLevel={formal_level}")
+                            return False
+                        # Allow athletic tops immediately
+                        elif formal_level in ['athletic', 'sport', 'casual']:
+                            logger.info(f"✅ GYM METADATA: ALLOWED TOP {item_name[:40]} - formalLevel={formal_level}")
+                            return True  # Don't check name
+                
+                # STEP 2: Check occasion tags
+                item_occasions = getattr(item, 'occasion', [])
+                item_occasions_lower = [occ.lower() for occ in item_occasions] if item_occasions else []
+                
+                if item_occasions_lower:
+                    if any(occ in item_occasions_lower for occ in ['formal', 'business', 'professional']):
+                        logger.info(f"🚫 GYM OCCASION: BLOCKED TOP {item_name[:40]} - formal occasion")
+                        return False
+                    elif any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
+                        logger.info(f"✅ GYM OCCASION: ALLOWED TOP {item_name[:40]} - athletic occasion")
+                        return True
+                
+                # STEP 3: Fallback to NAME check (strict)
+                logger.info(f"⚠️ GYM TOP FALLBACK: No metadata, checking name: {item_name[:40]}")
+                
+                # Block casual sweaters/tops (no metadata = not verified as athletic)
+                casual_top_blocks = [
+                    'sweater', 'cardigan', 'pullover', 'turtleneck',
+                    'henley', 'flannel',
+                    'zip sweater', 'ribbed sweater', 'knit sweater',
+                    'casual shirt', 'dress shirt'
                 ]
                 
-                # Check if it's a non-athletic top
-                is_casual_top = any(kw in item_name.lower() for kw in non_athletic_top_keywords)
+                # Only allow if it has explicit athletic qualifier
+                athletic_top_qualifiers = ['athletic', 'gym', 'workout', 'training', 'sport', 'performance', 'athletic hoodie']
                 
-                # Exception: Athletic hoodies/sweaters are OK
-                athletic_top_keywords = ['athletic', 'gym', 'workout', 'training', 'sport', 'performance']
-                is_athletic_top = any(kw in item_name.lower() for kw in athletic_top_keywords)
+                is_casual_top = any(kw in item_name.lower() for kw in casual_top_blocks)
+                has_athletic_qualifier = any(kw in item_name.lower() for kw in athletic_top_qualifiers)
                 
-                if is_casual_top and not is_athletic_top:
-                    # Check if it has athletic occasion tags
-                    item_occasions = getattr(item, 'occasion', [])
-                    item_occasions_lower = [occ.lower() for occ in item_occasions] if item_occasions else []
-                    has_athletic_occasion = any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
-                    
-                    if not has_athletic_occasion:
-                        logger.info(f"🚫 GYM HARD FILTER: BLOCKED CASUAL TOP '{item_name[:40]}' - No athletic features")
-                return False
+                if is_casual_top and not has_athletic_qualifier:
+                    logger.info(f"🚫 GYM NAME FALLBACK: BLOCKED CASUAL TOP '{item_name[:40]}' - No athletic qualifier")
+                    return False
             
             # COMPREHENSIVE SHOE CHECK FOR GYM
             if item_type in ['shoes', 'boots', 'footwear'] or 'shoe' in item_type:
@@ -2813,8 +2875,9 @@ class RobustOutfitGenerationService:
                 else:
                     # Legacy Pydantic object format
                     visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                    if visual_attrs:
-                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                    # Legacy Pydantic object format
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -2895,16 +2958,17 @@ class RobustOutfitGenerationService:
                     else:
                         # Legacy Pydantic object format
                         visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                        if visual_attrs:
-                            pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
-                            material = str(getattr(visual_attrs, 'material', '')).lower()
-                            fit = str(getattr(visual_attrs, 'fit', '')).lower()
-                            sleeve_length = str(getattr(visual_attrs, 'sleeveLength', '')).lower()
-                            fabric_weight = str(getattr(visual_attrs, 'fabricWeight', '')).lower()
-                            warmth_factor = str(getattr(visual_attrs, 'warmthFactor', '')).lower()
-                            formal_level = str(getattr(visual_attrs, 'formalLevel', '')).lower()
-                            silhouette = str(getattr(visual_attrs, 'silhouette', '')).lower()
-                            texture_style = str(getattr(visual_attrs, 'textureStyle', '')).lower()
+                        # Legacy Pydantic object format
+                    if visual_attrs:
+                        pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
+                        material = str(getattr(visual_attrs, 'material', '')).lower()
+                        fit = str(getattr(visual_attrs, 'fit', '')).lower()
+                        sleeve_length = str(getattr(visual_attrs, 'sleeveLength', '')).lower()
+                        fabric_weight = str(getattr(visual_attrs, 'fabricWeight', '')).lower()
+                        warmth_factor = str(getattr(visual_attrs, 'warmthFactor', '')).lower()
+                        formal_level = str(getattr(visual_attrs, 'formalLevel', '')).lower()
+                        silhouette = str(getattr(visual_attrs, 'silhouette', '')).lower()
+                        texture_style = str(getattr(visual_attrs, 'textureStyle', '')).lower()
                 
                 # PATTERN SCORING - Simple patterns better for gym
                 if pattern:
@@ -3172,8 +3236,9 @@ class RobustOutfitGenerationService:
                 else:
                     # Legacy Pydantic object format
                     visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                    if visual_attrs:
-                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                    # Legacy Pydantic object format
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -3393,8 +3458,9 @@ class RobustOutfitGenerationService:
             else:
                 # Legacy Pydantic object format
                 visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                if visual_attrs:
-                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                # Legacy Pydantic object format
+            if visual_attrs:
+                waistband_type = getattr(visual_attrs, 'waistbandType', None)
         
         if waistband_type and waistband_type != 'none':
             # Map waistband types to formality levels (0-5 scale)
