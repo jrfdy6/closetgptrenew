@@ -524,12 +524,6 @@ export default function OutfitGenerationPage() {
         generation_mode: 'robust'
       };
       
-      // DEBUG: Check if metadata still exists after spread
-      if (requestWithMode.wardrobe && requestWithMode.wardrobe.length > 0) {
-        const firstInRequest = requestWithMode.wardrobe[0];
-        console.log('🔍 BEFORE API CALL: First item has metadata?', 'metadata' in firstInRequest);
-      }
-      
       // Use robust API client with comprehensive error handling
       const response = await generateOutfit(requestWithMode, authToken);
       const data = response.data;
