@@ -2,7 +2,7 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1761345200
+ARG CACHE_BUSTER=1761347500
 RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE REBUILD - Metadata-first filtering + strict fallback for NO metadata items"
 
 # Set working directory
