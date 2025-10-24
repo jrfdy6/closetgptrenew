@@ -2264,7 +2264,7 @@ class RobustOutfitGenerationService:
                 has_athletic_occasion = any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
                 has_formal_occasion = any(occ in item_occasions_lower for occ in ['business', 'formal', 'professional', 'work'])
                 
-                # METADATA CHECK: Check material for formality indicators
+                # METADATA CHECK: COMPREHENSIVE material, fit, length, formalLevel analysis
                 formal_material_detected = False
                 athletic_material_detected = False
                 if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
@@ -2272,6 +2272,28 @@ class RobustOutfitGenerationService:
                     if isinstance(visual_attrs, dict):
                         material = (visual_attrs.get('material') or '').lower()
                         fit = (visual_attrs.get('fit') or '').lower()
+                        length = (visual_attrs.get('length') or '').lower()
+                        formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                        silhouette = (visual_attrs.get('silhouette') or '').lower()
+                        fabric_weight = (visual_attrs.get('fabricWeight') or '').lower()
+                        
+                        # LENGTH CHECK - Shorts allowed, long pants might be formal
+                        if length:
+                            if length in ['short', 'shorts', 'above knee']:
+                                athletic_material_detected = True
+                                logger.info(f"🔍 SHORT LENGTH in metadata: {item_name[:40]} length={length} - Good for gym")
+                            elif length in ['long', 'full', 'ankle'] and not has_athletic_occasion:
+                                # Long pants without athletic tags might be formal
+                                logger.info(f"🔍 LONG LENGTH in metadata: {item_name[:40]} length={length} - Might be formal")
+                        
+                        # FORMAL LEVEL - Direct indicator
+                        if formal_level:
+                            if formal_level in ['formal', 'business', 'dress', 'professional']:
+                                formal_material_detected = True
+                                logger.info(f"🔍 FORMAL LEVEL in metadata: {item_name[:40]} formalLevel={formal_level}")
+                            elif formal_level in ['athletic', 'sport', 'casual']:
+                                athletic_material_detected = True
+                                logger.info(f"🔍 ATHLETIC LEVEL in metadata: {item_name[:40]} formalLevel={formal_level}")
                         
                         # Formal materials
                         if material in ['wool', 'cotton twill', 'linen', 'cashmere', 'silk']:
@@ -2292,6 +2314,19 @@ class RobustOutfitGenerationService:
                         if fit in ['athletic', 'relaxed', 'loose']:
                             athletic_material_detected = True
                             logger.info(f"🔍 ATHLETIC FIT in metadata: {item_name[:40]} fit={fit}")
+                        
+                        # SILHOUETTE - Relaxed/athletic vs tailored
+                        if silhouette in ['relaxed', 'athletic', 'loose']:
+                            athletic_material_detected = True
+                            logger.info(f"🔍 ATHLETIC SILHOUETTE in metadata: {item_name[:40]} silhouette={silhouette}")
+                        elif silhouette in ['tailored', 'fitted', 'structured']:
+                            formal_material_detected = True
+                            logger.info(f"🔍 FORMAL SILHOUETTE in metadata: {item_name[:40]} silhouette={silhouette}")
+                        
+                        # FABRIC WEIGHT - Light for gym, any for formal
+                        if fabric_weight in ['heavy', 'thick', 'heavyweight']:
+                            formal_material_detected = True
+                            logger.info(f"🔍 HEAVY FABRIC in metadata: {item_name[:40]} fabricWeight={fabric_weight}")
                 
                 # Combine checks: name, type, metadata
                 if has_athletic_occasion or athletic_material_detected:
@@ -2649,10 +2684,15 @@ class RobustOutfitGenerationService:
             # Pattern, Material, and Fit analysis for tops
             category = self._get_item_category(item)
             if category == 'tops':
-                # METADATA CHECK: Get metadata for pattern, material, fit
+                # METADATA CHECK: Get ALL metadata fields for comprehensive analysis
                 pattern = None
                 material = None
                 fit = None
+                sleeve_length = None
+                fabric_weight = None
+                warmth_factor = None
+                formal_level = None
+                silhouette = None
                 
                 if hasattr(item, 'metadata') and item.metadata:
                     if isinstance(item.metadata, dict):
@@ -2662,6 +2702,11 @@ class RobustOutfitGenerationService:
                             pattern = (visual_attrs.get('pattern') or '').lower()
                             material = (visual_attrs.get('material') or '').lower()
                             fit = (visual_attrs.get('fit') or '').lower()
+                            sleeve_length = (visual_attrs.get('sleeveLength') or '').lower()
+                            fabric_weight = (visual_attrs.get('fabricWeight') or '').lower()
+                            warmth_factor = (visual_attrs.get('warmthFactor') or '').lower()
+                            formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                            silhouette = (visual_attrs.get('silhouette') or '').lower()
                     else:
                         # Legacy Pydantic object format
                         visual_attrs = getattr(item.metadata, 'visualAttributes', None)
@@ -2669,6 +2714,11 @@ class RobustOutfitGenerationService:
                             pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
                             material = str(getattr(visual_attrs, 'material', '')).lower()
                             fit = str(getattr(visual_attrs, 'fit', '')).lower()
+                            sleeve_length = str(getattr(visual_attrs, 'sleeveLength', '')).lower()
+                            fabric_weight = str(getattr(visual_attrs, 'fabricWeight', '')).lower()
+                            warmth_factor = str(getattr(visual_attrs, 'warmthFactor', '')).lower()
+                            formal_level = str(getattr(visual_attrs, 'formalLevel', '')).lower()
+                            silhouette = str(getattr(visual_attrs, 'silhouette', '')).lower()
                 
                 # PATTERN SCORING - Simple patterns better for gym
                 if pattern:
@@ -2708,6 +2758,66 @@ class RobustOutfitGenerationService:
                     elif fit in ['slim', 'fitted', 'tailored', 'tight']:
                         penalty -= 0.5 * occasion_multiplier  # Less ideal for workout mobility
                         logger.debug(f"  ⚠️ FIT: {fit.capitalize()} fit restricts gym mobility ({-0.5 * occasion_multiplier:.2f})")
+                
+                # SLEEVE LENGTH SCORING - Sleeveless/short better for gym
+                if sleeve_length:
+                    if sleeve_length in ['sleeveless', 'tank', 'no sleeve', 'none']:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅✅ SLEEVE: Sleeveless ideal for gym mobility (+{0.8 * occasion_multiplier:.2f})")
+                    elif sleeve_length in ['short', 'short sleeve']:
+                        penalty += 0.6 * occasion_multiplier
+                        logger.debug(f"  ✅ SLEEVE: Short sleeves good for gym (+{0.6 * occasion_multiplier:.2f})")
+                    elif sleeve_length in ['3/4', 'three quarter', '3/4 sleeve']:
+                        penalty += 0.2 * occasion_multiplier
+                        logger.debug(f"  ✅ SLEEVE: 3/4 sleeves acceptable for gym (+{0.2 * occasion_multiplier:.2f})")
+                    elif sleeve_length in ['long', 'long sleeve']:
+                        penalty -= 0.4 * occasion_multiplier  # Less ideal but not terrible
+                        logger.debug(f"  ⚠️ SLEEVE: Long sleeves less ideal for gym ({-0.4 * occasion_multiplier:.2f})")
+                
+                # FABRIC WEIGHT SCORING - Light fabrics better for gym
+                if fabric_weight:
+                    if fabric_weight in ['light', 'lightweight', 'thin']:
+                        penalty += 0.5 * occasion_multiplier
+                        logger.debug(f"  ✅ FABRIC WEIGHT: Light fabric good for gym (+{0.5 * occasion_multiplier:.2f})")
+                    elif fabric_weight in ['medium', 'regular']:
+                        penalty += 0.2 * occasion_multiplier
+                        logger.debug(f"  ✅ FABRIC WEIGHT: Medium weight acceptable for gym (+{0.2 * occasion_multiplier:.2f})")
+                    elif fabric_weight in ['heavy', 'thick', 'heavyweight']:
+                        penalty -= 0.6 * occasion_multiplier
+                        logger.debug(f"  ⚠️ FABRIC WEIGHT: Heavy fabric too warm for gym ({-0.6 * occasion_multiplier:.2f})")
+                
+                # WARMTH FACTOR SCORING - Low warmth better for gym
+                if warmth_factor:
+                    if warmth_factor in ['light', 'minimal', 'breathable']:
+                        penalty += 0.7 * occasion_multiplier
+                        logger.debug(f"  ✅✅ WARMTH: Light/breathable ideal for gym (+{0.7 * occasion_multiplier:.2f})")
+                    elif warmth_factor in ['medium', 'moderate']:
+                        penalty += 0.3 * occasion_multiplier
+                        logger.debug(f"  ✅ WARMTH: Medium warmth acceptable for gym (+{0.3 * occasion_multiplier:.2f})")
+                    elif warmth_factor in ['heavy', 'insulated', 'warm']:
+                        penalty -= 0.8 * occasion_multiplier
+                        logger.debug(f"  ⚠️ WARMTH: Heavy warmth too hot for gym ({-0.8 * occasion_multiplier:.2f})")
+                
+                # FORMAL LEVEL SCORING - Casual better for gym
+                if formal_level:
+                    if formal_level in ['casual', 'athletic', 'sport']:
+                        penalty += 0.9 * occasion_multiplier
+                        logger.debug(f"  ✅✅ FORMAL LEVEL: {formal_level.capitalize()} perfect for gym (+{0.9 * occasion_multiplier:.2f})")
+                    elif formal_level in ['business casual', 'smart casual']:
+                        penalty -= 0.5 * occasion_multiplier
+                        logger.debug(f"  ⚠️ FORMAL LEVEL: {formal_level.capitalize()} too dressy for gym ({-0.5 * occasion_multiplier:.2f})")
+                    elif formal_level in ['formal', 'business', 'dress']:
+                        penalty -= 1.5 * occasion_multiplier
+                        logger.debug(f"  🚫 FORMAL LEVEL: {formal_level.capitalize()} inappropriate for gym ({-1.5 * occasion_multiplier:.2f})")
+                
+                # SILHOUETTE SCORING - Relaxed/athletic silhouettes better for gym
+                if silhouette:
+                    if silhouette in ['relaxed', 'athletic', 'loose', 'oversized']:
+                        penalty += 0.5 * occasion_multiplier
+                        logger.debug(f"  ✅ SILHOUETTE: {silhouette.capitalize()} good for gym (+{0.5 * occasion_multiplier:.2f})")
+                    elif silhouette in ['fitted', 'tailored', 'structured']:
+                        penalty -= 0.4 * occasion_multiplier
+                        logger.debug(f"  ⚠️ SILHOUETTE: {silhouette.capitalize()} restricts movement ({-0.4 * occasion_multiplier:.2f})")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
@@ -2717,13 +2827,18 @@ class RobustOutfitGenerationService:
                 penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
                 logger.info(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
             
-            # METADATA CHECK: Boost formal materials and fits
+            # METADATA CHECK: Boost formal materials and fits (COMPREHENSIVE)
+            item_category = self._get_item_category(item)
             if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
                 visual_attrs = item.metadata.get('visualAttributes', {})
                 if isinstance(visual_attrs, dict):
                     material = (visual_attrs.get('material') or '').lower()
                     fit = (visual_attrs.get('fit') or '').lower()
                     neckline = (visual_attrs.get('neckline') or '').lower()
+                    sleeve_length = (visual_attrs.get('sleeveLength') or '').lower()
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    silhouette = (visual_attrs.get('silhouette') or '').lower()
+                    length = (visual_attrs.get('length') or '').lower()
                     
                     # Boost formal materials
                     if material in ['wool', 'silk', 'linen', 'cashmere', 'cotton twill']:
@@ -2739,6 +2854,48 @@ class RobustOutfitGenerationService:
                     if 'collar' in neckline or 'button' in neckline:
                         penalty += 0.8 * occasion_multiplier
                         logger.debug(f"  ✅ FORMAL NECKLINE: Collar appropriate for formal (+{0.8 * occasion_multiplier:.2f})")
+                    
+                    # SLEEVE LENGTH - Long sleeves preferred for formal
+                    if item_category == 'tops' and sleeve_length:
+                        if sleeve_length in ['long', 'long sleeve']:
+                            penalty += 0.7 * occasion_multiplier
+                            logger.debug(f"  ✅ FORMAL SLEEVE: Long sleeves appropriate for formal (+{0.7 * occasion_multiplier:.2f})")
+                        elif sleeve_length in ['short', 'short sleeve']:
+                            penalty -= 0.4 * occasion_multiplier
+                            logger.debug(f"  ⚠️ FORMAL SLEEVE: Short sleeves less formal ({-0.4 * occasion_multiplier:.2f})")
+                        elif sleeve_length in ['sleeveless', 'tank']:
+                            penalty -= 1.0 * occasion_multiplier
+                            logger.debug(f"  🚫 FORMAL SLEEVE: Sleeveless inappropriate for formal ({-1.0 * occasion_multiplier:.2f})")
+                    
+                    # FORMAL LEVEL - Direct match
+                    if formal_level:
+                        if formal_level in ['formal', 'business', 'dress', 'professional']:
+                            penalty += 1.2 * occasion_multiplier
+                            logger.debug(f"  ✅✅✅ FORMAL LEVEL: {formal_level.capitalize()} perfect for formal (+{1.2 * occasion_multiplier:.2f})")
+                        elif formal_level in ['business casual', 'smart casual']:
+                            penalty += 0.6 * occasion_multiplier
+                            logger.debug(f"  ✅ FORMAL LEVEL: {formal_level.capitalize()} acceptable for formal (+{0.6 * occasion_multiplier:.2f})")
+                        elif formal_level in ['casual', 'athletic', 'sport']:
+                            penalty -= 1.0 * occasion_multiplier
+                            logger.debug(f"  🚫 FORMAL LEVEL: {formal_level.capitalize()} too casual for formal ({-1.0 * occasion_multiplier:.2f})")
+                    
+                    # SILHOUETTE - Tailored/structured preferred for formal
+                    if silhouette:
+                        if silhouette in ['tailored', 'structured', 'fitted']:
+                            penalty += 0.6 * occasion_multiplier
+                            logger.debug(f"  ✅ FORMAL SILHOUETTE: {silhouette.capitalize()} appropriate for formal (+{0.6 * occasion_multiplier:.2f})")
+                        elif silhouette in ['oversized', 'baggy']:
+                            penalty -= 0.5 * occasion_multiplier
+                            logger.debug(f"  ⚠️ FORMAL SILHOUETTE: {silhouette.capitalize()} too casual ({-0.5 * occasion_multiplier:.2f})")
+                    
+                    # LENGTH - For bottoms, long pants required for formal
+                    if item_category == 'bottoms' and length:
+                        if length in ['long', 'full', 'ankle']:
+                            penalty += 0.9 * occasion_multiplier
+                            logger.debug(f"  ✅✅ FORMAL LENGTH: Long pants appropriate for formal (+{0.9 * occasion_multiplier:.2f})")
+                        elif length in ['short', 'shorts', 'cropped', 'capri']:
+                            penalty -= 2.0 * occasion_multiplier  # MAJOR penalty for shorts at formal event
+                            logger.debug(f"  🚫🚫 FORMAL LENGTH: Shorts inappropriate for formal ({-2.0 * occasion_multiplier:.2f})")
                     
                     # Penalty for athletic materials
                     if material in ['mesh', 'performance', 'synthetic', 'spandex']:
@@ -2822,6 +2979,176 @@ class RobustOutfitGenerationService:
                     # Belt loops = structured pants, bad for loungewear
                     penalty -= 3.0 * occasion_multiplier  # Strong penalty
                     logger.debug(f"  🚫🚫 WAISTBAND: Belt loops too structured for loungewear ({-3.0 * occasion_multiplier:.2f})")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # OUTERWEAR METADATA SCORING (Jackets, Coats, Blazers)
+        # ═══════════════════════════════════════════════════════════════════════
+        item_category = self._get_item_category(item)
+        if item_category == 'outerwear':
+            # Extract ALL metadata fields for outerwear
+            material = None
+            warmth_factor = None
+            formal_level = None
+            length = None
+            wear_layer = None
+            fabric_weight = None
+            
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    material = (visual_attrs.get('material') or '').lower()
+                    warmth_factor = (visual_attrs.get('warmthFactor') or '').lower()
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    length = (visual_attrs.get('length') or '').lower()
+                    wear_layer = (visual_attrs.get('wearLayer') or '').lower()
+                    fabric_weight = (visual_attrs.get('fabricWeight') or '').lower()
+            
+            # Get temperature for weather-appropriate scoring
+            temp = safe_get(context.weather, 'temperature', 70.0) if context and context.weather else 70.0
+            
+            # WARMTH FACTOR - Match to weather
+            if warmth_factor:
+                if temp < 40:  # Very cold
+                    if warmth_factor in ['heavy', 'insulated', 'warm']:
+                        penalty += 1.5 * occasion_multiplier
+                        logger.debug(f"  ✅✅✅ OUTERWEAR WARMTH: Heavy warmth perfect for cold weather (+{1.5 * occasion_multiplier:.2f})")
+                    elif warmth_factor in ['light', 'minimal']:
+                        penalty -= 1.0 * occasion_multiplier
+                        logger.debug(f"  🚫 OUTERWEAR WARMTH: Light warmth insufficient for cold ({-1.0 * occasion_multiplier:.2f})")
+                elif temp > 70:  # Warm weather
+                    if warmth_factor in ['light', 'minimal', 'breathable']:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅ OUTERWEAR WARMTH: Light warmth good for mild weather (+{0.8 * occasion_multiplier:.2f})")
+                    elif warmth_factor in ['heavy', 'insulated']:
+                        penalty -= 1.2 * occasion_multiplier
+                        logger.debug(f"  🚫 OUTERWEAR WARMTH: Heavy warmth too hot ({-1.2 * occasion_multiplier:.2f})")
+            
+            # FORMAL LEVEL - Match to occasion
+            if formal_level:
+                if occasion_lower in ['business', 'formal', 'interview']:
+                    if formal_level in ['formal', 'business', 'dress']:
+                        penalty += 1.5 * occasion_multiplier
+                        logger.debug(f"  ✅✅✅ OUTERWEAR FORMAL: {formal_level.capitalize()} perfect for {occasion} (+{1.5 * occasion_multiplier:.2f})")
+                    elif formal_level in ['casual', 'athletic']:
+                        penalty -= 1.0 * occasion_multiplier
+                        logger.debug(f"  🚫 OUTERWEAR FORMAL: {formal_level.capitalize()} too casual for {occasion} ({-1.0 * occasion_multiplier:.2f})")
+                elif occasion_lower in ['gym', 'athletic']:
+                    if formal_level in ['athletic', 'sport', 'casual']:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅ OUTERWEAR FORMAL: {formal_level.capitalize()} good for gym (+{0.8 * occasion_multiplier:.2f})")
+                    elif formal_level in ['formal', 'business']:
+                        penalty -= 1.5 * occasion_multiplier
+                        logger.debug(f"  🚫 OUTERWEAR FORMAL: {formal_level.capitalize()} too formal for gym ({-1.5 * occasion_multiplier:.2f})")
+            
+            # MATERIAL - Weather and occasion matching
+            if material:
+                if occasion_lower in ['business', 'formal']:
+                    if material in ['wool', 'cashmere', 'tweed']:
+                        penalty += 0.9 * occasion_multiplier
+                        logger.debug(f"  ✅✅ OUTERWEAR MATERIAL: {material.capitalize()} ideal for formal (+{0.9 * occasion_multiplier:.2f})")
+                elif occasion_lower in ['gym', 'athletic']:
+                    if material in ['nylon', 'polyester', 'synthetic', 'mesh']:
+                        penalty += 0.7 * occasion_multiplier
+                        logger.debug(f"  ✅ OUTERWEAR MATERIAL: {material.capitalize()} good for gym (+{0.7 * occasion_multiplier:.2f})")
+            
+            # WEAR LAYER - Ensure proper layering
+            if wear_layer:
+                if wear_layer in ['outer', 'outerwear', 'shell']:
+                    penalty += 0.5 * occasion_multiplier
+                    logger.debug(f"  ✅ WEAR LAYER: Correctly categorized as outer layer (+{0.5 * occasion_multiplier:.2f})")
+            
+            # LENGTH - Match to weather and occasion
+            if length:
+                if temp < 40:  # Very cold
+                    if length in ['long', 'full length', 'maxi']:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅ OUTERWEAR LENGTH: Long coat ideal for cold (+{0.8 * occasion_multiplier:.2f})")
+                    elif length in ['short', 'cropped']:
+                        penalty -= 0.5 * occasion_multiplier
+                        logger.debug(f"  ⚠️ OUTERWEAR LENGTH: Short jacket less warm ({-0.5 * occasion_multiplier:.2f})")
+                elif temp > 60:  # Mild/warm
+                    if length in ['short', 'cropped', 'bomber']:
+                        penalty += 0.6 * occasion_multiplier
+                        logger.debug(f"  ✅ OUTERWEAR LENGTH: Cropped jacket good for mild weather (+{0.6 * occasion_multiplier:.2f})")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # SHOES METADATA SCORING
+        # ═══════════════════════════════════════════════════════════════════════
+        if item_category == 'shoes':
+            # Extract metadata fields for shoes
+            formal_level = None
+            material = None
+            shoe_type = None
+            
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    material = (visual_attrs.get('material') or '').lower()
+                    shoe_type = (visual_attrs.get('shoeType') or '').lower()
+            
+            # FORMAL LEVEL - Match to occasion
+            if formal_level:
+                if occasion_lower in ['business', 'formal', 'interview']:
+                    if formal_level in ['formal', 'dress', 'business']:
+                        penalty += 1.0 * occasion_multiplier
+                        logger.debug(f"  ✅✅ SHOES FORMAL LEVEL: {formal_level.capitalize()} appropriate for formal (+{1.0 * occasion_multiplier:.2f})")
+                    elif formal_level in ['athletic', 'sport', 'casual']:
+                        penalty -= 1.5 * occasion_multiplier
+                        logger.debug(f"  🚫 SHOES FORMAL LEVEL: {formal_level.capitalize()} too casual for formal ({-1.5 * occasion_multiplier:.2f})")
+                elif occasion_lower in ['gym', 'athletic']:
+                    if formal_level in ['athletic', 'sport', 'casual']:
+                        penalty += 0.9 * occasion_multiplier
+                        logger.debug(f"  ✅ SHOES FORMAL LEVEL: {formal_level.capitalize()} perfect for gym (+{0.9 * occasion_multiplier:.2f})")
+                    elif formal_level in ['formal', 'dress']:
+                        penalty -= 2.0 * occasion_multiplier
+                        logger.debug(f"  🚫🚫 SHOES FORMAL LEVEL: {formal_level.capitalize()} too formal for gym ({-2.0 * occasion_multiplier:.2f})")
+            
+            # SHOE TYPE - Direct matching
+            if shoe_type:
+                if occasion_lower in ['gym', 'athletic']:
+                    if shoe_type in ['sneaker', 'athletic', 'running', 'training']:
+                        penalty += 1.2 * occasion_multiplier
+                        logger.debug(f"  ✅✅✅ SHOES TYPE: {shoe_type.capitalize()} perfect for gym (+{1.2 * occasion_multiplier:.2f})")
+                elif occasion_lower in ['formal', 'business']:
+                    if shoe_type in ['oxford', 'loafer', 'dress', 'formal']:
+                        penalty += 1.0 * occasion_multiplier
+                        logger.debug(f"  ✅✅ SHOES TYPE: {shoe_type.capitalize()} appropriate for formal (+{1.0 * occasion_multiplier:.2f})")
+        
+        # ═══════════════════════════════════════════════════════════════════════
+        # ACCESSORIES METADATA SCORING
+        # ═══════════════════════════════════════════════════════════════════════
+        if item_category == 'accessories':
+            # Extract metadata fields for accessories
+            formal_level = None
+            material = None
+            
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    material = (visual_attrs.get('material') or '').lower()
+            
+            # FORMAL LEVEL - Match to occasion
+            if formal_level:
+                if occasion_lower in ['business', 'formal', 'interview']:
+                    if formal_level in ['formal', 'dress', 'business']:
+                        penalty += 0.8 * occasion_multiplier
+                        logger.debug(f"  ✅ ACCESSORY FORMAL LEVEL: {formal_level.capitalize()} appropriate for formal (+{0.8 * occasion_multiplier:.2f})")
+                    elif formal_level in ['athletic', 'sport']:
+                        penalty -= 1.2 * occasion_multiplier
+                        logger.debug(f"  🚫 ACCESSORY FORMAL LEVEL: {formal_level.capitalize()} too casual for formal ({-1.2 * occasion_multiplier:.2f})")
+                elif occasion_lower in ['gym', 'athletic']:
+                    # Block ALL accessories for gym (already handled in hard filter)
+                    penalty -= 2.0 * occasion_multiplier
+                    logger.debug(f"  🚫🚫 ACCESSORY: Accessories inappropriate for gym ({-2.0 * occasion_multiplier:.2f})")
+            
+            # MATERIAL - Quality/formality indicator
+            if material:
+                if occasion_lower in ['formal', 'business']:
+                    if material in ['leather', 'silk', 'metal', 'gold', 'silver']:
+                        penalty += 0.6 * occasion_multiplier
+                        logger.debug(f"  ✅ ACCESSORY MATERIAL: {material.capitalize()} appropriate for formal (+{0.6 * occasion_multiplier:.2f})")
         
         # ═══════════════════════════════════════════════════════════════════════
         # KEYWORD-BASED SCORING: Secondary scoring based on item names (LIGHT penalties only)
@@ -3945,7 +4272,85 @@ class RobustOutfitGenerationService:
                 item_name_lower = item_name.lower()
                 item_type_lower = str(self.safe_get_item_type(item)).lower()
                 
-                # Cold weather items
+                # METADATA CHECK: WARMTH FACTOR - Direct temperature matching
+                warmth_factor = None
+                fabric_weight = None
+                sleeve_length = None
+                length = None
+                
+                if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                    visual_attrs = item.metadata.get('visualAttributes', {})
+                    if isinstance(visual_attrs, dict):
+                        warmth_factor = (visual_attrs.get('warmthFactor') or '').lower()
+                        fabric_weight = (visual_attrs.get('fabricWeight') or '').lower()
+                        sleeve_length = (visual_attrs.get('sleeveLength') or '').lower()
+                        length = (visual_attrs.get('length') or '').lower()
+                
+                # WARMTH FACTOR SCORING - Match warmth to temperature
+                if warmth_factor:
+                    if temp < 40:  # Very cold
+                        if warmth_factor in ['heavy', 'insulated', 'warm']:
+                            base_score += 0.4
+                            logger.debug(f"  ✅✅ WARMTH FACTOR: Heavy warmth perfect for very cold (+0.4)")
+                        elif warmth_factor in ['light', 'minimal']:
+                            base_score -= 0.3
+                            logger.debug(f"  ⚠️ WARMTH FACTOR: Light warmth too cold ({-0.3})")
+                    elif temp < 60:  # Cool
+                        if warmth_factor in ['medium', 'moderate']:
+                            base_score += 0.3
+                            logger.debug(f"  ✅ WARMTH FACTOR: Medium warmth good for cool weather (+0.3)")
+                    elif temp > 75:  # Hot
+                        if warmth_factor in ['light', 'minimal', 'breathable']:
+                            base_score += 0.4
+                            logger.debug(f"  ✅✅ WARMTH FACTOR: Light warmth perfect for hot weather (+0.4)")
+                        elif warmth_factor in ['heavy', 'warm']:
+                            base_score -= 0.4
+                            logger.debug(f"  🚫 WARMTH FACTOR: Heavy warmth too hot ({-0.4})")
+                
+                # FABRIC WEIGHT SCORING - Match weight to temperature
+                if fabric_weight:
+                    if temp < 50:  # Cold
+                        if fabric_weight in ['heavy', 'thick', 'heavyweight']:
+                            base_score += 0.3
+                            logger.debug(f"  ✅ FABRIC WEIGHT: Heavy fabric good for cold (+0.3)")
+                        elif fabric_weight in ['light', 'lightweight']:
+                            base_score -= 0.2
+                            logger.debug(f"  ⚠️ FABRIC WEIGHT: Light fabric too cold ({-0.2})")
+                    elif temp > 75:  # Hot
+                        if fabric_weight in ['light', 'lightweight', 'thin']:
+                            base_score += 0.3
+                            logger.debug(f"  ✅ FABRIC WEIGHT: Light fabric good for hot weather (+0.3)")
+                        elif fabric_weight in ['heavy', 'thick']:
+                            base_score -= 0.3
+                            logger.debug(f"  🚫 FABRIC WEIGHT: Heavy fabric too hot ({-0.3})")
+                
+                # SLEEVE LENGTH - Weather matching for tops
+                item_category = self._get_item_category(item)
+                if item_category == 'tops' and sleeve_length:
+                    if temp > 75:  # Hot
+                        if sleeve_length in ['sleeveless', 'tank', 'short', 'short sleeve']:
+                            base_score += 0.25
+                            logger.debug(f"  ✅ SLEEVE LENGTH: {sleeve_length.capitalize()} good for hot weather (+0.25)")
+                        elif sleeve_length in ['long', 'long sleeve']:
+                            base_score -= 0.2
+                            logger.debug(f"  ⚠️ SLEEVE LENGTH: Long sleeves too warm ({-0.2})")
+                    elif temp < 50:  # Cold
+                        if sleeve_length in ['long', 'long sleeve']:
+                            base_score += 0.2
+                            logger.debug(f"  ✅ SLEEVE LENGTH: Long sleeves good for cold (+0.2)")
+                
+                # LENGTH - For bottoms and outerwear
+                if item_category in ['bottoms', 'outerwear'] and length:
+                    if temp < 40:  # Very cold
+                        if length in ['long', 'full', 'ankle', 'maxi']:
+                            base_score += 0.25
+                            logger.debug(f"  ✅ LENGTH: Long length good for cold (+0.25)")
+                    elif temp > 75:  # Hot
+                        if item_category == 'bottoms' and length in ['short', 'shorts', 'above knee']:
+                            base_score += 0.25
+                            logger.debug(f"  ✅ LENGTH: Shorts good for hot weather (+0.25)")
+                
+                # Cold weather items (keyword fallback)
                 if temp < 50:
                     cold_keywords = ['wool', 'fleece', 'coat', 'jacket', 'sweater', 'long sleeve', 'boots']
                     for keyword in cold_keywords:
