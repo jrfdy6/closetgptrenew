@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1761128365
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE REBUILD - Metadata Dict[str,Any] fix + collar detection + duplicate shoes fix"
+ARG CACHE_BUSTER=1761303100
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE REBUILD - Metadata-first filtering + strict fallback for NO metadata items"
 
 # Set working directory
 WORKDIR /app
