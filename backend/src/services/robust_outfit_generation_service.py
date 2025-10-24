@@ -2735,6 +2735,103 @@ class RobustOutfitGenerationService:
             
             logger.info(f"✅ GYM HARD FILTER: PASSED '{item_name[:40]}'")
         
+        # FORMAL/BUSINESS/INTERVIEW HARD BLOCKS - Block casual/athletic items
+        if occasion_lower in ['formal', 'business', 'interview', 'work', 'professional']:
+            logger.info(f"👔 FORMAL FILTER ACTIVE for {occasion}")
+            
+            # Block athletic/gym wear for formal occasions
+            athletic_blocks = [
+                'sneakers', 'athletic', 'gym', 'workout', 'training', 'sport', 'running',
+                'sweatpants', 'joggers', 'track pants', 'leggings', 'yoga pants',
+                'hoodie', 'sweatshirt', 'tank top', 'crop top', 'basketball shorts',
+                'jersey', 'athletic shorts'
+            ]
+            
+            if any(block in item_name.lower() or block in item_type.lower() for block in athletic_blocks):
+                logger.info(f"🚫 FORMAL HARD FILTER: BLOCKED ATHLETIC ITEM '{item_name[:40]}'")
+                return False
+            
+            # Check metadata for athletic/casual formalLevel
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    if formal_level in ['athletic', 'sport']:
+                        logger.info(f"🚫 FORMAL METADATA: BLOCKED {item_name[:40]} - formalLevel={formal_level}")
+                        return False
+            
+            # Block overly casual items for interview/business
+            if occasion_lower in ['interview', 'business']:
+                casual_blocks = [
+                    'ripped', 'distressed', 'torn', 'graphic tee', 't-shirt with logo',
+                    'flip-flop', 'slide', 'sandal', 'crocs'
+                ]
+                
+                if any(block in item_name.lower() for block in casual_blocks):
+                    logger.info(f"🚫 BUSINESS HARD FILTER: BLOCKED TOO CASUAL '{item_name[:40]}'")
+                    return False
+                
+                # Block shorts unless they're dress/bermuda shorts
+                if 'shorts' in item_name.lower() and not any(kw in item_name.lower() for kw in ['bermuda', 'dress shorts', 'tailored shorts']):
+                    logger.info(f"🚫 BUSINESS HARD FILTER: BLOCKED CASUAL SHORTS '{item_name[:40]}'")
+                    return False
+            
+            logger.info(f"✅ FORMAL HARD FILTER: PASSED '{item_name[:40]}'")
+        
+        # LOUNGEWEAR/HOME HARD BLOCKS - Block formal/structured items
+        if occasion_lower in ['loungewear', 'home', 'sleep', 'relax']:
+            logger.info(f"🏠 LOUNGEWEAR FILTER ACTIVE for {occasion}")
+            
+            # Block formal wear
+            formal_blocks = [
+                'suit', 'tuxedo', 'blazer', 'sport coat', 'tie', 'bow tie',
+                'dress shirt', 'oxford shoes', 'heels', 'pumps',
+                'dress pants', 'slacks', 'pencil skirt'
+            ]
+            
+            if any(block in item_name.lower() or block in item_type.lower() for block in formal_blocks):
+                logger.info(f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED FORMAL ITEM '{item_name[:40]}'")
+                return False
+            
+            # Check metadata for formal formalLevel
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    if formal_level in ['formal', 'business', 'professional']:
+                        logger.info(f"🚫 LOUNGEWEAR METADATA: BLOCKED {item_name[:40]} - formalLevel={formal_level}")
+                        return False
+            
+            logger.info(f"✅ LOUNGEWEAR HARD FILTER: PASSED '{item_name[:40]}'")
+        
+        # PARTY/DATE HARD BLOCKS - Block overly casual/athletic items
+        if occasion_lower in ['party', 'date', 'night out', 'club', 'dinner']:
+            logger.info(f"🎉 PARTY/DATE FILTER ACTIVE for {occasion}")
+            
+            # Block gym/athletic wear
+            athletic_blocks = [
+                'athletic', 'gym', 'workout', 'training', 'sport shorts',
+                'sweatpants', 'joggers', 'yoga pants', 'leggings with athletic',
+                'hoodie', 'sweatshirt', 'basketball shorts', 'running shoes'
+            ]
+            
+            if any(block in item_name.lower() for block in athletic_blocks):
+                logger.info(f"🚫 PARTY/DATE HARD FILTER: BLOCKED ATHLETIC ITEM '{item_name[:40]}'")
+                return False
+            
+            # Block overly casual items
+            too_casual_blocks = [
+                'crocs', 'flip-flop', 'slide sandal',
+                'graphic tee', 'band tee',
+                'pajama', 'sleepwear'
+            ]
+            
+            if any(block in item_name.lower() for block in too_casual_blocks):
+                logger.info(f"🚫 PARTY/DATE HARD FILTER: BLOCKED TOO CASUAL '{item_name[:40]}'")
+                return False
+            
+            logger.info(f"✅ PARTY/DATE HARD FILTER: PASSED '{item_name[:40]}'")
+        
         # Try compatibility matrix (will likely fail but doesn't matter now)
         try:
             from ..services.compatibility_matrix import CompatibilityMatrix
@@ -2752,12 +2849,14 @@ class RobustOutfitGenerationService:
             # This will always fail - CompatibilityMatrix doesn't exist
             pass
         
-        # Basic hard constraints (fallback)
+        # Basic hard constraints (fallback for all occasions)
         hard_constraints = [
-            (item_type == 'tuxedo' and occasion_lower == 'athletic'),
-            (item_type == 'evening_gown' and occasion_lower == 'athletic'),
-            ('bikini' in item_name and occasion_lower == 'business'),
-            ('swimwear' in item_name and occasion_lower == 'business'),
+            (item_type == 'tuxedo' and occasion_lower in ['athletic', 'gym', 'workout']),
+            (item_type == 'evening_gown' and occasion_lower in ['athletic', 'gym', 'workout']),
+            ('bikini' in item_name and occasion_lower in ['business', 'interview', 'work']),
+            ('swimwear' in item_name and occasion_lower in ['business', 'interview', 'work']),
+            ('pajama' in item_name and occasion_lower not in ['home', 'loungewear', 'sleep']),
+            ('sleepwear' in item_name and occasion_lower not in ['home', 'loungewear', 'sleep']),
         ]
         
         for constraint in hard_constraints:
