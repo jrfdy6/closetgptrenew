@@ -2554,17 +2554,25 @@ class RobustOutfitGenerationService:
                 logger.info(f"🏋️ GYM TOP CHECK: {item_name[:40]} (type={item_type})")
                 
                 # STEP 1: Check METADATA first
+                metadata_has_collar = False
                 if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
                     visual_attrs = item.metadata.get('visualAttributes', {})
                     if isinstance(visual_attrs, dict):
                         formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                        neckline = (visual_attrs.get('neckline') or '').lower()
+                        
+                        # Check for collar/button features in metadata
+                        if 'collar' in neckline or 'polo' in neckline or 'button' in neckline:
+                            metadata_has_collar = True
+                            logger.info(f"🚫 GYM METADATA: BLOCKED TOP {item_name[:40]} - neckline={neckline} (collar detected)")
+                            return False
                         
                         # Block formal tops immediately
                         if formal_level in ['formal', 'business', 'dress', 'professional']:
                             logger.info(f"🚫 GYM METADATA: BLOCKED TOP {item_name[:40]} - formalLevel={formal_level}")
                             return False
-                        # Allow athletic tops immediately
-                        elif formal_level in ['athletic', 'sport', 'casual']:
+                        # Only allow athletic if it's truly athletic wear (not just casual)
+                        elif formal_level in ['athletic', 'sport']:
                             logger.info(f"✅ GYM METADATA: ALLOWED TOP {item_name[:40]} - formalLevel={formal_level}")
                             return True  # Don't check name
                 
