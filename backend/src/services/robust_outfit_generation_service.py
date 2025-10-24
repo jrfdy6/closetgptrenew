@@ -2431,7 +2431,7 @@ class RobustOutfitGenerationService:
         item_type = str(getattr(item, 'type', '')).lower()
         occasion_lower = occasion.lower()
         
-        logger.info(f"🔍 HARD FILTER ENTRY: Checking '{item_name[:30]}' for {occasion}")
+        logger.info(f"🔍 HARD FILTER ENTRY: Checking '{item_name[:30]}' (type={item_type}) for {occasion}")
         
         # GYM/ATHLETIC HARD BLOCKS FIRST - Block formal/structured items BEFORE anything else
         if occasion_lower in ['gym', 'athletic', 'workout']:
@@ -2542,8 +2542,11 @@ class RobustOutfitGenerationService:
                 return False
             
             # BLOCK NON-ATHLETIC TOPS (sweaters, hoodies without athletic features, casual tops)
-            if item_type in ['shirt', 'top', 'sweater', 'hoodie', 'jacket', 'outerwear']:
-                logger.info(f"🏋️ GYM TOP CHECK: {item_name[:40]}")
+            # Include ALL shirt types: shirt, t-shirt, t_shirt, dress_shirt, polo, etc.
+            if item_type in ['shirt', 'top', 'sweater', 'hoodie', 'jacket', 'outerwear', 
+                             'dress_shirt', 't-shirt', 't_shirt', 'polo', 'blouse', 
+                             'tank_top', 'crop_top', 'cardigan', 'blazer', 'coat', 'vest']:
+                logger.info(f"🏋️ GYM TOP CHECK: {item_name[:40]} (type={item_type})")
                 
                 # STEP 1: Check METADATA first
                 if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
@@ -2578,9 +2581,10 @@ class RobustOutfitGenerationService:
                 # Block casual sweaters/tops (no metadata = not verified as athletic)
                 casual_top_blocks = [
                     'sweater', 'cardigan', 'pullover', 'turtleneck',
-                    'henley', 'flannel',
+                    'henley', 'flannel', 'cable knit', 'cable-knit',
                     'zip sweater', 'ribbed sweater', 'knit sweater',
-                    'casual shirt', 'dress shirt'
+                    'casual shirt', 'dress shirt', 'button up', 'button down', 
+                    'button-up', 'button-down', 'polo shirt'
                 ]
                 
                 # Only allow if it has explicit athletic qualifier
