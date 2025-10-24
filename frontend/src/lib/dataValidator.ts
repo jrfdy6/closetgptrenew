@@ -235,6 +235,11 @@ export class DataValidator {
     sanitized.brand = this.sanitizeString(item.brand) || null;
     sanitized.wearCount = Math.max(0, Math.floor(item.wearCount || 0));
     sanitized.favorite_score = Math.max(0, Math.min(10, item.favorite_score || 0));
+    
+    // CRITICAL: Preserve metadata field (was being stripped by sanitization!)
+    if (item.metadata && typeof item.metadata === 'object') {
+      sanitized.metadata = item.metadata;
+    }
 
     return {
       isValid: errors.length === 0,

@@ -501,6 +501,17 @@ export default function OutfitGenerationPage() {
       
       const convertedData = convertToPydanticShape(requestData);
       
+      // DEBUG: Check if converted wardrobe actually has metadata
+      if (convertedData.wardrobe && convertedData.wardrobe.length > 0) {
+        const firstConverted = convertedData.wardrobe[0];
+        console.log('🔍 AFTER CONVERSION: First item keys:', Object.keys(firstConverted));
+        console.log('🔍 AFTER CONVERSION: metadata present?', 'metadata' in firstConverted);
+        if ('metadata' in firstConverted) {
+          console.log('🔍 AFTER CONVERSION: metadata keys:', Object.keys(firstConverted.metadata));
+          console.log('🔍 AFTER CONVERSION: visualAttributes?', firstConverted.metadata.visualAttributes);
+        }
+      }
+      
       if (!validateConvertedData(convertedData)) {
         throw new Error('Data validation failed');
       }
@@ -512,6 +523,12 @@ export default function OutfitGenerationPage() {
         ...convertedData,
         generation_mode: 'robust'
       };
+      
+      // DEBUG: Check if metadata still exists after spread
+      if (requestWithMode.wardrobe && requestWithMode.wardrobe.length > 0) {
+        const firstInRequest = requestWithMode.wardrobe[0];
+        console.log('🔍 BEFORE API CALL: First item has metadata?', 'metadata' in firstInRequest);
+      }
       
       // Use robust API client with comprehensive error handling
       const response = await generateOutfit(requestWithMode, authToken);
