@@ -204,17 +204,19 @@ async def generate_personalized_outfit_from_existing_data(
                                 if 'type' in item_copy and isinstance(item_copy['type'], str):
                                     item_copy['type'] = item_copy['type'].lower()
                                 
-                                # DEBUG: Log metadata before conversion
-                                if 'metadata' in item_copy:
-                                    logger.warning(f"🔍 METADATA DEBUG: Item {idx} '{item_copy.get('name', 'unknown')}' has metadata: {type(item_copy['metadata'])} = {item_copy['metadata']}")
-                                else:
-                                    logger.warning(f"🔍 METADATA DEBUG: Item {idx} '{item_copy.get('name', 'unknown')}' has NO metadata field")
+                                # DEBUG: Log metadata before conversion (ONLY for first 3 items to reduce log spam)
+                                if idx < 3:
+                                    if 'metadata' in item_copy:
+                                        logger.warning(f"🔍 METADATA DEBUG: Item {idx} '{item_copy.get('name', 'unknown')[:30]}' has metadata keys: {list(item_copy['metadata'].keys()) if isinstance(item_copy['metadata'], dict) else 'NOT A DICT'}")
+                                    else:
+                                        logger.warning(f"🔍 METADATA DEBUG: Item {idx} '{item_copy.get('name', 'unknown')[:30]}' has NO metadata field")
                                 
                                 # Convert dict to ClothingItem
                                 converted_item = ClothingItem(**item_copy)
                                 
-                                # DEBUG: Log metadata after conversion
-                                logger.warning(f"🔍 METADATA DEBUG: After conversion, metadata = {converted_item.metadata}")
+                                # DEBUG: Log metadata after conversion (ONLY for first 3 items)
+                                if idx < 3:
+                                    logger.warning(f"🔍 METADATA DEBUG: After conversion, metadata = {'EXISTS' if converted_item.metadata else 'None'}")
                                 
                                 wardrobe_items.append(converted_item)
                             else:
