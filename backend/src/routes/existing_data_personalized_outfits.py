@@ -23,7 +23,7 @@ UPGRADED TO USE ROBUST SERVICE:
 import logging
 import time
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 
 # Import the existing data personalization engine
@@ -130,6 +130,7 @@ async def test_endpoint():
 @router.post("/generate-personalized", response_model=OutfitResponse)
 async def generate_personalized_outfit_from_existing_data(
     req: OutfitGenerationRequest,
+    request: Request,
     current_user_id: str = Depends(get_current_user_id)
 ):
     """
@@ -142,6 +143,18 @@ async def generate_personalized_outfit_from_existing_data(
     4. Uses existing Firebase data (no duplication)
     """
     start_time = time.time()
+    
+    # DEBUG: Log parsed request to see if metadata is present
+    try:
+        if req.wardrobe and len(req.wardrobe) > 0:
+            sample_item = req.wardrobe[0]
+            logger.warning(f"🔍 PARSED REQUEST: First wardrobe item keys: {list(sample_item.keys())}")
+            logger.warning(f"🔍 PARSED REQUEST: metadata field present? {'metadata' in sample_item}")
+            if 'metadata' in sample_item:
+                logger.warning(f"🔍 PARSED REQUEST: metadata type: {type(sample_item['metadata'])}")
+                logger.warning(f"🔍 PARSED REQUEST: metadata value sample: {str(sample_item['metadata'])[:200]}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to inspect parsed request: {e}")
     
     try:
         # Validate user
