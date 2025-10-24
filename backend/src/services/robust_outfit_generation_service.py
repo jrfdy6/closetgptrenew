@@ -389,7 +389,7 @@ class RobustOutfitGenerationService:
         # Fallback to raw field (normalize it ourselves)
         # Handle both dict and Pydantic objects
         if isinstance(item, dict):
-        raw_values = item.get(field_name, [])
+            raw_values = item.get(field_name, [])
         else:
             # Pydantic object - use getattr
             raw_values = getattr(item, field_name, [])
