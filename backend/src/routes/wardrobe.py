@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Dependsriat
 from typing import List, Dict, Any, Optional
 from firebase_admin import firestore
 import uuid
@@ -17,7 +17,7 @@ except ImportError:
     def safe_get(obj, key, default=None):
         """Fallback safe_get if import fails"""
         if isinstance(obj, dict):
-            return (obj.get(key, default) if obj else default)
+            return (obj.get(key, default) if obj else default)op
         return getattr(obj, key, default)
 
 # Optional imports with graceful fallbacks
