@@ -2653,9 +2653,9 @@ class RobustOutfitGenerationService:
                         waistband_type = visual_attrs.get('waistbandType')
                 else:
                     # Legacy Pydantic object format
-                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                if visual_attrs:
-                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                    if visual_attrs:
+                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -2735,11 +2735,11 @@ class RobustOutfitGenerationService:
                             texture_style = (visual_attrs.get('textureStyle') or '').lower()
                     else:
                         # Legacy Pydantic object format
-                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                    if visual_attrs:
-                        pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
-                        material = str(getattr(visual_attrs, 'material', '')).lower()
-                        fit = str(getattr(visual_attrs, 'fit', '')).lower()
+                        visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                        if visual_attrs:
+                            pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
+                            material = str(getattr(visual_attrs, 'material', '')).lower()
+                            fit = str(getattr(visual_attrs, 'fit', '')).lower()
                             sleeve_length = str(getattr(visual_attrs, 'sleeveLength', '')).lower()
                             fabric_weight = str(getattr(visual_attrs, 'fabricWeight', '')).lower()
                             warmth_factor = str(getattr(visual_attrs, 'warmthFactor', '')).lower()
@@ -3012,9 +3012,9 @@ class RobustOutfitGenerationService:
                             logger.debug(f"  🚫🚫 LOUNGEWEAR: Formal material in metadata (material={material}): {-3.0 * occasion_multiplier:.2f}")
                 else:
                     # Legacy Pydantic object format
-                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                if visual_attrs:
-                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                    if visual_attrs:
+                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -3233,9 +3233,9 @@ class RobustOutfitGenerationService:
                     waistband_type = visual_attrs.get('waistbandType')
             else:
                 # Legacy Pydantic object format
-            visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-            if visual_attrs:
-                waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
         
         if waistband_type and waistband_type != 'none':
             # Map waistband types to formality levels (0-5 scale)
