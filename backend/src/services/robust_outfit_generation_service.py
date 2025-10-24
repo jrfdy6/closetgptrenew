@@ -295,6 +295,14 @@ class RobustOutfitGenerationService:
         from .metadata_compatibility_analyzer import MetadataCompatibilityAnalyzer
         self.metadata_analyzer = MetadataCompatibilityAnalyzer()
         
+        # Data quality tracking for metadata/name conflicts
+        self.conflict_stats = {
+            'total_items_checked': 0,
+            'minor_conflicts': 0,
+            'major_conflicts': 0,
+            'conflicts_by_field': {}
+        }
+        
         self.generation_strategies = [
             GenerationStrategy.COHESIVE_COMPOSITION,
             GenerationStrategy.BODY_TYPE_OPTIMIZED,
@@ -400,6 +408,161 @@ class RobustOutfitGenerationService:
             return [raw_values.lower()]
         
         return []
+    
+    def _detect_metadata_name_conflict(self, item: ClothingItem, field_name: str, metadata_value: str) -> dict:
+        """
+        Detect conflicts between metadata and item name.
+        Returns: {
+            'has_conflict': bool,
+            'severity': 'none'|'minor'|'major',
+            'confidence_penalty': float,
+            'should_log': bool,
+            'message': str
+        }
+        """
+        item_name = self.safe_get_item_name(item).lower()
+        metadata_lower = metadata_value.lower() if metadata_value else ''
+        
+        # No metadata = no conflict (will use name as fallback)
+        if not metadata_value:
+            return {
+                'has_conflict': False,
+                'severity': 'none',
+                'confidence_penalty': 0.0,
+                'should_log': False,
+                'message': ''
+            }
+        
+        # Define conflicting pairs for each field type
+        conflict_pairs = {
+            'bottomType': [
+                (['shorts', 'short'], ['pants', 'trouser', 'jean']),
+                (['pants', 'trouser'], ['shorts', 'short']),
+            ],
+            'waistbandType': [
+                (['elastic', 'drawstring'], ['button', 'zip', 'belt']),
+                (['button', 'zip'], ['elastic', 'drawstring']),
+            ],
+            'neckline': [
+                (['crew', 'round', 'v-neck'], ['collar', 'polo']),
+                (['collar', 'polo'], ['crew', 'round', 'v-neck']),
+            ],
+            'material': [
+                (['polyester', 'nylon', 'synthetic'], ['wool', 'cotton', 'denim']),
+                (['denim'], ['polyester', 'athletic']),
+            ]
+        }
+        
+        # Check for conflicts
+        if field_name in conflict_pairs:
+            for metadata_terms, name_terms in conflict_pairs[field_name]:
+                metadata_match = any(term in metadata_lower for term in metadata_terms)
+                name_match = any(term in item_name for term in name_terms)
+                
+                if metadata_match and name_match:
+                    # MAJOR CONFLICT: Contradictory information
+                    return {
+                        'has_conflict': True,
+                        'severity': 'major',
+                        'confidence_penalty': -0.2,
+                        'should_log': True,
+                        'message': f"metadata.{field_name}='{metadata_value}' conflicts with name='{item_name[:40]}'"
+                    }
+        
+        # Check for minor conflicts (similar but not exact)
+        # e.g., metadata="athletic shorts" vs name="shorts" (compatible, not exact)
+        if metadata_lower and metadata_lower not in item_name:
+            # Minor difference: metadata provides more detail than name
+            return {
+                'has_conflict': True,
+                'severity': 'minor',
+                'confidence_penalty': -0.05,
+                'should_log': False,
+                'message': f"metadata.{field_name}='{metadata_value}' adds detail to name='{item_name[:40]}'"
+            }
+        
+        # No conflict
+        return {
+            'has_conflict': False,
+            'severity': 'none',
+            'confidence_penalty': 0.0,
+            'should_log': False,
+            'message': ''
+        }
+    
+    def _check_and_log_conflicts(self, item: ClothingItem) -> float:
+        """
+        Check for metadata/name conflicts across all key fields.
+        Returns total confidence penalty to apply.
+        """
+        total_penalty = 0.0
+        item_name = self.safe_get_item_name(item)
+        
+        # Track this item
+        self.conflict_stats['total_items_checked'] += 1
+        
+        # Check metadata if it exists
+        if not hasattr(item, 'metadata') or not item.metadata:
+            return 0.0
+        
+        if not isinstance(item.metadata, dict):
+            return 0.0
+        
+        visual_attrs = item.metadata.get('visualAttributes', {})
+        if not isinstance(visual_attrs, dict):
+            return 0.0
+        
+        # Fields to check for conflicts
+        fields_to_check = {
+            'bottomType': visual_attrs.get('bottomType'),
+            'waistbandType': visual_attrs.get('waistbandType'),
+            'neckline': visual_attrs.get('neckline'),
+            'material': visual_attrs.get('material'),
+            'formalLevel': visual_attrs.get('formalLevel'),
+        }
+        
+        # Check each field
+        for field_name, field_value in fields_to_check.items():
+            if field_value:
+                conflict_info = self._detect_metadata_name_conflict(item, field_name, field_value)
+                
+                if conflict_info['has_conflict']:
+                    total_penalty += conflict_info['confidence_penalty']
+                    
+                    # Log based on severity
+                    if conflict_info['severity'] == 'major':
+                        logger.warning(f"⚠️ MAJOR CONFLICT: {item_name[:50]} - {conflict_info['message']}")
+                        self.conflict_stats['major_conflicts'] += 1
+                        # Track by field type
+                        if field_name not in self.conflict_stats['conflicts_by_field']:
+                            self.conflict_stats['conflicts_by_field'][field_name] = 0
+                        self.conflict_stats['conflicts_by_field'][field_name] += 1
+                    elif conflict_info['severity'] == 'minor' and conflict_info['should_log']:
+                        logger.info(f"ℹ️ Minor conflict: {item_name[:50]} - {conflict_info['message']}")
+                        self.conflict_stats['minor_conflicts'] += 1
+        
+        return total_penalty
+    
+    def get_conflict_statistics(self) -> dict:
+        """Return conflict statistics for data quality monitoring"""
+        if self.conflict_stats['total_items_checked'] == 0:
+            return {
+                'total_checked': 0,
+                'conflict_rate': 0.0,
+                'major_conflicts': 0,
+                'minor_conflicts': 0,
+                'conflicts_by_field': {}
+            }
+        
+        total_conflicts = self.conflict_stats['major_conflicts'] + self.conflict_stats['minor_conflicts']
+        
+        return {
+            'total_checked': self.conflict_stats['total_items_checked'],
+            'conflict_rate': round(total_conflicts / self.conflict_stats['total_items_checked'], 3),
+            'major_conflicts': self.conflict_stats['major_conflicts'],
+            'minor_conflicts': self.conflict_stats['minor_conflicts'],
+            'conflicts_by_field': self.conflict_stats['conflicts_by_field']
+        }
     
     async def generate_outfit(self, context: GenerationContext) -> OutfitGeneratedOutfit:
         """Generate an outfit with multi-layered scoring system"""
@@ -790,7 +953,10 @@ class RobustOutfitGenerationService:
             # Apply session-based diversity penalty (prevents repetition within same generation session)
             session_penalty = session_tracker.get_diversity_penalty(session_id, item_id)
             
-            final_score = base_score + soft_penalty + session_penalty
+            # Check for metadata/name conflicts and apply confidence penalty
+            conflict_penalty = self._check_and_log_conflicts(scores['item'])
+            
+            final_score = base_score + soft_penalty + session_penalty + conflict_penalty
             
             scores['composite_score'] = final_score
             scores['diversity_score'] = diversity_score
@@ -970,6 +1136,16 @@ class RobustOutfitGenerationService:
         
         logger.info(f"✅ ROBUST GENERATION SUCCESS: Generated outfit with {len(outfit.items)} items")
         logger.info(f"📦 Final outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
+        
+        # Log conflict statistics for data quality monitoring
+        conflict_stats = self.get_conflict_statistics()
+        if conflict_stats['total_checked'] > 0:
+            logger.info(f"📊 DATA QUALITY: Checked {conflict_stats['total_checked']} items, "
+                       f"conflict_rate={conflict_stats['conflict_rate']*100:.1f}%, "
+                       f"major={conflict_stats['major_conflicts']}, "
+                       f"minor={conflict_stats['minor_conflicts']}")
+            if conflict_stats['conflicts_by_field']:
+                logger.info(f"📊 CONFLICTS BY FIELD: {conflict_stats['conflicts_by_field']}")
         
         return outfit
     
@@ -2353,7 +2529,7 @@ class RobustOutfitGenerationService:
                     
                     if not has_athletic_occasion:
                         logger.info(f"🚫 GYM HARD FILTER: BLOCKED CASUAL TOP '{item_name[:40]}' - No athletic features")
-                        return False
+                return False
             
             # COMPREHENSIVE SHOE CHECK FOR GYM
             if item_type in ['shoes', 'boots', 'footwear'] or 'shoe' in item_type:
