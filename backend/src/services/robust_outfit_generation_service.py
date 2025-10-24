@@ -389,7 +389,7 @@ class RobustOutfitGenerationService:
         # Fallback to raw field (normalize it ourselves)
         # Handle both dict and Pydantic objects
         if isinstance(item, dict):
-            raw_values = item.get(field_name, [])
+        raw_values = item.get(field_name, [])
         else:
             # Pydantic object - use getattr
             raw_values = getattr(item, field_name, [])
@@ -2027,6 +2027,14 @@ class RobustOutfitGenerationService:
         debug_analysis = []
         valid_items = []
         
+        # Get user gender for filtering
+        user_gender = None
+        if context and context.user_profile:
+            user_gender = safe_get(context.user_profile, 'gender', None)
+            if user_gender:
+                user_gender = user_gender.lower()
+                logger.info(f"🚻 GENDER FILTER: User gender = {user_gender}")
+        
         # Apply filtering logic matching the JavaScript implementation
         for raw_item in (context.wardrobe if context else []):
             # Normalize item metadata
@@ -2035,6 +2043,22 @@ class RobustOutfitGenerationService:
             ok_occ = False
             ok_style = False
             ok_mood = False
+            
+            # METADATA CHECK: Gender filtering (EARLY - before other filters)
+            if user_gender:
+                gender_appropriate = True
+                if hasattr(raw_item, 'metadata') and raw_item.metadata:
+                    if isinstance(raw_item.metadata, dict):
+                        visual_attrs = raw_item.metadata.get('visualAttributes', {})
+                        if isinstance(visual_attrs, dict):
+                            gender_target = (visual_attrs.get('genderTarget') or '').lower()
+                            if gender_target and gender_target not in ['unisex', 'all', '']:
+                                if gender_target != user_gender:
+                                    gender_appropriate = False
+                                    logger.info(f"🚫 GENDER FILTER: Blocked '{item.get('name', 'Unknown')[:40]}' - genderTarget={gender_target}, user={user_gender}")
+                
+                if not gender_appropriate:
+                    continue  # Skip this item entirely
             
             if semantic_filtering:
                 # Use semantic filtering with compatibility helpers
@@ -2403,7 +2427,7 @@ class RobustOutfitGenerationService:
                 else:
                     logger.info(f"🚫 GYM HARD FILTER: BLOCKED GENERIC/UNCLEAR SHOES '{item_name[:40]}' - Must be explicitly athletic")
                     return False
-            
+                
             # GYM FILTERING: Block COLLARED shirts only (allow plain shirts/tees)
             if item_type in ['shirt', 'top', 'blouse']:
                 # Check for collar in item NAME
@@ -2629,9 +2653,9 @@ class RobustOutfitGenerationService:
                         waistband_type = visual_attrs.get('waistbandType')
                 else:
                     # Legacy Pydantic object format
-                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                    if visual_attrs:
-                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -2693,6 +2717,7 @@ class RobustOutfitGenerationService:
                 warmth_factor = None
                 formal_level = None
                 silhouette = None
+                texture_style = None
                 
                 if hasattr(item, 'metadata') and item.metadata:
                     if isinstance(item.metadata, dict):
@@ -2707,18 +2732,20 @@ class RobustOutfitGenerationService:
                             warmth_factor = (visual_attrs.get('warmthFactor') or '').lower()
                             formal_level = (visual_attrs.get('formalLevel') or '').lower()
                             silhouette = (visual_attrs.get('silhouette') or '').lower()
+                            texture_style = (visual_attrs.get('textureStyle') or '').lower()
                     else:
                         # Legacy Pydantic object format
-                        visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                        if visual_attrs:
-                            pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
-                            material = str(getattr(visual_attrs, 'material', '')).lower()
-                            fit = str(getattr(visual_attrs, 'fit', '')).lower()
+                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                    if visual_attrs:
+                        pattern = str(getattr(visual_attrs, 'pattern', '')).lower()
+                        material = str(getattr(visual_attrs, 'material', '')).lower()
+                        fit = str(getattr(visual_attrs, 'fit', '')).lower()
                             sleeve_length = str(getattr(visual_attrs, 'sleeveLength', '')).lower()
                             fabric_weight = str(getattr(visual_attrs, 'fabricWeight', '')).lower()
                             warmth_factor = str(getattr(visual_attrs, 'warmthFactor', '')).lower()
                             formal_level = str(getattr(visual_attrs, 'formalLevel', '')).lower()
                             silhouette = str(getattr(visual_attrs, 'silhouette', '')).lower()
+                            texture_style = str(getattr(visual_attrs, 'textureStyle', '')).lower()
                 
                 # PATTERN SCORING - Simple patterns better for gym
                 if pattern:
@@ -2818,6 +2845,15 @@ class RobustOutfitGenerationService:
                     elif silhouette in ['fitted', 'tailored', 'structured']:
                         penalty -= 0.4 * occasion_multiplier
                         logger.debug(f"  ⚠️ SILHOUETTE: {silhouette.capitalize()} restricts movement ({-0.4 * occasion_multiplier:.2f})")
+                
+                # TEXTURE STYLE SCORING - Smooth textures better for gym (less friction)
+                if texture_style:
+                    if texture_style in ['smooth', 'soft', 'silky']:
+                        penalty += 0.4 * occasion_multiplier
+                        logger.debug(f"  ✅ TEXTURE: {texture_style.capitalize()} comfortable for gym (+{0.4 * occasion_multiplier:.2f})")
+                    elif texture_style in ['rough', 'coarse', 'stiff']:
+                        penalty -= 0.3 * occasion_multiplier
+                        logger.debug(f"  ⚠️ TEXTURE: {texture_style.capitalize()} uncomfortable for gym ({-0.3 * occasion_multiplier:.2f})")
         
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
@@ -2839,6 +2875,7 @@ class RobustOutfitGenerationService:
                     formal_level = (visual_attrs.get('formalLevel') or '').lower()
                     silhouette = (visual_attrs.get('silhouette') or '').lower()
                     length = (visual_attrs.get('length') or '').lower()
+                    texture_style = (visual_attrs.get('textureStyle') or '').lower()
                     
                     # Boost formal materials
                     if material in ['wool', 'silk', 'linen', 'cashmere', 'cotton twill']:
@@ -2896,6 +2933,15 @@ class RobustOutfitGenerationService:
                         elif length in ['short', 'shorts', 'cropped', 'capri']:
                             penalty -= 2.0 * occasion_multiplier  # MAJOR penalty for shorts at formal event
                             logger.debug(f"  🚫🚫 FORMAL LENGTH: Shorts inappropriate for formal ({-2.0 * occasion_multiplier:.2f})")
+                    
+                    # TEXTURE STYLE - Refined textures better for formal
+                    if texture_style:
+                        if texture_style in ['smooth', 'silky', 'refined', 'crisp']:
+                            penalty += 0.5 * occasion_multiplier
+                            logger.debug(f"  ✅ FORMAL TEXTURE: {texture_style.capitalize()} appropriate for formal (+{0.5 * occasion_multiplier:.2f})")
+                        elif texture_style in ['distressed', 'worn', 'rough']:
+                            penalty -= 0.6 * occasion_multiplier
+                            logger.debug(f"  ⚠️ FORMAL TEXTURE: {texture_style.capitalize()} too casual ({-0.6 * occasion_multiplier:.2f})")
                     
                     # Penalty for athletic materials
                     if material in ['mesh', 'performance', 'synthetic', 'spandex']:
@@ -2966,9 +3012,9 @@ class RobustOutfitGenerationService:
                             logger.debug(f"  🚫🚫 LOUNGEWEAR: Formal material in metadata (material={material}): {-3.0 * occasion_multiplier:.2f}")
                 else:
                     # Legacy Pydantic object format
-                    visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                    if visual_attrs:
-                        waistband_type = getattr(visual_attrs, 'waistbandType', None)
+                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+                if visual_attrs:
+                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
             
             if waistband_type:
                 if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
@@ -3187,9 +3233,9 @@ class RobustOutfitGenerationService:
                     waistband_type = visual_attrs.get('waistbandType')
             else:
                 # Legacy Pydantic object format
-                visual_attrs = getattr(item.metadata, 'visualAttributes', None)
-                if visual_attrs:
-                    waistband_type = getattr(visual_attrs, 'waistbandType', None)
+            visual_attrs = getattr(item.metadata, 'visualAttributes', None)
+            if visual_attrs:
+                waistband_type = getattr(visual_attrs, 'waistbandType', None)
         
         if waistband_type and waistband_type != 'none':
             # Map waistband types to formality levels (0-5 scale)
@@ -3814,10 +3860,39 @@ class RobustOutfitGenerationService:
         return score
     
     def _get_item_category(self, item: ClothingItem) -> str:
-        """Get category for an item"""
+        """Get category for an item - METADATA-FIRST approach"""
         item_type = getattr(item, 'type', '')
         item_name = getattr(item, 'name', 'Unknown')
         
+        # METADATA CHECK: Use coreCategory from metadata if available (most accurate!)
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    core_category = (visual_attrs.get('coreCategory') or '').lower()
+                    if core_category:
+                        # Map coreCategory values to our category system
+                        core_category_map = {
+                            'top': 'tops',
+                            'tops': 'tops',
+                            'shirt': 'tops',
+                            'bottom': 'bottoms',
+                            'bottoms': 'bottoms',
+                            'pants': 'bottoms',
+                            'shorts': 'bottoms',
+                            'shoe': 'shoes',
+                            'shoes': 'shoes',
+                            'footwear': 'shoes',
+                            'outerwear': 'outerwear',
+                            'jacket': 'outerwear',
+                            'accessory': 'accessories',
+                            'accessories': 'accessories'
+                        }
+                        if core_category in core_category_map:
+                            logger.debug(f"🏷️ CATEGORY (metadata): '{item_name[:50]}' coreCategory='{core_category}' → '{core_category_map[core_category]}'")
+                            return core_category_map[core_category]
+        
+        # Fallback to type-based detection
         # Handle enum types (e.g., ClothingType.SHIRT)
         if hasattr(item_type, 'value'):
             item_type = item_type.value.lower()
@@ -3855,7 +3930,7 @@ class RobustOutfitGenerationService:
         category = (safe_get(category_map, item_type, 'other') if category_map else 'other')
         
         # 🔍 DIAGNOSTIC LOGGING - Track category assignment for debugging
-        logger.debug(f"🏷️ CATEGORY: '{item_name[:50]}' type='{item_type}' → category='{category}'")
+        logger.debug(f"🏷️ CATEGORY (type-based): '{item_name[:50]}' type='{item_type}' → category='{category}'")
         
         return category
     
@@ -4277,6 +4352,7 @@ class RobustOutfitGenerationService:
                 fabric_weight = None
                 sleeve_length = None
                 length = None
+                temp_compat = None
                 
                 if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
                     visual_attrs = item.metadata.get('visualAttributes', {})
@@ -4285,6 +4361,36 @@ class RobustOutfitGenerationService:
                         fabric_weight = (visual_attrs.get('fabricWeight') or '').lower()
                         sleeve_length = (visual_attrs.get('sleeveLength') or '').lower()
                         length = (visual_attrs.get('length') or '').lower()
+                        temp_compat = visual_attrs.get('temperatureCompatibility')
+                
+                # TEMPERATURE COMPATIBILITY - PRECISE matching (highest priority)
+                if temp_compat and isinstance(temp_compat, dict):
+                    min_temp = temp_compat.get('minTemp')
+                    max_temp = temp_compat.get('maxTemp')
+                    optimal_min = temp_compat.get('optimalMin')
+                    optimal_max = temp_compat.get('optimalMax')
+                    
+                    if min_temp is not None and max_temp is not None:
+                        if min_temp <= temp <= max_temp:
+                            # Within acceptable range
+                            if optimal_min is not None and optimal_max is not None:
+                                if optimal_min <= temp <= optimal_max:
+                                    base_score += 0.5  # Perfect temperature match!
+                                    logger.debug(f"  ✅✅✅ TEMP COMPAT: Perfect temp match {temp}°F in optimal range [{optimal_min}-{optimal_max}] (+0.5)")
+                                else:
+                                    base_score += 0.3  # Acceptable but not optimal
+                                    logger.debug(f"  ✅ TEMP COMPAT: Acceptable temp {temp}°F in range [{min_temp}-{max_temp}] (+0.3)")
+                            else:
+                                base_score += 0.35  # Good match
+                                logger.debug(f"  ✅ TEMP COMPAT: Good temp match {temp}°F in range [{min_temp}-{max_temp}] (+0.35)")
+                        else:
+                            # Outside acceptable range
+                            if temp < min_temp:
+                                base_score -= 0.4  # Too cold for this item
+                                logger.debug(f"  🚫 TEMP COMPAT: Too cold {temp}°F < {min_temp}°F min ({-0.4})")
+                            else:  # temp > max_temp
+                                base_score -= 0.4  # Too hot for this item
+                                logger.debug(f"  🚫 TEMP COMPAT: Too hot {temp}°F > {max_temp}°F max ({-0.4})")
                 
                 # WARMTH FACTOR SCORING - Match warmth to temperature
                 if warmth_factor:
@@ -4914,9 +5020,39 @@ class RobustOutfitGenerationService:
             
             logger.debug(f"🔍 DEBUG PHASE 1: Processing item {self.safe_get_item_name(item)} - category: {category}, score: {score_data['composite_score']:.2f}")
             
-            # Determine layering level
+            # METADATA CHECK: Determine layering level from metadata first, fallback to keywords
             layer_level = 'tops'  # Default
-            if category == 'tops':
+            can_layer = True  # Default
+            max_layers = 3  # Default
+            
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    # Use metadata layerLevel if available
+                    metadata_layer_level = visual_attrs.get('layerLevel')
+                    wear_layer = (visual_attrs.get('wearLayer') or '').lower()
+                    can_layer_meta = visual_attrs.get('canLayer')
+                    max_layers_meta = visual_attrs.get('maxLayers')
+                    
+                    if wear_layer:
+                        layer_level = wear_layer  # Use metadata layer (base, mid, outer)
+                        logger.debug(f"  🔍 LAYER: Using metadata wearLayer={wear_layer}")
+                    elif metadata_layer_level:
+                        # Convert numeric to text (1=base, 2=mid, 3=outer)
+                        layer_map = {1: 'base', 2: 'mid', 3: 'outerwear'}
+                        layer_level = layer_map.get(metadata_layer_level, 'tops')
+                        logger.debug(f"  🔍 LAYER: Using metadata layerLevel={metadata_layer_level} → {layer_level}")
+                    
+                    if can_layer_meta is not None:
+                        can_layer = can_layer_meta
+                        logger.debug(f"  🔍 LAYER: canLayer={can_layer}")
+                    
+                    if max_layers_meta is not None:
+                        max_layers = max_layers_meta
+                        logger.debug(f"  🔍 LAYER: maxLayers={max_layers}")
+            
+            # Fallback to keyword-based detection if no metadata
+            if layer_level == 'tops' and category == 'tops':
                 if any(kw in item_name_lower for kw in ['tank', 'cami', 'base', 'undershirt']):
                     layer_level = 'base'
                 elif any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'hoodie']):
