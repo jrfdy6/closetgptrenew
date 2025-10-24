@@ -191,8 +191,19 @@ async def generate_personalized_outfit_from_existing_data(
                                 if 'type' in item_copy and isinstance(item_copy['type'], str):
                                     item_copy['type'] = item_copy['type'].lower()
                                 
+                                # DEBUG: Log metadata before conversion
+                                if 'metadata' in item_copy:
+                                    logger.warning(f"🔍 METADATA DEBUG: Item {idx} '{item_copy.get('name', 'unknown')}' has metadata: {type(item_copy['metadata'])} = {item_copy['metadata']}")
+                                else:
+                                    logger.warning(f"🔍 METADATA DEBUG: Item {idx} '{item_copy.get('name', 'unknown')}' has NO metadata field")
+                                
                                 # Convert dict to ClothingItem
-                                wardrobe_items.append(ClothingItem(**item_copy))
+                                converted_item = ClothingItem(**item_copy)
+                                
+                                # DEBUG: Log metadata after conversion
+                                logger.warning(f"🔍 METADATA DEBUG: After conversion, metadata = {converted_item.metadata}")
+                                
+                                wardrobe_items.append(converted_item)
                             else:
                                 wardrobe_items.append(item_data)
                         except Exception as item_error:
