@@ -2261,116 +2261,102 @@ class RobustOutfitGenerationService:
         if occasion_lower in ['gym', 'athletic', 'workout']:
             logger.info(f"🏋️ GYM FILTER ACTIVE for {occasion}")
             
-            # CRITICAL: Block formal/casual pants ONLY (allow athletic pants like joggers/sweatpants)
-            formal_casual_pants_blocks = [
-                'dress pants', 'slacks', 'chino', 'khaki pant', 'khakis',
-                'cargo pants', 'jean', 'jeans', 'denim', 'dockers',
-                'trouser', 'dress trouser', 'suit pants', 'formal pants'
-            ]
-            
-            # Athletic pants that ARE ALLOWED for gym
-            athletic_pants_allowed = [
-                'jogger', 'sweatpants', 'sweat pants', 'track pants', 
-                'athletic pants', 'workout pants', 'gym pants', 'training pants'
-            ]
-            
-            # Check if this is a formal/casual pants item (not athletic pants or shorts!)
-            is_formal_casual_pants = False
-            is_athletic_pants = False
-            
-            if 'short' not in item_name.lower():  # Not shorts
-                # Check if athletic pants (ALLOWED)
-                is_athletic_pants = any(ap in item_name.lower() or ap in item_type for ap in athletic_pants_allowed)
+            # STRICT PANTS FILTER: BLOCK ALL PANTS BY DEFAULT unless explicitly athletic
+            # Only allow shorts OR pants with clear athletic indicators (elastic waistband, athletic material, gym tags)
+            if item_type in ['pants', 'jeans', 'trousers', 'bottoms'] and 'short' not in item_name.lower():
+                # Start with BLOCKED by default
+                is_athletic_pants = False
                 
-                # METADATA CHECK: Check occasion tags
+                # Check 1: Athletic keywords in name
+                athletic_pants_keywords = [
+                    'jogger', 'sweatpants', 'sweat pants', 'track pants', 
+                    'athletic pants', 'workout pants', 'gym pants', 'training pants',
+                    'legging', 'yoga pants', 'running pants'
+                ]
+                if any(ap in item_name.lower() for ap in athletic_pants_keywords):
+                    is_athletic_pants = True
+                    logger.info(f"✅ GYM: Athletic pants keyword found in name: {item_name[:40]}")
+                
+                # Check 2: Occasion tags (METADATA)
                 item_occasions = getattr(item, 'occasion', [])
                 item_occasions_lower = [occ.lower() for occ in item_occasions] if item_occasions else []
-                has_athletic_occasion = any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
+                has_athletic_occasion = any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport', 'running'])
                 has_formal_occasion = any(occ in item_occasions_lower for occ in ['business', 'formal', 'professional', 'work'])
                 
-                # METADATA CHECK: COMPREHENSIVE material, fit, length, formalLevel analysis
-                formal_material_detected = False
-                athletic_material_detected = False
+                if has_formal_occasion:
+                    logger.info(f"🚫 GYM: Formal occasion tag detected: {item_name[:40]}")
+                    return False  # Immediately block formal occasion pants
+                
+                if has_athletic_occasion:
+                    is_athletic_pants = True
+                    logger.info(f"✅ GYM: Athletic occasion tag found: {item_name[:40]}")
+                
+                # Check 3: WAISTBAND TYPE (CRITICAL - most reliable indicator)
+                has_athletic_waistband = False
                 if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
                     visual_attrs = item.metadata.get('visualAttributes', {})
                     if isinstance(visual_attrs, dict):
+                        waistband_type = (visual_attrs.get('waistbandType') or '').lower()
                         material = (visual_attrs.get('material') or '').lower()
-                        fit = (visual_attrs.get('fit') or '').lower()
-                        length = (visual_attrs.get('length') or '').lower()
                         formal_level = (visual_attrs.get('formalLevel') or '').lower()
-                        silhouette = (visual_attrs.get('silhouette') or '').lower()
-                        fabric_weight = (visual_attrs.get('fabricWeight') or '').lower()
                         
-                        # LENGTH CHECK - Shorts allowed, long pants might be formal
-                        if length:
-                            if length in ['short', 'shorts', 'above knee']:
-                                athletic_material_detected = True
-                                logger.info(f"🔍 SHORT LENGTH in metadata: {item_name[:40]} length={length} - Good for gym")
-                            elif length in ['long', 'full', 'ankle'] and not has_athletic_occasion:
-                                # Long pants without athletic tags might be formal
-                                logger.info(f"🔍 LONG LENGTH in metadata: {item_name[:40]} length={length} - Might be formal")
+                        # WAISTBAND CHECK - Most reliable indicator
+                        if waistband_type:
+                            if waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']:
+                                has_athletic_waistband = True
+                                is_athletic_pants = True
+                                logger.info(f"✅ GYM: Athletic waistband detected: {item_name[:40]} waistband={waistband_type}")
+                            elif waistband_type in ['button_zip', 'belt_loops']:
+                                logger.info(f"🚫 GYM: Formal waistband detected: {item_name[:40]} waistband={waistband_type}")
+                                return False  # Immediately block formal waistbands
                         
-                        # FORMAL LEVEL - Direct indicator
-                        if formal_level:
-                            if formal_level in ['formal', 'business', 'dress', 'professional']:
-                                formal_material_detected = True
-                                logger.info(f"🔍 FORMAL LEVEL in metadata: {item_name[:40]} formalLevel={formal_level}")
-                            elif formal_level in ['athletic', 'sport', 'casual']:
-                                athletic_material_detected = True
-                                logger.info(f"🔍 ATHLETIC LEVEL in metadata: {item_name[:40]} formalLevel={formal_level}")
+                        # MATERIAL CHECK
+                        if material in ['polyester', 'mesh', 'performance', 'synthetic', 'nylon', 'spandex', 'elastane', 'fleece']:
+                            is_athletic_pants = True
+                            logger.info(f"✅ GYM: Athletic material detected: {item_name[:40]} material={material}")
+                        elif material in ['wool', 'cotton twill', 'linen', 'cashmere', 'silk', 'denim']:
+                            logger.info(f"🚫 GYM: Formal material detected: {item_name[:40]} material={material}")
+                            return False  # Immediately block formal materials
                         
-                        # Formal materials
-                        if material in ['wool', 'cotton twill', 'linen', 'cashmere', 'silk']:
-                            formal_material_detected = True
-                            logger.info(f"🔍 FORMAL MATERIAL in metadata: {item_name[:40]} material={material}")
-                        
-                        # Athletic materials
-                        if material in ['polyester', 'mesh', 'performance', 'synthetic', 'nylon', 'spandex', 'elastane']:
-                            athletic_material_detected = True
-                            logger.info(f"🔍 ATHLETIC MATERIAL in metadata: {item_name[:40]} material={material}")
-                        
-                        # Formal fit
-                        if fit in ['tailored', 'dress', 'formal']:
-                            formal_material_detected = True
-                            logger.info(f"🔍 FORMAL FIT in metadata: {item_name[:40]} fit={fit}")
-                        
-                        # Athletic fit
-                        if fit in ['athletic', 'relaxed', 'loose']:
-                            athletic_material_detected = True
-                            logger.info(f"🔍 ATHLETIC FIT in metadata: {item_name[:40]} fit={fit}")
-                        
-                        # SILHOUETTE - Relaxed/athletic vs tailored
-                        if silhouette in ['relaxed', 'athletic', 'loose']:
-                            athletic_material_detected = True
-                            logger.info(f"🔍 ATHLETIC SILHOUETTE in metadata: {item_name[:40]} silhouette={silhouette}")
-                        elif silhouette in ['tailored', 'fitted', 'structured']:
-                            formal_material_detected = True
-                            logger.info(f"🔍 FORMAL SILHOUETTE in metadata: {item_name[:40]} silhouette={silhouette}")
-                        
-                        # FABRIC WEIGHT - Light for gym, any for formal
-                        if fabric_weight in ['heavy', 'thick', 'heavyweight']:
-                            formal_material_detected = True
-                            logger.info(f"🔍 HEAVY FABRIC in metadata: {item_name[:40]} fabricWeight={fabric_weight}")
+                        # FORMAL LEVEL CHECK
+                        if formal_level in ['formal', 'business', 'dress', 'professional']:
+                            logger.info(f"🚫 GYM: Formal level detected: {item_name[:40]} formalLevel={formal_level}")
+                            return False  # Immediately block formal level
+                        elif formal_level in ['athletic', 'sport', 'casual']:
+                            is_athletic_pants = True
+                            logger.info(f"✅ GYM: Athletic level detected: {item_name[:40]} formalLevel={formal_level}")
                 
-                # Combine checks: name, type, metadata
-                if has_athletic_occasion or athletic_material_detected:
-                    is_athletic_pants = True
-                
-                # Check if formal/casual pants (BLOCKED)
+                # Final decision: If still not athletic, BLOCK
                 if not is_athletic_pants:
-                    # Block if: formal occasions OR formal materials OR explicit formal keywords in name
-                    is_formal_casual_pants = (
-                        item_type in ['pants', 'jeans', 'trousers'] or
-                        any(p in item_name.lower() for p in formal_casual_pants_blocks) or
-                        has_formal_occasion or
-                        formal_material_detected
-                    )
+                    logger.info(f"🚫 GYM HARD FILTER: BLOCKED GENERIC PANTS '{item_name[:40]}' - No athletic indicators (waistband, material, tags)")
+                    return False
+                else:
+                    logger.info(f"✅ GYM HARD FILTER: ALLOWED ATHLETIC PANTS '{item_name[:40]}' - Has athletic indicators")
             
-            if is_formal_casual_pants:
-                logger.info(f"🚫 GYM HARD FILTER: BLOCKED FORMAL/CASUAL PANTS '{item_name[:40]}' - Only athletic pants/shorts allowed!")
-                return False
-            elif is_athletic_pants:
-                logger.info(f"✅ GYM HARD FILTER: ALLOWED ATHLETIC PANTS '{item_name[:40]}' - Joggers/sweatpants OK for gym")
+            # BLOCK NON-ATHLETIC TOPS (sweaters, hoodies without athletic features, casual tops)
+            if item_type in ['shirt', 'top', 'sweater', 'hoodie', 'jacket', 'outerwear']:
+                # Block casual sweaters, non-athletic hoodies, and formal tops
+                non_athletic_top_keywords = [
+                    'sweater', 'cardigan', 'pullover', 'turtleneck', 'v-neck sweater',
+                    'henley', 'flannel', 'casual shirt'
+                ]
+                
+                # Check if it's a non-athletic top
+                is_casual_top = any(kw in item_name.lower() for kw in non_athletic_top_keywords)
+                
+                # Exception: Athletic hoodies/sweaters are OK
+                athletic_top_keywords = ['athletic', 'gym', 'workout', 'training', 'sport', 'performance']
+                is_athletic_top = any(kw in item_name.lower() for kw in athletic_top_keywords)
+                
+                if is_casual_top and not is_athletic_top:
+                    # Check if it has athletic occasion tags
+                    item_occasions = getattr(item, 'occasion', [])
+                    item_occasions_lower = [occ.lower() for occ in item_occasions] if item_occasions else []
+                    has_athletic_occasion = any(occ in item_occasions_lower for occ in ['athletic', 'gym', 'workout', 'sport'])
+                    
+                    if not has_athletic_occasion:
+                        logger.info(f"🚫 GYM HARD FILTER: BLOCKED CASUAL TOP '{item_name[:40]}' - No athletic features")
+                        return False
             
             # COMPREHENSIVE SHOE CHECK FOR GYM
             if item_type in ['shoes', 'boots', 'footwear'] or 'shoe' in item_type:
