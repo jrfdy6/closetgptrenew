@@ -377,6 +377,18 @@ export async function generateOutfit(requestData: any, authToken?: string): Prom
   
   console.log('🔍 DEBUG: Making API call to existing-data endpoint with converted data');
   
+  // DEBUG: Check if wardrobe has metadata before sending
+  if (requestData.wardrobe && requestData.wardrobe.length > 0) {
+    const firstItem = requestData.wardrobe[0];
+    console.log('🔍 FRONTEND API CLIENT: First wardrobe item before sending:', {
+      name: firstItem.name,
+      hasMetadata: 'metadata' in firstItem,
+      metadataType: typeof firstItem.metadata,
+      metadataKeys: firstItem.metadata ? Object.keys(firstItem.metadata) : [],
+      visualAttributes: firstItem.metadata?.visualAttributes || 'NONE'
+    });
+  }
+  
   try {
     // Use the working endpoint that actually exists on the backend
     return await client.request({
