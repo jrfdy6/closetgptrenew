@@ -2589,7 +2589,7 @@ class RobustOutfitGenerationService:
                     'henley', 'flannel', 'cable knit', 'cable-knit',
                     'zip sweater', 'ribbed sweater', 'knit sweater',
                     'casual shirt', 'dress shirt', 'button up', 'button down', 
-                    'button-up', 'button-down', 'polo shirt'
+                    'button-up', 'button-down', 'polo shirt', 'polo'  # Added 'polo' standalone
                 ]
                 
                 # Only allow if it has explicit athletic qualifier
