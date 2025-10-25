@@ -820,9 +820,21 @@ class DashboardService {
             // Second check: Does the item's metadata/name contain style keywords?
             const keywordMatches = this.matchesStyleKeywords(item, styleConfig.styleKeywords);
             
-            // Item must either:
-            // 1. Match type AND have at least one keyword match, OR
-            // 2. Have strong keyword matches (multiple keywords)
+            // Third check: Does the item have tags that directly match the style preference?
+            const itemTags = [
+              ...(item.style || []),
+              ...(item.metadata?.styleTags || []),
+              ...(item.tags || []),
+              ...(item.occasion || [])
+            ].map(tag => tag.toLowerCase().trim());
+            
+            const styleNameParts = normalizedStyle.split(' '); // e.g., "urban street" → ["urban", "street"]
+            const hasMatchingTag = itemTags.some(tag => 
+              // Tag contains the style name or any part of it
+              styleNameParts.some(part => tag.includes(part) || part.includes(tag))
+            );
+            
+            // Fourth check: Multiple keyword matches (strong signal)
             const hasMultipleKeywords = styleConfig.styleKeywords.filter((keyword: string) => {
               const searchText = [
                 item.name || '',
@@ -833,7 +845,11 @@ class DashboardService {
               return searchText.includes(keyword.toLowerCase());
             }).length >= 2;
             
-            return (typeMatches && keywordMatches) || hasMultipleKeywords;
+            // Item matches if ANY of these conditions are true:
+            // 1. Type matches AND has keyword matches
+            // 2. Has multiple keyword matches (strong signal)
+            // 3. Has tags that directly match the style preference name
+            return (typeMatches && keywordMatches) || hasMultipleKeywords || hasMatchingTag;
           });
           
           const finalCount = matchingItems.length;
