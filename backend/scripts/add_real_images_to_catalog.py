@@ -57,22 +57,65 @@ def generate_search_query(item: Dict[str, Any]) -> str:
     
     return query
 
-def generate_unsplash_url(item: Dict[str, Any], use_collection: bool = True) -> str:
-    """Generate Unsplash image URL"""
+def generate_unsplash_url(item: Dict[str, Any], use_collection: bool = False) -> str:
+    """Generate Unsplash image URL with specific search terms"""
     
-    category = item.get("categories", [""])[0]
+    # Build a specific search query from item attributes
+    title = item.get("title", "").lower()
+    materials = item.get("materials", [])
+    tags = item.get("tags", [])
     
-    if use_collection and category in FASHION_COLLECTIONS:
-        # Use curated fashion collections for better quality
-        collection_id = FASHION_COLLECTIONS[category]
-        # Use item ID to get consistent image for same item
-        seed = abs(hash(item["id"])) % 1000
-        return f"https://source.unsplash.com/collection/{collection_id}/400x600/?sig={seed}"
-    else:
-        # Use search query
-        query = generate_search_query(item)
-        seed = abs(hash(item["id"])) % 1000
+    # Extract key terms
+    search_terms = []
+    
+    # Add item type (from title)
+    title_words = title.split()
+    if len(title_words) >= 2:
+        # Get the item type (usually last word)
+        item_type = title_words[-1]
+        search_terms.append(item_type)
+    
+    # Add color if it's a common color
+    color = title_words[0] if title_words else ""
+    common_colors = ["black", "white", "grey", "gray", "blue", "navy", "red", "burgundy", 
+                     "green", "brown", "tan", "beige", "pink", "purple", "yellow", "orange"]
+    if color in common_colors:
+        search_terms.append(color)
+    
+    # Add material if relevant
+    if materials and len(search_terms) < 3:
+        mat = materials[0].lower()
+        if mat in ["leather", "denim", "wool", "silk", "cotton", "suede"]:
+            search_terms.append(mat)
+    
+    # Add style tag for context
+    style_tags = ["minimalist", "vintage", "modern", "casual", "luxury", "classic"]
+    for tag in tags:
+        if tag.lower() in style_tags and len(search_terms) < 3:
+            search_terms.append(tag.lower())
+            break
+    
+    # Build query string
+    query = "+".join(search_terms[:3]) if search_terms else "fashion"
+    
+    # Use item ID to get consistent but varied images
+    seed = abs(hash(item["id"]))
+    
+    # Use different approaches for variety
+    item_num = int(item["id"].split("_")[1])
+    
+    if item_num % 4 == 0:
+        # Method 1: Direct search with sig
         return f"https://source.unsplash.com/400x600/?{query}&sig={seed}"
+    elif item_num % 4 == 1:
+        # Method 2: Random with specific query
+        return f"https://source.unsplash.com/random/400x600/?{query}&t={seed}"
+    elif item_num % 4 == 2:
+        # Method 3: Featured with query
+        return f"https://source.unsplash.com/featured/400x600/?{query}&sig={seed}"
+    else:
+        # Method 4: Use Picsum for maximum variety
+        return f"https://picsum.photos/seed/{item['id']}-{query.replace('+', '-')}/400/600"
 
 def generate_pexels_fallback(item: Dict[str, Any]) -> str:
     """Generate Pexels image URL as fallback"""
@@ -85,21 +128,11 @@ def get_real_image_url(item: Dict[str, Any], prefer_unsplash: bool = True) -> st
     Get a real, deterministic image URL for an item
     
     Uses item ID as seed to ensure same item always gets same image
+    Uses specific search terms based on item attributes for variety
     """
     
-    if prefer_unsplash:
-        return generate_unsplash_url(item, use_collection=True)
-    else:
-        # Alternate between services based on item ID
-        item_num = int(item["id"].split("_")[1])
-        if item_num % 3 == 0:
-            return generate_unsplash_url(item, use_collection=False)
-        elif item_num % 3 == 1:
-            return generate_unsplash_url(item, use_collection=True)
-        else:
-            # Use Picsum as stable fallback (doesn't require API)
-            seed = item["id"]
-            return f"https://picsum.photos/seed/{seed}/400/600"
+    # Always use the new search-based approach for better variety
+    return generate_unsplash_url(item, use_collection=False)
 
 def verify_image_url(url: str, timeout: int = 5) -> bool:
     """Verify that an image URL is accessible"""

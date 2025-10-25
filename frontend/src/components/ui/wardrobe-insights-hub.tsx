@@ -310,7 +310,6 @@ export default function WardrobeInsightsHub({
               
               <div className="flex justify-center">
                 <StyleInspirationCard 
-                  onRefresh={onRefresh}
                   className="w-full max-w-2xl"
                 />
               </div>
