@@ -245,14 +245,18 @@ class DashboardService {
         styles: Object.keys((wardrobeStats as any)?.data?.styles || {}).length
       });
       
+      // Build style collections first so we can calculate goals from them
+      const styleCollections = this.buildStyleCollections(wardrobeStats, trendingStyles, userProfile);
+      const styleGoalsData = this.calculateStyleGoals(styleCollections);
+      
       const dashboardData: DashboardData = {
         totalItems: totalItems,
         favorites: this.calculateFavorites(wardrobeStats),
-        styleGoalsCompleted: this.calculateStyleGoals(wardrobeStats, trendingStyles),
-        totalStyleGoals: 5, // Default value, could be configurable
+        styleGoalsCompleted: styleGoalsData.completed,
+        totalStyleGoals: styleGoalsData.total,
         outfitsThisWeek: outfitsThisWeek,
         overallProgress: this.calculateOverallProgress(wardrobeStats, trendingStyles, userProfile),
-        styleCollections: this.buildStyleCollections(wardrobeStats, trendingStyles, userProfile),
+        styleCollections: styleCollections,
         styleExpansions: this.buildStyleExpansions(wardrobeStats, trendingStyles),
         seasonalBalance: this.buildSeasonalBalance(wardrobeStats),
         colorVariety: this.buildColorVariety(wardrobeStats),
@@ -622,13 +626,19 @@ class DashboardService {
     return 0;
   }
 
-  private calculateStyleGoals(wardrobeStats: any, trendingStyles: any): number {
-    // Calculate based on style coverage and preferences
-    const categories = wardrobeStats.categories || {};
-    const totalCategories = Object.keys(categories).length;
-    const targetCategories = 5; // Default target
+  private calculateStyleGoals(styleCollections: StyleCollection[]): { completed: number, total: number } {
+    // Calculate based on actual style collection progress
+    // Sum up all the progress and target values across all collections
+    const completed = styleCollections.reduce((sum, collection) => sum + collection.progress, 0);
+    const total = styleCollections.reduce((sum, collection) => sum + collection.target, 0);
     
-    return Math.min(totalCategories, targetCategories);
+    console.log('🎯 [Style Goals] Calculating from collections:', {
+      collections: styleCollections.map(c => `${c.name}: ${c.progress}/${c.target}`),
+      totalCompleted: completed,
+      totalTarget: total
+    });
+    
+    return { completed, total };
   }
 
   // Removed complex calculation methods - using simple analytics instead
