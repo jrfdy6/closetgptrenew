@@ -283,75 +283,27 @@ export default function WardrobeInsightsHub({
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="style-expansion" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="style-expansion" className="flex items-center gap-2">
+        <Tabs defaultValue="style-inspiration" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="style-inspiration" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
-              Style Expansion
+              Style Inspiration
             </TabsTrigger>
             <TabsTrigger value="gap-analysis" className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               Gap Analysis
             </TabsTrigger>
-            <TabsTrigger value="shopping" className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" />
-              Shopping
-            </TabsTrigger>
           </TabsList>
 
-          {/* Tab 1: Style Expansion */}
-          <TabsContent value="style-expansion" className="space-y-6">
-            {/* Style Expansion Areas */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Style Areas to Explore</h3>
-                <p className="text-sm text-stone-600 dark:text-stone-400">
-                  Your clothing items will allow you to explore the following areas as well
-                </p>
-              </div>
-              
-              {styleExpansions && styleExpansions.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {styleExpansions.map((expansion, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-center justify-between p-4 border border-stone-200 dark:border-stone-700 rounded-lg bg-gradient-to-br from-white to-stone-50 dark:from-stone-900 dark:to-stone-800 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                          <Star className="h-5 w-5 text-purple-600" />
-                        </div>
-                        <span className="font-medium text-gray-900 dark:text-white capitalize">
-                          {expansion.name}
-                        </span>
-                      </div>
-                      <Badge 
-                        variant={expansion.direction === 'Established' ? 'default' : 'outline'}
-                        className={expansion.direction === 'Established' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' : ''}
-                      >
-                        {expansion.direction}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
-                  <Sparkles className="w-16 h-16 text-stone-300 dark:text-stone-600 mx-auto mb-4" />
-                  <p className="text-stone-500 dark:text-stone-400 mb-2">No style expansions available yet</p>
-                  <p className="text-sm text-stone-600 dark:text-stone-500">
-                    Add more diverse items to your wardrobe to unlock new style directions
-                  </p>
-                </div>
-              )}
-            </div>
-
+          {/* Tab 1: Style Inspiration */}
+          <TabsContent value="style-inspiration" className="space-y-6">
             {/* Style Inspiration Section */}
-            <div className="space-y-4 mt-8">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Discover New Pieces</h3>
                   <p className="text-sm text-stone-600 dark:text-stone-400">
-                    Get personalized recommendations based on your style profile
+                    Get personalized recommendations based on your style profile and current weather
                   </p>
                 </div>
               </div>
@@ -544,142 +496,6 @@ export default function WardrobeInsightsHub({
                   Your wardrobe is well-balanced. Great job!
                 </p>
               </div>
-            )}
-          </TabsContent>
-
-          {/* Tab 3: Shopping Recommendations */}
-          <TabsContent value="shopping" className="space-y-6">
-            {/* Budget Selection */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Shopping Recommendations</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Personalized suggestions based on your wardrobe gaps
-                </p>
-              </div>
-              <Select value={selectedBudget} onValueChange={setSelectedBudget}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low Budget</SelectItem>
-                  <SelectItem value="medium">Medium Budget</SelectItem>
-                  <SelectItem value="high">High Budget</SelectItem>
-                  <SelectItem value="luxury">Luxury</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {loadingRecommendations ? (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400">Loading shopping recommendations...</p>
-              </div>
-            ) : (
-              <>
-                {/* Shopping Strategy Summary */}
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-4 flex items-center gap-2">
-                    <ShoppingBag className="h-5 w-5" />
-                    Shopping Strategy
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-800 dark:text-purple-200">
-                        {shoppingRecommendations?.shopping_strategy?.total_items_needed || gaps.length || 0}
-                      </div>
-                      <div className="text-sm text-purple-600 dark:text-purple-400">Items Needed</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-800 dark:text-purple-200">
-                        {shoppingRecommendations?.shopping_strategy?.high_priority_items || 
-                         gaps.filter(g => g.priority === 'high').length || 0}
-                      </div>
-                      <div className="text-sm text-purple-600 dark:text-purple-400">High Priority</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-purple-800 dark:text-purple-200">
-                        {formatPrice(shoppingRecommendations?.total_estimated_cost || 0)}
-                      </div>
-                      <div className="text-sm text-purple-600 dark:text-purple-400">Total Cost</div>
-                    </div>
-                  </div>
-                  <div className="mt-4 text-center">
-                    <Badge variant="outline" className="bg-white/50 dark:bg-stone-900/50">
-                      {selectedBudget} budget
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Shopping Phases */}
-                {shoppingRecommendations?.shopping_strategy?.shopping_phases && 
-                 shoppingRecommendations.shopping_strategy.shopping_phases.length > 0 && (
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-900 dark:text-white">Shopping Phases</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {shoppingRecommendations.shopping_strategy.shopping_phases.map((phase) => (
-                        <div key={phase.phase} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                          <div className="flex items-center justify-between mb-2">
-                            <h5 className="font-medium">Phase {phase.phase}: {phase.name}</h5>
-                            <Badge variant="outline">{formatPrice(phase.estimated_cost)}</Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            {phase.description}
-                          </p>
-                          <div className="text-xs text-gray-500">
-                            {phase.items.length} items
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Store Recommendations */}
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-gray-500" />
-                    Recommended Stores
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {stores.map((store, index) => (
-                      <div 
-                        key={index} 
-                        className="border border-stone-200 dark:border-stone-700 rounded-lg p-4 hover:shadow-lg transition-all hover:border-purple-300 dark:hover:border-purple-700"
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded">
-                            <ShoppingBag className="h-4 w-4 text-purple-600" />
-                          </div>
-                          <h5 className="font-medium text-gray-900 dark:text-white">{store.name}</h5>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                          {store.description}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {store.price_range}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Shopping Tips */}
-                <div className="bg-gray-50 dark:bg-stone-800 p-6 rounded-lg border border-stone-200 dark:border-stone-700">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-500" />
-                    Shopping Tips
-                  </h4>
-                  <ul className="space-y-3">
-                    {tips.map((tip, index) => (
-                      <li key={index} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
-                        <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </>
             )}
           </TabsContent>
         </Tabs>
