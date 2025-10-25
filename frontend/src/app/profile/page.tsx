@@ -334,7 +334,78 @@ export default function ProfilePage() {
             <User className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Profile Not Found</h2>
             <p className="text-muted-foreground mb-4">Please complete your profile setup</p>
-            <Button onClick={() => setIsEditing(true)}>Create Profile</Button>
+            <Button onClick={() => router.push('/onboarding')}>Complete Style Quiz</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if profile is incomplete (missing key fields)
+  const isProfileIncomplete = !profile.measurements || !profile.stylePreferences || 
+    (Array.isArray(profile.stylePreferences) && profile.stylePreferences.length === 0);
+  
+  if (isProfileIncomplete) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-white to-stone-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <Navigation />
+        <div className="container mx-auto p-8">
+          <div className="max-w-2xl mx-auto">
+            <Card className="border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 backdrop-blur-sm">
+              <CardHeader className="pb-6">
+                <CardTitle className="flex items-center text-2xl font-serif text-amber-900 dark:text-amber-100">
+                  <Sparkles className="h-8 w-8 mr-3 text-amber-600 dark:text-amber-400" />
+                  Complete Your Style Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <p className="text-stone-600 dark:text-stone-400 text-lg">
+                    Your profile is incomplete! To get personalized outfit recommendations and make the most of ClosetGPT, 
+                    please complete your style quiz.
+                  </p>
+                  
+                  <div className="bg-white dark:bg-stone-800 rounded-lg p-6 border border-stone-200 dark:border-stone-700">
+                    <h3 className="font-semibold text-stone-900 dark:text-stone-100 mb-4">Current Profile Status:</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 dark:text-stone-400">Basic Information</span>
+                        <span className="text-green-600 dark:text-green-400 font-medium">✓ Complete</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 dark:text-stone-400">Style Preferences</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          {profile.stylePreferences && Array.isArray(profile.stylePreferences) && profile.stylePreferences.length > 0 ? '✓ Complete' : '○ Incomplete'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-stone-600 dark:text-stone-400">Measurements & Sizes</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          {profile.measurements ? '✓ Complete' : '○ Incomplete'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                    <Button 
+                      onClick={() => router.push('/onboarding')}
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-300 hover:scale-105 shadow-lg"
+                    >
+                      <Sparkles className="h-5 w-5 mr-2" />
+                      Complete Style Quiz
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => router.push('/dashboard')}
+                      className="flex-1 border-2 border-stone-300 hover:border-stone-400 text-stone-700 hover:text-stone-900 hover:bg-stone-50 px-6 py-3 rounded-full font-medium transition-all duration-300"
+                    >
+                      Back to Dashboard
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
