@@ -999,23 +999,23 @@ class RobustOutfitGenerationService:
         
         # Adjust weights if in favorites mode
         if favorites_mode:
-            # Boost user feedback (favorites/wear history), reduce diversity
+            # Boost user feedback (favorites/wear history), but keep diversity high enough
             if temp > 75 or temp < 50:  # Extreme weather
                 weather_weight = 0.18
                 compatibility_weight = 0.12
                 style_weight = 0.16
                 body_weight = 0.10
-                user_feedback_weight = 0.30  # ⬆️ BOOSTED from 0.12
-                diversity_weight = 0.14  # ⬇️ REDUCED from 0.30
+                user_feedback_weight = 0.24  # ⬆️ BOOSTED from 0.12 (reduced from 0.30 to keep diversity higher)
+                diversity_weight = 0.20  # ⬇️ REDUCED from 0.30 but still significant (was 0.14)
             else:  # Moderate weather
                 weather_weight = 0.14
                 compatibility_weight = 0.11
                 style_weight = 0.18
                 body_weight = 0.12
-                user_feedback_weight = 0.30  # ⬆️ BOOSTED from 0.12
-                diversity_weight = 0.15  # ⬇️ REDUCED from 0.30
+                user_feedback_weight = 0.23  # ⬆️ BOOSTED from 0.12 (reduced from 0.30 to keep diversity higher)
+                diversity_weight = 0.22  # ⬇️ REDUCED from 0.30 but still significant (was 0.15)
             
-            logger.info(f"⭐ FAVORITES MODE WEIGHTS: UserFeedback={user_feedback_weight} (+150%), Diversity={diversity_weight} (-50%)")
+            logger.info(f"⭐ FAVORITES MODE WEIGHTS: UserFeedback={user_feedback_weight} (+100%), Diversity={diversity_weight} (kept at ~20% to ensure variety)")
             logger.info(f"🎯 ADJUSTED WEIGHTS (6D): Weather={weather_weight}, Compat={compatibility_weight}, Style={style_weight}, Body={body_weight}, Feedback={user_feedback_weight}, Diversity={diversity_weight}")
             
             # Re-calculate composite scores with new weights
@@ -5260,30 +5260,34 @@ class RobustOutfitGenerationService:
         # Sort items by composite score with randomization AND diversity penalty
         import random
         
+        # CRITICAL: Use truly random seed based on current time + random state to ensure different results each time
+        random.seed()  # Reset to system time seed
+        random.seed(int((time.time() * 1000000) + random.random() * 1000000))  # Very fine-grained seed
+        
         # ENHANCED DIVERSITY: Much stronger penalties and boosts to promote variety
         diversity_adjustments = {}
         for item_id, score_data in item_scores.items():
             base_score = score_data['composite_score']
             adjustment = 0.0
             
-            # 1. Random noise (±20% instead of ±5%)
-            noise = random.uniform(-0.3, 0.3)
+            # 1. Random noise (±35% instead of ±20%) - INCREASED for more variety
+            noise = random.uniform(-0.5, 0.5)
             adjustment += noise
             
-            # 2. Recently worn penalty (MUCH STRONGER)
+            # 2. Recently worn penalty (EVEN STRONGER) - INCREASED from -2.0 to -3.0
             if item_id in recently_used_item_ids:
-                adjustment -= 2.0  # Strong penalty to force variety
-                logger.debug(f"  🔄 Recently worn: {score_data['item'].name if hasattr(score_data['item'], 'name') else 'Unknown'} → -2.0 penalty")
+                adjustment -= 3.0  # Very strong penalty to force variety
+                logger.debug(f"  🔄 Recently worn: {score_data['item'].name if hasattr(score_data['item'], 'name') else 'Unknown'} → -3.0 penalty")
             
-            # 3. Never worn boost
+            # 3. Never worn boost (INCREASED)
             item = score_data['item']
             item_wear_count = getattr(item, 'wearCount', 0) if item else 0
             if item_wear_count == 0:
-                adjustment += 1.0  # Boost new items
-                logger.debug(f"  🆕 Never worn: {item.name if hasattr(item, 'name') else 'Unknown'} → +1.0 boost")
+                adjustment += 1.5  # Boost new items more (was 1.0)
+                logger.debug(f"  🆕 Never worn: {item.name if hasattr(item, 'name') else 'Unknown'} → +1.5 boost")
             elif item_wear_count <= 2:
-                adjustment += 0.5  # Boost lightly worn items
-                logger.debug(f"  🌱 Lightly worn ({item_wear_count}): {item.name if hasattr(item, 'name') else 'Unknown'} → +0.5 boost")
+                adjustment += 0.7  # Boost lightly worn items more (was 0.5)
+                logger.debug(f"  🌱 Lightly worn ({item_wear_count}): {item.name if hasattr(item, 'name') else 'Unknown'} → +0.7 boost")
             
             diversity_adjustments[item_id] = adjustment
         
@@ -5292,7 +5296,7 @@ class RobustOutfitGenerationService:
             key=lambda x: x[1]['composite_score'] + diversity_adjustments.get(x[0], 0.0),
             reverse=True
         )
-        logger.info(f"🎲 DIVERSITY: Added ±0.3 noise, -2.0 recently worn penalty, +1.0 new item boost for {len(recently_used_item_ids)} recently used items")
+        logger.info(f"🎲 DIVERSITY: Added ±0.5 noise, -3.0 recently worn penalty, +1.5 new item boost for {len(recently_used_item_ids)} recently used items")
         
         # ═══════════════════════════════════════════════════════════
         # 3:1 EXPLORATION RATIO (Mix high and low scorers)
