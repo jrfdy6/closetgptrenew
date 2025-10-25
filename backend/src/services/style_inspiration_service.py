@@ -6,6 +6,7 @@ Provides personalized style recommendations based on user profile and weather
 import json
 import math
 import logging
+import random
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 
@@ -365,9 +366,29 @@ class StyleInspirationService:
         if not scored_items:
             return None
         
-        # Sort by final score and pick best
+        # Sort by final score
         scored_items.sort(key=lambda x: x['final_score'], reverse=True)
-        best = scored_items[0]
+        
+        # Add randomization: pick from top 20 high-scoring items instead of always the #1
+        # This ensures quality while adding variety
+        top_candidates = min(20, len(scored_items))
+        
+        # Only consider items with score >= 70% of the best score (quality threshold)
+        best_score = scored_items[0]['final_score']
+        quality_threshold = best_score * 0.70
+        
+        high_quality_items = [
+            item for item in scored_items[:top_candidates]
+            if item['final_score'] >= quality_threshold
+        ]
+        
+        if not high_quality_items:
+            high_quality_items = scored_items[:1]  # Fallback to best item
+        
+        # Randomly select from high-quality pool
+        best = random.choice(high_quality_items)
+        
+        logger.info(f"🎲 Selected from pool of {len(high_quality_items)} high-quality items (score: {best['final_score']:.2f})")
         
         # Generate rationale
         rationale = self._generate_rationale(
