@@ -693,7 +693,6 @@ export default function Dashboard() {
         <WardrobeInsightsHub
           styleExpansions={dashboardData?.styleExpansions || []}
           gaps={dashboardData?.wardrobeGaps || []}
-          topItems={dashboardData?.topItems || []}
           shoppingRecommendations={dashboardData?.shoppingRecommendations}
           onRefresh={fetchDashboardData}
           className="mb-12"

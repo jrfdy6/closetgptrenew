@@ -117,7 +117,6 @@ interface TopItem {
 interface WardrobeInsightsHubProps {
   styleExpansions?: StyleExpansion[];
   gaps?: WardrobeGap[];
-  topItems?: TopItem[];
   shoppingRecommendations?: {
     success: boolean;
     recommendations: ShoppingRecommendation[];
@@ -133,7 +132,6 @@ interface WardrobeInsightsHubProps {
 export default function WardrobeInsightsHub({
   styleExpansions = [],
   gaps = [],
-  topItems = [],
   shoppingRecommendations: initialShoppingRecommendations,
   onRefresh,
   className = ""
@@ -302,77 +300,6 @@ export default function WardrobeInsightsHub({
 
           {/* Tab 1: Style Expansion */}
           <TabsContent value="style-expansion" className="space-y-6">
-            {/* Top Worn Items Section */}
-            {topItems && topItems.length > 0 && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Your Top Items</h3>
-                  <p className="text-sm text-stone-600 dark:text-stone-400">
-                    Your top items will appear here based on wear count and ratings
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {topItems.map((item) => (
-                    <div 
-                      key={item.id} 
-                      className="border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden bg-white dark:bg-stone-900 hover:shadow-lg transition-shadow"
-                    >
-                      {/* Item Image */}
-                      <div className="aspect-square bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-900 relative">
-                        {item.imageUrl && item.imageUrl !== '' && !item.imageUrl.includes('placeholder') ? (
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Hide broken images and show fallback icon
-                              (e.target as HTMLImageElement).style.display = 'none';
-                              const parent = (e.target as HTMLImageElement).parentElement;
-                              if (parent && !parent.querySelector('.fallback-icon')) {
-                                const fallbackDiv = document.createElement('div');
-                                fallbackDiv.className = 'fallback-icon w-full h-full flex items-center justify-center';
-                                fallbackDiv.innerHTML = '<svg class="h-12 w-12 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
-                                parent.appendChild(fallbackDiv);
-                              }
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Sparkles className="h-12 w-12 text-stone-400" />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Item Details */}
-                      <div className="p-4">
-                        <h4 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
-                          {item.name}
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
-                          {item.type}
-                        </p>
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400">
-                            <TrendingUp className="h-4 w-4" />
-                            <span className="font-medium">{item.wearCount} wears</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                              Rating: {item.rating}/5
-                            </span>
-                            <Star className={`h-4 w-4 ${item.rating >= 4 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
             {/* Style Expansion Areas */}
             <div className="space-y-4">
               <div>
