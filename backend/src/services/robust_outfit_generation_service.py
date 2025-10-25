@@ -277,6 +277,8 @@ class GenerationContext:
     generation_strategy: GenerationStrategy = GenerationStrategy.COHESIVE_COMPOSITION
     retry_count: int = 0
     max_retries: int = 3
+    wardrobe_original: Optional[List[ClothingItem]] = None  # Original wardrobe before filtering
+    warnings: Optional[List[str]] = None  # Warnings about outfit generation
 
 @dataclass
 class ValidationResult:
@@ -790,6 +792,8 @@ class RobustOutfitGenerationService:
         
         # Update context with occasion-filtered wardrobe
         original_wardrobe_size = len(context.wardrobe)
+        # Save original wardrobe before filtering (for last-resort shoe search)
+        context.wardrobe_original = context.wardrobe.copy()
         context.wardrobe = occasion_candidates
         logger.info(f"📦 Wardrobe updated: {original_wardrobe_size} → {len(context.wardrobe)} items (occasion-filtered)")
         
@@ -5498,21 +5502,48 @@ class RobustOutfitGenerationService:
             if final_missing:
                 logger.warning(f"⚠️ SAFETY NET: Still missing categories after safety net: {final_missing}")
                 
-                # CRITICAL: Fail generation if shoes are missing
+                # LAST RESORT: If shoes are missing, search ENTIRE wardrobe (bypass occasion filter)
                 if 'shoes' in final_missing:
-                    error_msg = f"Cannot generate outfit: No shoes available in wardrobe for {context.occasion} occasion"
-                    logger.error(f"🚫 OUTFIT GENERATION FAILED: {error_msg}")
-                    raise ValueError(error_msg)
+                    logger.warning(f"⚠️ LAST RESORT: Searching entire wardrobe for any shoes (bypassing occasion filter)")
+                    
+                    # Get ALL shoes from original wardrobe (before occasion filtering)
+                    all_shoes = [
+                        item for item in context.wardrobe_original 
+                        if self._get_item_category(item) == 'shoes'
+                    ]
+                    
+                    if all_shoes:
+                        # Score all shoes and pick the best one
+                        shoe_scores = []
+                        for shoe in all_shoes:
+                            if shoe not in selected_items:
+                                # Calculate basic score
+                                score = self._soft_score(shoe, context.occasion, context.style, context.mood, context.weather)
+                                shoe_scores.append((shoe, score))
+                        
+                        if shoe_scores:
+                            # Sort by score and pick the best
+                            shoe_scores.sort(key=lambda x: x[1], reverse=True)
+                            best_shoe, best_score = shoe_scores[0]
+                            
+                            selected_items.append(best_shoe)
+                            categories_filled['shoes'] = True
+                            
+                            logger.warning(f"⚠️ LAST RESORT: Added best available shoe '{self.safe_get_item_name(best_shoe)}' (score={best_score:.2f})")
+                            logger.warning(f"⚠️ WARNING: This shoe might not be ideal for {context.occasion} occasion")
+                            
+                            # Mark this outfit as having a potential mismatch
+                            if not hasattr(context, 'warnings'):
+                                context.warnings = []
+                            context.warnings.append(f"Shoes ({self.safe_get_item_name(best_shoe)}) may not be ideal for {context.occasion} occasion")
+                        else:
+                            logger.error(f"🚫 LAST RESORT FAILED: All shoes are already selected")
+                    else:
+                        logger.error(f"🚫 LAST RESORT FAILED: No shoes found in entire wardrobe")
             else:
                 logger.info(f"✅ SAFETY NET: Successfully filled all essential categories")
         else:
             logger.info(f"✅ SAFETY NET: Not needed - all essential categories filled in Phase 1")
-            
-            # CRITICAL: Even if safety net wasn't needed, verify shoes are present
-            if 'shoes' not in categories_filled:
-                error_msg = f"Cannot generate outfit: No shoes available in wardrobe for {context.occasion} occasion"
-                logger.error(f"🚫 OUTFIT GENERATION FAILED: {error_msg}")
-                raise ValueError(error_msg)
         
         # EMERGENCY BYPASS: If no items selected, force select the first item
         if len(selected_items) == 0 and sorted_items:
@@ -5779,7 +5810,8 @@ class RobustOutfitGenerationService:
                 "avg_composite_score": avg_composite_score,
                 "diversity_score": (safe_get(diversity_result, 'diversity_score', 0.8) if diversity_result else 0.8),
                 "color_theory_applied": True,
-                "analyzers_used": ["body_type", "style_profile", "weather", "user_feedback", "metadata_compatibility", "diversity"]
+                "analyzers_used": ["body_type", "style_profile", "weather", "user_feedback", "metadata_compatibility", "diversity"],
+                "warnings": context.warnings if hasattr(context, 'warnings') and context.warnings else []
             },
             wasSuccessful=True,
             baseItemId=context.base_item_id,
