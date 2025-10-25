@@ -461,9 +461,9 @@ OCCASION_FALLBACKS: Dict[str, List[str]] = {
     "camping": ["camping", "outdoor"],
     "casual": [
         "active", "athleisure", "athletic", "beach", "brunch",
-        "casual", "comfortable", "date", "dinner", "errands",
+        "business casual", "business_casual", "casual", "comfortable", "date", "dinner", "errands",
         "everyday", "indoor", "lunch", "outdoor", "party",
-        "relaxed", "resort", "shopping", "smart_casual", "sport",
+        "relaxed", "resort", "shopping", "smart casual", "smart_casual", "sport",
         "sports", "summer", "travel", "tropical", "vacation",
         "weekend", "winter"
     ],
