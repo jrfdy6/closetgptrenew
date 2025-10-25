@@ -179,6 +179,7 @@ ROUTERS = [
     ("src.routes.outfit_stats_simple", "/api/outfit-stats"), # Simple outfit stats router - fixes 405 errors
     ("src.routes.simple_analytics", ""),                     # NEW: Simple, reliable analytics - no prefix needed
     ("src.routes.outfit_history", "/api/outfit-history"),   # Full outfit history router with daily generation
+    ("src.routes.style_inspiration", "/api/style-inspiration"), # Style inspiration recommendations - NEW
     # ("src.routes.test_debug", ""),       # Router already has /api/test prefix
     # ("src.routes.analytics_dashboard", ""), # Analytics dashboard router
     # ("src.routes.analytics", ""),        # Main analytics router
