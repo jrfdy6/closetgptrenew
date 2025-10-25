@@ -12,6 +12,7 @@ Based on the successful personalization demo implementation.
 
 import logging
 import time
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -548,3 +549,190 @@ async def get_outfits(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch outfits: {str(e)}"
         )
+
+@router.post("/rate")
+async def rate_outfit(
+    rating_data: dict,
+    req: Request
+) -> Dict[str, Any]:
+    """
+    Rate an outfit and update analytics for individual wardrobe items.
+    This ensures the scoring system has accurate feedback data.
+    """
+    try:
+        logger.info(f"📊 Rating outfit request received")
+        
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
+        
+        if not current_user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        outfit_id = rating_data.get('outfitId') if rating_data else None
+        rating = rating_data.get('rating') if rating_data else None
+        is_liked = rating_data.get('isLiked', False) if rating_data else False
+        is_disliked = rating_data.get('isDisliked', False) if rating_data else False
+        feedback = rating_data.get('feedback', '') if rating_data else ''
+        
+        logger.info(f"⭐ Rating outfit {outfit_id} for user {current_user_id}: {rating} stars")
+        
+        # Allow rating with just like/dislike feedback, or with star rating
+        if not outfit_id:
+            raise HTTPException(status_code=400, detail="Missing outfit ID")
+        
+        # If rating is provided, validate it's between 1-5
+        if rating is not None and (rating < 1 or rating > 5):
+            raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+        
+        # Require at least some feedback (rating, like, dislike, or text feedback)
+        if not rating and not is_liked and not is_disliked and not feedback.strip():
+            raise HTTPException(status_code=400, detail="At least one form of feedback is required (rating, like, dislike, or comment)")
+        
+        # Update outfit with rating data
+        try:
+            from src.config.firebase import db
+        except ImportError:
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+            
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get() if outfit_ref else None
+        
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        # Check both possible user ID field names for compatibility
+        outfit_user_id = outfit_data.get('userId') if outfit_data else None
+        if not outfit_user_id:
+            outfit_user_id = outfit_data.get('user_id')
+        
+        if outfit_user_id != current_user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to rate this outfit")
+        
+        # Update outfit with rating
+        outfit_ref.update({
+            'rating': rating,
+            'isLiked': is_liked,
+            'isDisliked': is_disliked,
+            'feedback': feedback,
+            'ratedAt': datetime.utcnow(),
+            'updatedAt': datetime.utcnow()
+        })
+        
+        # Update analytics for individual wardrobe items
+        await _update_item_analytics_from_outfit_rating(
+            outfit_data.get('items', []) if outfit_data else [],
+            current_user_id, 
+            rating, 
+            is_liked, 
+            is_disliked, 
+            feedback
+        )
+        
+        logger.info(f"✅ Successfully rated outfit {outfit_id} and updated item analytics")
+        
+        return {
+            "success": True,
+            "message": "Outfit rated successfully",
+            "outfit_id": outfit_id,
+            "rating": rating
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to rate outfit: {e}")
+        raise HTTPException(status_code=500, detail="Failed to rate outfit")
+
+async def _update_item_analytics_from_outfit_rating(
+    outfit_items: List[Dict], 
+    user_id: str, 
+    rating: int, 
+    is_liked: bool, 
+    is_disliked: bool, 
+    feedback: str
+) -> None:
+    """
+    Update analytics for individual wardrobe items based on outfit rating.
+    This ensures the scoring system has accurate feedback data for each item.
+    """
+    try:
+        from src.config.firebase import db
+        
+        logger.info(f"📊 Updating analytics for {len(outfit_items)} items from outfit rating")
+        
+        current_time = datetime.utcnow()
+        updated_count = 0
+        
+        for item in outfit_items:
+            item_id = item.get('id') if item else None
+            if not item_id:
+                continue
+            
+            try:
+                # Check if analytics document exists for this item
+                analytics_ref = db.collection('item_analytics').document(f"{user_id}_{item_id}")
+                analytics_doc = analytics_ref.get() if analytics_ref else None
+                
+                if analytics_doc.exists:
+                    # Update existing analytics
+                    current_data = analytics_doc.to_dict()
+                    
+                    # Update feedback ratings
+                    feedback_ratings = current_data.get('feedback_ratings', []) if current_data else []
+                    feedback_ratings.append({
+                        'rating': rating,
+                        'outfit_rating': rating,
+                        'is_liked': is_liked,
+                        'is_disliked': is_disliked,
+                        'feedback': feedback,
+                        'timestamp': current_time
+                    })
+                    
+                    # Calculate new average rating
+                    total_rating = sum((fr.get('rating', 0) if fr else 0) for fr in feedback_ratings)
+                    avg_rating = total_rating / len(feedback_ratings)
+                    
+                    analytics_ref.update({
+                        'feedback_ratings': feedback_ratings,
+                        'average_feedback_rating': round(avg_rating, 2),
+                        'total_feedback_count': len(feedback_ratings),
+                        'last_feedback_at': current_time,
+                        'updatedAt': current_time
+                    })
+                    
+                    updated_count += 1
+                    logger.info(f"✅ Updated analytics for item {item_id}")
+                else:
+                    # Create new analytics document
+                    analytics_ref.set({
+                        'user_id': user_id,
+                        'item_id': item_id,
+                        'feedback_ratings': [{
+                            'rating': rating,
+                            'outfit_rating': rating,
+                            'is_liked': is_liked,
+                            'is_disliked': is_disliked,
+                            'feedback': feedback,
+                            'timestamp': current_time
+                        }],
+                        'average_feedback_rating': float(rating) if rating else 0.0,
+                        'total_feedback_count': 1,
+                        'last_feedback_at': current_time,
+                        'createdAt': current_time,
+                        'updatedAt': current_time
+                    })
+                    
+                    updated_count += 1
+                    logger.info(f"✅ Created analytics for item {item_id}")
+                    
+            except Exception as item_error:
+                logger.error(f"❌ Failed to update analytics for item {item_id}: {item_error}")
+                # Continue with other items even if one fails
+                continue
+        
+        logger.info(f"✅ Successfully updated analytics for {updated_count}/{len(outfit_items)} items")
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to update item analytics: {e}")
+        # Don't raise exception - analytics update is not critical for rating success

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     const fullApiUrl = API_URL.startsWith('http') ? API_URL : `https://${API_URL}`;
 
-    const response = await fetch(`${fullApiUrl}/api/outfit/rate`, {
+    const response = await fetch(`${fullApiUrl}/api/outfits/rate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

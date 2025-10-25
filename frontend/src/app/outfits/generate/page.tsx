@@ -818,7 +818,7 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Submitting rating payload:', ratingPayload);
       
       // Submit rating to backend
-      const response = await fetch('/api/outfit/rate', {
+      const response = await fetch('/api/outfits/rate', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${ratingToken}`,
