@@ -738,68 +738,68 @@ class DashboardService {
   ): StyleCollection[] {
     const collections: StyleCollection[] = [];
     
-    // Style-specific collection definitions
+    // Style-specific collection definitions with related/adjacent styles
     const styleMappings: { [key: string]: any } = {
       'classic': {
         name: 'Classic Essentials',
         types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes'],
-        styleKeywords: ['classic', 'timeless', 'elegant', 'formal'],
+        styleKeywords: ['classic', 'timeless', 'elegant', 'formal', 'traditional', 'refined', 'sophisticated'],
         target: 12,
         description: 'Timeless pieces that never go out of style'
       },
       'the classic': {
         name: 'Classic Essentials',
         types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes'],
-        styleKeywords: ['classic', 'timeless', 'elegant', 'formal'],
+        styleKeywords: ['classic', 'timeless', 'elegant', 'formal', 'traditional', 'refined', 'sophisticated'],
         target: 12,
         description: 'Timeless pieces that never go out of style'
       },
       'old money': {
         name: 'Old Money Staples',
         types: ['blazer', 'sweater', 'pants', 'trousers', 'shoes'],
-        styleKeywords: ['old money', 'preppy', 'refined', 'sophisticated'],
+        styleKeywords: ['old money', 'preppy', 'refined', 'sophisticated', 'classic', 'timeless', 'elegant', 'heritage', 'traditional'],
         target: 10,
         description: 'Refined, heritage pieces that speak to quiet luxury'
       },
       'urban street': {
         name: 'Urban Streetwear',
         types: ['shirt', 't-shirt', 'hoodie', 'jeans', 'sneakers', 'shoes'],
-        styleKeywords: ['urban', 'street', 'casual', 'streetwear'],
+        styleKeywords: ['urban', 'street', 'streetwear', 'edgy', 'contemporary', 'modern'],
         target: 10,
         description: 'Contemporary street-ready pieces with an urban edge'
       },
       'street style': {
         name: 'Street Style Collection',
         types: ['shirt', 't-shirt', 'jeans', 'sneakers', 'jacket'],
-        styleKeywords: ['street', 'urban', 'casual', 'edgy'],
+        styleKeywords: ['street', 'urban', 'streetwear', 'edgy', 'bold', 'contemporary'],
         target: 10,
         description: 'Bold street-inspired pieces for everyday wear'
       },
       'minimalist': {
         name: 'Minimalist Basics',
         types: ['shirt', 't-shirt', 'pants', 'sweater'],
-        styleKeywords: ['minimalist', 'simple', 'clean', 'minimal'],
+        styleKeywords: ['minimalist', 'simple', 'clean', 'minimal', 'modern', 'sleek'],
         target: 12,
         description: 'Clean, essential pieces with simple lines'
       },
       'casual': {
         name: 'Casual Staples',
         types: ['shirt', 't-shirt', 'jeans', 'pants', 'sneakers'],
-        styleKeywords: ['casual', 'everyday', 'comfortable', 'relaxed'],
+        styleKeywords: ['casual', 'everyday', 'comfortable', 'relaxed', 'laid-back'],
         target: 15,
         description: 'Comfortable everyday pieces for relaxed looks'
       },
       'preppy': {
         name: 'Preppy Collection',
         types: ['shirt', 'blazer', 'sweater', 'pants', 'shoes'],
-        styleKeywords: ['preppy', 'classic', 'collegiate', 'smart'],
+        styleKeywords: ['preppy', 'classic', 'collegiate', 'smart', 'traditional', 'refined', 'polished'],
         target: 10,
         description: 'Polished, collegiate-inspired pieces'
       },
       'smart casual': {
         name: 'Smart Casual Mix',
         types: ['shirt', 'blazer', 'pants', 'shoes'],
-        styleKeywords: ['smart casual', 'polished', 'versatile'],
+        styleKeywords: ['smart casual', 'polished', 'versatile', 'refined', 'sophisticated', 'business casual'],
         target: 12,
         description: 'Versatile pieces that work from office to evening'
       }
