@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { StyleInspirationCard } from '@/components/ui/style-inspiration-card';
 import { 
   ShoppingBag, 
   DollarSign, 
@@ -342,6 +343,25 @@ export default function WardrobeInsightsHub({
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Style Inspiration Section */}
+            <div className="space-y-4 mt-8">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Discover New Pieces</h3>
+                  <p className="text-sm text-stone-600 dark:text-stone-400">
+                    Get personalized recommendations based on your style profile
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-center">
+                <StyleInspirationCard 
+                  onRefresh={onRefresh}
+                  className="w-full max-w-2xl"
+                />
+              </div>
             </div>
           </TabsContent>
 
