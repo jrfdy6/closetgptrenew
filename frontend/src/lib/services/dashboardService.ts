@@ -178,20 +178,29 @@ class DashboardService {
         }
       };
 
-      // Fetch data from multiple endpoints with individual timeouts
-      // Increased wardrobe timeout to 20 seconds to handle large wardrobes with new fields
+      // Fetch wardrobe data first, then use it for top worn items calculation
+      const wardrobeStats = await fetchWithTimeout(
+        this.getWardrobeStats(user), 
+        20000, 
+        { items: [], total_items: 0 }, 
+        'WardrobeStats'
+      );
+      
+      // Extract wardrobe items for top worn calculation
+      const wardrobeItems = (wardrobeStats as any)?.items || [];
+      console.log('🔍 DEBUG: Using', wardrobeItems.length, 'wardrobe items for top worn calculation');
+      
+      // Fetch remaining data in parallel, passing wardrobe items to top worn calculator
       const [
-        wardrobeStats,
         simpleAnalytics,
         trendingStyles,
         todaysOutfit,
         topWornItems
       ] = await Promise.all([
-        fetchWithTimeout(this.getWardrobeStats(user), 20000, { items: [], total_items: 0 }, 'WardrobeStats'),
         fetchWithTimeout(this.getSimpleAnalytics(user, forceFresh), 15000, { success: true, outfits_worn_this_week: 0 }, 'SimpleAnalytics'),
         fetchWithTimeout(this.getTrendingStyles(user), 8000, { success: true, data: { styles: [] } }, 'TrendingStyles'),
         fetchWithTimeout(this.getTodaysOutfit(user), 8000, { success: true, suggestion: null }, 'TodaysOutfit'),
-        fetchWithTimeout(this.getTopWornItems(user), 8000, { success: true, data: { items: [] } }, 'TopWornItems')
+        fetchWithTimeout(this.getTopWornItems(user, wardrobeItems), 8000, { success: true, data: { items: [] } }, 'TopWornItems')
       ]);
 
       console.log('🔍 DEBUG: All API calls completed, processing data...');
@@ -490,9 +499,46 @@ class DashboardService {
     }
   }
 
-  private async getTopWornItems(user: User) {
+  private async getTopWornItems(user: User, wardrobeItems: any[] = []) {
     try {
-      console.log('🔍 DEBUG: Fetching top worn items from /wardrobe/top-worn-items');
+      console.log('🔍 DEBUG: Calculating top worn items from wardrobe data');
+      console.log('🔍 DEBUG: Wardrobe items count:', wardrobeItems.length);
+      
+      // Calculate top worn items from the wardrobe data we already have
+      if (wardrobeItems && wardrobeItems.length > 0) {
+        // Sort by wear count and get top 5
+        const topItems = [...wardrobeItems]
+          .filter(item => item.wearCount > 0) // Only items that have been worn
+          .sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0))
+          .slice(0, 5)
+          .map(item => ({
+            id: item.id,
+            name: item.name || 'Unknown Item',
+            type: item.type || 'clothing',
+            color: item.color || 'unknown',
+            brand: item.brand || 'Unknown',
+            wear_count: item.wearCount || 0,
+            last_worn: item.lastWorn,
+            image_url: item.imageUrl || item.image_url || item.image || '',
+            is_favorite: item.favorite || item.isFavorite || false
+          }));
+        
+        console.log('🔍 DEBUG: Calculated top worn items:', topItems.length);
+        console.log('🔍 DEBUG: Top items with images:', topItems.filter(i => i.image_url).length);
+        topItems.forEach(item => {
+          console.log(`🔍 DEBUG: ${item.name} - imageUrl: ${item.image_url}`);
+        });
+        
+        return {
+          success: true,
+          top_worn_items: topItems,
+          count: topItems.length,
+          message: 'Calculated from wardrobe data'
+        };
+      }
+      
+      // Fallback to API if no wardrobe items provided
+      console.log('🔍 DEBUG: No wardrobe items, fetching from API');
       const response = await this.makeAuthenticatedRequest('/wardrobe/top-worn-items?limit=5', user, {
         method: 'GET'
       });
@@ -1037,13 +1083,9 @@ class DashboardService {
       }
       
       return topWornItems.map((item: any) => {
-        // Log full item structure to debug
-        console.log('🔍 DEBUG: Full item data:', JSON.stringify(item, null, 2));
-        
         // Handle multiple possible image field names and provide fallback
         const imageUrl = item.image_url || item.imageUrl || item.image || '';
-        console.log('🔍 DEBUG: Item image URL:', item.name, '→', imageUrl);
-        console.log('🔍 DEBUG: Available fields:', Object.keys(item));
+        console.log('🔍 DEBUG: Item:', item.name, '- Image URL:', imageUrl || '(none)');
         
         return {
           id: item.id,
