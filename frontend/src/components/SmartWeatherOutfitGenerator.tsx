@@ -54,6 +54,7 @@ interface GeneratedOutfit {
   confidence: number;
   generatedAt: string;
   isWorn?: boolean;
+  userId?: string; // Added for user isolation validation
 }
 
 export function SmartWeatherOutfitGenerator({ 
@@ -142,10 +143,22 @@ export function SmartWeatherOutfitGenerator({
 
   // Helper functions for daily outfit management
   const getTodaysOutfit = (): GeneratedOutfit | null => {
-    if (!todayKey) return null;
+    if (!todayKey || !user) return null;
     try {
       const stored = localStorage.getItem(`daily-outfit-${todayKey}`);
-      return stored ? JSON.parse(stored) : null;
+      if (!stored) return null;
+      
+      const outfit: GeneratedOutfit = JSON.parse(stored);
+      
+      // SECURITY: Validate that the outfit belongs to the current user
+      if (outfit.userId && outfit.userId !== user.uid) {
+        console.warn('🚨 SECURITY: Outfit belongs to different user, clearing cached data');
+        console.log(`Cached outfit user: ${outfit.userId}, Current user: ${user.uid}`);
+        clearTodaysOutfit();
+        return null;
+      }
+      
+      return outfit;
     } catch (error) {
       console.error('Error loading today\'s outfit:', error);
       return null;
@@ -153,10 +166,15 @@ export function SmartWeatherOutfitGenerator({
   };
 
   const saveTodaysOutfit = (outfit: GeneratedOutfit) => {
-    if (!todayKey) return;
+    if (!todayKey || !user) return;
     try {
-      localStorage.setItem(`daily-outfit-${todayKey}`, JSON.stringify(outfit));
-      console.log('💾 Saved today\'s outfit to storage');
+      // SECURITY: Always include userId when saving outfit
+      const outfitWithUser = {
+        ...outfit,
+        userId: user.uid
+      };
+      localStorage.setItem(`daily-outfit-${todayKey}`, JSON.stringify(outfitWithUser));
+      console.log('💾 Saved today\'s outfit to storage with user ID');
     } catch (error) {
       console.error('Error saving today\'s outfit:', error);
     }

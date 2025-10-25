@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
+import { signOutUser } from "@/lib/auth";
 import { useFirebase } from "@/lib/firebase-context";
 import { useState } from "react";
 import { Menu, X, Sparkles, Home, Shirt, Palette, User, Wand2 } from "lucide-react";
@@ -25,7 +24,7 @@ export default function Navigation() {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOutUser();
       router.push("/login");
     } catch (error) {
       console.error("Error signing out:", error);

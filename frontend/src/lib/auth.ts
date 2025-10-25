@@ -8,9 +8,41 @@ import {
 } from 'firebase/auth';
 import { auth } from './firebase/config';
 
+// Helper function to clear outfit-related localStorage data
+// This prevents data leakage between users
+const clearOutfitCache = () => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    // Find and remove all outfit-related localStorage keys
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+        key.includes('daily-outfit') || 
+        key.includes('outfit-cache') ||
+        key.includes('weather-outfit') ||
+        key.includes('generated-outfit')
+      )) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    // Remove all found keys
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    console.log(`🧹 Cleared ${keysToRemove.length} cached outfit items from localStorage`);
+  } catch (error) {
+    console.error('Error clearing outfit cache:', error);
+  }
+};
+
 // Sign in with email and password
 export const signIn = async (email: string, password: string) => {
   try {
+    // Clear any cached outfit data from previous user sessions
+    clearOutfitCache();
+    
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return { success: true, user: userCredential.user };
   } catch (error: any) {
@@ -24,6 +56,9 @@ export const signIn = async (email: string, password: string) => {
 // Sign up with email and password
 export const signUp = async (email: string, password: string) => {
   try {
+    // Clear any cached outfit data before creating new account
+    clearOutfitCache();
+    
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     return { success: true, user: userCredential.user };
   } catch (error: any) {
@@ -37,6 +72,9 @@ export const signUp = async (email: string, password: string) => {
 // Sign out
 export const signOutUser = async () => {
   try {
+    // Clear cached outfit data when signing out
+    clearOutfitCache();
+    
     await signOut(auth);
     return { success: true };
   } catch (error: any) {
