@@ -576,59 +576,70 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {dashboardData?.topItems && dashboardData.topItems.length > 0 ? (
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {dashboardData.topItems.map((item, index) => (
-                  <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg">
-                    {item.imageUrl ? (
-                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                  <div key={item.id} className="border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden bg-white dark:bg-stone-900 hover:shadow-lg transition-shadow">
+                    {/* Item Image */}
+                    <div className="aspect-square bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-900 relative">
+                      {item.imageUrl && item.imageUrl !== '' && !item.imageUrl.includes('placeholder') ? (
                         <img 
                           src={item.imageUrl} 
                           alt={item.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            // Fallback to icon if image fails to load
+                            // Hide broken images and show fallback icon
                             const target = e.target as HTMLImageElement;
                             target.style.display = 'none';
                             const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `
-                                <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                                  <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                                  </svg>
-                                </div>
-                              `;
+                            if (parent && !parent.querySelector('.fallback-icon')) {
+                              const fallbackDiv = document.createElement('div');
+                              fallbackDiv.className = 'fallback-icon w-full h-full flex items-center justify-center';
+                              fallbackDiv.innerHTML = '<svg class="h-12 w-12 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+                              parent.appendChild(fallbackDiv);
                             }
                           }}
                         />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Shirt className="w-6 h-6 text-gray-600" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 dark:text-white">{item.name}</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.type}</p>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Sparkles className="h-12 w-12 text-stone-400" />
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">{item.wearCount} wears</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Rating: {item.rating}/5</p>
+                    
+                    {/* Item Details */}
+                    <div className="p-4">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
+                        {item.name}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
+                        {item.type}
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400">
+                          <TrendingUp className="h-4 w-4" />
+                          <span className="font-medium">{item.wearCount} wears</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {item.rating}/5
+                          </span>
+                          <Star className={`h-4 w-4 ${item.rating >= 4 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-500 mb-4">No top items yet</p>
-                <div className="text-left max-w-md mx-auto space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                  <p>• How often items appear in outfits</p>
-                  <p>• Your feedback ratings</p>
-                  <p>• How often you view/edit items</p>
-                  <p>• Style preference matches</p>
-                  <p>• Base item usage</p>
-                </div>
-                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
+                <Sparkles className="w-16 h-16 text-stone-300 dark:text-stone-600 mx-auto mb-4" />
+                <p className="text-stone-500 dark:text-stone-400 mb-2">No top items yet</p>
+                <p className="text-sm text-stone-600 dark:text-stone-500 mb-4">
+                  Wear your wardrobe items to see your top performers here
+                </p>
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg max-w-md mx-auto">
                   <p className="text-blue-800 dark:text-blue-200 text-sm">
                     💡 Tip: Add items to your wardrobe and use them in outfits to start seeing your top items!
                   </p>
