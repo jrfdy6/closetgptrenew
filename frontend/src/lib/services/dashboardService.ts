@@ -738,70 +738,151 @@ class DashboardService {
   ): StyleCollection[] {
     const collections: StyleCollection[] = [];
     
-    // Style-specific collection definitions with related/adjacent styles
+    // Comprehensive style mappings with all related/adjacent aesthetics
     const styleMappings: { [key: string]: any } = {
       'classic': {
         name: 'Classic Essentials',
-        types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes'],
-        styleKeywords: ['classic', 'timeless', 'elegant', 'formal', 'traditional', 'refined', 'sophisticated'],
+        types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes', 'dress shirt', 'oxford'],
+        styleKeywords: [
+          'classic', 'timeless', 'elegant', 'formal', 'traditional', 'refined', 'sophisticated',
+          'polished', 'tailored', 'structured', 'crisp', 'clean-cut', 'smart', 'professional',
+          'understated', 'quality', 'investment', 'heritage', 'button-up', 'oxford'
+        ],
         target: 12,
         description: 'Timeless pieces that never go out of style'
       },
       'the classic': {
         name: 'Classic Essentials',
-        types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes'],
-        styleKeywords: ['classic', 'timeless', 'elegant', 'formal', 'traditional', 'refined', 'sophisticated'],
+        types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes', 'dress shirt', 'oxford'],
+        styleKeywords: [
+          'classic', 'timeless', 'elegant', 'formal', 'traditional', 'refined', 'sophisticated',
+          'polished', 'tailored', 'structured', 'crisp', 'clean-cut', 'smart', 'professional',
+          'understated', 'quality', 'investment', 'heritage', 'button-up', 'oxford'
+        ],
         target: 12,
         description: 'Timeless pieces that never go out of style'
       },
       'old money': {
         name: 'Old Money Staples',
-        types: ['blazer', 'sweater', 'pants', 'trousers', 'shoes'],
-        styleKeywords: ['old money', 'preppy', 'refined', 'sophisticated', 'classic', 'timeless', 'elegant', 'heritage', 'traditional'],
+        types: ['blazer', 'sweater', 'pants', 'trousers', 'shoes', 'cardigan', 'turtleneck', 'oxford'],
+        styleKeywords: [
+          'old money', 'preppy', 'refined', 'sophisticated', 'classic', 'timeless', 'elegant',
+          'heritage', 'traditional', 'understated', 'quality', 'tailored', 'ivy league',
+          'country club', 'nautical', 'polo', 'cashmere', 'oxford', 'loafer', 'blazer',
+          'smart', 'polished', 'distinguished', 'aristocratic', 'luxe', 'quiet luxury'
+        ],
         target: 10,
         description: 'Refined, heritage pieces that speak to quiet luxury'
       },
       'urban street': {
         name: 'Urban Streetwear',
-        types: ['shirt', 't-shirt', 'hoodie', 'jeans', 'sneakers', 'shoes'],
-        styleKeywords: ['urban', 'street', 'streetwear', 'edgy', 'contemporary', 'modern'],
+        types: ['shirt', 't-shirt', 'hoodie', 'jeans', 'sneakers', 'shoes', 'jacket', 'sweatshirt'],
+        styleKeywords: [
+          'urban', 'street', 'streetwear', 'edgy', 'contemporary', 'modern', 'hip-hop',
+          'skate', 'athleisure', 'graphic', 'bold', 'oversized', 'trendy', 'cool', 'fresh',
+          'dope', 'fire', 'hype', 'sneaker', 'hoodie', 'drop', 'collab', 'limited'
+        ],
         target: 10,
         description: 'Contemporary street-ready pieces with an urban edge'
       },
       'street style': {
         name: 'Street Style Collection',
-        types: ['shirt', 't-shirt', 'jeans', 'sneakers', 'jacket'],
-        styleKeywords: ['street', 'urban', 'streetwear', 'edgy', 'bold', 'contemporary'],
+        types: ['shirt', 't-shirt', 'jeans', 'sneakers', 'jacket', 'hoodie', 'bomber'],
+        styleKeywords: [
+          'street', 'urban', 'streetwear', 'edgy', 'bold', 'contemporary', 'trendy',
+          'fashion-forward', 'cool', 'fresh', 'statement', 'graphic', 'oversized',
+          'layered', 'mixed', 'eclectic', 'creative', 'individual', 'unique'
+        ],
         target: 10,
         description: 'Bold street-inspired pieces for everyday wear'
       },
       'minimalist': {
         name: 'Minimalist Basics',
-        types: ['shirt', 't-shirt', 'pants', 'sweater'],
-        styleKeywords: ['minimalist', 'simple', 'clean', 'minimal', 'modern', 'sleek'],
+        types: ['shirt', 't-shirt', 'pants', 'sweater', 'trousers', 'sneakers'],
+        styleKeywords: [
+          'minimalist', 'simple', 'clean', 'minimal', 'modern', 'sleek', 'understated',
+          'monochrome', 'essential', 'streamlined', 'neutral', 'pared-back', 'refined',
+          'subtle', 'elegant', 'timeless', 'versatile', 'effortless', 'scandinavian'
+        ],
         target: 12,
         description: 'Clean, essential pieces with simple lines'
       },
       'casual': {
         name: 'Casual Staples',
-        types: ['shirt', 't-shirt', 'jeans', 'pants', 'sneakers'],
-        styleKeywords: ['casual', 'everyday', 'comfortable', 'relaxed', 'laid-back'],
+        types: ['shirt', 't-shirt', 'jeans', 'pants', 'sneakers', 'hoodie', 'shorts'],
+        styleKeywords: [
+          'casual', 'everyday', 'comfortable', 'relaxed', 'laid-back', 'easy', 'effortless',
+          'weekend', 'leisure', 'cozy', 'soft', 'breathable', 'versatile', 'go-to',
+          'staple', 'basic', 'essential', 'easygoing', 'low-key', 'chill'
+        ],
         target: 15,
         description: 'Comfortable everyday pieces for relaxed looks'
       },
       'preppy': {
         name: 'Preppy Collection',
-        types: ['shirt', 'blazer', 'sweater', 'pants', 'shoes'],
-        styleKeywords: ['preppy', 'classic', 'collegiate', 'smart', 'traditional', 'refined', 'polished'],
+        types: ['shirt', 'blazer', 'sweater', 'pants', 'shoes', 'polo', 'button-up', 'cardigan'],
+        styleKeywords: [
+          'preppy', 'classic', 'collegiate', 'smart', 'traditional', 'refined', 'polished',
+          'ivy league', 'nautical', 'country club', 'polo', 'oxford', 'button-down',
+          'argyle', 'striped', 'clean-cut', 'fresh', 'wholesome', 'timeless', 'heritage'
+        ],
         target: 10,
         description: 'Polished, collegiate-inspired pieces'
       },
       'smart casual': {
         name: 'Smart Casual Mix',
-        types: ['shirt', 'blazer', 'pants', 'shoes'],
-        styleKeywords: ['smart casual', 'polished', 'versatile', 'refined', 'sophisticated', 'business casual'],
+        types: ['shirt', 'blazer', 'pants', 'shoes', 'sweater', 'button-up', 'chinos'],
+        styleKeywords: [
+          'smart casual', 'polished', 'versatile', 'refined', 'sophisticated', 'business casual',
+          'elevated', 'professional', 'tailored', 'put-together', 'crisp', 'sharp',
+          'modern', 'contemporary', 'office-ready', 'adaptable', 'smart', 'chic'
+        ],
         target: 12,
         description: 'Versatile pieces that work from office to evening'
+      },
+      'bohemian': {
+        name: 'Bohemian Collection',
+        types: ['shirt', 'dress', 'skirt', 'pants', 'sandals', 'kimono', 'tunic'],
+        styleKeywords: [
+          'bohemian', 'boho', 'free-spirited', 'eclectic', 'artistic', 'relaxed', 'flowing',
+          'ethnic', 'vintage', 'retro', 'hippie', 'festival', 'romantic', 'whimsical',
+          'layered', 'textured', 'earthy', 'natural', 'unconventional', 'creative'
+        ],
+        target: 10,
+        description: 'Free-spirited, artistic pieces with bohemian flair'
+      },
+      'athletic': {
+        name: 'Athletic Collection',
+        types: ['t-shirt', 'shorts', 'pants', 'sneakers', 'hoodie', 'jacket', 'tank'],
+        styleKeywords: [
+          'athletic', 'sporty', 'active', 'performance', 'athleisure', 'gym', 'workout',
+          'fitness', 'sport', 'running', 'training', 'technical', 'moisture-wicking',
+          'breathable', 'stretch', 'flexible', 'dynamic', 'energetic', 'functional'
+        ],
+        target: 12,
+        description: 'Performance and athleisure pieces for active lifestyles'
+      },
+      'vintage': {
+        name: 'Vintage Collection',
+        types: ['shirt', 'jeans', 'jacket', 'dress', 'sweater', 'coat'],
+        styleKeywords: [
+          'vintage', 'retro', 'classic', 'nostalgic', 'throwback', 'old-school', 'heritage',
+          'timeless', 'authentic', 'original', 'worn-in', 'distressed', 'faded',
+          'era', 'decade', 'antique', 'traditional', 'period', 'historical'
+        ],
+        target: 8,
+        description: 'Timeless vintage and retro-inspired pieces'
+      },
+      'edgy': {
+        name: 'Edgy Collection',
+        types: ['jacket', 'jeans', 'boots', 't-shirt', 'leather', 'denim'],
+        styleKeywords: [
+          'edgy', 'bold', 'dark', 'rebellious', 'rock', 'punk', 'grunge', 'alternative',
+          'leather', 'studded', 'ripped', 'distressed', 'black', 'metal', 'gothic',
+          'fierce', 'attitude', 'statement', 'unconventional', 'daring'
+        ],
+        target: 8,
+        description: 'Bold, rebellious pieces with an edge'
       }
     };
     
