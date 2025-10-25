@@ -5497,10 +5497,22 @@ class RobustOutfitGenerationService:
             final_missing = [cat for cat in ['tops', 'bottoms', 'shoes'] if cat not in categories_filled]
             if final_missing:
                 logger.warning(f"⚠️ SAFETY NET: Still missing categories after safety net: {final_missing}")
+                
+                # CRITICAL: Fail generation if shoes are missing
+                if 'shoes' in final_missing:
+                    error_msg = f"Cannot generate outfit: No shoes available in wardrobe for {context.occasion} occasion"
+                    logger.error(f"🚫 OUTFIT GENERATION FAILED: {error_msg}")
+                    raise ValueError(error_msg)
             else:
                 logger.info(f"✅ SAFETY NET: Successfully filled all essential categories")
         else:
             logger.info(f"✅ SAFETY NET: Not needed - all essential categories filled in Phase 1")
+            
+            # CRITICAL: Even if safety net wasn't needed, verify shoes are present
+            if 'shoes' not in categories_filled:
+                error_msg = f"Cannot generate outfit: No shoes available in wardrobe for {context.occasion} occasion"
+                logger.error(f"🚫 OUTFIT GENERATION FAILED: {error_msg}")
+                raise ValueError(error_msg)
         
         # EMERGENCY BYPASS: If no items selected, force select the first item
         if len(selected_items) == 0 and sorted_items:
