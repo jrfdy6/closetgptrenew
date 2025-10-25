@@ -672,22 +672,171 @@ class DashboardService {
     // Use individual items from /wardrobe endpoint
     const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
+    const itemStyles: { [key: string]: number } = {}; // Count items by their style tags
     
     if (Array.isArray(items) && items.length > 0) {
       items.forEach((item: any, index: number) => {
         const type = item.type || 'unknown';
         categories[type] = (categories[type] || 0) + 1;
+        
+        // Count items by their style tags
+        const styles = item.style || [];
+        if (Array.isArray(styles)) {
+          styles.forEach((style: string) => {
+            const normalizedStyle = style.toLowerCase().trim();
+            itemStyles[normalizedStyle] = (itemStyles[normalizedStyle] || 0) + 1;
+          });
+        }
       });
     }
     
-    // Get user's style persona
-    const persona = userProfile?.stylePersona?.id || userProfile?.stylePersona?.name?.toLowerCase() || 'architect';
-    console.log(`🎭 [Style Collections] Building collections for persona: ${persona}`);
+    // Get user's style preferences from profile
+    const stylePreferences = userProfile?.stylePreferences || userProfile?.preferences?.style || [];
+    console.log(`🎭 [Style Collections] User style preferences:`, stylePreferences);
+    console.log(`🎭 [Style Collections] Item style distribution:`, itemStyles);
     
-    // Define persona-specific collections
-    const personaCollections = this.getPersonaCollections(persona, categories);
+    // Build dynamic collections based on user's style preferences
+    const dynamicCollections = this.getDynamicStyleCollections(stylePreferences, categories, itemStyles, items);
     
-    return personaCollections;
+    return dynamicCollections;
+  }
+
+  private getDynamicStyleCollections(
+    stylePreferences: string[], 
+    categories: { [key: string]: number },
+    itemStyles: { [key: string]: number },
+    items: any[]
+  ): StyleCollection[] {
+    const collections: StyleCollection[] = [];
+    
+    // Style-specific collection definitions
+    const styleMappings: { [key: string]: any } = {
+      'classic': {
+        name: 'Classic Essentials',
+        types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes'],
+        styleKeywords: ['classic', 'timeless', 'elegant', 'formal'],
+        target: 12,
+        description: 'Timeless pieces that never go out of style'
+      },
+      'the classic': {
+        name: 'Classic Essentials',
+        types: ['shirt', 'blazer', 'pants', 'trousers', 'shoes'],
+        styleKeywords: ['classic', 'timeless', 'elegant', 'formal'],
+        target: 12,
+        description: 'Timeless pieces that never go out of style'
+      },
+      'old money': {
+        name: 'Old Money Staples',
+        types: ['blazer', 'sweater', 'pants', 'trousers', 'shoes'],
+        styleKeywords: ['old money', 'preppy', 'refined', 'sophisticated'],
+        target: 10,
+        description: 'Refined, heritage pieces that speak to quiet luxury'
+      },
+      'urban street': {
+        name: 'Urban Streetwear',
+        types: ['shirt', 't-shirt', 'hoodie', 'jeans', 'sneakers', 'shoes'],
+        styleKeywords: ['urban', 'street', 'casual', 'streetwear'],
+        target: 10,
+        description: 'Contemporary street-ready pieces with an urban edge'
+      },
+      'street style': {
+        name: 'Street Style Collection',
+        types: ['shirt', 't-shirt', 'jeans', 'sneakers', 'jacket'],
+        styleKeywords: ['street', 'urban', 'casual', 'edgy'],
+        target: 10,
+        description: 'Bold street-inspired pieces for everyday wear'
+      },
+      'minimalist': {
+        name: 'Minimalist Basics',
+        types: ['shirt', 't-shirt', 'pants', 'sweater'],
+        styleKeywords: ['minimalist', 'simple', 'clean', 'minimal'],
+        target: 12,
+        description: 'Clean, essential pieces with simple lines'
+      },
+      'casual': {
+        name: 'Casual Staples',
+        types: ['shirt', 't-shirt', 'jeans', 'pants', 'sneakers'],
+        styleKeywords: ['casual', 'everyday', 'comfortable', 'relaxed'],
+        target: 15,
+        description: 'Comfortable everyday pieces for relaxed looks'
+      },
+      'preppy': {
+        name: 'Preppy Collection',
+        types: ['shirt', 'blazer', 'sweater', 'pants', 'shoes'],
+        styleKeywords: ['preppy', 'classic', 'collegiate', 'smart'],
+        target: 10,
+        description: 'Polished, collegiate-inspired pieces'
+      },
+      'smart casual': {
+        name: 'Smart Casual Mix',
+        types: ['shirt', 'blazer', 'pants', 'shoes'],
+        styleKeywords: ['smart casual', 'polished', 'versatile'],
+        target: 12,
+        description: 'Versatile pieces that work from office to evening'
+      }
+    };
+    
+    // If user has style preferences, create collections for each
+    if (stylePreferences && stylePreferences.length > 0) {
+      stylePreferences.forEach((stylePref: string) => {
+        const normalizedStyle = stylePref.toLowerCase().trim();
+        const styleConfig = styleMappings[normalizedStyle];
+        
+        if (styleConfig) {
+          // Count items that match this style
+          let matchingCount = 0;
+          
+          // Count by type (items that have the right type for this style)
+          styleConfig.types.forEach((type: string) => {
+            matchingCount += categories[type] || 0;
+          });
+          
+          // Alternatively, count items that have this style tag
+          const styleTagCount = styleConfig.styleKeywords.reduce((sum: number, keyword: string) => {
+            return sum + (itemStyles[keyword] || 0);
+          }, 0);
+          
+          // Use the higher count (either by type or by style tags)
+          const finalCount = Math.max(matchingCount, styleTagCount);
+          
+          collections.push({
+            name: styleConfig.name,
+            progress: finalCount,
+            target: styleConfig.target,
+            status: finalCount >= styleConfig.target 
+              ? `Complete! ${styleConfig.description}` 
+              : styleConfig.description
+          });
+        }
+      });
+    }
+    
+    // If no style preferences or no matching collections, add default collections
+    if (collections.length === 0) {
+      // Fallback to basic type-based collections
+      collections.push({
+        name: 'Top Collection',
+        progress: (categories['shirt'] || 0) + (categories['sweater'] || 0) + (categories['t-shirt'] || 0) + (categories['hoodie'] || 0),
+        target: 12,
+        status: 'Building your top collection'
+      });
+      
+      collections.push({
+        name: 'Bottom Collection',
+        progress: (categories['pants'] || 0) + (categories['jeans'] || 0) + (categories['shorts'] || 0),
+        target: 10,
+        status: 'Building your bottom collection'
+      });
+      
+      collections.push({
+        name: 'Footwear Collection',
+        progress: (categories['shoes'] || 0) + (categories['sneakers'] || 0) + (categories['boots'] || 0),
+        target: 8,
+        status: 'Building your footwear collection'
+      });
+    }
+    
+    return collections;
   }
 
   private getPersonaCollections(persona: string, categories: { [key: string]: number }): StyleCollection[] {
