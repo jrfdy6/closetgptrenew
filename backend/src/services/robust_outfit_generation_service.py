@@ -5344,6 +5344,18 @@ class RobustOutfitGenerationService:
                         logger.debug(f"  🔍 Exploration: Added low scorer after 3 high scorers")
                     low_score_idx += 1
         
+        # CRITICAL FIX: If we have few items (< 4), add remaining low scorers to ensure enough options
+        # This handles the case where all items are "low scorers" (no high scorers available)
+        if len(exploration_mixed) < 4:
+            logger.info(f"🔧 EXPLORATION FIX: Only {len(exploration_mixed)} items in mix, adding remaining low scorers...")
+            for item_id, score_data in low_score_items:
+                if item_id not in reserved_ids and (item_id, score_data) not in exploration_mixed:
+                    exploration_mixed.append((item_id, score_data))
+                    logger.debug(f"  ➕ Added low scorer: {self.safe_get_item_name(score_data['item'])} (score={score_data['composite_score']:.2f})")
+                    # Stop when we have enough items (cap at 6 items total or all available items)
+                    if len(exploration_mixed) >= min(len(item_scores), 6):
+                        break
+        
         # Use the exploration-mixed list for selection
         sorted_items = exploration_mixed
         
