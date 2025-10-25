@@ -92,6 +92,9 @@ async def update_user_profile(
         logger.info(f"🔍 DEBUG: Updating profile for user: {current_user.id}")
         logger.info(f"🔍 DEBUG: Profile data received: fields_count={len(profile_data.keys()) if profile_data else 0}, user_id={current_user.id}")
         
+        # Import Firebase inside function to prevent import-time crashes
+        from ..config.firebase import db, firebase_initialized
+        
         # Check if Firebase is available
         if not firebase_initialized:
             logger.warning("Firebase not available, cannot update profile")
@@ -99,9 +102,6 @@ async def update_user_profile(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Firebase service not available"
             )
-        
-        # Import Firebase inside function to prevent import-time crashes
-        from ..config.firebase import db, firebase_initialized
         
         user_ref = db.collection('users').document(current_user.id)
         
@@ -116,6 +116,8 @@ async def update_user_profile(
         
         logger.info(f"🔍 DEBUG: Timestamp handling - frontend_updated_at: {frontend_updated_at}, current_time: {current_time}, final_updated_at: {final_updated_at}")
         logger.info(f"🔍 DEBUG: Profile data keys: {list(profile_data.keys())}")
+        logger.info(f"🔍 DEBUG: measurements in profile_data: {'measurements' in profile_data}, value: {profile_data.get('measurements')}")
+        logger.info(f"🔍 DEBUG: stylePreferences in profile_data: {'stylePreferences' in profile_data}, value: {profile_data.get('stylePreferences')}")
         
         update_data = {
             'name': (profile_data.get('name') if profile_data else None),
@@ -129,8 +131,10 @@ async def update_user_profile(
             update_data['gender'] = profile_data['gender']
         if 'measurements' in profile_data:
             update_data['measurements'] = profile_data['measurements']
+            logger.info(f"✅ DEBUG: Added measurements to update_data")
         if 'stylePreferences' in profile_data:
             update_data['stylePreferences'] = profile_data['stylePreferences']
+            logger.info(f"✅ DEBUG: Added stylePreferences to update_data: {profile_data['stylePreferences']}")
         if 'preferences' in profile_data:
             update_data['preferences'] = profile_data['preferences']
         if 'bodyType' in profile_data:
@@ -169,8 +173,10 @@ async def update_user_profile(
         # Use set() instead of update() to create the document if it doesn't exist
         user_ref.set(update_data, merge=True)
         
-        logger.info(f"User profile updated successfully: {current_user.id}")
+        logger.info(f"✅ User profile updated successfully: {current_user.id}")
         logger.info(f"🔍 DEBUG: Updated profile data: user_id={current_user.id}, fields_updated={len(update_data.keys()) if update_data else 0}")
+        logger.info(f"🔍 DEBUG: Fields in update_data: {list(update_data.keys())}")
+        logger.info(f"🔍 DEBUG: Has measurements: {'measurements' in update_data}, Has stylePreferences: {'stylePreferences' in update_data}")
         
         # Return the updated profile data
         return update_data
