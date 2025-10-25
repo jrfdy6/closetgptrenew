@@ -225,6 +225,69 @@ class StyleInspirationService:
         
         return rationale
     
+    def _filter_by_gender_and_preferences(
+        self, 
+        items: List[Dict[str, Any]], 
+        user_profile: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Filter items by user's gender and style preferences"""
+        
+        user_gender = user_profile.get('gender', '').lower()
+        user_style_prefs = user_profile.get('stylePreferences', [])
+        
+        # Extract preferences from nested structure if needed
+        if not user_style_prefs and 'preferences' in user_profile:
+            user_style_prefs = user_profile.get('preferences', {}).get('style', [])
+        
+        filtered = []
+        
+        for item in items:
+            # Gender filtering
+            if user_gender:
+                item_categories = [cat.lower() for cat in item.get('categories', [])]
+                item_tags = [tag.lower() for tag in item.get('tags', [])]
+                
+                # Skip gender-specific items that don't match
+                if user_gender in ['male', 'man', 'men']:
+                    # Skip explicitly feminine items
+                    feminine_keywords = ['dress', 'skirt', 'bra', 'heels', 'makeup']
+                    if any(kw in ' '.join(item_categories + item_tags) for kw in feminine_keywords):
+                        continue
+                
+                elif user_gender in ['female', 'woman', 'women']:
+                    # Skip explicitly masculine items
+                    masculine_keywords = ['mens', 'masculine']
+                    if any(kw in ' '.join(item_categories + item_tags) for kw in masculine_keywords):
+                        continue
+            
+            # Style preference filtering (if user has strong preferences)
+            if user_style_prefs and len(user_style_prefs) > 0:
+                item_style_vector = item.get('style_vector', {})
+                
+                # Check if item aligns with at least one of user's style preferences
+                has_matching_style = False
+                for pref in user_style_prefs:
+                    pref_normalized = pref.strip()
+                    
+                    # Check if preference matches any style in the item's vector
+                    for style_name, score in item_style_vector.items():
+                        if pref_normalized.lower() in style_name.lower():
+                            if score >= 0.3:  # Item has at least some of this style
+                                has_matching_style = True
+                                break
+                    
+                    if has_matching_style:
+                        break
+                
+                # If user has specific preferences and item doesn't match any, skip
+                # But allow if user has less than 2 preferences (still exploring)
+                if not has_matching_style and len(user_style_prefs) >= 2:
+                    continue
+            
+            filtered.append(item)
+        
+        return filtered
+    
     def get_inspiration(
         self,
         user_profile: Dict[str, Any],
@@ -248,12 +311,21 @@ class StyleInspirationService:
         
         excluded_ids = excluded_ids or []
         
+        # Filter by gender and style preferences FIRST
+        filtered_catalog = self._filter_by_gender_and_preferences(self.catalog, user_profile)
+        
+        if not filtered_catalog:
+            logger.warning("⚠️ No items match user's gender and style preferences")
+            return None
+        
+        logger.info(f"✅ Filtered catalog: {len(filtered_catalog)}/{len(self.catalog)} items match user preferences")
+        
         # Get user's style vector
         user_style_vector = self._user_style_vector_from_profile(user_profile)
         
-        # Score all items
+        # Score filtered items
         scored_items = []
-        for item in self.catalog:
+        for item in filtered_catalog:
             if item['id'] in excluded_ids:
                 continue
             
