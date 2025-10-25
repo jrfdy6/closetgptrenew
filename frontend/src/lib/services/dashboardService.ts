@@ -214,8 +214,7 @@ class DashboardService {
       
       // Extract data from backend responses with proper fallbacks
       // Now using /wardrobe endpoint which returns individual items
-      const wardrobeItems = (wardrobeStats as any)?.items || [];
-      const totalItems = (wardrobeStats as any)?.total_items || 0;
+      const totalItems = (wardrobeStats as any)?.total_items || wardrobeItems.length || 0;
       
       const topWornItemsList = (topWornItems as any)?.data?.items || (topWornItems as any)?.items || topWornItems || [];
       const trendingStylesList = (trendingStyles as any)?.data?.styles || (trendingStyles as any)?.styles || trendingStyles || [];
