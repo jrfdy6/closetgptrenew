@@ -1037,9 +1037,13 @@ class DashboardService {
       }
       
       return topWornItems.map((item: any) => {
+        // Log full item structure to debug
+        console.log('🔍 DEBUG: Full item data:', JSON.stringify(item, null, 2));
+        
         // Handle multiple possible image field names and provide fallback
         const imageUrl = item.image_url || item.imageUrl || item.image || '';
         console.log('🔍 DEBUG: Item image URL:', item.name, '→', imageUrl);
+        console.log('🔍 DEBUG: Available fields:', Object.keys(item));
         
         return {
           id: item.id,
