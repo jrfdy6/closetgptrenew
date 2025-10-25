@@ -105,9 +105,19 @@ interface ShoppingStrategy {
   tips: string[];
 }
 
+interface TopItem {
+  id: string;
+  name: string;
+  type: string;
+  imageUrl: string;
+  wearCount: number;
+  rating: number;
+}
+
 interface WardrobeInsightsHubProps {
   styleExpansions?: StyleExpansion[];
   gaps?: WardrobeGap[];
+  topItems?: TopItem[];
   shoppingRecommendations?: {
     success: boolean;
     recommendations: ShoppingRecommendation[];
@@ -123,6 +133,7 @@ interface WardrobeInsightsHubProps {
 export default function WardrobeInsightsHub({
   styleExpansions = [],
   gaps = [],
+  topItems = [],
   shoppingRecommendations: initialShoppingRecommendations,
   onRefresh,
   className = ""
@@ -290,46 +301,110 @@ export default function WardrobeInsightsHub({
           </TabsList>
 
           {/* Tab 1: Style Expansion */}
-          <TabsContent value="style-expansion" className="space-y-4">
-            <div className="mb-4">
-              <p className="text-sm text-stone-600 dark:text-stone-400">
-                Your clothing items will allow you to explore the following areas as well
-              </p>
-            </div>
-            
-            {styleExpansions && styleExpansions.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {styleExpansions.map((expansion, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center justify-between p-4 border border-stone-200 dark:border-stone-700 rounded-lg bg-gradient-to-br from-white to-stone-50 dark:from-stone-900 dark:to-stone-800 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                        <Star className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <span className="font-medium text-gray-900 dark:text-white capitalize">
-                        {expansion.name}
-                      </span>
-                    </div>
-                    <Badge 
-                      variant={expansion.direction === 'Established' ? 'default' : 'outline'}
-                      className={expansion.direction === 'Established' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' : ''}
+          <TabsContent value="style-expansion" className="space-y-6">
+            {/* Top Worn Items Section */}
+            {topItems && topItems.length > 0 && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Your Top Items</h3>
+                  <p className="text-sm text-stone-600 dark:text-stone-400">
+                    Your top items will appear here based on wear count and ratings
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {topItems.map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden bg-white dark:bg-stone-900 hover:shadow-lg transition-shadow"
                     >
-                      {expansion.direction}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
-                <Sparkles className="w-16 h-16 text-stone-300 dark:text-stone-600 mx-auto mb-4" />
-                <p className="text-stone-500 dark:text-stone-400 mb-2">No style expansions available yet</p>
-                <p className="text-sm text-stone-600 dark:text-stone-500">
-                  Add more diverse items to your wardrobe to unlock new style directions
-                </p>
+                      {/* Item Image */}
+                      <div className="aspect-square bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-900 relative">
+                        {item.imageUrl ? (
+                          <img 
+                            src={item.imageUrl} 
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Sparkles className="h-12 w-12 text-stone-400" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Item Details */}
+                      <div className="p-4">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
+                          {item.name}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
+                          {item.type}
+                        </p>
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400">
+                            <TrendingUp className="h-4 w-4" />
+                            <span className="font-medium">{item.wearCount} wears</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                              Rating: {item.rating}/5
+                            </span>
+                            <Star className={`h-4 w-4 ${item.rating >= 4 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+            
+            {/* Style Expansion Areas */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Style Areas to Explore</h3>
+                <p className="text-sm text-stone-600 dark:text-stone-400">
+                  Your clothing items will allow you to explore the following areas as well
+                </p>
+              </div>
+              
+              {styleExpansions && styleExpansions.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {styleExpansions.map((expansion, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-center justify-between p-4 border border-stone-200 dark:border-stone-700 rounded-lg bg-gradient-to-br from-white to-stone-50 dark:from-stone-900 dark:to-stone-800 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                          <Star className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <span className="font-medium text-gray-900 dark:text-white capitalize">
+                          {expansion.name}
+                        </span>
+                      </div>
+                      <Badge 
+                        variant={expansion.direction === 'Established' ? 'default' : 'outline'}
+                        className={expansion.direction === 'Established' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200' : ''}
+                      >
+                        {expansion.direction}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
+                  <Sparkles className="w-16 h-16 text-stone-300 dark:text-stone-600 mx-auto mb-4" />
+                  <p className="text-stone-500 dark:text-stone-400 mb-2">No style expansions available yet</p>
+                  <p className="text-sm text-stone-600 dark:text-stone-500">
+                    Add more diverse items to your wardrobe to unlock new style directions
+                  </p>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           {/* Tab 2: Wardrobe Gap Analysis */}
