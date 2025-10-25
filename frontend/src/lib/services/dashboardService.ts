@@ -178,6 +178,14 @@ class DashboardService {
         }
       };
 
+      // Fetch user profile with persona data
+      const userProfile = await fetchWithTimeout(
+        this.getUserProfile(user),
+        5000,
+        { stylePersona: null },
+        'UserProfile'
+      );
+
       // Fetch wardrobe data first, then use it for top worn items calculation
       const wardrobeStats = await fetchWithTimeout(
         this.getWardrobeStats(user), 
@@ -243,8 +251,8 @@ class DashboardService {
         styleGoalsCompleted: this.calculateStyleGoals(wardrobeStats, trendingStyles),
         totalStyleGoals: 5, // Default value, could be configurable
         outfitsThisWeek: outfitsThisWeek,
-        overallProgress: this.calculateOverallProgress(wardrobeStats, trendingStyles),
-        styleCollections: this.buildStyleCollections(wardrobeStats, trendingStyles),
+        overallProgress: this.calculateOverallProgress(wardrobeStats, trendingStyles, userProfile),
+        styleCollections: this.buildStyleCollections(wardrobeStats, trendingStyles, userProfile),
         styleExpansions: this.buildStyleExpansions(wardrobeStats, trendingStyles),
         seasonalBalance: this.buildSeasonalBalance(wardrobeStats),
         colorVariety: this.buildColorVariety(wardrobeStats),
@@ -266,6 +274,30 @@ class DashboardService {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       throw error;
+    }
+  }
+
+  private async getUserProfile(user: User | null) {
+    try {
+      if (!user) return { stylePersona: null };
+      
+      const token = await user.getIdToken();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const profileData = await response.json();
+        console.log('🎭 [Dashboard] Fetched user profile with persona:', profileData?.stylePersona?.name || 'No persona');
+        return profileData;
+      }
+      
+      return { stylePersona: null };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return { stylePersona: null };
     }
   }
 
@@ -601,9 +633,9 @@ class DashboardService {
 
   // Removed complex calculation methods - using simple analytics instead
 
-  private calculateOverallProgress(wardrobeStats: any, trendingStyles: any): number {
+  private calculateOverallProgress(wardrobeStats: any, trendingStyles: any, userProfile: any): number {
     // Calculate overall progress based on style collections completion
-    const collections = this.buildStyleCollections(wardrobeStats, trendingStyles);
+    const collections = this.buildStyleCollections(wardrobeStats, trendingStyles, userProfile);
     
     // Calculate average completion of style collections
     const totalProgress = collections.reduce((sum, collection) => {
@@ -611,7 +643,7 @@ class DashboardService {
       return sum + completion;
     }, 0);
     
-    const averageProgress = totalProgress / collections.length;
+    const averageProgress = collections.length > 0 ? totalProgress / collections.length : 0;
     
     console.log('🔍 DEBUG: Overall Progress Calculation (Style Collections Based):');
     collections.forEach(collection => {
@@ -636,7 +668,7 @@ class DashboardService {
     return 25; // Default 25% score
   }
 
-  private buildStyleCollections(wardrobeStats: any, trendingStyles: any): StyleCollection[] {
+  private buildStyleCollections(wardrobeStats: any, trendingStyles: any, userProfile: any): StyleCollection[] {
     // Use individual items from /wardrobe endpoint
     const items = wardrobeStats?.items || [];
     const categories: { [key: string]: number } = {};
@@ -648,24 +680,150 @@ class DashboardService {
       });
     }
     
+    // Get user's style persona
+    const persona = userProfile?.stylePersona?.id || userProfile?.stylePersona?.name?.toLowerCase() || 'architect';
+    console.log(`🎭 [Style Collections] Building collections for persona: ${persona}`);
+    
+    // Define persona-specific collections
+    const personaCollections = this.getPersonaCollections(persona, categories);
+    
+    return personaCollections;
+  }
+
+  private getPersonaCollections(persona: string, categories: { [key: string]: number }): StyleCollection[] {
     const collections: StyleCollection[] = [];
     
-    // Basic Collection (shirts, sweaters, basic tops)
-    const basicCount = (categories['shirt'] || 0) + (categories['dress_shirt'] || 0) + (categories['sweater'] || 0);
-    collections.push({
-      name: 'Basic Collection',
-      progress: basicCount,
-      target: 15,
-      status: basicCount >= 15 ? 'Great job! Consider exploring new styles' : 'Building your basic collection'
-    });
+    // Persona-specific collection definitions
+    const personaMappings: { [key: string]: any } = {
+      rebel: {
+        collections: [
+          {
+            name: 'Statement Pieces',
+            types: ['shirt', 'sweater', 'jacket', 'blazer'],
+            target: 10,
+            description: 'Bold, eye-catching pieces that make you stand out'
+          },
+          {
+            name: 'Edgy Bottoms',
+            types: ['pants', 'jeans', 'shorts'],
+            target: 8,
+            description: 'Unique pants and jeans that break the mold'
+          },
+          {
+            name: 'Statement Footwear',
+            types: ['shoes', 'boots', 'sneakers'],
+            target: 6,
+            description: 'Bold shoes that complete your rebellious look'
+          }
+        ]
+      },
+      architect: {
+        collections: [
+          {
+            name: 'Clean Basics',
+            types: ['shirt', 'sweater', 't-shirt'],
+            target: 12,
+            description: 'Timeless, well-fitted basics that form your foundation'
+          },
+          {
+            name: 'Tailored Bottoms',
+            types: ['pants', 'jeans', 'trousers'],
+            target: 10,
+            description: 'Well-structured pants with clean lines'
+          },
+          {
+            name: 'Minimal Footwear',
+            types: ['shoes', 'boots', 'sneakers'],
+            target: 6,
+            description: 'Sleek, versatile shoes for every occasion'
+          }
+        ]
+      },
+      strategist: {
+        collections: [
+          {
+            name: 'Versatile Tops',
+            types: ['shirt', 'sweater', 'blazer'],
+            target: 12,
+            description: 'Smart pieces that work across multiple occasions'
+          },
+          {
+            name: 'Smart Bottoms',
+            types: ['pants', 'jeans', 'shorts'],
+            target: 10,
+            description: 'Adaptable pants that transition seamlessly'
+          },
+          {
+            name: 'Functional Footwear',
+            types: ['shoes', 'boots', 'sneakers'],
+            target: 8,
+            description: 'Practical shoes that work hard for you'
+          }
+        ]
+      },
+      modernist: {
+        collections: [
+          {
+            name: 'Contemporary Tops',
+            types: ['shirt', 'sweater', 't-shirt'],
+            target: 12,
+            description: 'Modern, streamlined pieces with clean lines'
+          },
+          {
+            name: 'Sleek Bottoms',
+            types: ['pants', 'jeans'],
+            target: 10,
+            description: 'Forward-thinking pants with contemporary cuts'
+          },
+          {
+            name: 'Modern Footwear',
+            types: ['shoes', 'sneakers'],
+            target: 8,
+            description: 'Fashion-forward shoes for the modern wardrobe'
+          }
+        ]
+      },
+      connoisseur: {
+        collections: [
+          {
+            name: 'Luxury Basics',
+            types: ['shirt', 'sweater', 'blazer'],
+            target: 10,
+            description: 'Investment pieces with refined details'
+          },
+          {
+            name: 'Premium Bottoms',
+            types: ['pants', 'jeans', 'trousers'],
+            target: 8,
+            description: 'High-quality pants that speak to your refined taste'
+          },
+          {
+            name: 'Designer Footwear',
+            types: ['shoes', 'boots'],
+            target: 6,
+            description: 'Luxury shoes that complete your sophisticated look'
+          }
+        ]
+      }
+    };
     
-    // Bottoms Collection (pants, shorts, jeans)
-    const bottomsCount = (categories['pants'] || 0) + (categories['shorts'] || 0) + (categories['jeans'] || 0);
-    collections.push({
-      name: 'Bottoms Collection',
-      progress: bottomsCount,
-      target: 15,
-      status: bottomsCount >= 15 ? 'Great job! Consider exploring new styles' : 'Building your bottoms collection'
+    // Get persona-specific collections, fallback to architect if persona not found
+    const personaConfig = personaMappings[persona] || personaMappings['architect'];
+    
+    // Build collections based on persona
+    personaConfig.collections.forEach((collection: any) => {
+      const count = collection.types.reduce((sum: number, type: string) => {
+        return sum + (categories[type] || 0);
+      }, 0);
+      
+      collections.push({
+        name: collection.name,
+        progress: count,
+        target: collection.target,
+        status: count >= collection.target 
+          ? `Complete! ${collection.description}` 
+          : collection.description
+      });
     });
     
     return collections;
