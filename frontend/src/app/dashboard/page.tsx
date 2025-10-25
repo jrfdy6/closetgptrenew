@@ -29,7 +29,7 @@ import Link from "next/link";
 import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
 import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
-import EnhancedWardrobeGapAnalysis from '@/components/ui/enhanced-wardrobe-gap-analysis';
+import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
 
@@ -678,41 +678,13 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Style Expansion */}
-        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Style Expansion</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your clothing items will allow you to explore the following areas as well</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {dashboardData?.styleExpansions && dashboardData.styleExpansions.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {dashboardData.styleExpansions.map((expansion, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="font-medium text-gray-900 dark:text-white capitalize">
-                      {expansion.name}
-                    </span>
-                    <Badge variant="outline">{expansion.direction}</Badge>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-500">No style expansions available yet</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  Add more diverse items to your wardrobe to unlock new style directions
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Enhanced Wardrobe Gap Analysis with Shopping Recommendations */}
-        <EnhancedWardrobeGapAnalysis
+        {/* Wardrobe Insights Hub - Unified component with Style Expansion, Gap Analysis, and Shopping */}
+        <WardrobeInsightsHub
+          styleExpansions={dashboardData?.styleExpansions || []}
           gaps={dashboardData?.wardrobeGaps || []}
           shoppingRecommendations={dashboardData?.shoppingRecommendations}
           onRefresh={fetchDashboardData}
-          className="mb-8"
+          className="mb-12"
         />
 
         {/* Forgotten Gems */}
