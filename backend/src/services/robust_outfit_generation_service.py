@@ -5732,7 +5732,13 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════════════════
         
         # Calculate final confidence based on composite scores
-        avg_composite_score = sum(item_scores[self.safe_get_item_attr(item, "id", "")]['composite_score'] for item in selected_items) / len(selected_items)
+        # CRITICAL: Only include items that have scores (excludes LAST RESORT items that weren't scored)
+        scored_items_in_selection = [
+            item_scores[self.safe_get_item_attr(item, "id", "")]['composite_score'] 
+            for item in selected_items 
+            if self.safe_get_item_attr(item, "id", "") in item_scores
+        ]
+        avg_composite_score = sum(scored_items_in_selection) / len(scored_items_in_selection) if scored_items_in_selection else 0.5
         final_confidence = min(0.95, avg_composite_score)
         
         logger.info(f"📊 ANALYTICS: Recording strategy execution...")
