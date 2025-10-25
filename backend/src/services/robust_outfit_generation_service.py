@@ -5537,7 +5537,7 @@ class RobustOutfitGenerationService:
                             logger.warning(f"⚠️ WARNING: This shoe might not be ideal for {context.occasion} occasion")
                             
                             # Mark this outfit as having a potential mismatch
-                            if not hasattr(context, 'warnings'):
+                            if not hasattr(context, 'warnings') or context.warnings is None:
                                 context.warnings = []
                             context.warnings.append(f"Shoes ({self.safe_get_item_name(best_shoe)}) may not be ideal for {context.occasion} occasion")
                         else:
