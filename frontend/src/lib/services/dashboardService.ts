@@ -701,6 +701,35 @@ class DashboardService {
     return dynamicCollections;
   }
 
+  private matchesStyleKeywords(item: any, keywords: string[]): boolean {
+    // Check multiple sources for style keyword matches
+    const searchableText = [
+      item.name || '',
+      item.metadata?.naturalDescription || '',
+      ...(item.metadata?.styleTags || []),
+      ...(item.style || []),
+      ...(item.occasion || []),
+      item.metadata?.visualAttributes?.formalLevel || '',
+      item.type || ''
+    ].join(' ').toLowerCase();
+    
+    // Count how many keywords match
+    const matchCount = keywords.filter(keyword => 
+      searchableText.includes(keyword.toLowerCase())
+    ).length;
+    
+    // Require at least one keyword match (not just "casual" which is too broad)
+    // If "casual" is the only match and it's from a generic list, be more strict
+    if (matchCount === 1 && searchableText.includes('casual') && !searchableText.includes('street') && !searchableText.includes('urban')) {
+      // Only casual match with no specific urban/street indicators - don't count for urban street
+      if (keywords.includes('casual') && keywords.includes('urban')) {
+        return false;
+      }
+    }
+    
+    return matchCount > 0;
+  }
+
   private getDynamicStyleCollections(
     stylePreferences: string[], 
     categories: { [key: string]: number },
@@ -783,21 +812,34 @@ class DashboardService {
         const styleConfig = styleMappings[normalizedStyle];
         
         if (styleConfig) {
-          // Count items that match this style
-          let matchingCount = 0;
-          
-          // Count by type (items that have the right type for this style)
-          styleConfig.types.forEach((type: string) => {
-            matchingCount += categories[type] || 0;
+          // Intelligent matching: check each item's name, metadata, and tags
+          const matchingItems = items.filter(item => {
+            // First check: Does the item type match this style?
+            const typeMatches = styleConfig.types.includes(item.type?.toLowerCase());
+            
+            // Second check: Does the item's metadata/name contain style keywords?
+            const keywordMatches = this.matchesStyleKeywords(item, styleConfig.styleKeywords);
+            
+            // Item must either:
+            // 1. Match type AND have at least one keyword match, OR
+            // 2. Have strong keyword matches (multiple keywords)
+            const hasMultipleKeywords = styleConfig.styleKeywords.filter((keyword: string) => {
+              const searchText = [
+                item.name || '',
+                item.metadata?.naturalDescription || '',
+                ...(item.metadata?.styleTags || []),
+                ...(item.style || [])
+              ].join(' ').toLowerCase();
+              return searchText.includes(keyword.toLowerCase());
+            }).length >= 2;
+            
+            return (typeMatches && keywordMatches) || hasMultipleKeywords;
           });
           
-          // Alternatively, count items that have this style tag
-          const styleTagCount = styleConfig.styleKeywords.reduce((sum: number, keyword: string) => {
-            return sum + (itemStyles[keyword] || 0);
-          }, 0);
+          const finalCount = matchingItems.length;
           
-          // Use the higher count (either by type or by style tags)
-          const finalCount = Math.max(matchingCount, styleTagCount);
+          console.log(`🎭 [${styleConfig.name}] Matched ${finalCount} items:`, 
+            matchingItems.map(i => `${i.name} (${i.type})`));
           
           collections.push({
             name: styleConfig.name,
