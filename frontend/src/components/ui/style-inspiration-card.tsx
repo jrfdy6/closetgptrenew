@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './car
 import { Badge } from './badge';
 import { Skeleton } from './skeleton';
 import { Sparkles, RefreshCw, X, Heart, Info } from 'lucide-react';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export interface StyleInspiration {
   id: string;
@@ -33,6 +34,7 @@ interface StyleInspirationCardProps {
 }
 
 export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspirationCardProps) {
+  const { user } = useAuthContext();
   const [inspiration, setInspiration] = useState<StyleInspiration | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +58,21 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
     setError(null);
 
     try {
+      // Check if user is logged in
+      if (!user) {
+        setError('Please log in to get style inspiration');
+        setLoading(false);
+        return;
+      }
+
+      // Get Firebase auth token
+      const token = await user.getIdToken();
+
       const response = await fetch('/api/style-inspiration/get-inspiration', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           excluded_ids: excludedIds,
@@ -101,12 +114,12 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
     setInspiration(null);
   };
 
-  // Auto-fetch on mount
+  // Auto-fetch on mount (only when user is available)
   React.useEffect(() => {
-    if (!inspiration && !loading) {
+    if (user && !inspiration && !loading) {
       fetchInspiration();
     }
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (

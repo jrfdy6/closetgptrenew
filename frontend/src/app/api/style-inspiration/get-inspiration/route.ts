@@ -10,9 +10,23 @@ export async function POST(request: Request) {
     const requestBody = await request.json();
     console.log("✨ Style inspiration request:", requestBody);
 
-    // Get auth token from cookies
-    const cookieStore = cookies();
-    const authToken = cookieStore.get('auth-token')?.value;
+    // Get authorization header from request
+    const authHeader = request.headers.get('authorization') || 
+                      request.headers.get('Authorization');
+    
+    console.log("✨ Authorization header present:", !!authHeader);
+
+    // Check for auth header
+    if (!authHeader) {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'Authorization header required',
+          message: 'Please log in to get style inspiration'
+        },
+        { status: 401 }
+      );
+    }
 
     // Forward the request to the backend server
     const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app'}/api/style-inspiration/get-inspiration`;
@@ -20,12 +34,8 @@ export async function POST(request: Request) {
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Authorization': authHeader, // Forward the auth header
     };
-
-    // Add auth token if available
-    if (authToken) {
-      headers['Authorization'] = `Bearer ${authToken}`;
-    }
 
     const response = await fetch(backendUrl, {
       method: 'POST',
