@@ -2129,33 +2129,33 @@ class RobustOutfitGenerationService:
         
         logger.info(f"  ✅ Exact matches: {len(candidates)} items")
         
-        # 2️⃣ FALLBACK LOGIC: If too few items, use occasion fallbacks
+        # 2️⃣ FALLBACK LOGIC: Always check fallbacks to expand wardrobe options
+        # The scoring system will prioritize exact matches, but related items should be available
         if len(candidates) < min_items:
             logger.info(f"  🔄 Too few exact matches ({len(candidates)} < {min_items}), applying fallbacks...")
+        else:
+            logger.info(f"  🔄 Sufficient exact matches, but checking fallbacks to expand options...")
+        
+        fallback_occasions = OCCASION_FALLBACKS.get(target_occasion_lower, [])
+        logger.info(f"  📋 Available fallbacks for '{target_occasion_lower}': {fallback_occasions[:5]}{'...' if len(fallback_occasions) > 5 else ''}")
+        
+        # Check all fallbacks to build comprehensive candidate pool
+        for fallback_occasion in fallback_occasions:
+            if fallback_occasion == target_occasion_lower:
+                continue  # Skip the original occasion (already tried)
             
-            fallback_occasions = OCCASION_FALLBACKS.get(target_occasion_lower, [])
-            logger.info(f"  📋 Available fallbacks for '{target_occasion_lower}': {fallback_occasions[:5]}{'...' if len(fallback_occasions) > 5 else ''}")
+            # Get items matching this fallback
+            fallback_matches = []
+            for item in wardrobe:
+                item_occasions = self._get_normalized_or_raw(item, 'occasion')
+                if fallback_occasion in item_occasions and item not in candidates:
+                    fallback_matches.append(item)
             
-            # Try each fallback until we have enough items
-            for fallback_occasion in fallback_occasions:
-                if fallback_occasion == target_occasion_lower:
-                    continue  # Skip the original occasion (already tried)
-                
-                # Get items matching this fallback
-                fallback_matches = []
-                for item in wardrobe:
-                    item_occasions = self._get_normalized_or_raw(item, 'occasion')
-                    if fallback_occasion in item_occasions and item not in candidates:
-                        fallback_matches.append(item)
-                
-                if fallback_matches:
-                    candidates.extend(fallback_matches)
-                    logger.info(f"  ➕ Fallback '{fallback_occasion}': added {len(fallback_matches)} items (total: {len(candidates)})")
-                
-                # Stop if we have enough items
-                if len(candidates) >= min_items:
-                    logger.info(f"  ✅ Sufficient items found ({len(candidates)} >= {min_items})")
-                    break
+            if fallback_matches:
+                candidates.extend(fallback_matches)
+                logger.info(f"  ➕ Fallback '{fallback_occasion}': added {len(fallback_matches)} items (total: {len(candidates)})")
+        
+        logger.info(f"  ✅ Fallback search complete: {len(candidates)} total items available")
         
         # 3️⃣ DEDUPLICATE by ID
         seen_ids = set()
