@@ -5554,23 +5554,44 @@ class RobustOutfitGenerationService:
         # Ensure minimum items
         if len(selected_items) < min_items:
             logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
+            # First pass: Try to add items from non-essential categories (outerwear, accessories)
             for item_id, score_data in sorted_items:
                 if score_data['item'] not in selected_items and len(selected_items) < min_items:
-                    # CRITICAL: Don't add items from already-filled essential categories (prevent duplicate shoes/tops/bottoms)
                     item_category = self._get_item_category(score_data['item'])
-                    if item_category in ['tops', 'bottoms', 'shoes'] and categories_filled.get(item_category, False):
-                        logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (category {item_category} already filled)")
+                    
+                    # Skip essential categories in first pass
+                    if item_category in ['tops', 'bottoms', 'shoes']:
                         continue
                     
-                    # CRITICAL: Apply hard filter to filler items to prevent inappropriate additions (suspenders for gym, etc.)
+                    # CRITICAL: Apply hard filter to filler items to prevent inappropriate additions
                     passes_hard_filter = self._hard_filter(score_data['item'], context.occasion, context.style)
                     if not passes_hard_filter:
                         logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (blocked by hard filter for {context.occasion})")
                         continue
                     
                     selected_items.append(score_data['item'])
-                    categories_filled[item_category] = True  # Mark this category as filled
-                    logger.info(f"  ➕ Filler: {self.safe_get_item_name(score_data['item'])} ({item_category})")
+                    categories_filled[item_category] = True
+                    logger.info(f"  ➕ Filler (non-essential): {self.safe_get_item_name(score_data['item'])} ({item_category}, score={score_data['composite_score']:.2f})")
+            
+            # Second pass: If still below minimum, allow adding from essential categories that have multiple items available
+            if len(selected_items) < min_items:
+                logger.warning(f"⚠️ Still only {len(selected_items)} items, adding from essential categories to reach minimum {min_items}...")
+                for item_id, score_data in sorted_items:
+                    if score_data['item'] not in selected_items and len(selected_items) < min_items:
+                        item_category = self._get_item_category(score_data['item'])
+                        
+                        # CRITICAL: Apply hard filter
+                        passes_hard_filter = self._hard_filter(score_data['item'], context.occasion, context.style)
+                        if not passes_hard_filter:
+                            logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (blocked by hard filter for {context.occasion})")
+                            continue
+                        
+                        # Only add if score is reasonable (prevents adding low-quality items just to fill quota)
+                        if score_data['composite_score'] > 0.3:
+                            selected_items.append(score_data['item'])
+                            logger.info(f"  ➕ Filler (essential): {self.safe_get_item_name(score_data['item'])} ({item_category}, score={score_data['composite_score']:.2f})")
+                        else:
+                            logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (score too low: {score_data['composite_score']:.2f})")
         
         # CRITICAL: Deduplicate by ID to prevent same item appearing twice
         seen_ids = set()
