@@ -1036,14 +1036,20 @@ class DashboardService {
         return [];
       }
       
-      return topWornItems.map((item: any) => ({
-        id: item.id,
-        name: item.name || 'Unknown Item',
-        type: item.type || 'clothing',
-        imageUrl: item.image_url || '',
-        wearCount: item.wear_count || 0,
-        rating: item.is_favorite ? 5 : 3 // Use favorite status as rating proxy
-      }));
+      return topWornItems.map((item: any) => {
+        // Handle multiple possible image field names and provide fallback
+        const imageUrl = item.image_url || item.imageUrl || item.image || '';
+        console.log('🔍 DEBUG: Item image URL:', item.name, '→', imageUrl);
+        
+        return {
+          id: item.id,
+          name: item.name || 'Unknown Item',
+          type: item.type || 'clothing',
+          imageUrl: imageUrl,
+          wearCount: item.wear_count || item.wearCount || 0,
+          rating: item.is_favorite || item.isFavorite ? 5 : 3 // Use favorite status as rating proxy
+        };
+      });
     } catch (error) {
       console.error('Error building top items:', error);
       return [];
