@@ -914,12 +914,18 @@ async def update_wardrobe_item(
             # Special handling for favorite toggles - use specific interaction type for ML system
             if 'favorite' in item_data:
                 try:
-                    from ..services.item_analytics_service import log_item_interaction, ItemInteractionType
-                    log_item_interaction(
-                        user_id=current_user.id,
-                        item_id=item_id,
-                        interaction_type=ItemInteractionType.FAVORITE_TOGGLE,
-                        metadata={'new_status': item_data['favorite']}
+                    from ..services.item_analytics_service import ItemAnalyticsService
+                    from ..models.item_analytics import ItemInteractionType
+                    
+                    analytics_service = ItemAnalyticsService()
+                    import asyncio
+                    asyncio.create_task(
+                        analytics_service.track_item_interaction(
+                            user_id=current_user.id,
+                            item_id=item_id,
+                            interaction_type=ItemInteractionType.FAVORITE_TOGGLE,
+                            metadata={'new_status': item_data['favorite']}
+                        )
                     )
                     logger.info(f"✅ Logged FAVORITE_TOGGLE interaction for item {item_id}")
                 except Exception as e:
