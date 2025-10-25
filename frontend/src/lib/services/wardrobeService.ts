@@ -295,7 +295,7 @@ export class WardrobeService {
         last_worn: itemData.lastWorn?.toISOString(),
       };
       
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe/add`, {
+      const response = await fetch(`${API_BASE_URL}/wardrobe/add`, {
         method: 'POST',
         headers,
         body: JSON.stringify(backendItem),
@@ -405,7 +405,7 @@ export class WardrobeService {
       console.log(`🔍 [WardrobeService] Toggling favorite for item ${id} to ${favorite}`);
       
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/wardrobe/${id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ favorite }),
@@ -436,7 +436,7 @@ export class WardrobeService {
   static async incrementWearCount(id: string): Promise<void> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe/${id}/increment-wear`, {
+      const response = await fetch(`${API_BASE_URL}/wardrobe/${id}/increment-wear`, {
         method: 'POST',
         headers,
       });
@@ -463,7 +463,7 @@ export class WardrobeService {
       if (!isBackendAvailable) return false;
       
       // Try to access the wardrobe endpoint
-      const response = await fetch(`${API_BASE_URL}/api/wardrobe/`, {
+      const response = await fetch(`${API_BASE_URL}/wardrobe/`, {
         method: 'GET',
         headers: await this.getAuthHeaders(),
       });

@@ -10,6 +10,7 @@ class ItemInteractionType(str, Enum):
     OUTFIT_GENERATED = "outfit_generated"
     BASE_ITEM_USED = "base_item_used"
     FEEDBACK_RECEIVED = "feedback_received"
+    FAVORITE_TOGGLE = "favorite_toggle"
 
 class ItemAnalytics(BaseModel):
     item_id: str = Field(..., description="ID of the clothing item")
