@@ -5,6 +5,7 @@ from ..custom_types.wardrobe import ClothingItem, Color
 from ..custom_types.outfit import OutfitGeneratedOutfit
 from ..custom_types.profile import UserProfile
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -176,14 +177,28 @@ class WardrobeAnalysisService:
                 
                 # Preprocess the data to fix validation issues
                 processed_data = self._preprocess_item_data(item_data)
-                # Convert Firestore timestamps to int if needed
+                # Convert Firestore timestamps to int if needed - handle milliseconds
                 for ts_field in ["createdAt", "updatedAt"]:
                     if ts_field in processed_data:
                         val = processed_data[ts_field]
                         if hasattr(val, 'timestamp'):
                             processed_data[ts_field] = int(val.timestamp())
-                        elif isinstance(val, float):
-                            processed_data[ts_field] = int(val)
+                        elif isinstance(val, (int, float)):
+                            # Convert milliseconds to seconds if needed
+                            val_int = int(val)
+                            if val_int > 10000000000:  # Milliseconds (13 digits)
+                                processed_data[ts_field] = val_int // 1000
+                            else:
+                                processed_data[ts_field] = val_int
+                        elif isinstance(val, str):
+                            try:
+                                val_int = int(val)
+                                if val_int > 10000000000:  # Milliseconds
+                                    processed_data[ts_field] = val_int // 1000
+                                else:
+                                    processed_data[ts_field] = val_int
+                            except ValueError:
+                                processed_data[ts_field] = int(time.time())
                 try:
                     clothing_item = ClothingItem(**processed_data)
                     wardrobe.append(clothing_item)
