@@ -1,0 +1,11 @@
+# Railway configuration for MCP service ONLY
+# Used by closetgptrenewopenaisdk service
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "bash start_mcp.sh"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+

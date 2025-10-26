@@ -1,0 +1,16 @@
+# Railway configuration specifically for MCP service
+# Use this for the closetgptrenewopenaisdk service
+
+[build]
+builder = "NIXPACKS"
+
+[build.nixpacksPlan]
+phases.install.cmds = [
+    "pip install mcp httpx pydantic python-dotenv"
+]
+
+[deploy]
+startCommand = "python mcp_server.py"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
