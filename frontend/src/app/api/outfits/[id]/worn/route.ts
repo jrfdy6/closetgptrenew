@@ -27,12 +27,15 @@ export async function POST(
                       process.env.NEXT_PUBLIC_BACKEND_URL || 
                       'https://closetgptrenew-production.up.railway.app';
 
+    const currentTimestamp = Date.now();
+    const currentDate = new Date(currentTimestamp);
     console.log(`👕 [API] Marking outfit ${outfitId} as worn`);
+    console.log(`📅 [API] Using timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
 
     // Prepare request body with required fields
     const requestBody = {
       outfitId: outfitId,
-      dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      dateWorn: currentTimestamp, // Send timestamp in milliseconds to avoid timezone issues
       occasion: 'Daily',
       mood: 'Confident',
       weather: {},
