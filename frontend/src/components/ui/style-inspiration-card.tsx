@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Button } from './button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
@@ -40,6 +41,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
   const [error, setError] = useState<string | null>(null);
   const [excludedIds, setExcludedIds] = useState<string[]>([]);
   const [showDetails, setShowDetails] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   const classificationColors = {
     reinforce: 'bg-blue-100 text-blue-800',
@@ -56,6 +58,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
   const fetchInspiration = async () => {
     setLoading(true);
     setError(null);
+    setImageLoading(true);
 
     try {
       // Check if user is logged in
@@ -216,15 +219,30 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
 
       {/* Image */}
       <CardContent className="space-y-4">
-        <div className="relative rounded-lg overflow-hidden bg-gray-100">
-          <img
+        <div className="relative rounded-lg overflow-hidden bg-gray-100 h-64 w-full">
+          {imageLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            </div>
+          )}
+          <Image
             src={inspiration.image_url}
             alt={inspiration.title}
-            className="w-full h-64 object-cover"
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className={`object-cover transition-opacity duration-300 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+            loading="lazy"
+            quality={85}
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+            onLoad={() => setImageLoading(false)}
             onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400';
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400';
+              setImageLoading(false);
             }}
+            priority={false}
+            unoptimized={false}
           />
         </div>
 
