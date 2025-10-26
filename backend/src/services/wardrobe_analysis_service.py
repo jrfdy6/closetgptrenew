@@ -186,8 +186,10 @@ class WardrobeAnalysisService:
                 try:
                     clothing_item = ClothingItem(**processed_data)
                     wardrobe.append(clothing_item)
-                    # print(f"DEBUG: ✓ Successfully parsed item {doc.id}")
+                    print(f"🔍 DEBUG: ✓ Successfully parsed item {doc.id}")
                 except Exception as e:
+                    print(f"🔍 DEBUG: ✗ Error parsing item {doc.id}: {e}")
+                    print(f"🔍 DEBUG: Item keys: {list(processed_data.keys())[:10]}")
                     # print(f"DEBUG: ✗ Error parsing wardrobe item {doc.id}: {e}")
                     # print(f"DEBUG:   Raw data: {item_data}")
                     # print(f"DEBUG:   Processed data keys: {list(processed_data.keys())}")
@@ -262,10 +264,11 @@ class WardrobeAnalysisService:
                             fallback_data['userId'] = user_id
                         clothing_item = ClothingItem(**fallback_data)
                         wardrobe.append(clothing_item)
-                        # print(f"DEBUG: ✓ Created fallback item for {doc.id}")
+                        print(f"🔍 DEBUG: ✓ Created fallback item for {doc.id}")
                     except Exception as fallback_error:
-                        # print(f"DEBUG: ✗ Failed to create fallback item for {doc.id}: {fallback_error}")
-                        # print(f"DEBUG:   Fallback data: {fallback_data}")
+                        print(f"🔍 DEBUG: ✗ Failed to create fallback item for {doc.id}: {fallback_error}")
+                        print(f"🔍 DEBUG:   Required fields: id, type, userId")
+                        print(f"🔍 DEBUG:   Has id: {'id' in fallback_data}, Has type: {'type' in fallback_data}, Has userId: {'userId' in fallback_data}")
                         continue
             
             print(f"🔍 DEBUG: Found {len(wardrobe)} wardrobe items for user {user_id}")

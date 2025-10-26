@@ -63,7 +63,10 @@ allowed_origins.extend([
     "https://closetgpt-frontend-lqe5zyn9u-johnnie-fields-projects.vercel.app",  # Your current Vercel preview domain
     # Allow any Vercel preview deployment for this project
     "https://closetgptrenew-*.vercel.app",
-    "https://closetgpt-frontend-*.vercel.app"
+    "https://closetgpt-frontend-*.vercel.app",
+    # New custom domain
+    "https://closetgpt.app",
+    "https://www.closetgpt.app"
 ])
 
 # Add Railway preview URLs if in development
@@ -78,7 +81,7 @@ if os.getenv("ENVIRONMENT") == "development":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$|^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
+    allow_origin_regex=r"^https://(www\.)?closetgpt\.app$|^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$|^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
