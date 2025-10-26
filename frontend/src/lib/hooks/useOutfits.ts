@@ -211,6 +211,10 @@ export function useOutfits(): UseOutfitsReturn {
       // Find the outfit in outfits array or use the current outfit
       const targetOutfit = outfits.find(o => o.id === id) || outfit;
       
+      const currentTimestamp = Date.now();
+      const currentDate = new Date(currentTimestamp);
+      console.log(`📅 [useOutfits] Sending timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
+      
       // Use API route to mark as worn - this updates backend stats for dashboard counter
       const token = await user.getIdToken();
       const response = await fetch(`/api/outfit-history/mark-worn`, {
@@ -222,7 +226,7 @@ export function useOutfits(): UseOutfitsReturn {
         body: JSON.stringify({
           outfitId: id,
           outfitName: targetOutfit?.name || 'Outfit',
-          dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          dateWorn: currentTimestamp, // Send current timestamp in milliseconds to avoid timezone issues
           occasion: targetOutfit?.occasion || 'Casual',
           mood: targetOutfit?.mood || 'Comfortable',
           weather: {},

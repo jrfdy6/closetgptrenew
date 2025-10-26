@@ -606,6 +606,10 @@ export default function OutfitGenerationPage() {
     }
     
     try {
+      const currentTimestamp = Date.now();
+      const currentDate = new Date(currentTimestamp);
+      console.log(`📅 [Generate] Sending timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
+      
       // Use API route to mark as worn - this updates backend stats for dashboard counter
       const wornToken = await user.getIdToken();
       const response = await fetch(`/api/outfit-history/mark-worn`, {
@@ -617,7 +621,7 @@ export default function OutfitGenerationPage() {
         body: JSON.stringify({
           outfitId: generatedOutfit.id,
           outfitName: generatedOutfit.name,
-          dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          dateWorn: currentTimestamp, // Send current timestamp in milliseconds to avoid timezone issues
           occasion: generatedOutfit.occasion || 'Casual',
           mood: generatedOutfit.mood || 'Confident',
           weather: generatedOutfit.weather || {},

@@ -381,6 +381,10 @@ export function SmartWeatherOutfitGenerator({
     try {
       console.log('👕 Wearing today\'s outfit:', generatedOutfit.name);
       
+      const currentTimestamp = Date.now();
+      const currentDate = new Date(currentTimestamp);
+      console.log(`📅 [Weather] Sending timestamp: ${currentTimestamp} (${currentDate.toLocaleString()})`);
+      
       const token = await user.getIdToken();
       
       // Mark outfit as worn - send required data
@@ -393,7 +397,7 @@ export function SmartWeatherOutfitGenerator({
         body: JSON.stringify({
           outfitId: generatedOutfit.id,
           outfitName: generatedOutfit.name,
-          dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          dateWorn: currentTimestamp, // Send current timestamp in milliseconds to avoid timezone issues
           occasion: 'Daily',
           mood: generatedOutfit.mood || 'Confident',
           weather: generatedOutfit.weather || {},
