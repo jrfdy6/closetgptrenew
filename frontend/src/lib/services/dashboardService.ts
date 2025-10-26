@@ -105,19 +105,19 @@ class DashboardService {
   private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
     console.log('🔍 DEBUG: makeAuthenticatedRequest called with user:', user ? 'authenticated' : 'null');
     console.log('🔍 DEBUG: User email:', user?.email);
+    console.log('🔍 DEBUG: User UID:', user?.uid);
     
     // Get authentication token
     let token: string;
-    if (!user || user.email === 'test@example.com' || !user.email) {
-      token = 'test';
-      console.log('🔍 DEBUG: Using test token');
-    } else {
-      token = await user.getIdToken();
-      if (!token) {
-        throw new Error('Failed to get authentication token');
-      }
-      console.log('🔍 DEBUG: Got real token:', token.substring(0, 20) + '...');
+    if (!user) {
+      throw new Error('User not authenticated. Please log in.');
     }
+    
+    token = await user.getIdToken();
+    if (!token) {
+      throw new Error('Failed to get authentication token');
+    }
+    console.log('🔍 DEBUG: Got real token:', token.substring(0, 20) + '...');
     
     // Use Next.js API route as proxy instead of calling backend directly
     const fullUrl = endpoint.startsWith('http') ? endpoint : `/api${endpoint}`;
