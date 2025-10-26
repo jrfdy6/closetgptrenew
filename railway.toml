@@ -1,3 +1,7 @@
+# Railway configuration for closetgpt-backend project
+# This file is used by the MAIN APP service only
+# The MCP service (closetgptrenewopenaisdk) should NOT use this config
+
 [build]
 builder = "dockerfile"
 sourceDir = "backend"
