@@ -202,6 +202,15 @@ export default function CreateOutfitPage() {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save your outfit.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const outfitData = {
@@ -210,6 +219,7 @@ export default function CreateOutfitPage() {
         style: style || 'Classic',
         description: description || undefined,
         notes: notes || undefined,
+        user_id: user.uid,
         items: selectedItems.map(item => ({
           id: item.id,
           name: item.name,
@@ -219,6 +229,12 @@ export default function CreateOutfitPage() {
           user_id: item.user_id
         }))
       };
+
+      console.log('🎨 [CreateOutfit] Saving outfit:', { 
+        name: outfitData.name, 
+        itemCount: outfitData.items.length,
+        user_id: outfitData.user_id 
+      });
 
       await createOutfit(outfitData);
       
