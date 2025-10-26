@@ -2207,6 +2207,24 @@ class RobustOutfitGenerationService:
         debug_analysis = []
         valid_items = []
         
+        # Track base item to ensure it's always included
+        base_item_obj = None
+        if context.base_item_id:
+            logger.info(f"🎯 BASE ITEM FILTER: Looking for base item with ID: {context.base_item_id}")
+            for item in context.wardrobe:
+                item_id = getattr(item, 'id', None)
+                if item_id == context.base_item_id:
+                    base_item_obj = item
+                    logger.info(f"✅ BASE ITEM FILTER: Found base item: {getattr(item, 'name', 'Unknown')} (ID: {item_id})")
+                    break
+            
+            if base_item_obj:
+                # Add base item to valid items immediately - it bypasses all filters
+                valid_items.append(base_item_obj)
+                logger.info(f"✅ BASE ITEM FILTER: Base item pre-approved and added to valid items")
+            else:
+                logger.warning(f"⚠️ BASE ITEM FILTER: Base item ID {context.base_item_id} not found in wardrobe")
+        
         # Get user gender for filtering
         user_gender = None
         if context and context.user_profile:
@@ -2217,6 +2235,11 @@ class RobustOutfitGenerationService:
         
         # Apply filtering logic matching the JavaScript implementation
         for raw_item in (context.wardrobe if context else []):
+            # Skip base item since it's already added to valid_items
+            if base_item_obj and getattr(raw_item, 'id', None) == context.base_item_id:
+                logger.info(f"⏭️ FILTER: Skipping base item (already pre-approved)")
+                continue
+            
             # Normalize item metadata
             item = normalize_item_metadata(raw_item)
             reasons = []
@@ -2335,6 +2358,12 @@ class RobustOutfitGenerationService:
         weather_rejected = 0
         
         for item in valid_items:
+            # Always keep base item regardless of weather
+            if base_item_obj and getattr(item, 'id', None) == context.base_item_id:
+                weather_appropriate_items.append(item)
+                logger.info(f"✅ WEATHER FILTER: Base item bypasses weather filtering")
+                continue
+            
             item_name_lower = self.safe_get_item_name(item).lower()
             item_type_lower = str(self.safe_get_item_type(item)).lower()
             
@@ -3659,9 +3688,32 @@ class RobustOutfitGenerationService:
         # STEP 3: Determine if outerwear is needed based on temperature and occasion
         needs_outerwear = self._needs_outerwear(context)
         
+        # STEP 3.5: PRIORITIZE BASE ITEM - Ensure base item is always included first
+        base_item = None
+        if context.base_item_id:
+            logger.info(f"🎯 BASE ITEM: Looking for base item with ID: {context.base_item_id}")
+            for item in suitable_items:
+                item_id = getattr(item, 'id', None)
+                if item_id == context.base_item_id:
+                    base_item = item
+                    logger.info(f"✅ BASE ITEM FOUND: {getattr(item, 'name', 'Unknown')} (ID: {item_id})")
+                    break
+            
+            if base_item:
+                # Add base item to selected items first
+                selected_items.append(base_item)
+                item_category = self._get_item_category(base_item)
+                category_counts[item_category] = category_counts.get(item_category, 0) + 1
+                logger.info(f"✅ BASE ITEM ADDED: '{getattr(base_item, 'name', 'Unknown')}' → category='{item_category}' | Progress: {len(selected_items)}/{target_count}")
+            else:
+                logger.warning(f"⚠️ BASE ITEM NOT FOUND: Base item ID {context.base_item_id} not in suitable items")
+        
         # STEP 4: Sort items by preference score
         scored_items = []
         for item in suitable_items:
+            # Skip base item since it's already added
+            if base_item and getattr(item, 'id', None) == context.base_item_id:
+                continue
             score = await self._calculate_item_score(item, context)
             scored_items.append((item, score))
         
