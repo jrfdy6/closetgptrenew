@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = [
+    "pip install mcp httpx pydantic python-dotenv"
+]
+
+[start]
+cmd = "bash start_mcp.sh"
+
