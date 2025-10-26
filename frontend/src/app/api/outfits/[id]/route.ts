@@ -204,7 +204,7 @@ export async function DELETE(
     
     // Call the production backend
     const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    const fullBackendUrl = `${backendUrl}/api/outfit/${outfitId}`;
+    const fullBackendUrl = `${backendUrl}/api/outfits/${outfitId}`;
     console.log('🔍 DEBUG: About to call backend DELETE:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {

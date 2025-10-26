@@ -382,7 +382,8 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`🗑️ [useOutfits] Deleting outfit ${id}`);
       
-      await OutfitService.deleteOutfit(user, id);
+      const token = await user.getIdToken();
+      await OutfitService.deleteOutfit(id, token);
       
       // Remove from local state
       setOutfits(prev => prev.filter(o => o.id !== id));

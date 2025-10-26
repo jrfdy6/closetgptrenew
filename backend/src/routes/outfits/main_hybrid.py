@@ -837,3 +837,55 @@ async def create_outfit(
     except Exception as e:
         logger.error(f"❌ Error creating custom outfit: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/{outfit_id}")
+async def delete_outfit(
+    outfit_id: str,
+    req: Request
+) -> Dict[str, Any]:
+    """
+    Delete an outfit.
+    REST endpoint: DELETE /api/outfits/{outfit_id}
+    """
+    try:
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
+        
+        if not current_user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        logger.info(f"🗑️ Deleting outfit: {outfit_id} for user {current_user_id}")
+        
+        # Get the outfit to verify ownership
+        from src.config.firebase import db
+        if not db:
+            raise HTTPException(status_code=500, detail="Database not available")
+        
+        outfit_ref = db.collection('outfits').document(outfit_id)
+        outfit_doc = outfit_ref.get()
+        
+        if not outfit_doc.exists:
+            raise HTTPException(status_code=404, detail="Outfit not found")
+        
+        outfit_data = outfit_doc.to_dict()
+        
+        # Verify the outfit belongs to the current user
+        if outfit_data.get('user_id') != current_user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this outfit")
+        
+        # Delete the outfit
+        outfit_ref.delete()
+        logger.info(f"✅ Deleted outfit {outfit_id} for user {current_user_id}")
+        
+        return {
+            "success": True,
+            "message": "Outfit deleted successfully",
+            "id": outfit_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting outfit: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
