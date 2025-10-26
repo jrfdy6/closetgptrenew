@@ -5431,11 +5431,33 @@ class RobustOutfitGenerationService:
         selected_items = []
         categories_filled = {}
         
+        # Phase 0: PRIORITIZE BASE ITEM - Add base item first if specified
+        base_item_obj = None
+        if context.base_item_id:
+            logger.info(f"🎯 PHASE 0: Checking for base item: {context.base_item_id}")
+            for item_id, score_data in sorted_items:
+                if item_id == context.base_item_id:
+                    base_item_obj = score_data['item']
+                    selected_items.append(base_item_obj)
+                    base_category = self._get_item_category(base_item_obj)
+                    categories_filled[base_category] = True
+                    logger.info(f"✅ PHASE 0: Base item added: {self.safe_get_item_name(base_item_obj)} (category: {base_category})")
+                    break
+            
+            if not base_item_obj:
+                logger.warning(f"⚠️ PHASE 0: Base item {context.base_item_id} not found in scored items")
+        
         # Phase 1: Fill essential categories (tops, bottoms, shoes)
         logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
         logger.info(f"🔍 DEBUG PHASE 1: Starting with {len(sorted_items)} scored items")
         for item_id, score_data in sorted_items:
             item = score_data['item']
+            
+            # Skip base item since it's already added in Phase 0
+            if base_item_obj and item_id == context.base_item_id:
+                logger.debug(f"⏭️ PHASE 1: Skipping base item (already added in Phase 0)")
+                continue
+            
             category = self._get_item_category(item)
             item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
             
