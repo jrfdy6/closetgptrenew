@@ -81,8 +81,13 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     console.log('🔍 DEBUG: Authorization header present:', !!authHeader);
     
-    // Temporarily bypass auth check to test functionality
-    console.log('🔍 DEBUG: TEMPORARILY BYPASSING AUTH CHECK FOR TESTING');
+    if (!authHeader) {
+      console.error('❌ No Authorization header provided');
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
+    }
     
     // Get backend URL from environment variables
     const backendUrl = 'https://closetgptrenew-production.up.railway.app';
@@ -92,17 +97,16 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log('🔍 DEBUG: Request body:', body);
     
-    // Call the real backend to generate outfit using robust service
-    const fullBackendUrl = `${backendUrl}/api/outfits/generate`;
-    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    // Determine if this is a manual outfit creation (has items array) or generation request
+    const isManualCreation = body.items && Array.isArray(body.items) && body.items.length > 0;
     
-    if (!authHeader) {
-      console.error('❌ No Authorization header provided');
-      return NextResponse.json(
-        { error: 'Authorization header required' },
-        { status: 401 }
-      );
-    }
+    // Call the appropriate backend endpoint
+    const endpoint = isManualCreation ? '/api/outfits' : '/api/outfits/generate';
+    const fullBackendUrl = `${backendUrl}${endpoint}`;
+    
+    console.log('🔍 DEBUG: Request type:', isManualCreation ? 'MANUAL CREATION' : 'GENERATION');
+    console.log('🔍 DEBUG: Full backend URL being called:', fullBackendUrl);
+    console.log('🔍 DEBUG: Items count:', body.items ? body.items.length : 0);
 
     const response = await fetch(fullBackendUrl, {
       method: 'POST',
@@ -129,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
     
     const data = await response.json();
-    console.log('✅ Successfully generated outfit from backend:', {
+    console.log(`✅ Successfully ${isManualCreation ? 'created' : 'generated'} outfit from backend:`, {
       hasItems: data.items ? data.items.length : 'unknown',
       occasion: data.occasion,
       style: data.style
@@ -140,7 +144,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Error in outfits POST API route:', error);
     return NextResponse.json(
-      { error: 'Failed to generate outfit' },
+      { error: 'Failed to process outfit request' },
       { status: 500 }
     );
   }
