@@ -208,6 +208,9 @@ export function useOutfits(): UseOutfitsReturn {
       
       console.log(`👕 [useOutfits] Marking outfit ${id} as worn`);
       
+      // Find the outfit in outfits array or use the current outfit
+      const targetOutfit = outfits.find(o => o.id === id) || outfit;
+      
       // Use API route to mark as worn - this updates backend stats for dashboard counter
       const token = await user.getIdToken();
       const response = await fetch(`/api/outfit-history/mark-worn`, {
@@ -216,6 +219,17 @@ export function useOutfits(): UseOutfitsReturn {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          outfitId: id,
+          outfitName: targetOutfit?.name || 'Outfit',
+          dateWorn: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+          occasion: targetOutfit?.occasion || 'Casual',
+          mood: targetOutfit?.mood || 'Comfortable',
+          weather: {},
+          notes: '',
+          tags: [],
+          items: targetOutfit?.items || []
+        }),
       });
       
       if (!response.ok) {
@@ -254,7 +268,7 @@ export function useOutfits(): UseOutfitsReturn {
     } catch (error) {
       handleError(error, 'mark outfit as worn');
     }
-  }, [user, outfit, clearError, handleError]);
+  }, [user, outfit, outfits, clearError, handleError]);
 
   const toggleFavorite = useCallback(async (id: string) => {
     if (!user) {
