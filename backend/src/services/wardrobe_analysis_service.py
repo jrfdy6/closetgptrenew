@@ -154,7 +154,7 @@ class WardrobeAnalysisService:
     async def _get_user_wardrobe(self, user_id: str) -> List[ClothingItem]:
         """Get user's complete wardrobe from Firestore."""
         try:
-            # print(f"DEBUG: Getting wardrobe for user ID: {user_id}")
+            print(f"🔍 DEBUG: Getting wardrobe for user ID: {user_id}")
             wardrobe_ref = self.db.collection('wardrobe').where('userId', '==', user_id)
             docs = wardrobe_ref.stream()
             
@@ -268,14 +268,14 @@ class WardrobeAnalysisService:
                         # print(f"DEBUG:   Fallback data: {fallback_data}")
                         continue
             
-            # print(f"DEBUG: Found {len(wardrobe)} wardrobe items for user {user_id}")
-            # print(f"DEBUG: Total documents processed: {doc_count}")
-            # print(f"DEBUG: Raw data count: {len(raw_data_list)}")
+            print(f"🔍 DEBUG: Found {len(wardrobe)} wardrobe items for user {user_id}")
+            print(f"🔍 DEBUG: Total documents processed: {doc_count}")
+            print(f"🔍 DEBUG: Raw data count: {len(raw_data_list)}")
             
             # Print summary of raw data
-            # print(f"DEBUG: Raw data summary:")
+            print(f"🔍 DEBUG: Raw data summary:")
             for i, raw_data in enumerate(raw_data_list[:5]):  # Show first 5 items
-                print(f"DEBUG:   Item {i+1}: type={((raw_data.get('type', 'N/A') if raw_data else 'N/A') if raw_data else 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
+                print(f"🔍 DEBUG:   Item {i+1}: type={((raw_data.get('type', 'N/A') if raw_data else 'N/A') if raw_data else 'N/A')}, userId={raw_data.get('userId', 'N/A')}")
             
             # Also check if there are any items without userId field
             all_wardrobe_ref = self.db.collection('wardrobe')
@@ -285,9 +285,9 @@ class WardrobeAnalysisService:
                 total_items += 1
                 item_data = doc.to_dict()
                 if 'userId' not in item_data:
-                    print(f"DEBUG: Found item without userId: {doc.id}")
+                    print(f"🔍 DEBUG: Found item without userId: {doc.id}")
             
-            # print(f"DEBUG: Total items in wardrobe collection: {total_items}")
+            print(f"🔍 DEBUG: Total items in wardrobe collection: {total_items}")
             
             # Let's also check what user IDs exist in the wardrobe
             user_ids = set()
@@ -298,7 +298,7 @@ class WardrobeAnalysisService:
                 if 'userId' in item_data:
                     user_ids.add(item_data['userId'])
             
-            # print(f"DEBUG: User IDs found in wardrobe: {user_ids}")
+            print(f"🔍 DEBUG: User IDs found in wardrobe: {list(user_ids)[:5]}")
             
             return wardrobe
         except Exception as e:
