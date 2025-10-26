@@ -1264,6 +1264,8 @@ class DashboardService {
       
       if (response?.success && response?.data?.gaps) {
         console.log('✅ DEBUG: Successfully fetched wardrobe gaps from backend:', response.data.gaps.length);
+        console.log('🔍 DEBUG: Gap Analysis Debug Info:', response.debug);
+        console.log('🔍 DEBUG: Wardrobe Stats from Gap Analysis:', response.debug?.wardrobe_stats);
         return response.data.gaps;
       } else {
         console.log('⚠️ DEBUG: No gaps data from backend, falling back to local analysis');
