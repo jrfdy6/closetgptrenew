@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     if (preferredStores) queryParams.append('preferred_stores', preferredStores);
     
     const queryString = queryParams.toString();
-    const fullBackendUrl = `${backendUrl}/api/wardrobe/gaps${queryString ? `?${queryString}` : ''}`;
+    const fullBackendUrl = `${backendUrl}/api/wardrobe-analysis/gaps${queryString ? `?${queryString}` : ''}`;
     console.log('🔍 Frontend API: Full backend URL:', fullBackendUrl);
     
     // Call the backend

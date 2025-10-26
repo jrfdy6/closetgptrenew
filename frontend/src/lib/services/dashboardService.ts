@@ -1260,7 +1260,7 @@ class DashboardService {
   private async getWardrobeGapsFromBackend(user: User | null): Promise<WardrobeGap[]> {
     try {
       console.log('🔍 DEBUG: Fetching wardrobe gaps from backend...');
-      const response = await this.makeAuthenticatedRequest('/wardrobe/gaps', user);
+      const response = await this.makeAuthenticatedRequest('/wardrobe-analysis/gaps', user);
       
       if (response?.success && response?.data?.gaps) {
         console.log('✅ DEBUG: Successfully fetched wardrobe gaps from backend:', response.data.gaps.length);
