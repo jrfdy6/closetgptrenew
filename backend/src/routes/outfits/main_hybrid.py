@@ -736,3 +736,104 @@ async def _update_item_analytics_from_outfit_rating(
     except Exception as e:
         logger.error(f"❌ Failed to update item analytics: {e}")
         # Don't raise exception - analytics update is not critical for rating success
+
+
+@router.post("")
+async def create_outfit(
+    request: dict,
+    req: Request
+) -> Dict[str, Any]:
+    """
+    Create a custom outfit by manually selecting items from the user's wardrobe.
+    REST endpoint: POST /api/outfits
+    """
+    try:
+        # Extract user ID using robust authentication
+        current_user_id = extract_uid_from_request(req)
+        
+        if not current_user_id:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Extract data from request
+        name = request.get('name')
+        occasion = request.get('occasion', 'Casual')
+        style = request.get('style', 'Classic')
+        description = request.get('description', '')
+        items = request.get('items', [])
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Outfit name is required")
+        
+        if not items or len(items) == 0:
+            raise HTTPException(status_code=400, detail="At least one item is required")
+        
+        logger.info(f"🎨 Creating custom outfit: {name}")
+        logger.info(f"  - occasion: {occasion}")
+        logger.info(f"  - style: {style}")
+        logger.info(f"  - items count: {len(items)}")
+        logger.info(f"  - user_id: {current_user_id}")
+        
+        # Import here to avoid circular imports
+        from uuid import uuid4
+        
+        # Create outfit data
+        outfit_id = str(uuid4())
+        current_time = int(time.time() * 1000)  # Milliseconds timestamp
+        
+        outfit_data = {
+            "id": outfit_id,
+            "name": name,
+            "occasion": occasion,
+            "style": style,
+            "description": description,
+            "items": items,
+            "user_id": current_user_id,
+            "createdAt": current_time,
+            "updatedAt": current_time,
+            "is_custom": True,
+            "confidence_score": 1.0,
+            "reasoning": f"Custom outfit created by user: {description or 'No description provided'}",
+            "explanation": description or f"Custom {style} outfit for {occasion}",
+            "styleTags": [style.lower().replace(' ', '_')],
+            "colorHarmony": "custom",
+            "styleNotes": f"Custom {style} style selected by user",
+            "season": "all",
+            "mood": "custom",
+            "metadata": {"created_method": "custom"},
+            "wasSuccessful": True,
+            "wearCount": 0,
+            "isFavorite": False
+        }
+        
+        # Save to Firestore
+        try:
+            from src.config.firebase import db
+            if db:
+                db.collection('outfits').document(outfit_id).set(outfit_data)
+                logger.info(f"✅ Saved outfit {outfit_id} to Firestore with {len(items)} items")
+            else:
+                logger.warning("⚠️ Firebase not available, outfit not saved to database")
+                raise HTTPException(status_code=500, detail="Database not available")
+        except Exception as save_error:
+            logger.error(f"❌ Failed to save outfit to Firestore: {save_error}")
+            raise HTTPException(status_code=500, detail=f"Failed to save outfit: {str(save_error)}")
+        
+        logger.info(f"✅ Outfit created: {outfit_id} for user {current_user_id}")
+        
+        # Return response
+        return {
+            "success": True,
+            "id": outfit_data["id"],
+            "name": outfit_data["name"],
+            "items": outfit_data["items"],
+            "style": outfit_data["style"],
+            "occasion": outfit_data["occasion"],
+            "description": outfit_data.get("description", ""),
+            "createdAt": outfit_data["createdAt"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error creating custom outfit: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
