@@ -106,10 +106,14 @@ export default function Dashboard() {
   useEffect(() => {
     const handleOutfitMarkedAsWorn = (event: CustomEvent) => {
       console.log('🔄 Dashboard: Outfit marked as worn, refreshing data...', event.detail);
-      // Call fetchDashboardData with force fresh to bypass cache
-      if (user) {
-        fetchDashboardDataFresh();
-      }
+      // Add a small delay to allow Firestore write to propagate
+      // This ensures the query picks up the newly created outfit_history entry
+      setTimeout(() => {
+        console.log('🔄 Dashboard: Fetching fresh data from server...');
+        if (user) {
+          fetchDashboardDataFresh();
+        }
+      }, 2000); // 2 second delay for Firestore consistency
     };
 
     window.addEventListener('outfitMarkedAsWorn', handleOutfitMarkedAsWorn as EventListener);

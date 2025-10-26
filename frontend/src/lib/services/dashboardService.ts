@@ -394,10 +394,14 @@ class DashboardService {
     try {
       console.log('🔍 DEBUG: [FRONTEND FIX] Counting outfits directly from Firestore - bypassing broken backend');
       console.log('🔍 DEBUG: forceFresh:', forceFresh);
+      console.log('🔍 DEBUG: User ID:', user.uid);
       
       // Import Firestore with getDocsFromServer for fresh data
       const { db } = await import('@/lib/firebase/config');
       const { collection, query, where, getDocs, getDocsFromServer } = await import('firebase/firestore');
+      
+      console.log('🔍 DEBUG: Firestore imports loaded successfully');
+      console.log('🔍 DEBUG: getDocsFromServer available:', typeof getDocsFromServer);
       
       // Calculate week start (Sunday 00:00:00)
       const now = new Date();
@@ -425,18 +429,18 @@ class DashboardService {
       
       // Count entries worn this week
       let wornThisWeek = 0;
+      const allEntries: any[] = [];
+      
       snapshot.forEach((doc) => {
         const data = doc.data();
         const dateWorn = data.date_worn;
-        
-        if (!dateWorn) return;
         
         // Handle multiple date formats
         let wornDate: Date | null = null;
         if (typeof dateWorn === 'number') {
           // Unix timestamp in milliseconds
           wornDate = new Date(dateWorn);
-        } else if (dateWorn.toDate && typeof dateWorn.toDate === 'function') {
+        } else if (dateWorn && dateWorn.toDate && typeof dateWorn.toDate === 'function') {
           // Firestore Timestamp
           wornDate = dateWorn.toDate();
         } else if (typeof dateWorn === 'string') {
@@ -444,12 +448,27 @@ class DashboardService {
           wornDate = new Date(dateWorn);
         }
         
+        const entry = {
+          id: doc.id,
+          outfit_name: data.outfit_name,
+          date_worn: dateWorn,
+          parsed_date: wornDate?.toISOString(),
+          is_this_week: wornDate ? wornDate >= weekStart : false
+        };
+        allEntries.push(entry);
+        
         if (wornDate && wornDate >= weekStart) {
           wornThisWeek++;
         }
       });
       
+      // Log all entries for debugging
+      console.log('📊 DEBUG: All outfit_history entries:', allEntries);
+      
       console.log(`✅ DEBUG: Counted ${wornThisWeek} outfits worn this week (frontend calculation, ${forceFresh ? 'FRESH from server' : 'cache-or-server'})`);
+      console.log(`📊 DEBUG: Week starts at ${weekStart.toISOString()}, current time: ${new Date().toISOString()}`);
+      console.log(`📊 DEBUG: Total entries in outfit_history for user: ${snapshot.size}`);
+      console.log(`📊 DEBUG: Entries this week: ${wornThisWeek}`);
       
       return {
         success: true,
@@ -458,7 +477,7 @@ class DashboardService {
         week_start: weekStart.toISOString(),
         calculated_at: new Date().toISOString(),
         source: forceFresh ? 'frontend_firestore_server_fresh' : 'frontend_firestore_direct',
-        version: '2025-10-26-cache-fix'
+        version: '2025-10-26-cache-fix-v2'
       };
     } catch (error) {
       console.error('Error fetching worn outfits analytics:', error);
