@@ -67,21 +67,38 @@ export default function FirestoreCheckPage() {
         let wornDate: Date | null = null;
         if (typeof dateWorn === 'number') {
           wornDate = new Date(dateWorn);
-        } else if (dateWorn && dateWorn.toDate) {
+        } else if (dateWorn && dateWorn.toDate && typeof dateWorn.toDate === 'function') {
           wornDate = dateWorn.toDate();
         } else if (typeof dateWorn === 'string') {
           wornDate = new Date(dateWorn);
         }
         
-        const isThisWeek = wornDate ? wornDate >= weekStart : false;
+        // Validate the date
+        const isValidDate = wornDate && !isNaN(wornDate.getTime());
+        const isThisWeek = isValidDate && wornDate >= weekStart;
         if (isThisWeek) wornThisWeek++;
+        
+        // Enhanced debugging for date parsing
+        console.log(`📅 Entry ${doc.id}:`, {
+          outfit_name: data.outfit_name,
+          date_worn_raw: dateWorn,
+          date_worn_type: typeof dateWorn,
+          parsed_date: isValidDate ? wornDate.toISOString() : null,
+          is_valid: isValidDate,
+          is_this_week: isThisWeek,
+          week_start: weekStart.toISOString()
+        });
         
         allEntries.push({
           id: doc.id,
           outfit_name: data.outfit_name || 'Unknown',
           date_worn: dateWorn,
-          parsed_date: wornDate?.toISOString(),
-          is_this_week: isThisWeek
+          date_worn_type: typeof dateWorn,
+          parsed_date: isValidDate ? wornDate.toISOString() : null,
+          is_valid: isValidDate,
+          is_this_week: isThisWeek,
+          created_at: data.created_at,
+          updated_at: data.updated_at
         });
       });
       
@@ -225,18 +242,34 @@ export default function FirestoreCheckPage() {
                             : 'bg-gray-50 dark:bg-gray-900'
                         }`}
                       >
-                        <div className="flex justify-between items-start">
-                          <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
                             <div className="font-medium">{entry.outfit_name}</div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              {entry.parsed_date ? new Date(entry.parsed_date).toLocaleString() : 'Invalid date'}
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              <div><strong>Date Worn:</strong> {entry.parsed_date ? new Date(entry.parsed_date).toLocaleString() : 'Invalid date'}</div>
+                              <div className="mt-1">
+                                <strong>Raw Value:</strong> {String(entry.date_worn)} 
+                                <span className="ml-2 text-blue-600 dark:text-blue-400">({entry.date_worn_type})</span>
+                              </div>
+                              {entry.created_at && (
+                                <div className="mt-1">
+                                  <strong>Created:</strong> {typeof entry.created_at === 'number' ? new Date(entry.created_at).toLocaleString() : String(entry.created_at)}
+                                </div>
+                              )}
                             </div>
                           </div>
-                          {entry.is_this_week && (
-                            <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
-                              This Week
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1 items-end">
+                            {entry.is_this_week && (
+                              <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded whitespace-nowrap">
+                                This Week
+                              </span>
+                            )}
+                            {!entry.parsed_date && (
+                              <span className="text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded whitespace-nowrap">
+                                Invalid Date
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

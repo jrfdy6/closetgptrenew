@@ -435,29 +435,48 @@ class DashboardService {
         const data = doc.data();
         const dateWorn = data.date_worn;
         
+        // Enhanced logging for each entry
+        console.log(`📅 Processing entry ${doc.id}:`, {
+          outfit_name: data.outfit_name,
+          date_worn_raw: dateWorn,
+          date_worn_type: typeof dateWorn,
+          has_toDate: dateWorn && typeof dateWorn.toDate === 'function'
+        });
+        
         // Handle multiple date formats
         let wornDate: Date | null = null;
         if (typeof dateWorn === 'number') {
           // Unix timestamp in milliseconds
           wornDate = new Date(dateWorn);
+          console.log(`  ➜ Parsed as number: ${wornDate.toISOString()}`);
         } else if (dateWorn && dateWorn.toDate && typeof dateWorn.toDate === 'function') {
           // Firestore Timestamp
           wornDate = dateWorn.toDate();
+          console.log(`  ➜ Parsed as Firestore Timestamp: ${wornDate.toISOString()}`);
         } else if (typeof dateWorn === 'string') {
           // ISO string
           wornDate = new Date(dateWorn);
+          console.log(`  ➜ Parsed as string: ${wornDate.toISOString()}`);
+        } else {
+          console.log(`  ⚠️ Unknown date format, cannot parse`);
         }
+        
+        // Validate the parsed date
+        const isValidDate = wornDate && !isNaN(wornDate.getTime());
+        const isThisWeek = isValidDate && wornDate >= weekStart;
+        
+        console.log(`  ➜ Valid: ${isValidDate}, This week: ${isThisWeek}`);
         
         const entry = {
           id: doc.id,
           outfit_name: data.outfit_name,
           date_worn: dateWorn,
-          parsed_date: wornDate?.toISOString(),
-          is_this_week: wornDate ? wornDate >= weekStart : false
+          parsed_date: isValidDate ? wornDate.toISOString() : null,
+          is_this_week: isThisWeek
         };
         allEntries.push(entry);
         
-        if (wornDate && wornDate >= weekStart) {
+        if (isThisWeek) {
           wornThisWeek++;
         }
       });
