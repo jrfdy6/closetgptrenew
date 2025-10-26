@@ -393,10 +393,11 @@ class DashboardService {
   private async getSimpleAnalytics(user: User, forceFresh: boolean = false) {
     try {
       console.log('🔍 DEBUG: [FRONTEND FIX] Counting outfits directly from Firestore - bypassing broken backend');
+      console.log('🔍 DEBUG: forceFresh:', forceFresh);
       
-      // Import Firestore
+      // Import Firestore with getDocsFromServer for fresh data
       const { db } = await import('@/lib/firebase/config');
-      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const { collection, query, where, getDocs, getDocsFromServer } = await import('firebase/firestore');
       
       // Calculate week start (Sunday 00:00:00)
       const now = new Date();
@@ -415,8 +416,12 @@ class DashboardService {
         where('user_id', '==', user.uid)
       );
       
-      const snapshot = await getDocs(historyQuery);
-      console.log(`📊 Found ${snapshot.size} total outfit history entries`);
+      // Use getDocsFromServer when forceFresh is true to bypass cache
+      const snapshot = forceFresh 
+        ? await getDocsFromServer(historyQuery)
+        : await getDocs(historyQuery);
+      
+      console.log(`📊 Query returned ${snapshot.size} entries (source: ${forceFresh ? 'server' : 'cache-or-server'})`);
       
       // Count entries worn this week
       let wornThisWeek = 0;
@@ -444,7 +449,7 @@ class DashboardService {
         }
       });
       
-      console.log(`✅ DEBUG: Counted ${wornThisWeek} outfits worn this week (frontend calculation)`);
+      console.log(`✅ DEBUG: Counted ${wornThisWeek} outfits worn this week (frontend calculation, ${forceFresh ? 'FRESH from server' : 'cache-or-server'})`);
       
       return {
         success: true,
@@ -452,8 +457,8 @@ class DashboardService {
         user_id: user.uid,
         week_start: weekStart.toISOString(),
         calculated_at: new Date().toISOString(),
-        source: 'frontend_firestore_direct',
-        version: '2025-10-22-frontend-fix'
+        source: forceFresh ? 'frontend_firestore_server_fresh' : 'frontend_firestore_direct',
+        version: '2025-10-26-cache-fix'
       };
     } catch (error) {
       console.error('Error fetching worn outfits analytics:', error);
