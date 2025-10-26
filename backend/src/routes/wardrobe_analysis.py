@@ -68,9 +68,17 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
             # Keep the fallback trends from the analysis service
             pass
         
+        # Add debugging information to the response
+        debug_info = {
+            "user_id_queried": current_user.id,
+            "wardrobe_stats": analysis.get("wardrobe_stats", {}),
+            "total_gaps_found": len(analysis.get("gaps", []))
+        }
+        
         return {
             "success": True,
             "data": analysis,
+            "debug": debug_info,
             "message": "Wardrobe gap analysis completed successfully"
         }
     except Exception as e:
