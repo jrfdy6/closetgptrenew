@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "closetgpt": {
+      "command": "python",
+      "args": ["mcp_server.py"],
+      "env": {
+        "MAIN_API_URL": "https://closetgptrenew-production.railway.app",
+        "API_KEY": "${API_KEY}"
+      }
+    }
+  }
+}
+
