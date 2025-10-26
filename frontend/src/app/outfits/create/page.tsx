@@ -315,55 +315,118 @@ export default function CreateOutfitPage() {
                       <>
                         {/* Outfit Canvas - Organized by Category */}
                         <div className="space-y-3">
-                          {['outerwear', 'top', 'bottom', 'shoes', 'accessories', 'bag', 'jewelry'].map(category => {
-                            const categoryItems = selectedItems.filter(item => item.type === category);
-                            if (categoryItems.length === 0) return null;
+                          {(() => {
+                            const mainCategories = ['outerwear', 'top', 'bottom', 'shoes', 'accessories', 'bag', 'jewelry'];
+                            const displayedItemIds = new Set<string>();
                             
                             return (
-                              <div key={category} className="space-y-2">
-                                <div className="flex items-center gap-2 text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">
-                                  {getItemIcon(category)}
-                                  <span>{category}</span>
-                                </div>
-                                <div className="space-y-2">
-                                  {categoryItems.map(item => (
-                                    <div
-                                      key={item.id}
-                                      className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
-                                    >
-                                      {item.imageUrl ? (
-                                        <img
-                                          src={item.imageUrl}
-                                          alt={item.name}
-                                          className="w-16 h-16 rounded-lg object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
-                                          {getItemIcon(item.type)}
-                                        </div>
-                                      )}
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
-                                          {item.name}
-                                        </p>
-                                        <p className="text-xs text-stone-500 capitalize">
-                                          {item.color}
-                                        </p>
+                              <>
+                                {/* Main categories */}
+                                {mainCategories.map(category => {
+                                  const categoryItems = selectedItems.filter(item => item.type === category);
+                                  if (categoryItems.length === 0) return null;
+                                  
+                                  categoryItems.forEach(item => displayedItemIds.add(item.id));
+                                  
+                                  return (
+                                    <div key={category} className="space-y-2">
+                                      <div className="flex items-center gap-2 text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">
+                                        {getItemIcon(category)}
+                                        <span>{category}</span>
                                       </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleRemoveItem(item.id)}
-                                        className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
+                                      <div className="space-y-2">
+                                        {categoryItems.map(item => (
+                                          <div
+                                            key={item.id}
+                                            className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
+                                          >
+                                            {item.imageUrl ? (
+                                              <img
+                                                src={item.imageUrl}
+                                                alt={item.name}
+                                                className="w-16 h-16 rounded-lg object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
+                                                {getItemIcon(item.type)}
+                                              </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
+                                                {item.name}
+                                              </p>
+                                              <p className="text-xs text-stone-500 capitalize">
+                                                {item.color}
+                                              </p>
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleRemoveItem(item.id)}
+                                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
                                     </div>
-                                  ))}
-                                </div>
-                              </div>
+                                  );
+                                })}
+                                
+                                {/* Other categories (catch-all for items not in main categories) */}
+                                {(() => {
+                                  const otherItems = selectedItems.filter(item => !displayedItemIds.has(item.id));
+                                  if (otherItems.length === 0) return null;
+                                  
+                                  return (
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">
+                                        {getItemIcon('other')}
+                                        <span>Other Items</span>
+                                      </div>
+                                      <div className="space-y-2">
+                                        {otherItems.map(item => (
+                                          <div
+                                            key={item.id}
+                                            className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
+                                          >
+                                            {item.imageUrl ? (
+                                              <img
+                                                src={item.imageUrl}
+                                                alt={item.name}
+                                                className="w-16 h-16 rounded-lg object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
+                                                {getItemIcon(item.type)}
+                                              </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
+                                                {item.name}
+                                              </p>
+                                              <p className="text-xs text-stone-500 capitalize">
+                                                {item.type} • {item.color}
+                                              </p>
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleRemoveItem(item.id)}
+                                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </>
                             );
-                          })}
+                          })()}
                         </div>
 
                         {/* Quick Actions */}
