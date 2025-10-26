@@ -403,7 +403,7 @@ class DashboardService {
       console.log('🔍 DEBUG: Firestore imports loaded successfully');
       console.log('🔍 DEBUG: getDocsFromServer available:', typeof getDocsFromServer);
       
-      // Calculate week start (Sunday 00:00:00)
+      // Calculate week start (Sunday 00:00:00 in user's local timezone)
       const now = new Date();
       const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
       const daysToSubtract = dayOfWeek; // If Sunday (0), subtract 0 days
@@ -411,7 +411,12 @@ class DashboardService {
       weekStart.setDate(now.getDate() - daysToSubtract);
       weekStart.setHours(0, 0, 0, 0);
       
-      console.log('📅 Week starts:', weekStart.toISOString());
+      // For debugging: show both local time and timestamp
+      console.log('📅 Current date:', now.toLocaleString());
+      console.log('📅 Day of week:', dayOfWeek, '(0=Sunday, 6=Saturday)');
+      console.log('📅 Week starts:', weekStart.toLocaleString());
+      console.log('📅 Week start timestamp:', weekStart.getTime());
+      console.log('📅 Week start ISO:', weekStart.toISOString());
       
       // Query outfit_history collection for this user, this week
       const historyRef = collection(db, 'outfit_history');
@@ -436,19 +441,20 @@ class DashboardService {
         const dateWorn = data.date_worn;
         
         // Enhanced logging for each entry
-        console.log(`📅 Processing entry ${doc.id}:`, {
-          outfit_name: data.outfit_name,
-          date_worn_raw: dateWorn,
-          date_worn_type: typeof dateWorn,
-          has_toDate: dateWorn && typeof dateWorn.toDate === 'function'
-        });
+        console.log(`\n📅 Processing entry ${doc.id}:`);
+        console.log(`  Outfit: ${data.outfit_name}`);
+        console.log(`  date_worn raw:`, dateWorn);
+        console.log(`  date_worn type: ${typeof dateWorn}`);
         
         // Handle multiple date formats
         let wornDate: Date | null = null;
         if (typeof dateWorn === 'number') {
           // Unix timestamp in milliseconds
           wornDate = new Date(dateWorn);
-          console.log(`  ➜ Parsed as number: ${wornDate.toISOString()}`);
+          console.log(`  ➜ Parsed as number timestamp`);
+          console.log(`     Local time: ${wornDate.toLocaleString()}`);
+          console.log(`     ISO: ${wornDate.toISOString()}`);
+          console.log(`     Timestamp: ${wornDate.getTime()}`);
         } else if (dateWorn && dateWorn.toDate && typeof dateWorn.toDate === 'function') {
           // Firestore Timestamp
           wornDate = dateWorn.toDate();
@@ -465,7 +471,12 @@ class DashboardService {
         const isValidDate = wornDate && !isNaN(wornDate.getTime());
         const isThisWeek = isValidDate && wornDate >= weekStart;
         
-        console.log(`  ➜ Valid: ${isValidDate}, This week: ${isThisWeek}`);
+        console.log(`  ➜ Date valid: ${isValidDate}`);
+        if (isValidDate) {
+          console.log(`  ➜ Comparison: ${wornDate.getTime()} >= ${weekStart.getTime()}`);
+          console.log(`  ➜ Result: ${wornDate.getTime() >= weekStart.getTime()}`);
+          console.log(`  ➜ This week: ${isThisWeek}${isThisWeek ? ' ✅' : ' ❌'}`);
+        }
         
         const entry = {
           id: doc.id,
