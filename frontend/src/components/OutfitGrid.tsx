@@ -144,9 +144,13 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
               outfit.createdAt ? 
                 (outfit.createdAt instanceof Date ? 
                   outfit.createdAt.toLocaleDateString() : 
+                  typeof outfit.createdAt === 'number' ?
+                    new Date(outfit.createdAt).toLocaleDateString() :
                   typeof outfit.createdAt === 'string' ? 
                     new Date(outfit.createdAt).toLocaleDateString() :
-                    new Date(outfit.createdAt.seconds * 1000).toLocaleDateString()
+                    outfit.createdAt.seconds ?
+                      new Date(outfit.createdAt.seconds * 1000).toLocaleDateString() :
+                      'Invalid Date'
                 ) : 'Unknown'
             }</span>
           </div>
@@ -154,6 +158,8 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
             <span>Last: {
               outfit.lastWorn instanceof Date ? 
                 outfit.lastWorn.toLocaleDateString() : 
+                typeof outfit.lastWorn === 'number' ?
+                  new Date(outfit.lastWorn).toLocaleDateString() :
                 typeof outfit.lastWorn === 'string' ? 
                   new Date(outfit.lastWorn).toLocaleDateString() :
                   outfit.lastWorn.seconds ? 

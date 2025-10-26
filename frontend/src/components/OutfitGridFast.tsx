@@ -46,16 +46,26 @@ function OutfitCard({ outfit, onFavorite, onView, onEdit, onDelete }: OutfitCard
     try {
       let date: Date;
       
-      if (dateValue?.toDate && typeof dateValue.toDate === 'function') {
+      if (dateValue instanceof Date) {
+        date = dateValue;
+      } else if (typeof dateValue === 'number') {
+        // Handle Unix timestamp in milliseconds
+        date = new Date(dateValue);
+      } else if (typeof dateValue === 'string') {
+        date = new Date(dateValue);
+      } else if (dateValue?.toDate && typeof dateValue.toDate === 'function') {
+        // Firestore Timestamp with toDate method
         date = dateValue.toDate();
       } else if (dateValue?.seconds) {
+        // Firestore Timestamp with seconds field
         date = new Date(dateValue.seconds * 1000);
-      } else if (typeof dateValue === 'string' || typeof dateValue === 'number') {
-        date = new Date(dateValue);
-      } else if (dateValue instanceof Date) {
-        date = dateValue;
       } else {
         return 'Unknown date';
+      }
+      
+      // Validate the parsed date
+      if (isNaN(date.getTime())) {
+        return 'Invalid date';
       }
       
       return date.toLocaleDateString();

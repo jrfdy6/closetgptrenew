@@ -111,9 +111,30 @@ export default function EnhancedOutfitCard({
     return 'Fair';
   };
 
-  const formatLastWorn = (dateString?: string) => {
-    if (!dateString) return 'Never worn';
-    const date = new Date(dateString);
+  const formatLastWorn = (dateValue?: string | number | Date | any) => {
+    if (!dateValue) return 'Never worn';
+    
+    // Parse date from multiple formats
+    let date: Date;
+    if (dateValue instanceof Date) {
+      date = dateValue;
+    } else if (typeof dateValue === 'number') {
+      date = new Date(dateValue);
+    } else if (typeof dateValue === 'string') {
+      date = new Date(dateValue);
+    } else if (dateValue.seconds) {
+      date = new Date(dateValue.seconds * 1000);
+    } else if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+      date = dateValue.toDate();
+    } else {
+      return 'Invalid date';
+    }
+    
+    // Validate date
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
