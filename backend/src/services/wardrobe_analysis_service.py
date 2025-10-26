@@ -161,6 +161,7 @@ class WardrobeAnalysisService:
             wardrobe = []
             doc_count = 0
             raw_data_list = []  # Store raw data for debugging
+            self.parsing_errors = []  # Track parsing errors for debugging
             
             for doc in docs:
                 doc_count += 1
@@ -188,8 +189,10 @@ class WardrobeAnalysisService:
                     wardrobe.append(clothing_item)
                     print(f"🔍 DEBUG: ✓ Successfully parsed item {doc.id}")
                 except Exception as e:
+                    error_msg = f"Item {doc.id}: {str(e)}"
                     print(f"🔍 DEBUG: ✗ Error parsing item {doc.id}: {e}")
                     print(f"🔍 DEBUG: Item keys: {list(processed_data.keys())[:10]}")
+                    self.parsing_errors.append(error_msg)
                     # print(f"DEBUG: ✗ Error parsing wardrobe item {doc.id}: {e}")
                     # print(f"DEBUG:   Raw data: {item_data}")
                     # print(f"DEBUG:   Processed data keys: {list(processed_data.keys())}")
@@ -266,9 +269,11 @@ class WardrobeAnalysisService:
                         wardrobe.append(clothing_item)
                         print(f"🔍 DEBUG: ✓ Created fallback item for {doc.id}")
                     except Exception as fallback_error:
+                        error_msg = f"Fallback {doc.id}: {str(fallback_error)}"
                         print(f"🔍 DEBUG: ✗ Failed to create fallback item for {doc.id}: {fallback_error}")
                         print(f"🔍 DEBUG:   Required fields: id, type, userId")
                         print(f"🔍 DEBUG:   Has id: {'id' in fallback_data}, Has type: {'type' in fallback_data}, Has userId: {'userId' in fallback_data}")
+                        self.parsing_errors.append(error_msg)
                         continue
             
             print(f"🔍 DEBUG: Found {len(wardrobe)} wardrobe items for user {user_id}")

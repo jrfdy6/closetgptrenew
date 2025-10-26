@@ -72,7 +72,8 @@ async def get_wardrobe_gaps(gender: str = None, current_user: UserProfile = Depe
         debug_info = {
             "user_id_queried": current_user.id,
             "wardrobe_stats": analysis.get("wardrobe_stats", {}),
-            "total_gaps_found": len(analysis.get("gaps", []))
+            "total_gaps_found": len(analysis.get("gaps", [])),
+            "parsing_errors": getattr(analysis_service, 'parsing_errors', [])[:10]  # First 10 errors
         }
         
         return {
