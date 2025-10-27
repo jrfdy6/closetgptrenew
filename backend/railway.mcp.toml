@@ -1,9 +1,10 @@
 # Railway config for MCP service
-# Uses main Dockerfile but overrides CMD to run MCP server
+# Uses lightweight Dockerfile.mcp and installs MCP at runtime
 
 [build]
 builder = "dockerfile"
 sourceDir = "backend"
+dockerfilePath = "Dockerfile.mcp"
 
 [deploy]
 startCommand = "pip install mcp httpx && python3 mcp_server.py"
