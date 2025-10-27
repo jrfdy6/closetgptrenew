@@ -25,7 +25,7 @@ export default function Navigation() {
   const handleSignOut = async () => {
     try {
       await signOutUser();
-      router.push("/login");
+      router.push("/signin");
     } catch (error) {
       console.error("Error signing out:", error);
     }
