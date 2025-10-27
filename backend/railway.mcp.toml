@@ -1,9 +1,9 @@
 # Railway config for MCP service
-# Mirrors main app setup but uses Dockerfile.mcp instead of Dockerfile
-# Root directory will be set to "backend" in Railway settings
+# Mirrors main app setup: uses sourceDir instead of UI root directory
 
 [build]
 builder = "dockerfile"
+sourceDir = "backend"
 dockerfilePath = "Dockerfile.mcp"
 
 [deploy]
