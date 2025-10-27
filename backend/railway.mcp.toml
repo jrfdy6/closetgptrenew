@@ -1,12 +1,12 @@
 # Railway config for MCP service
-# Mirrors main app setup: uses sourceDir instead of UI root directory
+# Uses main Dockerfile but overrides CMD to run MCP server
 
 [build]
 builder = "dockerfile"
 sourceDir = "backend"
-dockerfilePath = "Dockerfile.mcp"
 
 [deploy]
+startCommand = "pip install mcp httpx && python3 mcp_server.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
