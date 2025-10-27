@@ -32,6 +32,35 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
+@app.get("/.well-known/ai-plugin.json")
+async def ai_plugin_manifest():
+    """
+    Serve the AI plugin manifest for ChatGPT discovery
+    """
+    return {
+        "schema_version": "v1",
+        "name_for_human": "ClosetGPT",
+        "name_for_model": "closetgpt",
+        "description_for_human": "AI-powered wardrobe manager and outfit generator. Get personalized outfit suggestions for any occasion.",
+        "description_for_model": "ClosetGPT helps users manage their digital wardrobe and get personalized outfit suggestions. Use get_wardrobe to view items, suggest_outfits to generate outfit recommendations based on occasion, style, and weather.",
+        "auth": {
+            "type": "oauth",
+            "client_url": "https://closetgptrenewopenaisdk-production.up.railway.app/oauth/authorize",
+            "authorization_url": "https://closetgptrenewopenaisdk-production.up.railway.app/oauth/authorize",
+            "authorization_content_type": "application/x-www-form-urlencoded",
+            "scope": "wardrobe:read outfits:generate",
+            "token_url": "https://closetgptrenewopenaisdk-production.up.railway.app/oauth/token"
+        },
+        "api": {
+            "type": "openapi",
+            "url": "https://closetgptrenewopenaisdk-production.up.railway.app/openapi.json",
+            "is_user_authenticated": True
+        },
+        "logo_url": "https://closetgpt.app/logo.png",
+        "contact_email": "support@closetgpt.app",
+        "legal_info_url": "https://closetgpt.app/legal"
+    }
+
 @app.get("/oauth/authorize")
 async def oauth_authorize(
     client_id: str,
