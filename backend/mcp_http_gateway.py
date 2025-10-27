@@ -30,6 +30,30 @@ async def auth():
     """
     return {"message": "OAuth endpoint ready"}
 
+@app.get("/test-proxy")
+async def test_proxy():
+    """
+    Test endpoint to verify gateway can reach main backend
+    """
+    async with httpx.AsyncClient() as client:
+        try:
+            # Test connection to main backend
+            r = await client.get(f"{MAIN_BACKEND_URL}/health")
+            return {
+                "gateway_status": "ok",
+                "backend_url": MAIN_BACKEND_URL,
+                "backend_reachable": True,
+                "backend_status": r.status_code,
+                "backend_response": r.json() if r.status_code == 200 else None
+            }
+        except httpx.RequestError as e:
+            return {
+                "gateway_status": "ok",
+                "backend_url": MAIN_BACKEND_URL,
+                "backend_reachable": False,
+                "error": str(e)
+            }
+
 @app.get("/wardrobe")
 async def get_wardrobe(request: Request):
     """
