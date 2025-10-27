@@ -1,0 +1,25 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "ClosetGPT",
+  "name_for_model": "closetgpt",
+  "description_for_human": "AI-powered wardrobe manager and outfit generator. Get personalized outfit suggestions for any occasion.",
+  "description_for_model": "ClosetGPT helps users manage their wardrobe and get AI-powered outfit suggestions. You can view wardrobe items, suggest outfits based on occasion/style/weather, and help users with fashion choices.",
+  "auth": {
+    "type": "oauth",
+    "client_url": "https://closetgptrenewopenaisdk-production.up.railway.app/oauth/authorize",
+    "authorization_url": "https://closetgptrenewopenaisdk-production.up.railway.app/oauth/authorize",
+    "authorization_content_type": "application/json",
+    "verification_tokens": {
+      "openai": "WILL_BE_PROVIDED_BY_OPENAI"
+    },
+    "scope": "wardrobe:read outfits:generate"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://closetgptrenewopenaisdk-production.up.railway.app/openapi.json"
+  },
+  "logo_url": "https://your-logo-url.com/logo.png",
+  "contact_email": "support@closetgpt.app",
+  "legal_info_url": "https://closetgpt.app/legal"
+}
+
