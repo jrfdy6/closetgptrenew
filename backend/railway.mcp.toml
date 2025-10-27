@@ -1,8 +1,8 @@
 # Railway config for MCP service - uses dedicated MCP Dockerfile
-# Note: Root directory is set to "backend", so paths are relative to backend/
+# Root directory is "backend", so we're already in that folder
 [build]
 builder = "dockerfile"
-dockerfilePath = "./Dockerfile.mcp"
+dockerfilePath = "Dockerfile.mcp"
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
