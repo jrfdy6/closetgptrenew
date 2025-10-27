@@ -1,0 +1,17 @@
+# Lightweight Dockerfile for MCP Server ONLY
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install MCP dependencies (minimal!)
+RUN pip install --no-cache-dir mcp httpx pydantic python-dotenv
+
+# Copy only MCP server file (from root)
+COPY mcp_server.py .
+
+# Expose port
+EXPOSE 3002
+
+# Start MCP server
+CMD ["python3", "mcp_server.py"]
+
