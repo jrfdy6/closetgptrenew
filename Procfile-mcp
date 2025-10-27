@@ -1,2 +1,0 @@
-web: cd backend && python3 mcp_server.py
-
