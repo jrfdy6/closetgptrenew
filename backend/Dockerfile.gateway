@@ -1,0 +1,18 @@
+# Lightweight Dockerfile for HTTP Gateway
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy requirements and install
+COPY backend/requirements-gateway.txt .
+RUN pip install --no-cache-dir -r requirements-gateway.txt
+
+# Copy gateway file
+COPY backend/mcp_http_gateway.py .
+
+# Expose port
+EXPOSE 8080
+
+# Start with uvicorn
+CMD ["uvicorn", "mcp_http_gateway:app", "--host", "0.0.0.0", "--port", "8080"]
+

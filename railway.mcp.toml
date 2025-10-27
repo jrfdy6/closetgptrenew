@@ -1,12 +1,11 @@
-# Correct MCP config — valid builder for Railway secondary service
+# HTTP Gateway for ChatGPT Apps SDK
+# Proxies requests from ChatGPT to main ClosetGPT backend
 
 [build]
 builder = "dockerfile"
-dockerfilePath = "backend/Dockerfile.mcp"
-# Do NOT set sourceDir
+dockerfilePath = "backend/Dockerfile.gateway"
 
 [deploy]
-startCommand = "pip install --no-cache-dir -r requirements-mcp-minimal.txt && python3 mcp_server.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
