@@ -3,7 +3,7 @@ import os
 import httpx
 import secrets
 from typing import Optional
-from fastapi import FastAPI, Request, Response, HTTPException, Header
+from fastapi import FastAPI, Request, Response, HTTPException, Header, Form
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -66,11 +66,11 @@ async def oauth_authorize(
 
 @app.post("/oauth/token")
 async def oauth_token(
-    grant_type: str,
-    code: Optional[str] = None,
-    refresh_token: Optional[str] = None,
-    client_id: Optional[str] = None,
-    client_secret: Optional[str] = None
+    grant_type: str = Form(...),
+    code: Optional[str] = Form(None),
+    refresh_token: Optional[str] = Form(None),
+    client_id: Optional[str] = Form(None),
+    client_secret: Optional[str] = Form(None)
 ):
     """
     OAuth token endpoint - exchanges authorization code for access token
