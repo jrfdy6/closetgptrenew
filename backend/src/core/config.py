@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     ALLOWED_HEADERS: str = "*"
     
     # Logging settings
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")  # Set to WARNING in production via env var
     LOG_FILE: Optional[str] = None
     
     # Rate limiting

@@ -7,8 +7,11 @@ from fastapi import Request, HTTPException
 
 # Force Railway deploy - mark-worn fixes v5 - Oct 20 2025
 # Configure logging to see what's happening during startup
-logging.basicConfig(level=logging.INFO)
+# Use environment variable for log level (default INFO in dev, WARNING in prod)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=getattr(logging, LOG_LEVEL, logging.INFO))
 logger = logging.getLogger(__name__)
+logger.info(f"🔧 Logging configured at level: {LOG_LEVEL}")
 
 # Import startup module for version tracking and guarded imports
 try:
