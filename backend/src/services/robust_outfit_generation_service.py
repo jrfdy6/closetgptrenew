@@ -648,8 +648,8 @@ class RobustOutfitGenerationService:
             # print(f"🚨 HYDRATION TRACEBACK: {traceback.format_exc()}")
         
         # DEBUG: Check context types after hydration
-        logger.info(f"🔍 DEBUG: After hydration - user_profile type: {type(context.user_profile)}")
-        logger.info(f"🔍 DEBUG: After hydration - weather type: {type(context.weather)}")
+        logger.debug(f"🔍 DEBUG: After hydration - user_profile type: {type(context.user_profile)}")
+        logger.debug(f"🔍 DEBUG: After hydration - weather type: {type(context.weather)}")
         if isinstance(context.user_profile, list):
             logger.error(f"🚨 ERROR: user_profile is a list: {context.user_profile}")
             debug_info = {
@@ -818,7 +818,7 @@ class RobustOutfitGenerationService:
         
         # Create scoring dictionary for each suitable item
         item_scores = {}
-        logger.info(f"🔍 DEBUG SCORING: Starting to create scores for {len(suitable_items)} suitable items")
+        logger.debug(f"🔍 DEBUG SCORING: Starting to create scores for {len(suitable_items)} suitable items")
         for i, item in enumerate(suitable_items):
             item_id = safe_item_access(item, 'id', f"item_{len(item_scores)}")
             logger.debug(f"🔍 DEBUG SCORING: Creating score for item {i+1}: {item_id} - {getattr(item, 'name', 'Unknown')}")
@@ -831,9 +831,9 @@ class RobustOutfitGenerationService:
                 'composite_score': 0.0
             }
         
-        logger.info(f"🔍 DEBUG SCORING: Created {len(item_scores)} item scores")
+        logger.debug(f"🔍 DEBUG SCORING: Created {len(item_scores)} item scores")
         
-        logger.info(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
+        logger.debug(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
         
         # Run all analyzers in parallel on filtered items
         logger.info(f"🚀 Running 5 analyzers in parallel on {len(suitable_items)} filtered items... (body type + style profile + weather + user feedback + metadata compatibility)")
@@ -1800,7 +1800,7 @@ class RobustOutfitGenerationService:
         logger.info(f"👤 BODY TYPE: Starting with {len(context.wardrobe)} wardrobe items")
         
         # DEBUG: Check if user_profile is a list
-        logger.info(f"🔍 DEBUG: user_profile type: {type(context.user_profile)}")
+        logger.debug(f"🔍 DEBUG: user_profile type: {type(context.user_profile)}")
         if isinstance(context.user_profile, list):
             logger.error(f"🚨 ERROR: user_profile is a list: {context.user_profile}")
             return OutfitGeneratedOutfit(items=[], confidence=0.1, metadata={"generation_strategy": "body_type_optimized", "error": "user_profile_is_list"})
@@ -3005,7 +3005,7 @@ class RobustOutfitGenerationService:
                 logger.debug(f"  ⚠️ SECONDARY: Casual occasion tag for Athletic (less ideal): {+0.4 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference']):
                 penalty -= 2.0 * occasion_multiplier  # STRONG penalty for formal items
-                logger.info(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫🚫 PRIMARY: Formal occasion tag for Athletic request: {-2.0 * occasion_multiplier:.2f}")
             else:
                 # NO occasion tags - check if it's a basic athletic item by type/name
                 # T-shirts, tanks, athletic shorts should NOT be penalized!
@@ -3238,10 +3238,10 @@ class RobustOutfitGenerationService:
         elif occasion_lower in ['business', 'formal', 'interview', 'wedding', 'conference']:
             if any(occ in item_occasion_lower for occ in ['business', 'formal', 'interview', 'conference', 'wedding']):
                 penalty += 1.5 * occasion_multiplier  # HUGE boost for matching occasion tag
-                logger.info(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ PRIMARY: Formal occasion tag match: {+1.5 * occasion_multiplier:.2f}")
             elif any(occ in item_occasion_lower for occ in ['athletic', 'gym', 'workout', 'sport']):
                 penalty -= 2.0 * occasion_multiplier  # HUGE penalty for wrong occasion
-                logger.info(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  🚫🚫 PRIMARY: Athletic occasion tag for Formal request: {-2.0 * occasion_multiplier:.2f}")
             
             # METADATA CHECK: Boost formal materials and fits (COMPREHENSIVE)
             item_category = self._get_item_category(item)
@@ -3331,7 +3331,7 @@ class RobustOutfitGenerationService:
         elif occasion_lower in ['casual', 'brunch', 'weekend']:
             if any(occ in item_occasion_lower for occ in ['casual', 'brunch', 'weekend', 'vacation']):
                 penalty += 1.0 * occasion_multiplier  # Good boost for matching occasion tag
-                logger.info(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
+                logger.debug(f"  ✅✅ PRIMARY: Casual occasion tag match: {+1.0 * occasion_multiplier:.2f}")
         
         elif occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home']:
             # Loungewear: Block ALL formal and structured items AGGRESSIVELY
@@ -5179,14 +5179,14 @@ class RobustOutfitGenerationService:
     async def _cohesive_composition_with_scores(self, context: GenerationContext, item_scores: dict, session_id: str) -> OutfitGeneratedOutfit:
         """Generate cohesive outfit using multi-layered scores with intelligent layering and session tracking"""
         logger.info(f"🎨 COHESIVE COMPOSITION: Using scored items to create outfit")
-        logger.info(f"🔍 DEBUG: Received {len(item_scores)} scored items")
-        logger.info(f"🔍 DEBUG: Context occasion: {context.occasion}, style: {context.style}")
+        logger.debug(f"🔍 DEBUG: Received {len(item_scores)} scored items")
+        logger.debug(f"🔍 DEBUG: Context occasion: {context.occasion}, style: {context.style}")
         
         # DEBUG: Log item scores details
         if item_scores:
-            logger.info(f"🔍 DEBUG SCORES: First 3 item scores:")
+            logger.debug(f"🔍 DEBUG SCORES: First 3 item scores:")
             for i, (item_id, score) in enumerate(list(item_scores.items())[:3]):
-                logger.info(f"🔍 DEBUG SCORE {i+1}: {item_id} = {score}")
+                logger.debug(f"🔍 DEBUG SCORE {i+1}: {item_id} = {score}")
         else:
             logger.error(f"🚨 DEBUG: item_scores is empty or None!")
         
@@ -5449,7 +5449,7 @@ class RobustOutfitGenerationService:
         
         # Phase 1: Fill essential categories (tops, bottoms, shoes)
         logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
-        logger.info(f"🔍 DEBUG PHASE 1: Starting with {len(sorted_items)} scored items")
+        logger.debug(f"🔍 DEBUG PHASE 1: Starting with {len(sorted_items)} scored items")
         for item_id, score_data in sorted_items:
             item = score_data['item']
             
@@ -5523,7 +5523,7 @@ class RobustOutfitGenerationService:
             else:
                 logger.debug(f"  ⏭️ Non-essential {category}: {self.safe_get_item_name(item)} - will check in Phase 2")
         
-        logger.info(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
+        logger.debug(f"🔍 DEBUG PHASE 1 COMPLETE: Selected {len(selected_items)} items, categories filled: {categories_filled}")
         
         # ═══════════════════════════════════════════════════════════
         # FIX #2: SAFETY NET - Ensure all essential categories are filled
@@ -5860,13 +5860,13 @@ class RobustOutfitGenerationService:
             logger.warning(f"⚠️ Failed to record performance metrics: {e}")
         
         # DEBUG: Log selected items before creating outfit
-        logger.info(f"🔍 DEBUG FINAL SELECTION: About to create outfit with {len(selected_items)} selected items")
-        logger.info(f"🔍 DEBUG FINAL SELECTION: Selected items: {[getattr(item, 'name', 'Unknown') for item in selected_items]}")
-        logger.info(f"🔍 DEBUG FINAL SELECTION: Target items was: {target_items}, min_items: {min_items}, max_items: {max_items}")
-        logger.info(f"🔍 DEBUG FINAL SELECTION: Categories filled: {categories_filled}")
-        logger.info(f"🔍 DEBUG FINAL SELECTION: Item scores count: {len(item_scores)}")
+        logger.debug(f"🔍 DEBUG FINAL SELECTION: About to create outfit with {len(selected_items)} selected items")
+        logger.debug(f"🔍 DEBUG FINAL SELECTION: Selected items: {[getattr(item, 'name', 'Unknown') for item in selected_items]}")
+        logger.debug(f"🔍 DEBUG FINAL SELECTION: Target items was: {target_items}, min_items: {min_items}, max_items: {max_items}")
+        logger.debug(f"🔍 DEBUG FINAL SELECTION: Categories filled: {categories_filled}")
+        logger.debug(f"🔍 DEBUG FINAL SELECTION: Item scores count: {len(item_scores)}")
         if item_scores:
-            logger.info(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, (safe_get(scores, 'composite_score', 0) if scores else 0)) for item_id, scores in list(item_scores.items())[:3]]}")
+            logger.debug(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, (safe_get(scores, 'composite_score', 0) if scores else 0)) for item_id, scores in list(item_scores.items())[:3]]}")
         
         # Create outfit
         outfit = OutfitGeneratedOutfit(
