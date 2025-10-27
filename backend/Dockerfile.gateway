@@ -7,12 +7,14 @@ WORKDIR /app
 COPY backend/requirements-gateway.txt .
 RUN pip install --no-cache-dir -r requirements-gateway.txt
 
-# Copy gateway file
+# Copy gateway file and start script
 COPY backend/mcp_http_gateway.py .
+COPY backend/start_gateway.sh .
+RUN chmod +x start_gateway.sh
 
-# Expose port (Railway uses $PORT env var, defaults to 8080)
+# Expose port (Railway uses $PORT env var)
 EXPOSE 8080
 
-# Start with uvicorn - use $PORT or default to 8080
-CMD uvicorn mcp_http_gateway:app --host 0.0.0.0 --port ${PORT:-8080}
+# Start with script that handles PORT variable
+CMD ["./start_gateway.sh"]
 
