@@ -1,12 +1,14 @@
-# Railway config for MCP service
-# Uses same Dockerfile as main app, but overrides start command to run MCP server
+# 🚀 railway.mcp.toml — Dedicated config for MCP service
+# Build from repo root, but use Dockerfile inside backend/
 
 [build]
 builder = "dockerfile"
-sourceDir = "backend"
+dockerfilePath = "backend/Dockerfile.mcp"
+# 👇 Build context is repo root (not backend)
+# Do NOT set sourceDir here or Railway will misresolve paths
 
 [deploy]
-startCommand = "pip install mcp httpx pydantic python-dotenv && python3 mcp_server.py"
+startCommand = "pip install -r backend/requirements-mcp-minimal.txt && python3 backend/mcp_server.py"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
