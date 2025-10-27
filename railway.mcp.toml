@@ -1,9 +1,9 @@
-# ✅ Corrected railway.mcp.toml
-# Forces Railway to use backend/Dockerfile.mcp as build file
+# Correct MCP config — valid builder for Railway secondary service
 
 [build]
-builder = "docker"
+builder = "dockerfile"
 dockerfilePath = "backend/Dockerfile.mcp"
+# Do NOT set sourceDir
 
 [deploy]
 startCommand = "pip install -r backend/requirements-mcp-minimal.txt && python3 backend/mcp_server.py"
