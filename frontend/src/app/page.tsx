@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 
@@ -22,9 +23,16 @@ export default function Home() {
         <div className="text-center max-w-4xl mx-auto">
           {/* Glass hero card */}
           <div className="glass-float-hover p-8 sm:p-12 mb-8 animate-fade-in glass-shadow-strong">
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 text-stone-900 dark:text-stone-100 tracking-tight leading-tight">
-              ClosetGPT
-            </h1>
+            <div className="flex justify-center mb-6 sm:mb-8">
+              <Image 
+                src="/logo-horizontal.png" 
+                alt="ClosetGPT Logo" 
+                width={600} 
+                height={150}
+                priority
+                className="w-auto h-16 sm:h-20 md:h-24 lg:h-28 object-contain"
+              />
+            </div>
             <p className="text-lg sm:text-xl md:text-2xl text-stone-600 dark:text-stone-400 mb-8 font-light leading-relaxed">
               Your AI-powered personal stylist
             </p>
