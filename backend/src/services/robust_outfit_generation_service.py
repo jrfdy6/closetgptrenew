@@ -4725,10 +4725,10 @@ class RobustOutfitGenerationService:
                     condition = 'clear'
                 logger.warning(f"⚠️ WEATHER ANALYZER: Missing weather data, using SMART DEFAULT: {temp}°F, {condition}")
             elif hasattr(context.weather, 'temperature'):
-                temp = (context.weather if context else None).temperature
+                temp = float((context.weather if context else None).temperature)  # CRITICAL: Convert to float
                 logger.info(f"🌤️ WEATHER ANALYZER: Got temperature from weather object: {temp}°F")
             elif hasattr(context.weather, '__dict__') and 'temperature' in (context.weather if context else None).__dict__:
-                temp = (context.weather if context else None).__dict__['temperature']
+                temp = float((context.weather if context else None).__dict__['temperature'])  # CRITICAL: Convert to float
                 logger.info(f"🌤️ WEATHER ANALYZER: Got temperature from weather.__dict__: {temp}°F")
             else:
                 temp = 70.0
@@ -5470,17 +5470,31 @@ class RobustOutfitGenerationService:
         base_item_obj = None
         if context.base_item_id:
             logger.info(f"🎯 PHASE 0: Checking for base item: {context.base_item_id}")
+            # First try to find it in scored items
             for item_id, score_data in sorted_items:
                 if item_id == context.base_item_id:
                     base_item_obj = score_data['item']
                     selected_items.append(base_item_obj)
                     base_category = self._get_item_category(base_item_obj)
                     categories_filled[base_category] = True
-                    logger.info(f"✅ PHASE 0: Base item added: {self.safe_get_item_name(base_item_obj)} (category: {base_category})")
+                    logger.info(f"✅ PHASE 0: Base item added from scored items: {self.safe_get_item_name(base_item_obj)} (category: {base_category})")
                     break
             
+            # CRITICAL FIX: If base item not in scored items, find it in original wardrobe
+            # This handles the case where base item was pre-approved but not scored
             if not base_item_obj:
-                logger.warning(f"⚠️ PHASE 0: Base item {context.base_item_id} not found in scored items")
+                logger.warning(f"⚠️ PHASE 0: Base item {context.base_item_id} not found in scored items - searching wardrobe")
+                for item in context.wardrobe:
+                    if getattr(item, 'id', None) == context.base_item_id:
+                        base_item_obj = item
+                        selected_items.append(base_item_obj)
+                        base_category = self._get_item_category(base_item_obj)
+                        categories_filled[base_category] = True
+                        logger.info(f"✅ PHASE 0: Base item added from wardrobe: {self.safe_get_item_name(base_item_obj)} (category: {base_category})")
+                        break
+                
+                if not base_item_obj:
+                    logger.error(f"❌ PHASE 0: Base item {context.base_item_id} not found in wardrobe!")
         
         # Phase 1: Fill essential categories (tops, bottoms, shoes)
         logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
