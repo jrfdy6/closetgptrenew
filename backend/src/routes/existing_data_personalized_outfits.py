@@ -144,9 +144,21 @@ async def generate_personalized_outfit_from_existing_data(
     """
     start_time = time.time()
     
-    # CRITICAL: Log baseItemId OUTSIDE try block to ensure it always executes
-    print(f"🚨🚨🚨 ENDPOINT START: baseItemId = {req.baseItemId}")
-    logger.error(f"🚨🚨🚨 ENDPOINT START: baseItemId = {req.baseItemId}")
+    # CRITICAL: Check RAW request body BEFORE Pydantic parsing
+    try:
+        import json
+        raw_body_bytes = await request.body()
+        raw_body_str = raw_body_bytes.decode('utf-8')
+        raw_body_dict = json.loads(raw_body_str)
+        print(f"🚨🚨🚨 RAW REQUEST BODY: baseItemId = {raw_body_dict.get('baseItemId', 'KEY_NOT_IN_BODY')}")
+        logger.error(f"🚨🚨🚨 RAW REQUEST BODY: baseItemId = {raw_body_dict.get('baseItemId', 'KEY_NOT_IN_BODY')}")
+    except Exception as e:
+        print(f"⚠️ Could not parse raw body: {e}")
+        logger.error(f"⚠️ Could not parse raw body: {e}")
+    
+    # CRITICAL: Log baseItemId AFTER Pydantic parsing
+    print(f"🚨🚨🚨 PYDANTIC PARSED: baseItemId = {req.baseItemId}")
+    logger.error(f"🚨🚨🚨 PYDANTIC PARSED: baseItemId = {req.baseItemId}")
     
     # DEBUG: Log parsed request to see if metadata is present
     try:
