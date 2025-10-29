@@ -372,6 +372,69 @@ class RobustOutfitGenerationService:
         else:
             return default
     
+    def _get_item_formality_level(self, item) -> Optional[int]:
+        """Get item's formality level (0=casual, 1=smart casual, 2=business casual, 3=formal, 4=black tie)"""
+        # Check metadata first
+        if hasattr(item, 'metadata') and item.metadata:
+            if isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    if 'black tie' in formal_level or 'formal event' in formal_level:
+                        return 4
+                    elif 'formal' in formal_level or 'business formal' in formal_level:
+                        return 3
+                    elif 'business casual' in formal_level or 'smart' in formal_level:
+                        return 2
+                    elif 'smart casual' in formal_level:
+                        return 1
+                    elif 'casual' in formal_level:
+                        return 0
+        
+        # Fallback: infer from item type and name
+        item_type = str(self.safe_get_item_type(item)).lower()
+        item_name = self.safe_get_item_name(item).lower()
+        
+        # Formal items (3-4)
+        if any(kw in item_type or kw in item_name for kw in ['tuxedo', 'gown', 'bow tie', 'cufflink']):
+            return 4
+        elif any(kw in item_type or kw in item_name for kw in ['suit', 'blazer', 'dress shirt', 'tie', 'oxford', 'loafer']):
+            return 3
+        # Business casual (2)
+        elif any(kw in item_type or kw in item_name for kw in ['chino', 'khaki', 'dress pant', 'polo', 'cardigan', 'derby']):
+            return 2
+        # Smart casual (1)
+        elif any(kw in item_type or kw in item_name for kw in ['dark jean', 'button', 'sweater', 'boot']):
+            return 1
+        # Casual (0)
+        else:
+            return 0
+    
+    def _get_context_formality_level(self, occasion: str, style: str) -> Optional[int]:
+        """Get target formality level from occasion and style (0=casual to 4=black tie)"""
+        occasion_lower = (occasion or '').lower()
+        style_lower = (style or '').lower()
+        
+        # Occasion-based formality (highest priority)
+        if any(kw in occasion_lower for kw in ['gala', 'black tie', 'wedding formal']):
+            return 4
+        elif any(kw in occasion_lower for kw in ['interview', 'business', 'formal', 'conference']):
+            return 3
+        elif any(kw in occasion_lower for kw in ['business casual', 'date', 'brunch']):
+            return 2
+        elif any(kw in occasion_lower for kw in ['smart casual', 'weekend']):
+            return 1
+        
+        # Style-based formality (if occasion is neutral)
+        if any(kw in style_lower for kw in ['formal', 'classic', 'preppy', 'old money']):
+            return 3
+        elif any(kw in style_lower for kw in ['business casual', 'urban professional']):
+            return 2
+        elif any(kw in style_lower for kw in ['smart', 'minimalist']):
+            return 1
+        else:
+            return 0
+    
     def _get_normalized_or_raw(self, item: Dict, field_name: str) -> List[str]:
         """
         Get normalized metadata field with fallback to raw field.
@@ -4618,6 +4681,30 @@ class RobustOutfitGenerationService:
         """Analyze and score each item based on user's style profile and COLOR THEORY matching with skin tone"""
         logger.info(f"🎭 STYLE PROFILE ANALYZER: Scoring {len(item_scores)} items")
         
+        # SMART BALANCING: Boost formality of complementary items when base item is casual
+        base_item_formality = None
+        target_formality = None
+        formality_boost_multiplier = 1.0
+        
+        if context.base_item_id:
+            # Get base item's formality
+            for item_id, score_data in item_scores.items():
+                if item_id == context.base_item_id:
+                    base_item = score_data['item']
+                    base_item_formality = self._get_item_formality_level(base_item)
+                    break
+            
+            # Get target formality from occasion/style
+            target_formality = self._get_context_formality_level(context.occasion, context.style)
+            
+            # Calculate formality boost
+            if base_item_formality is not None and target_formality is not None:
+                formality_gap = target_formality - base_item_formality
+                if formality_gap >= 1:  # Base is more casual than target
+                    formality_boost_multiplier = 1.0 + (formality_gap * 0.3)  # 30% boost per formality level
+                    logger.info(f"🎯 SMART BALANCING: Base item formality={base_item_formality}, target={target_formality}, gap={formality_gap}")
+                    logger.info(f"   ↗️ Boosting formal complementary items by {(formality_boost_multiplier - 1.0) * 100:.0f}% to elevate outfit")
+        
         target_style = (context.style if context else "unknown").lower()
         
         # Define style compatibility matrix
@@ -4763,6 +4850,15 @@ class RobustOutfitGenerationService:
             item_occasions_lower = [occ.lower() for occ in item_occasions]
             if (context.occasion if context else "unknown").lower() in item_occasions_lower:
                 base_score += 0.2
+            
+            # SMART BALANCING: Apply formality boost to formal items when needed
+            if formality_boost_needed and item_id != context.base_item_id:
+                item_formality = self._get_item_formality_level(item)
+                if item_formality and item_formality >= target_formality:
+                    # This item is formal enough - boost it!
+                    boost_amount = base_score * (formality_boost_multiplier - 1.0)
+                    base_score = base_score * formality_boost_multiplier
+                    logger.debug(f"   ↗️ ELEVATED: {self.safe_get_item_name(item)} (formality={item_formality}) +{boost_amount:.2f}")
             
             item_scores[item_id]['style_profile_score'] = min(1.0, max(0.0, base_score))
         
