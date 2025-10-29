@@ -364,8 +364,1329 @@ def get_hard_style_exclusions(style: str, item: Dict[str, Any], mood: str = None
     return None
 
 
+def calculate_colorblock_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized colorblock scoring using actual color and pattern metadata.
+    Uses AI-analyzed dominantColors, matchingColors, and pattern data.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (most reliable indicator)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['geometric', 'color block', 'colorblock', 'blocks']:
+            score += 30  # Highly appropriate - geometric/block patterns
+            logger.debug(f"   ✅ COLORBLOCK: {item.get('name')} has geometric/block pattern (+30)")
+        elif pattern == 'solid':
+            score += 10  # Appropriate - solid colors work for colorblock
+            logger.debug(f"   ✅ COLORBLOCK: {item.get('name')} has solid pattern (+10)")
+        elif pattern in ['floral', 'paisley', 'damask', 'baroque', 'ornate']:
+            score -= 25  # Highly inappropriate - too busy/decorative
+            logger.debug(f"   ❌ COLORBLOCK: {item.get('name')} has busy pattern {pattern} (-25)")
+    
+    # 2. CHECK DOMINANT COLORS (for bold, contrasting colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors and len(dominant_colors) >= 2:
+        # Multiple bold colors = potential colorblock piece
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Bold/primary colors that work well in colorblock
+        bold_colors = ['red', 'blue', 'yellow', 'green', 'orange', 'purple', 'pink', 'cyan', 'magenta']
+        bold_count = sum(1 for name in color_names if any(bold in name for bold in bold_colors))
+        
+        if bold_count >= 2:
+            score += 25  # Multiple bold colors
+            logger.debug(f"   ✅ COLORBLOCK: {item.get('name')} has {bold_count} bold colors (+25)")
+        elif bold_count == 1:
+            score += 15  # One bold color
+            logger.debug(f"   ✅ COLORBLOCK: {item.get('name')} has 1 bold color (+15)")
+    
+    # 3. CHECK FOR MUTED/NEUTRAL (inappropriate for colorblock)
+    item_color = item.get('color', '').lower()
+    muted_keywords = ['beige', 'neutral', 'muted', 'gray', 'grey', 'taupe', 'khaki', 'ecru']
+    if any(word in item_color for word in muted_keywords):
+        score -= 15
+        logger.debug(f"   ❌ COLORBLOCK: {item.get('name')} has muted/neutral color (-15)")
+    
+    # 4. CHECK FOR MONOCHROME (inappropriate for colorblock)
+    if len(dominant_colors) == 1:
+        single_color = dominant_colors[0]
+        color_name = ''
+        if isinstance(single_color, dict):
+            color_name = single_color.get('name', '').lower()
+        elif isinstance(single_color, str):
+            color_name = single_color.lower()
+        
+        if any(word in color_name for word in ['black', 'white', 'grey', 'gray']):
+            score -= 10
+            logger.debug(f"   ❌ COLORBLOCK: {item.get('name')} is monochrome {color_name} (-10)")
+    
+    return score
+
+
+def calculate_minimalist_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized minimalist scoring using pattern and color metadata.
+    Minimalist = solid patterns, 1-2 neutral colors, clean lines.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (critical for minimalist)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern == 'solid':
+            score += 30  # Highly appropriate - solid is key to minimalism
+            logger.debug(f"   ✅ MINIMALIST: {item.get('name')} has solid pattern (+30)")
+        elif pattern in ['floral', 'paisley', 'graphic', 'busy', 'ornate', 'baroque', 'leopard', 'zebra']:
+            score -= 30  # Highly inappropriate - too busy
+            logger.debug(f"   ❌ MINIMALIST: {item.get('name')} has busy pattern {pattern} (-30)")
+        elif pattern in ['striped', 'plaid', 'checkered']:
+            score -= 15  # Moderate penalty - not minimalist
+            logger.debug(f"   ⚠️ MINIMALIST: {item.get('name')} has pattern {pattern} (-15)")
+    
+    # 2. CHECK COLOR COUNT (minimalist = 1-2 colors max)
+    dominant_colors = item.get('dominantColors', [])
+    color_count = len(dominant_colors)
+    
+    if color_count <= 2:
+        score += 20  # Good - minimalist uses few colors
+        logger.debug(f"   ✅ MINIMALIST: {item.get('name')} has {color_count} colors (+20)")
+    elif color_count >= 4:
+        score -= 25  # Too many colors
+        logger.debug(f"   ❌ MINIMALIST: {item.get('name')} has {color_count} colors (-25)")
+    
+    # 3. CHECK FOR NEUTRAL COLORS
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        neutral_colors = ['white', 'black', 'gray', 'grey', 'beige', 'cream', 'ivory', 'navy', 'taupe']
+        neutral_count = sum(1 for name in color_names if any(neutral in name for neutral in neutral_colors))
+        
+        if neutral_count == len(color_names):
+            score += 20  # All neutral - perfect for minimalist
+            logger.debug(f"   ✅ MINIMALIST: {item.get('name')} has all neutral colors (+20)")
+        
+        # Penalty for loud colors
+        loud_colors = ['neon', 'bright', 'fluorescent', 'hot pink', 'lime', 'electric']
+        if any(loud in ' '.join(color_names) for loud in loud_colors):
+            score -= 20
+            logger.debug(f"   ❌ MINIMALIST: {item.get('name')} has loud colors (-20)")
+    
+    return score
+
+
+def calculate_maximalist_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized maximalist scoring using pattern and color metadata.
+    Maximalist = bold patterns, 3+ colors, more is more.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (maximalist loves patterns)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['floral', 'paisley', 'graphic', 'mixed', 'busy', 'ornate', 'baroque', 'leopard', 'zebra', 'geometric']:
+            score += 30  # Highly appropriate - bold patterns
+            logger.debug(f"   ✅ MAXIMALIST: {item.get('name')} has bold pattern {pattern} (+30)")
+        elif pattern == 'solid':
+            score -= 20  # Inappropriate - too plain
+            logger.debug(f"   ❌ MAXIMALIST: {item.get('name')} has solid pattern (-20)")
+    
+    # 2. CHECK COLOR COUNT (maximalist = 3+ colors)
+    dominant_colors = item.get('dominantColors', [])
+    color_count = len(dominant_colors)
+    
+    if color_count >= 4:
+        score += 30  # Excellent - lots of colors
+        logger.debug(f"   ✅ MAXIMALIST: {item.get('name')} has {color_count} colors (+30)")
+    elif color_count == 3:
+        score += 20  # Good - multiple colors
+        logger.debug(f"   ✅ MAXIMALIST: {item.get('name')} has 3 colors (+20)")
+    elif color_count <= 1:
+        score -= 20  # Too monochrome
+        logger.debug(f"   ❌ MAXIMALIST: {item.get('name')} has only {color_count} color(s) (-20)")
+    
+    # 3. CHECK FOR BOLD COLORS
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        bold_colors = ['red', 'blue', 'yellow', 'green', 'orange', 'purple', 'pink', 'magenta', 'cyan', 'bright']
+        bold_count = sum(1 for name in color_names if any(bold in name for bold in bold_colors))
+        
+        if bold_count >= 2:
+            score += 20  # Bold colors - perfect for maximalist
+            logger.debug(f"   ✅ MAXIMALIST: {item.get('name')} has {bold_count} bold colors (+20)")
+        
+        # Check for all neutral (boring for maximalist)
+        neutral_colors = ['white', 'black', 'gray', 'grey', 'beige', 'cream', 'taupe']
+        if all(any(neutral in name for neutral in neutral_colors) for name in color_names):
+            score -= 25  # All neutral - too boring
+            logger.debug(f"   ❌ MAXIMALIST: {item.get('name')} is all neutral (-25)")
+    
+    return score
+
+
+def calculate_gothic_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized gothic scoring using color and material metadata.
+    Gothic = black dominant, dark colors, specific materials (lace, velvet).
+    """
+    score = 0
+    
+    # 1. CHECK FOR BLACK (critical for gothic)
+    dominant_colors = item.get('dominantColors', [])
+    has_black = False
+    
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Check if black is present
+        if any('black' in name for name in color_names):
+            has_black = True
+            score += 30  # Black is essential for gothic
+            logger.debug(f"   ✅ GOTHIC: {item.get('name')} has black (+30)")
+        
+        # Check for dark colors (burgundy, dark purple, dark red)
+        dark_colors = ['burgundy', 'wine', 'dark red', 'maroon', 'purple', 'dark purple', 'navy']
+        dark_count = sum(1 for name in color_names if any(dark in name for dark in dark_colors))
+        if dark_count > 0:
+            score += 15  # Dark colors complement gothic
+            logger.debug(f"   ✅ GOTHIC: {item.get('name')} has dark colors (+15)")
+        
+        # Penalty for bright/pastel colors
+        bright_colors = ['pastel', 'pink', 'baby blue', 'mint', 'peach', 'yellow', 'bright', 'neon', 'lime']
+        if any(bright in ' '.join(color_names) for bright in bright_colors):
+            score -= 30  # Very inappropriate
+            logger.debug(f"   ❌ GOTHIC: {item.get('name')} has bright/pastel colors (-30)")
+    
+    # 2. CHECK MATERIAL (lace, velvet, leather)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if any(m in material for m in ['lace', 'velvet', 'leather', 'silk']):
+            score += 20  # Gothic materials
+            logger.debug(f"   ✅ GOTHIC: {item.get('name')} has gothic material {material} (+20)")
+    
+    # 3. CHECK PATTERN (lace patterns are gothic)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['lace', 'mesh', 'fishnet']:
+            score += 15  # Gothic patterns
+            logger.debug(f"   ✅ GOTHIC: {item.get('name')} has gothic pattern {pattern} (+15)")
+    
+    # 4. If no black, significant penalty
+    if not has_black and dominant_colors:
+        score -= 20
+        logger.debug(f"   ❌ GOTHIC: {item.get('name')} missing black color (-20)")
+    
+    return score
+
+
+def calculate_monochrome_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized monochrome scoring using color metadata.
+    Monochrome = single color family (especially black/white/gray).
+    """
+    score = 0
+    
+    # 1. CHECK COLOR COUNT (monochrome = 1 color family)
+    dominant_colors = item.get('dominantColors', [])
+    color_count = len(dominant_colors)
+    
+    if color_count == 1:
+        score += 30  # Perfect - single color
+        logger.debug(f"   ✅ MONOCHROME: {item.get('name')} has 1 color (+30)")
+    elif color_count == 2:
+        score += 10  # Acceptable - might be shades of same color
+        logger.debug(f"   ✅ MONOCHROME: {item.get('name')} has 2 colors (+10)")
+    elif color_count >= 4:
+        score -= 30  # Too many colors
+        logger.debug(f"   ❌ MONOCHROME: {item.get('name')} has {color_count} colors (-30)")
+    
+    # 2. CHECK FOR BLACK/WHITE/GRAY (classic monochrome)
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Check if all colors are black/white/gray
+        bw_colors = ['black', 'white', 'gray', 'grey', 'charcoal', 'ivory', 'cream']
+        if all(any(bw in name for bw in bw_colors) for name in color_names):
+            score += 25  # Classic monochrome palette
+            logger.debug(f"   ✅ MONOCHROME: {item.get('name')} is black/white/gray monochrome (+25)")
+        
+        # Check if all colors are from same family (all blues, all reds, etc.)
+        color_families = [
+            ['blue', 'navy', 'azure', 'cobalt', 'indigo'],
+            ['red', 'burgundy', 'wine', 'maroon', 'crimson'],
+            ['green', 'olive', 'forest', 'emerald', 'sage'],
+            ['brown', 'tan', 'beige', 'camel', 'chocolate']
+        ]
+        
+        for family in color_families:
+            if all(any(f in name for f in family) for name in color_names):
+                score += 20  # Single color family
+                logger.debug(f"   ✅ MONOCHROME: {item.get('name')} is single color family (+20)")
+                break
+    
+    # 3. CHECK PATTERN (solid is better for monochrome)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern == 'solid':
+            score += 15  # Solid enhances monochrome
+            logger.debug(f"   ✅ MONOCHROME: {item.get('name')} has solid pattern (+15)")
+        elif pattern in ['mixed', 'colorful', 'rainbow']:
+            score -= 20  # Contradicts monochrome
+            logger.debug(f"   ❌ MONOCHROME: {item.get('name')} has colorful pattern (-20)")
+    
+    return score
+
+
+def calculate_dark_academia_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized dark academia scoring using color, pattern, and material metadata.
+    Dark Academia = dark colors (brown, burgundy, forest green), plaid/tweed patterns, wool materials.
+    """
+    score = 0
+    
+    # 1. CHECK FOR DARK COLORS
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Dark academia colors
+        dark_academia_colors = ['brown', 'burgundy', 'wine', 'maroon', 'forest green', 'navy', 'beige', 'tan', 'olive', 'dark green']
+        dark_count = sum(1 for name in color_names if any(dark in name for dark in dark_academia_colors))
+        
+        if dark_count >= 1:
+            score += 25  # Has dark academia colors
+            logger.debug(f"   ✅ DARK ACADEMIA: {item.get('name')} has {dark_count} dark academia colors (+25)")
+        
+        # Penalty for neon/bright colors
+        bright_colors = ['neon', 'bright', 'fluorescent', 'hot pink', 'lime', 'electric', 'yellow']
+        if any(bright in ' '.join(color_names) for bright in bright_colors):
+            score -= 30
+            logger.debug(f"   ❌ DARK ACADEMIA: {item.get('name')} has bright colors (-30)")
+    
+    # 2. CHECK PATTERN (plaid, tweed, corduroy)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['plaid', 'checkered', 'tartan', 'houndstooth']:
+            score += 30  # Classic dark academia patterns
+            logger.debug(f"   ✅ DARK ACADEMIA: {item.get('name')} has academia pattern {pattern} (+30)")
+        elif pattern in ['striped', 'argyle']:
+            score += 15  # Acceptable patterns
+            logger.debug(f"   ✅ DARK ACADEMIA: {item.get('name')} has pattern {pattern} (+15)")
+    
+    # 3. CHECK MATERIAL (wool, tweed, corduroy)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if any(m in material for m in ['tweed', 'wool', 'corduroy', 'cable knit']):
+            score += 20  # Academic materials
+            logger.debug(f"   ✅ DARK ACADEMIA: {item.get('name')} has academic material {material} (+20)")
+    
+    return score
+
+
+def calculate_light_academia_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized light academia scoring using color and material metadata.
+    Light Academia = light colors (cream, beige, white, pastels), linen materials.
+    """
+    score = 0
+    
+    # 1. CHECK FOR LIGHT COLORS
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Light academia colors
+        light_colors = ['cream', 'beige', 'white', 'ivory', 'light blue', 'pastel', 'pale', 'soft', 'blush', 'champagne']
+        light_count = sum(1 for name in color_names if any(light in name for light in light_colors))
+        
+        if light_count >= 1:
+            score += 25  # Has light academia colors
+            logger.debug(f"   ✅ LIGHT ACADEMIA: {item.get('name')} has {light_count} light academia colors (+25)")
+        
+        # Penalty for dark colors
+        dark_colors = ['black', 'dark', 'charcoal', 'navy']
+        dark_count = sum(1 for name in color_names if any(dark in name for dark in dark_colors))
+        if dark_count >= 2:
+            score -= 25
+            logger.debug(f"   ❌ LIGHT ACADEMIA: {item.get('name')} has too many dark colors (-25)")
+        
+        # Penalty for neon/bright colors
+        bright_colors = ['neon', 'bright', 'fluorescent', 'hot pink', 'lime', 'electric']
+        if any(bright in ' '.join(color_names) for bright in bright_colors):
+            score -= 20
+            logger.debug(f"   ❌ LIGHT ACADEMIA: {item.get('name')} has neon colors (-20)")
+    
+    # 2. CHECK MATERIAL (linen is key)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if 'linen' in material:
+            score += 25  # Linen is quintessential light academia
+            logger.debug(f"   ✅ LIGHT ACADEMIA: {item.get('name')} has linen material (+25)")
+        elif any(m in material for m in ['cotton', 'silk', 'chiffon']):
+            score += 10  # Light, airy materials
+            logger.debug(f"   ✅ LIGHT ACADEMIA: {item.get('name')} has light material {material} (+10)")
+    
+    # 3. CHECK PATTERN (prefer simple/soft patterns)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['solid', 'subtle']:
+            score += 10  # Clean, simple patterns
+            logger.debug(f"   ✅ LIGHT ACADEMIA: {item.get('name')} has simple pattern (+10)")
+    
+    return score
+
+
+def calculate_preppy_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized preppy scoring using pattern and color metadata.
+    Preppy = stripes/plaid patterns, navy/white/khaki colors, classic cuts.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (stripes and plaids are quintessential preppy)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['striped', 'stripes']:
+            score += 30  # Stripes are very preppy
+            logger.debug(f"   ✅ PREPPY: {item.get('name')} has striped pattern (+30)")
+        elif pattern in ['plaid', 'checkered', 'gingham']:
+            score += 25  # Plaid/gingham are preppy
+            logger.debug(f"   ✅ PREPPY: {item.get('name')} has {pattern} pattern (+25)")
+    
+    # 2. CHECK FOR PREPPY COLORS
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Preppy colors
+        preppy_colors = ['navy', 'white', 'khaki', 'pink', 'light blue', 'green', 'yellow', 'red']
+        preppy_count = sum(1 for name in color_names if any(prep in name for prep in preppy_colors))
+        
+        if preppy_count >= 2:
+            score += 20  # Multiple preppy colors
+            logger.debug(f"   ✅ PREPPY: {item.get('name')} has {preppy_count} preppy colors (+20)")
+        elif preppy_count == 1:
+            score += 10
+            logger.debug(f"   ✅ PREPPY: {item.get('name')} has 1 preppy color (+10)")
+        
+        # Penalty for grunge/edgy colors
+        if any(word in ' '.join(color_names) for word in ['black', 'dark', 'charcoal']):
+            score -= 15
+            logger.debug(f"   ⚠️ PREPPY: {item.get('name')} has dark colors (-15)")
+    
+    return score
+
+
+def calculate_cottagecore_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized cottagecore scoring using pattern and color metadata.
+    Cottagecore = floral/gingham patterns, pastel/earth tones, natural materials.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (floral is key to cottagecore)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['floral', 'flower']:
+            score += 30  # Floral is essential cottagecore
+            logger.debug(f"   ✅ COTTAGECORE: {item.get('name')} has floral pattern (+30)")
+        elif pattern in ['gingham', 'checkered', 'small checks']:
+            score += 25  # Gingham is very cottagecore
+            logger.debug(f"   ✅ COTTAGECORE: {item.get('name')} has {pattern} pattern (+25)")
+        elif pattern in ['embroidered', 'lace', 'eyelet']:
+            score += 20  # Decorative cottage patterns
+            logger.debug(f"   ✅ COTTAGECORE: {item.get('name')} has {pattern} pattern (+20)")
+        elif pattern in ['geometric', 'graphic', 'modern']:
+            score -= 20  # Too modern for cottagecore
+            logger.debug(f"   ❌ COTTAGECORE: {item.get('name')} has modern pattern (-20)")
+    
+    # 2. CHECK COLORS (pastels and earth tones)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Cottagecore colors
+        cottage_colors = ['pastel', 'pink', 'lavender', 'sage', 'mint', 'peach', 'cream', 'white', 'light blue', 'yellow', 'green']
+        cottage_count = sum(1 for name in color_names if any(cottage in name for cottage in cottage_colors))
+        
+        if cottage_count >= 1:
+            score += 20  # Has cottagecore colors
+            logger.debug(f"   ✅ COTTAGECORE: {item.get('name')} has cottagecore colors (+20)")
+    
+    # 3. CHECK MATERIAL (natural fibers)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if any(m in material for m in ['cotton', 'linen', 'lace']):
+            score += 15  # Natural, cottage materials
+            logger.debug(f"   ✅ COTTAGECORE: {item.get('name')} has natural material {material} (+15)")
+    
+    return score
+
+
+def calculate_romantic_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized romantic scoring using pattern, material, and color metadata.
+    Romantic = floral/lace patterns, soft materials (silk, chiffon), pastel colors.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (lace and floral are romantic)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['lace', 'mesh', 'eyelet']:
+            score += 30  # Lace is quintessentially romantic
+            logger.debug(f"   ✅ ROMANTIC: {item.get('name')} has lace pattern (+30)")
+        elif pattern in ['floral', 'flower']:
+            score += 25  # Floral is romantic
+            logger.debug(f"   ✅ ROMANTIC: {item.get('name')} has floral pattern (+25)")
+        elif pattern in ['ruffles', 'embroidered']:
+            score += 20  # Feminine details
+            logger.debug(f"   ✅ ROMANTIC: {item.get('name')} has {pattern} details (+20)")
+    
+    # 2. CHECK MATERIAL (soft, delicate materials)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if any(m in material for m in ['lace', 'silk', 'chiffon', 'satin', 'velvet']):
+            score += 25  # Romantic materials
+            logger.debug(f"   ✅ ROMANTIC: {item.get('name')} has romantic material {material} (+25)")
+    
+    # 3. CHECK COLORS (soft, pastel colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Romantic colors
+        romantic_colors = ['pink', 'blush', 'pastel', 'lavender', 'cream', 'ivory', 'peach', 'rose', 'soft']
+        romantic_count = sum(1 for name in color_names if any(rom in name for rom in romantic_colors))
+        
+        if romantic_count >= 1:
+            score += 20  # Has romantic colors
+            logger.debug(f"   ✅ ROMANTIC: {item.get('name')} has romantic colors (+20)")
+    
+    return score
+
+
+def calculate_grunge_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized grunge scoring using pattern, texture, and color metadata.
+    Grunge = plaid/flannel patterns, distressed texture, dark colors, oversized fit.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (plaid/flannel is grunge)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['plaid', 'flannel', 'checkered', 'tartan']:
+            score += 30  # Plaid/flannel is quintessential grunge
+            logger.debug(f"   ✅ GRUNGE: {item.get('name')} has grunge pattern {pattern} (+30)")
+    
+    # 2. CHECK TEXTURE (distressed, worn, ripped)
+    texture = item.get('metadata', {}).get('visualAttributes', {}).get('textureStyle', '').lower()
+    if texture:
+        if any(t in texture for t in ['distressed', 'ripped', 'worn', 'faded', 'vintage']):
+            score += 25  # Distressed texture is grunge
+            logger.debug(f"   ✅ GRUNGE: {item.get('name')} has distressed texture (+25)")
+    
+    # 3. CHECK FIT (oversized is grunge)
+    fit = item.get('metadata', {}).get('visualAttributes', {}).get('fit', '').lower()
+    if fit:
+        if fit in ['oversized', 'loose', 'baggy']:
+            score += 20  # Oversized fit is grunge
+            logger.debug(f"   ✅ GRUNGE: {item.get('name')} has oversized fit (+20)")
+    
+    # 4. CHECK COLORS (dark, muted colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Grunge colors (dark, muted)
+        grunge_colors = ['black', 'dark', 'gray', 'charcoal', 'brown', 'olive', 'burgundy']
+        grunge_count = sum(1 for name in color_names if any(grunge in name for grunge in grunge_colors))
+        
+        if grunge_count >= 1:
+            score += 15  # Has grunge colors
+            logger.debug(f"   ✅ GRUNGE: {item.get('name')} has grunge colors (+15)")
+        
+        # Penalty for bright/preppy colors
+        if any(word in ' '.join(color_names) for word in ['bright', 'neon', 'pastel', 'pink']):
+            score -= 20
+            logger.debug(f"   ❌ GRUNGE: {item.get('name')} has non-grunge colors (-20)")
+    
+    return score
+
+
+def calculate_boho_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized boho scoring using pattern, fit, and color metadata.
+    Boho = ethnic/embroidered patterns, flowy fit, earth tones.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (ethnic, embroidered, paisley)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['ethnic', 'embroidered', 'paisley', 'tribal', 'bohemian']:
+            score += 30  # Ethnic patterns are quintessential boho
+            logger.debug(f"   ✅ BOHO: {item.get('name')} has boho pattern {pattern} (+30)")
+        elif pattern in ['floral', 'printed', 'mixed']:
+            score += 15  # Acceptable boho patterns
+            logger.debug(f"   ✅ BOHO: {item.get('name')} has pattern {pattern} (+15)")
+    
+    # 2. CHECK FIT (flowy, loose is boho)
+    fit = item.get('metadata', {}).get('visualAttributes', {}).get('fit', '').lower()
+    if fit:
+        if fit in ['flowy', 'loose', 'relaxed', 'oversized']:
+            score += 20  # Flowy fit is boho
+            logger.debug(f"   ✅ BOHO: {item.get('name')} has flowy fit (+20)")
+        elif fit in ['tight', 'fitted', 'slim']:
+            score -= 15  # Too structured for boho
+            logger.debug(f"   ❌ BOHO: {item.get('name')} has structured fit (-15)")
+    
+    # 3. CHECK COLORS (earth tones, natural colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Boho colors (earth tones)
+        boho_colors = ['brown', 'tan', 'beige', 'olive', 'rust', 'terracotta', 'sage', 'mustard', 'burgundy', 'cream']
+        boho_count = sum(1 for name in color_names if any(boho in name for boho in boho_colors))
+        
+        if boho_count >= 1:
+            score += 20  # Has boho colors
+            logger.debug(f"   ✅ BOHO: {item.get('name')} has earth tone colors (+20)")
+    
+    # 4. CHECK MATERIAL (natural fibers)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if any(m in material for m in ['cotton', 'linen', 'hemp', 'natural']):
+            score += 15  # Natural materials are boho
+            logger.debug(f"   ✅ BOHO: {item.get('name')} has natural material {material} (+15)")
+    
+    return score
+
+
+def calculate_business_casual_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized business casual scoring using formalLevel metadata.
+    Business Casual = Business Casual or Smart Casual formalLevel, structured fits.
+    """
+    score = 0
+    
+    # 1. CHECK FORMAL LEVEL (most direct indicator)
+    formal_level = item.get('metadata', {}).get('visualAttributes', {}).get('formalLevel', '').lower()
+    if formal_level:
+        if formal_level in ['business casual', 'business', 'smart casual']:
+            score += 40  # Direct match for business casual
+            logger.debug(f"   ✅ BUSINESS CASUAL: {item.get('name')} has formalLevel {formal_level} (+40)")
+        elif formal_level == 'formal':
+            score += 20  # Formal works but might be too dressy
+            logger.debug(f"   ✅ BUSINESS CASUAL: {item.get('name')} has formal level (+20)")
+        elif formal_level in ['casual', 'relaxed']:
+            score -= 20  # Too casual
+            logger.debug(f"   ❌ BUSINESS CASUAL: {item.get('name')} is too casual (-20)")
+        elif formal_level in ['athletic', 'loungewear']:
+            score -= 50  # Completely inappropriate
+            logger.debug(f"   ❌ BUSINESS CASUAL: {item.get('name')} is athletic/loungewear (-50)")
+    
+    # 2. CHECK COLORS (professional colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Business casual colors
+        professional_colors = ['navy', 'gray', 'grey', 'black', 'white', 'blue', 'khaki', 'beige', 'burgundy']
+        professional_count = sum(1 for name in color_names if any(prof in name for prof in professional_colors))
+        
+        if professional_count >= 1:
+            score += 15  # Has professional colors
+            logger.debug(f"   ✅ BUSINESS CASUAL: {item.get('name')} has professional colors (+15)")
+        
+        # Penalty for too casual/loud colors
+        casual_colors = ['neon', 'bright', 'hot pink', 'lime', 'fluorescent']
+        if any(casual in ' '.join(color_names) for casual in casual_colors):
+            score -= 25
+            logger.debug(f"   ❌ BUSINESS CASUAL: {item.get('name')} has loud colors (-25)")
+    
+    # 3. CHECK FIT (structured is professional)
+    fit = item.get('metadata', {}).get('visualAttributes', {}).get('fit', '').lower()
+    if fit:
+        if fit in ['tailored', 'fitted', 'structured']:
+            score += 20  # Professional fit
+            logger.debug(f"   ✅ BUSINESS CASUAL: {item.get('name')} has professional fit (+20)")
+    
+    return score
+
+
+def calculate_scandinavian_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized scandinavian scoring using color and material metadata.
+    Scandinavian = neutral/muted colors, wool/knit materials, minimal patterns.
+    """
+    score = 0
+    
+    # 1. CHECK COLORS (neutral, muted Nordic palette)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Scandinavian colors (neutral, muted)
+        scandi_colors = ['white', 'cream', 'beige', 'gray', 'grey', 'black', 'navy', 'muted', 'soft', 'pale']
+        scandi_count = sum(1 for name in color_names if any(scandi in name for scandi in scandi_colors))
+        
+        if scandi_count >= 1:
+            score += 25  # Has Scandinavian colors
+            logger.debug(f"   ✅ SCANDINAVIAN: {item.get('name')} has Nordic colors (+25)")
+        
+        # Penalty for loud/bright colors
+        bright_colors = ['neon', 'bright', 'fluorescent', 'hot pink', 'lime', 'electric', 'vibrant']
+        if any(bright in ' '.join(color_names) for bright in bright_colors):
+            score -= 30
+            logger.debug(f"   ❌ SCANDINAVIAN: {item.get('name')} has bright colors (-30)")
+    
+    # 2. CHECK MATERIAL (wool, knit are quintessential Scandinavian)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if any(m in material for m in ['wool', 'knit', 'cable knit', 'merino', 'cashmere']):
+            score += 30  # Scandinavian materials
+            logger.debug(f"   ✅ SCANDINAVIAN: {item.get('name')} has Nordic material {material} (+30)")
+        elif any(m in material for m in ['cotton', 'linen']):
+            score += 10  # Natural materials acceptable
+            logger.debug(f"   ✅ SCANDINAVIAN: {item.get('name')} has natural material (+10)")
+    
+    # 3. CHECK PATTERN (simple/minimal preferred)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['solid', 'minimal', 'simple']:
+            score += 20  # Simple is Scandinavian
+            logger.debug(f"   ✅ SCANDINAVIAN: {item.get('name')} has minimal pattern (+20)")
+        elif pattern in ['floral', 'busy', 'ornate', 'baroque', 'maximalist']:
+            score -= 25  # Too busy for Scandinavian
+            logger.debug(f"   ❌ SCANDINAVIAN: {item.get('name')} has busy pattern (-25)")
+    
+    return score
+
+
+def calculate_old_money_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized old money scoring using material quality and classic colors.
+    Old Money = quality materials (cashmere, silk, wool), classic colors, timeless fit.
+    """
+    score = 0
+    
+    # 1. CHECK MATERIAL QUALITY (luxury materials)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        # Premium materials
+        if any(m in material for m in ['cashmere', 'silk', 'merino', 'wool', 'linen', 'leather']):
+            score += 35  # Luxury materials
+            logger.debug(f"   ✅ OLD MONEY: {item.get('name')} has quality material {material} (+35)")
+        
+        # Avoid cheap materials
+        if any(m in material for m in ['polyester', 'acrylic', 'synthetic']):
+            score -= 20  # Cheap materials
+            logger.debug(f"   ❌ OLD MONEY: {item.get('name')} has cheap material (-20)")
+    
+    # 2. CHECK COLORS (classic, understated colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Old money colors (classic, timeless)
+        classic_colors = ['navy', 'camel', 'cream', 'white', 'gray', 'grey', 'burgundy', 'forest green', 'khaki', 'tan']
+        classic_count = sum(1 for name in color_names if any(classic in name for classic in classic_colors))
+        
+        if classic_count >= 1:
+            score += 25  # Has classic colors
+            logger.debug(f"   ✅ OLD MONEY: {item.get('name')} has classic colors (+25)")
+        
+        # Penalty for trendy/loud colors
+        trendy_colors = ['neon', 'bright', 'fluorescent', 'hot pink', 'lime']
+        if any(trendy in ' '.join(color_names) for trendy in trendy_colors):
+            score -= 30  # Too flashy
+            logger.debug(f"   ❌ OLD MONEY: {item.get('name')} has flashy colors (-30)")
+    
+    # 3. CHECK FORMAL LEVEL (smart casual to formal)
+    formal_level = item.get('metadata', {}).get('visualAttributes', {}).get('formalLevel', '').lower()
+    if formal_level:
+        if formal_level in ['smart casual', 'business casual', 'formal', 'business']:
+            score += 20  # Appropriate formality
+            logger.debug(f"   ✅ OLD MONEY: {item.get('name')} has appropriate formality (+20)")
+        elif formal_level in ['athletic', 'loungewear']:
+            score -= 30  # Too casual
+            logger.debug(f"   ❌ OLD MONEY: {item.get('name')} is too casual (-30)")
+    
+    # 4. CHECK FIT (tailored, quality fit)
+    fit = item.get('metadata', {}).get('visualAttributes', {}).get('fit', '').lower()
+    if fit:
+        if fit in ['tailored', 'fitted', 'classic']:
+            score += 15  # Quality fit
+            logger.debug(f"   ✅ OLD MONEY: {item.get('name')} has tailored fit (+15)")
+    
+    return score
+
+
+def calculate_clean_girl_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized clean girl scoring using pattern and color metadata.
+    Clean Girl = solid patterns, neutral colors, smooth textures, minimal aesthetic.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (solid/minimal is essential)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['solid', 'minimal', 'plain']:
+            score += 30  # Essential for clean girl
+            logger.debug(f"   ✅ CLEAN GIRL: {item.get('name')} has clean pattern (+30)")
+        elif pattern in ['busy', 'loud', 'maximalist', 'graphic']:
+            score -= 30  # Too busy
+            logger.debug(f"   ❌ CLEAN GIRL: {item.get('name')} has busy pattern (-30)")
+    
+    # 2. CHECK COLORS (neutral, fresh colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Clean girl colors
+        clean_colors = ['white', 'cream', 'beige', 'nude', 'soft', 'pastel', 'light', 'neutral']
+        clean_count = sum(1 for name in color_names if any(clean in name for clean in clean_colors))
+        
+        if clean_count >= 1:
+            score += 25  # Has clean girl colors
+            logger.debug(f"   ✅ CLEAN GIRL: {item.get('name')} has clean colors (+25)")
+        
+        # Penalty for bold/dark colors
+        bold_colors = ['neon', 'bright', 'dark', 'bold', 'gothic']
+        if any(bold in ' '.join(color_names) for bold in bold_colors):
+            score -= 20
+            logger.debug(f"   ❌ CLEAN GIRL: {item.get('name')} has bold colors (-20)")
+    
+    # 3. CHECK TEXTURE (smooth is clean girl)
+    texture = item.get('metadata', {}).get('visualAttributes', {}).get('textureStyle', '').lower()
+    if texture:
+        if texture in ['smooth', 'sleek', 'polished']:
+            score += 15  # Clean texture
+            logger.debug(f"   ✅ CLEAN GIRL: {item.get('name')} has smooth texture (+15)")
+        elif texture in ['distressed', 'ripped', 'worn']:
+            score -= 20  # Too rough
+            logger.debug(f"   ❌ CLEAN GIRL: {item.get('name')} has distressed texture (-20)")
+    
+    return score
+
+
+def calculate_punk_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized punk scoring using material, texture, and color metadata.
+    Punk = leather, studded/distressed textures, black/dark colors.
+    """
+    score = 0
+    
+    # 1. CHECK MATERIAL (leather is quintessential punk)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if 'leather' in material:
+            score += 30  # Leather is essential punk
+            logger.debug(f"   ✅ PUNK: {item.get('name')} has leather material (+30)")
+        elif 'denim' in material:
+            score += 15  # Denim works for punk
+            logger.debug(f"   ✅ PUNK: {item.get('name')} has denim material (+15)")
+    
+    # 2. CHECK TEXTURE (studded, distressed, ripped)
+    texture = item.get('metadata', {}).get('visualAttributes', {}).get('textureStyle', '').lower()
+    if texture:
+        if any(t in texture for t in ['studded', 'spiked', 'chains']):
+            score += 35  # Studded is very punk
+            logger.debug(f"   ✅ PUNK: {item.get('name')} has punk texture {texture} (+35)")
+        elif any(t in texture for t in ['distressed', 'ripped', 'torn', 'worn']):
+            score += 25  # Distressed is punk
+            logger.debug(f"   ✅ PUNK: {item.get('name')} has distressed texture (+25)")
+    
+    # 3. CHECK COLORS (black and dark)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        if any('black' in name for name in color_names):
+            score += 20  # Black is punk
+            logger.debug(f"   ✅ PUNK: {item.get('name')} has black color (+20)")
+        
+        # Penalty for soft/pastel colors
+        soft_colors = ['pastel', 'soft', 'blush', 'baby', 'light pink']
+        if any(soft in ' '.join(color_names) for soft in soft_colors):
+            score -= 25
+            logger.debug(f"   ❌ PUNK: {item.get('name')} has soft colors (-25)")
+    
+    return score
+
+
+def calculate_edgy_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized edgy scoring using material, texture, and color metadata.
+    Edgy = leather, dark colors, distressed textures.
+    """
+    score = 0
+    
+    # 1. CHECK MATERIAL (leather is edgy)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if 'leather' in material:
+            score += 30  # Leather is very edgy
+            logger.debug(f"   ✅ EDGY: {item.get('name')} has leather material (+30)")
+        elif 'denim' in material:
+            score += 15  # Denim can be edgy
+            logger.debug(f"   ✅ EDGY: {item.get('name')} has denim material (+15)")
+    
+    # 2. CHECK TEXTURE (distressed, worn)
+    texture = item.get('metadata', {}).get('visualAttributes', {}).get('textureStyle', '').lower()
+    if texture:
+        if any(t in texture for t in ['distressed', 'ripped', 'torn', 'worn']):
+            score += 25  # Distressed is edgy
+            logger.debug(f"   ✅ EDGY: {item.get('name')} has distressed texture (+25)")
+    
+    # 3. CHECK COLORS (dark, bold colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Edgy colors
+        edgy_colors = ['black', 'dark', 'charcoal', 'burgundy', 'deep red']
+        edgy_count = sum(1 for name in color_names if any(edgy in name for edgy in edgy_colors))
+        
+        if edgy_count >= 1:
+            score += 20  # Has edgy colors
+            logger.debug(f"   ✅ EDGY: {item.get('name')} has dark/edgy colors (+20)")
+        
+        # Penalty for soft/pastel colors
+        soft_colors = ['pastel', 'soft', 'blush', 'baby', 'light pink', 'peach']
+        if any(soft in ' '.join(color_names) for soft in soft_colors):
+            score -= 25
+            logger.debug(f"   ❌ EDGY: {item.get('name')} has soft colors (-25)")
+    
+    return score
+
+
+def calculate_french_girl_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized french girl scoring using pattern, color, and fit metadata.
+    French Girl = striped patterns, classic neutrals (navy, white, black), effortless fit.
+    """
+    score = 0
+    
+    # 1. CHECK PATTERN (stripes are iconic french girl)
+    pattern = item.get('metadata', {}).get('visualAttributes', {}).get('pattern', '').lower()
+    if pattern:
+        if pattern in ['striped', 'stripes']:
+            score += 30  # Stripes are quintessential French
+            logger.debug(f"   ✅ FRENCH GIRL: {item.get('name')} has striped pattern (+30)")
+        elif pattern in ['solid', 'minimal']:
+            score += 15  # Simple patterns work
+            logger.debug(f"   ✅ FRENCH GIRL: {item.get('name')} has simple pattern (+15)")
+    
+    # 2. CHECK COLORS (classic French palette)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # French girl colors
+        french_colors = ['navy', 'white', 'black', 'red', 'beige', 'cream']
+        french_count = sum(1 for name in color_names if any(french in name for french in french_colors))
+        
+        if french_count >= 1:
+            score += 20  # Has French colors
+            logger.debug(f"   ✅ FRENCH GIRL: {item.get('name')} has French palette colors (+20)")
+        
+        # Penalty for loud colors
+        loud_colors = ['neon', 'bright', 'fluorescent', 'hot pink', 'lime']
+        if any(loud in ' '.join(color_names) for loud in loud_colors):
+            score -= 20
+            logger.debug(f"   ❌ FRENCH GIRL: {item.get('name')} has loud colors (-20)")
+    
+    # 3. CHECK FIT (effortless, not too tight or baggy)
+    fit = item.get('metadata', {}).get('visualAttributes', {}).get('fit', '').lower()
+    if fit:
+        if fit in ['tailored', 'fitted', 'classic', 'regular']:
+            score += 15  # Effortless fit
+            logger.debug(f"   ✅ FRENCH GIRL: {item.get('name')} has effortless fit (+15)")
+    
+    return score
+
+
+def calculate_urban_professional_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized urban professional scoring using formalLevel and fit metadata.
+    Urban Professional = Business Casual+ formality, modern/sleek fit, professional colors.
+    """
+    score = 0
+    
+    # 1. CHECK FORMAL LEVEL (similar to business casual)
+    formal_level = item.get('metadata', {}).get('visualAttributes', {}).get('formalLevel', '').lower()
+    if formal_level:
+        if formal_level in ['business casual', 'business', 'smart casual', 'formal']:
+            score += 35  # Professional formality
+            logger.debug(f"   ✅ URBAN PROFESSIONAL: {item.get('name')} has formalLevel {formal_level} (+35)")
+        elif formal_level in ['casual', 'relaxed']:
+            score -= 20  # Too casual
+            logger.debug(f"   ❌ URBAN PROFESSIONAL: {item.get('name')} is too casual (-20)")
+        elif formal_level in ['athletic', 'loungewear']:
+            score -= 40  # Very inappropriate
+            logger.debug(f"   ❌ URBAN PROFESSIONAL: {item.get('name')} is athletic/loungewear (-40)")
+    
+    # 2. CHECK FIT (modern, tailored)
+    fit = item.get('metadata', {}).get('visualAttributes', {}).get('fit', '').lower()
+    if fit:
+        if fit in ['tailored', 'fitted', 'structured', 'modern']:
+            score += 25  # Modern professional fit
+            logger.debug(f"   ✅ URBAN PROFESSIONAL: {item.get('name')} has modern fit (+25)")
+    
+    # 3. CHECK COLORS (sleek professional colors)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Urban professional colors
+        professional_colors = ['black', 'navy', 'gray', 'grey', 'white', 'charcoal']
+        professional_count = sum(1 for name in color_names if any(prof in name for prof in professional_colors))
+        
+        if professional_count >= 1:
+            score += 20  # Has professional colors
+            logger.debug(f"   ✅ URBAN PROFESSIONAL: {item.get('name')} has professional colors (+20)")
+    
+    return score
+
+
+def calculate_techwear_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized techwear scoring using material and color metadata.
+    Techwear = technical/synthetic materials, black dominant, functional design.
+    """
+    score = 0
+    
+    # 1. CHECK MATERIAL (technical fabrics)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if any(m in material for m in ['technical', 'synthetic', 'waterproof', 'nylon', 'polyester', 'gore-tex']):
+            score += 35  # Technical materials are essential
+            logger.debug(f"   ✅ TECHWEAR: {item.get('name')} has technical material {material} (+35)")
+        elif any(m in material for m in ['cotton', 'linen', 'silk']):
+            score -= 20  # Too natural for techwear
+            logger.debug(f"   ❌ TECHWEAR: {item.get('name')} has natural material (-20)")
+    
+    # 2. CHECK COLORS (black is dominant in techwear)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Techwear is predominantly black
+        if any('black' in name for name in color_names):
+            score += 30  # Black is techwear
+            logger.debug(f"   ✅ TECHWEAR: {item.get('name')} has black color (+30)")
+        
+        # Gray/charcoal also work
+        if any(word in ' '.join(color_names) for word in ['gray', 'grey', 'charcoal']):
+            score += 15  # Dark neutrals
+            logger.debug(f"   ✅ TECHWEAR: {item.get('name')} has dark neutral (+15)")
+        
+        # Penalty for bright colors (except neon accents)
+        bright_colors = ['pastel', 'soft', 'light', 'baby blue', 'pink']
+        if any(bright in ' '.join(color_names) for bright in bright_colors):
+            score -= 25
+            logger.debug(f"   ❌ TECHWEAR: {item.get('name')} has soft colors (-25)")
+    
+    return score
+
+
+def calculate_coastal_grandmother_metadata_score(item: Dict[str, Any]) -> int:
+    """
+    Optimized coastal grandmother scoring using material, color, and fit metadata.
+    Coastal Grandmother = linen materials, neutral/beige/blue colors, relaxed fit.
+    """
+    score = 0
+    
+    # 1. CHECK MATERIAL (linen is essential)
+    material = item.get('metadata', {}).get('visualAttributes', {}).get('material', '').lower()
+    if material:
+        if 'linen' in material:
+            score += 35  # Linen is quintessential coastal grandmother
+            logger.debug(f"   ✅ COASTAL GRANDMOTHER: {item.get('name')} has linen material (+35)")
+        elif any(m in material for m in ['cotton', 'silk']):
+            score += 10  # Light natural materials
+            logger.debug(f"   ✅ COASTAL GRANDMOTHER: {item.get('name')} has natural material (+10)")
+    
+    # 2. CHECK COLORS (neutral, beige, white, blue)
+    dominant_colors = item.get('dominantColors', [])
+    if dominant_colors:
+        color_names = []
+        for c in dominant_colors:
+            if isinstance(c, dict):
+                color_names.append(c.get('name', '').lower())
+            elif isinstance(c, str):
+                color_names.append(c.lower())
+        
+        # Coastal grandmother colors
+        coastal_colors = ['beige', 'white', 'cream', 'blue', 'navy', 'sand', 'neutral', 'ivory']
+        coastal_count = sum(1 for name in color_names if any(coastal in name for coastal in coastal_colors))
+        
+        if coastal_count >= 1:
+            score += 25  # Has coastal colors
+            logger.debug(f"   ✅ COASTAL GRANDMOTHER: {item.get('name')} has coastal colors (+25)")
+        
+        # Penalty for bright/neon colors
+        bright_colors = ['neon', 'bright', 'fluorescent', 'hot pink', 'lime']
+        if any(bright in ' '.join(color_names) for bright in bright_colors):
+            score -= 20
+            logger.debug(f"   ❌ COASTAL GRANDMOTHER: {item.get('name')} has bright colors (-20)")
+    
+    # 3. CHECK FIT (relaxed, oversized)
+    fit = item.get('metadata', {}).get('visualAttributes', {}).get('fit', '').lower()
+    if fit:
+        if fit in ['relaxed', 'oversized', 'loose', 'flowy']:
+            score += 20  # Relaxed fit is coastal grandmother
+            logger.debug(f"   ✅ COASTAL GRANDMOTHER: {item.get('name')} has relaxed fit (+20)")
+        elif fit in ['tight', 'fitted', 'slim']:
+            score -= 15  # Too structured
+            logger.debug(f"   ❌ COASTAL GRANDMOTHER: {item.get('name')} has fitted look (-15)")
+    
+    return score
+
+
 def calculate_style_appropriateness_score(style: str, item: Dict[str, Any], occasion: str = None, mood: str = None) -> int:
     """Calculate style appropriateness score with heavy penalties for mismatches."""
+    
+    # OPTIMIZATION: Use metadata-based scoring for styles with objective criteria
+    style_lower = style.lower()
+    
+    # Map styles to their metadata scoring functions (Phases 1-4)
+    metadata_scorers = {
+        # Phase 1: Color-based styles
+        'colorblock': calculate_colorblock_metadata_score,
+        'minimalist': calculate_minimalist_metadata_score,
+        'maximalist': calculate_maximalist_metadata_score,
+        'gothic': calculate_gothic_metadata_score,
+        'monochrome': calculate_monochrome_metadata_score,
+        # Phase 2: Academia & Pattern-heavy styles
+        'dark academia': calculate_dark_academia_metadata_score,
+        'light academia': calculate_light_academia_metadata_score,
+        'preppy': calculate_preppy_metadata_score,
+        'cottagecore': calculate_cottagecore_metadata_score,
+        'romantic': calculate_romantic_metadata_score,
+        'grunge': calculate_grunge_metadata_score,
+        'boho': calculate_boho_metadata_score,
+        # Phase 3: Formality & Quality styles
+        'business casual': calculate_business_casual_metadata_score,
+        'scandinavian': calculate_scandinavian_metadata_score,
+        'old money': calculate_old_money_metadata_score,
+        # Phase 4: Urban & Modern styles
+        'clean girl': calculate_clean_girl_metadata_score,
+        'punk': calculate_punk_metadata_score,
+        'edgy': calculate_edgy_metadata_score,
+        'french girl': calculate_french_girl_metadata_score,
+        'urban professional': calculate_urban_professional_metadata_score,
+        'techwear': calculate_techwear_metadata_score,
+        'coastal grandmother': calculate_coastal_grandmother_metadata_score,
+    }
+    
+    if style_lower in metadata_scorers:
+        metadata_score = metadata_scorers[style_lower](item)
+        # If we got a strong metadata signal (positive or negative), use it
+        if metadata_score != 0:
+            logger.debug(f"   🎨 Using metadata-based {style_lower} score: {metadata_score}")
+            # Still do text fallback but weight metadata heavily
+            text_score = 0
+            item_text = f"{item.get('name', '')} {item.get('description', '')}".lower()
+            
+            # Text-based bonuses (additive with metadata) - style specific
+            if style_lower == 'colorblock':
+                if any(word in item_text for word in ['colorblock', 'color blocking', 'bold colors', 'geometric']):
+                    text_score += 20
+                if any(word in item_text for word in ['monochrome', 'boring', 'plain', 'dull']):
+                    text_score -= 15
+            elif style_lower == 'minimalist':
+                if any(word in item_text for word in ['minimalist', 'minimal', 'clean', 'simple']):
+                    text_score += 15
+                if any(word in item_text for word in ['maximalist', 'busy', 'ornate']):
+                    text_score -= 15
+            elif style_lower == 'maximalist':
+                if any(word in item_text for word in ['maximalist', 'bold', 'statement', 'eclectic']):
+                    text_score += 15
+                if any(word in item_text for word in ['minimalist', 'plain', 'simple']):
+                    text_score -= 15
+            elif style_lower == 'gothic':
+                if any(word in item_text for word in ['gothic', 'goth', 'dark', 'victorian']):
+                    text_score += 15
+                if any(word in item_text for word in ['preppy', 'bright', 'cheerful']):
+                    text_score -= 15
+            elif style_lower == 'monochrome':
+                if any(word in item_text for word in ['monochrome', 'black and white', 'single color']):
+                    text_score += 15
+                if any(word in item_text for word in ['colorful', 'multicolor', 'rainbow']):
+                    text_score -= 15
+            # Phase 2 styles
+            elif style_lower == 'dark academia':
+                if any(word in item_text for word in ['dark academia', 'academic', 'scholarly', 'tweed']):
+                    text_score += 15
+            elif style_lower == 'light academia':
+                if any(word in item_text for word in ['light academia', 'academic', 'linen', 'airy']):
+                    text_score += 15
+            elif style_lower == 'preppy':
+                if any(word in item_text for word in ['preppy', 'collegiate', 'polo', 'nautical']):
+                    text_score += 15
+            elif style_lower == 'cottagecore':
+                if any(word in item_text for word in ['cottagecore', 'cottage', 'pastoral', 'prairie']):
+                    text_score += 15
+            elif style_lower == 'romantic':
+                if any(word in item_text for word in ['romantic', 'feminine', 'delicate', 'flowy']):
+                    text_score += 15
+            elif style_lower == 'grunge':
+                if any(word in item_text for word in ['grunge', 'flannel', 'distressed', 'ripped']):
+                    text_score += 15
+            elif style_lower == 'boho':
+                if any(word in item_text for word in ['boho', 'bohemian', 'ethnic', 'flowy']):
+                    text_score += 15
+            # Phase 3 styles
+            elif style_lower == 'business casual':
+                if any(word in item_text for word in ['business casual', 'professional', 'office', 'work']):
+                    text_score += 15
+            elif style_lower == 'scandinavian':
+                if any(word in item_text for word in ['scandinavian', 'nordic', 'hygge', 'minimal']):
+                    text_score += 15
+            elif style_lower == 'old money':
+                if any(word in item_text for word in ['old money', 'luxury', 'classic', 'timeless']):
+                    text_score += 15
+            # Phase 4 styles
+            elif style_lower == 'clean girl':
+                if any(word in item_text for word in ['clean girl', 'minimal', 'fresh', 'natural']):
+                    text_score += 15
+            elif style_lower == 'punk':
+                if any(word in item_text for word in ['punk', 'studded', 'leather', 'chains']):
+                    text_score += 15
+            elif style_lower == 'edgy':
+                if any(word in item_text for word in ['edgy', 'bold', 'leather', 'rock']):
+                    text_score += 15
+            elif style_lower == 'french girl':
+                if any(word in item_text for word in ['french girl', 'parisian', 'chic', 'effortless']):
+                    text_score += 15
+            elif style_lower == 'urban professional':
+                if any(word in item_text for word in ['urban professional', 'modern professional', 'city']):
+                    text_score += 15
+            elif style_lower == 'techwear':
+                if any(word in item_text for word in ['techwear', 'technical', 'functional', 'utility']):
+                    text_score += 15
+            elif style_lower == 'coastal grandmother':
+                if any(word in item_text for word in ['coastal grandmother', 'linen', 'breezy']):
+                    text_score += 15
+            
+            total = metadata_score + text_score
+            logger.debug(f"   🎨 Final {style_lower} score: {total} (metadata: {metadata_score}, text: {text_score})")
+            return max(total, -50)  # Cap at -50 to prevent over-penalization
+    
+    # Standard text-based scoring for all other styles
     item_name = str(item.get('name', '') if item else '').lower()
     item_type = str(item.get('type', '') if item else '').lower()
     item_description = str(item.get('description', '') if item else '').lower()
