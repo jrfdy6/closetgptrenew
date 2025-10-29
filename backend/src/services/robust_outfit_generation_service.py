@@ -4808,14 +4808,23 @@ class RobustOutfitGenerationService:
                 if hasattr(item, 'temperatureCompatibility'):
                     temp_compat = self.safe_get_item_attr(item, "temperatureCompatibility")
                     if temp_compat and hasattr(temp_compat, 'minTemp') and hasattr(temp_compat, 'maxTemp'):
-                        # CRITICAL FIX: Convert to float before comparison
+                        # CRITICAL FIX: Parse temperature strings (handle '32°F', '>85', etc.)
                         try:
-                            min_t = float(temp_compat.minTemp)
-                            max_t = float(temp_compat.maxTemp)
-                            if min_t <= temp <= max_t:
+                            import re
+                            def parse_temp_value(val):
+                                if isinstance(val, (int, float)):
+                                    return float(val)
+                                if isinstance(val, str):
+                                    clean_val = re.sub(r'[><]=?|°[FC]|[FC]', '', val).strip()
+                                    return float(clean_val) if clean_val else None
+                                return None
+                            
+                            min_t = parse_temp_value(temp_compat.minTemp)
+                            max_t = parse_temp_value(temp_compat.maxTemp)
+                            if min_t is not None and max_t is not None and min_t <= temp <= max_t:
                                 base_score += 0.2
                         except (ValueError, TypeError) as e:
-                            logger.debug(f"⚠️ Could not convert temperatureCompatibility to float: {e}")
+                            logger.debug(f"⚠️ Could not parse temperatureCompatibility: {e}")
                 
                 # Material appropriateness for weather
                 item_name = self.safe_get_item_name(item) if item else "Unknown"
@@ -4846,17 +4855,26 @@ class RobustOutfitGenerationService:
                     optimal_max = temp_compat.get('optimalMax')
                     
                     # CRITICAL FIX: Convert string temperatures to float
+                    # Handle formats like '32°F', '>85', '<32°F', etc.
+                    def parse_temp(value):
+                        if value is None:
+                            return None
+                        if isinstance(value, (int, float)):
+                            return float(value)
+                        if isinstance(value, str):
+                            # Strip comparison operators (>, <, >=, <=) and units (°F, °C, F, C)
+                            import re
+                            clean_value = re.sub(r'[><]=?|°[FC]|[FC]', '', value).strip()
+                            return float(clean_value) if clean_value else None
+                        return None
+                    
                     try:
-                        if min_temp is not None:
-                            min_temp = float(min_temp)
-                        if max_temp is not None:
-                            max_temp = float(max_temp)
-                        if optimal_min is not None:
-                            optimal_min = float(optimal_min)
-                        if optimal_max is not None:
-                            optimal_max = float(optimal_max)
+                        min_temp = parse_temp(min_temp)
+                        max_temp = parse_temp(max_temp)
+                        optimal_min = parse_temp(optimal_min)
+                        optimal_max = parse_temp(optimal_max)
                     except (ValueError, TypeError) as e:
-                        logger.warning(f"⚠️ TEMP COMPAT: Could not convert temp values to float: {e}")
+                        logger.debug(f"⚠️ TEMP COMPAT: Could not parse temp values: {e}")
                         min_temp = max_temp = optimal_min = optimal_max = None
                     
                     if min_temp is not None and max_temp is not None:
