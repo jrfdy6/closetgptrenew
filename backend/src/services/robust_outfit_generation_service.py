@@ -23,6 +23,7 @@ from ..utils.semantic_normalization import normalize_item_metadata
 from ..utils.semantic_compatibility import style_matches, mood_matches, occasion_matches
 from ..utils.semantic_telemetry import record_semantic_filtering_metrics
 from ..utils.enhanced_debug_output import format_final_debug_response
+from ..utils.base_item_debugger import BaseItemTracker
 import sys
 import os
 
@@ -631,6 +632,10 @@ class RobustOutfitGenerationService:
         # print(f"🔍 DEBUG ROBUST INTERNAL: context.user_profile = {context.user_profile}")
         # print(f"🔍 DEBUG ROBUST INTERNAL: (context.weather if context else None) = {context.weather}")
         
+        # Initialize base item tracker for debugging
+        base_item_tracker = BaseItemTracker(context.base_item_id)
+        base_item_tracker.checkpoint("01_initial_wardrobe", context.wardrobe, f"Starting with {len(context.wardrobe)} items")
+        
         # Hydrate wardrobe items
         logger.debug(f"🔄 Hydrating {len(context.wardrobe)} wardrobe items")
         try:
@@ -639,6 +644,7 @@ class RobustOutfitGenerationService:
                 logger.debug(f"✅ Hydrated {len(safe_wardrobe)} items successfully")
                 if context:
                     context.wardrobe = safe_wardrobe
+                base_item_tracker.checkpoint("02_after_hydration", context.wardrobe, "After hydration")
             else:
                 logger.debug(f"✅ Items already ClothingItem objects")
         except Exception as hydrator_error:
@@ -790,6 +796,9 @@ class RobustOutfitGenerationService:
         )
         logger.info(f"✅ STEP 1 COMPLETE: {len(occasion_candidates)} occasion-appropriate items (from {len(context.wardrobe)} total)")
         
+        # Track base item after occasion filtering
+        base_item_tracker.checkpoint("03_after_occasion_filter", occasion_candidates, f"After occasion filter: {context.occasion}")
+        
         # Update context with occasion-filtered wardrobe
         original_wardrobe_size = len(context.wardrobe)
         # Save original wardrobe before filtering (for last-resort shoe search)
@@ -804,6 +813,9 @@ class RobustOutfitGenerationService:
         logger.info(f"🔍 FILTERING STEP 2: Starting item filtering for {context.occasion} occasion")
         suitable_items = await self._filter_suitable_items(context)
         logger.info(f"✅ FILTERING STEP 2: {len(suitable_items)} suitable items passed from {len(context.wardrobe)} occasion-filtered items")
+        
+        # Track base item after style/mood/weather filtering
+        base_item_tracker.checkpoint("04_after_style_mood_weather_filter", suitable_items, f"After style/mood/weather filter")
         
         if len(suitable_items) == 0:
             logger.error(f"🚨 CRITICAL: No suitable items found after filtering!")
@@ -832,6 +844,9 @@ class RobustOutfitGenerationService:
             }
         
         logger.debug(f"🔍 DEBUG SCORING: Created {len(item_scores)} item scores")
+        
+        # Track base item in item_scores
+        base_item_tracker.checkpoint_with_scores("05_after_score_initialization", item_scores, f"Item scores initialized")
         
         logger.debug(f"🔍 DEBUG: Initialized {len(item_scores)} items for scoring")
         
@@ -970,6 +985,10 @@ class RobustOutfitGenerationService:
         
         # Log top scored items (reduced verbosity)
         sorted_items = sorted(item_scores.items(), key=lambda x: x[1]['composite_score'], reverse=True)
+        
+        # Track base item after composite scoring
+        base_item_tracker.checkpoint_with_scores("06_after_composite_scoring", item_scores, f"After composite score calculation")
+        
         logger.info(f"🏆 Top 3 scored items (with diversity + session penalties):")
         for i, (item_id, scores) in enumerate(sorted_items[:3]):
             diversity_score = scores.get('diversity_score', 1.0)
@@ -1096,8 +1115,18 @@ class RobustOutfitGenerationService:
             logger.warning(f"⚠️ WARNING: All items have very low scores, may need progressive filtering")
             # Don't return here, let cohesive composition try first
         
+        # Track base item before cohesive composition
+        base_item_tracker.checkpoint_with_scores("07_before_cohesive_composition", item_scores, f"Before cohesive composition")
+        
         # Pass scored items to cohesive composition
         outfit = await self._cohesive_composition_with_scores(context, item_scores, session_id)
+        
+        # Track base item in final outfit
+        if outfit and outfit.items:
+            base_item_tracker.checkpoint("08_final_outfit", outfit.items, f"Final outfit generated with {len(outfit.items)} items")
+        
+        # Print tracking summary
+        base_item_tracker.print_summary()
         
         # Check if cohesive composition failed to generate items
         if not outfit.items or len(outfit.items) == 0:
@@ -4779,8 +4808,14 @@ class RobustOutfitGenerationService:
                 if hasattr(item, 'temperatureCompatibility'):
                     temp_compat = self.safe_get_item_attr(item, "temperatureCompatibility")
                     if temp_compat and hasattr(temp_compat, 'minTemp') and hasattr(temp_compat, 'maxTemp'):
-                        if temp_compat.minTemp <= temp <= temp_compat.maxTemp:
-                            base_score += 0.2
+                        # CRITICAL FIX: Convert to float before comparison
+                        try:
+                            min_t = float(temp_compat.minTemp)
+                            max_t = float(temp_compat.maxTemp)
+                            if min_t <= temp <= max_t:
+                                base_score += 0.2
+                        except (ValueError, TypeError) as e:
+                            logger.debug(f"⚠️ Could not convert temperatureCompatibility to float: {e}")
                 
                 # Material appropriateness for weather
                 item_name = self.safe_get_item_name(item) if item else "Unknown"
@@ -4809,6 +4844,20 @@ class RobustOutfitGenerationService:
                     max_temp = temp_compat.get('maxTemp')
                     optimal_min = temp_compat.get('optimalMin')
                     optimal_max = temp_compat.get('optimalMax')
+                    
+                    # CRITICAL FIX: Convert string temperatures to float
+                    try:
+                        if min_temp is not None:
+                            min_temp = float(min_temp)
+                        if max_temp is not None:
+                            max_temp = float(max_temp)
+                        if optimal_min is not None:
+                            optimal_min = float(optimal_min)
+                        if optimal_max is not None:
+                            optimal_max = float(optimal_max)
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"⚠️ TEMP COMPAT: Could not convert temp values to float: {e}")
+                        min_temp = max_temp = optimal_min = optimal_max = None
                     
                     if min_temp is not None and max_temp is not None:
                         if min_temp <= temp <= max_temp:
