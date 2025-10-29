@@ -80,6 +80,15 @@ export class DataValidator {
     if (!profileResult.isValid) errors.push(...profileResult.errors);
     else sanitized.user_profile = profileResult.sanitizedValue;
 
+    // CRITICAL FIX: Preserve baseItemId (optional field, no validation needed)
+    if (data.baseItemId !== undefined && data.baseItemId !== null) {
+      sanitized.baseItemId = String(data.baseItemId).trim();
+    }
+    
+    // Preserve other optional fields that don't need validation
+    if (data.likedOutfits !== undefined) sanitized.likedOutfits = data.likedOutfits;
+    if (data.trendingStyles !== undefined) sanitized.trendingStyles = data.trendingStyles;
+
     return {
       isValid: errors.length === 0,
       errors,
