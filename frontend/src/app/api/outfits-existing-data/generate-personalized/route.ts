@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
     // Get request body
     const body = await request.json();
     console.log('🔍 DEBUG: Request body keys:', Object.keys(body));
+    console.log('🚨 CRITICAL: baseItemId in proxy body:', body.baseItemId);
+    console.log('🚨 CRITICAL: baseItemId type:', typeof body.baseItemId);
+    console.log('🚨 CRITICAL: baseItemId is undefined?', body.baseItemId === undefined);
     
     // Call the real backend generate endpoint (the one that actually exists!)
     const fullBackendUrl = `${backendUrl}/api/outfits-existing-data/generate-personalized`;
