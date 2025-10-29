@@ -2313,12 +2313,41 @@ class RobustOutfitGenerationService:
             if context and context.occasion and context.style:
                 occ_lower = context.occasion.lower()
                 style_lower = context.style.lower()
-                # Athletic + Classic/Formal/Business = mismatch
-                if occ_lower in ['athletic', 'gym', 'workout', 'sport'] and style_lower in ['classic', 'formal', 'business', 'professional']:
+                
+                # CATEGORY 1: Athletic/Gym + Non-Athletic Styles
+                if occ_lower in ['athletic', 'gym', 'workout', 'sport', 'fitness', 'yoga', 'running'] and style_lower not in ['athleisure', 'casual cool', 'workout', 'athletic']:
                     filter_mismatch_detected = True
-                # Formal + Casual/Athleisure = mismatch
-                elif occ_lower in ['business', 'formal', 'interview'] and style_lower in ['casual', 'athleisure', 'sporty']:
+                    logger.debug(f"🔄 ADAPTIVE: Athletic occasion + {style_lower} style → Using OR logic")
+                
+                # CATEGORY 2: Business/Formal + Casual/Creative Styles
+                elif occ_lower in ['business', 'formal', 'interview', 'conference', 'meeting'] and style_lower in ['casual', 'athleisure', 'sporty', 'streetwear', 'grunge', 'punk', 'casual cool', 'loungewear']:
                     filter_mismatch_detected = True
+                    logger.debug(f"🔄 ADAPTIVE: Formal occasion + {style_lower} style → Using OR logic")
+                
+                # CATEGORY 3: Party/Date + Creative/Artistic Styles (NEW!)
+                elif occ_lower in ['party', 'date', 'night out', 'club', 'dinner', 'cocktail'] and style_lower in ['avant-garde', 'artsy', 'maximalist', 'gothic', 'punk', 'edgy', 'cyberpunk', 'grunge', 'boho']:
+                    filter_mismatch_detected = True
+                    logger.debug(f"🔄 ADAPTIVE: Party occasion + {style_lower} creative style → Using OR logic")
+                
+                # CATEGORY 4: Casual + Formal/Professional Styles
+                elif occ_lower in ['casual', 'weekend', 'brunch', 'errands'] and style_lower in ['business casual', 'classic', 'preppy', 'old money', 'urban professional']:
+                    filter_mismatch_detected = True
+                    logger.debug(f"🔄 ADAPTIVE: Casual occasion + {style_lower} formal style → Using OR logic")
+                
+                # CATEGORY 5: Loungewear + Any Non-Loungewear Style
+                elif occ_lower in ['loungewear', 'lounge', 'home', 'relaxed'] and style_lower not in ['loungewear', 'casual cool', 'athleisure']:
+                    filter_mismatch_detected = True
+                    logger.debug(f"🔄 ADAPTIVE: Loungewear occasion + {style_lower} style → Using OR logic")
+                
+                # CATEGORY 6: Beach/Coastal + Non-Beach Styles
+                elif occ_lower in ['beach', 'pool', 'vacation', 'resort'] and style_lower in ['business casual', 'formal', 'gothic', 'punk', 'grunge']:
+                    filter_mismatch_detected = True
+                    logger.debug(f"🔄 ADAPTIVE: Beach occasion + {style_lower} style → Using OR logic")
+                
+                # CATEGORY 7: Wedding/Gala + Very Casual Styles
+                elif occ_lower in ['wedding', 'gala', 'formal event'] and style_lower in ['streetwear', 'grunge', 'punk', 'athleisure', 'casual cool']:
+                    filter_mismatch_detected = True
+                    logger.debug(f"🔄 ADAPTIVE: Formal event + {style_lower} casual style → Using OR logic")
             
             # Add to valid items based on adaptive logic
             passed_semantic = False
