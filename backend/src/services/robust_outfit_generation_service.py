@@ -4697,13 +4697,21 @@ class RobustOutfitGenerationService:
             # Get target formality from occasion/style
             target_formality = self._get_context_formality_level(context.occasion, context.style)
             
-            # Calculate formality boost
+            # Calculate formality boost (works both directions!)
             if base_item_formality is not None and target_formality is not None:
                 formality_gap = target_formality - base_item_formality
-                if formality_gap >= 1:  # Base is more casual than target
+                
+                if formality_gap >= 1:  # Base is more casual than target → boost formal items
+                    formality_boost_needed = True
                     formality_boost_multiplier = 1.0 + (formality_gap * 0.3)  # 30% boost per formality level
                     logger.info(f"🎯 SMART BALANCING: Base item formality={base_item_formality}, target={target_formality}, gap={formality_gap}")
                     logger.info(f"   ↗️ Boosting formal complementary items by {(formality_boost_multiplier - 1.0) * 100:.0f}% to elevate outfit")
+                
+                elif formality_gap <= -1:  # Base is more formal than target → boost casual items
+                    formality_boost_needed = True
+                    formality_boost_multiplier = 1.0 + (abs(formality_gap) * 0.3)  # 30% boost per formality level
+                    logger.info(f"🎯 SMART BALANCING: Base item formality={base_item_formality}, target={target_formality}, gap={formality_gap}")
+                    logger.info(f"   ↘️ Boosting casual complementary items by {(formality_boost_multiplier - 1.0) * 100:.0f}% to dress down outfit")
         
         target_style = (context.style if context else "unknown").lower()
         
@@ -4851,14 +4859,31 @@ class RobustOutfitGenerationService:
             if (context.occasion if context else "unknown").lower() in item_occasions_lower:
                 base_score += 0.2
             
-            # SMART BALANCING: Apply formality boost to formal items when needed
+            # SMART BALANCING: Apply formality boost (works both directions!)
             if formality_boost_needed and item_id != context.base_item_id:
                 item_formality = self._get_item_formality_level(item)
-                if item_formality and item_formality >= target_formality:
-                    # This item is formal enough - boost it!
-                    boost_amount = base_score * (formality_boost_multiplier - 1.0)
-                    base_score = base_score * formality_boost_multiplier
-                    logger.debug(f"   ↗️ ELEVATED: {self.safe_get_item_name(item)} (formality={item_formality}) +{boost_amount:.2f}")
+                
+                if item_formality is not None and target_formality is not None and base_item_formality is not None:
+                    # Determine if this item should be boosted based on formality direction
+                    should_boost = False
+                    direction = ""
+                    
+                    if base_item_formality < target_formality:
+                        # Need to elevate → boost formal items
+                        if item_formality >= target_formality:
+                            should_boost = True
+                            direction = "↗️ ELEVATED"
+                    
+                    elif base_item_formality > target_formality:
+                        # Need to dress down → boost casual items
+                        if item_formality <= target_formality:
+                            should_boost = True
+                            direction = "↘️ DRESSED DOWN"
+                    
+                    if should_boost:
+                        boost_amount = base_score * (formality_boost_multiplier - 1.0)
+                        base_score = base_score * formality_boost_multiplier
+                        logger.debug(f"   {direction}: {self.safe_get_item_name(item)} (formality={item_formality}) +{boost_amount:.2f}")
             
             item_scores[item_id]['style_profile_score'] = min(1.0, max(0.0, base_score))
         
