@@ -789,13 +789,22 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════
         
         logger.info(f"🎯 STEP 1: Occasion-First Filtering")
-        occasion_candidates = self._get_occasion_appropriate_candidates(
-            wardrobe=context.wardrobe,
-            target_occasion=context.occasion,
-            min_items=3,  # Require at least 3 items before fallbacks
-            base_item_id=context.base_item_id  # Pass base item to pre-approve it
-        )
-        logger.info(f"✅ STEP 1 COMPLETE: {len(occasion_candidates)} occasion-appropriate items (from {len(context.wardrobe)} total)")
+        
+        # CRITICAL: When base item is specified, skip strict occasion filtering
+        # Use OR logic in STEP 2 instead for maximum flexibility
+        if context.base_item_id:
+            logger.info(f"🎯 BASE ITEM MODE: Skipping strict occasion filter, will use OR logic in STEP 2")
+            occasion_candidates = context.wardrobe  # Use entire wardrobe
+            logger.info(f"✅ STEP 1 SKIPPED: Using all {len(occasion_candidates)} items (base item mode)")
+        else:
+            # Normal mode: strict occasion filtering
+            occasion_candidates = self._get_occasion_appropriate_candidates(
+                wardrobe=context.wardrobe,
+                target_occasion=context.occasion,
+                min_items=3,  # Require at least 3 items before fallbacks
+                base_item_id=None
+            )
+            logger.info(f"✅ STEP 1 COMPLETE: {len(occasion_candidates)} occasion-appropriate items (from {len(context.wardrobe)} total)")
         
         # Track base item after occasion filtering
         base_item_tracker.checkpoint("03_after_occasion_filter", occasion_candidates, f"After occasion filter: {context.occasion}")
