@@ -2359,6 +2359,13 @@ class RobustOutfitGenerationService:
             # ADAPTIVE LOGIC: For mismatches, use OR (occasion OR style), ignore mood
             # Detect mismatch between occasion and style
             filter_mismatch_detected = False
+            
+            # CRITICAL: If base item is specified, ALWAYS use OR logic for complementary items
+            # This gives maximum flexibility when building around a user-selected item
+            if context and context.base_item_id and getattr(raw_item, 'id', None) != context.base_item_id:
+                filter_mismatch_detected = True
+                logger.debug(f"🔄 BASE ITEM MODE: Using OR logic for complementary items (base item specified)")
+            
             if context and context.occasion and context.style:
                 occ_lower = context.occasion.lower()
                 style_lower = context.style.lower()
