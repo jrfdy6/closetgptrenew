@@ -308,6 +308,8 @@ function normalizeToList(value: any): string[] {
  */
 export function convertToPydanticShape(frontendData: FrontendOutfitRequest): any {
   console.log('🔄 Converting frontend data to Pydantic format:', frontendData);
+  console.log('🚨 CONVERTER INPUT: baseItemId =', frontendData.baseItemId);
+  console.log('🚨 CONVERTER INPUT: baseItemId type =', typeof frontendData.baseItemId);
   
   try {
     const converted = {
@@ -329,6 +331,7 @@ export function convertToPydanticShape(frontendData: FrontendOutfitRequest): any
       baseItemId: frontendData.baseItemId || null
     };
     
+    console.log('🚨 CONVERTER OUTPUT: baseItemId =', converted.baseItemId);
     console.log('✅ Successfully converted to Pydantic format:', converted);
     return converted;
     
