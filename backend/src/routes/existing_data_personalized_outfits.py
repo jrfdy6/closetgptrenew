@@ -146,10 +146,13 @@ async def generate_personalized_outfit_from_existing_data(
     
     # DEBUG: Log parsed request to see if metadata is present
     try:
-        # DEBUG: Check if baseItemId is present
-        logger.warning(f"🔍 PARSED REQUEST: baseItemId = {req.baseItemId}")
-        logger.warning(f"🔍 PARSED REQUEST: baseItemId type = {type(req.baseItemId)}")
-        logger.warning(f"🔍 PARSED REQUEST: baseItemId is None? {req.baseItemId is None}")
+        # DEBUG: Check if baseItemId is present - CRITICAL DEBUGGING
+        print(f"🚨 CRITICAL DEBUG: baseItemId = {req.baseItemId}")
+        print(f"🚨 CRITICAL DEBUG: baseItemId type = {type(req.baseItemId)}")
+        print(f"🚨 CRITICAL DEBUG: baseItemId is None? {req.baseItemId is None}")
+        logger.error(f"🚨 CRITICAL DEBUG: baseItemId = {req.baseItemId}")
+        logger.error(f"🚨 CRITICAL DEBUG: baseItemId type = {type(req.baseItemId)}")
+        logger.error(f"🚨 CRITICAL DEBUG: baseItemId is None? {req.baseItemId is None}")
         
         if req.wardrobe and len(req.wardrobe) > 0:
             sample_item = req.wardrobe[0]
@@ -244,9 +247,10 @@ async def generate_personalized_outfit_from_existing_data(
                     profile_data = {'id': user_id, **profile_data}
                 # Keep as dict - GenerationContext expects dict or None
                 
-                logger.warning(f"🔍 ROBUST: Context params - occasion={req.occasion}, style={req.style}, mood={req.mood}")
-                logger.warning(f"🔍 ROBUST: About to create GenerationContext with base_item_id={req.baseItemId}")
-                logger.warning(f"🔍 ROBUST: req.baseItemId type={type(req.baseItemId)}, is None={req.baseItemId is None}")
+                print(f"🚨 ROBUST CRITICAL: About to create GenerationContext with base_item_id={req.baseItemId}")
+                print(f"🚨 ROBUST CRITICAL: req.baseItemId type={type(req.baseItemId)}, is None={req.baseItemId is None}")
+                logger.error(f"🚨 ROBUST CRITICAL: About to create GenerationContext with base_item_id={req.baseItemId}")
+                logger.error(f"🚨 ROBUST CRITICAL: req.baseItemId type={type(req.baseItemId)}, is None={req.baseItemId is None}")
                 
                 context = GenerationContext(
                     user_id=user_id,
@@ -259,7 +263,8 @@ async def generate_personalized_outfit_from_existing_data(
                     base_item_id=req.baseItemId
                 )
                 
-                logger.warning(f"🔍 ROBUST: GenerationContext created, context.base_item_id={context.base_item_id}")
+                print(f"🚨 CONTEXT CREATED: context.base_item_id={context.base_item_id}")
+                logger.error(f"🚨 CONTEXT CREATED: context.base_item_id={context.base_item_id}")
                 
                 logger.warning(f"✅ ROBUST: GenerationContext created successfully")
                 
