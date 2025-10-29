@@ -144,6 +144,10 @@ async def generate_personalized_outfit_from_existing_data(
     """
     start_time = time.time()
     
+    # CRITICAL: Log baseItemId OUTSIDE try block to ensure it always executes
+    print(f"🚨🚨🚨 ENDPOINT START: baseItemId = {req.baseItemId}")
+    logger.error(f"🚨🚨🚨 ENDPOINT START: baseItemId = {req.baseItemId}")
+    
     # DEBUG: Log parsed request to see if metadata is present
     try:
         # DEBUG: Check if baseItemId is present - CRITICAL DEBUGGING
