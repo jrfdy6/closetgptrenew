@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=1761704000
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE REBUILD - Base item + Weather analyzer fixes"
+ARG CACHE_BUSTER=9999999999
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Critical bugfixes v2"
 
 # Set working directory
 WORKDIR /app
