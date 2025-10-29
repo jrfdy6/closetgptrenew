@@ -4,7 +4,7 @@
 
 [build]
 builder = "dockerfile"
-sourceDir = "backend"
+# sourceDir = "backend"  # Commented out for CLI deploys - Railway will use project root
 
 [deploy]
 # Let Dockerfile handle the start command
