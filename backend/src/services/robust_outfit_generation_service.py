@@ -792,7 +792,8 @@ class RobustOutfitGenerationService:
         occasion_candidates = self._get_occasion_appropriate_candidates(
             wardrobe=context.wardrobe,
             target_occasion=context.occasion,
-            min_items=3  # Require at least 3 items before fallbacks
+            min_items=3,  # Require at least 3 items before fallbacks
+            base_item_id=context.base_item_id  # Pass base item to pre-approve it
         )
         logger.info(f"✅ STEP 1 COMPLETE: {len(occasion_candidates)} occasion-appropriate items (from {len(context.wardrobe)} total)")
         
@@ -2129,7 +2130,7 @@ class RobustOutfitGenerationService:
         debug_analysis = await self._filter_suitable_items_with_debug(context)
         return debug_analysis['valid_items']
     
-    def _get_occasion_appropriate_candidates(self, wardrobe: List[Any], target_occasion: str, min_items: int = 3) -> List[Any]:
+    def _get_occasion_appropriate_candidates(self, wardrobe: List[Any], target_occasion: str, min_items: int = 3, base_item_id: Optional[str] = None) -> List[Any]:
         """
         STEP 2: Strict occasion-first filtering with gradual fallbacks.
         
@@ -2140,6 +2141,7 @@ class RobustOutfitGenerationService:
             wardrobe: List of clothing items to filter
             target_occasion: Target occasion (e.g., "gym", "business")
             min_items: Minimum items required before using fallbacks (default: 3)
+            base_item_id: Base item ID to guarantee inclusion (optional)
             
         Returns:
             List of occasion-appropriate items (deduplicated)
@@ -2148,11 +2150,29 @@ class RobustOutfitGenerationService:
         
         target_occasion_lower = target_occasion.lower() if target_occasion else ""
         
-        logger.info(f"🎯 OCCASION-FIRST FILTER: Target occasion='{target_occasion_lower}', min_items={min_items}")
+        logger.info(f"🎯 OCCASION-FIRST FILTER: Target occasion='{target_occasion_lower}', min_items={min_items}, base_item_id={base_item_id}")
+        
+        # 0️⃣ PRE-APPROVE BASE ITEM: Add base item first if specified
+        candidates = []
+        base_item_obj = None
+        if base_item_id:
+            logger.info(f"🎯 OCCASION FILTER: Looking for base item: {base_item_id}")
+            for item in wardrobe:
+                item_id = getattr(item, 'id', None)
+                if item_id == base_item_id:
+                    base_item_obj = item
+                    candidates.append(item)
+                    logger.info(f"✅ OCCASION FILTER: Base item pre-approved (bypasses occasion filter): {self.safe_get_item_name(item)}")
+                    break
+            
+            if not base_item_obj:
+                logger.warning(f"⚠️ OCCASION FILTER: Base item {base_item_id} not found in wardrobe")
         
         # 1️⃣ STRICT FILTER FIRST: Exact occasion match
-        candidates = []
         for item in wardrobe:
+            # Skip base item since it's already added
+            if base_item_obj and getattr(item, 'id', None) == base_item_id:
+                continue
             # Get item's occasions (normalized or raw)
             item_occasions = self._get_normalized_or_raw(item, 'occasion')
             
