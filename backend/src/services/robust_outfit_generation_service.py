@@ -2256,9 +2256,15 @@ class RobustOutfitGenerationService:
                         if isinstance(visual_attrs, dict):
                             gender_target = (visual_attrs.get('genderTarget') or '').lower()
                             if gender_target and gender_target not in ['unisex', 'all', '']:
-                                if gender_target != user_gender:
+                                # Normalize gender values for comparison (men's/male, women's/female)
+                                normalized_target = 'male' if 'men' in gender_target else ('female' if 'women' in gender_target else gender_target)
+                                normalized_user = user_gender.lower()
+                                
+                                if normalized_target != normalized_user:
                                     gender_appropriate = False
-                                    logger.info(f"🚫 GENDER FILTER: Blocked '{item.get('name', 'Unknown')[:40]}' - genderTarget={gender_target}, user={user_gender}")
+                                    logger.info(f"🚫 GENDER FILTER: Blocked '{item.get('name', 'Unknown')[:40]}' - genderTarget={gender_target} (normalized: {normalized_target}), user={user_gender} (normalized: {normalized_user})")
+                                else:
+                                    logger.debug(f"✅ GENDER FILTER: Allowed '{item.get('name', 'Unknown')[:40]}' - genderTarget={gender_target} matches user={user_gender}")
                 
                 if not gender_appropriate:
                     continue  # Skip this item entirely
