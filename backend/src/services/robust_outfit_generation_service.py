@@ -5480,8 +5480,9 @@ class RobustOutfitGenerationService:
                     logger.info(f"✅ PHASE 0: Base item added from scored items: {self.safe_get_item_name(base_item_obj)} (category: {base_category})")
                     break
             
-            # CRITICAL FIX: If base item not in scored items, find it in original wardrobe
+            # CRITICAL FIX v2: If base item not in scored items, find it in original wardrobe
             # This handles the case where base item was pre-approved but not scored
+            # Deployed: 2025-10-28 - Fix ensures base item always included in final outfit
             if not base_item_obj:
                 logger.warning(f"⚠️ PHASE 0: Base item {context.base_item_id} not found in scored items - searching wardrobe")
                 for item in context.wardrobe:
