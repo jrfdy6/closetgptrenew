@@ -437,6 +437,62 @@ class RobustOutfitGenerationService:
         else:
             return 0
     
+    def _is_forbidden_combination(self, new_item, existing_items: List) -> bool:
+        """
+        Check if adding new_item would create a forbidden fashion combination.
+        
+        Forbidden combinations:
+        - Blazer/suit jacket + shorts
+        - Dress shoes + athletic shorts
+        - Tuxedo + sneakers
+        - Formal gown + casual sneakers
+        - Tie + t-shirt (unless blazer present)
+        
+        Returns:
+            True if combination is forbidden, False if allowed
+        """
+        new_item_type = str(self.safe_get_item_type(new_item)).lower()
+        new_item_name = self.safe_get_item_name(new_item).lower()
+        
+        for existing in existing_items:
+            existing_type = str(self.safe_get_item_type(existing)).lower()
+            existing_name = self.safe_get_item_name(existing).lower()
+            
+            # RULE 1: No blazer/suit jacket with shorts
+            is_blazer = any(kw in new_item_type or kw in new_item_name for kw in ['blazer', 'suit jacket', 'sport coat'])
+            is_shorts = any(kw in existing_type or kw in existing_name for kw in ['shorts', 'short'])
+            
+            is_existing_blazer = any(kw in existing_type or kw in existing_name for kw in ['blazer', 'suit jacket', 'sport coat'])
+            is_new_shorts = any(kw in new_item_type or kw in new_item_name for kw in ['shorts', 'short'])
+            
+            if (is_blazer and is_shorts) or (is_existing_blazer and is_new_shorts):
+                logger.info(f"  🚫 FORBIDDEN: Blazer/suit jacket + shorts combination blocked")
+                return True
+            
+            # RULE 2: No dress shoes (oxfords, loafers) with athletic shorts
+            is_dress_shoe = any(kw in new_item_type or kw in new_item_name for kw in ['oxford', 'loafer', 'derby', 'brogue'])
+            is_athletic_shorts = any(kw in existing_type or kw in existing_name for kw in ['athletic short', 'gym short', 'running short'])
+            
+            is_existing_dress_shoe = any(kw in existing_type or kw in existing_name for kw in ['oxford', 'loafer', 'derby', 'brogue'])
+            is_new_athletic_shorts = any(kw in new_item_type or kw in new_item_name for kw in ['athletic short', 'gym short', 'running short'])
+            
+            if (is_dress_shoe and is_athletic_shorts) or (is_existing_dress_shoe and is_new_athletic_shorts):
+                logger.info(f"  🚫 FORBIDDEN: Dress shoes + athletic shorts combination blocked")
+                return True
+            
+            # RULE 3: No tuxedo/formal jacket with sneakers
+            is_tuxedo = any(kw in new_item_type or kw in new_item_name for kw in ['tuxedo', 'dinner jacket'])
+            is_sneakers = any(kw in existing_type or kw in existing_name for kw in ['sneaker', 'trainer', 'athletic shoe'])
+            
+            is_existing_tuxedo = any(kw in existing_type or kw in existing_name for kw in ['tuxedo', 'dinner jacket'])
+            is_new_sneakers = any(kw in new_item_type or kw in new_item_name for kw in ['sneaker', 'trainer', 'athletic shoe'])
+            
+            if (is_tuxedo and is_sneakers) or (is_existing_tuxedo and is_new_sneakers):
+                logger.info(f"  🚫 FORBIDDEN: Tuxedo + sneakers combination blocked")
+                return True
+        
+        return False  # Combination is allowed
+    
     def _get_normalized_or_raw(self, item: Dict, field_name: str) -> List[str]:
         """
         Get normalized metadata field with fallback to raw field.
@@ -5857,6 +5913,11 @@ class RobustOutfitGenerationService:
                     # CRITICAL: Don't select items with very negative scores, even as essentials
                     composite_score = score_data['composite_score']
                     if composite_score > -1.0:  # Allow slightly negative scores, but not terrible ones
+                        # FORBIDDEN COMBINATIONS CHECK: Prevent fashion faux pas
+                        if self._is_forbidden_combination(item, selected_items):
+                            logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} creates forbidden combination with existing items")
+                            continue  # Skip this item
+                        
                         selected_items.append(item)
                         categories_filled[category] = True
                         logger.info(f"  ✅ Essential {category}: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
@@ -5995,9 +6056,13 @@ class RobustOutfitGenerationService:
                 has_outerwear = any(self._get_item_category(i) == 'outerwear' for i in selected_items)
                 
                 if not has_outerwear and (temp < 65 or occasion_lower in ['business', 'formal']):
-                    selected_items.append(item)
-                    categories_filled['outerwear'] = True  # Track that we added outerwear
-                    logger.warning(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    # FORBIDDEN COMBINATIONS CHECK
+                    if self._is_forbidden_combination(item, selected_items):
+                        logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} (outerwear) would create forbidden combination")
+                    else:
+                        selected_items.append(item)
+                        categories_filled['outerwear'] = True  # Track that we added outerwear
+                        logger.warning(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif has_outerwear:
                     logger.warning(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} - SKIPPED (already have outerwear)")
             
