@@ -24,6 +24,8 @@ from ..utils.semantic_compatibility import style_matches, mood_matches, occasion
 from ..utils.semantic_telemetry import record_semantic_filtering_metrics
 from ..utils.enhanced_debug_output import format_final_debug_response
 from ..utils.base_item_debugger import BaseItemTracker
+from .outfit_strategy_selector import get_strategy_selector, OutfitStrategy
+from .outfit_strategy_implementation import StrategyImplementation
 import sys
 import os
 
@@ -5441,6 +5443,33 @@ class RobustOutfitGenerationService:
         logger.debug(f"🔍 DEBUG: Received {len(item_scores)} scored items")
         logger.debug(f"🔍 DEBUG: Context occasion: {context.occasion}, style: {context.style}")
         
+        # ═══════════════════════════════════════════════════════════════════════
+        # SELECT OUTFIT COMPOSITION STRATEGY
+        # ═══════════════════════════════════════════════════════════════════════
+        
+        # Get user's outfit count for rotation
+        user_outfit_count = 0
+        try:
+            from ..config.firebase import db
+            outfits_ref = db.collection('outfits').where('userId', '==', context.user_id)
+            user_outfit_count = len(list(outfits_ref.stream()))
+        except Exception as e:
+            logger.warning(f"⚠️ Could not get outfit count for strategy rotation: {e}")
+            user_outfit_count = 0
+        
+        # Select strategy
+        strategy_selector = get_strategy_selector()
+        selected_strategy = strategy_selector.select_strategy(
+            occasion=context.occasion,
+            style=context.style,
+            mood=context.mood,
+            user_outfit_count=user_outfit_count,
+            has_base_item=bool(context.base_item_id)
+        )
+        
+        strategy_description = strategy_selector.get_strategy_description(selected_strategy)
+        logger.info(f"🎨 SELECTED STRATEGY: {selected_strategy.value} - {strategy_description}")
+        
         # DEBUG: Log item scores details
         if item_scores:
             logger.debug(f"🔍 DEBUG SCORES: First 3 item scores:")
@@ -5608,6 +5637,47 @@ class RobustOutfitGenerationService:
             reverse=True
         )
         logger.info(f"🎲 DIVERSITY: Added ±0.5 noise, -3.0 recently worn penalty, +1.5 new item boost for {len(recently_used_item_ids)} recently used items")
+        
+        # ═══════════════════════════════════════════════════════════
+        # APPLY OUTFIT COMPOSITION STRATEGY
+        # ═══════════════════════════════════════════════════════════
+        
+        # Apply selected strategy to create interesting outfit combinations
+        try:
+            strategy_result = StrategyImplementation.apply_strategy(
+                strategy=selected_strategy,
+                sorted_items=sorted_items,
+                categories_filled={},  # Will be populated during selection
+                target_items=target_items,
+                context=context,
+                base_item_id=context.base_item_id
+            )
+            
+            strategy_adjustments = strategy_result['selection_adjustments']
+            strategy_metadata = strategy_result['strategy_metadata']
+            
+            # Apply strategy adjustments to diversity adjustments
+            for item_id, adjustment in strategy_adjustments.items():
+                current = diversity_adjustments.get(item_id, 0.0)
+                diversity_adjustments[item_id] = current + adjustment
+                if adjustment != 0:
+                    logger.debug(f"  🎨 STRATEGY: {self.safe_get_item_name(item_scores[item_id]['item'])} {adjustment:+.2f}")
+            
+            # Re-sort with strategy adjustments
+            sorted_items = sorted(
+                item_scores.items(),
+                key=lambda x: x[1]['composite_score'] + diversity_adjustments.get(x[0], 0.0),
+                reverse=True
+            )
+            
+            logger.info(f"✅ STRATEGY APPLIED: {strategy_metadata['name']} - {len(strategy_adjustments)} items adjusted")
+            
+        except Exception as strategy_error:
+            logger.warning(f"⚠️ Strategy application failed: {strategy_error}, falling back to Traditional")
+            strategy_metadata = {
+                'name': 'Traditional Match (Fallback)',
+                'description': 'Strategy failed, using traditional selection'
+            }
         
         # ═══════════════════════════════════════════════════════════
         # 3:1 EXPLORATION RATIO (Mix high and low scorers)
@@ -6165,10 +6235,13 @@ class RobustOutfitGenerationService:
             updatedAt=int(time.time()),
             metadata={
                 "generation_strategy": "multi_layered_cohesive_composition",
+                "composition_strategy": strategy_metadata['name'],
+                "strategy_description": strategy_metadata['description'],
                 "avg_composite_score": avg_composite_score,
                 "diversity_score": (safe_get(diversity_result, 'diversity_score', 0.8) if diversity_result else 0.8),
                 "color_theory_applied": True,
                 "analyzers_used": ["body_type", "style_profile", "weather", "user_feedback", "metadata_compatibility", "diversity"],
+                "outfit_strategies_enabled": True,
                 "warnings": context.warnings if hasattr(context, 'warnings') and context.warnings else []
             },
             wasSuccessful=True,
