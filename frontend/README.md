@@ -1,6 +1,6 @@
-# ClosetGPT Frontend
+# Easy Outfit App Frontend
 
-This is the frontend application for ClosetGPT, an AI-powered digital wardrobe app.
+This is the frontend application for Easy Outfit App, an AI-powered digital wardrobe app.
 
 ## Features
 

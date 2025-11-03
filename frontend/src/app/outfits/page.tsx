@@ -6,7 +6,7 @@ import OutfitGrid from '@/components/OutfitGrid';
 
 // ===== METADATA =====
 export const metadata: Metadata = {
-  title: 'My Outfits | ClosetGPT',
+  title: 'My Outfits | Easy Outfit App',
   description: 'View and manage your curated outfits',
 };
 

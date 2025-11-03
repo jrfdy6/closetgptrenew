@@ -1,4 +1,4 @@
-# ClosetGPT Renew
+# Easy Outfit App
 
 A modern AI-powered wardrobe management and outfit generation system with a clean, production-ready architecture.
 

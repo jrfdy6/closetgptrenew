@@ -25,8 +25,8 @@ export default function Home() {
           <div className="glass-float-hover p-8 sm:p-12 mb-8 animate-fade-in glass-shadow-strong">
             <div className="flex justify-center mb-6 sm:mb-8">
               <Image 
-                src="/logo-horizontal.png" 
-                alt="ClosetGPT Logo" 
+                src="/logo-horizontal.png?v=2" 
+                alt="Easy Outfit App Logo" 
                 width={600} 
                 height={150}
                 priority

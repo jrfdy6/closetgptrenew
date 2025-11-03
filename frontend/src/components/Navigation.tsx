@@ -55,7 +55,7 @@ export default function Navigation() {
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-stone-900 transition-transform duration-300 group-hover:rotate-12" />
               </div>
-              <span className="transition-all duration-300">ClosetGPT</span>
+              <span className="transition-all duration-300">Easy Outfit App</span>
             </Link>
           </div>
 
