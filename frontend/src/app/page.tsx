@@ -23,19 +23,26 @@ export default function Home() {
         <div className="text-center max-w-4xl mx-auto">
           {/* Glass hero card */}
           <div className="glass-float-hover p-8 sm:p-12 mb-8 animate-fade-in glass-shadow-strong">
-            <div className="flex justify-center mb-6 sm:mb-8">
+            <div className="flex justify-center mb-8 sm:mb-10">
               <Image 
                 src="/logo-horizontal.png?v=2" 
                 alt="Easy Outfit App Logo" 
-                width={600} 
-                height={150}
+                width={800} 
+                height={200}
                 priority
-                className="w-auto h-16 sm:h-20 md:h-24 lg:h-28 object-contain"
+                className="w-auto h-24 sm:h-32 md:h-40 lg:h-48 object-contain"
               />
             </div>
-            <p className="text-lg sm:text-xl md:text-2xl text-stone-600 dark:text-stone-400 mb-8 font-light leading-relaxed">
-              Your AI-powered personal stylist
-            </p>
+            
+            {/* Title and Tagline */}
+            <div className="max-w-3xl mx-auto mb-8">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-stone-900 dark:text-stone-100 mb-3 sm:mb-4 tracking-tight">
+                Easy Outfit App
+              </h1>
+              <p className="text-xl sm:text-2xl md:text-3xl text-stone-600 dark:text-stone-400 font-light leading-relaxed">
+                The future of getting dressed
+              </p>
+            </div>
             
             {/* Feature badges with glass effect */}
             <div className="flex flex-wrap gap-3 justify-center mb-8">
