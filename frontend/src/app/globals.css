@@ -54,85 +54,85 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: 38 100% 98%;
+    --foreground: 28 20% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card: 38 100% 99%;
+    --card-foreground: 28 20% 15%;
  
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover: 38 100% 99%;
+    --popover-foreground: 28 20% 15%;
  
-    /* Primary: Stone */
-    --primary: 25 5% 45%;
+    /* Primary: Warm Amber */
+    --primary: 38 92% 50%;
     --primary-foreground: 0 0% 98%;
  
-    /* Secondary: Stone Light */
-    --secondary: 25 5% 65%;
-    --secondary-foreground: 0 0% 9%;
+    /* Secondary: Light Amber */
+    --secondary: 43 100% 70%;
+    --secondary-foreground: 28 20% 15%;
  
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 38 30% 94%;
+    --muted-foreground: 28 10% 45%;
  
-    /* Accent: Stone Dark */
-    --accent: 25 5% 25%;
+    /* Accent: Deep Amber */
+    --accent: 33 90% 55%;
     --accent-foreground: 0 0% 98%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 25 5% 45%;
+    --border: 38 25% 88%;
+    --input: 38 25% 88%;
+    --ring: 38 92% 50%;
  
     --radius: 0.75rem;
  
-    /* Enhanced chart colors */
-    --chart-1: 25 5% 45%;
-    --chart-2: 25 5% 35%;
-    --chart-3: 25 5% 55%;
-    --chart-4: 25 5% 25%;
-    --chart-5: 25 5% 65%;
+    /* Enhanced chart colors with amber tones */
+    --chart-1: 38 92% 50%;
+    --chart-2: 33 90% 55%;
+    --chart-3: 43 100% 70%;
+    --chart-4: 28 80% 40%;
+    --chart-5: 48 100% 75%;
   }
  
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
+    --background: 28 35% 8%;
+    --foreground: 38 90% 95%;
  
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 28 30% 10%;
+    --card-foreground: 38 90% 95%;
  
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 28 30% 10%;
+    --popover-foreground: 38 90% 95%;
  
-    /* Primary: Stone (darker for dark mode) */
-    --primary: 25 5% 55%;
-    --primary-foreground: 0 0% 9%;
+    /* Primary: Amber (adjusted for dark mode) */
+    --primary: 38 85% 60%;
+    --primary-foreground: 28 20% 10%;
  
-    /* Secondary: Stone Light (darker for dark mode) */
-    --secondary: 25 5% 75%;
-    --secondary-foreground: 0 0% 9%;
+    /* Secondary: Light Amber (adjusted for dark mode) */
+    --secondary: 43 90% 65%;
+    --secondary-foreground: 28 20% 10%;
  
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
+    --muted: 28 20% 18%;
+    --muted-foreground: 38 15% 65%;
  
-    /* Accent: Stone Dark (darker for dark mode) */
-    --accent: 25 5% 35%;
-    --accent-foreground: 0 0% 9%;
+    /* Accent: Warm Amber (adjusted for dark mode) */
+    --accent: 33 85% 60%;
+    --accent-foreground: 28 20% 10%;
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 25 5% 55%;
+    --border: 28 20% 20%;
+    --input: 28 20% 20%;
+    --ring: 38 85% 60%;
     
-    /* Enhanced chart colors for dark mode */
-    --chart-1: 25 5% 55%;
-    --chart-2: 25 5% 45%;
-    --chart-3: 25 5% 65%;
-    --chart-4: 25 5% 35%;
-    --chart-5: 25 5% 75%;
+    /* Enhanced chart colors for dark mode with amber */
+    --chart-1: 38 85% 60%;
+    --chart-2: 33 85% 60%;
+    --chart-3: 43 90% 65%;
+    --chart-4: 28 80% 50%;
+    --chart-5: 48 85% 70%;
   }
 }
  
@@ -148,14 +148,14 @@
   
   body {
     @apply text-foreground;
-    background: linear-gradient(135deg, #fafaf9 0%, #ffffff 25%, #f5f5f4 50%, #fafaf9 75%, #f5f5f4 100%);
+    background: linear-gradient(135deg, #fef3c7 0%, #fef7e6 25%, #fffbeb 50%, #fef3c7 75%, #fef7e6 100%);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
   }
   
   .dark body {
-    background: linear-gradient(135deg, #0c0a09 0%, #1c1917 25%, #0f0f0f 50%, #1c1917 75%, #0f0f0f 100%);
+    background: linear-gradient(135deg, #1c1410 0%, #27190d 25%, #1f1508 50%, #27190d 75%, #1f1508 100%);
   }
   
   button, 
@@ -198,33 +198,33 @@
     @apply max-w-screen-lg mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  /* Premium gradient backgrounds */
+  /* Premium gradient backgrounds with amber tones */
   .gradient-hero {
-    @apply bg-gradient-to-br from-stone-50 via-stone-100 to-stone-50 dark:from-stone-950/20 dark:via-stone-900/20 dark:to-stone-950/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950/20 dark:via-amber-900/20 dark:to-orange-950/20;
   }
   
   .gradient-app-bg {
-    @apply bg-gradient-to-br from-stone-50 via-stone-100/30 via-stone-50/30 to-stone-100/30 dark:from-stone-950 dark:via-stone-900/20 dark:via-stone-800/20 dark:to-stone-900/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-amber-950 dark:via-amber-900/20 dark:via-orange-900/20 dark:to-amber-900/20;
   }
   
   .gradient-card {
-    @apply bg-gradient-to-br from-white via-stone-50/30 to-stone-100/30 dark:from-gray-900 dark:via-stone-950/10 dark:to-stone-900/10;
+    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-amber-950 dark:via-amber-900/10 dark:to-orange-900/10;
   }
   
   .gradient-primary {
-    @apply bg-gradient-to-r from-stone-600 to-stone-700;
+    @apply bg-gradient-to-r from-amber-600 to-orange-600;
   }
   
   .gradient-secondary {
-    @apply bg-gradient-to-r from-stone-500 to-stone-600;
+    @apply bg-gradient-to-r from-amber-500 to-orange-500;
   }
   
   .gradient-accent {
-    @apply bg-gradient-to-r from-stone-700 to-stone-800;
+    @apply bg-gradient-to-r from-orange-600 to-amber-700;
   }
   
   .gradient-premium {
-    @apply bg-gradient-to-br from-stone-600 via-stone-700 to-stone-800;
+    @apply bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700;
   }
   
   /* Enhanced typography scale */
@@ -288,17 +288,17 @@
     @apply animate-in zoom-in duration-300;
   }
   
-  /* Premium button styles */
+  /* Premium button styles with amber */
   .btn-premium {
-    @apply bg-gradient-to-r from-stone-600 to-stone-700 hover:from-stone-700 hover:to-stone-800 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-md hover:shadow-lg transition-all duration-200;
   }
   
   .btn-secondary-premium {
-    @apply bg-gradient-to-r from-stone-500 to-stone-600 hover:from-stone-600 hover:to-stone-700 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md hover:shadow-lg transition-all duration-200;
   }
   
   .btn-accent-premium {
-    @apply bg-gradient-to-r from-stone-700 to-stone-800 hover:from-stone-800 hover:to-stone-900 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-orange-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 text-white shadow-md hover:shadow-lg transition-all duration-200;
   }
 } 
 
@@ -333,12 +333,12 @@
   }
   
   .micro-focus {
-    @apply transition-all duration-200 ease-out focus:ring-2 focus:ring-stone-500/20 focus:ring-offset-2;
+    @apply transition-all duration-200 ease-out focus:ring-2 focus:ring-amber-500/20 focus:ring-offset-2;
   }
   
-  /* Enhanced card interactions */
+  /* Enhanced card interactions with amber shadow */
   .card-hover {
-    @apply transition-all duration-300 ease-out hover:shadow-lg hover:shadow-stone-500/10 hover:-translate-y-1 hover:scale-105;
+    @apply transition-all duration-300 ease-out hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 hover:scale-105;
   }
   
   .card-enhanced {
@@ -349,17 +349,17 @@
     @apply card-enhanced card-hover;
   }
   
-  /* Button animations */
+  /* Button animations with amber shadow */
   .btn-premium {
-    @apply transition-all duration-200 ease-out hover:shadow-lg hover:shadow-stone-500/20 hover:-translate-y-0.5 active:scale-[0.98];
+    @apply transition-all duration-200 ease-out hover:shadow-lg hover:shadow-amber-500/20 hover:-translate-y-0.5 active:scale-[0.98];
   }
   
   .btn-secondary-premium {
-    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-stone-500/20 hover:-translate-y-0.5 active:scale-[0.98];
+    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-amber-500/20 hover:-translate-y-0.5 active:scale-[0.98];
   }
   
   .btn-accent-premium {
-    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-stone-500/20 hover:-translate-y-0.5 active:scale-[0.98];
+    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-orange-500/20 hover:-translate-y-0.5 active:scale-[0.98];
   }
   
   /* Page transitions */
@@ -444,13 +444,13 @@
     @apply transition-transform duration-200 ease-out hover:animate-pulse;
   }
   
-  /* Text animations */
+  /* Text animations with amber */
   .text-glow {
-    @apply transition-all duration-200 ease-out hover:text-stone-600 dark:hover:text-stone-400;
+    @apply transition-all duration-200 ease-out hover:text-amber-600 dark:hover:text-amber-400;
   }
   
   .text-gradient-hover {
-    @apply transition-all duration-300 ease-out hover:bg-gradient-to-r hover:from-stone-600 hover:to-stone-700 hover:bg-clip-text hover:text-transparent;
+    @apply transition-all duration-300 ease-out hover:bg-gradient-to-r hover:from-amber-600 hover:to-orange-600 hover:bg-clip-text hover:text-transparent;
   }
   
   /* Liquid Glass / Glassmorphism Effects */
@@ -555,11 +555,11 @@
     @apply bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-white/40 dark:border-white/20 rounded-xl px-4 py-2 focus:bg-white/50 dark:focus:bg-gray-900/50 focus:border-white/60 dark:focus:border-white/30 transition-all duration-200;
   }
   
-  /* Glass Button Variations */
+  /* Glass Button Variations with amber accents */
   .glass-button-primary {
-    @apply bg-stone-900/80 dark:bg-stone-100/80 backdrop-blur-xl border border-stone-800/50 dark:border-stone-200/50 text-white dark:text-stone-900 hover:bg-stone-900/90 dark:hover:bg-stone-100/90 shadow-lg hover:shadow-xl transition-all duration-200;
+    @apply bg-amber-900/80 dark:bg-amber-100/80 backdrop-blur-xl border border-amber-800/50 dark:border-amber-200/50 text-white dark:text-amber-900 hover:bg-amber-900/90 dark:hover:bg-amber-100/90 shadow-lg hover:shadow-xl transition-all duration-200;
   }
   
   .glass-button-secondary {
-    @apply glass-button hover:bg-white/60 dark:hover:bg-gray-800/60 shadow-md hover:shadow-lg;
+    @apply glass-button hover:bg-amber-50/60 dark:hover:bg-amber-900/60 shadow-md hover:shadow-lg;
   } 
