@@ -274,116 +274,96 @@ export default function Dashboard() {
 
   // Main dashboard - user is authenticated and data is loaded
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 relative overflow-hidden">
-      {/* Enhanced Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-40 h-40 bg-amber-400/30 rounded-full blur-3xl"></div>
-        <div className="absolute top-40 right-20 w-32 h-32 bg-orange-400/25 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-amber-400/20 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-20 right-1/3 w-36 h-36 bg-orange-400/25 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 w-60 h-60 bg-amber-400/15 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-orange-400/20 rounded-full blur-2xl"></div>
-      </div>
-      
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-amber-50/30 to-orange-50/30 dark:from-gray-950 dark:via-amber-950/30 dark:to-orange-950/30">
       <Navigation />
       
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Main Content - Mobile Optimized */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         
-        {/* Welcome Section */}
-        <div className="mb-12 relative z-10">
-          <div className="glass-card-hover glass-shadow-strong p-8 animate-fade-in">
-            <h1 className="text-5xl font-serif font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent mb-4">
+        {/* Welcome Section - Cleaner mobile design */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-gray-200/50 dark:border-gray-800/50">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent mb-2 sm:mb-3">
               Welcome back
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 font-light">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300">
               Ready to explore your wardrobe and create amazing outfits.
             </p>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-6 mb-12">
+        {/* Quick Actions - Better mobile buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8">
           <Button 
             onClick={() => setShowBatchUpload(true)}
-            className="glass-button-primary px-8 py-3 rounded-full font-medium glass-transition hover:scale-105"
+            className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
           >
-            <Upload className="w-5 h-5 mr-3" />
+            <Upload className="w-5 h-5 mr-2" />
             Add Items with AI
           </Button>
-          
-          {/* Clean, simple analytics - no complex initialization needed */}
         </div>
 
-        {/* Enhanced Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 relative z-10">
-          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-1">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Items</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-1">
-                    {dashboardData?.totalItems || 0}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">In your wardrobe</p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Shirt className="h-7 w-7 text-amber-600 dark:text-amber-400" />
-                </div>
+        {/* Modern Stats Cards - Mobile First Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          {/* Total Items Card */}
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+            <div className="flex flex-col space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-xl flex items-center justify-center">
+                <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Items</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+                  {dashboardData?.totalItems || 0}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-2">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Favorites</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-1">
-                    {dashboardData?.favorites || 0}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Loved items</p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Heart className="h-7 w-7 text-orange-600 dark:text-orange-400" />
-                </div>
+          {/* Favorites Card */}
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+            <div className="flex flex-col space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-xl flex items-center justify-center">
+                <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Favorites</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                  {dashboardData?.favorites || 0}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-3">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Style Goals</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-1">
-                    {dashboardData?.styleGoalsCompleted || 0}/{dashboardData?.totalStyleGoals || 0}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Completed</p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Target className="h-7 w-7 text-amber-600 dark:text-amber-400" />
-                </div>
+          {/* Style Goals Card */}
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+            <div className="flex flex-col space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 rounded-xl flex items-center justify-center">
+                <Target className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Goals</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                  {dashboardData?.styleGoalsCompleted || 0}/{dashboardData?.totalStyleGoals || 0}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <Card className="glass-card-hover glass-shadow-strong border-0 animate-fade-in stagger-4">
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">This Week</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-1">
-                    {dashboardData?.outfitsThisWeek || 0}
-                  </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Outfits worn</p>
-                </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Calendar className="h-7 w-7 text-amber-600 dark:text-amber-400" />
-                </div>
+          {/* This Week Card */}
+          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+            <div className="flex flex-col space-y-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-xl flex items-center justify-center">
+                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">This Week</p>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                  {dashboardData?.outfitsThisWeek || 0}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Smart Weather Outfit Generator */}
@@ -572,19 +552,19 @@ export default function Dashboard() {
         </Card>
         )}
 
-        {/* Wardrobe Insights */}
-        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Wardrobe Insights</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Your top items will appear here based on:</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Wardrobe Insights - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-800/50">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Wardrobe Insights</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Your top items will appear here based on:</p>
+          </div>
+          <div className="p-4 sm:p-6 lg:p-8">
             {dashboardData?.topItems && dashboardData.topItems.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
                 {dashboardData.topItems.map((item, index) => (
-                  <div key={item.id} className="border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden bg-white dark:bg-stone-900 hover:shadow-lg transition-shadow">
+                  <div key={item.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
                     {/* Item Image */}
-                    <div className="aspect-square bg-gradient-to-br from-stone-100 to-stone-200 dark:from-stone-800 dark:to-stone-900 relative">
+                    <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 relative">
                       {item.imageUrl && item.imageUrl !== '' && !item.imageUrl.includes('placeholder') ? (
                         <img 
                           src={item.imageUrl} 
@@ -598,38 +578,38 @@ export default function Dashboard() {
                             if (parent && !parent.querySelector('.fallback-icon')) {
                               const fallbackDiv = document.createElement('div');
                               fallbackDiv.className = 'fallback-icon w-full h-full flex items-center justify-center';
-                              fallbackDiv.innerHTML = '<svg class="h-12 w-12 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
+                              fallbackDiv.innerHTML = '<svg class="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>';
                               parent.appendChild(fallbackDiv);
                             }
                           }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Sparkles className="h-12 w-12 text-stone-400" />
+                          <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
                         </div>
                       )}
                     </div>
                     
-                    {/* Item Details */}
-                    <div className="p-4">
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
+                    {/* Item Details - Mobile Optimized */}
+                    <div className="p-3 sm:p-4">
+                      <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-0.5 sm:mb-1 truncate">
                         {item.name}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 capitalize mb-3">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 capitalize mb-2 sm:mb-3">
                         {item.type}
                       </p>
                       
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
-                          <TrendingUp className="h-4 w-4" />
-                          <span className="font-medium">{item.wearCount} wears</span>
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-amber-600 dark:text-amber-400">
+                          <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <span className="font-medium">{item.wearCount}</span>
                         </div>
                         
-                        <div className="flex items-center gap-1">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white">
-                            {item.rating}/5
+                        <div className="flex items-center gap-0.5 sm:gap-1">
+                          <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
+                            {item.rating}
                           </span>
-                          <Star className={`h-4 w-4 ${item.rating >= 4 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
+                          <Star className={`h-3 w-3 sm:h-4 sm:w-4 ${item.rating >= 4 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} />
                         </div>
                       </div>
                     </div>
@@ -637,61 +617,61 @@ export default function Dashboard() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 border border-dashed border-stone-300 dark:border-stone-700 rounded-lg">
-                <Sparkles className="w-16 h-16 text-stone-300 dark:text-stone-600 mx-auto mb-4" />
-                <p className="text-stone-500 dark:text-stone-400 mb-2">No top items yet</p>
-                <p className="text-sm text-stone-600 dark:text-stone-500 mb-4">
+              <div className="text-center py-8 sm:py-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl sm:rounded-2xl">
+                <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
+                <p className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">No top items yet</p>
+                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4 px-4">
                   Wear your wardrobe items to see your top performers here
                 </p>
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg max-w-md mx-auto">
-                  <p className="text-amber-800 dark:text-amber-200 text-sm">
-                    💡 Tip: Add items to your wardrobe and use them in outfits to start seeing your top items!
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl max-w-md mx-auto">
+                  <p className="text-amber-800 dark:text-amber-200 text-sm sm:text-base">
+                    💡 Add items to your wardrobe and use them in outfits!
                   </p>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Style Goals */}
-        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Style Goals</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Personalized goals based on your style preferences • Enhanced with feedback insights</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
+        {/* Style Goals - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-800/50">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Style Goals</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Personalized goals based on your style</p>
+          </div>
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="space-y-4 sm:space-y-6">
               {/* Overall Progress */}
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl sm:rounded-2xl">
+                <div className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-2">
                   {dashboardData?.overallProgress || 0}%
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Overall Progress</p>
-                <Progress value={dashboardData?.overallProgress || 0} className="w-full max-w-md mx-auto" />
+                <p className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300 mb-3 sm:mb-4">Overall Progress</p>
+                <Progress value={dashboardData?.overallProgress || 0} className="w-full max-w-md mx-auto h-2 sm:h-3" />
               </div>
 
               {/* Style Collections */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Style Collections</h3>
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Style Collections</h3>
                 {dashboardData?.styleCollections.map((collection, index) => (
-                  <div key={index} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900 dark:text-white">{collection.name}</h4>
-                      <Badge variant="secondary">
+                  <div key={index} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 hover:shadow-lg transition-shadow duration-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">{collection.name}</h4>
+                      <Badge variant="secondary" className="text-xs sm:text-sm font-bold">
                         {collection.progress}/{collection.target}
                       </Badge>
                     </div>
                     <Progress 
                       value={(collection.progress / collection.target) * 100} 
-                      className="mb-2" 
+                      className="mb-2 sm:mb-3 h-2 sm:h-2.5" 
                     />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{collection.status}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">{collection.status}</p>
                   </div>
                 ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Wardrobe Insights Hub - Unified component with Style Expansion, Gap Analysis, and Shopping */}
         <WardrobeInsightsHub
@@ -702,16 +682,16 @@ export default function Dashboard() {
           className="mb-12"
         />
 
-        {/* Forgotten Gems */}
-        <Card className="mb-12 border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
-          <CardHeader className="pb-6">
-            <CardTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">Forgotten Gems</CardTitle>
-            <CardDescription className="text-stone-600 dark:text-stone-400 font-light">Rediscover items you haven't worn in a while</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Forgotten Gems - Mobile Optimized */}
+        <div className="mb-6 sm:mb-8 lg:mb-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 dark:border-gray-800/50">
+          <div className="p-4 sm:p-6 lg:p-8 border-b border-gray-200/50 dark:border-gray-800/50">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Forgotten Gems</h2>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Rediscover items you haven't worn in a while</p>
+          </div>
+          <div className="p-4 sm:p-6 lg:p-8">
             <ForgottenGems />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Batch Upload Modal */}
         {showBatchUpload && (
