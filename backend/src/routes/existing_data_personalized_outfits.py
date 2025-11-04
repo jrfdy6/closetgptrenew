@@ -71,6 +71,7 @@ class OutfitResponse(BaseModel):
     user_interactions: int = 0
     data_source: str = "existing_data"
     metadata: Dict[str, Any]
+    outfitAnalysis: Optional[Dict[str, Any]] = None
 
 class PersonalizationStatusResponse(BaseModel):
     user_id: str
