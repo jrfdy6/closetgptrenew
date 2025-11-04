@@ -297,12 +297,29 @@ class OutfitGenerationService:
             
             # Generate detailed outfit analysis for education module
             try:
+                logger.info(f"🎨 Attempting to generate outfit analysis for {len(outfit['items'])} items")
+                
+                # Debug: Check item structure
+                if outfit['items']:
+                    sample_item = outfit['items'][0]
+                    logger.info(f"🎨 Sample item type: {type(sample_item)}")
+                    logger.info(f"🎨 Sample item keys: {list(sample_item.keys()) if isinstance(sample_item, dict) else 'not a dict'}")
+                    if isinstance(sample_item, dict) and 'metadata' in sample_item:
+                        logger.info(f"🎨 Sample item metadata keys: {list(sample_item.get('metadata', {}).keys())}")
+                        visual_attrs = sample_item.get('metadata', {}).get('visualAttributes', {})
+                        if visual_attrs:
+                            logger.info(f"🎨 Sample item visualAttributes: {visual_attrs}")
+                
                 from src.routes.outfits import generate_outfit_analysis
+                logger.info(f"🎨 Successfully imported generate_outfit_analysis function")
                 outfit_analysis = await generate_outfit_analysis(outfit['items'], req, {'total_score': outfit['confidence_score']})
+                logger.info(f"🎨 Generated outfit analysis: {outfit_analysis}")
                 outfit['outfitAnalysis'] = outfit_analysis
-                logger.info(f"✅ Generated outfit analysis with insights")
+                logger.info(f"✅ Generated outfit analysis with insights: {list(outfit_analysis.keys())}")
             except Exception as analysis_error:
-                logger.error(f"Outfit analysis failed: {analysis_error}")
+                logger.error(f"❌ Outfit analysis failed: {analysis_error}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 outfit['outfitAnalysis'] = None
             
             # Ensure base item is included
