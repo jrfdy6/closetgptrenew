@@ -48,6 +48,12 @@ interface GeneratedOutfit {
     generation_strategy?: string;
     [key: string]: any;
   };
+  outfitAnalysis?: {
+    textureAnalysis?: any;
+    patternBalance?: any;
+    colorStrategy?: any;
+    styleSynergy?: any;
+  };
 }
 
 interface OutfitRating {
@@ -411,6 +417,7 @@ export default function OutfitResultsDisplay({
         outfitItems={outfit.items}
         outfitReasoning={outfit.reasoning}
         styleStrategy={outfit.metadata?.generation_strategy}
+        outfitAnalysis={outfit.outfitAnalysis}
         className="mt-8"
       />
     </div>

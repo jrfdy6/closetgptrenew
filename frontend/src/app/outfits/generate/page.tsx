@@ -63,6 +63,12 @@ interface GeneratedOutfit {
     generation_strategy?: string;
     [key: string]: any;
   };
+  outfitAnalysis?: {
+    textureAnalysis?: any;
+    patternBalance?: any;
+    colorStrategy?: any;
+    styleSynergy?: any;
+  };
 }
 
 interface OutfitRating {
