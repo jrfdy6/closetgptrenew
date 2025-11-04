@@ -29,7 +29,10 @@ async def generate_outfit_analysis(items: List[Dict], req: Any, outfit_score: Di
             metadata = item.get('metadata', {}) or {}
             visual_attrs = metadata.get('visualAttributes', {}) or {}
             
-            item_type = item.get('type', 'piece')
+            # Convert item type to string (handle enums like ClothingType.SHORTS)
+            raw_type = item.get('type', 'piece')
+            item_type = str(raw_type).split('.')[-1].lower() if raw_type else 'piece'
+            
             item_color = item.get('color', 'neutral')
             
             # Texture info
