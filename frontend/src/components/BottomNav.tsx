@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Shirt, Palette, User } from "lucide-react";
@@ -7,6 +8,12 @@ import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // Only render on client to avoid SSR issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navItems = [
     { 
@@ -34,6 +41,10 @@ export default function BottomNav() {
       active: pathname === "/profile"
     },
   ];
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <nav 

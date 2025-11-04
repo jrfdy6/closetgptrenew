@@ -106,7 +106,7 @@ export function SmartWeatherOutfitGenerator({
     initializeWeatherAndLocation();
   }, []);
 
-  // Auto-generate outfit once per day when weather is available
+  // Load today's outfit from storage if available (but don't auto-generate)
   useEffect(() => {
     if (weather && user && !generatedOutfit && todayKey) {
       const storedOutfit = getTodaysOutfit();
@@ -118,25 +118,25 @@ export function SmartWeatherOutfitGenerator({
                           storedOutfit.name.includes('Weather-Appropriate');
         
         if (isFallback) {
-          console.log('🗑️ Clearing cached fallback outfit, regenerating with real backend...');
+          console.log('🗑️ Clearing cached fallback outfit (not regenerating automatically)');
           clearTodaysOutfit();
-          generateTodaysOutfit();
+          // Don't auto-generate - let the user click the button
         } else {
           console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
           console.log('🔍 DEBUG: Loaded outfit items:', storedOutfit.items);
           console.log('🔍 DEBUG: Loaded items count:', storedOutfit.items?.length || 0);
           if (!storedOutfit.items || storedOutfit.items.length === 0) {
-            console.warn('⚠️ WARNING: Loaded outfit has no items! Regenerating...');
+            console.warn('⚠️ WARNING: Loaded outfit has no items! Clearing...');
             clearTodaysOutfit();
-            generateTodaysOutfit();
+            // Don't auto-generate - let the user click the button
             return;
           }
           setGeneratedOutfit(storedOutfit);
           setLastGenerated(new Date(storedOutfit.generatedAt));
         }
       } else {
-        console.log('🎯 Auto-generating today\'s weather outfit...');
-        generateTodaysOutfit();
+        console.log('📋 No stored outfit found. User can click "Generate" to create one.');
+        // Don't auto-generate - let the user explicitly click the generate button
       }
     }
   }, [weather, user, todayKey]);

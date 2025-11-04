@@ -33,6 +33,8 @@ import DiverseStyleInspiration from "@/components/DiverseStyleInspiration";
 import { useWardrobe, type ClothingItem } from "@/lib/hooks/useWardrobe";
 import { formatLastWorn } from "@/lib/utils/dateUtils";
 import WardrobeItemDetails from "@/components/WardrobeItemDetails";
+import WardrobeGridSimple from "@/components/WardrobeGridSimple";
+import WardrobeItemBottomSheet from "@/components/WardrobeItemBottomSheet";
 import dynamic from 'next/dynamic';
 
 // Dynamically import components to avoid SSR issues
@@ -80,6 +82,7 @@ export default function WardrobePage() {
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ClothingItem | null>(null);
   const [showItemDetails, setShowItemDetails] = useState(false);
+  const [showBottomSheet, setShowBottomSheet] = useState(false);
 
   // Apply filters when they change
   useEffect(() => {
@@ -205,7 +208,7 @@ export default function WardrobePage() {
   const handleItemClick = (item: ClothingItem) => {
     console.log('🔍 [WardrobePage] Item clicked:', item);
     setSelectedItem(item);
-    setShowItemDetails(true);
+    setShowBottomSheet(true); // Use bottom sheet instead of modal
   };
 
   // Handle outfit generation with base item - ID-based approach
@@ -465,14 +468,10 @@ export default function WardrobePage() {
                 </div>
                 
                 {viewMode === "grid" ? (
-                  <WardrobeGrid 
+                  <WardrobeGridSimple 
                     items={currentItems}
                     loading={false}
                     onItemClick={handleItemClick}
-                    onGenerateOutfit={(item) => handleGenerateOutfitWithBaseItem(item)}
-                    onToggleFavorite={handleToggleFavorite}
-                    onDeleteItem={deleteItem}
-                    showActions={true}
                   />
                 ) : (
                   <div className="space-y-3">
@@ -868,6 +867,22 @@ export default function WardrobePage() {
       </main>
 
       {/* Item Details Modal */}
+      {/* Bottom Sheet for Item Details - Phase 2 Design */}
+      <WardrobeItemBottomSheet
+        item={selectedItem}
+        isOpen={showBottomSheet}
+        onClose={() => {
+          setShowBottomSheet(false);
+          setSelectedItem(null);
+        }}
+        onGenerateOutfit={handleGenerateOutfitWithBaseItem}
+        onToggleFavorite={handleToggleFavorite}
+        onIncrementWear={handleWearIncrement}
+        onEdit={() => setShowItemDetails(true)}
+        onDelete={deleteItem}
+      />
+
+      {/* Old Full-Page Modal (kept for editing) */}
       <WardrobeItemDetails
         item={selectedItem}
         isOpen={showItemDetails}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,17 @@ export default function FloatingActionButton({
   className,
   ariaLabel = "Generate outfit for today"
 }: FloatingActionButtonProps) {
+  const [mounted, setMounted] = useState(false);
+
+  // Only render on client to avoid SSR issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <button
       onClick={onClick}

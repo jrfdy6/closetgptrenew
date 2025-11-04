@@ -173,98 +173,40 @@ export default function WardrobeGrid({
           </p>
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      {/* 3-Column Mobile-First Grid */}
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-5">
         {validItems.map((item) => (
-        <Card
+        <div
           key={item.id}
-          className={`group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
-            hoveredItem === item.id ? 'ring-2 ring-emerald-500 ring-offset-2' : ''
-          }`}
-          onMouseEnter={() => setHoveredItem(item.id)}
-          onMouseLeave={() => setHoveredItem(null)}
+          className="group cursor-pointer"
           onClick={() => onItemClick(item)}
         >
-          {/* Image Container */}
-          <div className="relative aspect-square overflow-hidden rounded-t-lg">
-            <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+          {/* Image Container - Clean, Premium */}
+          <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-100 dark:bg-[#3D2F24] transition-transform duration-200 hover:scale-102">
+            <div className="w-full h-full flex items-center justify-center">
               <img
                 src={item.imageUrl}
                 alt={item.name}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full h-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = '/placeholder.jpg';
                 }}
-                onLoad={() => {
-                  console.log('✅ Image loaded successfully for item:', item.id);
-                }}
+                loading="lazy"
               />
             </div>
             
-            {/* Overlay with actions */}
-            {showActions && (
-              <div className={`absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2`}>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="bg-white/90 text-gray-900 hover:bg-white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onGenerateOutfit(item);
-                  }}
-                >
-                  <Sparkles className="w-4 h-4 mr-1" />
-                  Outfit
-                </Button>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="bg-white/90 text-gray-900 hover:bg-white"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onItemClick(item);
-                      }}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      View Details
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onToggleFavorite) {
-                          console.log(`🔍 [WardrobeGrid] Dropdown favorite clicked for item ${item.id}`);
-                          onToggleFavorite(item.id);
-                        }
-                      }}
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      {item.favorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={(e) => {
-                        console.log(`🔍 [WardrobeGrid] Dropdown delete clicked for item ${item.id}`);
-                        e.stopPropagation();
-                        handleDeleteClick(item.id);
-                      }}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Item
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+            {/* Simple overlay on hover - just shows name + wear count */}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="text-white text-[11px] font-medium truncate">
+                {item.name}
               </div>
-            )}
+              {(item.wearCount ?? 0) > 0 && (
+                <div className="text-white/70 text-[10px]">
+                  Worn {item.wearCount}×
+                </div>
+              )}
+            </div>
             
             {/* Favorite indicator */}
             {item.favorite && (
