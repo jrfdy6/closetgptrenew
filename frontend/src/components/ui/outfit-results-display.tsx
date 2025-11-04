@@ -44,6 +44,10 @@ interface GeneratedOutfit {
   }>;
   reasoning: string;
   createdAt: string;
+  metadata?: {
+    generation_strategy?: string;
+    [key: string]: any;
+  };
 }
 
 interface OutfitRating {
@@ -406,6 +410,7 @@ export default function OutfitResultsDisplay({
         outfitOccasion={outfit.occasion}
         outfitItems={outfit.items}
         outfitReasoning={outfit.reasoning}
+        styleStrategy={outfit.metadata?.generation_strategy}
         className="mt-8"
       />
     </div>

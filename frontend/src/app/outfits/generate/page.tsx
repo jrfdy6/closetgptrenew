@@ -55,9 +55,14 @@ interface GeneratedOutfit {
     type: string;
     imageUrl?: string;
     color: string;
+    reason?: string;
   }>;
   reasoning: string;
   createdAt: string;
+  metadata?: {
+    generation_strategy?: string;
+    [key: string]: any;
+  };
 }
 
 interface OutfitRating {

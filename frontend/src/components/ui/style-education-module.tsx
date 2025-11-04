@@ -2,22 +2,14 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   BookOpen, 
   Sparkles, 
   Palette, 
   Target, 
-  Zap, 
   ChevronDown, 
   ChevronUp,
-  Lightbulb,
-  TrendingUp,
-  Eye,
-  Heart,
-  Star,
-  ArrowRight,
   CheckCircle,
   Info
 } from 'lucide-react';
@@ -33,6 +25,7 @@ interface StyleEducationModuleProps {
     reason?: string;
   }>;
   outfitReasoning?: string;
+  styleStrategy?: string; // e.g. "cohesive_composition", "body_type_optimized", etc.
   className?: string;
 }
 
@@ -42,207 +35,139 @@ export default function StyleEducationModule({
   outfitOccasion,
   outfitItems = [],
   outfitReasoning,
+  styleStrategy,
   className = "" 
 }: StyleEducationModuleProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [showAllTips, setShowAllTips] = useState(false);
 
-  // Generate outfit-specific style guides
-  const getOutfitSpecificGuides = () => {
+  // Convert technical strategy name to user-friendly description
+  const getStrategyDescription = (strategy?: string) => {
+    if (!strategy) return null;
+    
+    const strategies: Record<string, { title: string; description: string }> = {
+      'cohesive_composition': {
+        title: 'Cohesive Composition',
+        description: 'Pieces selected for visual harmony and complementary aesthetics'
+      },
+      'body_type_optimized': {
+        title: 'Body-Type Optimized',
+        description: 'Outfit tailored to flatter your unique body proportions'
+      },
+      'style_profile_matched': {
+        title: 'Style Profile Match',
+        description: 'Items chosen based on your personal style preferences and history'
+      },
+      'weather_adapted': {
+        title: 'Weather-Adapted',
+        description: 'Temperature and conditions-appropriate outfit selection'
+      },
+      'fallback_simple': {
+        title: 'Simple Selection',
+        description: 'Straightforward outfit combination using available pieces'
+      },
+      'hybrid': {
+        title: 'Hybrid Approach',
+        description: 'Multi-factor intelligent selection combining style, fit, and context'
+      },
+      'robust_6d_with_diversity': {
+        title: 'Advanced Algorithm',
+        description: 'Sophisticated multi-dimensional analysis for optimal outfit creation'
+      }
+    };
+
+    // Clean up the strategy string (remove underscores, handle variations)
+    const cleanStrategy = strategy.toLowerCase().replace(/-/g, '_');
+    return strategies[cleanStrategy] || {
+      title: strategy.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      description: 'Intelligent outfit generation based on your wardrobe and preferences'
+    };
+  };
+
+  const strategyInfo = getStrategyDescription(styleStrategy);
+
+  // Generate outfit-specific insights
+  const getOutfitInsights = () => {
     const colors = outfitItems.map(item => item.color).filter(Boolean);
     const types = outfitItems.map(item => item.type).filter(Boolean);
     const hasLayers = types.some(type => ['jacket', 'blazer', 'cardigan', 'sweater'].includes(type.toLowerCase()));
     const hasFitted = types.some(type => ['shirt', 'blouse', 'dress'].includes(type.toLowerCase()));
     const hasLoose = types.some(type => ['pants', 'shorts', 'skirt'].includes(type.toLowerCase()));
     
-    return [
-      {
-        id: 'color-harmony',
-        title: 'Color Harmony',
+    const insights = [];
+    
+    // Color insight
+    if (colors.length > 1) {
+      insights.push({
+        id: 'color',
         icon: Palette,
-        description: colors.length > 0 ? `How your ${colors.join(', ')} combination works` : 'How we create perfect color combinations',
-        tips: colors.length > 0 ? [
-          `Your ${colors[0]} creates the foundation`,
-          colors[1] ? `${colors[1]} provides contrast and interest` : 'Neutral colors anchor the look',
-          'The color balance creates visual harmony',
-          'Each color serves a specific purpose in your outfit'
-        ] : [
-          'Complementary colors create visual excitement',
-          'Analogous colors provide harmony and flow',
-          'Neutral colors anchor bold statement pieces',
-          'Color temperature affects mood and perception'
-        ],
-        principles: [
-          '60-30-10 rule: 60% dominant, 30% secondary, 10% accent',
-          'Warm colors advance, cool colors recede',
-          'Monochromatic schemes create sophisticated looks',
-          'Color blocking can define your silhouette'
-        ]
-      },
-      {
-        id: 'proportion-balance',
-        title: 'Proportion & Balance',
+        title: 'Color Harmony',
+        insight: `The ${colors.join(' + ')} palette creates ${colors.length > 2 ? 'dynamic contrast' : 'balanced harmony'}`,
+        tips: [
+          `${colors[0]} serves as your base color`,
+          colors[1] ? `${colors[1]} adds ${colors.length > 2 ? 'accent and depth' : 'complementary contrast'}` : null,
+          colors.length > 2 ? 'Multiple colors add visual interest—keep accessories simple' : 'Two-tone combinations are timeless and versatile'
+        ].filter(Boolean)
+      });
+    }
+    
+    // Proportion insight
+    if (hasFitted && hasLoose) {
+      insights.push({
+        id: 'proportion',
         icon: Target,
-        description: hasFitted && hasLoose ? 'How your fitted and loose pieces create balance' : 'Creating flattering silhouettes',
-        tips: hasFitted && hasLoose ? [
-          'Your fitted top balances the looser bottom',
-          'This creates an hourglass silhouette',
-          'The contrast defines your waistline',
-          'Proportional balance makes you look taller'
-        ] : [
-          'Balance loose with fitted pieces',
-          'High-waisted bottoms elongate legs',
-          'V-necks create the illusion of length',
-          'Belt placement defines your waistline'
-        ],
-        principles: [
-          'Rule of thirds for visual balance',
-          'Vertical lines create height',
-          'Horizontal lines add width',
-          'Asymmetrical balance creates interest'
+        title: 'Silhouette Balance',
+        insight: 'Fitted + loose pieces create a flattering, proportioned silhouette',
+        tips: [
+          'This contrast defines your natural waistline',
+          'Balanced proportions elongate your figure',
+          'Try belting to further emphasize the shape'
         ]
-      },
-      {
-        id: 'fabric-texture',
-        title: 'Fabric & Texture',
-        icon: Sparkles,
-        description: hasLayers ? 'How your layered pieces create texture and depth' : 'Mixing textures for depth and interest',
-        tips: hasLayers ? [
-          'Your layering creates visual depth',
-          'Different textures add dimension',
-          'The combination feels both structured and comfortable',
-          'Texture mixing makes the outfit more interesting'
-        ] : [
-          'Smooth fabrics feel more formal',
-          'Textured fabrics add casual comfort',
-          'Layering different textures creates dimension',
-          'Fabric weight affects drape and movement'
-        ],
-        principles: [
-          'Contrast textures for visual interest',
-          'Heavy fabrics add structure',
-          'Light fabrics create flow',
-          'Texture can balance proportions'
-        ]
-      },
-      {
-        id: 'occasion-appropriateness',
-        title: 'Occasion Matching',
-        icon: CheckCircle,
-        description: outfitOccasion ? `Why this works for ${outfitOccasion.toLowerCase()}` : 'Dressing for the right moment',
-        tips: outfitOccasion ? [
-          `This outfit is perfect for ${outfitOccasion.toLowerCase()}`,
-          'The style matches the occasion\'s requirements',
-          'It strikes the right balance of comfort and style',
-          'The pieces work together for this specific event'
-        ] : [
-          'Formal events require structured pieces',
-          'Casual settings allow for more creativity',
-          'Work attire balances professionalism and style',
-          'Date night outfits should feel confident'
-        ],
-        principles: [
-          'Dress codes provide guidelines, not limits',
-          'Comfort enhances confidence',
-          'Accessories can transform any outfit',
-          'Weather-appropriate choices show consideration'
-        ]
-      }
-    ];
-  };
-
-  const styleGuides = getOutfitSpecificGuides();
-
-  // Generate outfit-specific process steps
-  const getOutfitSpecificSteps = () => {
-    const colors = outfitItems.map(item => item.color).filter(Boolean);
-    const hasMultipleColors = colors.length > 1;
-    
-    return [
-      {
-        step: 1,
-        title: 'Style Analysis',
-        description: hasMultipleColors 
-          ? `We analyzed your ${colors.join(' and ')} color combination for harmony`
-          : 'We evaluated each piece for color harmony, fit, and style compatibility',
-        icon: Eye
-      },
-      {
-        step: 2,
-        title: 'Context Matching',
-        description: outfitOccasion 
-          ? `We matched this outfit to your ${outfitOccasion.toLowerCase()} occasion`
-          : 'We ensured each piece works for your specific occasion and mood',
-        icon: Target
-      },
-      {
-        step: 3,
-        title: 'Harmony Creation',
-        description: outfitItems.length > 0
-          ? `We created cohesion between your ${outfitItems.length} pieces for a flattering look`
-          : 'We applied fashion principles to create a cohesive, flattering combination',
-        icon: Sparkles
-      },
-      {
-        step: 4,
-        title: 'Confidence Scoring',
-        description: outfitStyle
-          ? `We ensured this ${outfitStyle.toLowerCase()} look feels right and looks great`
-          : 'We verified this combination makes you feel confident and look amazing',
-        icon: Star
-      }
-    ];
-  };
-
-  const aiProcessSteps = getOutfitSpecificSteps();
-
-  // Generate outfit-specific quick tips
-  const getOutfitSpecificTips = () => {
-    const colors = outfitItems.map(item => item.color).filter(Boolean);
-    const types = outfitItems.map(item => item.type).filter(Boolean);
-    const hasLayers = types.some(type => ['jacket', 'blazer', 'cardigan', 'sweater'].includes(type.toLowerCase()));
-    
-    const baseTips = [
-      'Color harmony follows the 60-30-10 rule',
-      'Proportion balance creates flattering silhouettes',
-      'Texture mixing adds visual depth',
-      'Accessories can make or break an outfit',
-      'Confidence is the best accessory',
-      'Fit matters more than following trends'
-    ];
-
-    const outfitSpecificTips = [];
-    
-    if (colors.length > 0) {
-      outfitSpecificTips.push(`Your ${colors[0]} creates a strong foundation`);
+      });
     }
     
+    // Layering insight
     if (hasLayers) {
-      outfitSpecificTips.push('Layering adds dimension and sophistication');
+      insights.push({
+        id: 'layering',
+        icon: Sparkles,
+        title: 'Layering Depth',
+        insight: 'Multiple layers add dimension and adaptability',
+        tips: [
+          'Layers create visual interest and texture',
+          'Remove outer pieces to adjust for temperature',
+          'Each layer should be visible for maximum effect'
+        ]
+      });
     }
     
-    if (outfitStyle) {
-      outfitSpecificTips.push(`${outfitStyle} style emphasizes timeless elegance`);
-    }
-    
+    // Occasion insight (always show if available)
     if (outfitOccasion) {
-      outfitSpecificTips.push(`Perfect for ${outfitOccasion.toLowerCase()} occasions`);
+      insights.push({
+        id: 'occasion',
+        icon: CheckCircle,
+        title: `${outfitOccasion} Ready`,
+        insight: `This outfit hits the right tone for ${outfitOccasion.toLowerCase()}`,
+        tips: [
+          outfitStyle ? `${outfitStyle} style matches the event's vibe` : 'The formality level is spot-on',
+          'Comfortable enough to wear confidently',
+          'Easy to accessorize up or down as needed'
+        ]
+      });
     }
-
-    return [...outfitSpecificTips, ...baseTips].slice(0, 6);
+    
+    return insights;
   };
 
-  const quickTips = getOutfitSpecificTips();
+  const outfitInsights = getOutfitInsights();
 
   const toggleSection = (sectionId: string) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
   };
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      {/* Main Education Card */}
+    <div className={`space-y-4 ${className}`}>
       <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
               <BookOpen className="h-6 w-6 text-white" />
@@ -252,219 +177,138 @@ export default function StyleEducationModule({
                 Learn from This Outfit
               </CardTitle>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Understand why this outfit works and how to apply these principles yourself
+                Understand what makes this combination work
               </p>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          {/* Outfit-Specific Analysis */}
-          {(outfitStyle || outfitMood || outfitOccasion || outfitItems.length > 0) && (
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Info className="h-5 w-5 text-blue-600" />
-                Why This Outfit Was Selected
-              </h3>
-              
-              {/* Style Context */}
-              <div className="mb-4">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Style Context</h4>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {outfitStyle && (
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-                      {outfitStyle} Style
-                    </Badge>
-                  )}
-                  {outfitMood && (
-                    <Badge variant="secondary" className="bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300">
-                      {outfitMood} Mood
-                    </Badge>
-                  )}
-                  {outfitOccasion && (
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                      {outfitOccasion} Occasion
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  This combination was chosen to match your {outfitStyle?.toLowerCase()} style for a {outfitOccasion?.toLowerCase()} occasion, 
-                  creating a {outfitMood?.toLowerCase()} mood that's both appropriate and stylish.
-                </p>
-              </div>
-
-              {/* Item Analysis */}
-              {outfitItems.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">Item Selection Logic</h4>
-                  <div className="space-y-2">
-                    {outfitItems.map((item, index) => (
-                      <div key={index} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-800 rounded-lg">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {item.type} in {item.color}
-                          </p>
-                          {item.reason && (
-                            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                              {item.reason}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+        <CardContent className="space-y-5">
+          {/* Outfit Context - Compact badges only */}
+          {(outfitStyle || outfitMood || outfitOccasion) && (
+            <div className="flex flex-wrap gap-2">
+              {outfitStyle && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                  {outfitStyle}
+                </Badge>
               )}
-
-              {/* AI Reasoning */}
-              {outfitReasoning && (
-                <div>
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-2">AI's Style Reasoning</h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                    {outfitReasoning}
-                  </p>
-                </div>
+              {outfitMood && (
+                <Badge variant="secondary" className="bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300">
+                  {outfitMood}
+                </Badge>
+              )}
+              {outfitOccasion && (
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                  {outfitOccasion}
+                </Badge>
               )}
             </div>
           )}
 
-          {/* AI Process Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Zap className="h-5 w-5 text-purple-600" />
-              The Science Behind Great Style
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {aiProcessSteps.map((step, index) => (
-                <div 
-                  key={step.step}
-                  className="relative p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:scale-105 transition-all duration-300 group"
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold group-hover:scale-110 transition-transform duration-300">
-                      {step.step}
-                    </div>
-                    <step.icon className="h-4 w-4 text-purple-600 group-hover:text-purple-700 transition-colors duration-300" />
-                  </div>
-                  <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1">
-                    {step.title}
+          {/* Style Strategy - Generation Method */}
+          {strategyInfo && (
+            <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+              <div className="flex items-start gap-2">
+                <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 mb-1">
+                    {strategyInfo.title}
                   </h4>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                    {step.description}
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300">
+                    {strategyInfo.description}
                   </p>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Style Guides */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-purple-600" />
-              Fashion System Guides
-            </h3>
-            <div className="space-y-3">
-              {styleGuides.map((guide) => (
-                <div 
-                  key={guide.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
-                >
-                  <button
-                    onClick={() => toggleSection(guide.id)}
-                    className="w-full p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 hover:shadow-sm"
+          {/* Selected Items - More prominent */}
+          {outfitItems.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <Info className="h-4 w-4 text-purple-600" />
+                Selected Pieces
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {outfitItems.map((item, index) => (
+                  <div key={index} className="flex items-start gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {item.type} • {item.color}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI Reasoning - If provided */}
+          {outfitReasoning && (
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {outfitReasoning}
+              </p>
+            </div>
+          )}
+
+          {/* Style Insights - Contextual and actionable */}
+          {outfitInsights.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                Why This Works
+              </h3>
+              <div className="space-y-2">
+                {outfitInsights.map((insight) => (
+                  <div 
+                    key={insight.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <guide.icon className="h-5 w-5 text-purple-600" />
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">
-                            {guide.title}
-                          </h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {guide.description}
-                          </p>
+                    <button
+                      onClick={() => toggleSection(insight.id)}
+                      className="w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <insight.icon className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                              {insight.title}
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                              {insight.insight}
+                            </p>
+                          </div>
                         </div>
+                        {expandedSection === insight.id ? (
+                          <ChevronUp className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        )}
                       </div>
-                      {expandedSection === guide.id ? (
-                        <ChevronUp className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-gray-400" />
-                      )}
-                    </div>
-                  </button>
-                  
-                  {expandedSection === guide.id && (
-                    <div className="px-4 pb-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="pt-4 space-y-4">
-                        <div>
-                          <h5 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-green-600" />
-                            Key Tips
-                          </h5>
-                          <ul className="space-y-1">
-                            {guide.tips.map((tip, index) => (
-                              <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                                <div className="w-1.5 h-1.5 bg-amber-600 rounded-full mt-2 flex-shrink-0" />
-                                {tip}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div>
-                          <h5 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                            <Star className="h-4 w-4 text-yellow-600" />
-                            Core Principles
-                          </h5>
-                          <ul className="space-y-1">
-                            {guide.principles.map((principle, index) => (
-                              <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                                <CheckCircle className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
-                                {principle}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                    </button>
+                    
+                    {expandedSection === insight.id && (
+                      <div className="px-3 pb-3 border-t border-gray-200 dark:border-gray-700">
+                        <ul className="pt-3 space-y-1.5">
+                          {insight.tips.map((tip, index) => (
+                            <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
+                              <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Quick Tips */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Heart className="h-5 w-5 text-purple-600" />
-              Quick Style Tips
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {quickTips.slice(0, showAllTips ? quickTips.length : 4).map((tip, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800 hover:shadow-md hover:scale-105 transition-all duration-300"
-                >
-                  <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex-shrink-0" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{tip}</span>
-                </div>
-              ))}
-            </div>
-            {quickTips.length > 4 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAllTips(!showAllTips)}
-                className="mt-3 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-              >
-                {showAllTips ? 'Show Less' : `Show ${quickTips.length - 4} More Tips`}
-                <ArrowRight className={`h-4 w-4 ml-1 transition-transform ${showAllTips ? 'rotate-90' : ''}`} />
-              </Button>
-            )}
-          </div>
+          )}
 
         </CardContent>
       </Card>
