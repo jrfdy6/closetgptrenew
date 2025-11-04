@@ -5,9 +5,6 @@ import BottomNav from '@/components/BottomNav';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import OutfitGrid from '@/components/OutfitGrid';
 
-// Disable static generation for this page
-export const dynamic = 'force-dynamic';
-
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {
   return (
