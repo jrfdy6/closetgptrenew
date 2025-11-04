@@ -4756,6 +4756,9 @@ class RobustOutfitGenerationService:
             target_formality = self._get_context_formality_level(context.occasion, context.style)
             
             # Calculate formality boost (works both directions!)
+            formality_boost_needed = False  # Initialize to prevent UnboundLocalError
+            formality_boost_multiplier = 1.0  # Default multiplier
+            
             if base_item_formality is not None and target_formality is not None:
                 formality_gap = target_formality - base_item_formality
                 
