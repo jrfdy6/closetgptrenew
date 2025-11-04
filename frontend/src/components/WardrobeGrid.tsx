@@ -173,59 +173,36 @@ export default function WardrobeGrid({
           </p>
         </div>
       )}
-      {/* 3-Column Mobile-First Grid */}
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {validItems.map((item) => (
-        <div
+        <Card
           key={item.id}
-          className="group cursor-pointer"
+          className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
           onClick={() => onItemClick(item)}
         >
-          {/* Image Container - Clean, Premium */}
-          <div className="relative aspect-square overflow-hidden rounded-xl bg-gray-100 dark:bg-[#3D2F24] transition-transform duration-200 hover:scale-102">
-            <div className="w-full h-full flex items-center justify-center">
+          {/* Image Container */}
+          <div className="relative aspect-square overflow-hidden rounded-t-lg">
+            <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
               <img
                 src={item.imageUrl}
                 alt={item.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = '/placeholder.jpg';
                 }}
-                loading="lazy"
               />
-            </div>
-            
-            {/* Simple overlay on hover - just shows name + wear count */}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <div className="text-white text-[11px] font-medium truncate">
-                {item.name}
-              </div>
-              {(item.wearCount ?? 0) > 0 && (
-                <div className="text-white/70 text-[10px]">
-                  Worn {item.wearCount}×
-                </div>
-              )}
             </div>
             
             {/* Favorite indicator */}
             {item.favorite && (
-              <div className="absolute top-2 right-2">
-                <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
-                  <Heart className="w-4 h-4 text-white fill-current" />
-                </div>
+              <div className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                <Heart className="w-4 h-4 text-white fill-current" />
               </div>
             )}
-            
-            {/* Wear count badge */}
-            <div className="absolute bottom-2 left-2">
-              <Badge variant="secondary" className="bg-white/90 text-gray-900 text-xs">
-                {item.wearCount} wears
-              </Badge>
-            </div>
           </div>
 
-          {/* Item Info */}
+          {/* Card Content */}
           <CardContent className="p-3">
             <div className="space-y-2">
               {/* Name and Type */}
