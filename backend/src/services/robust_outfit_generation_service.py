@@ -4739,10 +4739,13 @@ class RobustOutfitGenerationService:
         """Analyze and score each item based on user's style profile and COLOR THEORY matching with skin tone"""
         logger.info(f"🎭 STYLE PROFILE ANALYZER: Scoring {len(item_scores)} items")
         
-        # SMART BALANCING: Boost formality of complementary items when base item is casual
+        # CRITICAL FIX: Initialize ALL formality variables at FUNCTION LEVEL (not inside if block)
+        # This prevents UnboundLocalError when base_item_id is None or when formality_gap is between -1 and 1
+        formality_boost_needed = False
+        formality_boost_multiplier = 1.0
         base_item_formality = None
         target_formality = None
-        formality_boost_multiplier = 1.0
+        logger.info(f"✅ FORMALITY FIX ACTIVE: Variables initialized at function level")
         
         if context.base_item_id:
             # Get base item's formality
@@ -4755,12 +4758,7 @@ class RobustOutfitGenerationService:
             # Get target formality from occasion/style
             target_formality = self._get_context_formality_level(context.occasion, context.style)
             
-            # Calculate formality boost (works both directions!)
-            # CRITICAL FIX: Initialize variables to prevent UnboundLocalError when formality_gap is between -1 and 1
-            formality_boost_needed = False  # Initialize to prevent UnboundLocalError
-            formality_boost_multiplier = 1.0  # Default multiplier
-            logger.debug(f"✅ FIX ACTIVE: formality_boost_needed initialized to False")
-            
+            # Calculate formality boost if both formalit levels are known
             if base_item_formality is not None and target_formality is not None:
                 formality_gap = target_formality - base_item_formality
                 
