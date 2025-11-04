@@ -2,8 +2,8 @@
 FROM python:3.11
 
 # NUCLEAR CACHE BUSTER - Change this number on every deploy to break ALL caches
-ARG CACHE_BUSTER=9999999999
-RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Critical bugfixes v2"
+ARG CACHE_BUSTER=1762222500
+RUN echo "CACHE BUSTER: $CACHE_BUSTER" && echo "FORCE COMPLETE REBUILD - Formality fix deployment"
 
 # Set working directory
 WORKDIR /app
@@ -38,7 +38,11 @@ RUN echo "Verifying new code with occasion-first filter..." && \
     echo "Verifying weather analyzer fix..." && \
     grep -q "float.*temperature.*CRITICAL" ./src/services/robust_outfit_generation_service.py && \
     echo "✅ Weather analyzer fix verified" || \
-    (echo "❌ Weather analyzer fix MISSING - build failed!" && exit 1)
+    (echo "❌ Weather analyzer fix MISSING - build failed!" && exit 1) && \
+    echo "Verifying formality_boost_needed fix..." && \
+    grep -q "FIX ACTIVE: formality_boost_needed initialized" ./src/services/robust_outfit_generation_service.py && \
+    echo "✅ Formality boost fix verified" || \
+    (echo "❌ Formality boost fix MISSING - build failed!" && exit 1)
 
 # Expose port (Railway will override with its own PORT)
 EXPOSE 8080
