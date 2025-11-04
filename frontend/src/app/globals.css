@@ -96,43 +96,43 @@
   }
  
   .dark {
-    --background: 24 10% 3%;
-    --foreground: 38 90% 95%;
+    --background: 28 35% 8%;
+    --foreground: 0 0% 95%;
  
-    --card: 30 8% 5%;
-    --card-foreground: 38 90% 95%;
+    --card: 28 30% 10%;
+    --card-foreground: 0 0% 95%;
  
-    --popover: 30 8% 5%;
-    --popover-foreground: 38 90% 95%;
+    --popover: 28 30% 10%;
+    --popover-foreground: 0 0% 95%;
  
-    /* Primary: Amber (bright for dark mode contrast) */
-    --primary: 38 85% 60%;
-    --primary-foreground: 24 10% 3%;
+    /* Primary: Gray (neutral for dark mode) */
+    --primary: 0 0% 60%;
+    --primary-foreground: 0 0% 10%;
  
-    /* Secondary: Light Amber */
-    --secondary: 43 90% 65%;
-    --secondary-foreground: 24 10% 3%;
+    /* Secondary: Light Gray */
+    --secondary: 0 0% 70%;
+    --secondary-foreground: 0 0% 10%;
  
-    --muted: 30 8% 12%;
-    --muted-foreground: 38 15% 65%;
+    --muted: 28 20% 18%;
+    --muted-foreground: 0 0% 65%;
  
-    /* Accent: Warm Amber */
-    --accent: 33 85% 60%;
-    --accent-foreground: 24 10% 3%;
+    /* Accent: Cool Gray */
+    --accent: 0 0% 65%;
+    --accent-foreground: 0 0% 10%;
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 30 8% 15%;
-    --input: 30 8% 15%;
-    --ring: 38 85% 60%;
+    --border: 28 20% 20%;
+    --input: 28 20% 20%;
+    --ring: 0 0% 60%;
     
-    /* Enhanced chart colors for dark mode with amber accents */
-    --chart-1: 38 85% 60%;
-    --chart-2: 33 85% 60%;
-    --chart-3: 43 90% 65%;
-    --chart-4: 28 80% 50%;
-    --chart-5: 48 85% 70%;
+    /* Enhanced chart colors for dark mode with gray accents */
+    --chart-1: 0 0% 60%;
+    --chart-2: 0 0% 55%;
+    --chart-3: 0 0% 70%;
+    --chart-4: 0 0% 50%;
+    --chart-5: 0 0% 75%;
   }
 }
  
@@ -155,7 +155,7 @@
   }
   
   .dark body {
-    background: linear-gradient(135deg, #090807 0%, #0d0c0a 25%, #0a0908 50%, #0d0c0a 75%, #0a0908 100%);
+    background: linear-gradient(135deg, #1c1410 0%, #27190d 25%, #1f1508 50%, #27190d 75%, #1f1508 100%);
   }
   
   button, 
@@ -198,33 +198,33 @@
     @apply max-w-screen-lg mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  /* Premium gradient backgrounds with amber tones (light) and very dark warm (dark) */
+  /* Premium gradient backgrounds with amber tones (light) and warm brown (dark) */
   .gradient-hero {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-stone-950/20 dark:via-neutral-950/20 dark:to-stone-950/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950/20 dark:via-amber-900/20 dark:to-orange-950/20;
   }
   
   .gradient-app-bg {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-stone-950 dark:via-neutral-950/20 dark:via-stone-950/20 dark:to-neutral-950/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-amber-950 dark:via-amber-900/20 dark:via-orange-900/20 dark:to-amber-900/20;
   }
   
   .gradient-card {
-    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-neutral-950 dark:via-stone-950/10 dark:to-neutral-950/10;
+    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-amber-950 dark:via-amber-900/10 dark:to-orange-900/10;
   }
   
   .gradient-primary {
-    @apply bg-gradient-to-r from-amber-600 to-orange-600;
+    @apply bg-gradient-to-r from-gray-600 to-gray-700;
   }
   
   .gradient-secondary {
-    @apply bg-gradient-to-r from-amber-500 to-orange-500;
+    @apply bg-gradient-to-r from-gray-500 to-gray-600;
   }
   
   .gradient-accent {
-    @apply bg-gradient-to-r from-orange-600 to-amber-700;
+    @apply bg-gradient-to-r from-gray-700 to-gray-800;
   }
   
   .gradient-premium {
-    @apply bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700;
+    @apply bg-gradient-to-br from-gray-600 via-gray-700 to-gray-800;
   }
   
   /* Enhanced typography scale */
@@ -288,17 +288,17 @@
     @apply animate-in zoom-in duration-300;
   }
   
-  /* Premium button styles with amber */
+  /* Premium button styles with gray */
   .btn-premium {
-    @apply bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white shadow-md hover:shadow-lg transition-all duration-200;
   }
   
   .btn-secondary-premium {
-    @apply bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 text-white shadow-md hover:shadow-lg transition-all duration-200;
   }
   
   .btn-accent-premium {
-    @apply bg-gradient-to-r from-orange-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 text-white shadow-md hover:shadow-lg transition-all duration-200;
+    @apply bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white shadow-md hover:shadow-lg transition-all duration-200;
   }
 } 
 
@@ -333,12 +333,12 @@
   }
   
   .micro-focus {
-    @apply transition-all duration-200 ease-out focus:ring-2 focus:ring-amber-500/20 focus:ring-offset-2;
+    @apply transition-all duration-200 ease-out focus:ring-2 focus:ring-gray-500/20 focus:ring-offset-2;
   }
   
-  /* Enhanced card interactions with amber shadow */
+  /* Enhanced card interactions with gray shadow */
   .card-hover {
-    @apply transition-all duration-300 ease-out hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 hover:scale-105;
+    @apply transition-all duration-300 ease-out hover:shadow-lg hover:shadow-gray-500/10 hover:-translate-y-1 hover:scale-105;
   }
   
   .card-enhanced {
@@ -349,17 +349,17 @@
     @apply card-enhanced card-hover;
   }
   
-  /* Button animations with amber shadow */
+  /* Button animations with gray shadow */
   .btn-premium {
-    @apply transition-all duration-200 ease-out hover:shadow-lg hover:shadow-amber-500/20 hover:-translate-y-0.5 active:scale-[0.98];
+    @apply transition-all duration-200 ease-out hover:shadow-lg hover:shadow-gray-500/20 hover:-translate-y-0.5 active:scale-[0.98];
   }
   
   .btn-secondary-premium {
-    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-amber-500/20 hover:-translate-y-0.5 active:scale-[0.98];
+    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-gray-500/20 hover:-translate-y-0.5 active:scale-[0.98];
   }
   
   .btn-accent-premium {
-    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-orange-500/20 hover:-translate-y-0.5 active:scale-[0.98];
+    @apply transition-all duration-200 ease-out hover:shadow-md hover:shadow-gray-500/20 hover:-translate-y-0.5 active:scale-[0.98];
   }
   
   /* Page transitions */
@@ -444,13 +444,13 @@
     @apply transition-transform duration-200 ease-out hover:animate-pulse;
   }
   
-  /* Text animations with amber */
+  /* Text animations with gray */
   .text-glow {
-    @apply transition-all duration-200 ease-out hover:text-amber-600 dark:hover:text-amber-400;
+    @apply transition-all duration-200 ease-out hover:text-gray-600 dark:hover:text-gray-400;
   }
   
   .text-gradient-hover {
-    @apply transition-all duration-300 ease-out hover:bg-gradient-to-r hover:from-amber-600 hover:to-orange-600 hover:bg-clip-text hover:text-transparent;
+    @apply transition-all duration-300 ease-out hover:bg-gradient-to-r hover:from-gray-600 hover:to-gray-700 hover:bg-clip-text hover:text-transparent;
   }
   
   /* Liquid Glass / Glassmorphism Effects */
@@ -555,11 +555,11 @@
     @apply bg-white/30 dark:bg-gray-900/30 backdrop-blur-xl border border-white/40 dark:border-white/20 rounded-xl px-4 py-2 focus:bg-white/50 dark:focus:bg-gray-900/50 focus:border-white/60 dark:focus:border-white/30 transition-all duration-200;
   }
   
-  /* Glass Button Variations with amber accents */
+  /* Glass Button Variations with gray accents */
   .glass-button-primary {
-    @apply bg-amber-900/80 dark:bg-amber-100/80 backdrop-blur-xl border border-amber-800/50 dark:border-amber-200/50 text-white dark:text-amber-900 hover:bg-amber-900/90 dark:hover:bg-amber-100/90 shadow-lg hover:shadow-xl transition-all duration-200;
+    @apply bg-gray-900/80 dark:bg-gray-100/80 backdrop-blur-xl border border-gray-800/50 dark:border-gray-200/50 text-white dark:text-gray-900 hover:bg-gray-900/90 dark:hover:bg-gray-100/90 shadow-lg hover:shadow-xl transition-all duration-200;
   }
   
   .glass-button-secondary {
-    @apply glass-button hover:bg-amber-50/60 dark:hover:bg-amber-900/60 shadow-md hover:shadow-lg;
+    @apply glass-button hover:bg-white/60 dark:hover:bg-gray-800/60 shadow-md hover:shadow-lg;
   } 
