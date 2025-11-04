@@ -2,14 +2,21 @@
 Outfit Analysis Utility
 Generates detailed educational insights about outfit composition.
 """
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-async def generate_outfit_analysis(items: List[Dict], req: Any, outfit_score: Dict) -> Dict[str, Any]:
-    """Generate detailed outfit analysis for educational insights."""
+async def generate_outfit_analysis(items: List[Dict], req: Any, outfit_score: Dict, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Generate detailed outfit analysis for educational insights.
+    
+    Args:
+        items: List of outfit items
+        req: Request object with style/occasion/mood
+        outfit_score: Outfit scoring information
+        metadata: Optional metadata dict containing generation_strategy or other strategy info
+    """
     analysis = {
         "textureAnalysis": None,
         "patternBalance": None,
@@ -18,6 +25,17 @@ async def generate_outfit_analysis(items: List[Dict], req: Any, outfit_score: Di
     }
     
     try:
+        # Extract actual generation strategy from metadata if available
+        # Check for strategy in metadata (could be in metadata.get('metadata') or directly)
+        actual_strategy = None
+        if metadata:
+            # Try nested metadata first
+            nested_meta = metadata.get('metadata', {})
+            if isinstance(nested_meta, dict):
+                actual_strategy = nested_meta.get('generation_strategy') or nested_meta.get('strategy')
+            # Try direct metadata
+            if not actual_strategy:
+                actual_strategy = metadata.get('generation_strategy') or metadata.get('strategy')
         # Extract metadata from items
         textures = []
         patterns = []
@@ -119,10 +137,21 @@ async def generate_outfit_analysis(items: List[Dict], req: Any, outfit_score: Di
             bold_colors = [c for c in colors if c not in neutrals]
             
             if bold_colors and neutrals:
-                # Pop of color strategy
-                if len(bold_colors) == 1:
+                # Only say "pop of color" if the actual generation strategy was color_pop
+                # Otherwise, use more generic language
+                if len(bold_colors) == 1 and actual_strategy and 'color_pop' in str(actual_strategy).lower():
+                    # This outfit was actually generated using the color_pop strategy (8% of outfits)
                     analysis["colorStrategy"] = {
                         "insight": f"{bold_colors[0]['color'].title()} {bold_colors[0]['type']} provides a pop of color against neutral base",
+                        "popColor": bold_colors[0]['color'],
+                        "popItem": bold_colors[0]['type'],
+                        "neutrals": [n['type'] for n in neutrals],
+                        "strategy": "color_pop"
+                    }
+                elif len(bold_colors) == 1:
+                    # Has one bold color but wasn't generated with color_pop strategy
+                    analysis["colorStrategy"] = {
+                        "insight": f"{bold_colors[0]['color'].title()} {bold_colors[0]['type']} adds vibrant contrast to the neutral {', '.join([n['type'] for n in neutrals[:2]])}",
                         "popColor": bold_colors[0]['color'],
                         "popItem": bold_colors[0]['type'],
                         "neutrals": [n['type'] for n in neutrals]

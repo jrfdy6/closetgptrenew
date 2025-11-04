@@ -305,8 +305,20 @@ async def generate_personalized_outfit_from_existing_data(
                 outfit_analysis = None
                 try:
                     from ..utils.outfit_analysis import generate_outfit_analysis
+                    # Prepare metadata to pass to analysis (includes strategy info)
+                    analysis_metadata = {
+                        "generated_by": "robust_service_6d_scoring",
+                        "generation_strategy": "robust_6d_with_diversity",
+                        # Check if robust_outfit has specific strategy info
+                        "strategy": getattr(robust_outfit, 'strategy', None) or getattr(robust_outfit, 'selected_strategy', None)
+                    }
                     logger.info(f"🎨 Generating outfit analysis for {len(outfit_items)} items")
-                    outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': getattr(robust_outfit, 'confidence_score', 0.85)})
+                    outfit_analysis = await generate_outfit_analysis(
+                        outfit_items, 
+                        req, 
+                        {'total_score': getattr(robust_outfit, 'confidence_score', 0.85)},
+                        metadata=analysis_metadata
+                    )
                     logger.info(f"✅ Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
                 except Exception as analysis_error:
                     logger.error(f"❌ Outfit analysis failed: {analysis_error}")
@@ -553,8 +565,19 @@ async def generate_personalized_outfit_from_existing_data(
             outfit_analysis = None
             try:
                 from ..utils.outfit_analysis import generate_outfit_analysis
+                # Simple fallback doesn't use color_pop strategy
+                analysis_metadata = {
+                    "generated_by": "existing_data_personalization",
+                    "generation_strategy": "occasion_matched",
+                    "strategy": None  # Simple fallback doesn't have specific strategy
+                }
                 logger.info(f"🎨 [SIMPLE] Generating outfit analysis for {len(outfit_items)} items")
-                outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': 0.95})
+                outfit_analysis = await generate_outfit_analysis(
+                    outfit_items, 
+                    req, 
+                    {'total_score': 0.95},
+                    metadata=analysis_metadata
+                )
                 logger.info(f"✅ [SIMPLE] Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
             except Exception as analysis_error:
                 logger.error(f"❌ [SIMPLE] Outfit analysis failed: {analysis_error}")
