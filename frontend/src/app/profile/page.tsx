@@ -9,9 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { User, Save, Palette, Heart, Settings, Sparkles } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
-import BottomNav from '@/components/BottomNav';
-import FloatingActionButton from '@/components/FloatingActionButton';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const BottomNav = dynamic(() => import('@/components/BottomNav'), {
+  ssr: false
+});
+
+const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
+  ssr: false
+});
 
 console.log('🔍 DEBUG: Profile page file loaded');
 

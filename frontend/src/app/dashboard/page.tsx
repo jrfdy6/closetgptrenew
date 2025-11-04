@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
-import FloatingActionButton from "@/components/FloatingActionButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -49,6 +47,14 @@ const ForgottenGems = dynamic(() => import('@/components/ForgottenGems'), {
 const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), {
   ssr: false,
   loading: () => <div className="animate-pulse space-y-4">Loading upload component...</div>
+});
+
+const BottomNav = dynamic(() => import('@/components/BottomNav'), {
+  ssr: false
+});
+
+const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
+  ssr: false
 });
 
 

@@ -1,9 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import Navigation from '@/components/Navigation';
-import BottomNav from '@/components/BottomNav';
-import FloatingActionButton from '@/components/FloatingActionButton';
 import OutfitGrid from '@/components/OutfitGrid';
+
+const BottomNav = dynamic(() => import('@/components/BottomNav'), {
+  ssr: false
+});
+
+const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
+  ssr: false
+});
 
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {
