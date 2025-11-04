@@ -40,6 +40,7 @@ class PersonalizationDemoResponse(BaseModel):
     generation_mode: str
     generation_strategy: str
     metadata: Dict[str, Any]
+    outfitAnalysis: Optional[Dict[str, Any]] = None  # Add detailed outfit analysis
 
 class PersonalizationStatusResponse(BaseModel):
     """Personalization status response model."""

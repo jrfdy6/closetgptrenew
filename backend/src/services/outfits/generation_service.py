@@ -295,6 +295,16 @@ class OutfitGenerationService:
                 logger.info(f"✅ Successfully converted robust outfit to expected format")
                 logger.info(f"✅ Outfit has {len(outfit.get('items', []))} items")
             
+            # Generate detailed outfit analysis for education module
+            try:
+                from src.routes.outfits import generate_outfit_analysis
+                outfit_analysis = await generate_outfit_analysis(outfit['items'], req, {'total_score': outfit['confidence_score']})
+                outfit['outfitAnalysis'] = outfit_analysis
+                logger.info(f"✅ Generated outfit analysis with insights")
+            except Exception as analysis_error:
+                logger.error(f"Outfit analysis failed: {analysis_error}")
+                outfit['outfitAnalysis'] = None
+            
             # Ensure base item is included
             if req.baseItemId:
                 outfit = ensure_base_item_included(outfit, req.baseItemId, wardrobe_items)

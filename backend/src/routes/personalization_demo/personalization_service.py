@@ -123,6 +123,7 @@ class PersonalizationService:
                 data_source="personalization_demo",
                 generation_mode=req.generation_mode,
                 generation_strategy=generation_strategy,
+                outfitAnalysis=outfit_data.get("outfitAnalysis"),  # Pass through outfit analysis
                 metadata={
                     **outfit_data.get("metadata", {}),
                     "generation_time": time.time() - start_time,
