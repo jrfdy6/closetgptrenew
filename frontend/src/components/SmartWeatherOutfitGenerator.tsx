@@ -679,17 +679,17 @@ export function SmartWeatherOutfitGenerator({
         <div className="space-y-4">
           {weatherLoading ? (
             <div className="flex items-center justify-center py-8">
-              <RefreshCw className="h-6 w-6 animate-spin text-blue-500 mr-3" />
+              <RefreshCw className="h-6 w-6 animate-spin text-amber-500 mr-3" />
               <span className="text-stone-600 dark:text-stone-400">Getting your weather...</span>
             </div>
           ) : weather ? (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white/50 dark:bg-black/20 rounded-full flex items-center justify-center">
                     {weather.condition.toLowerCase().includes('clear') || weather.condition.toLowerCase().includes('sun') ? 
                       <Sun className="h-6 w-6 text-yellow-500" /> : 
-                      <Cloud className="h-6 w-6 text-blue-500" />
+                      <Cloud className="h-6 w-6 text-amber-500" />
                     }
                   </div>
                   <div>
@@ -721,7 +721,7 @@ export function SmartWeatherOutfitGenerator({
               
               {/* Weather Recommendations */}
               {recommendations.length > 0 && (
-                <div className="border-t border-blue-200 dark:border-blue-700 pt-4">
+                <div className="border-t border-amber-200 dark:border-amber-700 pt-4">
                   <h4 className="text-sm font-medium text-stone-700 dark:text-stone-300 mb-2">
                     Weather Recommendations:
                   </h4>
@@ -878,7 +878,7 @@ export function SmartWeatherOutfitGenerator({
               )}
               
               {/* Weather Advisory */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                     <Eye className="h-3 w-3 text-white" />
@@ -954,7 +954,7 @@ export function SmartWeatherOutfitGenerator({
                 </div>
               ) : isGeneratingOutfit ? (
                 <div className="text-stone-600 dark:text-stone-400 mb-4">
-                  <RefreshCw className="h-8 w-8 mx-auto mb-3 text-blue-500 animate-spin" />
+                  <RefreshCw className="h-8 w-8 mx-auto mb-3 text-amber-500 animate-spin" />
                   <p>Generating today's perfect weather outfit...</p>
                 </div>
               ) : (
