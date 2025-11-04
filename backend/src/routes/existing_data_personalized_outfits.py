@@ -303,10 +303,14 @@ async def generate_personalized_outfit_from_existing_data(
                 # Generate detailed outfit analysis for education module
                 outfit_analysis = None
                 try:
-                    # Import from the outfits.py file (not the outfits/ package)
-                    import importlib
-                    outfits_module = importlib.import_module('src.routes.outfits')
-                    generate_outfit_analysis = getattr(outfits_module, 'generate_outfit_analysis')
+                    # Import from the outfits.py FILE directly (not the outfits/ package)
+                    import importlib.util
+                    import os
+                    outfits_file_path = os.path.join(os.path.dirname(__file__), 'outfits.py')
+                    spec = importlib.util.spec_from_file_location("outfits_module", outfits_file_path)
+                    outfits_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(outfits_module)
+                    generate_outfit_analysis = outfits_module.generate_outfit_analysis
                     logger.info(f"🎨 Generating outfit analysis for {len(outfit_items)} items")
                     outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': getattr(robust_outfit, 'confidence_score', 0.85)})
                     logger.info(f"✅ Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
@@ -554,15 +558,21 @@ async def generate_personalized_outfit_from_existing_data(
             # Generate detailed outfit analysis for simple fallback too
             outfit_analysis = None
             try:
-                # Import from the outfits.py file (not the outfits/ package)
-                import importlib
-                outfits_module = importlib.import_module('src.routes.outfits')
-                generate_outfit_analysis = getattr(outfits_module, 'generate_outfit_analysis')
+                # Import from the outfits.py FILE directly (not the outfits/ package)
+                import importlib.util
+                import os
+                outfits_file_path = os.path.join(os.path.dirname(__file__), 'outfits.py')
+                spec = importlib.util.spec_from_file_location("outfits_module", outfits_file_path)
+                outfits_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(outfits_module)
+                generate_outfit_analysis = outfits_module.generate_outfit_analysis
                 logger.info(f"🎨 [SIMPLE] Generating outfit analysis for {len(outfit_items)} items")
                 outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': 0.95})
                 logger.info(f"✅ [SIMPLE] Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
             except Exception as analysis_error:
                 logger.error(f"❌ [SIMPLE] Outfit analysis failed: {analysis_error}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
             
             existing_result = {
                 "id": f"outfit_{int(time.time())}",
