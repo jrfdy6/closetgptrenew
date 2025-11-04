@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import ClientOnlyNav from "@/components/ClientOnlyNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,14 +48,7 @@ const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), 
   loading: () => <div className="animate-pulse space-y-4">Loading batch upload...</div>
 });
 
-// Temporarily removed to fix Vercel build
-// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-//   ssr: false
-// });
-
-// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-//   ssr: false
-// });
+// Navigation now handled via ClientOnlyNav wrapper
 
 
 
@@ -885,12 +879,11 @@ export default function WardrobePage() {
         </div>
       )}
       
-      {/* Temporarily removed to fix Vercel build */}
-      {/* <BottomNav /> */}
-      {/* <FloatingActionButton 
-        onClick={() => router.push('/outfits/generate')}
-        ariaLabel="Generate outfit from your wardrobe"
-      /> */}
+      {/* Client-Only Navigation - Fixed SSR Issue */}
+      <ClientOnlyNav
+        onFabClick={() => router.push('/outfits/generate')}
+        fabLabel="Generate outfit from your wardrobe"
+      />
     </div>
   );
 }

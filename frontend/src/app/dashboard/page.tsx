@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
+import ClientOnlyNav from "@/components/ClientOnlyNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -49,15 +50,7 @@ const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), 
   loading: () => <div className="animate-pulse space-y-4">Loading upload component...</div>
 });
 
-// Temporarily removed BottomNav and FAB to fix Vercel build
-// Will re-add after investigating SSR issue
-// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-//   ssr: false
-// });
-
-// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-//   ssr: false
-// });
+// Navigation now handled via ClientOnlyNav wrapper
 
 
 export default function Dashboard() {
@@ -735,12 +728,13 @@ export default function Dashboard() {
 
       </main>
       
-      {/* Temporarily removed BottomNav and FAB to fix Vercel build */}
-      {/* <BottomNav /> */}
-      {/* <FloatingActionButton 
-        onClick={() => window.location.href = '/outfits/generate'}
-        ariaLabel="Generate outfit for today"
-      /> */}
+      {/* Client-Only Navigation - Fixed SSR Issue */}
+      <ClientOnlyNav
+        onFabClick={() => {
+          window.location.href = '/outfits/generate';
+        }}
+        fabLabel="Generate outfit for today"
+      />
     </div>
   );
 }

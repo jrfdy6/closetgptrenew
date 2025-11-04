@@ -9,17 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { User, Save, Palette, Heart, Settings, Sparkles } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
+import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
-
-// Temporarily removed to fix Vercel build
-// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-//   ssr: false
-// });
-
-// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-//   ssr: false
-// });
 
 console.log('🔍 DEBUG: Profile page file loaded');
 
@@ -749,12 +740,11 @@ export default function ProfilePage() {
 
       </div>
       
-      {/* Temporarily removed to fix Vercel build */}
-      {/* <BottomNav /> */}
-      {/* <FloatingActionButton 
-        onClick={() => router.push('/outfits/generate')}
-        ariaLabel="Generate outfit"
-      /> */}
+      {/* Client-Only Navigation - Fixed SSR Issue */}
+      <ClientOnlyNav
+        onFabClick={() => router.push('/outfits/generate')}
+        fabLabel="Generate outfit"
+      />
     </div>
   );
 }

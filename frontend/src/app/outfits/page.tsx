@@ -2,16 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Navigation from '@/components/Navigation';
+import ClientOnlyNav from '@/components/ClientOnlyNav';
 import OutfitGrid from '@/components/OutfitGrid';
-
-// Temporarily removed to fix Vercel build
-// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-//   ssr: false
-// });
-
-// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-//   ssr: false
-// });
 
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {
@@ -75,12 +67,13 @@ export default function OutfitsPage() {
         />
       </main>
       
-      {/* Temporarily removed to fix Vercel build */}
-      {/* <BottomNav /> */}
-      {/* <FloatingActionButton 
-        onClick={() => window.location.href = '/outfits/generate'}
-        ariaLabel="Generate new outfit"
-      /> */}
+      {/* Client-Only Navigation - Fixed SSR Issue */}
+      <ClientOnlyNav
+        onFabClick={() => {
+          window.location.href = '/outfits/generate';
+        }}
+        fabLabel="Generate new outfit"
+      />
     </div>
   );
 }
