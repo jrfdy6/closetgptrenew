@@ -13,6 +13,9 @@ import BottomNav from '@/components/BottomNav';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import { useRouter } from 'next/navigation';
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
+
 console.log('🔍 DEBUG: Profile page file loaded');
 
 interface UserProfile {

@@ -31,8 +31,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${inter.className}`}>
+        {/* Skip to content link for keyboard users */}
+        <a href="#main-content" className="skip-to-content">
+          Skip to main content
+        </a>
+        
         <Providers>
-          {children}
+          <div id="main-content">
+            {children}
+          </div>
           <ToastContainer />
         </Providers>
       </body>

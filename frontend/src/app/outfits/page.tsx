@@ -1,16 +1,12 @@
 import React from 'react';
-import { Metadata } from 'next';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import BottomNav from '@/components/BottomNav';
 import FloatingActionButton from '@/components/FloatingActionButton';
 import OutfitGrid from '@/components/OutfitGrid';
 
-// ===== METADATA =====
-export const metadata: Metadata = {
-  title: 'My Outfits | Easy Outfit App',
-  description: 'View and manage your curated outfits',
-};
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
 
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {

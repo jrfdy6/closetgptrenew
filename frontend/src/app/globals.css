@@ -55,6 +55,92 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
   }
+  
+  /* Accessibility: Reduce Motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    
+    /* Keep essential transitions but remove decorative animations */
+    .animate-breathe,
+    .animate-float-in-right,
+    .animate-float-in-left,
+    .animate-float-in-top,
+    .animate-float-in-bottom {
+      animation: none !important;
+    }
+  }
+  
+  /* Accessibility: High Contrast Mode */
+  .high-contrast {
+    --border: 20 0% 20%;
+    --ring: 38 100% 50%;
+  }
+  
+  .high-contrast .dark {
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 10%;
+    --border: 0 0% 30%;
+  }
+  
+  .high-contrast button,
+  .high-contrast a {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+  
+  /* Accessibility: Large Text */
+  .large-text {
+    font-size: 18px;
+  }
+  
+  .large-text .heading-xl {
+    @apply text-[40px] sm:text-[48px];
+  }
+  
+  .large-text .heading-lg {
+    @apply text-[30px] sm:text-[36px];
+  }
+  
+  .large-text .text-body {
+    @apply text-base sm:text-lg;
+  }
+  
+  /* Enhanced Focus Indicators for Keyboard Navigation */
+  button:focus-visible,
+  a:focus-visible,
+  [role="button"]:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  
+  /* Skip to content link for accessibility */
+  .skip-to-content {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 9999;
+  }
+  
+  .skip-to-content:focus {
+    top: 8px;
+    left: 8px;
+  }
 }
 
 @keyframes fadeIn {
