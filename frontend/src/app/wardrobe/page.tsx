@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
+import FloatingActionButton from "@/components/FloatingActionButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -280,7 +282,7 @@ export default function WardrobePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
       
       {/* Header with Glass Effect */}
@@ -308,8 +310,8 @@ export default function WardrobePage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content - Bottom padding for nav */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         
         
 
@@ -910,6 +912,15 @@ export default function WardrobePage() {
           </div>
         </div>
       )}
+      
+      {/* Bottom Navigation */}
+      <BottomNav />
+      
+      {/* Floating Action Button - Generate Outfit */}
+      <FloatingActionButton 
+        onClick={() => router.push('/outfits/generate')}
+        ariaLabel="Generate outfit from your wardrobe"
+      />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import React from 'react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+import BottomNav from '@/components/BottomNav';
+import FloatingActionButton from '@/components/FloatingActionButton';
 import OutfitGrid from '@/components/OutfitGrid';
 
 // ===== METADATA =====
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
       
       {/* Header with Glass Effect */}
@@ -52,8 +54,8 @@ export default function OutfitsPage() {
         </div>
       </div>
       
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content - Bottom padding for nav */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         {/* 
           OutfitGrid Component: Handles UI rendering and user interactions
           This follows the established wardrobe service architecture pattern:
@@ -71,6 +73,15 @@ export default function OutfitsPage() {
           maxOutfits={1000}
         />
       </main>
+      
+      {/* Bottom Navigation */}
+      <BottomNav />
+      
+      {/* Floating Action Button - Generate Outfit */}
+      <FloatingActionButton 
+        onClick={() => window.location.href = '/outfits/generate'}
+        ariaLabel="Generate new outfit"
+      />
     </div>
   );
 }

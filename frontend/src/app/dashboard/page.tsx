@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
+import FloatingActionButton from "@/components/FloatingActionButton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -56,6 +58,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [markingAsWorn, setMarkingAsWorn] = useState(false);
   const [showBatchUpload, setShowBatchUpload] = useState(false);
+  const [showOutfitGenerator, setShowOutfitGenerator] = useState(false);
   const { user, loading } = useAuthContext();
   
   // Weather hook for automatic location detection
@@ -277,8 +280,8 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
       
-      {/* Main Content - Mobile Optimized */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      {/* Main Content - Mobile Optimized - Bottom padding for nav */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12 pb-24">
         
         {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
@@ -723,6 +726,19 @@ export default function Dashboard() {
         )}
 
       </main>
+      
+      {/* Bottom Navigation */}
+      <BottomNav />
+      
+      {/* Floating Action Button - Generate Outfit */}
+      <FloatingActionButton 
+        onClick={() => {
+          // For now, navigate to outfit generation
+          // Later: Open progressive reveal modal
+          window.location.href = '/outfits/generate';
+        }}
+        ariaLabel="Generate outfit for today"
+      />
     </div>
   );
 }

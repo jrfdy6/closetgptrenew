@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { User, Save, Palette, Heart, Settings, Sparkles } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
+import BottomNav from '@/components/BottomNav';
+import FloatingActionButton from '@/components/FloatingActionButton';
 import { useRouter } from 'next/navigation';
 
 console.log('🔍 DEBUG: Profile page file loaded');
@@ -413,9 +415,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
-      <div className="container mx-auto p-8">
+      <div className="container mx-auto p-8 pb-24">
       <div className="flex items-center justify-between mb-12">
         <div>
           <h1 className="text-4xl font-serif font-bold text-stone-900 dark:text-stone-100 mb-4">My Profile</h1>
@@ -738,6 +740,15 @@ export default function ProfilePage() {
       )}
 
       </div>
+      
+      {/* Bottom Navigation */}
+      <BottomNav />
+      
+      {/* Floating Action Button - Generate Outfit */}
+      <FloatingActionButton 
+        onClick={() => router.push('/outfits/generate')}
+        ariaLabel="Generate outfit"
+      />
     </div>
   );
 }
