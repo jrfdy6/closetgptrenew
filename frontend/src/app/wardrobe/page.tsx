@@ -35,6 +35,7 @@ import { formatLastWorn } from "@/lib/utils/dateUtils";
 import WardrobeItemDetails from "@/components/WardrobeItemDetails";
 import WardrobeGridSimple from "@/components/WardrobeGridSimple";
 import WardrobeItemBottomSheet from "@/components/WardrobeItemBottomSheet";
+import FilterPills from "@/components/FilterPills";
 import dynamic from 'next/dynamic';
 
 // Dynamically import components to avoid SSR issues
@@ -318,99 +319,48 @@ export default function WardrobePage() {
         
         
 
-        {/* Filters and Search */}
-        <Card className="mb-8 glass-card">
-          <CardContent className="pt-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search items..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Type Filter */}
-              <Select value={selectedType} onValueChange={handleTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {getUniqueValues('type').map(type => (
-                    <SelectItem key={type} value={type}>
-                      {getTypeIcon(type)} {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Color Filter */}
-              <Select value={selectedColor} onValueChange={handleColorFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Colors" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Colors</SelectItem>
-                  {getUniqueValues('color').map(color => (
-                    <SelectItem key={color} value={color}>
-                      <span className={`inline-block w-3 h-3 rounded-full mr-2 ${getColorBadge(color)}`}></span>
-                      {color.charAt(0).toUpperCase() + color.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Season Filter */}
-              <Select value={selectedSeason} onValueChange={handleSeasonFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Seasons" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Seasons</SelectItem>
-                  <SelectItem value="spring">🌸 Spring</SelectItem>
-                  <SelectItem value="summer">☀️ Summer</SelectItem>
-                  <SelectItem value="fall">🍂 Fall</SelectItem>
-                  <SelectItem value="winter">❄️ Winter</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* View Mode Toggle */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={viewMode === "grid" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
-                >
-                  <Grid3X3 className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                >
-                  <List className="w-4 h-4" />
-                </Button>
-              </div>
-
-              {/* Clear Filters */}
-              {(selectedType !== 'all' || selectedColor !== 'all' || selectedSeason !== 'all' || searchQuery) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearFilters}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Clear
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Always-Visible Filter Pills - Phase 2 Design */}
+        <FilterPills
+          filters={[
+            {
+              label: "Type",
+              options: [
+                { value: "all", label: "All" },
+                ...getUniqueValues('type').map(type => ({
+                  value: type,
+                  label: type.charAt(0).toUpperCase() + type.slice(1)
+                }))
+              ],
+              selected: selectedType,
+              onChange: handleTypeFilter
+            },
+            {
+              label: "Color",
+              options: [
+                { value: "all", label: "All" },
+                ...getUniqueValues('color').map(color => ({
+                  value: color,
+                  label: color.charAt(0).toUpperCase() + color.slice(1)
+                }))
+              ],
+              selected: selectedColor,
+              onChange: handleColorFilter
+            },
+            {
+              label: "Season",
+              options: [
+                { value: "all", label: "All" },
+                { value: "spring", label: "Spring" },
+                { value: "summer", label: "Summer" },
+                { value: "fall", label: "Fall" },
+                { value: "winter", label: "Winter" }
+              ],
+              selected: selectedSeason,
+              onChange: handleSeasonFilter
+            }
+          ]}
+          onClearAll={handleClearFilters}
+        />
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
