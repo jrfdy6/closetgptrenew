@@ -300,12 +300,25 @@ async def generate_personalized_outfit_from_existing_data(
                 
                 logger.warning(f"✅ ROBUST SERVICE: Generated outfit with {len(outfit_items)} items")
                 
+                # Generate detailed outfit analysis for education module
+                outfit_analysis = None
+                try:
+                    from src.routes.outfits import generate_outfit_analysis
+                    logger.info(f"🎨 Generating outfit analysis for {len(outfit_items)} items")
+                    outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': getattr(robust_outfit, 'confidence_score', 0.85)})
+                    logger.info(f"✅ Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
+                except Exception as analysis_error:
+                    logger.error(f"❌ Outfit analysis failed: {analysis_error}")
+                    import traceback
+                    logger.error(f"Traceback: {traceback.format_exc()}")
+                
                 # Use robust result
                 existing_result = {
                     "id": f"outfit_{int(time.time())}",
                     "name": f"{req.style} {req.occasion} Outfit",
                     "items": outfit_items,
                     "confidence_score": getattr(robust_outfit, 'confidence_score', 0.85),
+                    "outfitAnalysis": outfit_analysis,  # Add detailed analysis
                     "metadata": {
                         "generated_by": "robust_service_6d_scoring",
                         "occasion": req.occasion,
@@ -535,11 +548,22 @@ async def generate_personalized_outfit_from_existing_data(
             
             logger.info(f"✅ Selected {len(outfit_items)} items from user's actual wardrobe with diversity scoring")
             
+            # Generate detailed outfit analysis for simple fallback too
+            outfit_analysis = None
+            try:
+                from src.routes.outfits import generate_outfit_analysis
+                logger.info(f"🎨 [SIMPLE] Generating outfit analysis for {len(outfit_items)} items")
+                outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': 0.95})
+                logger.info(f"✅ [SIMPLE] Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
+            except Exception as analysis_error:
+                logger.error(f"❌ [SIMPLE] Outfit analysis failed: {analysis_error}")
+            
             existing_result = {
                 "id": f"outfit_{int(time.time())}",
                 "name": f"{req.style} {req.occasion} Outfit",
                 "items": outfit_items,
             "confidence_score": 0.95,
+            "outfitAnalysis": outfit_analysis,  # Add detailed analysis
             "metadata": {
                 "generated_by": "existing_data_personalization",
                 "occasion": req.occasion,
@@ -588,6 +612,7 @@ async def generate_personalized_outfit_from_existing_data(
             "personalization_applied": (existing_result.get("personalization_applied", False) if existing_result else False),
             "user_interactions": preference.total_interactions,
             "data_source": (existing_result.get("data_source", "existing_data") if existing_result else "existing_data"),
+            "outfitAnalysis": (existing_result.get("outfitAnalysis") if existing_result else None),  # Pass through outfit analysis
             "metadata": {
                 **(existing_result.get("metadata", {}) if existing_result else {}),
                 "generation_time": time.time() - start_time,
