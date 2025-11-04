@@ -32,6 +32,9 @@ import OutfitGenerationForm from '@/components/ui/outfit-generation-form';
 import OutfitResultsDisplay from '@/components/ui/outfit-results-display';
 import { OutfitGenerating, WardrobeLoading } from '@/components/ui/outfit-loading';
 import StyleEducationModule from '@/components/ui/style-education-module';
+// Phase 2: Progressive Reveal Components
+import OutfitRevealAnimation from '@/components/OutfitRevealAnimation';
+import SwipeableOutfitCard from '@/components/SwipeableOutfitCard';
 
 interface OutfitGenerationForm {
   occasion: string;
@@ -201,6 +204,8 @@ export default function OutfitGenerationPage() {
   const [generating, setGenerating] = useState(false);
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showRevealAnimation, setShowRevealAnimation] = useState(false);
+  const [showSwipeableCard, setShowSwipeableCard] = useState(false);
   const [outfitRating, setOutfitRating] = useState<OutfitRating>({
     rating: 0,
     isLiked: false,
@@ -349,6 +354,8 @@ export default function OutfitGenerationPage() {
 
     try {
       setGenerating(true);
+      setShowRevealAnimation(true);
+      setShowSwipeableCard(false);
       setError(null);
       
       // Get Firebase ID token for authentication
@@ -957,7 +964,18 @@ export default function OutfitGenerationPage() {
               />
               </>
             ) : generating ? (
-              <OutfitGenerating />
+              <>
+                {/* Phase 2: Progressive Reveal Animation */}
+                <OutfitRevealAnimation
+                  isGenerating={generating}
+                  onComplete={() => {
+                    setShowRevealAnimation(false);
+                    setShowSwipeableCard(true);
+                  }}
+                />
+                {/* Fallback: Old loading component */}
+                {!showRevealAnimation && <OutfitGenerating />}
+              </>
             ) : (
               <Card className="border-dashed">
                 <CardContent className="p-12 text-center">
@@ -972,6 +990,38 @@ export default function OutfitGenerationPage() {
           </div>
         </div>
       </div>
+
+      {/* Phase 2: Swipeable Outfit Card Overlay */}
+      {showSwipeableCard && generatedOutfit && (
+        <SwipeableOutfitCard
+          outfit={{
+            id: generatedOutfit.id,
+            name: generatedOutfit.name,
+            occasion: generatedOutfit.occasion,
+            mood: generatedOutfit.mood,
+            items: generatedOutfit.items || [],
+            imageUrl: generatedOutfit.imageUrl
+          }}
+          onSave={(outfit) => {
+            // Save outfit logic here
+            console.log('💾 Saving outfit:', outfit);
+            // The micro-interaction (haptic + chime + toast) is handled inside SwipeableOutfitCard
+          }}
+          onNext={() => {
+            // Generate next outfit
+            setShowSwipeableCard(false);
+            handleRegenerate();
+          }}
+          onRemix={() => {
+            // Remix current outfit
+            setShowSwipeableCard(false);
+            handleRegenerate();
+          }}
+          onClose={() => {
+            setShowSwipeableCard(false);
+          }}
+        />
+      )}
     </div>
   );
 }
