@@ -787,9 +787,9 @@ export function SmartWeatherOutfitGenerator({
           </div>
 
           {generatedOutfit ? (
-            <div className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-900/20 dark:to-blue-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-6">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center">
                   <Shirt className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1">
@@ -801,7 +801,7 @@ export function SmartWeatherOutfitGenerator({
                   </p>
                 </div>
                 {generatedOutfit.isWorn && (
-                  <div className="flex items-center gap-1 text-emerald-600">
+                  <div className="flex items-center gap-1 text-amber-600">
                     <CheckCircle className="h-4 w-4" />
                     <span className="text-xs font-medium">Worn</span>
                   </div>
@@ -895,10 +895,10 @@ export function SmartWeatherOutfitGenerator({
               </div>
               
               {/* Wear Outfit Button */}
-              <div className="flex items-center justify-between pt-4 border-t border-emerald-200 dark:border-emerald-700">
+              <div className="flex items-center justify-between pt-4 border-t border-amber-200 dark:border-amber-700">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-emerald-600" />
-                  <span className="text-sm text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle className="h-4 w-4 text-amber-600" />
+                  <span className="text-sm text-amber-700 dark:text-amber-300">
                     Confidence: {Math.round((generatedOutfit.confidence || 0.9) * 100)}%
                   </span>
                 </div>
@@ -921,8 +921,8 @@ export function SmartWeatherOutfitGenerator({
                     disabled={isWearingOutfit || generatedOutfit.isWorn}
                     className={`${
                       generatedOutfit.isWorn 
-                        ? 'bg-green-600 hover:bg-green-700 text-white' 
-                        : 'bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white'
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                        : 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white'
                     }`}
                   >
                     {isWearingOutfit ? (
