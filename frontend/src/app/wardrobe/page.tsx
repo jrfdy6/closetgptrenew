@@ -879,11 +879,8 @@ export default function WardrobePage() {
         </div>
       )}
       
-      {/* Client-Only Navigation - Fixed SSR Issue */}
-      <ClientOnlyNav
-        onFabClick={() => router.push('/outfits/generate')}
-        fabLabel="Generate outfit from your wardrobe"
-      />
+      {/* Client-Only Navigation - No Props to Avoid Serialization */}
+      <ClientOnlyNav />
     </div>
   );
 }

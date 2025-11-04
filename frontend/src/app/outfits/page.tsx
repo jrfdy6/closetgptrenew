@@ -67,13 +67,8 @@ export default function OutfitsPage() {
         />
       </main>
       
-      {/* Client-Only Navigation - Fixed SSR Issue */}
-      <ClientOnlyNav
-        onFabClick={() => {
-          window.location.href = '/outfits/generate';
-        }}
-        fabLabel="Generate new outfit"
-      />
+      {/* Client-Only Navigation - No Props to Avoid Serialization */}
+      <ClientOnlyNav />
     </div>
   );
 }

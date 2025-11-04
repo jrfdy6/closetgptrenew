@@ -740,11 +740,8 @@ export default function ProfilePage() {
 
       </div>
       
-      {/* Client-Only Navigation - Fixed SSR Issue */}
-      <ClientOnlyNav
-        onFabClick={() => router.push('/outfits/generate')}
-        fabLabel="Generate outfit"
-      />
+      {/* Client-Only Navigation - No Props to Avoid Serialization */}
+      <ClientOnlyNav />
     </div>
   );
 }

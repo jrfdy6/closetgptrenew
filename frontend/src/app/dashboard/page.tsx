@@ -728,13 +728,8 @@ export default function Dashboard() {
 
       </main>
       
-      {/* Client-Only Navigation - Fixed SSR Issue */}
-      <ClientOnlyNav
-        onFabClick={() => {
-          window.location.href = '/outfits/generate';
-        }}
-        fabLabel="Generate outfit for today"
-      />
+      {/* Client-Only Navigation - No Props to Avoid Serialization */}
+      <ClientOnlyNav />
     </div>
   );
 }
