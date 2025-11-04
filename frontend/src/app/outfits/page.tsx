@@ -4,13 +4,14 @@ import dynamic from 'next/dynamic';
 import Navigation from '@/components/Navigation';
 import OutfitGrid from '@/components/OutfitGrid';
 
-const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-  ssr: false
-});
+// Temporarily removed to fix Vercel build
+// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
+//   ssr: false
+// });
 
-const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-  ssr: false
-});
+// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
+//   ssr: false
+// });
 
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {
@@ -74,14 +75,12 @@ export default function OutfitsPage() {
         />
       </main>
       
-      {/* Bottom Navigation */}
-      <BottomNav />
-      
-      {/* Floating Action Button - Generate Outfit */}
-      <FloatingActionButton 
+      {/* Temporarily removed to fix Vercel build */}
+      {/* <BottomNav /> */}
+      {/* <FloatingActionButton 
         onClick={() => window.location.href = '/outfits/generate'}
         ariaLabel="Generate new outfit"
-      />
+      /> */}
     </div>
   );
 }

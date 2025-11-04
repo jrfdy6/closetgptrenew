@@ -12,13 +12,14 @@ import Navigation from '@/components/Navigation';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-  ssr: false
-});
+// Temporarily removed to fix Vercel build
+// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
+//   ssr: false
+// });
 
-const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-  ssr: false
-});
+// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
+//   ssr: false
+// });
 
 console.log('🔍 DEBUG: Profile page file loaded');
 
@@ -748,14 +749,12 @@ export default function ProfilePage() {
 
       </div>
       
-      {/* Bottom Navigation */}
-      <BottomNav />
-      
-      {/* Floating Action Button - Generate Outfit */}
-      <FloatingActionButton 
+      {/* Temporarily removed to fix Vercel build */}
+      {/* <BottomNav /> */}
+      {/* <FloatingActionButton 
         onClick={() => router.push('/outfits/generate')}
         ariaLabel="Generate outfit"
-      />
+      /> */}
     </div>
   );
 }

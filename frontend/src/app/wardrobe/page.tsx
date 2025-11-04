@@ -47,13 +47,14 @@ const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), 
   loading: () => <div className="animate-pulse space-y-4">Loading batch upload...</div>
 });
 
-const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-  ssr: false
-});
+// Temporarily removed to fix Vercel build
+// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
+//   ssr: false
+// });
 
-const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-  ssr: false
-});
+// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
+//   ssr: false
+// });
 
 
 
@@ -884,14 +885,12 @@ export default function WardrobePage() {
         </div>
       )}
       
-      {/* Bottom Navigation */}
-      <BottomNav />
-      
-      {/* Floating Action Button - Generate Outfit */}
-      <FloatingActionButton 
+      {/* Temporarily removed to fix Vercel build */}
+      {/* <BottomNav /> */}
+      {/* <FloatingActionButton 
         onClick={() => router.push('/outfits/generate')}
         ariaLabel="Generate outfit from your wardrobe"
-      />
+      /> */}
     </div>
   );
 }

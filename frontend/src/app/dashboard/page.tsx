@@ -49,13 +49,15 @@ const BatchImageUpload = dynamic(() => import('@/components/BatchImageUpload'), 
   loading: () => <div className="animate-pulse space-y-4">Loading upload component...</div>
 });
 
-const BottomNav = dynamic(() => import('@/components/BottomNav'), {
-  ssr: false
-});
+// Temporarily removed BottomNav and FAB to fix Vercel build
+// Will re-add after investigating SSR issue
+// const BottomNav = dynamic(() => import('@/components/BottomNav'), {
+//   ssr: false
+// });
 
-const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
-  ssr: false
-});
+// const FloatingActionButton = dynamic(() => import('@/components/FloatingActionButton'), {
+//   ssr: false
+// });
 
 
 export default function Dashboard() {
@@ -733,18 +735,12 @@ export default function Dashboard() {
 
       </main>
       
-      {/* Bottom Navigation */}
-      <BottomNav />
-      
-      {/* Floating Action Button - Generate Outfit */}
-      <FloatingActionButton 
-        onClick={() => {
-          // For now, navigate to outfit generation
-          // Later: Open progressive reveal modal
-          window.location.href = '/outfits/generate';
-        }}
+      {/* Temporarily removed BottomNav and FAB to fix Vercel build */}
+      {/* <BottomNav /> */}
+      {/* <FloatingActionButton 
+        onClick={() => window.location.href = '/outfits/generate'}
         ariaLabel="Generate outfit for today"
-      />
+      /> */}
     </div>
   );
 }
