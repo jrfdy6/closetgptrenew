@@ -373,19 +373,19 @@ export default function EnhancedWardrobeGapAnalysis({
                       <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                         {shoppingRecommendations.shopping_strategy.total_items_needed}
                       </div>
-                      <div className="text-sm text-blue-600 dark:text-blue-400">Items Needed</div>
+                      <div className="text-sm text-amber-600 dark:text-amber-400">Items Needed</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                         {shoppingRecommendations.shopping_strategy.high_priority_items}
                       </div>
-                      <div className="text-sm text-blue-600 dark:text-blue-400">High Priority</div>
+                      <div className="text-sm text-amber-600 dark:text-amber-400">High Priority</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                         {formatPrice(shoppingRecommendations.shopping_strategy.estimated_total_cost)}
                       </div>
-                      <div className="text-sm text-blue-600 dark:text-blue-400">Total Cost</div>
+                      <div className="text-sm text-amber-600 dark:text-amber-400">Total Cost</div>
                     </div>
                   </div>
                 </div>

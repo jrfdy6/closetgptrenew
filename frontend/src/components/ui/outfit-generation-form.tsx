@@ -158,7 +158,7 @@ export default function OutfitGenerationForm({
                   >
                     <Icon className={`h-4 w-4 ${isCompleted ? 'text-green-600' : ''}`} />
                     <span className="text-sm font-medium">{step.label}</span>
-                    {isCompleted && <div className="w-2 h-2 bg-green-500 rounded-full" />}
+                    {isCompleted && <div className="w-2 h-2 bg-amber-500 rounded-full" />}
                   </button>
                   {index < steps.length - 1 && (
                     <ArrowRight className="h-4 w-4 text-gray-300 mx-2" />

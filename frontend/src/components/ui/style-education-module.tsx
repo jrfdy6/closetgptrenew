@@ -300,7 +300,7 @@ export default function StyleEducationModule({
                   <div className="space-y-2">
                     {outfitItems.map((item, index) => (
                       <div key={index} className="flex items-start gap-3 p-2 bg-white dark:bg-gray-800 rounded-lg">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                        <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0" />
                         <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
                             {item.name}
@@ -408,7 +408,7 @@ export default function StyleEducationModule({
                           <ul className="space-y-1">
                             {guide.tips.map((tip, index) => (
                               <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
+                                <div className="w-1.5 h-1.5 bg-amber-600 rounded-full mt-2 flex-shrink-0" />
                                 {tip}
                               </li>
                             ))}

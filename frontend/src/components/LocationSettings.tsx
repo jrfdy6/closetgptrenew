@@ -161,7 +161,7 @@ export function LocationSettings({ onLocationChange, className }: LocationSettin
         {savedLocation && (
           <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <CheckCircle className="h-4 w-4 text-green-500" />
-            <span className="text-sm text-green-600 dark:text-green-400">
+            <span className="text-sm text-amber-600 dark:text-amber-400">
               Location saved: {savedLocation}
             </span>
           </div>

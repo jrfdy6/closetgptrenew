@@ -194,7 +194,7 @@ export default function OutfitResultsDisplay({
           {outfit.reasoning && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Outfit Advisory</h4>
                   <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
@@ -218,7 +218,7 @@ export default function OutfitResultsDisplay({
                   <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
                     {outfit.score_breakdown.total_score}
                   </div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400">
+                  <div className="text-xs text-amber-600 dark:text-amber-400">
                     Grade: {outfit.score_breakdown.grade}
                   </div>
                 </div>
@@ -230,7 +230,7 @@ export default function OutfitResultsDisplay({
                   <div className="text-2xl font-bold text-green-800 dark:text-green-200">
                     {Math.round(outfit.confidence_score * 100)}%
                   </div>
-                  <div className="text-xs text-green-600 dark:text-green-400">
+                  <div className="text-xs text-amber-600 dark:text-amber-400">
                     {getConfidenceText(outfit.confidence_score)}
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function OutfitResultsDisplay({
                 </span>
               )}
               {ratingSubmitted && (
-                <span className="text-xs text-green-600 dark:text-green-400 ml-2">
+                <span className="text-xs text-amber-600 dark:text-amber-400 ml-2">
                   ✓ Submitted
                 </span>
               )}
@@ -343,7 +343,7 @@ export default function OutfitResultsDisplay({
 
             {ratingSubmitted && (
               <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
-                <p className="text-sm text-green-600 dark:text-green-400 text-center">
+                <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
                   ✓ Rating submitted! This helps improve future suggestions.
                 </p>
               </div>
@@ -351,7 +351,7 @@ export default function OutfitResultsDisplay({
 
             {isWorn && (
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
-                <p className="text-sm text-blue-600 dark:text-blue-400 text-center">
+                <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
                   ✓ Outfit marked as worn! Redirecting to outfits page...
                 </p>
               </div>
@@ -370,7 +370,7 @@ export default function OutfitResultsDisplay({
               </Button>
             ) : ratingSubmitted ? (
               <>
-                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
                   <Calendar className="h-4 w-4 mr-2" />
                   Wear This Outfit
                 </Button>
@@ -385,7 +385,7 @@ export default function OutfitResultsDisplay({
               </>
             ) : (
               <>
-                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+                <Button onClick={onWearOutfit} className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-green-700 hover:to-emerald-700">
                   <Calendar className="h-4 w-4 mr-2" />
                   Wear This Outfit
                 </Button>

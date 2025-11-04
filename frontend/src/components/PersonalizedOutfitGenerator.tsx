@@ -135,24 +135,24 @@ export default function PersonalizedOutfitGenerator({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {totalInteractions}
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">Interactions</div>
+              <div className="text-sm text-amber-600 dark:text-amber-400">Interactions</div>
             </div>
             
             <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="text-xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {personalizationStatus?.favorite_items_count || 0}
               </div>
-              <div className="text-sm text-green-600 dark:text-green-400">Favorites</div>
+              <div className="text-sm text-amber-600 dark:text-amber-400">Favorites</div>
             </div>
             
             <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {personalizationStatus?.most_worn_items_count || 0}
               </div>
-              <div className="text-sm text-purple-600 dark:text-purple-400">Most Worn</div>
+              <div className="text-sm text-amber-600 dark:text-amber-400">Most Worn</div>
             </div>
           </div>
 
@@ -310,7 +310,7 @@ export default function PersonalizedOutfitGenerator({
               {/* Personalization Info */}
               {generatedOutfit.personalization_applied && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">
+                  <div className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-2">
                     Personalization Applied
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">

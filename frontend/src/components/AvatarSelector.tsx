@@ -216,7 +216,7 @@ export default function AvatarSelector({ currentAvatar, onAvatarChange, initialG
           onClick={() => handleGenderChange("female")}
           className={`px-4 py-2 rounded ${
             selectedGender === "female" 
-              ? "bg-blue-500 text-white" 
+              ? "bg-orange-500 text-white" 
               : "bg-gray-200 text-gray-700"
           }`}
         >
@@ -226,7 +226,7 @@ export default function AvatarSelector({ currentAvatar, onAvatarChange, initialG
           onClick={() => handleGenderChange("male")}
           className={`px-4 py-2 rounded ${
             selectedGender === "male" 
-              ? "bg-blue-500 text-white" 
+              ? "bg-orange-500 text-white" 
               : "bg-gray-200 text-gray-700"
           }`}
         >
@@ -378,7 +378,7 @@ export default function AvatarSelector({ currentAvatar, onAvatarChange, initialG
           disabled={!currentAvatar}
           className={`px-6 py-2 rounded-lg font-medium ${
             currentAvatar
-              ? "bg-blue-500 text-white hover:bg-blue-600"
+              ? "bg-orange-500 text-white hover:bg-blue-600"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
         >

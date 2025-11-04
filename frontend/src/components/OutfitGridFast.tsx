@@ -221,14 +221,14 @@ function SummaryStats({ summary, loading }: { summary: any; loading: boolean }) 
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-1">Total Outfits</p>
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-1">Total Outfits</p>
               <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
                 {summary.total_outfits.toLocaleString()}
               </p>
               <p className="text-xs text-blue-500 dark:text-blue-400">Your complete collection</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-800/50 rounded-full flex items-center justify-center">
-              <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              <Zap className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </CardContent>
@@ -255,14 +255,14 @@ function SummaryStats({ summary, loading }: { summary: any; loading: boolean }) 
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-purple-600 dark:text-purple-400 mb-1">Recent</p>
+              <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-1">Recent</p>
               <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
                 {summary.recent_outfits?.length || 0}
               </p>
               <p className="text-xs text-purple-500 dark:text-purple-400">Latest additions</p>
             </div>
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-800/50 rounded-full flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <Calendar className="w-6 h-6 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </CardContent>

@@ -277,12 +277,12 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 relative overflow-hidden">
       {/* Enhanced Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-40 h-40 bg-purple-400/30 rounded-full blur-3xl"></div>
-        <div className="absolute top-40 right-20 w-32 h-32 bg-blue-400/25 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-emerald-400/20 rounded-full blur-2xl"></div>
+        <div className="absolute top-20 left-10 w-40 h-40 bg-amber-400/30 rounded-full blur-3xl"></div>
+        <div className="absolute top-40 right-20 w-32 h-32 bg-orange-400/25 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-32 left-1/4 w-28 h-28 bg-amber-400/20 rounded-full blur-2xl"></div>
         <div className="absolute bottom-20 right-1/3 w-36 h-36 bg-orange-400/25 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 w-60 h-60 bg-violet-400/15 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-rose-400/20 rounded-full blur-2xl"></div>
+        <div className="absolute top-1/2 left-1/2 w-60 h-60 bg-amber-400/15 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-orange-400/20 rounded-full blur-2xl"></div>
       </div>
       
       <Navigation />
@@ -293,7 +293,7 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-12 relative z-10">
           <div className="glass-card-hover glass-shadow-strong p-8 animate-fade-in">
-            <h1 className="text-5xl font-serif font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+            <h1 className="text-5xl font-serif font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent mb-4">
               Welcome back
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 font-light">
@@ -322,13 +322,13 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Total Items</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
+                  <p className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.totalItems || 0}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-500 font-light">In your wardrobe</p>
                 </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Shirt className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Shirt className="h-7 w-7 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </CardContent>
@@ -339,13 +339,13 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Favorites</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-1">
+                  <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.favorites || 0}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Loved items</p>
                 </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Heart className="h-7 w-7 text-pink-600 dark:text-pink-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Heart className="h-7 w-7 text-orange-600 dark:text-orange-400" />
                 </div>
               </div>
             </CardContent>
@@ -356,13 +356,13 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Style Goals</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-1">
+                  <p className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.styleGoalsCompleted || 0}/{dashboardData?.totalStyleGoals || 0}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Completed</p>
                 </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Target className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Target className="h-7 w-7 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </CardContent>
@@ -373,13 +373,13 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">This Week</p>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent mb-1">
+                  <p className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-1">
                     {dashboardData?.outfitsThisWeek || 0}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-500 font-light">Outfits worn</p>
                 </div>
-                <div className="w-14 h-14 bg-gradient-to-r from-purple-500/20 to-violet-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                  <Calendar className="h-7 w-7 text-purple-600 dark:text-purple-400" />
+                <div className="w-14 h-14 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <Calendar className="h-7 w-7 text-amber-600 dark:text-amber-400" />
                 </div>
               </div>
             </CardContent>
@@ -437,8 +437,8 @@ export default function Dashboard() {
                 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-blue-100 dark:from-emerald-900 dark:to-blue-900 rounded-lg flex items-center justify-center">
-                      <Shirt className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-lg flex items-center justify-center">
+                      <Shirt className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900 dark:text-white text-lg">
@@ -458,7 +458,7 @@ export default function Dashboard() {
                         <Button 
                           onClick={handleMarkAsWorn}
                           disabled={markingAsWorn}
-                          className="bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700 text-white"
+                          className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
                           size="sm"
                         >
                           {markingAsWorn ? (
@@ -469,7 +469,7 @@ export default function Dashboard() {
                           {markingAsWorn ? 'Marking...' : 'Wear This'}
                         </Button>
                       ) : (dashboardData.todaysOutfit as any).isWorn ? (
-                        <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        <Badge variant="default" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Worn Today
                         </Badge>
@@ -501,8 +501,8 @@ export default function Dashboard() {
                                     const parent = target.parentElement;
                                     if (parent) {
                                       parent.innerHTML = `
-                                        <div class="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center">
-                                          <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-md flex items-center justify-center">
+                                          <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                                           </svg>
                                         </div>
@@ -512,8 +512,8 @@ export default function Dashboard() {
                                 />
                               </div>
                             ) : (
-                              <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-md flex items-center justify-center flex-shrink-0">
-                                <Shirt className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-md flex items-center justify-center flex-shrink-0">
+                                <Shirt className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                               </div>
                             )}
                             <div className="flex-1">
@@ -537,8 +537,8 @@ export default function Dashboard() {
                 </div>
                 
                 {dashboardData.todaysOutfit.notes && (
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-blue-800 dark:text-blue-200 text-sm">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                    <p className="text-amber-800 dark:text-amber-200 text-sm">
                       💡 {dashboardData.todaysOutfit.notes}
                     </p>
                   </div>
@@ -549,8 +549,8 @@ export default function Dashboard() {
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 </p>
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900 dark:to-orange-900 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                 </div>
                 <p className="text-gray-500 dark:text-gray-500 mb-2 font-medium">
                   Smart Weather-Perfect Outfits
@@ -559,11 +559,11 @@ export default function Dashboard() {
                   Use the Smart Weather Outfit Generator above to get instant, location-based outfit recommendations that are perfect for today's weather!
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
                   <span>Automatic location detection</span>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full ml-3"></div>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full ml-3"></div>
                   <span>Real weather data</span>
-                  <div className="w-2 h-2 bg-purple-500 rounded-full ml-3"></div>
+                  <div className="w-2 h-2 bg-amber-600 rounded-full ml-3"></div>
                   <span>Perfect outfit matching</span>
                 </div>
               </div>
@@ -620,7 +620,7 @@ export default function Dashboard() {
                       </p>
                       
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400">
+                        <div className="flex items-center gap-1 text-sm text-amber-600 dark:text-amber-400">
                           <TrendingUp className="h-4 w-4" />
                           <span className="font-medium">{item.wearCount} wears</span>
                         </div>
@@ -643,8 +643,8 @@ export default function Dashboard() {
                 <p className="text-sm text-stone-600 dark:text-stone-500 mb-4">
                   Wear your wardrobe items to see your top performers here
                 </p>
-                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg max-w-md mx-auto">
-                  <p className="text-blue-800 dark:text-blue-200 text-sm">
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg max-w-md mx-auto">
+                  <p className="text-amber-800 dark:text-amber-200 text-sm">
                     💡 Tip: Add items to your wardrobe and use them in outfits to start seeing your top items!
                   </p>
                 </div>

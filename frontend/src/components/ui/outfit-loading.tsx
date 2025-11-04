@@ -108,9 +108,9 @@ export default function OutfitLoading({
                       </div>
                       <span className={`text-xs text-center ${
                         isActive 
-                          ? 'text-purple-600 dark:text-purple-400 font-medium' 
+                          ? 'text-amber-600 dark:text-amber-400 font-medium' 
                           : isCompleted
-                          ? 'text-green-600 dark:text-green-400'
+                          ? 'text-amber-600 dark:text-amber-400'
                           : 'text-gray-500 dark:text-gray-400'
                       }`}>
                         {step.text}

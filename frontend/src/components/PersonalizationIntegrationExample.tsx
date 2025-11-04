@@ -107,17 +107,17 @@ export default function PersonalizationIntegrationExample({
           {/* Status Overview */}
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {totalInteractions}
               </div>
-              <div className="text-sm text-blue-600 dark:text-blue-400">Interactions</div>
+              <div className="text-sm text-amber-600 dark:text-amber-400">Interactions</div>
             </div>
             
             <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="text-xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
                 {favoriteItemsCount + mostWornItemsCount}
               </div>
-              <div className="text-sm text-green-600 dark:text-green-400">Engaged Items</div>
+              <div className="text-sm text-amber-600 dark:text-amber-400">Engaged Items</div>
             </div>
           </div>
 
@@ -263,7 +263,7 @@ export default function PersonalizationIntegrationExample({
               {/* Personalization Info */}
               {generatedOutfit.personalization_applied && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-2">
+                  <div className="text-sm font-medium text-amber-600 dark:text-amber-400 mb-2">
                     Personalization Applied
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
