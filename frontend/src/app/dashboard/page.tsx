@@ -208,7 +208,7 @@ export default function Dashboard() {
   // Show loading state while authentication is resolving
   if (loading || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -226,7 +226,7 @@ export default function Dashboard() {
   // Show authentication required if no user
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -244,7 +244,7 @@ export default function Dashboard() {
   // Show error state if data fetching failed
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -274,7 +274,7 @@ export default function Dashboard() {
 
   // Main dashboard - user is authenticated and data is loaded
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 relative overflow-hidden">
       {/* Enhanced Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-40 h-40 bg-purple-400/30 rounded-full blur-3xl"></div>

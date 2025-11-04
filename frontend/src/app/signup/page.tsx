@@ -59,7 +59,7 @@ export default function SignUp() {
                      formData.password && formData.password === formData.confirmPassword;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4">
       <Card className="w-full max-w-md glass-float-hover glass-shadow-strong">
         <CardHeader className="text-center space-y-4 pb-8">
           <Link href="/" className="inline-flex items-center text-sm text-stone-600 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 mb-6 font-medium">

@@ -96,38 +96,38 @@
   }
  
   .dark {
-    --background: 28 35% 8%;
+    --background: 222 47% 4%;
     --foreground: 38 90% 95%;
  
-    --card: 28 30% 10%;
+    --card: 217 33% 7%;
     --card-foreground: 38 90% 95%;
  
-    --popover: 28 30% 10%;
+    --popover: 217 33% 7%;
     --popover-foreground: 38 90% 95%;
  
-    /* Primary: Amber (adjusted for dark mode) */
+    /* Primary: Amber (bright for dark mode contrast) */
     --primary: 38 85% 60%;
-    --primary-foreground: 28 20% 10%;
+    --primary-foreground: 222 47% 4%;
  
-    /* Secondary: Light Amber (adjusted for dark mode) */
+    /* Secondary: Light Amber */
     --secondary: 43 90% 65%;
-    --secondary-foreground: 28 20% 10%;
+    --secondary-foreground: 222 47% 4%;
  
-    --muted: 28 20% 18%;
+    --muted: 215 28% 15%;
     --muted-foreground: 38 15% 65%;
  
-    /* Accent: Warm Amber (adjusted for dark mode) */
+    /* Accent: Warm Amber */
     --accent: 33 85% 60%;
-    --accent-foreground: 28 20% 10%;
+    --accent-foreground: 222 47% 4%;
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 28 20% 20%;
-    --input: 28 20% 20%;
+    --border: 215 28% 18%;
+    --input: 215 28% 18%;
     --ring: 38 85% 60%;
     
-    /* Enhanced chart colors for dark mode with amber */
+    /* Enhanced chart colors for dark mode with amber accents */
     --chart-1: 38 85% 60%;
     --chart-2: 33 85% 60%;
     --chart-3: 43 90% 65%;
@@ -155,7 +155,7 @@
   }
   
   .dark body {
-    background: linear-gradient(135deg, #1c1410 0%, #27190d 25%, #1f1508 50%, #27190d 75%, #1f1508 100%);
+    background: linear-gradient(135deg, #0a0e14 0%, #0f1419 25%, #0c1015 50%, #0f1419 75%, #0c1015 100%);
   }
   
   button, 
@@ -198,17 +198,17 @@
     @apply max-w-screen-lg mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  /* Premium gradient backgrounds with amber tones */
+  /* Premium gradient backgrounds with amber tones (light) and charcoal (dark) */
   .gradient-hero {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950/20 dark:via-amber-900/20 dark:to-orange-950/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-gray-950/20 dark:via-slate-950/20 dark:to-gray-900/20;
   }
   
   .gradient-app-bg {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-amber-950 dark:via-amber-900/20 dark:via-orange-900/20 dark:to-amber-900/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-gray-950 dark:via-slate-950/20 dark:via-gray-900/20 dark:to-slate-900/20;
   }
   
   .gradient-card {
-    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-amber-950 dark:via-amber-900/10 dark:to-orange-900/10;
+    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-slate-900 dark:via-gray-900/10 dark:to-slate-950/10;
   }
   
   .gradient-primary {
