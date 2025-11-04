@@ -303,7 +303,10 @@ async def generate_personalized_outfit_from_existing_data(
                 # Generate detailed outfit analysis for education module
                 outfit_analysis = None
                 try:
-                    from src.routes.outfits import generate_outfit_analysis
+                    # Import from the outfits.py file (not the outfits/ package)
+                    import importlib
+                    outfits_module = importlib.import_module('src.routes.outfits')
+                    generate_outfit_analysis = getattr(outfits_module, 'generate_outfit_analysis')
                     logger.info(f"🎨 Generating outfit analysis for {len(outfit_items)} items")
                     outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': getattr(robust_outfit, 'confidence_score', 0.85)})
                     logger.info(f"✅ Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
@@ -551,7 +554,10 @@ async def generate_personalized_outfit_from_existing_data(
             # Generate detailed outfit analysis for simple fallback too
             outfit_analysis = None
             try:
-                from src.routes.outfits import generate_outfit_analysis
+                # Import from the outfits.py file (not the outfits/ package)
+                import importlib
+                outfits_module = importlib.import_module('src.routes.outfits')
+                generate_outfit_analysis = getattr(outfits_module, 'generate_outfit_analysis')
                 logger.info(f"🎨 [SIMPLE] Generating outfit analysis for {len(outfit_items)} items")
                 outfit_analysis = await generate_outfit_analysis(outfit_items, req, {'total_score': 0.95})
                 logger.info(f"✅ [SIMPLE] Generated outfit analysis: {list(outfit_analysis.keys()) if outfit_analysis else 'None'}")
