@@ -766,14 +766,48 @@ async def get_todays_outfit_suggestion(
         
         try:
             # Import outfit generation logic
-            from ..routes.outfits import generate_outfit_logic, OutfitRequest
+            from ..routes.outfits import generate_outfit_logic, OutfitRequest, get_user_profile_cached
             
-            # Create a default request for casual daily wear
+            # Fetch user profile for personalization
+            user_profile = await get_user_profile_cached(current_user.id)
+            
+            # Fetch weather data if available
+            weather_data = None
+            try:
+                # Try to get weather from user's location if stored
+                # This is optional - outfit generation will work without it
+                pass  # Weather fetching can be added later if needed
+            except Exception as weather_error:
+                logger.warning(f"Could not fetch weather data: {weather_error}")
+            
+            # Fetch user's liked outfits for personalization
+            liked_outfits = []
+            try:
+                liked_docs = db.collection('outfit_likes').where('userId', '==', current_user.id).limit(10).stream()
+                liked_outfits = [{'id': doc.id, **doc.to_dict()} for doc in liked_docs]
+            except Exception as e:
+                logger.warning(f"Could not fetch liked outfits: {e}")
+            
+            # Get user preferences
+            preferences = {}
+            try:
+                pref_doc = db.collection('user_preferences').document(current_user.id).get()
+                if pref_doc.exists:
+                    preferences = pref_doc.to_dict()
+            except Exception as e:
+                logger.warning(f"Could not fetch preferences: {e}")
+            
+            # Create a comprehensive request for daily wear with all context
             daily_request = OutfitRequest(
                 occasion="casual",
                 style="comfortable", 
                 mood="confident",
-                description="Daily outfit suggestion"
+                description="Daily outfit suggestion",
+                weather=weather_data,
+                user_profile=user_profile,
+                likedOutfits=liked_outfits,
+                trendingStyles=[],  # Can be populated if trending data is available
+                preferences=preferences
             )
             
             logger.info(f"About to generate outfit with request: style={daily_request.style}, occasion={daily_request.occasion}, items_count={len(daily_request.wardrobe) if daily_request.wardrobe else 0}")

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { signOutUser } from "@/lib/auth";
 import { useFirebase } from "@/lib/firebase-context";
 import { useState } from "react";
@@ -50,12 +51,16 @@ export default function Navigation() {
           <div className="flex-shrink-0">
             <Link
               href="/"
-              className="group flex items-center space-x-3 text-lg sm:text-xl font-serif font-bold text-stone-900 dark:text-stone-100 hover:text-stone-700 dark:hover:text-stone-300 transition-all duration-300 ease-out hover:-translate-y-0.5"
+              className="group flex items-center transition-all duration-300 ease-out hover:-translate-y-0.5 hover:opacity-80"
             >
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-stone-900 dark:bg-stone-100 rounded-full flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-stone-900 transition-transform duration-300 group-hover:rotate-12" />
-              </div>
-              <span className="transition-all duration-300">Easy Outfit App</span>
+              <Image
+                src="/logo-horizontal.png?v=2"
+                alt="Easy Outfit App"
+                width={200}
+                height={50}
+                priority
+                className="h-10 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              />
             </Link>
           </div>
 
