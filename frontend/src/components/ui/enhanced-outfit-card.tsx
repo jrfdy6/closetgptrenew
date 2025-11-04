@@ -99,8 +99,8 @@ export default function EnhancedOutfitCard({
 
   const getConfidenceColor = (score?: number) => {
     if (!score) return 'text-gray-500 bg-gray-100 dark:bg-gray-800';
-    if (score >= 0.8) return 'text-green-600 bg-green-100 dark:bg-green-900/20';
-    if (score >= 0.6) return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20';
+    if (score >= 0.8) return 'text-amber-600 bg-green-100 dark:bg-green-900/20';
+    if (score >= 0.6) return 'text-amber-600 bg-yellow-100 dark:bg-yellow-900/20';
     return 'text-red-600 bg-red-100 dark:bg-red-900/20';
   };
 
@@ -284,7 +284,7 @@ export default function EnhancedOutfitCard({
                     key={star}
                     className={`h-3 w-3 ${
                       star <= outfit.rating!
-                        ? 'text-yellow-400 fill-current'
+                        ? 'text-amber-400 fill-current'
                         : 'text-gray-300 dark:text-gray-600'
                     }`}
                   />
@@ -328,7 +328,7 @@ export default function EnhancedOutfitCard({
               variant="outline"
               size="sm"
               onClick={handleWear}
-              className="flex-1 hover:bg-green-50 hover:text-green-600 hover:border-green-300"
+              className="flex-1 hover:bg-green-50 hover:text-amber-600 hover:border-green-300"
             >
               <Calendar className="h-4 w-4 mr-1" />
               Wear

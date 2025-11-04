@@ -96,14 +96,14 @@ const occasionPrompts = {
     title: 'Elegant formal wear ✨',
     description: 'Sophisticated and polished',
     variant: 'default' as const,
-    className: 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
+    className: 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
   },
   'date': {
     icon: Heart,
     title: 'Date night magic 💕',
     description: 'Romantic and attractive',
     variant: 'default' as const,
-    className: 'bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700'
+    className: 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
   }
 };
 
@@ -120,7 +120,7 @@ const levelUpPrompts = {
     title: 'Style milestone reached! 🏆',
     description: 'Unlock new features',
     variant: 'default' as const,
-    className: 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700'
+    className: 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700'
   }
 };
 
@@ -205,7 +205,7 @@ export function ContextualCTA({
         {/* Icon */}
         <div className="flex-shrink-0">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center">
-            <Icon className="w-6 h-6 text-emerald-600" />
+            <Icon className="w-6 h-6 text-amber-600" />
           </div>
         </div>
 

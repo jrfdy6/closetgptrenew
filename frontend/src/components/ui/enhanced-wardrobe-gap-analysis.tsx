@@ -159,8 +159,8 @@ export default function EnhancedWardrobeGapAnalysis({
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return 'text-red-600 bg-red-100 dark:bg-red-900/20';
-      case 'medium': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20';
-      case 'low': return 'text-green-600 bg-green-100 dark:bg-green-900/20';
+      case 'medium': return 'text-amber-600 bg-yellow-100 dark:bg-yellow-900/20';
+      case 'low': return 'text-amber-600 bg-green-100 dark:bg-green-900/20';
       default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
     }
   };
@@ -184,8 +184,8 @@ export default function EnhancedWardrobeGapAnalysis({
   };
 
   const getVersatilityColor = (score: number) => {
-    if (score >= 8) return 'text-green-600';
-    if (score >= 6) return 'text-yellow-600';
+    if (score >= 8) return 'text-amber-600';
+    if (score >= 6) return 'text-amber-600';
     return 'text-red-600';
   };
 
@@ -209,13 +209,13 @@ export default function EnhancedWardrobeGapAnalysis({
       <Card className={className}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <CheckCircle className="h-5 w-5 text-amber-600" />
             Wardrobe Gap Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <CheckCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
             <p className="text-gray-500 dark:text-gray-500 mb-4">No wardrobe gaps found!</p>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Your wardrobe is well-balanced. Great job!
@@ -233,7 +233,7 @@ export default function EnhancedWardrobeGapAnalysis({
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-purple-600" />
+              <ShoppingBag className="h-5 w-5 text-amber-600" />
               Wardrobe Gap Analysis
             </CardTitle>
             {onRefresh && (
@@ -299,7 +299,7 @@ export default function EnhancedWardrobeGapAnalysis({
                           </div>
                           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                             <div 
-                              className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-300"
+                              className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${Math.min((gap.currentCount / gap.recommendedCount) * 100, 100)}%` }}
                             />
                           </div>
@@ -320,7 +320,7 @@ export default function EnhancedWardrobeGapAnalysis({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-green-600" />
+                <ShoppingCart className="h-5 w-5 text-amber-600" />
                 Shopping Recommendations
                 {loadingRecommendations && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
@@ -454,7 +454,7 @@ export default function EnhancedWardrobeGapAnalysis({
               </div>
             ) : (
               <div className="text-center py-8">
-                <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-500 mb-4">No shopping recommendations available</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Try refreshing or check back later.

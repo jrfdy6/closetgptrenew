@@ -196,7 +196,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="w-5 h-5 text-yellow-500" />
+              <Sparkles className="w-5 h-5 text-amber-500" />
               Style Inspiration
             </CardTitle>
             <Badge
@@ -284,7 +284,7 @@ export function StyleInspirationCard({ onRefresh, className = '' }: StyleInspira
                   <span className="text-xs text-gray-600 w-24">{style}</span>
                   <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                      className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
                       style={{ width: `${score * 100}%` }}
                     />
                   </div>

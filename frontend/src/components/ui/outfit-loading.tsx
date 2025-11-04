@@ -18,8 +18,8 @@ export default function OutfitLoading({
 
   const steps = [
     { icon: Shirt, text: "Analyzing your wardrobe", color: "text-blue-600" },
-    { icon: Palette, text: "Matching colors & styles", color: "text-purple-600" },
-    { icon: Zap, text: "Applying AI magic", color: "text-yellow-600" },
+    { icon: Palette, text: "Matching colors & styles", color: "text-amber-600" },
+    { icon: Zap, text: "Applying AI magic", color: "text-amber-600" },
     { icon: Sparkles, text: "Finalizing your look", color: "text-pink-600" }
   ];
 
@@ -53,7 +53,7 @@ export default function OutfitLoading({
           {/* Animated Icon */}
           <div className="relative mb-6">
             <div className="w-20 h-20 mx-auto bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-full flex items-center justify-center">
-              <RefreshCw className="h-8 w-8 text-purple-600 animate-spin" />
+              <RefreshCw className="h-8 w-8 text-amber-600 animate-spin" />
             </div>
             <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
               <Sparkles className="h-3 w-3 text-white animate-pulse" />
@@ -102,7 +102,7 @@ export default function OutfitLoading({
                           isActive 
                             ? step.color 
                             : isCompleted
-                            ? 'text-green-600'
+                            ? 'text-amber-600'
                             : 'text-gray-400'
                         }`} />
                       </div>

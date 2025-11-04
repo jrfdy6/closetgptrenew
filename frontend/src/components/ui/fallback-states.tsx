@@ -269,7 +269,7 @@ export const PermissionErrorState = ({ onGoBack }: { onGoBack?: () => void }) =>
 export const MaintenanceState = () => (
   <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
     <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
-      <Settings className="w-8 h-8 text-yellow-600" />
+      <Settings className="w-8 h-8 text-amber-600" />
     </div>
     <h3 className="text-lg font-semibold mb-2">Under maintenance</h3>
     <p className="text-muted-foreground mb-6 max-w-sm">

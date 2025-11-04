@@ -90,7 +90,7 @@ export default function OutfitGenerationForm({
     <div className="space-y-6">
       {/* Base Item Indicator */}
       {baseItem && (
-        <Card className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 dark:border-emerald-800 dark:from-emerald-900/20 dark:to-green-900/20">
+        <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 dark:border-amber-800 dark:from-amber-900/20 dark:to-orange-900/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
@@ -106,7 +106,7 @@ export default function OutfitGenerationForm({
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <Target className="h-4 w-4 text-emerald-600" />
+                  <Target className="h-4 w-4 text-amber-600" />
                   <h3 className="font-semibold text-gray-900 dark:text-white">
                     Building outfit around: {baseItem.name || 'Unknown item'}
                   </h3>
@@ -132,7 +132,7 @@ export default function OutfitGenerationForm({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5 text-purple-600" />
+            <Wand2 className="h-5 w-5 text-amber-600" />
             Outfit Generation Steps
           </CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ export default function OutfitGenerationForm({
                         : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 ${isCompleted ? 'text-green-600' : ''}`} />
+                    <Icon className={`h-4 w-4 ${isCompleted ? 'text-amber-600' : ''}`} />
                     <span className="text-sm font-medium">{step.label}</span>
                     {isCompleted && <div className="w-2 h-2 bg-amber-500 rounded-full" />}
                   </button>
@@ -174,7 +174,7 @@ export default function OutfitGenerationForm({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-emerald-600" />
+            <Sparkles className="h-5 w-5 text-amber-600" />
             Outfit Preferences
           </CardTitle>
         </CardHeader>
@@ -365,7 +365,7 @@ export default function OutfitGenerationForm({
           <Button 
             onClick={onGenerate} 
             disabled={generating || wardrobeLoading || !isFormValid}
-            className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             size="lg"
           >
             {generating ? (

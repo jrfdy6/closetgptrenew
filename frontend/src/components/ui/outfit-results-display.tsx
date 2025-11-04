@@ -94,8 +94,8 @@ export default function OutfitResultsDisplay({
   const [showReasoning, setShowReasoning] = useState(false);
 
   const getConfidenceColor = (score: number) => {
-    if (score >= 0.8) return 'text-green-600 bg-green-100 dark:text-green-400 dark:bg-green-900/20';
-    if (score >= 0.6) return 'text-yellow-600 bg-yellow-100 dark:text-yellow-400 dark:bg-yellow-900/20';
+    if (score >= 0.8) return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20';
+    if (score >= 0.6) return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20';
     return 'text-red-600 bg-red-100 dark:text-red-400 dark:bg-red-900/20';
   };
 
@@ -108,7 +108,7 @@ export default function OutfitResultsDisplay({
   return (
     <div className="space-y-6">
       {/* Main Outfit Card */}
-      <Card className="overflow-hidden border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+      <Card className="overflow-hidden border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -154,7 +154,7 @@ export default function OutfitResultsDisplay({
           {/* Outfit Items Grid */}
           <div>
             <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Shirt className="h-5 w-5 text-purple-600" />
+              <Shirt className="h-5 w-5 text-amber-600" />
               Outfit Pieces ({outfit.items.length})
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -232,12 +232,12 @@ export default function OutfitResultsDisplay({
                     Grade: {outfit.score_breakdown.grade}
                   </div>
                 </div>
-                <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg">
+                <div className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-700 dark:text-green-300">Confidence</span>
+                    <CheckCircle className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Confidence</span>
                   </div>
-                  <div className="text-2xl font-bold text-green-800 dark:text-green-200">
+                  <div className="text-2xl font-bold text-amber-800 dark:text-amber-200">
                     {Math.round(outfit.confidence_score * 100)}%
                   </div>
                   <div className="text-xs text-amber-600 dark:text-amber-400">
@@ -282,8 +282,8 @@ export default function OutfitResultsDisplay({
                     onClick={() => onRatingChange(star)}
                     className={`text-2xl transition-all duration-200 hover:scale-110 cursor-pointer select-none ${
                       star <= rating.rating
-                        ? 'text-yellow-400 fill-current'
-                        : 'text-gray-300 dark:text-gray-600 hover:text-yellow-300'
+                        ? 'text-amber-400 fill-current'
+                        : 'text-gray-300 dark:text-gray-600 hover:text-amber-300'
                     }`}
                     style={{ userSelect: 'none' }}
                     disabled={ratingSubmitted}
@@ -313,8 +313,8 @@ export default function OutfitResultsDisplay({
                 disabled={ratingSubmitted}
                 className={`flex items-center gap-2 ${
                   rating.isLiked 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'hover:bg-green-50 hover:text-green-600'
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                    : 'hover:bg-green-50 hover:text-amber-600'
                 } ${ratingSubmitted ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <ThumbsUp className="h-4 w-4" />
@@ -373,7 +373,7 @@ export default function OutfitResultsDisplay({
             {isWorn ? (
               <Button 
                 onClick={onViewOutfits} 
-                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
               >
                 <Shirt className="h-4 w-4 mr-2" />
                 View My Outfits

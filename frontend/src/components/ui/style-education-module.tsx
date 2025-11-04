@@ -256,10 +256,10 @@ export default function StyleEducationModule({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+      <Card className="border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+            <div className="p-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg">
               <BookOpen className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -278,12 +278,12 @@ export default function StyleEducationModule({
           {(outfitStyle || outfitMood || outfitOccasion) && (
             <div className="flex flex-wrap gap-2">
                   {outfitStyle && (
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
                   {outfitStyle}
                     </Badge>
                   )}
                   {outfitMood && (
-                    <Badge variant="secondary" className="bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300">
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
                   {outfitMood}
                     </Badge>
                   )}
@@ -316,13 +316,13 @@ export default function StyleEducationModule({
               {outfitItems.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <Info className="h-4 w-4 text-purple-600" />
+                <Info className="h-4 w-4 text-amber-600" />
                 Selected Pieces
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {outfitItems.map((item, index) => (
                   <div key={index} className="flex items-start gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0" />
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-2 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                             {item.name}
@@ -364,7 +364,7 @@ export default function StyleEducationModule({
                   >
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <insight.icon className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                          <insight.icon className="h-4 w-4 text-amber-600 flex-shrink-0" />
                           <div className="min-w-0 flex-1">
                             <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                               {insight.title}
@@ -387,7 +387,7 @@ export default function StyleEducationModule({
                         <ul className="pt-3 space-y-1.5">
                           {insight.tips.map((tip, index) => (
                               <li key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
-                              <CheckCircle className="h-3.5 w-3.5 text-green-500 mt-0.5 flex-shrink-0" />
+                              <CheckCircle className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
                                 {tip}
                               </li>
                             ))}
