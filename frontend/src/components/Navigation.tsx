@@ -51,7 +51,7 @@ export default function Navigation() {
           <div className="flex-shrink-0">
             <Link
               href="/"
-              className="group flex items-center transition-all duration-300 ease-out hover:-translate-y-0.5 hover:opacity-80"
+              className="group flex items-center space-x-3 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:opacity-80"
             >
               <Image
                 src="/logo-horizontal.png?v=2"
@@ -61,6 +61,9 @@ export default function Navigation() {
                 priority
                 className="h-10 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
+              <span className="text-lg sm:text-xl font-serif font-bold text-stone-900 dark:text-stone-100 transition-all duration-300">
+                Easy Outfit App
+              </span>
             </Link>
           </div>
 
