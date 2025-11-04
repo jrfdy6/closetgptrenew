@@ -54,85 +54,88 @@
 
 @layer base {
   :root {
-    --background: 38 100% 98%;
-    --foreground: 28 20% 15%;
+    /* Light Mode - Warm & Clean */
+    --background: 30 14% 98%;           /* #FAFAF9 - Warm off-white */
+    --foreground: 24 10% 10%;           /* #1C1917 - Warm dark */
 
-    --card: 38 100% 99%;
-    --card-foreground: 28 20% 15%;
+    --card: 0 0% 100%;                  /* #FFFFFF - Pure white cards */
+    --card-foreground: 24 10% 10%;
  
-    --popover: 38 100% 99%;
-    --popover-foreground: 28 20% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 10% 10%;
  
-    /* Primary: Warm Amber */
-    --primary: 38 92% 50%;
-    --primary-foreground: 0 0% 98%;
+    /* Primary: Amber Gradient Base */
+    --primary: 38 92% 50%;              /* #FFB84C - Signature amber */
+    --primary-foreground: 0 0% 100%;
  
     /* Secondary: Light Amber */
-    --secondary: 43 100% 70%;
-    --secondary-foreground: 28 20% 15%;
+    --secondary: 38 30% 96%;            /* #F5F0E8 - Cream */
+    --secondary-foreground: 24 10% 10%;
  
-    --muted: 38 30% 94%;
-    --muted-foreground: 28 10% 45%;
+    --muted: 30 10% 94%;                /* #F0EFEC - Neutral muted */
+    --muted-foreground: 25 10% 45%;
  
-    /* Accent: Deep Amber */
-    --accent: 33 90% 55%;
-    --accent-foreground: 0 0% 98%;
+    /* Accent: Orange */
+    --accent: 33 100% 50%;              /* #FF9400 - Orange gradient end */
+    --accent-foreground: 0 0% 100%;
  
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 38 25% 88%;
-    --input: 38 25% 88%;
+    --border: 20 6% 90%;                /* #E7E5E4 - Subtle border */
+    --input: 20 6% 90%;
     --ring: 38 92% 50%;
  
-    --radius: 0.75rem;
+    --radius: 0.75rem;                  /* 12px - Soft corners */
  
-    /* Enhanced chart colors with amber tones */
-    --chart-1: 38 92% 50%;
-    --chart-2: 33 90% 55%;
-    --chart-3: 43 100% 70%;
-    --chart-4: 28 80% 40%;
-    --chart-5: 48 100% 75%;
+    /* Surface elevation */
+    --surface: 0 0% 100%;               /* White elevated surface */
+    --surface-variant: 38 30% 96%;      /* #F5F0E8 - Cream variant */
   }
  
   .dark {
-    --background: 28 35% 8%;
-    --foreground: 38 90% 95%;
+    /* "Silent Luxury" Amber-Tinted Dark Mode */
+    --background: 30 25% 8%;            /* #1A1510 - Amber-tinted dark */
+    --foreground: 30 10% 97%;           /* #F8F5F1 - Warm light neutral */
  
-    --card: 28 30% 10%;
-    --card-foreground: 38 90% 95%;
+    --card: 30 20% 14%;                 /* #2C2119 - Warm dark surface */
+    --card-foreground: 30 10% 97%;
  
-    --popover: 28 30% 10%;
-    --popover-foreground: 38 90% 95%;
+    --popover: 30 20% 14%;
+    --popover-foreground: 30 10% 97%;
  
-    /* Primary: Amber (adjusted for dark mode) */
-    --primary: 38 85% 60%;
-    --primary-foreground: 28 20% 10%;
+    /* Primary: Amber (vibrant on dark) */
+    --primary: 38 92% 63%;              /* #FFB84C - Signature amber */
+    --primary-foreground: 30 25% 8%;
  
-    /* Secondary: Light Amber (adjusted for dark mode) */
-    --secondary: 43 90% 65%;
-    --secondary-foreground: 28 20% 10%;
+    /* Secondary: Warm grey surface */
+    --secondary: 30 15% 20%;            /* #3D2F24 - Surface variant */
+    --secondary-foreground: 30 10% 97%;
  
-    --muted: 28 20% 18%;
-    --muted-foreground: 38 15% 65%;
+    --muted: 30 15% 20%;
+    --muted-foreground: 30 8% 70%;      /* #C4BCB4 - Muted text */
  
-    /* Accent: Warm Amber (adjusted for dark mode) */
-    --accent: 33 85% 60%;
-    --accent-foreground: 28 20% 10%;
+    /* Accent: Orange (vibrant on dark) */
+    --accent: 33 100% 56%;              /* #FF9400 - Orange */
+    --accent-foreground: 30 25% 8%;
  
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 28 20% 20%;
-    --input: 28 20% 20%;
-    --ring: 38 85% 60%;
+    --border: 30 15% 20%;
+    --input: 30 15% 20%;
+    --ring: 38 92% 63%;
     
-    /* Enhanced chart colors for dark mode with amber */
-    --chart-1: 38 85% 60%;
-    --chart-2: 33 85% 60%;
-    --chart-3: 43 90% 65%;
+    /* Surface elevation for cards */
+    --surface: 30 20% 14%;              /* #2C2119 - Cards */
+    --surface-variant: 30 15% 20%;      /* #3D2F24 - Hover/active */
+    
+    /* Chart colors for dark mode */
+    --chart-1: 38 92% 63%;
+    --chart-2: 33 100% 56%;
+    --chart-3: 43 100% 60%;
     --chart-4: 28 80% 50%;
-    --chart-5: 48 85% 70%;
+    --chart-5: 48 85% 65%;
   }
 }
  
@@ -149,7 +152,8 @@
   
   body {
     @apply text-foreground;
-    background: linear-gradient(135deg, #fafafa 0%, #fef3c7 50%, #fef7e6 100%);
+    /* Light Mode: Clean warm gradient */
+    background: linear-gradient(135deg, #FAFAF9 0%, #F5F0E8 50%, #FAFAF9 100%);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -158,7 +162,8 @@
   }
   
   .dark body {
-    background: linear-gradient(135deg, #0a0a0a 0%, #1c1410 50%, #27190d 100%);
+    /* "Silent Luxury" Amber-Tinted Dark Mode */
+    background: linear-gradient(135deg, #1A1510 0%, #2C2119 50%, #1A1510 100%);
   }
   
   /* Enhanced mobile touch targets - WCAG AAA compliance */
@@ -258,21 +263,75 @@
     @apply card-mobile hover:shadow-xl transition-all duration-200 hover:scale-[1.01];
   }
   
-  /* Mobile Typography Scale */
+  /* Display + Sans Typography System */
+  
+  /* Display Font - For Headlines & Key Moments */
+  .font-display {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  }
+  
+  .font-body {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  }
+  
+  /* Heading Scale (Display Font) */
+  .heading-xl {
+    @apply font-display text-[32px] sm:text-[40px] font-bold tracking-tight leading-[1.2];
+  }
+  
+  .heading-lg {
+    @apply font-display text-[24px] sm:text-[28px] font-semibold tracking-tight leading-[1.2];
+  }
+  
+  .heading-md {
+    @apply font-display text-[20px] sm:text-[24px] font-medium tracking-tight leading-[1.2];
+  }
+  
+  .heading-sm {
+    @apply font-body text-[18px] sm:text-[20px] font-semibold tracking-tight leading-[1.4];
+  }
+  
+  /* Body Text (Inter Font) */
+  .text-body-lg {
+    @apply font-body text-base sm:text-lg leading-relaxed;
+  }
+  
+  .text-body {
+    @apply font-body text-sm sm:text-base leading-relaxed;
+  }
+  
+  .text-body-sm {
+    @apply font-body text-[13px] sm:text-sm leading-relaxed;
+  }
+  
+  /* UI Elements */
+  .text-button {
+    @apply font-body text-sm sm:text-base font-medium leading-[1.4];
+  }
+  
+  .text-label {
+    @apply font-body text-[13px] sm:text-sm font-medium leading-[1.4];
+  }
+  
+  .text-caption {
+    @apply font-body text-xs leading-[1.4];
+  }
+  
+  /* Legacy Mobile Typography (Backward Compatible) */
   .heading-mobile-xl {
-    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
+    @apply font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
   }
   
   .heading-mobile-lg {
-    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
+    @apply font-display text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight;
   }
   
   .heading-mobile-md {
-    @apply text-xl sm:text-2xl md:text-3xl font-bold tracking-tight;
+    @apply font-display text-xl sm:text-2xl md:text-3xl font-bold tracking-tight;
   }
   
   .heading-mobile-sm {
-    @apply text-lg sm:text-xl md:text-2xl font-semibold tracking-tight;
+    @apply font-body text-lg sm:text-xl md:text-2xl font-semibold tracking-tight;
   }
   
   .text-mobile-base {
@@ -283,33 +342,35 @@
     @apply text-sm sm:text-base leading-relaxed;
   }
   
-  /* Premium gradient backgrounds with amber tones (light) and warm brown (dark) */
-  .gradient-hero {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-amber-950/20 dark:via-amber-900/20 dark:to-orange-950/20;
-  }
-  
-  .gradient-app-bg {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-amber-950 dark:via-amber-900/20 dark:via-orange-900/20 dark:to-amber-900/20;
-  }
-  
-  .gradient-card {
-    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-amber-950 dark:via-amber-900/10 dark:to-orange-900/10;
-  }
-  
+  /* "Silent Luxury" Amber Gradients - Brand Signature */
   .gradient-primary {
-    @apply bg-gradient-to-r from-amber-600 to-orange-600;
+    background: linear-gradient(135deg, #FFB84C 0%, #FF9400 100%);
   }
   
   .gradient-secondary {
-    @apply bg-gradient-to-r from-amber-500 to-orange-500;
+    background: linear-gradient(135deg, #FF9400 0%, #FF7700 100%);
   }
   
   .gradient-accent {
-    @apply bg-gradient-to-r from-orange-600 to-amber-700;
+    background: linear-gradient(135deg, #FFCC66 0%, #FFB84C 100%);
   }
   
-  .gradient-premium {
-    @apply bg-gradient-to-br from-amber-600 via-orange-600 to-amber-700;
+  /* Page backgrounds */
+  .page-bg-light {
+    @apply bg-[#FAFAF9];
+  }
+  
+  .page-bg-dark {
+    @apply bg-[#1A1510];
+  }
+  
+  /* Card backgrounds */
+  .card-surface {
+    @apply bg-white dark:bg-[#2C2119];
+  }
+  
+  .card-surface-variant {
+    @apply bg-[#F5F0E8] dark:bg-[#3D2F24];
   }
   
   /* Enhanced typography scale */

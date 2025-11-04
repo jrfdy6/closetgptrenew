@@ -208,7 +208,7 @@ export default function Dashboard() {
   // Show loading state while authentication is resolving
   if (loading || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -226,7 +226,7 @@ export default function Dashboard() {
   // Show authentication required if no user
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -244,7 +244,7 @@ export default function Dashboard() {
   // Show error state if data fetching failed
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
@@ -274,19 +274,19 @@ export default function Dashboard() {
 
   // Main dashboard - user is authenticated and data is loaded
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-amber-50/30 to-orange-50/30 dark:from-gray-950 dark:via-amber-950/30 dark:to-orange-950/30">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
       
       {/* Main Content - Mobile Optimized */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         
-        {/* Welcome Section - Cleaner mobile design */}
+        {/* Welcome Section - "Silent Luxury" Design */}
         <div className="mb-6 sm:mb-8">
-          <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-gray-200/50 dark:border-gray-800/50">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent mb-2 sm:mb-3">
+          <div className="card-surface backdrop-blur-xl rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50">
+            <h1 className="heading-xl bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-2 sm:mb-3">
               Welcome back
             </h1>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300">
+            <p className="text-body-lg text-gray-600 dark:text-[#C4BCB4]">
               Ready to explore your wardrobe and create amazing outfits.
             </p>
           </div>
@@ -306,7 +306,7 @@ export default function Dashboard() {
         {/* Modern Stats Cards - Mobile First Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           {/* Total Items Card */}
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-xl flex items-center justify-center">
                 <Shirt className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
@@ -321,7 +321,7 @@ export default function Dashboard() {
           </div>
 
           {/* Favorites Card */}
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 rounded-xl flex items-center justify-center">
                 <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
@@ -336,7 +336,7 @@ export default function Dashboard() {
           </div>
 
           {/* Style Goals Card */}
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 rounded-xl flex items-center justify-center">
                 <Target className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
@@ -351,7 +351,7 @@ export default function Dashboard() {
           </div>
 
           {/* This Week Card */}
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-gray-800/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
+          <div className="card-surface backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-lg border border-gray-200/50 dark:border-[#3D2F24]/50 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
             <div className="flex flex-col space-y-3">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30 rounded-xl flex items-center justify-center">
                 <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />

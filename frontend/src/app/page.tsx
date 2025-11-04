@@ -7,7 +7,7 @@ import { ArrowRight, Sparkles, Star } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-gray-950 dark:via-amber-950 dark:to-orange-950 relative overflow-hidden">
+    <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] relative overflow-hidden">
       {/* Modern minimal geometric elements - lighter on mobile */}
       <div className="absolute inset-0 overflow-hidden opacity-40 md:opacity-60">
         <div className="absolute top-10 md:top-20 left-5 md:left-10 w-24 md:w-32 h-24 md:h-32 bg-orange-500/20 rounded-full blur-3xl"></div>
@@ -35,13 +35,13 @@ export default function Home() {
           {/* Modern Mobile-First Content Card */}
           <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl md:rounded-[2rem] p-6 sm:p-8 md:p-12 mb-6 sm:mb-8 shadow-2xl shadow-amber-500/10 border border-white/20 dark:border-gray-700/30 animate-fade-in">
             
-            {/* Title - Larger and bolder for mobile */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 bg-clip-text text-transparent mb-4 sm:mb-5 tracking-tight leading-tight">
+            {/* Title - Display font for brand moment */}
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent mb-4 sm:mb-5 tracking-tight leading-tight">
               Easy Outfit App
             </h1>
             
-            {/* Tagline - Better mobile readability */}
-            <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-700 dark:text-gray-300 font-light leading-relaxed mb-6 sm:mb-8 px-2">
+            {/* Tagline - Body font for clarity */}
+            <p className="font-body text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-700 dark:text-[#F8F5F1] font-light leading-relaxed mb-6 sm:mb-8 px-2">
               The future of getting dressed
             </p>
             
