@@ -7,7 +7,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-100 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-100 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 relative overflow-hidden">
       {/* Enhanced geometric elements with glass effect */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl"></div>

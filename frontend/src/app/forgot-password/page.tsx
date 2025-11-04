@@ -40,7 +40,7 @@ export default function ForgotPassword() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 flex items-center justify-center p-4">
         <Card className="w-full max-w-md glass-float-hover glass-shadow-strong">
           <CardHeader className="text-center space-y-2">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -80,7 +80,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-0 shadow-xl">
         <CardHeader className="text-center space-y-2">
           <Link href="/signin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mb-4">

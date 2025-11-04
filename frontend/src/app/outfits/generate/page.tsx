@@ -855,7 +855,7 @@ export default function OutfitGenerationPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950">
         <Navigation />
         <div className="container mx-auto p-6">
           <WardrobeLoading />
@@ -866,7 +866,7 @@ export default function OutfitGenerationPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950">
         <Navigation />
         <div className="container mx-auto p-6">
           <div className="text-center">
@@ -880,7 +880,7 @@ export default function OutfitGenerationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950">
       <Navigation />
       <div className="container mx-auto p-8">
         {/* Header */}

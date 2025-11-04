@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 // ===== MAIN PAGE COMPONENT =====
 export default function OutfitsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950">
       <Navigation />
       
       {/* Header with Glass Effect */}

@@ -1399,7 +1399,7 @@ export default function Onboarding() {
   // Show loading state while authenticating
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Authenticating...</p>
@@ -1417,7 +1417,7 @@ export default function Onboarding() {
   // Show loading state while redirecting after quiz completion
   if (quizCompleted && quizResults) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Redirecting to your style persona...</p>
@@ -1429,7 +1429,7 @@ export default function Onboarding() {
   // This should never be reached since we redirect immediately after quiz completion
   if (false) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-amber-50 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950">
         <div className="max-w-6xl mx-auto px-4 py-12">
           {/* Hero Section */}
           <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl mb-8">
@@ -1772,7 +1772,7 @@ export default function Onboarding() {
 
   // Show quiz questions
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex flex-col p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 flex flex-col p-4">
       <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col">
         <div className="text-center mb-6 flex-shrink-0">
           <h1 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-4 leading-tight">

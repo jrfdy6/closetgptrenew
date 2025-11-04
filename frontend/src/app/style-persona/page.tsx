@@ -410,7 +410,7 @@ export default function StylePersonaPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Loading your style persona...</p>
@@ -421,7 +421,7 @@ export default function StylePersonaPage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950 flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Style Persona Not Found</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -442,7 +442,7 @@ export default function StylePersonaPage() {
   const styleFingerprint = generateStyleFingerprint();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-gray-950 dark:via-slate-950 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-stone-950 dark:via-neutral-950 dark:to-stone-950">
       <Navigation />
       
       <div className="max-w-6xl mx-auto px-4 py-12">

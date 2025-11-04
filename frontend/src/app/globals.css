@@ -96,35 +96,35 @@
   }
  
   .dark {
-    --background: 222 47% 4%;
+    --background: 24 10% 3%;
     --foreground: 38 90% 95%;
  
-    --card: 217 33% 7%;
+    --card: 30 8% 5%;
     --card-foreground: 38 90% 95%;
  
-    --popover: 217 33% 7%;
+    --popover: 30 8% 5%;
     --popover-foreground: 38 90% 95%;
  
     /* Primary: Amber (bright for dark mode contrast) */
     --primary: 38 85% 60%;
-    --primary-foreground: 222 47% 4%;
+    --primary-foreground: 24 10% 3%;
  
     /* Secondary: Light Amber */
     --secondary: 43 90% 65%;
-    --secondary-foreground: 222 47% 4%;
+    --secondary-foreground: 24 10% 3%;
  
-    --muted: 215 28% 15%;
+    --muted: 30 8% 12%;
     --muted-foreground: 38 15% 65%;
  
     /* Accent: Warm Amber */
     --accent: 33 85% 60%;
-    --accent-foreground: 222 47% 4%;
+    --accent-foreground: 24 10% 3%;
  
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 215 28% 18%;
-    --input: 215 28% 18%;
+    --border: 30 8% 15%;
+    --input: 30 8% 15%;
     --ring: 38 85% 60%;
     
     /* Enhanced chart colors for dark mode with amber accents */
@@ -155,7 +155,7 @@
   }
   
   .dark body {
-    background: linear-gradient(135deg, #0a0e14 0%, #0f1419 25%, #0c1015 50%, #0f1419 75%, #0c1015 100%);
+    background: linear-gradient(135deg, #090807 0%, #0d0c0a 25%, #0a0908 50%, #0d0c0a 75%, #0a0908 100%);
   }
   
   button, 
@@ -198,17 +198,17 @@
     @apply max-w-screen-lg mx-auto px-4 sm:px-6 lg:px-8;
   }
   
-  /* Premium gradient backgrounds with amber tones (light) and charcoal (dark) */
+  /* Premium gradient backgrounds with amber tones (light) and very dark warm (dark) */
   .gradient-hero {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-gray-950/20 dark:via-slate-950/20 dark:to-gray-900/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 dark:from-stone-950/20 dark:via-neutral-950/20 dark:to-stone-950/20;
   }
   
   .gradient-app-bg {
-    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-gray-950 dark:via-slate-950/20 dark:via-gray-900/20 dark:to-slate-900/20;
+    @apply bg-gradient-to-br from-amber-50 via-orange-50/30 via-amber-50/30 to-orange-100/30 dark:from-stone-950 dark:via-neutral-950/20 dark:via-stone-950/20 dark:to-neutral-950/20;
   }
   
   .gradient-card {
-    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-slate-900 dark:via-gray-900/10 dark:to-slate-950/10;
+    @apply bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-neutral-950 dark:via-stone-950/10 dark:to-neutral-950/10;
   }
   
   .gradient-primary {
