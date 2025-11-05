@@ -25,6 +25,7 @@ import {
   Share2
 } from 'lucide-react';
 import StyleEducationModule from './style-education-module';
+import FlatLayViewer from '../FlatLayViewer';
 
 interface GeneratedOutfit {
   id: string;
@@ -46,6 +47,7 @@ interface GeneratedOutfit {
   createdAt: string;
   metadata?: {
     generation_strategy?: string;
+    flat_lay_url?: string;
     [key: string]: any;
   };
   outfitAnalysis?: {
@@ -151,11 +153,45 @@ export default function OutfitResultsDisplay({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Outfit Items Grid */}
+          {/* HERO: Flat Lay Image (Primary Display) */}
+          {outfit.metadata?.flat_lay_url ? (
+            <div className="relative -mx-6 -mt-2 mb-6">
+              <FlatLayViewer
+                flatLayUrl={outfit.metadata.flat_lay_url}
+                outfitName={outfit.name}
+                outfitItems={outfit.items.map(item => ({
+                  id: item.id,
+                  name: item.name,
+                  type: item.type,
+                  imageUrl: item.imageUrl
+                }))}
+                showItemGrid={true}
+                className="w-full"
+              />
+            </div>
+          ) : (
+            /* Fallback: Show first item as hero if no flat lay */
+            outfit.items[0]?.imageUrl && (
+              <div className="relative -mx-6 -mt-2 mb-6 aspect-[9/16] bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                <img 
+                  src={outfit.items[0].imageUrl}
+                  alt={outfit.items[0].name}
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute top-4 left-4">
+                  <Badge variant="secondary" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
+                    Main Item
+                  </Badge>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Outfit Items Grid (Secondary - Detailed View) */}
           <div>
             <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Shirt className="h-5 w-5 text-amber-600" />
-              Outfit Pieces ({outfit.items.length})
+              Outfit Details ({outfit.items.length} pieces)
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {outfit.items.map((item, index) => (

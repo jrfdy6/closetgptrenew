@@ -56,6 +56,10 @@ interface Outfit {
     imageUrl?: string;
     color: string;
   }>;
+  metadata?: {
+    flat_lay_url?: string;
+    [key: string]: any;
+  };
   createdAt: string;
 }
 
@@ -225,43 +229,70 @@ export default function EnhancedOutfitCard({
       </CardHeader>
 
       <CardContent className="pt-0">
-        {/* Outfit Items Preview */}
+        {/* Outfit Preview - Flat Lay as Hero or Item Grid */}
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Items ({outfit.items.length})
-            </p>
-            {outfit.wearCount && outfit.wearCount > 0 && (
-              <Badge variant="outline" className="text-xs">
-                <Clock className="h-3 w-3 mr-1" />
-                Worn {outfit.wearCount}x
-              </Badge>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-2 gap-2">
-            {outfit.items.slice(0, 4).map((item, index) => (
-              <div key={index} className="relative group/item">
-                <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-200"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/placeholder.jpg';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="text-gray-400 text-xs text-center">
-                        <div className="w-6 h-6 mx-auto mb-1 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                        <span className="text-xs">{item.type}</span>
-                      </div>
+          {/* If flat lay exists, show it as the main preview */}
+          {outfit.metadata?.flat_lay_url ? (
+            <div className="mb-3">
+              <div className="aspect-[9/16] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                <img
+                  src={outfit.metadata.flat_lay_url}
+                  alt={outfit.name}
+                  className="w-full h-full object-contain hover:scale-105 transition-transform duration-200 cursor-pointer"
+                  onClick={() => onView?.(outfit.id)}
+                />
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <Badge variant="secondary" className="text-xs">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Flat Lay View
+                </Badge>
+                {outfit.wearCount && outfit.wearCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Worn {outfit.wearCount}x
+                  </Badge>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Fallback: Show item grid preview */
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Items ({outfit.items.length})
+                </p>
+                {outfit.wearCount && outfit.wearCount > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Worn {outfit.wearCount}x
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                {outfit.items.slice(0, 4).map((item, index) => (
+                  <div key={index} className="relative group/item">
+                    <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-200"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/placeholder.jpg';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="text-gray-400 text-xs text-center">
+                            <div className="w-6 h-6 mx-auto mb-1 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                            <span className="text-xs">{item.type}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
                 {index === 3 && outfit.items.length > 4 && (
                   <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
                     <span className="text-white text-xs font-medium">

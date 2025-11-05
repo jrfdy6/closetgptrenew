@@ -5,6 +5,7 @@ Outfit Generation Service with Integrated Thought Clarification Pipeline
 
 import asyncio
 import logging
+import uuid
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime, timedelta
 
@@ -16,6 +17,8 @@ from src.services.outfit_fallback_service import OutfitFallbackService
 from src.services.outfit_validation_service import OutfitValidationService
 from src.services.cohesive_outfit_composition_service import CohesiveOutfitCompositionService
 from src.services.outfit_validation_pipeline import validation_pipeline, ValidationContext
+from src.services.flat_lay_composition_service import FlatLayCompositionService, FlatLayConfig
+from src.services.flat_lay_storage_service import FlatLayStorageService
 from src.config.firebase import db
 
 logger = logging.getLogger(__name__)
@@ -25,6 +28,9 @@ class OutfitGenerationService:
         self.fallback_service = OutfitFallbackService()
         self.validation_service = OutfitValidationService()
         self.composition_service = CohesiveOutfitCompositionService()
+        self.flat_lay_service = FlatLayCompositionService()
+        self.flat_lay_storage = FlatLayStorageService()
+        self.enable_flat_lay_generation = True  # Feature flag
     
     async def generate_outfit(
         self,
@@ -146,7 +152,7 @@ class OutfitGenerationService:
         except Exception as e:
             # print(f"⚠️ Legacy validation failed: {e}, using original selection")
         
-        return await self._create_outfit_from_items(
+        outfit = await self._create_outfit_from_items(
             items=selected_items,
             occasion=occasion,
             weather=weather,
@@ -154,6 +160,30 @@ class OutfitGenerationService:
             style=style,
             context={"mood": mood}
         )
+        
+        # NEW: Generate flat lay image for the outfit
+        if self.enable_flat_lay_generation and selected_items:
+            try:
+                logger.info("🎨 Generating flat lay image for outfit...")
+                flat_lay_url = await self._generate_and_store_flat_lay(
+                    outfit_items=selected_items,
+                    outfit_id=outfit.id if hasattr(outfit, 'id') else str(uuid.uuid4()),
+                    user_id=user_id
+                )
+                
+                if flat_lay_url:
+                    # Add flat lay URL to outfit metadata
+                    if hasattr(outfit, 'metadata'):
+                        outfit.metadata['flat_lay_url'] = flat_lay_url
+                    logger.info(f"✅ Flat lay generated and stored: {flat_lay_url}")
+                else:
+                    logger.warning("⚠️ Failed to generate flat lay image")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error generating flat lay: {e}")
+                # Continue without flat lay - it's an enhancement, not critical
+        
+        return outfit
 
     async def _create_outfit_from_items(
         self,
@@ -1025,3 +1055,46 @@ def generate_piece_reasoning(item: ClothingItem, occasion: str, style: str) -> s
             
     except Exception as e:
         return f"Selected for {occasion} occasion"
+    
+    async def _generate_and_store_flat_lay(
+        self,
+        outfit_items: List[ClothingItem],
+        outfit_id: str,
+        user_id: str
+    ) -> Optional[str]:
+        """
+        Generate a flat lay image for the outfit and store it in Firebase.
+        
+        Args:
+            outfit_items: List of clothing items in the outfit
+            outfit_id: Unique outfit identifier
+            user_id: User identifier
+            
+        Returns:
+            Public URL of the flat lay image, or None on failure
+        """
+        try:
+            # Generate flat lay image
+            flat_lay_image, error = await self.flat_lay_service.create_flat_lay(
+                outfit_items=outfit_items,
+                outfit_id=outfit_id,
+                output_format="PNG"
+            )
+            
+            if not flat_lay_image or error:
+                logger.error(f"Failed to create flat lay: {error}")
+                return None
+            
+            # Upload to Firebase Storage
+            flat_lay_url = await self.flat_lay_storage.upload_flat_lay(
+                image=flat_lay_image,
+                outfit_id=outfit_id,
+                user_id=user_id,
+                format="PNG"
+            )
+            
+            return flat_lay_url
+            
+        except Exception as e:
+            logger.error(f"Error in flat lay generation and storage: {e}", exc_info=True)
+            return None
