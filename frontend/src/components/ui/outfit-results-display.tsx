@@ -23,6 +23,7 @@ import {
   ArrowRight,
   Eye,
   Share2
+  Download
 } from 'lucide-react';
 import StyleEducationModule from './style-education-module';
 import FlatLayViewer from '../FlatLayViewer';
@@ -112,6 +113,44 @@ export default function OutfitResultsDisplay({
   console.log('🎨 OUTFIT RESULTS: flat_lay_url:', outfit.metadata?.flat_lay_url);
   console.log('🎨 OUTFIT RESULTS: Should show flat lay?', !!outfit.metadata?.flat_lay_url);
 
+  const handleDownload = async () => {
+    if (!outfit.metadata?.flat_lay_url) return;
+    
+    try {
+      const response = await fetch(outfit.metadata.flat_lay_url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${outfit.name}-flat-lay.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading flat lay:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!outfit.metadata?.flat_lay_url) return;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: outfit.name,
+          text: 'Check out this outfit!',
+          url: outfit.metadata.flat_lay_url
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      navigator.clipboard.writeText(outfit.metadata.flat_lay_url);
+      alert('Link copied to clipboard!');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Main Outfit Card */}
@@ -159,31 +198,59 @@ export default function OutfitResultsDisplay({
 
         <CardContent className="space-y-6">
           {/* HERO: Flat Lay Image (Primary Display) */}
-          {outfit.metadata?.flat_lay_url ? (
-            <div className="mb-6 p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-lg font-semibold flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-amber-600" />
+          {outfit.metadata?.flat_lay_url && (
+            <div className="mb-6 p-6 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-2xl border-4 border-amber-500 dark:border-amber-600">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+                  <Eye className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                   Complete Outfit Preview
                 </h4>
-                <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                <Badge className="bg-amber-600 text-white dark:bg-amber-500">
                   Flat Lay
                 </Badge>
               </div>
-              <FlatLayViewer
-                flatLayUrl={outfit.metadata.flat_lay_url}
-                outfitName={outfit.name}
-                outfitItems={outfit.items.map(item => ({
-                  id: item.id,
-                  name: item.name,
-                  type: item.type,
-                  imageUrl: item.imageUrl
-                }))}
-                showItemGrid={true}
-                className="w-full"
-              />
+              
+              {/* Flat lay image with explicit sizing */}
+              <div className="w-full bg-white dark:bg-gray-900 rounded-xl overflow-hidden border-2 border-amber-300 dark:border-amber-700">
+                <img
+                  src={outfit.metadata.flat_lay_url}
+                  alt={`${outfit.name} flat lay`}
+                  className="w-full h-auto max-h-[600px] object-contain"
+                  style={{ display: 'block', minHeight: '300px' }}
+                  onError={(e) => {
+                    console.error('🎨 FLAT LAY IMAGE ERROR:', e);
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log('🎨 FLAT LAY IMAGE LOADED SUCCESSFULLY');
+                  }}
+                />
+              </div>
+              
+              {/* Action buttons */}
+              <div className="mt-4 flex gap-2 justify-end">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleDownload}
+                  className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleShare}
+                  className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </div>
             </div>
-          ) : null}
+          )}
 
           {/* Outfit Items Grid (Secondary - Detailed View) */}
           <div>
