@@ -55,6 +55,7 @@ async def upload_image(
     file: UploadFile = File(...),
     category: Optional[str] = "clothing",
     name: Optional[str] = None,
+    remove_bg: bool = True,  # NEW: Auto-remove background by default
     current_user: Optional[UserProfile] = Depends(get_current_user_optional) if AUTH_AVAILABLE else None
 ):
     try:
@@ -69,7 +70,8 @@ async def upload_image(
         # Build filename
         file_extension = (file.filename or "").split('.')[-1] or 'jpg'
         user_id = current_user.id if current_user else "anonymous"
-        filename = f"wardrobe/{user_id}/{uuid.uuid4()}.{file_extension}"
+        item_id = str(uuid.uuid4())
+        filename = f"wardrobe/{user_id}/{item_id}.{file_extension}"
 
         # Upload to Firebase Storage with download token
         if not FIREBASE_AVAILABLE:
@@ -80,44 +82,72 @@ async def upload_image(
             )
         
         try:
-            # print(f"🔍 Attempting to get Firebase Storage bucket...")
             bucket = storage.bucket()
-            # print(f"✅ Got bucket: {bucket.name}")
             
+            # Upload ORIGINAL image
             blob = bucket.blob(filename)
-            # print(f"🔍 Created blob for filename: {filename}")
-            
             token = str(uuid.uuid4())
             blob.metadata = {"firebaseStorageDownloadTokens": token}
-            # print(f"🔍 Set metadata with token: {token}")
-            
-            # print(f"🔍 Uploading {len(contents)} bytes to Firebase Storage...")
             blob.upload_from_string(contents, content_type=file.content_type)
-            # print(f"✅ Successfully uploaded to Firebase Storage")
+            logger.info(f"✅ Uploaded original image: {filename}")
             
         except Exception as firebase_error:
-            # print(f"❌ Firebase Storage upload error: {firebase_error}")
-            # print(f"❌ Error type: {type(firebase_error).__name__}")
             import traceback
-            # print(f"❌ Traceback: {traceback.format_exc()}")
+            logger.error(f"❌ Firebase upload error: {traceback.format_exc()}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
                 detail=f"Firebase Storage upload failed: {str(firebase_error)}"
             )
 
-        download_url = (
+        original_url = (
             f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/"
             f"{filename.replace('/', '%2F')}?alt=media&token={token}"
         )
+        
+        # NEW: Auto-remove background and store clean version
+        background_removed_url = None
+        if remove_bg:
+            try:
+                logger.info("🎨 Starting automatic background removal...")
+                
+                # Process image with rembg
+                input_image = Image.open(io.BytesIO(contents))
+                output_image = remove(input_image)
+                
+                # Convert to bytes
+                img_byte_arr = io.BytesIO()
+                output_image.save(img_byte_arr, format='PNG')
+                img_bytes = img_byte_arr.getvalue()
+                
+                # Upload background-removed version
+                bg_removed_filename = f"wardrobe/{user_id}/{item_id}_nobg.png"
+                bg_blob = bucket.blob(bg_removed_filename)
+                bg_token = str(uuid.uuid4())
+                bg_blob.metadata = {"firebaseStorageDownloadTokens": bg_token}
+                bg_blob.upload_from_string(img_bytes, content_type='image/png')
+                
+                background_removed_url = (
+                    f"https://firebasestorage.googleapis.com/v0/b/{bucket.name}/o/"
+                    f"{bg_removed_filename.replace('/', '%2F')}?alt=media&token={bg_token}"
+                )
+                logger.info(f"✅ Background removed and uploaded: {bg_removed_filename}")
+                
+            except Exception as bg_error:
+                logger.warning(f"⚠️ Background removal failed (continuing without): {bg_error}")
+                # Continue without background-removed version (not critical)
 
         return {
             "message": "Image uploaded successfully",
-            "item_id": str(uuid.uuid4()),
-            "image_url": download_url,
+            "item_id": item_id,
+            "image_url": original_url,
+            "background_removed_url": background_removed_url,  # NEW: Clean version for flat lays
+            "background_removed": background_removed_url is not None,  # NEW: Flag
             "item": {
                 "name": name or file.filename,
                 "category": category,
-                "image_url": download_url,
+                "image_url": original_url,
+                "backgroundRemovedUrl": background_removed_url,
+                "backgroundRemoved": background_removed_url is not None,
             }
         }
     except HTTPException:

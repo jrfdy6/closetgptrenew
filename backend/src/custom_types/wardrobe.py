@@ -477,6 +477,7 @@ class ClothingItem(BaseModel):
     subType: Optional[str] = None
     colorName: Optional[str] = None
     backgroundRemoved: Optional[bool] = None
+    backgroundRemovedUrl: Optional[str] = None  # NEW: URL to pre-processed image with background removed
     embedding: Optional[List[float]] = None
     metadata: Optional[Dict[str, Any]] = None  # Accept any dict - don't validate nested structure
     

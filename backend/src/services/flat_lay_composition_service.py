@@ -157,8 +157,26 @@ class FlatLayCompositionService:
                 item_type = getattr(item, 'type', 'unknown')
                 logger.info(f"  [{idx}/{len(items)}] Processing: {item_name} ({item_type})")
                 
-                # Get image URL
-                image_url = getattr(item, 'imageUrl', None) or getattr(item, 'image_url', None)
+                # NEW: Check for pre-processed background-removed image first!
+                bg_removed_url = None
+                if hasattr(item, 'metadata') and isinstance(item.metadata, dict):
+                    bg_removed_url = item.metadata.get('backgroundRemovedUrl')
+                
+                # Fallback to legacy field names
+                if not bg_removed_url:
+                    bg_removed_url = (
+                        getattr(item, 'backgroundRemovedUrl', None) or 
+                        getattr(item, 'background_removed_url', None)
+                    )
+                
+                # Use pre-processed image if available (INSTANT!)
+                if bg_removed_url and 'placeholder' not in bg_removed_url.lower():
+                    logger.info(f"  ⚡ [{idx}/{len(items)}] Using PRE-PROCESSED image (no bg removal needed)")
+                    image_url = bg_removed_url
+                else:
+                    # Fallback to original image (will need processing)
+                    image_url = getattr(item, 'imageUrl', None) or getattr(item, 'image_url', None)
+                    logger.info(f"  🎨 [{idx}/{len(items)}] Using original image (will remove background)")
                 
                 if not image_url or 'placeholder' in image_url.lower():
                     logger.warning(f"  ⚠️ [{idx}/{len(items)}] SKIPPED: No valid image URL for {item_name}")
@@ -171,13 +189,16 @@ class FlatLayCompositionService:
                     logger.warning(f"  ⚠️ [{idx}/{len(items)}] SKIPPED: Failed to download image for {item_name}")
                     continue
                 
-                # Remove background if not already transparent
+                # Remove background ONLY if using original image (not pre-processed)
                 if image.mode != 'RGBA':
                     image = image.convert('RGBA')
                 
-                # Apply background removal
-                logger.info(f"  🎨 [{idx}/{len(items)}] Removing background for {item_name}")
-                image = self._remove_background(image)
+                # Only process background if not already removed
+                if not bg_removed_url:
+                    logger.info(f"  🎨 [{idx}/{len(items)}] Removing background for {item_name}")
+                    image = self._remove_background(image)
+                else:
+                    logger.info(f"  ✅ [{idx}/{len(items)}] Using pre-processed background-removed image")
                 
                 # Resize to reasonable dimensions
                 image = self._resize_image(image, self.config.max_item_width, self.config.max_item_height)
