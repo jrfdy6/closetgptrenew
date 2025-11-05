@@ -108,11 +108,26 @@ async def upload_image(
         background_removed_url = None
         if remove_bg:
             try:
-                logger.info("🎨 Starting automatic background removal...")
+                logger.info("🎨 Starting automatic background removal with ALPHA MATTING...")
                 
-                # Process image with rembg
+                # Process image with rembg + alpha matting for BEST quality
                 input_image = Image.open(io.BytesIO(contents))
-                output_image = remove(input_image)
+                
+                try:
+                    # Try with alpha matting first (best quality)
+                    output_image = remove(
+                        input_image,
+                        alpha_matting=True,
+                        alpha_matting_foreground_threshold=240,
+                        alpha_matting_background_threshold=10,
+                        alpha_matting_erode_size=10
+                    )
+                    logger.info("✅ Background removed with alpha matting (high quality)")
+                except Exception as alpha_error:
+                    # Fallback to fast mode if alpha matting fails
+                    logger.warning(f"⚠️ Alpha matting failed, using fast mode: {alpha_error}")
+                    output_image = remove(input_image)
+                    logger.info("✅ Background removed with fast mode (standard quality)")
                 
                 # Convert to bytes
                 img_byte_arr = io.BytesIO()
