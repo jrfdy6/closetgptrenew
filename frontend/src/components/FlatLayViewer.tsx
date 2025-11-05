@@ -105,7 +105,7 @@ export default function FlatLayViewer({
   const renderFlatLay = () => {
     if (!flatLayUrl || imageError) {
       return (
-        <div className="aspect-[9/16] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
+        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
           <ImageOff className="w-16 h-16 text-gray-400 dark:text-gray-600 mb-4" />
           <p className="text-gray-600 dark:text-gray-400 text-center mb-2">
             {imageError ? 'Failed to load flat lay image' : 'No flat lay image available'}
@@ -125,7 +125,7 @@ export default function FlatLayViewer({
     }
 
     return (
-      <div className="relative aspect-[9/16] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+      <div className="relative aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-amber-600" />

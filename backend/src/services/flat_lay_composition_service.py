@@ -44,7 +44,7 @@ class LayoutPosition:
 class FlatLayConfig:
     """Configuration for flat lay generation"""
     canvas_width: int = 1080
-    canvas_height: int = 1920
+    canvas_height: int = 1350  # Changed from 1920 to make it less tall (4:3 ratio)
     background_color: Tuple[int, int, int, int] = (245, 245, 245, 255)  # Light gray
     shadow_enabled: bool = True
     shadow_blur: int = 15

@@ -160,7 +160,16 @@ export default function OutfitResultsDisplay({
         <CardContent className="space-y-6">
           {/* HERO: Flat Lay Image (Primary Display) */}
           {outfit.metadata?.flat_lay_url ? (
-            <div className="relative -mx-6 -mt-2 mb-6">
+            <div className="mb-6 p-4 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-lg font-semibold flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-amber-600" />
+                  Complete Outfit Preview
+                </h4>
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                  Flat Lay
+                </Badge>
+              </div>
               <FlatLayViewer
                 flatLayUrl={outfit.metadata.flat_lay_url}
                 outfitName={outfit.name}
@@ -174,23 +183,7 @@ export default function OutfitResultsDisplay({
                 className="w-full"
               />
             </div>
-          ) : (
-            /* Fallback: Show first item as hero if no flat lay */
-            outfit.items[0]?.imageUrl && (
-              <div className="relative -mx-6 -mt-2 mb-6 aspect-[9/16] bg-gray-100 dark:bg-gray-800 overflow-hidden">
-                <img 
-                  src={outfit.items[0].imageUrl}
-                  alt={outfit.items[0].name}
-                  className="w-full h-full object-contain"
-                />
-                <div className="absolute top-4 left-4">
-                  <Badge variant="secondary" className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm">
-                    Main Item
-                  </Badge>
-                </div>
-              </div>
-            )
-          )}
+          ) : null}
 
           {/* Outfit Items Grid (Secondary - Detailed View) */}
           <div>
