@@ -8,10 +8,12 @@ import time
 import requests
 import tempfile
 import os
+import json
 from io import BytesIO
 from rembg import remove
 from PIL import Image
-from google.cloud import firestore, storage
+import firebase_admin
+from firebase_admin import credentials, firestore, storage
 
 # ----------------------------
 # Configuration
@@ -19,13 +21,35 @@ from google.cloud import firestore, storage
 FIRESTORE_COLLECTION = "wardrobe"  # Using 'wardrobe' collection (not 'closet')
 FIREBASE_BUCKET_NAME = "closetgptrenew.firebasestorage.app"
 
-# Initialize clients
-print("🔥 Initializing Firebase clients...")
-db = firestore.Client()
-storage_client = storage.Client()
-bucket = storage_client.bucket(FIREBASE_BUCKET_NAME)
+# Initialize Firebase Admin SDK
+print("🔥 Initializing Firebase Admin SDK...")
+
+# Build credentials from environment variables
+firebase_creds = {
+    "type": "service_account",
+    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+    "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace("\\n", "\n"),
+    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+    "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL")
+}
+
+# Initialize Firebase
+cred = credentials.Certificate(firebase_creds)
+firebase_admin.initialize_app(cred, {
+    "storageBucket": FIREBASE_BUCKET_NAME
+})
+
+# Get Firebase clients
+db = firestore.client()
+bucket = storage.bucket()
+
 print(f"✅ Connected to Firestore collection: {FIRESTORE_COLLECTION}")
-print(f"✅ Connected to Storage bucket: {FIREBASE_BUCKET_NAME}")
+print(f"✅ Connected to Storage bucket: {bucket.name}")
 
 
 # ----------------------------
