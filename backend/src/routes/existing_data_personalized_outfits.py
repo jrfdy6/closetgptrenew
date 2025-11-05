@@ -326,6 +326,18 @@ async def generate_personalized_outfit_from_existing_data(
                     logger.error(f"Traceback: {traceback.format_exc()}")
                 
                 # Use robust result
+                # CRITICAL: Preserve metadata from robust_outfit (includes flat_lay_url!)
+                robust_metadata = getattr(robust_outfit, 'metadata', {}) if hasattr(robust_outfit, 'metadata') else {}
+                if isinstance(robust_metadata, dict):
+                    # Metadata is already a dict, use it directly
+                    base_metadata = robust_metadata
+                elif hasattr(robust_metadata, 'dict'):
+                    # Metadata is a Pydantic model, convert to dict
+                    base_metadata = robust_metadata.dict()
+                else:
+                    # Fallback to empty dict
+                    base_metadata = {}
+                
                 existing_result = {
                     "id": f"outfit_{int(time.time())}",
                     "name": f"{req.style} {req.occasion} Outfit",
@@ -333,6 +345,7 @@ async def generate_personalized_outfit_from_existing_data(
                     "confidence_score": getattr(robust_outfit, 'confidence_score', 0.85),
                     "outfitAnalysis": outfit_analysis,  # Add detailed analysis
                     "metadata": {
+                        **base_metadata,  # 🔥 PRESERVE flat_lay_url and other metadata from robust service
                         "generated_by": "robust_service_6d_scoring",
                         "occasion": req.occasion,
                         "style": req.style,
