@@ -548,6 +548,8 @@ export default function OutfitGenerationPage() {
       const data = response.data;
       console.log('🔍 DEBUG: Generated outfit data:', data);
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
+      console.log('🎨 DEBUG: Metadata:', data.metadata);
+      console.log('🎨 DEBUG: Flat lay URL:', data.metadata?.flat_lay_url);
       setGeneratedOutfit(data);
       
       // Auto-save the generated outfit directly to Firestore
