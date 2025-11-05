@@ -17,6 +17,14 @@ from src.custom_types.wardrobe import ClothingItem
 
 logger = logging.getLogger(__name__)
 
+try:
+    from rembg import remove as rembg_remove
+    REMBG_AVAILABLE = True
+    logger.info("✅ rembg library loaded successfully")
+except ImportError:
+    REMBG_AVAILABLE = False
+    logger.warning("⚠️ rembg not available - falling back to simple background removal")
+
 
 class ItemCategory(Enum):
     """Clothing item categories for positioning"""
@@ -140,42 +148,52 @@ class FlatLayCompositionService:
         """Download and preprocess item images"""
         processed_items = []
         
-        for item in items:
+        logger.info(f"📥 Processing {len(items)} items for flat lay")
+        for idx, item in enumerate(items, 1):
             try:
+                item_name = getattr(item, 'name', 'Unknown')
+                item_type = getattr(item, 'type', 'unknown')
+                logger.info(f"  [{idx}/{len(items)}] Processing: {item_name} ({item_type})")
+                
                 # Get image URL
                 image_url = getattr(item, 'imageUrl', None) or getattr(item, 'image_url', None)
                 
                 if not image_url or 'placeholder' in image_url.lower():
-                    logger.warning(f"⚠️ No valid image URL for item {item.id}")
+                    logger.warning(f"  ⚠️ [{idx}/{len(items)}] SKIPPED: No valid image URL for {item_name}")
                     continue
                 
                 # Download image
                 image = await self._download_image(image_url)
                 
                 if image is None:
-                    logger.warning(f"⚠️ Failed to download image for item {item.id}")
+                    logger.warning(f"  ⚠️ [{idx}/{len(items)}] SKIPPED: Failed to download image for {item_name}")
                     continue
                 
                 # Remove background if not already transparent
                 if image.mode != 'RGBA':
                     image = image.convert('RGBA')
                 
-                # Apply background removal (simple approach)
+                # Apply background removal
+                logger.info(f"  🎨 [{idx}/{len(items)}] Removing background for {item_name}")
                 image = self._remove_background(image)
                 
                 # Resize to reasonable dimensions
                 image = self._resize_image(image, self.config.max_item_width, self.config.max_item_height)
                 
+                category = self._get_item_category(item)
+                logger.info(f"  ✅ [{idx}/{len(items)}] SUCCESS: {item_name} → {category.value}")
+                
                 processed_items.append({
                     'item': item,
                     'image': image,
-                    'category': self._get_item_category(item)
+                    'category': category
                 })
                 
             except Exception as e:
-                logger.error(f"❌ Error preprocessing item {item.id}: {e}")
+                logger.error(f"  ❌ [{idx}/{len(items)}] ERROR preprocessing {getattr(item, 'name', 'unknown')}: {e}")
                 continue
         
+        logger.info(f"✅ Successfully processed {len(processed_items)}/{len(items)} items")
         return processed_items
     
     async def _download_image(self, url: str, timeout: int = 10) -> Optional[Image.Image]:
@@ -200,18 +218,28 @@ class FlatLayCompositionService:
     
     def _remove_background(self, image: Image.Image) -> Image.Image:
         """
-        Simple background removal using PIL.
-        For production, consider using rembg library or external API.
+        Remove background from image using rembg library.
+        Falls back to simple approach if rembg is not available.
         """
         # Convert to RGBA if not already
         if image.mode != 'RGBA':
             image = image.convert('RGBA')
         
-        # Get pixel data
+        # Use rembg if available (much better quality)
+        if REMBG_AVAILABLE:
+            try:
+                logger.info("🎨 Using rembg for background removal")
+                # rembg.remove returns an image with transparent background
+                image = rembg_remove(image)
+                logger.info("✅ Background removed successfully with rembg")
+                return image
+            except Exception as e:
+                logger.warning(f"⚠️ rembg failed, falling back to simple removal: {e}")
+        
+        # Fallback: Simple approach for white/light backgrounds
+        logger.info("🎨 Using simple background removal (white pixels only)")
         data = image.getdata()
         
-        # Simple approach: make white/light pixels transparent
-        # This assumes items are photographed on white/light backgrounds
         new_data = []
         for item in data:
             # If pixel is mostly white (R, G, B > 240), make it transparent
