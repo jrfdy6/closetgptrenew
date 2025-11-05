@@ -107,6 +107,11 @@ export default function OutfitResultsDisplay({
     return 'Fair Match';
   };
 
+  // DEBUG: Log flat lay URL
+  console.log('🎨 OUTFIT RESULTS: outfit.metadata:', outfit.metadata);
+  console.log('🎨 OUTFIT RESULTS: flat_lay_url:', outfit.metadata?.flat_lay_url);
+  console.log('🎨 OUTFIT RESULTS: Should show flat lay?', !!outfit.metadata?.flat_lay_url);
+
   return (
     <div className="space-y-6">
       {/* Main Outfit Card */}
