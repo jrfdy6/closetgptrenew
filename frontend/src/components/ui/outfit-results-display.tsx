@@ -210,20 +210,20 @@ export default function OutfitResultsDisplay({
                 </Badge>
               </div>
               
-              {/* Flat lay image with explicit sizing */}
-              <div className="w-full bg-white dark:bg-gray-900 rounded-xl overflow-hidden border-2 border-amber-300 dark:border-amber-700">
+              {/* Flat lay image with auto height (no aspect ratio constraint) */}
+              <div className="w-full max-h-[600px] bg-white dark:bg-gray-900 rounded-xl overflow-visible border-2 border-amber-300 dark:border-amber-700">
                 <img
                   src={outfit.metadata.flat_lay_url}
                   alt={`${outfit.name} flat lay`}
-                  className="w-full h-auto max-h-[600px] object-contain"
-                  style={{ display: 'block', minHeight: '300px' }}
+                  className="w-full h-auto object-contain"
+                  style={{ display: 'block', minHeight: '300px', maxHeight: '600px' }}
                   onError={(e) => {
                     console.error('🎨 FLAT LAY IMAGE ERROR:', e);
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
                   }}
                   onLoad={() => {
-                    console.log('🎨 FLAT LAY IMAGE LOADED SUCCESSFULLY');
+                    console.log('🎨 FLAT LAY IMAGE LOADED SUCCESSFULLY ✅');
                   }}
                 />
               </div>
