@@ -19,7 +19,8 @@ import {
   Target,
   Smile,
   Cloud,
-  AlertCircle
+  AlertCircle,
+  Sun
 } from 'lucide-react';
 import { useAutoWeather } from '@/hooks/useWeather';
 import { formatWeatherForDisplay } from '@/lib/weather';
