@@ -306,8 +306,8 @@ class RobustOutfitGenerationService:
             from .flat_lay_storage_service import FlatLayStorageService
             self.flat_lay_service = FlatLayCompositionService()
             self.flat_lay_storage = FlatLayStorageService()
-            self.enable_flat_lay_generation = False  # DISABLED temporarily
-            logger.info("⚠️ Flat lay services initialized but DISABLED for performance")
+            self.enable_flat_lay_generation = True  # ENABLED with worker processing
+            logger.info("✅ Flat lay services initialized (using pre-processed images from worker)")
         except Exception as e:
             logger.warning(f"⚠️ Flat lay services not available: {e}")
             self.flat_lay_service = None

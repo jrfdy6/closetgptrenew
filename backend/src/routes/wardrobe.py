@@ -499,6 +499,8 @@ async def add_wardrobe_item(
             "weatherCompatibility": (analysis.get("weatherCompatibility", []) if analysis else []),
             "gender": (analysis.get("gender", "unisex") if analysis else "unisex"),
             "backgroundRemoved": (analysis.get("backgroundRemoved", False) if analysis else False),
+            "backgroundRemovedUrl": None,  # Will be filled by worker
+            "processing_status": "pending",  # Triggers background processing
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
             "metadata": {
