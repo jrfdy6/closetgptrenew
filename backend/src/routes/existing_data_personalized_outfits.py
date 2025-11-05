@@ -364,6 +364,12 @@ async def generate_personalized_outfit_from_existing_data(
                 # Skip the simple selection logic - we have a robust result!
                 logger.warning(f"✅ ROBUST SERVICE: Success! Skipping simple fallback")
                 
+                # DEBUG: Log if flat_lay_url is in metadata
+                if 'flat_lay_url' in existing_result['metadata']:
+                    logger.warning(f"🎨 FLAT LAY URL INCLUDED IN RESPONSE: {existing_result['metadata']['flat_lay_url']}")
+                else:
+                    logger.warning(f"⚠️ NO FLAT LAY URL IN METADATA - metadata keys: {list(existing_result['metadata'].keys())}")
+                
             except Exception as robust_error:
                 import traceback
                 error_details = traceback.format_exc()
