@@ -128,16 +128,45 @@ export default function OutfitGenerationForm({
         </Card>
       )}
 
-      {/* Progress Steps */}
+      {/* Progress Steps - Mobile Optimized */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wand2 className="h-5 w-5 text-amber-600" />
-            Outfit Generation Steps
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Wand2 className="h-5 w-5 text-amber-600 flex-shrink-0" />
+            <span className="truncate">Outfit Generation Steps</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          {/* Mobile: Vertical Stack */}
+          <div className="flex sm:hidden flex-col gap-2">
+            {steps.map((step, index) => {
+              const status = getStepStatus(index);
+              const Icon = step.icon;
+              const isCompleted = status === 'completed';
+              const isCurrent = status === 'current';
+              
+              return (
+                <button
+                  key={step.id}
+                  onClick={() => handleStepClick(index)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                    isCurrent 
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' 
+                      : isCompleted
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${isCompleted ? 'text-amber-600' : ''}`} />
+                  <span className="text-sm font-medium flex-1 text-left">{step.label}</span>
+                  {isCompleted && <div className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Desktop: Horizontal Flow */}
+          <div className="hidden sm:flex items-center justify-between overflow-x-auto">
             {steps.map((step, index) => {
               const status = getStepStatus(index);
               const Icon = step.icon;
@@ -148,7 +177,7 @@ export default function OutfitGenerationForm({
                 <div key={step.id} className="flex items-center">
                   <button
                     onClick={() => handleStepClick(index)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap ${
                       isCurrent 
                         ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' 
                         : isCompleted
@@ -161,7 +190,7 @@ export default function OutfitGenerationForm({
                     {isCompleted && <div className="w-2 h-2 bg-amber-500 rounded-full" />}
                   </button>
                   {index < steps.length - 1 && (
-                    <ArrowRight className="h-4 w-4 text-gray-300 mx-2" />
+                    <ArrowRight className="h-4 w-4 text-gray-300 mx-2 flex-shrink-0" />
                   )}
                 </div>
               );
@@ -173,12 +202,12 @@ export default function OutfitGenerationForm({
       {/* Form Fields */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-600" />
-            Outfit Preferences
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Sparkles className="h-5 w-5 text-amber-600 flex-shrink-0" />
+            <span className="truncate">Outfit Preferences</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4 sm:space-y-6">
           {/* Occasion Selection */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -252,23 +281,26 @@ export default function OutfitGenerationForm({
                 <span className="text-sm text-gray-500">Loading weather...</span>
               </div>
             ) : displayWeather ? (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {formatWeatherForDisplay(displayWeather).temperature}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-2xl sm:text-lg font-semibold text-gray-900 dark:text-white">
+                        {formatWeatherForDisplay(displayWeather).temperature}
+                      </p>
+                      <Sun className="h-5 w-5 sm:h-4 sm:w-4 text-amber-500" />
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       {formatWeatherForDisplay(displayWeather).condition}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      {displayWeather.location}
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 truncate">
+                      {displayWeather.location || 'Unknown Location'}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                  <div className="flex items-start justify-between sm:flex-col sm:text-right gap-2">
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
                       {formatWeatherForDisplay(displayWeather).details.slice(0, 2).map((detail, index) => (
-                        <p key={index}>{detail}</p>
+                        <p key={index} className="whitespace-nowrap">{detail}</p>
                       ))}
                     </div>
                     <Button
@@ -277,16 +309,16 @@ export default function OutfitGenerationForm({
                       size="sm"
                       onClick={fetchWeatherByLocation}
                       disabled={weatherLoading}
-                      className="mt-1 h-6 px-2"
+                      className="h-8 w-8 sm:h-6 sm:w-auto sm:px-2 sm:mt-1"
                     >
-                      <RefreshCw className={`h-3 w-3 ${weatherLoading ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-4 w-4 sm:h-3 sm:w-3 ${weatherLoading ? 'animate-spin' : ''}`} />
                     </Button>
                   </div>
                 </div>
                 {displayWeather.fallback && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
-                    <AlertCircle className="h-3 w-3" />
-                    Using fallback weather data
+                    <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                    <span>Using fallback weather data</span>
                   </p>
                 )}
               </div>
@@ -365,29 +397,29 @@ export default function OutfitGenerationForm({
           <Button 
             onClick={onGenerate} 
             disabled={generating || wardrobeLoading || !isFormValid}
-            className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="w-full h-12 sm:h-14 text-base sm:text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             size="lg"
           >
             {generating ? (
               <>
-                <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                Creating Your Outfit...
+                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
+                <span className="truncate">Creating Your Outfit...</span>
               </>
             ) : wardrobeLoading ? (
               <>
-                <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
-                Loading Wardrobe...
+                <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 mr-2 animate-spin" />
+                <span className="truncate">Loading Wardrobe...</span>
               </>
             ) : (
               <>
-                <Sparkles className="h-5 w-5 mr-2" />
-                Generate My Outfit
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+                <span>Generate My Outfit</span>
               </>
             )}
           </Button>
 
           {!isFormValid && (
-            <p className="text-sm text-amber-600 dark:text-amber-400 text-center">
+            <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 text-center px-2">
               Please fill in all required fields to generate your outfit
             </p>
           )}

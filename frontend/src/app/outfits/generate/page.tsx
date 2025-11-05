@@ -901,29 +901,29 @@ export default function OutfitGenerationPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
-      <div className="container mx-auto p-8 pb-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-24">
         {/* Header */}
-        <div className="flex items-center gap-6 mb-12">
+        <div className="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:gap-6 mb-8 sm:mb-12">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => router.push('/outfits')}
-            className="flex items-center gap-3 glass-button-secondary text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 px-6 py-3 rounded-full font-medium glass-transition hover:scale-105"
+            className="flex items-center gap-2 glass-button-secondary text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100 px-4 sm:px-6 py-2 sm:py-3 rounded-full text-sm sm:text-base font-medium glass-transition hover:scale-105"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             Back to Outfits
           </Button>
-          <div>
-            <h1 className="text-4xl font-serif font-bold flex items-center gap-4 text-stone-900 dark:text-stone-100">
-              <Sparkles className="h-10 w-10 text-stone-600 dark:text-stone-400" />
-              Generate New Outfit
+          <div className="space-y-2">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold flex items-center gap-3 text-stone-900 dark:text-stone-100">
+              <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-stone-600 dark:text-stone-400 flex-shrink-0" />
+              <span>Generate New Outfit</span>
             </h1>
-            <p className="text-stone-600 dark:text-stone-400 font-light text-lg mt-2">AI-powered outfit creation based on your preferences</p>
+            <p className="text-stone-600 dark:text-stone-400 font-light text-base sm:text-lg">AI-powered outfit creation based on your preferences</p>
           </div>
         </div>
 
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
           {/* Enhanced Outfit Generation Form */}
           <OutfitGenerationForm
             formData={formData}
@@ -979,10 +979,10 @@ export default function OutfitGenerationPage() {
               </>
             ) : (
               <Card className="border-dashed">
-                <CardContent className="p-12 text-center">
-                  <Sparkles className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Ready to Generate</h3>
-                  <p className="text-muted-foreground">
+                <CardContent className="p-6 sm:p-8 lg:p-12 text-center">
+                  <Sparkles className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold mb-2">Ready to Generate</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     Fill out the form and click "Generate Outfit" to create your AI-powered style combination
                   </p>
                 </CardContent>
