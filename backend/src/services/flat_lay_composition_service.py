@@ -70,27 +70,29 @@ class FlatLayCompositionService:
         self.config = config or FlatLayConfig()
         
         # Define scale factors for each category
+        # Adjusted for better visual balance and reduced overlap
         self.category_scales = {
-            ItemCategory.TOP: 1.0,
-            ItemCategory.BOTTOM: 0.9,
-            ItemCategory.DRESS: 1.2,
-            ItemCategory.OUTERWEAR: 1.1,
-            ItemCategory.SHOES: 0.7,
-            ItemCategory.ACCESSORY: 0.4,
-            ItemCategory.BAG: 0.6,
-            ItemCategory.HAT: 0.5,
+            ItemCategory.TOP: 0.85,        # Slightly smaller to show outerwear
+            ItemCategory.BOTTOM: 0.80,     # Proportional to top
+            ItemCategory.DRESS: 1.0,       # Dress is main piece
+            ItemCategory.OUTERWEAR: 0.95,  # Visible behind/beside top
+            ItemCategory.SHOES: 0.65,      # Smaller, at bottom
+            ItemCategory.ACCESSORY: 0.35,  # Small accent pieces
+            ItemCategory.BAG: 0.55,        # Medium accessory
+            ItemCategory.HAT: 0.45,        # Small accent
         }
         
         # Define base positions for each category (relative to canvas)
+        # Improved layout with better spacing to show all items clearly
         self.category_positions = {
-            ItemCategory.TOP: (0.5, 0.28),  # Center-top
-            ItemCategory.BOTTOM: (0.5, 0.60),  # Center-middle
-            ItemCategory.DRESS: (0.5, 0.45),  # Center (for dress-only outfits)
-            ItemCategory.OUTERWEAR: (0.5, 0.25),  # Above top
-            ItemCategory.SHOES: (0.5, 0.85),  # Bottom center
-            ItemCategory.ACCESSORY: (0.25, 0.30),  # Left side
-            ItemCategory.BAG: (0.75, 0.50),  # Right side
-            ItemCategory.HAT: (0.25, 0.15),  # Top left
+            ItemCategory.TOP: (0.5, 0.35),     # Center-upper middle
+            ItemCategory.BOTTOM: (0.5, 0.68),  # Center-lower middle
+            ItemCategory.DRESS: (0.5, 0.50),   # Center (for dress-only outfits)
+            ItemCategory.OUTERWEAR: (0.28, 0.30),  # LEFT side, slightly offset to show behind top
+            ItemCategory.SHOES: (0.5, 0.88),   # Bottom center
+            ItemCategory.ACCESSORY: (0.75, 0.38),  # Right side (visible next to top)
+            ItemCategory.BAG: (0.78, 0.62),    # Right side lower
+            ItemCategory.HAT: (0.22, 0.18),    # Top left corner
         }
     
     async def create_flat_lay(
