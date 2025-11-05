@@ -22,7 +22,7 @@ import {
   CheckCircle,
   ArrowRight,
   Eye,
-  Share2
+  Share2,
   Download
 } from 'lucide-react';
 import StyleEducationModule from './style-education-module';
