@@ -1245,7 +1245,7 @@ export default function Onboarding() {
     return (
       <div className="animate-in fade-in-0 slide-in-from-right-4 duration-500">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-serif text-gray-900 dark:text-white mb-8 leading-tight">
+          <h2 className="heading-lg text-gray-900 dark:text-[#F8F5F1] mb-8">
             {question.question}
           </h2>
           {question.type === "visual" && (
@@ -1300,7 +1300,7 @@ export default function Onboarding() {
                 />
               </div>
               <div className="text-center mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="heading-sm text-gray-900 dark:text-[#F8F5F1] mb-2">
                   {question.style_name}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -1446,9 +1446,9 @@ export default function Onboarding() {
               <div className="absolute inset-0 flex items-center">
                 <div className="max-w-2xl p-8 text-white">
                   <div className="text-sm font-medium text-gray-300 mb-3 tracking-wider">YOU ARE</div>
-                  <h1 className="text-6xl md:text-7xl font-serif font-bold mb-6 leading-tight">
+                  <h1 className="heading-xl mb-6 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] bg-clip-text text-transparent">
                   {persona.name}
-                  </h1>
+                </h1>
                   <p className="text-2xl text-gray-100 mb-8 leading-relaxed font-light">
                     {persona.tagline}
                   </p>
