@@ -42,6 +42,12 @@ export default function FlatLayViewer({
   const [imageError, setImageError] = useState(false);
   const [currentView, setCurrentView] = useState<'flat-lay' | 'grid'>('flat-lay');
 
+  // DEBUG: Log component props
+  console.log('🎨 FLAT LAY VIEWER: Component mounted');
+  console.log('🎨 FLAT LAY VIEWER: flatLayUrl:', flatLayUrl);
+  console.log('🎨 FLAT LAY VIEWER: outfitName:', outfitName);
+  console.log('🎨 FLAT LAY VIEWER: currentView:', currentView);
+
   const handleImageLoad = () => {
     setIsLoading(false);
   };
