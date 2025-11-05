@@ -227,34 +227,19 @@ class FlatLayCompositionService:
         if image.mode != 'RGBA':
             image = image.convert('RGBA')
         
-        # Use rembg if available (much better quality)
+        # Use rembg if available (FAST version - no alpha matting)
         if REMBG_AVAILABLE:
             try:
-                logger.info("🎨 Using rembg for background removal with alpha matting")
+                logger.info("🎨 Using rembg for background removal (fast mode)")
                 
-                # Use rembg with alpha matting for better edge quality
-                # alpha_matting=True provides smoother edges
-                # alpha_matting_foreground_threshold and background_threshold help with difficult edges
-                image = rembg_remove(
-                    image,
-                    alpha_matting=True,
-                    alpha_matting_foreground_threshold=240,
-                    alpha_matting_background_threshold=10,
-                    alpha_matting_erode_size=10
-                )
+                # Use basic rembg without alpha matting for speed
+                # This is 5-10x FASTER and works well for most images
+                image = rembg_remove(image)
                 
-                logger.info("✅ Background removed successfully with rembg + alpha matting")
+                logger.info("✅ Background removed successfully with rembg (fast mode)")
                 return image
             except Exception as e:
-                logger.warning(f"⚠️ rembg with alpha matting failed, trying without: {e}")
-                
-                # Try again without alpha matting (faster but lower quality)
-                try:
-                    image = rembg_remove(image)
-                    logger.info("✅ Background removed with rembg (no alpha matting)")
-                    return image
-                except Exception as e2:
-                    logger.warning(f"⚠️ rembg failed completely, falling back to simple removal: {e2}")
+                logger.warning(f"⚠️ rembg failed, falling back to simple removal: {e}")
         
         # Fallback: Simple approach for white/light backgrounds
         logger.info("🎨 Using simple background removal (white pixels only)")
