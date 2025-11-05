@@ -30,6 +30,7 @@ interface WardrobeItem {
   type: string;
   color: string;
   imageUrl: string;
+  backgroundRemovedUrl?: string;  // Stealth-mode: auto-upgraded by worker
   wearCount: number;
   favorite: boolean;
   style?: string[];
@@ -184,7 +185,7 @@ export default function WardrobeGrid({
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
             <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
               <img
-                src={item.imageUrl}
+                src={item.backgroundRemovedUrl ?? item.imageUrl}
                 alt={item.name}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 onError={(e) => {

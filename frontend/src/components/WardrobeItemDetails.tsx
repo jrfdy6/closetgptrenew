@@ -29,6 +29,7 @@ interface WardrobeItem {
   type: string;
   color: string;
   imageUrl: string;
+  backgroundRemovedUrl?: string;  // Stealth-mode: auto-upgraded by worker
   wearCount: number;
   favorite: boolean;
   style?: string[];
@@ -370,7 +371,7 @@ export default function WardrobeItemDetails({
           <div className="space-y-4">
             <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
               <img
-                src={item.imageUrl}
+                src={item.backgroundRemovedUrl ?? item.imageUrl}
                 alt={item.name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
