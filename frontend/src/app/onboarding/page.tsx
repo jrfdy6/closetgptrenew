@@ -1783,7 +1783,7 @@ export default function Onboarding() {
           </p>
         </div>
 
-        <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow">
+        <div className="glass-float p-4 flex-1 flex flex-col min-h-0 glass-shadow overflow-y-auto">
         <div className="mb-4 flex-shrink-0">
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -1818,20 +1818,21 @@ export default function Onboarding() {
           </div>
           
           {question.type === "visual" ? (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col overflow-y-auto">
               {(question.id === "body_type_female" || question.id === "body_type_male") && (
-                <BodyPositiveMessage variant="profile" className="mb-3" />
+                <BodyPositiveMessage variant="profile" className="mb-3 flex-shrink-0" />
               )}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 flex-1">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pb-2">
                 {question.options.map((option, index) => (
                   <button
                     key={index}
                     onClick={() => handleAnswer(question.id, option)}
-                    className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
+                    className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 relative z-10 ${
                       answers.find(a => a.question_id === question.id)?.selected_option === option
                         ? 'bg-amber-500 text-white shadow-lg'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
                     }`}
+                    style={{ touchAction: 'manipulation' }}
                   >
                     <div className="text-center">
                       <div className="font-semibold text-sm">{option}</div>
@@ -1926,54 +1927,63 @@ export default function Onboarding() {
               </div>
             </div>
           ) : question.id === "gender" ? (
-            <div className="grid grid-cols-2 gap-3 flex-1">
-              {question.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswer(question.id, option)}
-                  className={`p-6 rounded-xl text-center transition-all duration-200 hover:scale-102 ${
-                    answers.find(a => a.question_id === question.id)?.selected_option === option
-                      ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
-                      : 'glass-button text-gray-900 dark:text-white hover:bg-amber-100/50 dark:hover:bg-amber-900/30'
-                  }`}
-                >
-                  <div className="font-semibold text-base">{option}</div>
-                </button>
-              ))}
+            <div className="flex-1 overflow-y-auto pb-2">
+              <div className="grid grid-cols-2 gap-3">
+                {question.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(question.id, option)}
+                    className={`p-6 rounded-xl text-center transition-all duration-200 hover:scale-102 relative z-10 ${
+                      answers.find(a => a.question_id === question.id)?.selected_option === option
+                        ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
+                        : 'glass-button text-gray-900 dark:text-white hover:bg-amber-100/50 dark:hover:bg-amber-900/30'
+                    }`}
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <div className="font-semibold text-base">{option}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : question.id === "daily_activities" || question.id === "style_elements" ? (
-            <div className="grid grid-cols-2 gap-3 flex-1">
-              {question.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswer(question.id, option)}
-                  className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 ${
-                    answers.find(a => a.question_id === question.id)?.selected_option === option
-                      ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
-                      : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
-                  }`}
-                >
-                  <div className="font-semibold text-sm">{option}</div>
-                </button>
-              ))}
+            <div className="flex-1 overflow-y-auto pb-2">
+              <div className="grid grid-cols-2 gap-3">
+                {question.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(question.id, option)}
+                    className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 relative z-10 ${
+                      answers.find(a => a.question_id === question.id)?.selected_option === option
+                        ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
+                        : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
+                    }`}
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <div className="font-semibold text-sm">{option}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 flex-1">
-              {question.options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswer(question.id, option)}
-                  className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 ${
-                    answers.find(a => a.question_id === question.id)?.selected_option === option
-                      ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
-                      : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="font-semibold text-sm">{option}</div>
-                  </div>
-                </button>
-              ))}
+            <div className="flex-1 overflow-y-auto pb-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {question.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(question.id, option)}
+                    className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 relative z-10 ${
+                      answers.find(a => a.question_id === question.id)?.selected_option === option
+                        ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
+                        : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
+                    }`}
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <div className="text-center">
+                      <div className="font-semibold text-sm">{option}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
