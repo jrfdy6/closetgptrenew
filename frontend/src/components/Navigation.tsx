@@ -130,12 +130,12 @@ export default function Navigation() {
         <>
           {/* Backdrop */}
           <div 
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60] md:hidden animate-in fade-in duration-200"
             onClick={() => setIsMenuOpen(false)}
           />
           
           {/* Menu Panel */}
-          <div className="fixed inset-x-0 top-16 bottom-0 bg-white dark:bg-gray-900 z-50 md:hidden animate-in slide-in-from-top duration-300 overflow-y-auto">
+          <div className="fixed inset-x-0 top-16 bottom-0 bg-white dark:bg-gray-900 z-[70] md:hidden animate-in slide-in-from-top duration-300 overflow-y-auto">
             <div className="p-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
