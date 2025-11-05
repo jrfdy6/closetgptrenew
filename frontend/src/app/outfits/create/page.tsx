@@ -32,6 +32,7 @@ import { useWardrobe } from '@/lib/hooks/useWardrobe';
 import { useOutfits } from '@/lib/hooks/useOutfits_proper';
 import { ClothingItem } from '@/lib/services/outfitService';
 import Navigation from '@/components/Navigation';
+import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -660,7 +661,7 @@ export default function CreateOutfitPage() {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Outfit Preview (Compact) */}
           <div className="lg:col-span-1">
@@ -801,6 +802,8 @@ export default function CreateOutfitPage() {
           </div>
         </div>
       </main>
+
+      <ClientOnlyNav />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useFirebase } from '@/lib/firebase-context';
 import Navigation from '@/components/Navigation';
+import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
 import OutfitService from '@/lib/services/outfitService';
 import BodyPositiveMessage from '@/components/BodyPositiveMessage';
@@ -900,7 +901,7 @@ export default function OutfitGenerationPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
-      <div className="container mx-auto p-8">
+      <div className="container mx-auto p-8 pb-24">
         {/* Header */}
         <div className="flex items-center gap-6 mb-12">
           <Button 
@@ -1022,6 +1023,8 @@ export default function OutfitGenerationPage() {
           }}
         />
       )}
+
+      <ClientOnlyNav />
     </div>
   );
 }
