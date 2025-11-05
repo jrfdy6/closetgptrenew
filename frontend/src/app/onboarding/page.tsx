@@ -1399,10 +1399,10 @@ export default function Onboarding() {
   // Show loading state while authenticating
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Authenticating...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FFB84C] mx-auto mb-4"></div>
+          <p className="text-body text-gray-600 dark:text-[#C4BCB4]">Authenticating...</p>
         </div>
       </div>
     );
@@ -1417,7 +1417,7 @@ export default function Onboarding() {
   // Show loading state while redirecting after quiz completion
   if (quizCompleted && quizResults) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-stone-50 to-orange-50 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510] flex items-center justify-center p-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Redirecting to your style persona...</p>
@@ -1931,9 +1931,9 @@ export default function Onboarding() {
                 <button
                   key={index}
                   onClick={() => handleAnswer(question.id, option)}
-                  className={`p-6 rounded-xl text-center transition-all duration-300 transform hover:scale-105 ${
+                  className={`p-6 rounded-xl text-center transition-all duration-200 hover:scale-102 ${
                     answers.find(a => a.question_id === question.id)?.selected_option === option
-                      ? 'bg-amber-500 text-white shadow-lg'
+                      ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
                       : 'glass-button text-gray-900 dark:text-white hover:bg-amber-100/50 dark:hover:bg-amber-900/30'
                   }`}
                 >
@@ -1947,10 +1947,10 @@ export default function Onboarding() {
                 <button
                   key={index}
                   onClick={() => handleAnswer(question.id, option)}
-                  className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
+                  className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 ${
                     answers.find(a => a.question_id === question.id)?.selected_option === option
-                      ? 'bg-amber-500 text-white shadow-lg'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-amber-100 dark:hover:bg-amber-900 hover:text-amber-900 dark:hover:text-amber-100'
+                      ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
+                      : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
                   }`}
                 >
                   <div className="font-semibold text-sm">{option}</div>
@@ -1963,10 +1963,10 @@ export default function Onboarding() {
                 <button
                   key={index}
                   onClick={() => handleAnswer(question.id, option)}
-                  className={`p-4 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
+                  className={`p-4 rounded-xl text-left transition-all duration-200 hover:scale-102 ${
                     answers.find(a => a.question_id === question.id)?.selected_option === option
-                      ? 'bg-amber-500 text-white shadow-lg'
-                      : 'glass-button text-gray-900 dark:text-white hover:bg-amber-100/50 dark:hover:bg-amber-900/30'
+                      ? 'gradient-primary text-white shadow-lg shadow-[#FFB84C]/20'
+                      : 'card-surface text-gray-900 dark:text-[#F8F5F1] hover:bg-gray-50 dark:hover:bg-[#3D2F24]'
                   }`}
                 >
                   <div className="text-center">
@@ -1982,7 +1982,7 @@ export default function Onboarding() {
           <button
             onClick={handlePrevious}
             disabled={currentQuestionIndex === 0}
-            className="flex items-center px-4 py-2 rounded-full text-sm font-medium glass-transition disabled:opacity-50 disabled:cursor-not-allowed glass-button-secondary text-gray-700 dark:text-gray-300"
+            className="flex items-center px-4 py-2 rounded-xl text-button font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-100 dark:bg-[#3D2F24] text-gray-700 dark:text-[#F8F5F1] hover:bg-gray-200 dark:hover:bg-[#3D2F24]/80"
           >
             <ArrowLeft className="h-4 w-4 mr-2 inline-block" />
             Previous
@@ -1992,7 +1992,7 @@ export default function Onboarding() {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex items-center px-6 py-2 rounded-full font-semibold text-sm glass-transition disabled:opacity-50 disabled:cursor-not-allowed glass-button-primary"
+              className="flex items-center px-6 py-3 rounded-xl font-semibold text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
             >
               {isSubmitting ? (
                 <>
@@ -2010,7 +2010,7 @@ export default function Onboarding() {
             <button
               onClick={handleNext}
               disabled={!answers.find(a => a.question_id === question.id)}
-              className="flex items-center px-4 py-2 rounded-full font-medium text-sm glass-transition disabled:opacity-50 disabled:cursor-not-allowed glass-button-primary"
+              className="flex items-center px-4 py-2 rounded-xl font-medium text-button gradient-primary text-white shadow-lg shadow-[#FFB84C]/20 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
             >
               Next
               <ArrowRight className="h-4 w-4 ml-2 inline-block" />
