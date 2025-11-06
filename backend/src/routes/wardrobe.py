@@ -18,6 +18,7 @@ except ImportError:
         """Fallback safe_get if import fails"""
         if isinstance(obj, dict):
             return (obj.get(key, default) if obj else default)
+to be backend/worker
         return getattr(obj, key, default)
 
 # Optional imports with graceful fallbacks
@@ -499,8 +500,8 @@ async def add_wardrobe_item(
             "weatherCompatibility": (analysis.get("weatherCompatibility", []) if analysis else []),
             "gender": (analysis.get("gender", "unisex") if analysis else "unisex"),
             "backgroundRemoved": (analysis.get("backgroundRemoved", False) if analysis else False),
-            "backgroundRemovedUrl": None,  # Will be filled by worker
-            "processing_status": "pending",  # Triggers background processing
+            "backgroundRemovedUrl": None,  # Will be filled by worker in background
+            "processing_status": "pending",  # Triggers background processing worker
             "createdAt": int(time.time()),
             "updatedAt": int(time.time()),
             "metadata": {
