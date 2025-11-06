@@ -1364,6 +1364,8 @@ async def add_wardrobe_item_direct(item_data: dict, current_user_id: str = Depen
             "userId": current_user_id,
             "createdAt": item_data.get('createdAt') or datetime.now().isoformat(),
             "updatedAt": datetime.now().isoformat(),
+            "backgroundRemovedUrl": None,  # Will be filled by worker in background
+            "processing_status": "pending",  # Triggers background processing worker
         }
         
         print(f"💾 Saving wardrobe item directly: {item_id} for user {current_user_id}")
