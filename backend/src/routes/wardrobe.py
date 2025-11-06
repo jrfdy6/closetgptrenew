@@ -8,7 +8,7 @@ import logging
 
 # Set up basic logging
 logger = logging.getLogger(__name__)
-# Router loaded
+# Router loaded - force redeploy
 
 # Import safe_get helper
 try:
