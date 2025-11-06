@@ -163,7 +163,8 @@ def process_item(doc_id, data):
             print(f"  ✅ Uploaded thumbnail")
             
             # 8. Update Firestore silently (user's UI auto-updates)
-            db.collection(FIRESTORE_COLLECTION).document(doc_id).update({
+            print(f"  💾 Updating Firestore document: {FIRESTORE_COLLECTION}/{doc_id}")
+            update_data = {
                 "backgroundRemovedUrl": processed_url,
                 "thumbnailUrl": thumbnail_url,
                 "backgroundRemoved": True,
@@ -171,7 +172,32 @@ def process_item(doc_id, data):
                 "processing_time": processing_time,
                 "original_size": f"{original_size[0]}x{original_size[1]}",
                 "processed_size": f"{output_img.size[0]}x{output_img.size[1]}"
-            })
+            }
+            print(f"  📝 Update payload: {update_data}")
+            
+            # Perform the update with explicit error handling
+            try:
+                doc_ref = db.collection(FIRESTORE_COLLECTION).document(doc_id)
+                doc_ref.update(update_data)
+                print(f"  ✅ Firestore update call completed")
+                
+                # VERIFY the update worked by reading back
+                print(f"  🔍 Verifying Firestore update...")
+                updated_doc = doc_ref.get()
+                if updated_doc.exists:
+                    updated_data = updated_doc.to_dict()
+                    print(f"  ✅ Verified: processing_status = {updated_data.get('processing_status')}")
+                    print(f"  ✅ Verified: backgroundRemovedUrl = {updated_data.get('backgroundRemovedUrl')[:80] if updated_data.get('backgroundRemovedUrl') else 'None'}...")
+                else:
+                    print(f"  ⚠️  WARNING: Document {doc_id} does not exist after update!")
+                    raise Exception(f"Document {doc_id} not found in Firestore")
+                    
+            except Exception as firestore_error:
+                print(f"  ❌ FIRESTORE UPDATE FAILED: {firestore_error}")
+                import traceback
+                print(f"  📋 Traceback: {traceback.format_exc()}")
+                raise  # Re-raise to trigger retry logic
+            
             print(f"✅ COMPLETE: {doc_id} - Image auto-upgraded in UI ({processing_time:.1f}s)")
             
         finally:
