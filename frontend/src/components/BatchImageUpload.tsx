@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useFirebase } from "@/lib/firebase-context";
+import heic2any from "heic2any";
 
 interface BatchImageUploadProps {
   onUploadComplete?: (items: any[]) => void;
@@ -46,6 +47,41 @@ const fileToBase64 = (file: File): Promise<string> => {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+};
+
+// Helper function to create a preview URL, converting HEIC files if needed
+const createPreviewUrl = async (file: File): Promise<string> => {
+  try {
+    // Check if the file is HEIC/HEIF format
+    const isHeic = file.type === 'image/heic' || 
+                   file.type === 'image/heif' || 
+                   file.name.toLowerCase().endsWith('.heic') || 
+                   file.name.toLowerCase().endsWith('.heif');
+    
+    if (isHeic) {
+      console.log('🔄 Converting HEIC file to JPEG for preview:', file.name);
+      
+      // Convert HEIC to JPEG blob
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: 'image/jpeg',
+        quality: 0.9
+      });
+      
+      // heic2any can return an array of blobs, so handle both cases
+      const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+      
+      console.log('✅ HEIC conversion successful');
+      return URL.createObjectURL(blob);
+    }
+    
+    // For non-HEIC files, create preview URL directly
+    return URL.createObjectURL(file);
+  } catch (error) {
+    console.error('❌ Failed to create preview for file:', file.name, error);
+    // Fallback to trying to create a URL anyway
+    return URL.createObjectURL(file);
+  }
 };
 
 // Helper function to compress image for AI analysis
@@ -450,10 +486,13 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
       console.log(`🔍 Checking file: ${file.name} (${file.size} bytes)`);
       const isDuplicate = await checkForDuplicates(file, itemsToCheck, user);
       
+      // Create preview URL (handles HEIC conversion if needed)
+      const previewUrl = await createPreviewUrl(file);
+      
       newItems.push({
         id: `${Date.now()}-${Math.random()}`,
         file,
-        preview: URL.createObjectURL(file),
+        preview: previewUrl,
         status: isDuplicate ? 'duplicate' : 'pending',
         progress: 0,
         isDuplicate
@@ -469,7 +508,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.heic', '.heif']
     },
     maxSize: 10 * 1024 * 1024, // 10MB per file
     multiple: true
@@ -853,7 +892,7 @@ export default function BatchImageUpload({ onUploadComplete, onError, userId }: 
               : "Drag & drop multiple images, or click to select"}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            Supports JPG, PNG, GIF, WebP (max 10MB per file)
+            Supports JPG, PNG, GIF, WebP, HEIC (max 10MB per file)
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500">
             You can select multiple files or drag them in batches
