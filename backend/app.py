@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from fastapi import Request, HTTPException
 
-# Force Railway deploy - mark-worn fixes v5 - Oct 20 2025
+# Force Railway deploy - stealth mode alpha matting v1 - Nov 6 2025
 # Configure logging to see what's happening during startup
 # Use environment variable for log level (default INFO in dev, WARNING in prod)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()

@@ -1,4 +1,5 @@
 "use client";
+// Force deploy - stealth mode background removal Nov 6 2025
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
