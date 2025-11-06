@@ -18,7 +18,6 @@ except ImportError:
         """Fallback safe_get if import fails"""
         if isinstance(obj, dict):
             return (obj.get(key, default) if obj else default)
-to be backend/worker
         return getattr(obj, key, default)
 
 # Optional imports with graceful fallbacks
