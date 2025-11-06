@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFirebase } from '@/lib/firebase-context';
 
 interface WardrobeItem {
@@ -20,37 +20,75 @@ export default function DebugWardrobePage() {
   const [rawResponse, setRawResponse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [backfillStatus, setBackfillStatus] = useState<string | null>(null);
+  const [backfillError, setBackfillError] = useState<string | null>(null);
+  const [backfillLoading, setBackfillLoading] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+      const token = await user.getIdToken();
+
+      const response = await fetch('/api/wardrobe', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      setRawResponse(data);
+      setItems(data.items || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const token = await user.getIdToken();
-        
-        const response = await fetch('/api/wardrobe', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`API returned ${response.status}`);
-        }
-
-        const data = await response.json();
-        setRawResponse(data);
-        setItems(data.items || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
-  }, [user]);
+  }, [user, fetchData]);
+
+  const handleBackfill = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      setBackfillLoading(true);
+      setBackfillStatus(null);
+      setBackfillError(null);
+
+      const token = await user.getIdToken();
+      const response = await fetch('/api/wardrobe/backfill-processing-status', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.success === false) {
+        setBackfillError(data.error || 'Backfill failed');
+      } else {
+        setBackfillStatus(
+          data.message ||
+            `Updated ${data.updated_items ?? 'unknown'} of ${data.total_items ?? 'unknown'} items`
+        );
+        await fetchData();
+      }
+    } catch (err) {
+      setBackfillError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setBackfillLoading(false);
+    }
+  }, [user, fetchData]);
 
   if (!user) {
     return (
@@ -117,6 +155,29 @@ export default function DebugWardrobePage() {
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
           🔍 Wardrobe Debug Page
         </h1>
+
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-3xl">
+            Monitor wardrobe items, verify background removal fields, and trigger the backfill to add
+            <code className="mx-1 rounded bg-gray-200 px-1 py-0.5 text-xs dark:bg-gray-800">processing_status</code>
+            to legacy items so the worker can process them.
+          </p>
+          <div className="flex flex-col items-start gap-2 md:items-end">
+            <button
+              onClick={handleBackfill}
+              disabled={backfillLoading}
+              className="inline-flex items-center justify-center rounded-lg border border-amber-400 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-500/40 dark:text-amber-300"
+            >
+              {backfillLoading ? 'Running backfill…' : 'Run processing_status backfill'}
+            </button>
+            {backfillStatus && (
+              <p className="text-sm text-green-600 dark:text-green-400">{backfillStatus}</p>
+            )}
+            {backfillError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{backfillError}</p>
+            )}
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
