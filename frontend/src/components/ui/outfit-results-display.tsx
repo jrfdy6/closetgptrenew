@@ -268,7 +268,7 @@ export default function OutfitResultsDisplay({
                     <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
                       {item.imageUrl ? (
                         <img 
-                          src={item.imageUrl} 
+                          src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl} 
                           alt={item.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {

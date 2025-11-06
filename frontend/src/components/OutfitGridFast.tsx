@@ -94,7 +94,7 @@ function OutfitCard({ outfit, onFavorite, onView, onEdit, onDelete }: OutfitCard
                     <div key={index} className="bg-stone-200 dark:bg-stone-700 rounded flex items-center justify-center overflow-hidden">
                       {item.imageUrl ? (
                         <img 
-                          src={item.imageUrl} 
+                          src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl} 
                           alt={item.name}
                           className="w-full h-full object-cover"
                         />

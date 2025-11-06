@@ -276,7 +276,7 @@ export default function EnhancedOutfitCard({
                     <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                       {item.imageUrl ? (
                         <img
-                          src={item.imageUrl}
+                          src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
                           alt={item.name}
                           className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-200"
                           onError={(e) => {

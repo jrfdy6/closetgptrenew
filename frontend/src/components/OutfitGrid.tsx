@@ -103,7 +103,7 @@ function OutfitCard({ outfit, onFavorite, onWear, onEdit, onDelete }: OutfitCard
                 {item.imageUrl ? (
                   <div className="aspect-square rounded-lg overflow-hidden border border-gray-200">
                     <img
-                      src={item.imageUrl}
+                      src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
                       alt={item.name}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                       onError={(e) => {
