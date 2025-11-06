@@ -274,7 +274,7 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
       .trim();
     
     const isDuplicate = existingItems.some(item => {
-      // Method 1: Enhanced filename matching
+      // Method 1: Strict filename matching (exact match only to prevent false positives)
       let filenameMatch = false;
       if (item.imageUrl) {
         const urlParts = item.imageUrl.split('/');
@@ -285,23 +285,11 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
           .replace(/[_-]/g, '') // Remove underscores and hyphens
           .trim();
         
-        // More flexible filename matching
-        filenameMatch = baseFileName === baseExistingFileName || 
-                       baseFileName.includes(baseExistingFileName) ||
-                       baseExistingFileName.includes(baseFileName) ||
-                       (baseFileName.length > 3 && baseExistingFileName.length > 3 && 
-                        baseFileName.substring(0, 4) === baseExistingFileName.substring(0, 4));
-      } else if (item.name) {
-        const itemName = item.name.toLowerCase()
-          .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
-          .replace(/[0-9]{13,}/g, '')
-          .replace(/[_-]/g, '')
-          .trim();
-        
-        filenameMatch = baseFileName === itemName || 
-                       baseFileName.includes(itemName) ||
-                       itemName.includes(baseFileName);
+        // STRICT: Only exact match (removed .includes() and substring checks to prevent false positives)
+        filenameMatch = baseFileName === baseExistingFileName;
       }
+      // Note: We don't compare against item.name for filename matching because
+      // item names are descriptive ("Jacket bomber Black") and not related to filenames
       
       // Method 2: File size matching (more generous tolerance)
       const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 10000; // Increased to 10KB
@@ -320,15 +308,11 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
         metadataMatch = matches >= 3;
       }
       
-      // Method 4: Image hash matching (more comprehensive)
+      // Method 4: Image hash matching (strict - full hash only to prevent false positives)
       let hashMatch = false;
-      if (item.imageHash) {
-        // Compare full hash for accuracy, but also check partial matches
-        const fullHashMatch = item.imageHash === imageHash;
-        const partialHashMatch = item.imageHash.substring(0, 48) === imageHash.substring(0, 48);
-        const shortHashMatch = item.imageHash.substring(0, 24) === imageHash.substring(0, 24);
-        
-        hashMatch = fullHashMatch || partialHashMatch || shortHashMatch;
+      if (item.imageHash && imageHash) {
+        // STRICT: Only full hash match (removed partial matches to prevent false positives)
+        hashMatch = item.imageHash === imageHash;
       }
       
       // Method 5: Content similarity (if both have analysis data)
