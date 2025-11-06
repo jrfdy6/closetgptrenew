@@ -270,11 +270,16 @@ def run_worker():
             # DIAGNOSTIC: Every 20 loops, check total items vs pending
             if loop_count % 20 == 1:
                 try:
-                    sample_all = list(db.collection(FIRESTORE_COLLECTION).limit(3).stream())
-                    print(f"🔍 DIAGNOSTIC Loop #{loop_count}: Sample of 3 items from collection:")
-                    for doc in sample_all:
+                    sample_all = list(db.collection(FIRESTORE_COLLECTION).limit(25).stream())
+                    total_with_status = sum(1 for doc in sample_all if doc.to_dict().get("processing_status") is not None)
+                    total_pending = sum(1 for doc in sample_all if doc.to_dict().get("processing_status") == "pending")
+                    print(f"🔍 DIAGNOSTIC Loop #{loop_count}: Sample of {len(sample_all)} items from collection:")
+                    print(f"   • With processing_status field: {total_with_status}")
+                    print(f"   • With processing_status == 'pending': {total_pending}")
+                    print(f"   • Showing first 3 items:")
+                    for doc in sample_all[:3]:
                         data = doc.to_dict()
-                        print(f"   - {doc.id}: processing_status={data.get('processing_status', 'MISSING')}, has imageUrl={bool(data.get('imageUrl'))}")
+                        print(f"     - {doc.id}: processing_status={data.get('processing_status', 'MISSING')}, has imageUrl={bool(data.get('imageUrl') or data.get('image_url'))}")
                 except Exception as e:
                     print(f"⚠️  DIAGNOSTIC ERROR: {e}")
             
