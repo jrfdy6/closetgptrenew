@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useFirebase } from '@/lib/contexts/FirebaseContext';
+import { useFirebase } from '@/lib/firebase-context';
 
 interface WardrobeItem {
   id: string;
