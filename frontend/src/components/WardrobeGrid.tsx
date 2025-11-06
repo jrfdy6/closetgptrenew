@@ -2,11 +2,13 @@
 // Force deploy - stealth mode background removal Nov 6 2025
 
 import { useState } from "react";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Sparkles, MoreVertical, Eye, Trash2 } from "lucide-react";
+import { Heart, Sparkles, MoreVertical, Eye, Trash2, Loader2 } from "lucide-react";
 import { safeSlice } from "@/lib/utils/arrayUtils";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +34,8 @@ interface WardrobeItem {
   color: string;
   imageUrl: string;
   backgroundRemovedUrl?: string;  // Stealth-mode: auto-upgraded by worker
+  thumbnailUrl?: string;  // Fast preview thumbnail
+  processing_status?: string;  // "pending" | "processing" | "done" | "failed"
   wearCount: number;
   favorite: boolean;
   style?: string[];
@@ -184,21 +188,36 @@ export default function WardrobeGrid({
         >
           {/* Image Container */}
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
-            <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-              <img
-                src={item.thumbnailUrl ?? item.backgroundRemovedUrl ?? item.imageUrl}
-                alt={item.name}
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            <div className={cn(
+              "relative w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center",
+              item.processing_status === "pending" && "animate-pulse"
+            )}>
+              <Image
+                src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
+                alt={item.name || "Wardrobe item"}
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                className="object-cover transition-all duration-300 group-hover:scale-105"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = '/placeholder.jpg';
                 }}
               />
+              
+              {/* Processing overlay */}
+              {item.processing_status === "pending" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10">
+                  <Loader2 className="w-6 h-6 text-white animate-spin mb-2" />
+                  <span className="text-xs font-medium text-white">
+                    Removing background...
+                  </span>
+                </div>
+              )}
             </div>
             
             {/* Favorite indicator */}
             {item.favorite && (
-              <div className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+              <div className="absolute top-2 right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center z-20">
                 <Heart className="w-4 h-4 text-white fill-current" />
               </div>
             )}

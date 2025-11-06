@@ -363,6 +363,11 @@
     @apply outline-none ring-2 ring-amber-500/50 ring-offset-2 ring-offset-background;
   }
   
+  /* Smooth image transitions for background-removed images (stealth mode) */
+  img {
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+  }
+  
   ::selection {
     @apply bg-amber-200/40 text-amber-900;
   }
