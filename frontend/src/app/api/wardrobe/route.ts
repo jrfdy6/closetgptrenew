@@ -216,7 +216,7 @@ export async function POST(request: Request) {
     }
     
     // Get backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgpt-backend-production.up.railway.app';
+    const backendUrl = 'https://closetgptrenew-production.up.railway.app'; // Force correct backend URL
     console.log('🔍 DEBUG: Backend URL:', backendUrl);
     
     // Call the real backend to add the item - using direct endpoint to bypass router issues
