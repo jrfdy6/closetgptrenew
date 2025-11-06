@@ -243,6 +243,7 @@ def run_worker():
     """Main worker loop - checks for pending items and processes them"""
     print("🔥 Worker started. Listening for new images...")
     print(f"📊 Configuration:")
+    print(f"   Firebase Project: {firebase_creds.get('project_id')}")
     print(f"   Collection: {FIRESTORE_COLLECTION}")
     print(f"   Batch size: {BATCH_SIZE} items")
     print(f"   Poll interval: {POLL_INTERVAL}s")
@@ -251,6 +252,13 @@ def run_worker():
     print(f"   Thumbnail size: {THUMBNAIL_SIZE}x{THUMBNAIL_SIZE}")
     print()
     
+    # DIAGNOSTIC: Check total wardrobe items on startup
+    try:
+        total_items = len(list(db.collection(FIRESTORE_COLLECTION).limit(5).stream()))
+        print(f"🔍 DIAGNOSTIC: Can see {total_items} items in '{FIRESTORE_COLLECTION}' collection (sample of 5)")
+    except Exception as e:
+        print(f"⚠️  DIAGNOSTIC ERROR: Cannot read '{FIRESTORE_COLLECTION}' collection: {e}")
+    
     loop_count = 0
     total_processed = 0
     total_failed = 0
@@ -258,6 +266,17 @@ def run_worker():
     while True:
         try:
             loop_count += 1
+            
+            # DIAGNOSTIC: Every 20 loops, check total items vs pending
+            if loop_count % 20 == 1:
+                try:
+                    sample_all = list(db.collection(FIRESTORE_COLLECTION).limit(3).stream())
+                    print(f"🔍 DIAGNOSTIC Loop #{loop_count}: Sample of 3 items from collection:")
+                    for doc in sample_all:
+                        data = doc.to_dict()
+                        print(f"   - {doc.id}: processing_status={data.get('processing_status', 'MISSING')}, has imageUrl={bool(data.get('imageUrl'))}")
+                except Exception as e:
+                    print(f"⚠️  DIAGNOSTIC ERROR: {e}")
             
             # Query items still pending processing (using configurable batch size)
             pending = (
