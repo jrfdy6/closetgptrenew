@@ -1396,6 +1396,53 @@ async def add_wardrobe_item_direct(item_data: dict, current_user_id: str = Depen
         traceback.print_exc()
         return {"success": False, "error": str(e)}
 
+@app.post("/api/wardrobe/backfill-processing-status")
+async def backfill_processing_status(current_user_id: str = Depends(get_current_user_id)):
+    """Backfill processing_status/background fields for wardrobe items that pre-date the worker."""
+    try:
+        from src.config.firebase import db
+        if not db:
+            return {"success": False, "error": "Database not available"}
+        
+        print(f"🧹 Backfill requested by user {current_user_id}")
+        
+        wardrobe_ref = db.collection('wardrobe').where('userId', '==', current_user_id)
+        docs = list(wardrobe_ref.stream())
+        
+        total_items = len(docs)
+        updated_items = 0
+        
+        for doc in docs:
+            data = doc.to_dict() or {}
+            updates = {}
+            
+            if 'processing_status' not in data or data.get('processing_status') is None:
+                updates['processing_status'] = 'pending'
+            if 'backgroundRemovedUrl' not in data:
+                updates['backgroundRemovedUrl'] = data.get('backgroundRemovedUrl', None)
+            if 'thumbnailUrl' not in data:
+                updates['thumbnailUrl'] = data.get('thumbnailUrl', None)
+            
+            if updates:
+                print(f"   • Updating {doc.id} with {updates}")
+                doc.reference.update(updates)
+                updated_items += 1
+        
+        return {
+            "success": True,
+            "total_items": total_items,
+            "updated_items": updated_items,
+            "message": f"Backfill complete. Updated {updated_items} of {total_items} items."
+        }
+    except Exception as e:
+        print(f"❌ Error during backfill: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 @app.get("/api/today-suggestion")
 async def get_todays_outfit_suggestion(current_user_id: str = Depends(get_current_user_id)):
     """Generate today's outfit suggestion using existing outfit generation logic"""
