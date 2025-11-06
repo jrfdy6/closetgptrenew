@@ -817,6 +817,11 @@ async def get_wardrobe_items_with_slash(
                 "updatedAt": (item.get('updatedAt') if item else None),  # Keep as updatedAt for frontend
                 "metadata": (item.get('metadata') if item else None),  # Include metadata for pattern/material/fit scoring
                 "analysis": (item.get('analysis') if item else None),  # Include AI analysis metadata for frontend display
+                
+                # NEW - Worker-processed background removal fields (stealth mode)
+                "backgroundRemovedUrl": (item.get('backgroundRemovedUrl') if item else None),
+                "thumbnailUrl": (item.get('thumbnailUrl') if item else None),
+                "processing_status": (item.get('processing_status', 'pending') if item else 'pending'),
             }
             transformed_items.append(transformed_item)
         
