@@ -6,9 +6,8 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Sparkles, MoreVertical, Eye, Trash2, Loader2 } from "lucide-react";
+import { Heart, Sparkles, MoreVertical, Eye, Trash2 } from "lucide-react";
 import { safeSlice } from "@/lib/utils/arrayUtils";
-import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -188,10 +187,7 @@ export default function WardrobeGrid({
         >
           {/* Image Container */}
           <div className="relative aspect-square overflow-hidden rounded-t-lg">
-            <div className={cn(
-              "relative w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center",
-              item.processing_status === "pending" && "animate-pulse"
-            )}>
+            <div className="relative w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
               <Image
                 src={item.thumbnailUrl || item.backgroundRemovedUrl || item.imageUrl}
                 alt={item.name || "Wardrobe item"}
@@ -203,16 +199,6 @@ export default function WardrobeGrid({
                   target.src = '/placeholder.jpg';
                 }}
               />
-              
-              {/* Processing overlay */}
-              {item.processing_status === "pending" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10">
-                  <Loader2 className="w-6 h-6 text-white animate-spin mb-2" />
-                  <span className="text-xs font-medium text-white">
-                    Removing background...
-                  </span>
-                </div>
-              )}
             </div>
             
             {/* Favorite indicator */}
