@@ -990,7 +990,12 @@ async def test_wardrobe_post(request: dict, current_user_id: str = Depends(get_c
             },
             "favorite": False,
             "wearCount": 0,
-            "lastWorn": None
+            "lastWorn": None,
+            
+            # Worker-processed fields for stealth-mode background removal
+            "backgroundRemovedUrl": None,  # Will be filled by worker
+            "thumbnailUrl": None,  # Will be filled by worker
+            "processing_status": "pending"  # Triggers worker to process this item
         }
         
         # Save to Firestore
