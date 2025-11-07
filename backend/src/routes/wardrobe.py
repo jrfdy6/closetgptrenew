@@ -821,7 +821,7 @@ async def get_wardrobe_items_with_slash(
                 # NEW - Worker-processed background removal fields (stealth mode)
                 "backgroundRemovedUrl": (item.get('backgroundRemovedUrl') if item else None),
                 "thumbnailUrl": (item.get('thumbnailUrl') if item else None),
-                "processing_status": (item.get('processing_status', 'pending') if item else 'pending'),
+                "processing_status": (item.get('processing_status') if item else None),
             }
             transformed_items.append(transformed_item)
         
