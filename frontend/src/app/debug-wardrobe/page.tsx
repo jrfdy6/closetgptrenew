@@ -146,6 +146,7 @@ export default function DebugWardrobePage() {
   const itemsWithProcessing = items.filter(item => item.processing_status).length;
   const itemsPending = items.filter(item => item.processing_status === 'pending').length;
   const itemsDone = items.filter(item => item.processing_status === 'done').length;
+  const itemsFailed = items.filter(item => item.processing_status === 'failed').length;
   const itemsWithBgRemoved = items.filter(item => item.backgroundRemovedUrl).length;
   const itemsWithThumbnail = items.filter(item => item.thumbnailUrl).length;
 
@@ -196,6 +197,10 @@ export default function DebugWardrobePage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <div className="text-2xl font-bold text-green-600">{itemsDone}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Done</div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="text-2xl font-bold text-red-600">{itemsFailed}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Failed</div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
             <div className="text-2xl font-bold text-purple-600">{itemsWithBgRemoved}</div>
