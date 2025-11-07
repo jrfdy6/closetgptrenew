@@ -9,6 +9,7 @@ import os
 import time
 import requests
 import numpy as np
+import multiprocessing
 from io import BytesIO
 from rembg import remove
 from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw
@@ -33,7 +34,13 @@ MAX_IMAGE_SIZE_MB = 5
 MAX_IMAGE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 ALPHA_TIMEOUT_SECONDS = 240
 
-alpha_executor = ProcessPoolExecutor(max_workers=1)
+# Ensure deterministic OpenMP threading inside worker processes
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+
+alpha_executor = ProcessPoolExecutor(
+    max_workers=1,
+    mp_context=multiprocessing.get_context("spawn")
+)
 
 
 MATERIAL_SHADOWS = {
