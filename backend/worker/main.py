@@ -11,6 +11,7 @@ import requests
 from io import BytesIO
 from rembg import remove
 from PIL import Image, UnidentifiedImageError
+from concurrent.futures import ProcessPoolExecutor, TimeoutError
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 
@@ -29,6 +30,9 @@ MAX_OUTPUT_HEIGHT = 1200
 THUMBNAIL_SIZE = 512  # Generate thumbnails for fast loading with good detail
 MAX_IMAGE_SIZE_MB = 5
 MAX_IMAGE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+ALPHA_TIMEOUT_SECONDS = 240
+
+alpha_executor = ProcessPoolExecutor(max_workers=1)
 
 # Initialize Firebase Admin SDK
 print("🔥 Initializing Firebase Admin SDK...")
@@ -123,6 +127,16 @@ metrics = {
 }
 
 
+def _alpha_matting(bytes_data: bytes) -> bytes:
+    return remove(
+        bytes_data,
+        alpha_matting=True,
+        alpha_matting_foreground_threshold=240,
+        alpha_matting_background_threshold=10,
+        alpha_matting_erode_size=10,
+    )
+
+
 def process_item(doc_id, data):
     """Process a single wardrobe item with alpha matting, retry logic, and optimizations"""
     original_url = data.get("imageUrl") or data.get("image_url")
@@ -175,20 +189,28 @@ def process_item(doc_id, data):
         original_storage_url = upload_png(original_image, original_storage_path)
 
         # 4. Run background removal
-        print(f"🎨 {doc_id}: Running alpha matting (this may take 30-120s)...")
+        print(f"🎨 {doc_id}: Running alpha matting (timeout {ALPHA_TIMEOUT_SECONDS}s)...")
         original_buffer = BytesIO()
         original_image.save(original_buffer, format="PNG")
-        original_buffer.seek(0)
-        output_bytes = remove(
-            original_buffer.read(),
-            alpha_matting=True,
-            alpha_matting_foreground_threshold=240,
-            alpha_matting_background_threshold=10,
-            alpha_matting_erode_size=10,
-        )
+        original_bytes_png = original_buffer.getvalue()
+
+        try:
+            future = alpha_executor.submit(_alpha_matting, original_bytes_png)
+            output_bytes = future.result(timeout=ALPHA_TIMEOUT_SECONDS)
+            alpha_mode = "alpha"
+        except TimeoutError:
+            future.cancel()
+            print(f"⚠️  {doc_id}: Alpha matting timed out after {ALPHA_TIMEOUT_SECONDS}s, falling back to fast mode")
+            output_bytes = remove(original_bytes_png)
+            alpha_mode = "fast"
+        except Exception as alpha_exc:
+            print(f"⚠️  {doc_id}: Alpha matting failed ({alpha_exc}), falling back to fast mode")
+            output_bytes = remove(original_bytes_png)
+            alpha_mode = "fast"
+
         output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
         processing_time = time.time() - start_time
-        print(f"✅ {doc_id}: Alpha matting complete ({processing_time:.1f}s)")
+        print(f"✅ {doc_id}: Background removal complete using {alpha_mode} mode ({processing_time:.1f}s)")
 
         # 5. Resize processed image if necessary
         if output_img.size[0] > MAX_OUTPUT_WIDTH or output_img.size[1] > MAX_OUTPUT_HEIGHT:
