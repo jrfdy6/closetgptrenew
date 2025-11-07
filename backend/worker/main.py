@@ -318,6 +318,17 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400) -> Image.Im
     return img.resize(new_size, Image.Resampling.LANCZOS)
 
 
+def crop_to_alpha(img: Image.Image) -> Image.Image:
+    """Trim transparent borders so layout math uses only the garment silhouette."""
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+    alpha = img.split()[3]
+    bbox = alpha.getbbox()
+    if bbox:
+        return img.crop(bbox)
+    return img
+
+
 def categorize_item_type(source_item: dict) -> str:
     """
     Map raw wardrobe metadata into canonical categories:
@@ -549,8 +560,8 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
         blob_candidates: list[str] = []
         if item_id:
             blob_candidates.extend([
-                f"items/{item_id}/processed.png",
                 f"items/{item_id}/nobg.png",
+                f"items/{item_id}/processed.png",
                 f"items/{item_id}/thumbnail.png",
             ])
 
@@ -604,10 +615,40 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
             continue
 
         try:
-            img = Image.open(BytesIO(image_bytes)).convert("RGBA")
+            source_bytes = image_bytes
+            img = Image.open(BytesIO(source_bytes)).convert("RGBA")
         except Exception as e:
             print(f"⚠️  Failed to decode image for flat lay: {e}")
             continue
+
+        # Ensure the image actually has transparency. If not, run background removal now.
+        alpha_channel = img.split()[3]
+        has_transparency = alpha_channel.getextrema() != (255, 255)
+        reprocessed = False
+        if not has_transparency:
+            try:
+                processed_bytes = remove(source_bytes)
+                img = Image.open(BytesIO(processed_bytes)).convert("RGBA")
+                reprocessed = True
+            except Exception as remove_error:
+                print(f"⚠️  Failed to reprocess background removal for {item_id}: {remove_error}")
+                continue
+
+        # Always crop to the garment silhouette to keep layout math accurate
+        img = crop_to_alpha(img)
+
+        # If we regenerated transparency, persist it so future runs skip this work
+        if reprocessed and item_id:
+            try:
+                nobg_path = f"items/{item_id}/nobg.png"
+                buffer = BytesIO()
+                img.save(buffer, format="PNG")
+                buffer.seek(0)
+                blob = bucket.blob(nobg_path)
+                blob.upload_from_file(buffer, content_type="image/png")
+                blob.make_public()
+            except Exception as upload_error:
+                print(f"⚠️  Failed to upload regenerated nobg.png for {item_id}: {upload_error}")
 
         material = item.get("material") or resolve_material(item) or "cotton"
 
