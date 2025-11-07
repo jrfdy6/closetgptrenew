@@ -5,6 +5,7 @@ Runs alpha matting on uploaded wardrobe items in the background
 """
 
 import base64
+import os
 import time
 import requests
 from io import BytesIO
