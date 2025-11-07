@@ -246,6 +246,125 @@ const generateImageHashAndMetadata = async (file: File, user: any): Promise<{
   }
 };
 
+const GENERIC_FILENAME_TOKENS = new Set([
+  "img",
+  "image",
+  "picture",
+  "photo",
+  "screenshot",
+  "file",
+  "download",
+  "processed",
+  "tmp",
+  "untitled",
+  "scan"
+]);
+
+const normalizeFileName = (rawName: string): string => {
+  if (!rawName) {
+    return "";
+  }
+
+  const withoutExtension = rawName.split(".").slice(0, -1).join(".") || rawName;
+
+  return withoutExtension
+    .toLowerCase()
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "")
+    .replace(/[0-9]{13,}/g, "")
+    .replace(/[_\-\s]+/g, "")
+    .trim();
+};
+
+const isMeaningfulFileName = (normalizedName: string): boolean => {
+  if (!normalizedName) {
+    return false;
+  }
+
+  if (normalizedName.length < 4) {
+    return false;
+  }
+
+  return !GENERIC_FILENAME_TOKENS.has(normalizedName);
+};
+
+type CachedHashInfo = {
+  imageHash: string | null;
+  metadata?: {
+    width?: number;
+    height?: number;
+    aspectRatio?: number;
+    fileSize?: number;
+    type?: string;
+  } | null;
+};
+
+const existingItemHashCache = new Map<string, CachedHashInfo>();
+
+const getExistingItemCacheKey = (item: any): string => {
+  return item?.id || item?.imageUrl || item?.image_url || JSON.stringify({ name: item?.name, url: item?.imageUrl });
+};
+
+const generateHashForExistingImageUrl = async (imageUrl: string, user: any): Promise<CachedHashInfo> => {
+  if (!imageUrl || !user?.getIdToken) {
+    return { imageHash: null, metadata: null };
+  }
+
+  try {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://closetgptrenew-production.up.railway.app';
+    const response = await fetch(`${backendUrl}/generate-image-hash`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${await user.getIdToken()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ image_url: imageUrl })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate hash for existing item');
+    }
+
+    const result = await response.json();
+    return {
+      imageHash: result?.imageHash || null,
+      metadata: result?.metadata
+        ? {
+            width: result.metadata.width,
+            height: result.metadata.height,
+            aspectRatio: result.metadata.aspectRatio,
+            fileSize: result.metadata.fileSize,
+            type: result.metadata.format || result.metadata.type,
+          }
+        : null,
+    };
+  } catch (error) {
+    console.error('🔍 Failed to generate hash for existing image url:', error);
+    return { imageHash: null, metadata: null };
+  }
+};
+
+const ensureExistingItemHashInfo = async (item: any, user: any): Promise<CachedHashInfo> => {
+  if (!item) {
+    return { imageHash: null, metadata: null };
+  }
+
+  if (item.imageHash) {
+    return {
+      imageHash: item.imageHash,
+      metadata: item.metadata ?? null,
+    };
+  }
+
+  const cacheKey = getExistingItemCacheKey(item);
+  if (existingItemHashCache.has(cacheKey)) {
+    return existingItemHashCache.get(cacheKey)!;
+  }
+
+  const info = await generateHashForExistingImageUrl(item.imageUrl || item.image_url, user);
+  existingItemHashCache.set(cacheKey, info);
+  return info;
+};
+
 // Helper function to check for duplicate items using multiple methods
 const checkForDuplicates = async (file: File, existingItems: any[], user: any): Promise<boolean> => {
   const fileName = file.name.toLowerCase();
@@ -266,89 +385,95 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
       metadata
     });
     
-    // Extract base filename (remove UUIDs and timestamps)
-    const baseFileName = fileName.split('.')[0]
-      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '') // Remove UUIDs
-      .replace(/[0-9]{13,}/g, '') // Remove timestamps
-      .replace(/[_-]/g, '') // Remove underscores and hyphens
-      .trim();
-    
-    const isDuplicate = existingItems.some(item => {
-      // Method 1: Strict filename matching (exact match only to prevent false positives)
-      let filenameMatch = false;
-      if (item.imageUrl) {
-        const urlParts = item.imageUrl.split('/');
-        const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
-        const baseExistingFileName = existingFileName.split('.')[0]
-          .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '') // Remove UUIDs
-          .replace(/[0-9]{13,}/g, '') // Remove timestamps
-          .replace(/[_-]/g, '') // Remove underscores and hyphens
-          .trim();
-        
-        // STRICT: Only exact match (removed .includes() and substring checks to prevent false positives)
-        filenameMatch = baseFileName === baseExistingFileName;
-      }
-      // Note: We don't compare against item.name for filename matching because
-      // item names are descriptive ("Jacket bomber Black") and not related to filenames
-      
-      // Method 2: File size matching (more generous tolerance)
-      const sizeMatch = Math.abs((item.fileSize || 0) - fileSize) < 10000; // Increased to 10KB
-      
-      // Method 3: Image metadata matching (more flexible)
-      let metadataMatch = false;
-      if (item.metadata) {
-        const existingMeta = item.metadata;
-        const widthMatch = Math.abs((existingMeta.width || 0) - metadata.width) < 50; // Increased tolerance
-        const heightMatch = Math.abs((existingMeta.height || 0) - metadata.height) < 50; // Increased tolerance
-        const aspectRatioMatch = Math.abs((existingMeta.aspectRatio || 0) - metadata.aspectRatio) < 0.05; // Increased tolerance
-        const typeMatch = existingMeta.type === metadata.type;
-        
-        // Require at least 3 out of 4 metadata matches
-        const matches = [widthMatch, heightMatch, aspectRatioMatch, typeMatch].filter(Boolean).length;
-        metadataMatch = matches >= 3;
-      }
-      
-      // Method 4: Image hash matching (strict - full hash only to prevent false positives)
-      let hashMatch = false;
-      if (item.imageHash && imageHash) {
-        // STRICT: Only full hash match (removed partial matches to prevent false positives)
-        hashMatch = item.imageHash === imageHash;
-      }
-      
-      // Method 5: Content similarity (if both have analysis data)
-      let contentMatch = false;
-      if (item.analysis && item.analysis.name && metadata) {
-        // This would require the analysis data to be available, which might not be the case
-        // Skip for now but could be enhanced later
-      }
-      
-      console.log('🔍 Comparing with existing item:', {
-        itemName: item.name,
-        itemImageUrl: item.imageUrl ? item.imageUrl.substring(0, 50) + '...' : 'none',
-        filenameMatch,
-        sizeMatch,
-        metadataMatch,
-        hashMatch,
-        existingHash: item.imageHash ? item.imageHash.substring(0, 16) + '...' : 'none',
-        newHash: imageHash.substring(0, 16) + '...',
-        baseFileName,
-        existingBaseFileName: item.imageUrl ? item.imageUrl.split('/').pop()?.split('.')[0] : 'none'
-      });
-      
-      // Consider it a duplicate if any method matches with high confidence
-      const isDuplicate = filenameMatch || 
-                         (sizeMatch && metadataMatch) || 
-                         hashMatch;
-      
-      if (isDuplicate) {
-        console.log('🔍 DUPLICATE DETECTED:', {
-          method: filenameMatch ? 'filename' : (sizeMatch && metadataMatch) ? 'size+metadata' : 'hash',
-          itemName: item.name
+    const normalizedBaseName = normalizeFileName(file.name);
+    const hasMeaningfulNewName = isMeaningfulFileName(normalizedBaseName);
+
+    const isDuplicate = await (async () => {
+      for (const item of existingItems) {
+        // Method 1: Strict filename matching (exact match only when both names are meaningful)
+        let filenameMatch = false;
+        let existingBaseName = '';
+
+        if (item.imageUrl) {
+          try {
+            const lastSegment = item.imageUrl.split('/').pop() || '';
+            const decodedName = decodeURIComponent(lastSegment.split('?')[0].toLowerCase());
+            existingBaseName = normalizeFileName(decodedName);
+          } catch (error) {
+            console.warn('🔍 Failed to normalize existing filename:', error);
+          }
+        }
+
+        const hasMeaningfulExistingName = isMeaningfulFileName(existingBaseName);
+        if (hasMeaningfulNewName && hasMeaningfulExistingName) {
+          filenameMatch = normalizedBaseName === existingBaseName;
+        }
+
+        // Method 4 (preparation): ensure we have hash/metadata for legacy items
+        const hashInfo = !item.imageHash ? await ensureExistingItemHashInfo(item, user) : null;
+        const effectiveHash = item.imageHash || hashInfo?.imageHash || undefined;
+        const effectiveMetadata = item.metadata || hashInfo?.metadata || {};
+
+        if (!item.metadata && hashInfo?.metadata) {
+          item.metadata = hashInfo.metadata;
+        }
+
+        // Method 2: File size matching (tighter tolerance, using effective metadata if needed)
+        const existingFileSize = typeof item.fileSize === 'number'
+          ? item.fileSize
+          : typeof effectiveMetadata?.fileSize === 'number'
+            ? effectiveMetadata.fileSize
+            : undefined;
+        const sizeDifference = typeof existingFileSize === 'number'
+          ? Math.abs(existingFileSize - fileSize)
+          : Number.POSITIVE_INFINITY;
+        const sizeMatch = Number.isFinite(sizeDifference) && sizeDifference <= 2048; // 2KB tolerance
+
+        // Method 3: Image metadata matching (stricter tolerances)
+        const widthMatch = typeof effectiveMetadata?.width === 'number' && Math.abs(effectiveMetadata.width - metadata.width) <= 5;
+        const heightMatch = typeof effectiveMetadata?.height === 'number' && Math.abs(effectiveMetadata.height - metadata.height) <= 5;
+        const aspectRatioMatch = typeof effectiveMetadata?.aspectRatio === 'number' && Math.abs(effectiveMetadata.aspectRatio - metadata.aspectRatio) <= 0.01;
+        const typeMatch = effectiveMetadata?.type && metadata.type ? effectiveMetadata.type === metadata.type : false;
+        const metadataMatches = [widthMatch, heightMatch, aspectRatioMatch, typeMatch].filter(Boolean).length;
+        const metadataMatch = metadataMatches >= 3;
+
+        // Method 4: Image hash matching (strict - full hash only)
+        let hashMatch = false;
+        if (effectiveHash && imageHash) {
+          hashMatch = effectiveHash === imageHash;
+        }
+
+        console.log('🔍 Comparing with existing item:', {
+          itemName: item.name,
+          itemImageUrl: item.imageUrl ? item.imageUrl.substring(0, 50) + '...' : 'none',
+          filenameMatch,
+          sizeMatch,
+          sizeDifference,
+          metadataMatch,
+          hashMatch,
+          existingHash: effectiveHash ? effectiveHash.substring(0, 16) + '...' : 'none',
+          newHash: imageHash.substring(0, 16) + '...',
+          normalizedBaseName,
+          existingBaseName
         });
+
+        // Consider it a duplicate only when confidence is high
+        if (hashMatch) {
+          console.log('🔍 DUPLICATE DETECTED:', { method: 'hash', itemName: item.name });
+          return true;
+        }
+
+        if (filenameMatch && (sizeMatch || metadataMatch)) {
+          console.log('🔍 DUPLICATE DETECTED:', {
+            method: 'filename+auxiliary',
+            itemName: item.name
+          });
+          return true;
+        }
       }
-      
-      return isDuplicate;
-    });
+
+      return false;
+    })();
     
     console.log('🔍 Duplicate check result:', isDuplicate);
     return isDuplicate;
@@ -356,27 +481,24 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
   } catch (error) {
     console.error('🔍 Error during duplicate check:', error);
     // Fallback to simple filename matching if hash generation fails
-    const baseFileName = fileName.split('.')[0]
-      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
-      .replace(/[0-9]{13,}/g, '')
-      .replace(/[_-]/g, '')
-      .trim();
+    const fallbackNormalized = normalizeFileName(file.name);
+    const fallbackMeaningful = isMeaningfulFileName(fallbackNormalized);
     
     return existingItems.some(item => {
-      if (item.imageUrl) {
-        const urlParts = item.imageUrl.split('/');
-        const existingFileName = urlParts[urlParts.length - 1].split('?')[0].toLowerCase();
-        const baseExistingFileName = existingFileName.split('.')[0]
-          .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '')
-          .replace(/[0-9]{13,}/g, '')
-          .replace(/[_-]/g, '')
-          .trim();
-        
-        return baseFileName === baseExistingFileName || 
-               baseFileName.includes(baseExistingFileName) ||
-               baseExistingFileName.includes(baseFileName);
+      if (!item.imageUrl) {
+        return false;
       }
-      return false;
+
+      const lastSegment = item.imageUrl.split('/').pop() || '';
+      const decodedName = decodeURIComponent(lastSegment.split('?')[0].toLowerCase());
+      const existingNormalized = normalizeFileName(decodedName);
+      const existingMeaningful = isMeaningfulFileName(existingNormalized);
+
+      if (!fallbackMeaningful || !existingMeaningful) {
+        return false;
+      }
+
+      return fallbackNormalized === existingNormalized;
     });
   }
 };
