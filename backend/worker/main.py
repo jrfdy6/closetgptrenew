@@ -11,6 +11,7 @@ import requests
 import numpy as np
 import multiprocessing
 from io import BytesIO
+from urllib.parse import urlparse, unquote
 from rembg import remove
 from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
@@ -313,33 +314,78 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
     processed_images = []
     
     for item in outfit_items:
-        # Try backgroundRemovedUrl first, then fallback to processed.png path
-        image_url = item.get('backgroundRemovedUrl')
-        if not image_url:
-            # Fallback: construct path from item ID
-            item_id = item.get('id')
-            if item_id:
-                image_url = f"https://storage.googleapis.com/{FIREBASE_BUCKET_NAME}/items/{item_id}/processed.png"
-            else:
-                print(f"⚠️  Skipping item in flat lay: no image URL or ID")
+        item_id = item.get('id') or item.get('itemId') or item.get('item_id')
+        image_url = item.get('backgroundRemovedUrl') or item.get('background_removed_url')
+
+        blob_candidates: list[str] = []
+        if item_id:
+            blob_candidates.extend([
+                f"items/{item_id}/processed.png",
+                f"items/{item_id}/nobg.png",
+                f"items/{item_id}/thumbnail.png",
+            ])
+
+        def blob_from_url(url: str) -> str | None:
+            parsed = urlparse(url)
+            if 'storage.googleapis.com' not in parsed.netloc:
+                return None
+            path = parsed.path.lstrip('/')
+            if path.startswith(FIREBASE_BUCKET_NAME + '/'):
+                return path[len(FIREBASE_BUCKET_NAME)+1:]
+            # Handle download/storage/v1/b/<bucket>/o/<object>
+            segments = path.split('/')
+            if len(segments) >= 5 and segments[0] == 'download' and segments[1] == 'storage' and segments[2].startswith('v1') and segments[3] == 'b':
+                bucket_in_url = segments[4]
+                if bucket_in_url == FIREBASE_BUCKET_NAME:
+                    idx = path.find('/o/')
+                    if idx != -1:
+                        encoded = path[idx+3:]
+                        if encoded:
+                            return unquote(encoded)
+            return None
+
+        if image_url:
+            blob_path = blob_from_url(image_url)
+            if blob_path:
+                blob_candidates.insert(0, blob_path)
+
+        image_bytes = None
+        last_error = None
+        for blob_path in blob_candidates:
+            try:
+                blob = bucket.blob(blob_path)
+                if blob.exists():
+                    image_bytes = blob.download_as_bytes()
+                    if image_bytes:
+                        break
+            except Exception as e:
+                last_error = e
                 continue
-        
-        try:
-            # Download image
-            response = requests.get(image_url, timeout=30)
-            response.raise_for_status()
-            img = Image.open(BytesIO(response.content)).convert("RGBA")
-            
-            # Get material type
-            material = item.get("material") or resolve_material(item) or "cotton"
-            
-            processed_images.append({
-                "img": img,
-                "material": material
-            })
-        except Exception as e:
-            print(f"⚠️  Failed to load item image for flat lay: {e}")
+
+        if image_bytes is None and image_url:
+            try:
+                response = requests.get(image_url, timeout=30)
+                response.raise_for_status()
+                image_bytes = response.content
+            except Exception as e:
+                last_error = e
+
+        if not image_bytes:
+            print(f"⚠️  Failed to load item image for flat lay: {last_error or 'no image bytes'}")
             continue
+
+        try:
+            img = Image.open(BytesIO(image_bytes)).convert("RGBA")
+        except Exception as e:
+            print(f"⚠️  Failed to decode image for flat lay: {e}")
+            continue
+
+        material = item.get("material") or resolve_material(item) or "cotton"
+
+        processed_images.append({
+            "img": img,
+            "material": material
+        })
     
     if not processed_images:
         print(f"❌ No valid images for flat lay {outfit_id}")
