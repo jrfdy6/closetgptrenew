@@ -564,6 +564,8 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
                 f"items/{item_id}/processed.png",
                 f"items/{item_id}/thumbnail.png",
             ])
+        debug_prefix = f"[flatlay:{outfit_id}] item={item_id or 'unknown'}"
+        print(f"{debug_prefix} category_hint={item.get('category') or item.get('type')} candidates={blob_candidates}")
 
         def blob_from_url(url: str) -> str | None:
             parsed = urlparse(url)
@@ -595,11 +597,18 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
             try:
                 blob = bucket.blob(blob_path)
                 if blob.exists():
-                    image_bytes = blob.download_as_bytes()
-                    if image_bytes:
+                    candidate_bytes = blob.download_as_bytes()
+                    if candidate_bytes:
+                        image_bytes = candidate_bytes
+                        print(f"{debug_prefix} ✅ loaded {blob_path} ({len(candidate_bytes)} bytes)")
                         break
+                    else:
+                        print(f"{debug_prefix} ⚠️ blob {blob_path} returned empty bytes")
+                else:
+                    print(f"{debug_prefix} ⚠️ blob missing: {blob_path}")
             except Exception as e:
                 last_error = e
+                print(f"{debug_prefix} ⚠️ error downloading {blob_path}: {e}")
                 continue
 
         if image_bytes is None and image_url:
@@ -607,8 +616,10 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
                 response = requests.get(image_url, timeout=30)
                 response.raise_for_status()
                 image_bytes = response.content
+                print(f"{debug_prefix} ✅ fetched via HTTP {image_url} ({len(image_bytes)} bytes)")
             except Exception as e:
                 last_error = e
+                print(f"{debug_prefix} ⚠️ HTTP fetch failed {image_url}: {e}")
 
         if not image_bytes:
             print(f"⚠️  Failed to load item image for flat lay: {last_error or 'no image bytes'}")
