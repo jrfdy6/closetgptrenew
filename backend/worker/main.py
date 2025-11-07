@@ -90,6 +90,15 @@ def process_item(doc_id, data):
     if not original_url:
         return
     
+    if not original_url.lower().startswith(("http://", "https://")):
+        print(f"⚠️  {doc_id}: Unsupported image URL format, marking as failed")
+        db.collection(FIRESTORE_COLLECTION).document(doc_id).update({
+            "processing_status": "failed",
+            "processing_error": "Unsupported image URL format",
+            "processing_retry_count": data.get("processing_retry_count", 0)
+        })
+        return
+    
     # Check retry count
     retry_count = data.get("processing_retry_count", 0)
     if retry_count >= MAX_RETRIES:
