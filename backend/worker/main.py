@@ -8,6 +8,7 @@ import base64
 import os
 import time
 import requests
+import numpy as np
 from io import BytesIO
 from rembg import remove
 from PIL import Image, UnidentifiedImageError
@@ -183,44 +184,55 @@ def process_item(doc_id, data):
 
         original_size = original_image.size
 
-        # 3. Store original image in standard location
+        # 3. Check if image already has transparency (skip rembg if it does)
+        alpha_channel = np.array(original_image.split()[3])  # Get alpha channel
+        has_transparency = np.any(alpha_channel < 255)  # Check if any pixel is not fully opaque
+        
+        # 4. Store original image in standard location
         print(f"📤 {doc_id}: Uploading original ({original_size[0]}x{original_size[1]})...")
         original_storage_path = f"items/{doc_id}/original.png"
         original_storage_url = upload_png(original_image, original_storage_path)
 
-        # 4. Run background removal
-        print(f"🎨 {doc_id}: Running alpha matting (timeout {ALPHA_TIMEOUT_SECONDS}s)...")
-        original_buffer = BytesIO()
-        original_image.save(original_buffer, format="PNG")
-        original_bytes_png = original_buffer.getvalue()
+        # 5. Check if image already has transparency (skip rembg if it does)
+        if has_transparency:
+            print(f"✨ {doc_id}: Image already has transparency, preserving original")
+            output_img = original_image
+            alpha_mode = "preserved"
+            processing_time = time.time() - start_time
+        else:
+            # Run background removal
+            print(f"🎨 {doc_id}: Running alpha matting (timeout {ALPHA_TIMEOUT_SECONDS}s)...")
+            original_buffer = BytesIO()
+            original_image.save(original_buffer, format="PNG")
+            original_bytes_png = original_buffer.getvalue()
 
-        try:
-            future = alpha_executor.submit(_alpha_matting, original_bytes_png)
-            output_bytes = future.result(timeout=ALPHA_TIMEOUT_SECONDS)
-            alpha_mode = "alpha"
-        except TimeoutError:
-            future.cancel()
-            print(f"⚠️  {doc_id}: Alpha matting timed out after {ALPHA_TIMEOUT_SECONDS}s, falling back to fast mode")
-            output_bytes = remove(original_bytes_png)
-            alpha_mode = "fast"
-        except Exception as alpha_exc:
-            print(f"⚠️  {doc_id}: Alpha matting failed ({alpha_exc}), falling back to fast mode")
-            output_bytes = remove(original_bytes_png)
-            alpha_mode = "fast"
+            try:
+                future = alpha_executor.submit(_alpha_matting, original_bytes_png)
+                output_bytes = future.result(timeout=ALPHA_TIMEOUT_SECONDS)
+                alpha_mode = "alpha"
+            except TimeoutError:
+                future.cancel()
+                print(f"⚠️  {doc_id}: Alpha matting timed out after {ALPHA_TIMEOUT_SECONDS}s, falling back to fast mode")
+                output_bytes = remove(original_bytes_png)
+                alpha_mode = "fast"
+            except Exception as alpha_exc:
+                print(f"⚠️  {doc_id}: Alpha matting failed ({alpha_exc}), falling back to fast mode")
+                output_bytes = remove(original_bytes_png)
+                alpha_mode = "fast"
 
-        output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
-        processing_time = time.time() - start_time
-        print(f"✅ {doc_id}: Background removal complete using {alpha_mode} mode ({processing_time:.1f}s)")
+            output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
+            processing_time = time.time() - start_time
+            print(f"✅ {doc_id}: Background removal complete using {alpha_mode} mode ({processing_time:.1f}s)")
 
-        # 5. Resize processed image if necessary
+        # 6. Resize processed image if necessary
         if output_img.size[0] > MAX_OUTPUT_WIDTH or output_img.size[1] > MAX_OUTPUT_HEIGHT:
             output_img = resize_image(output_img, MAX_OUTPUT_WIDTH, MAX_OUTPUT_HEIGHT)
 
-        # 6. Generate thumbnail (object-contain)
+        # 7. Generate thumbnail (object-contain)
         thumbnail_img = output_img.copy()
         thumbnail_img.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.Resampling.LANCZOS)
 
-        # 7. Upload processed and thumbnail images
+        # 8. Upload processed and thumbnail images
         print(f"📤 {doc_id}: Uploading processed image...")
         processed_storage_path = f"items/{doc_id}/nobg.png"
         processed_url = upload_png(output_img, processed_storage_path)
