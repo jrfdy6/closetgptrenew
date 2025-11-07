@@ -216,6 +216,145 @@ def resolve_material(data: dict) -> str:
     return "cotton"
 
 
+# ----------------------------
+# Premium Flat Lay Functions
+# ----------------------------
+
+def generate_radial_background(size: tuple[int, int] = (1200, 1200), base_color: tuple[int, int, int] = (245, 245, 245), center_brightness: int = 255) -> Image.Image:
+    """Soft radial gradient for studio effect"""
+    width, height = size
+    bg = Image.new("RGBA", size, base_color + (255,))
+    draw = ImageDraw.Draw(bg)
+    for i in range(width // 2, 0, -1):
+        alpha = int((1 - i / (width / 2)) * (255 - center_brightness / 255))
+        draw.ellipse(
+            (width / 2 - i, height / 2 - i, width / 2 + i, height / 2 + i),
+            fill=(255, 255, 255, alpha)
+        )
+    return bg
+
+
+def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400) -> Image.Image:
+    """Scale item to max width/height while preserving aspect ratio"""
+    w, h = img.size
+    scale = min(max_dim / w, max_dim / h, 1.0)
+    new_size = (int(w * scale), int(h * scale))
+    return img.resize(new_size, Image.Resampling.LANCZOS)
+
+
+def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1200, 1200)) -> Image.Image:
+    """
+    Compose multiple items into a polished flat lay.
+    
+    items: list of dicts with keys:
+        - "img": PIL.Image (RGBA)
+        - "material": str (optional, defaults to "cotton")
+    """
+    import math
+    import random
+    
+    canvas = generate_radial_background(size=canvas_size)
+    num_items = len(items)
+    if num_items == 0:
+        return canvas
+
+    # Layout: staggered grid with rotation + overlapping
+    margin = 40
+    cols = max(1, math.ceil(math.sqrt(num_items)))
+    rows = math.ceil(num_items / cols)
+    cell_w = (canvas_size[0] - margin * 2) / cols
+    cell_h = (canvas_size[1] - margin * 2) / rows
+    positions = []
+    angles = []
+
+    for idx, item in enumerate(items):
+        col = idx % cols
+        row = idx // cols
+        x = margin + int(col * cell_w)
+        y = margin + int(row * cell_h)
+        positions.append((x, y))
+        angles.append(random.uniform(-5, 5))
+
+    for idx, item in enumerate(items):
+        img = normalize_item_for_flatlay(item["img"])
+        img = smooth_edges(img)
+        img = add_material_shadow(img, material=item.get("material", "cotton"))
+        rotated = img.rotate(angles[idx], expand=True)
+        x, y = positions[idx]
+        paste_x = x + (cell_w - rotated.width) // 2
+        paste_y = y + (cell_h - rotated.height) // 2
+        canvas.alpha_composite(rotated, (int(paste_x), int(paste_y)))
+
+    return canvas
+
+
+def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
+    """
+    Create a premium flat lay from outfit items.
+    
+    outfit_items: list of dicts with keys:
+        - 'backgroundRemovedUrl': str (Firebase URL) or 'processed.png' path
+        - 'material': str (optional)
+        - 'id': str (item ID for fallback lookup)
+    
+    Returns: Firebase Storage URL of the flat lay image
+    """
+    processed_images = []
+    
+    for item in outfit_items:
+        # Try backgroundRemovedUrl first, then fallback to processed.png path
+        image_url = item.get('backgroundRemovedUrl')
+        if not image_url:
+            # Fallback: construct path from item ID
+            item_id = item.get('id')
+            if item_id:
+                image_url = f"https://storage.googleapis.com/{FIREBASE_BUCKET_NAME}/items/{item_id}/processed.png"
+            else:
+                print(f"⚠️  Skipping item in flat lay: no image URL or ID")
+                continue
+        
+        try:
+            # Download image
+            response = requests.get(image_url, timeout=30)
+            response.raise_for_status()
+            img = Image.open(BytesIO(response.content)).convert("RGBA")
+            
+            # Get material type
+            material = item.get("material") or resolve_material(item) or "cotton"
+            
+            processed_images.append({
+                "img": img,
+                "material": material
+            })
+        except Exception as e:
+            print(f"⚠️  Failed to load item image for flat lay: {e}")
+            continue
+    
+    if not processed_images:
+        print(f"❌ No valid images for flat lay {outfit_id}")
+        return None
+    
+    # Generate flat lay canvas
+    canvas = premium_flatlay(processed_images)
+    
+    # Upload to Firebase Storage
+    path = f"flat_lays/outfit_{outfit_id}.png"
+    buffer = BytesIO()
+    canvas.save(buffer, format="PNG")
+    buffer.seek(0)
+    blob = bucket.blob(path)
+    blob.upload_from_file(buffer, content_type="image/png")
+    blob.make_public()
+    flat_lay_url = blob.public_url
+    
+    print(f"✅ Created premium flat lay for outfit {outfit_id}: {flat_lay_url}")
+    return flat_lay_url
+
+
+# ----------------------------
+# Wardrobe Item Processing
+# ----------------------------
+
 def process_item(doc_id, data):
     """Process a single wardrobe item with alpha matting, retry logic, and optimizations"""
     original_url = data.get("imageUrl") or data.get("image_url")
