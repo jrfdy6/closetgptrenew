@@ -1426,6 +1426,10 @@ async def backfill_processing_status(current_user_id: str = Depends(get_current_
             if updates:
                 print(f"   • Updating {doc.id} with {updates}")
                 doc.reference.update(updates)
+                # VERIFY the update
+                verify_doc = doc.reference.get()
+                verify_data = verify_doc.to_dict() if verify_doc.exists else {}
+                print(f"   ✅ Verified: {doc.id} now has processing_status={verify_data.get('processing_status', 'MISSING')}")
                 updated_items += 1
         
         return {
