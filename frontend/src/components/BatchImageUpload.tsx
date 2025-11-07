@@ -365,6 +365,14 @@ const ensureExistingItemHashInfo = async (item: any, user: any): Promise<CachedH
   return info;
 };
 
+const hasDetailedMetadata = (metadata: any): boolean => {
+  if (!metadata) {
+    return false;
+  }
+  const { width, height, aspectRatio } = metadata;
+  return typeof width === 'number' && typeof height === 'number' && typeof aspectRatio === 'number';
+};
+
 // Helper function to check for duplicate items using multiple methods
 const checkForDuplicates = async (file: File, existingItems: any[], user: any): Promise<boolean> => {
   const fileName = file.name.toLowerCase();
@@ -409,13 +417,20 @@ const checkForDuplicates = async (file: File, existingItems: any[], user: any): 
           filenameMatch = normalizedBaseName === existingBaseName;
         }
 
-        // Method 4 (preparation): ensure we have hash/metadata for legacy items
-        const hashInfo = !item.imageHash ? await ensureExistingItemHashInfo(item, user) : null;
-        const effectiveHash = item.imageHash || hashInfo?.imageHash || undefined;
-        const effectiveMetadata = item.metadata || hashInfo?.metadata || {};
+        let effectiveMetadata = item.metadata || {};
+        let effectiveHash: string | undefined = item.imageHash || undefined;
 
-        if (!item.metadata && hashInfo?.metadata) {
-          item.metadata = hashInfo.metadata;
+        if (filenameMatch && (!effectiveHash || !hasDetailedMetadata(effectiveMetadata))) {
+          const hashInfo = await ensureExistingItemHashInfo(item, user);
+          if (!effectiveHash && hashInfo.imageHash) {
+            effectiveHash = hashInfo.imageHash;
+          }
+          if (!hasDetailedMetadata(effectiveMetadata) && hashInfo.metadata) {
+            effectiveMetadata = hashInfo.metadata;
+            if (!item.metadata) {
+              item.metadata = hashInfo.metadata;
+            }
+          }
         }
 
         // Method 2: File size matching (tighter tolerance, using effective metadata if needed)
