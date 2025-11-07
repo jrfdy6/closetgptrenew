@@ -109,6 +109,12 @@ class OutfitGeneratedOutfit(BaseModel):
     flat_lay_status: Optional[str] = None
     flat_lay_url: Optional[str] = None
     flat_lay_error: Optional[str] = None
+    flatLayStatus: Optional[str] = None
+    flatLayUrl: Optional[str] = None
+    flatLayError: Optional[str] = None
+    flat_lay_status: Optional[str] = None
+    flat_lay_url: Optional[str] = None
+    flat_lay_error: Optional[str] = None
     
     # 🚀 NEW: Comprehensive Pipeline Tracing Fields
     generation_trace: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Step-by-step pipeline execution trace")

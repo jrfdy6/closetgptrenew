@@ -1329,12 +1329,14 @@ class RobustOutfitGenerationService:
         if self.enable_flat_lay_generation and outfit.items:
             if not hasattr(outfit, 'metadata') or outfit.metadata is None:
                 outfit.metadata = {}
-            outfit.metadata['flat_lay_status'] = 'pending'
-            outfit.metadata.pop('flat_lay_url', None)
-            outfit.metadata.pop('flat_lay_error', None)
-            setattr(outfit, 'flat_lay_status', 'pending')
-            setattr(outfit, 'flat_lay_url', None)
-            setattr(outfit, 'flat_lay_error', None)
+            for key in ['flat_lay_status', 'flatLayStatus']:
+                outfit.metadata[key] = 'pending'
+            for key in ['flat_lay_url', 'flatLayUrl', 'flat_lay_error', 'flatLayError']:
+                outfit.metadata.pop(key, None)
+            for attr in ['flat_lay_status', 'flatLayStatus']:
+                setattr(outfit, attr, 'pending')
+            for attr in ['flat_lay_url', 'flatLayUrl', 'flat_lay_error', 'flatLayError']:
+                setattr(outfit, attr, None)
             outfit.metadata['flat_lay_worker'] = 'premium_v1'
             logger.info("🎨 Flat lay generation scheduled asynchronously (status=pending)")
         

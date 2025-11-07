@@ -370,9 +370,13 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         if not items:
             doc_ref.update({
                 'flat_lay_status': 'failed',
+                'flatLayStatus': 'failed',
                 'flat_lay_error': 'No items available for flat lay',
+                'flatLayError': 'No items available for flat lay',
                 'metadata.flat_lay_status': 'failed',
+                'metadata.flatLayStatus': 'failed',
                 'metadata.flat_lay_error': 'No items available for flat lay',
+                'metadata.flatLayError': 'No items available for flat lay',
                 'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
             })
             metrics['flat_lay_failed'] += 1
@@ -385,12 +389,18 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
 
         doc_ref.update({
             'flat_lay_status': 'done',
+            'flatLayStatus': 'done',
             'flat_lay_url': flat_lay_url,
+            'flatLayUrl': flat_lay_url,
             'flat_lay_error': None,
+            'flatLayError': None,
             'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
             'metadata.flat_lay_status': 'done',
+            'metadata.flatLayStatus': 'done',
             'metadata.flat_lay_url': flat_lay_url,
+            'metadata.flatLayUrl': flat_lay_url,
             'metadata.flat_lay_error': None,
+            'metadata.flatLayError': None,
         })
         metrics['flat_lay_processed'] += 1
         print(f"🎨 Outfit {doc_id}: Flat lay ready")
@@ -399,10 +409,14 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
         error_message = str(exc)
         doc_ref.update({
             'flat_lay_status': 'failed',
+            'flatLayStatus': 'failed',
             'flat_lay_error': error_message,
+            'flatLayError': error_message,
             'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
             'metadata.flat_lay_status': 'failed',
+            'metadata.flatLayStatus': 'failed',
             'metadata.flat_lay_error': error_message,
+            'metadata.flatLayError': error_message,
         })
         metrics['flat_lay_failed'] += 1
         print(f"❌ Outfit {doc_id}: Flat lay generation failed - {error_message}")
@@ -616,6 +630,14 @@ def run_worker():
                     .stream()
                 )
 
+            if not outfit_pending:
+                outfit_pending = list(
+                    db.collection('outfits')
+                    .where(filter=FieldFilter('flatLayStatus', "==", 'pending'))
+                    .limit(1)
+                    .stream()
+                )
+
             if outfit_pending:
                 print(f"🎨 Found {len(outfit_pending)} outfits needing flat lays")
                 for doc in outfit_pending:
@@ -623,9 +645,12 @@ def run_worker():
                     if data.get('flat_lay_status') is None:
                         doc.reference.update({
                             'flat_lay_status': 'pending',
-                            'metadata.flat_lay_status': 'pending'
+                            'flatLayStatus': 'pending',
+                            'metadata.flat_lay_status': 'pending',
+                            'metadata.flatLayStatus': 'pending'
                         })
                         data['flat_lay_status'] = 'pending'
+                        data['flatLayStatus'] = 'pending'
                     process_outfit_flat_lay(doc.id, data)
                     processed_any = True
                     time.sleep(1)

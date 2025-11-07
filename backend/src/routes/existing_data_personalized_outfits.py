@@ -73,6 +73,12 @@ class OutfitResponse(BaseModel):
     metadata: Dict[str, Any]
     outfitAnalysis: Optional[Dict[str, Any]] = None
     flat_lay_status: Optional[str] = None
+    flatLayStatus: Optional[str] = None
+    flat_lay_url: Optional[str] = None
+    flatLayUrl: Optional[str] = None
+    flat_lay_error: Optional[str] = None
+    flatLayError: Optional[str] = None
+    flat_lay_status: Optional[str] = None
     flat_lay_url: Optional[str] = None
     flat_lay_error: Optional[str] = None
 
@@ -683,16 +689,23 @@ async def generate_personalized_outfit_from_existing_data(
         flat_lay_error = (existing_result.get("flat_lay_error") if existing_result else None)
 
         outfit_response["metadata"].setdefault("flat_lay_status", flat_lay_status or "pending")
+        outfit_response["metadata"].setdefault("flatLayStatus", flat_lay_status or "pending")
         if flat_lay_url:
             outfit_response["metadata"]["flat_lay_url"] = flat_lay_url
+            outfit_response["metadata"]["flatLayUrl"] = flat_lay_url
         else:
             outfit_response["metadata"].pop("flat_lay_url", None)
+            outfit_response["metadata"].pop("flatLayUrl", None)
         if flat_lay_error:
             outfit_response["metadata"]["flat_lay_error"] = flat_lay_error
+            outfit_response["metadata"]["flatLayError"] = flat_lay_error
 
         outfit_response["flat_lay_status"] = outfit_response["metadata"].get("flat_lay_status", "pending")
+        outfit_response["flatLayStatus"] = outfit_response["metadata"].get("flatLayStatus", "pending")
         outfit_response["flat_lay_url"] = outfit_response["metadata"].get("flat_lay_url")
+        outfit_response["flatLayUrl"] = outfit_response["metadata"].get("flatLayUrl")
         outfit_response["flat_lay_error"] = outfit_response["metadata"].get("flat_lay_error")
+        outfit_response["flatLayError"] = outfit_response["metadata"].get("flatLayError")
         
         logger.info(f"✅ Generated personalized outfit from existing data (personalization: {(existing_result.get('personalization_applied', False) if existing_result else False)})")
         
@@ -713,8 +726,11 @@ async def generate_personalized_outfit_from_existing_data(
                 'personalization_applied': outfit_response['personalization_applied'],
                 'metadata': outfit_response['metadata'],
                 'flat_lay_status': outfit_response.get('flat_lay_status', 'pending'),
+                'flatLayStatus': outfit_response.get('flatLayStatus', 'pending'),
                 'flat_lay_url': outfit_response.get('flat_lay_url'),
-                'flat_lay_error': outfit_response.get('flat_lay_error')
+                'flatLayUrl': outfit_response.get('flatLayUrl'),
+                'flat_lay_error': outfit_response.get('flat_lay_error'),
+                'flatLayError': outfit_response.get('flatLayError')
             }
             
             db.collection('outfits').document(outfit_response['id']).set(outfit_for_firestore)
