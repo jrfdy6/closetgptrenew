@@ -1325,31 +1325,18 @@ class RobustOutfitGenerationService:
             if conflict_stats['conflicts_by_field']:
                 logger.info(f"📊 CONFLICTS BY FIELD: {conflict_stats['conflicts_by_field']}")
         
-        # Generate flat lay image for the outfit
-        if self.enable_flat_lay_generation and self.flat_lay_service and self.flat_lay_storage and outfit.items:
-            try:
-                logger.info("🎨 Generating flat lay image for outfit...")
-                outfit_id = getattr(outfit, 'id', str(uuid.uuid4()))
-                user_id = getattr(context, 'user_id', 'unknown')
-                
-                flat_lay_url = await self._generate_and_store_flat_lay(
-                    outfit_items=outfit.items,
-                    outfit_id=outfit_id,
-                    user_id=user_id
-                )
-                
-                if flat_lay_url:
-                    # Add flat lay URL to outfit metadata
-                    if not hasattr(outfit, 'metadata') or outfit.metadata is None:
-                        outfit.metadata = {}
-                    outfit.metadata['flat_lay_url'] = flat_lay_url
-                    logger.info(f"✅ Flat lay generated and stored: {flat_lay_url}")
-                else:
-                    logger.warning("⚠️ Failed to generate flat lay image")
-                    
-            except Exception as e:
-                logger.error(f"❌ Error generating flat lay: {e}")
-                # Continue without flat lay - it's an enhancement, not critical
+        # Queue flat lay generation for worker processing
+        if self.enable_flat_lay_generation and outfit.items:
+            if not hasattr(outfit, 'metadata') or outfit.metadata is None:
+                outfit.metadata = {}
+            outfit.metadata['flat_lay_status'] = 'pending'
+            outfit.metadata.pop('flat_lay_url', None)
+            outfit.metadata.pop('flat_lay_error', None)
+            setattr(outfit, 'flat_lay_status', 'pending')
+            setattr(outfit, 'flat_lay_url', None)
+            setattr(outfit, 'flat_lay_error', None)
+            outfit.metadata['flat_lay_worker'] = 'premium_v1'
+            logger.info("🎨 Flat lay generation scheduled asynchronously (status=pending)")
         
         return outfit
     

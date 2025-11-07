@@ -379,6 +379,9 @@ class OutfitResponse(BaseModel):
     wearCount: Optional[int] = 0
     lastWorn: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None  # Include generation_strategy and other metadata
+    flat_lay_status: Optional[str] = None
+    flat_lay_url: Optional[str] = None
+    flat_lay_error: Optional[str] = None
 
     @field_validator("createdAt", mode="before")
     @classmethod
@@ -5966,11 +5969,14 @@ async def create_outfit(
             "season": "all",  # Default to all seasons for custom outfits
             "mood": "custom",  # Default mood for custom outfits
             "updatedAt": request.createdAt or int(time.time()),
-            "metadata": {"created_method": "custom"},
+            "metadata": {"created_method": "custom", "flat_lay_status": "pending"},
             "wasSuccessful": True,
             "baseItemId": None,
             "validationErrors": [],
-            "userFeedback": None
+            "userFeedback": None,
+            "flat_lay_status": "pending",
+            "flat_lay_url": None,
+            "flat_lay_error": None
         }
         
         # Save outfit to Firestore

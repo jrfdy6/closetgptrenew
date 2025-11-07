@@ -72,6 +72,9 @@ class OutfitResponse(BaseModel):
     data_source: str = "existing_data"
     metadata: Dict[str, Any]
     outfitAnalysis: Optional[Dict[str, Any]] = None
+    flat_lay_status: Optional[str] = None
+    flat_lay_url: Optional[str] = None
+    flat_lay_error: Optional[str] = None
 
 class PersonalizationStatusResponse(BaseModel):
     user_id: str
@@ -673,6 +676,23 @@ async def generate_personalized_outfit_from_existing_data(
                 "unique_items_count": len((existing_result.get("items", []) if existing_result else []))
             }
         }
+
+        # Initialize flat lay metadata for worker processing
+        flat_lay_status = (existing_result.get("flat_lay_status") if existing_result else None)
+        flat_lay_url = (existing_result.get("flat_lay_url") if existing_result else None)
+        flat_lay_error = (existing_result.get("flat_lay_error") if existing_result else None)
+
+        outfit_response["metadata"].setdefault("flat_lay_status", flat_lay_status or "pending")
+        if flat_lay_url:
+            outfit_response["metadata"]["flat_lay_url"] = flat_lay_url
+        else:
+            outfit_response["metadata"].pop("flat_lay_url", None)
+        if flat_lay_error:
+            outfit_response["metadata"]["flat_lay_error"] = flat_lay_error
+
+        outfit_response["flat_lay_status"] = outfit_response["metadata"].get("flat_lay_status", "pending")
+        outfit_response["flat_lay_url"] = outfit_response["metadata"].get("flat_lay_url")
+        outfit_response["flat_lay_error"] = outfit_response["metadata"].get("flat_lay_error")
         
         logger.info(f"✅ Generated personalized outfit from existing data (personalization: {(existing_result.get('personalization_applied', False) if existing_result else False)})")
         
@@ -691,7 +711,10 @@ async def generate_personalized_outfit_from_existing_data(
                 'createdAt': int(time.time() * 1000),  # Firestore timestamp in milliseconds
                 'confidence_score': outfit_response['confidence_score'],
                 'personalization_applied': outfit_response['personalization_applied'],
-                'metadata': outfit_response['metadata']
+                'metadata': outfit_response['metadata'],
+                'flat_lay_status': outfit_response.get('flat_lay_status', 'pending'),
+                'flat_lay_url': outfit_response.get('flat_lay_url'),
+                'flat_lay_error': outfit_response.get('flat_lay_error')
             }
             
             db.collection('outfits').document(outfit_response['id']).set(outfit_for_firestore)

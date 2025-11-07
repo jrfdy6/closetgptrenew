@@ -463,6 +463,8 @@ class ClothingItem(BaseModel):
     subType: Optional[str] = None
     colorName: Optional[str] = None
     backgroundRemoved: Optional[bool] = None
+    backgroundRemovedUrl: Optional[str] = None
+    thumbnailUrl: Optional[str] = None
     embedding: Optional[List[float]] = None
     metadata: Optional[Metadata] = None
     

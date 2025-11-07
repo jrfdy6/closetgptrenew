@@ -135,6 +135,9 @@ metrics = {
     "processed": 0,
     "failed": 0,
     "skipped": 0,
+    "flat_lay_processed": 0,
+    "flat_lay_failed": 0,
+    "flat_lay_skipped": 0,
 }
 
 
@@ -351,6 +354,51 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
     return flat_lay_url
 
 
+def process_outfit_flat_lay(doc_id: str, data: dict):
+    """Generate and store premium flat lay for an outfit document."""
+    doc_ref = db.collection('outfits').document(doc_id)
+    try:
+        items = data.get('items') or []
+        if not items:
+            doc_ref.update({
+                'flat_lay_status': 'failed',
+                'flat_lay_error': 'No items available for flat lay',
+                'metadata.flat_lay_status': 'failed',
+                'metadata.flat_lay_error': 'No items available for flat lay',
+                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+            })
+            metrics['flat_lay_failed'] += 1
+            print(f"❌ Outfit {doc_id}: No items available for flat lay")
+            return
+
+        flat_lay_url = create_premium_flatlay(items, doc_id)
+        if not flat_lay_url:
+            raise Exception('Flat lay generation returned no URL')
+
+        doc_ref.update({
+            'flat_lay_status': 'done',
+            'flat_lay_url': flat_lay_url,
+            'flat_lay_error': None,
+            'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+            'metadata.flat_lay_status': 'done',
+            'metadata.flat_lay_url': flat_lay_url,
+            'metadata.flat_lay_error': None,
+        })
+        metrics['flat_lay_processed'] += 1
+        print(f"🎨 Outfit {doc_id}: Flat lay ready")
+
+    except Exception as exc:
+        error_message = str(exc)
+        doc_ref.update({
+            'flat_lay_status': 'failed',
+            'flat_lay_error': error_message,
+            'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+            'metadata.flat_lay_status': 'failed',
+            'metadata.flat_lay_error': error_message,
+        })
+        metrics['flat_lay_failed'] += 1
+        print(f"❌ Outfit {doc_id}: Flat lay generation failed - {error_message}")
+
 # ----------------------------
 # Wardrobe Item Processing
 # ----------------------------
@@ -519,37 +567,67 @@ def run_worker():
     while True:
         try:
             loop_count += 1
-            
-            # Query items still pending processing
-            pending = (
+            processed_any = False
+
+            # Wardrobe queue
+            wardrobe_pending = list(
                 db.collection(FIRESTORE_COLLECTION)
                 .where("processing_status", "==", "pending")
                 .limit(BATCH_SIZE)
                 .stream()
             )
-            
-            pending_list = list(pending)
-            
-            if pending_list:
-                print(f"🎯 Found {len(pending_list)} pending items")
-                
-                for doc in pending_list:
+
+            if wardrobe_pending:
+                print(f"🎯 Found {len(wardrobe_pending)} pending wardrobe items")
+                for doc in wardrobe_pending:
                     process_item(doc.id, doc.to_dict())
-                    time.sleep(1)  # Small delay between items to reduce memory spikes
-                
+                    processed_any = True
+                    time.sleep(1)
+
+            # Outfit queue
+            outfit_pending = list(
+                db.collection('outfits')
+                .where('flat_lay_status', '==', 'pending')
+                .limit(1)
+                .stream()
+            )
+
+            if not outfit_pending:
+                outfit_pending = list(
+                    db.collection('outfits')
+                    .where('flat_lay_status', '==', None)
+                    .limit(1)
+                    .stream()
+                )
+
+            if outfit_pending:
+                print(f"🎨 Found {len(outfit_pending)} outfits needing flat lays")
+                for doc in outfit_pending:
+                    data = doc.to_dict() or {}
+                    if data.get('flat_lay_status') is None:
+                        doc.reference.update({
+                            'flat_lay_status': 'pending',
+                            'metadata.flat_lay_status': 'pending'
+                        })
+                        data['flat_lay_status'] = 'pending'
+                    process_outfit_flat_lay(doc.id, data)
+                    processed_any = True
+                    time.sleep(1)
+
+            if processed_any:
                 print(
-                    "📊 Metrics: processed={processed} failed={failed} skipped={skipped}"
+                    "📊 Metrics: wardrobe_processed={processed} wardrobe_failed={failed} wardrobe_skipped={skipped} "
+                    "flatlays_done={flat_lay_processed} flatlays_failed={flat_lay_failed}"
                     .format(**metrics)
                 )
             else:
-                # No items to process - log every 5 minutes
-                if loop_count % (300 // POLL_INTERVAL) == 1:  # Log every 5 minutes
+                if loop_count % (300 // POLL_INTERVAL) == 1:
                     print(
-                        "💤 No pending items. (processed={processed}, failed={failed}, skipped={skipped})"
+                        "💤 No pending tasks. wardrobe_processed={processed}, flatlays_done={flat_lay_processed}"
                         .format(**metrics)
                     )
                 time.sleep(POLL_INTERVAL)
-        
+
         except Exception as e:
             print(f"⚠️  Worker loop error: {str(e)[:100]}")
             metrics["failed"] += 1

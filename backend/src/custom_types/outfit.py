@@ -240,6 +240,9 @@ class OutfitGeneratedOutfit(BaseModel):
     userFeedback: Optional[Dict[str, Any]] = None
     user_id: Optional[str] = None  # 🚀 NEW: Add user_id field for filtering
     weather: Optional[Dict[str, Any]] = None  # 🚀 NEW: Add weather field for outfit context
+    flat_lay_status: Optional[str] = None
+    flat_lay_url: Optional[str] = None
+    flat_lay_error: Optional[str] = None
     
     # 🚀 NEW: Comprehensive Pipeline Tracing Fields
     generation_trace: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Step-by-step pipeline execution trace")
