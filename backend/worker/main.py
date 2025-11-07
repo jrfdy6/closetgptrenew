@@ -170,10 +170,12 @@ def process_item(doc_id, data):
         original_size = original_image.size
 
         # 3. Store original image in standard location
+        print(f"📤 {doc_id}: Uploading original ({original_size[0]}x{original_size[1]})...")
         original_storage_path = f"items/{doc_id}/original.png"
         original_storage_url = upload_png(original_image, original_storage_path)
 
         # 4. Run background removal
+        print(f"🎨 {doc_id}: Running alpha matting (this may take 30-120s)...")
         original_buffer = BytesIO()
         original_image.save(original_buffer, format="PNG")
         original_buffer.seek(0)
@@ -186,6 +188,7 @@ def process_item(doc_id, data):
         )
         output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
         processing_time = time.time() - start_time
+        print(f"✅ {doc_id}: Alpha matting complete ({processing_time:.1f}s)")
 
         # 5. Resize processed image if necessary
         if output_img.size[0] > MAX_OUTPUT_WIDTH or output_img.size[1] > MAX_OUTPUT_HEIGHT:
@@ -196,9 +199,11 @@ def process_item(doc_id, data):
         thumbnail_img.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.Resampling.LANCZOS)
 
         # 7. Upload processed and thumbnail images
+        print(f"📤 {doc_id}: Uploading processed image...")
         processed_storage_path = f"items/{doc_id}/nobg.png"
         processed_url = upload_png(output_img, processed_storage_path)
 
+        print(f"📤 {doc_id}: Uploading thumbnail...")
         thumbnail_storage_path = f"items/{doc_id}/thumb.png"
         thumbnail_url = upload_png(thumbnail_img, thumbnail_storage_path)
 
@@ -227,6 +232,10 @@ def process_item(doc_id, data):
         })
         print(f"⚠️  {doc_id}: Network error - {str(exc)[:80]}")
     except Exception as exc:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ {doc_id}: Error - {str(exc)[:100]}")
+        print(f"   Traceback: {error_details[:200]}...")
         mark_failure(doc_id, "failed", str(exc), retry_count + 1)
         metrics["failed"] += 1
 
