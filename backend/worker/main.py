@@ -11,7 +11,7 @@ import requests
 import numpy as np
 from io import BytesIO
 from rembg import remove
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
@@ -34,6 +34,16 @@ MAX_IMAGE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
 ALPHA_TIMEOUT_SECONDS = 240
 
 alpha_executor = ProcessPoolExecutor(max_workers=1)
+
+
+MATERIAL_SHADOWS = {
+    "silk": {"blur": 3, "opacity": 0.06},
+    "puffer": {"blur": 7, "opacity": 0.18},
+    "cotton": {"blur": 5, "opacity": 0.12},
+    "denim": {"blur": 6, "opacity": 0.10},
+    "knit": {"blur": 5, "opacity": 0.14},
+    "wool": {"blur": 6, "opacity": 0.16},
+}
 
 # Initialize Firebase Admin SDK
 print("🔥 Initializing Firebase Admin SDK...")
@@ -138,6 +148,74 @@ def _alpha_matting(bytes_data: bytes) -> bytes:
     )
 
 
+def smooth_edges(img: Image.Image, edge_blur_radius: float = 1.5) -> Image.Image:
+    r, g, b, a = img.split()
+    a = a.filter(ImageFilter.MinFilter(3))
+    a = a.filter(ImageFilter.MaxFilter(3))
+    a = a.filter(ImageFilter.GaussianBlur(edge_blur_radius))
+    a = a.point(lambda p: min(255, int(p * 1.05)))
+    return Image.merge("RGBA", (r, g, b, a))
+
+
+def add_material_shadow(img: Image.Image, material: str = "cotton") -> Image.Image:
+    params = MATERIAL_SHADOWS.get(material, MATERIAL_SHADOWS["cotton"])
+    alpha = img.split()[3]
+    shadow = alpha.filter(ImageFilter.GaussianBlur(params["blur"]))
+    shadow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    shadow_layer.paste((0, 0, 0, int(255 * params["opacity"])), (0, 0), shadow)
+    return Image.alpha_composite(shadow_layer, img)
+
+
+def apply_light_gradient(img: Image.Image) -> Image.Image:
+    width, height = img.size
+    gradient = Image.new("L", (width, height), 0)
+    draw = ImageDraw.Draw(gradient)
+    draw.ellipse((-width * 0.3, -height * 0.3, width * 1.3, height * 1.3), fill=128)
+    overlay = Image.new("RGBA", img.size, (255, 255, 255, 0))
+    overlay.putalpha(gradient)
+    return Image.alpha_composite(img, overlay)
+
+
+def generate_thumbnail(img: Image.Image, size: tuple[int, int] = (THUMBNAIL_SIZE, THUMBNAIL_SIZE)) -> Image.Image:
+    canvas = Image.new("RGBA", size, (0, 0, 0, 0))
+    img_ratio = img.width / max(1, img.height)
+    canvas_ratio = size[0] / max(1, size[1])
+
+    if img_ratio > canvas_ratio:
+        new_width = size[0]
+        new_height = int(size[0] / img_ratio)
+    else:
+        new_height = size[1]
+        new_width = int(size[1] * img_ratio)
+
+    resized = img.resize((max(1, new_width), max(1, new_height)), Image.LANCZOS)
+    x_offset = (size[0] - resized.width) // 2
+    y_offset = (size[1] - resized.height) // 2
+    canvas.paste(resized, (x_offset, y_offset), resized)
+    return canvas
+
+
+def resolve_material(data: dict) -> str:
+    candidates = []
+    metadata = data.get("metadata") or {}
+    analysis = data.get("analysis") or {}
+
+    candidates.append(metadata.get("material"))
+    candidates.append(metadata.get("fabric"))
+    visual = metadata.get("visualAttributes") or metadata.get("visual_attributes") or {}
+    candidates.append(visual.get("material"))
+
+    analysis_meta = (analysis.get("metadata") or {}).get("visualAttributes") or {}
+    candidates.append(analysis_meta.get("material"))
+
+    for candidate in candidates:
+        if candidate:
+            key = str(candidate).lower()
+            if key in MATERIAL_SHADOWS:
+                return key
+    return "cotton"
+
+
 def process_item(doc_id, data):
     """Process a single wardrobe item with alpha matting, retry logic, and optimizations"""
     original_url = data.get("imageUrl") or data.get("image_url")
@@ -187,18 +265,19 @@ def process_item(doc_id, data):
         # 3. Check if image already has transparency (skip rembg if it does)
         alpha_channel = np.array(original_image.split()[3])  # Get alpha channel
         has_transparency = np.any(alpha_channel < 255)  # Check if any pixel is not fully opaque
-        
+
         # 4. Store original image in standard location
         print(f"📤 {doc_id}: Uploading original ({original_size[0]}x{original_size[1]})...")
         original_storage_path = f"items/{doc_id}/original.png"
         original_storage_url = upload_png(original_image, original_storage_path)
 
-        # 5. Check if image already has transparency (skip rembg if it does)
+        # Determine material for styling
+        material_type = resolve_material(data)
+
         if has_transparency:
             print(f"✨ {doc_id}: Image already has transparency, preserving original")
             output_img = original_image
-            alpha_mode = "preserved"
-            processing_time = time.time() - start_time
+            processing_mode = "preserved"
         else:
             # Run background removal
             print(f"🎨 {doc_id}: Running alpha matting (timeout {ALPHA_TIMEOUT_SECONDS}s)...")
@@ -209,39 +288,44 @@ def process_item(doc_id, data):
             try:
                 future = alpha_executor.submit(_alpha_matting, original_bytes_png)
                 output_bytes = future.result(timeout=ALPHA_TIMEOUT_SECONDS)
-                alpha_mode = "alpha"
+                processing_mode = "alpha"
             except TimeoutError:
                 future.cancel()
                 print(f"⚠️  {doc_id}: Alpha matting timed out after {ALPHA_TIMEOUT_SECONDS}s, falling back to fast mode")
                 output_bytes = remove(original_bytes_png)
-                alpha_mode = "fast"
+                processing_mode = "fast"
             except Exception as alpha_exc:
                 print(f"⚠️  {doc_id}: Alpha matting failed ({alpha_exc}), falling back to fast mode")
                 output_bytes = remove(original_bytes_png)
-                alpha_mode = "fast"
+                processing_mode = "fast"
 
             output_img = Image.open(BytesIO(output_bytes)).convert("RGBA")
-            processing_time = time.time() - start_time
-            print(f"✅ {doc_id}: Background removal complete using {alpha_mode} mode ({processing_time:.1f}s)")
+            print(f"✅ {doc_id}: Background removal complete using {processing_mode} mode")
 
-        # 6. Resize processed image if necessary
+        # 6. Stylize silhouette for cohesive flatlay aesthetics
+        output_img = smooth_edges(output_img)
+        output_img = add_material_shadow(output_img, material_type)
+        output_img = apply_light_gradient(output_img)
+
+        # 7. Resize processed image if necessary
         if output_img.size[0] > MAX_OUTPUT_WIDTH or output_img.size[1] > MAX_OUTPUT_HEIGHT:
             output_img = resize_image(output_img, MAX_OUTPUT_WIDTH, MAX_OUTPUT_HEIGHT)
 
-        # 7. Generate thumbnail (object-contain)
-        thumbnail_img = output_img.copy()
-        thumbnail_img.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.Resampling.LANCZOS)
+        # 8. Generate thumbnail (object-contain)
+        thumbnail_img = generate_thumbnail(output_img)
 
-        # 8. Upload processed and thumbnail images
+        # 9. Upload processed and thumbnail images
         print(f"📤 {doc_id}: Uploading processed image...")
-        processed_storage_path = f"items/{doc_id}/nobg.png"
+        processed_storage_path = f"items/{doc_id}/processed.png"
         processed_url = upload_png(output_img, processed_storage_path)
 
         print(f"📤 {doc_id}: Uploading thumbnail...")
-        thumbnail_storage_path = f"items/{doc_id}/thumb.png"
+        thumbnail_storage_path = f"items/{doc_id}/thumbnail.png"
         thumbnail_url = upload_png(thumbnail_img, thumbnail_storage_path)
 
-        # 8. Update Firestore document with new URLs and status
+        total_time = time.time() - start_time
+
+        # 10. Update Firestore document with new URLs and status
         doc_ref.update({
             "imageUrl": original_storage_url,
             "backgroundRemovedUrl": processed_url,
@@ -251,13 +335,14 @@ def process_item(doc_id, data):
             "processing_error": None,
             "processing_retry_count": 0,
             "processing_last_error": None,
-            "processing_time": processing_time,
+            "processing_time": total_time,
+            "processing_mode": processing_mode,
             "original_size": f"{original_size[0]}x{original_size[1]}",
             "processed_size": f"{output_img.size[0]}x{output_img.size[1]}"
         })
 
         metrics["processed"] += 1
-        print(f"✅ {doc_id}: Done ({processing_time:.1f}s)")
+        print(f"✅ {doc_id}: Done using {processing_mode} mode ({total_time:.1f}s)")
 
     except requests.RequestException as exc:
         doc_ref.update({
