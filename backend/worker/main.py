@@ -16,6 +16,7 @@ from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
+from google.cloud.firestore_v1 import FieldFilter
 
 # ----------------------------
 # Configuration
@@ -579,7 +580,7 @@ def run_worker():
             # Wardrobe queue
             wardrobe_pending = list(
                 db.collection(FIRESTORE_COLLECTION)
-                .where("processing_status", "==", "pending")
+                .where(filter=FieldFilter("processing_status", "==", "pending"))
                 .limit(BATCH_SIZE)
                 .stream()
             )
@@ -594,7 +595,7 @@ def run_worker():
             # Outfit queue
             outfit_pending = list(
                 db.collection('outfits')
-                .where('flat_lay_status', '==', 'pending')
+                .where(filter=FieldFilter('flat_lay_status', "==", 'pending'))
                 .limit(1)
                 .stream()
             )
@@ -602,7 +603,15 @@ def run_worker():
             if not outfit_pending:
                 outfit_pending = list(
                     db.collection('outfits')
-                    .where('flat_lay_status', '==', None)
+                    .where(filter=FieldFilter('flat_lay_status', "==", None))
+                    .limit(1)
+                    .stream()
+                )
+
+            if not outfit_pending:
+                outfit_pending = list(
+                    db.collection('outfits')
+                    .where(filter=FieldFilter('metadata.flat_lay_status', "==", 'pending'))
                     .limit(1)
                     .stream()
                 )
