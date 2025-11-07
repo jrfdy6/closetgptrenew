@@ -86,31 +86,26 @@ def create_thumbnail(img: Image.Image, size: int) -> Image.Image:
 
 def process_item(doc_id, data):
     """Process a single wardrobe item with alpha matting, retry logic, and optimizations"""
-    print(f"📸 Processing {doc_id}...")
-    
     original_url = data.get("imageUrl") or data.get("image_url")
     if not original_url:
-        print(f"  ⚠️  No original image found for {doc_id}")
         return
     
     # Check retry count
     retry_count = data.get("processing_retry_count", 0)
     if retry_count >= MAX_RETRIES:
-        print(f"  ⛔ Max retries ({MAX_RETRIES}) reached for {doc_id}, skipping")
+        print(f"⛔ {doc_id}: Max retries reached, skipping")
         return
     
     try:
-        # 1. Download image with retry
-        print(f"  📥 Downloading image (retry #{retry_count})...")
+        start_time = time.time()
+        
+        # 1. Download image
         response = requests.get(original_url, timeout=30)
         response.raise_for_status()
         input_img = Image.open(BytesIO(response.content)).convert("RGBA")
         original_size = input_img.size
-        print(f"  ✅ Downloaded image: {original_size}")
         
-        # 2. Alpha matting (the heavy part - takes 5-10 seconds)
-        print(f"  🎨 Running alpha matting...")
-        start_time = time.time()
+        # 2. Alpha matting
         output_img = remove(
             input_img,
             alpha_matting=True,
@@ -119,51 +114,41 @@ def process_item(doc_id, data):
             alpha_matting_erode_size=10
         )
         processing_time = time.time() - start_time
-        print(f"  ✅ Background removed in {processing_time:.1f}s")
         
-        # 3. Resize if too large (save bandwidth & storage)
+        # 3. Resize if too large
         if output_img.size[0] > MAX_OUTPUT_WIDTH or output_img.size[1] > MAX_OUTPUT_HEIGHT:
-            print(f"  🔧 Resizing from {output_img.size} to fit {MAX_OUTPUT_WIDTH}x{MAX_OUTPUT_HEIGHT}")
             output_img = resize_image(output_img, MAX_OUTPUT_WIDTH, MAX_OUTPUT_HEIGHT)
-            print(f"  ✅ Resized to {output_img.size}")
         
-        # 4. Generate thumbnail for fast loading
+        # 4. Generate thumbnail
         thumbnail_img = output_img.copy()
         thumbnail_img.thumbnail((THUMBNAIL_SIZE, THUMBNAIL_SIZE), Image.Resampling.LANCZOS)
         
         # 5. Save both full and thumbnail
         tmp_files = []
         try:
-            # Save full image
             tmp_full = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             output_img.save(tmp_full.name, "PNG", optimize=True)
             tmp_files.append(tmp_full.name)
             
-            # Save thumbnail
             tmp_thumb = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
             thumbnail_img.save(tmp_thumb.name, "PNG", optimize=True)
             tmp_files.append(tmp_thumb.name)
             
-            # 6. Upload full image to Firebase Storage
-            print(f"  📤 Uploading processed image ({output_img.size})...")
+            # 6. Upload full image
             blob_path = f"wardrobe/processed/{doc_id}_clean.png"
             blob = bucket.blob(blob_path)
             blob.upload_from_filename(tmp_full.name)
             blob.make_public()
             processed_url = blob.public_url
-            print(f"  ✅ Uploaded full image")
             
             # 7. Upload thumbnail
-            print(f"  📤 Uploading thumbnail ({thumbnail_img.size})...")
             thumb_path = f"wardrobe/thumbnails/{doc_id}_thumb.png"
             thumb_blob = bucket.blob(thumb_path)
             thumb_blob.upload_from_filename(tmp_thumb.name)
             thumb_blob.make_public()
             thumbnail_url = thumb_blob.public_url
-            print(f"  ✅ Uploaded thumbnail")
             
-            # 8. Update Firestore silently (user's UI auto-updates)
-            print(f"  💾 Updating Firestore document: {FIRESTORE_COLLECTION}/{doc_id}")
+            # 8. Update Firestore
             update_data = {
                 "backgroundRemovedUrl": processed_url,
                 "thumbnailUrl": thumbnail_url,
@@ -173,32 +158,11 @@ def process_item(doc_id, data):
                 "original_size": f"{original_size[0]}x{original_size[1]}",
                 "processed_size": f"{output_img.size[0]}x{output_img.size[1]}"
             }
-            print(f"  📝 Update payload: {update_data}")
             
-            # Perform the update with explicit error handling
-            try:
-                doc_ref = db.collection(FIRESTORE_COLLECTION).document(doc_id)
-                doc_ref.update(update_data)
-                print(f"  ✅ Firestore update call completed")
-                
-                # VERIFY the update worked by reading back
-                print(f"  🔍 Verifying Firestore update...")
-                updated_doc = doc_ref.get()
-                if updated_doc.exists:
-                    updated_data = updated_doc.to_dict()
-                    print(f"  ✅ Verified: processing_status = {updated_data.get('processing_status')}")
-                    print(f"  ✅ Verified: backgroundRemovedUrl = {updated_data.get('backgroundRemovedUrl')[:80] if updated_data.get('backgroundRemovedUrl') else 'None'}...")
-                else:
-                    print(f"  ⚠️  WARNING: Document {doc_id} does not exist after update!")
-                    raise Exception(f"Document {doc_id} not found in Firestore")
-                    
-            except Exception as firestore_error:
-                print(f"  ❌ FIRESTORE UPDATE FAILED: {firestore_error}")
-                import traceback
-                print(f"  📋 Traceback: {traceback.format_exc()}")
-                raise  # Re-raise to trigger retry logic
+            doc_ref = db.collection(FIRESTORE_COLLECTION).document(doc_id)
+            doc_ref.update(update_data)
             
-            print(f"✅ COMPLETE: {doc_id} - Image auto-upgraded in UI ({processing_time:.1f}s)")
+            print(f"✅ {doc_id}: Done ({processing_time:.1f}s)")
             
         finally:
             # Cleanup temp files
@@ -207,33 +171,25 @@ def process_item(doc_id, data):
                     os.unlink(tmp_file)
     
     except requests.RequestException as e:
-        # Network error - retry
-        print(f"⚠️  Network error for {doc_id}: {e}")
+        print(f"⚠️  {doc_id}: Network error - {str(e)[:50]}")
         db.collection(FIRESTORE_COLLECTION).document(doc_id).update({
             "processing_retry_count": retry_count + 1,
             "processing_last_error": f"Network: {str(e)}"
         })
     except Exception as e:
-        # Other error - log and retry
-        print(f"❌ Error processing {doc_id}: {e}")
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"   Stack trace: {error_trace[:200]}...")
+        print(f"❌ {doc_id}: {str(e)[:80]}")
         
-        # Update with retry count or mark as failed
         if retry_count + 1 >= MAX_RETRIES:
             db.collection(FIRESTORE_COLLECTION).document(doc_id).update({
                 "processing_status": "failed",
                 "processing_error": str(e),
                 "processing_retry_count": retry_count + 1
             })
-            print(f"  ⛔ Max retries reached, marked as failed")
         else:
             db.collection(FIRESTORE_COLLECTION).document(doc_id).update({
                 "processing_retry_count": retry_count + 1,
                 "processing_last_error": str(e)
             })
-            print(f"  🔄 Will retry (attempt {retry_count + 2}/{MAX_RETRIES})")
 
 
 # ----------------------------
@@ -252,13 +208,6 @@ def run_worker():
     print(f"   Thumbnail size: {THUMBNAIL_SIZE}x{THUMBNAIL_SIZE}")
     print()
     
-    # DIAGNOSTIC: Check total wardrobe items on startup
-    try:
-        total_items = len(list(db.collection(FIRESTORE_COLLECTION).limit(5).stream()))
-        print(f"🔍 DIAGNOSTIC: Can see {total_items} items in '{FIRESTORE_COLLECTION}' collection (sample of 5)")
-    except Exception as e:
-        print(f"⚠️  DIAGNOSTIC ERROR: Cannot read '{FIRESTORE_COLLECTION}' collection: {e}")
-    
     loop_count = 0
     total_processed = 0
     total_failed = 0
@@ -267,23 +216,7 @@ def run_worker():
         try:
             loop_count += 1
             
-            # DIAGNOSTIC: Every 20 loops, check total items vs pending
-            if loop_count % 20 == 1:
-                try:
-                    sample_all = list(db.collection(FIRESTORE_COLLECTION).limit(25).stream())
-                    total_with_status = sum(1 for doc in sample_all if doc.to_dict().get("processing_status") is not None)
-                    total_pending = sum(1 for doc in sample_all if doc.to_dict().get("processing_status") == "pending")
-                    print(f"🔍 DIAGNOSTIC Loop #{loop_count}: Sample of {len(sample_all)} items from collection:")
-                    print(f"   • With processing_status field: {total_with_status}")
-                    print(f"   • With processing_status == 'pending': {total_pending}")
-                    print(f"   • Showing first 3 items:")
-                    for doc in sample_all[:3]:
-                        data = doc.to_dict()
-                        print(f"     - {doc.id}: processing_status={data.get('processing_status', 'MISSING')}, has imageUrl={bool(data.get('imageUrl') or data.get('image_url'))}")
-                except Exception as e:
-                    print(f"⚠️  DIAGNOSTIC ERROR: {e}")
-            
-            # Query items still pending processing (using configurable batch size)
+            # Query items still pending processing
             pending = (
                 db.collection(FIRESTORE_COLLECTION)
                 .where("processing_status", "==", "pending")
@@ -294,25 +227,22 @@ def run_worker():
             pending_list = list(pending)
             
             if pending_list:
-                print(f"🎯 Loop #{loop_count}: Found {len(pending_list)} pending items")
+                print(f"🎯 Found {len(pending_list)} pending items")
                 
                 for doc in pending_list:
                     process_item(doc.id, doc.to_dict())
                     total_processed += 1
                     time.sleep(1)  # Small delay between items to reduce memory spikes
                 
-                print(f"📊 Stats: {total_processed} processed, {total_failed} failed")
-                print()
+                print(f"📊 Total: {total_processed} processed, {total_failed} failed\n")
             else:
-                # No items to process - log periodically
-                if loop_count % (60 // POLL_INTERVAL) == 1:  # Log every minute
-                    print(f"💤 Loop #{loop_count}: No pending items. Waiting... (Processed: {total_processed}, Failed: {total_failed})")
+                # No items to process - log every 5 minutes
+                if loop_count % (300 // POLL_INTERVAL) == 1:  # Log every 5 minutes
+                    print(f"💤 No pending items. (Processed: {total_processed}, Failed: {total_failed})")
                 time.sleep(POLL_INTERVAL)
         
         except Exception as e:
-            print(f"⚠️  Worker encountered error in loop: {e}")
-            import traceback
-            print(f"   {traceback.format_exc()[:300]}...")
+            print(f"⚠️  Worker loop error: {str(e)[:100]}")
             total_failed += 1
             time.sleep(POLL_INTERVAL)
 
