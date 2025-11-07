@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,8 @@ interface FlatLayViewerProps {
   className?: string;
   showItemGrid?: boolean;
   onViewChange?: (view: 'flat-lay' | 'grid') => void;
+  status?: string;
+  error?: string | null;
 }
 
 export default function FlatLayViewer({
@@ -35,18 +37,26 @@ export default function FlatLayViewer({
   outfitItems = [],
   className = "",
   showItemGrid = true,
-  onViewChange
+  onViewChange,
+  status,
+  error
 }: FlatLayViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [currentView, setCurrentView] = useState<'flat-lay' | 'grid'>('flat-lay');
 
+  useEffect(() => {
+    setImageError(false);
+    setIsLoading(!!flatLayUrl);
+  }, [flatLayUrl]);
+
   // DEBUG: Log component props
   console.log('🎨 FLAT LAY VIEWER: Component mounted');
   console.log('🎨 FLAT LAY VIEWER: flatLayUrl:', flatLayUrl);
   console.log('🎨 FLAT LAY VIEWER: outfitName:', outfitName);
   console.log('🎨 FLAT LAY VIEWER: currentView:', currentView);
+  console.log('🎨 FLAT LAY VIEWER: status:', status);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -103,6 +113,46 @@ export default function FlatLayViewer({
   };
 
   const renderFlatLay = () => {
+    if ((status === 'pending' || status === 'processing') && !flatLayUrl) {
+      return (
+        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
+          <Loader2 className="w-10 h-10 animate-spin text-amber-600 mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 text-center">
+            Crafting your premium flat lay…
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 text-center mt-2">
+            This usually takes a few seconds.
+          </p>
+        </div>
+      );
+    }
+
+    if (status === 'failed' && !flatLayUrl) {
+      return (
+        <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">
+          <ImageOff className="w-16 h-16 text-red-400 dark:text-red-500 mb-4" />
+          <p className="text-gray-600 dark:text-gray-400 text-center mb-2">
+            We couldn't generate this flat lay automatically.
+          </p>
+          {error && (
+            <p className="text-sm text-gray-500 dark:text-gray-500 text-center max-w-sm">
+              {error}
+            </p>
+          )}
+          {showItemGrid && outfitItems.length > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={toggleView}
+              className="mt-4"
+            >
+              <Grid3x3 className="w-4 h-4 mr-2" />
+              View Item Grid
+            </Button>
+          )}
+        </div>
+      );
+    }
+
     if (!flatLayUrl || imageError) {
       return (
         <div className="aspect-[4/3] max-h-[600px] bg-gray-100 dark:bg-gray-800 rounded-lg flex flex-col items-center justify-center p-8">

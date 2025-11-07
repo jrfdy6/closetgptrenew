@@ -550,7 +550,29 @@ export default function OutfitGenerationPage() {
       console.log('🔍 DEBUG: Items with images:', data.items?.map(item => ({ name: item.name, imageUrl: item.imageUrl })));
       console.log('🎨 DEBUG: Metadata:', data.metadata);
       console.log('🎨 DEBUG: Flat lay URL:', data.metadata?.flat_lay_url);
-      setGeneratedOutfit(data);
+
+      const enrichedMetadata = {
+        ...(data.metadata ?? {}),
+        flat_lay_status: data.metadata?.flat_lay_status ?? data.flat_lay_status ?? 'pending',
+        flatLayStatus: data.metadata?.flatLayStatus ?? data.flatLayStatus ?? 'pending',
+        flat_lay_url: data.metadata?.flat_lay_url ?? data.flat_lay_url ?? null,
+        flatLayUrl: data.metadata?.flatLayUrl ?? data.flatLayUrl ?? null,
+        flat_lay_error: data.metadata?.flat_lay_error ?? data.flat_lay_error ?? null,
+        flatLayError: data.metadata?.flatLayError ?? data.flatLayError ?? null,
+      };
+
+      const enrichedData = {
+        ...data,
+        metadata: enrichedMetadata,
+        flat_lay_status: data.flat_lay_status ?? enrichedMetadata.flat_lay_status,
+        flatLayStatus: data.flatLayStatus ?? enrichedMetadata.flatLayStatus,
+        flat_lay_url: data.flat_lay_url ?? enrichedMetadata.flat_lay_url,
+        flatLayUrl: data.flatLayUrl ?? enrichedMetadata.flatLayUrl,
+        flat_lay_error: data.flat_lay_error ?? enrichedMetadata.flat_lay_error,
+        flatLayError: data.flatLayError ?? enrichedMetadata.flatLayError,
+      };
+
+      setGeneratedOutfit(enrichedData);
       
       // Auto-save the generated outfit directly to Firestore
       if (user) {
@@ -568,16 +590,16 @@ export default function OutfitGenerationPage() {
           const { collection, doc, setDoc } = await import('firebase/firestore');
           
           // Prepare outfit data for Firestore
-          const outfitId = data.id || `outfit_${Date.now()}`;
+          const outfitId = enrichedData.id || `outfit_${Date.now()}`;
           const now = new Date().toISOString();
           const outfitData = {
             id: outfitId,
-            name: data.name,
-            occasion: data.occasion || formData.occasion,
-            style: data.style,
-            mood: data.mood || 'neutral',
-            description: data.reasoning || data.description || '',
-            items: data.items.map((item: any) => ({
+            name: enrichedData.name,
+            occasion: enrichedData.occasion || formData.occasion,
+            style: enrichedData.style,
+            mood: enrichedData.mood || 'neutral',
+            description: enrichedData.reasoning || enrichedData.description || '',
+            items: enrichedData.items.map((item: any) => ({
               id: item.id,
               name: item.name,
               category: item.category || item.type,
@@ -591,8 +613,15 @@ export default function OutfitGenerationPage() {
             updatedAt: now,
             wearCount: 0,
             isFavorite: false,
-            confidence_score: data.confidence_score || 0.8,
-            generation_strategy: data.generation_strategy || 'hybrid'
+            confidence_score: enrichedData.confidence_score || 0.8,
+            generation_strategy: enrichedData.generation_strategy || 'hybrid',
+            metadata: enrichedMetadata,
+            flat_lay_status: enrichedMetadata.flat_lay_status,
+            flatLayStatus: enrichedMetadata.flatLayStatus,
+            flat_lay_url: enrichedMetadata.flat_lay_url,
+            flatLayUrl: enrichedMetadata.flatLayUrl,
+            flat_lay_error: enrichedMetadata.flat_lay_error,
+            flatLayError: enrichedMetadata.flatLayError,
           };
           
           // Save directly to Firestore
@@ -604,7 +633,11 @@ export default function OutfitGenerationPage() {
           // Update the outfit with the confirmed ID
           setGeneratedOutfit(prev => prev ? {
             ...prev,
-            id: outfitId
+            id: outfitId,
+            metadata: {
+              ...(prev.metadata ?? {}),
+              ...enrichedMetadata,
+            }
           } : null);
         } catch (err) {
           console.log('🔍 DEBUG: Auto-save failed, but outfit generation succeeded');

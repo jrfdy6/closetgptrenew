@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,8 @@ interface GeneratedOutfit {
     name: string;
     type: string;
     imageUrl?: string;
+    thumbnailUrl?: string;
+    backgroundRemovedUrl?: string;
     color: string;
     reason?: string;
   }>;
@@ -49,8 +51,19 @@ interface GeneratedOutfit {
   metadata?: {
     generation_strategy?: string;
     flat_lay_url?: string;
+    flatLayUrl?: string;
+    flat_lay_status?: string;
+    flatLayStatus?: string;
+    flat_lay_error?: string;
+    flatLayError?: string;
     [key: string]: any;
   };
+  flat_lay_status?: string;
+  flatLayStatus?: string;
+  flat_lay_url?: string;
+  flatLayUrl?: string;
+  flat_lay_error?: string;
+  flatLayError?: string;
   outfitAnalysis?: {
     textureAnalysis?: any;
     patternBalance?: any;
@@ -80,6 +93,40 @@ interface OutfitResultsDisplayProps {
   isWorn?: boolean;
 }
 
+interface FlatLayState {
+  url: string | null;
+  status: string;
+  error: string | null;
+}
+
+function extractFlatLayState(outfit: GeneratedOutfit): FlatLayState {
+  const metadata = outfit.metadata ?? {};
+  const url =
+    metadata.flat_lay_url ??
+    metadata.flatLayUrl ??
+    outfit.flat_lay_url ??
+    outfit.flatLayUrl ??
+    null;
+  const status =
+    metadata.flat_lay_status ??
+    metadata.flatLayStatus ??
+    outfit.flat_lay_status ??
+    outfit.flatLayStatus ??
+    (url ? 'done' : 'pending');
+  const error =
+    metadata.flat_lay_error ??
+    metadata.flatLayError ??
+    outfit.flat_lay_error ??
+    outfit.flatLayError ??
+    null;
+
+  return {
+    url,
+    status,
+    error,
+  };
+}
+
 export default function OutfitResultsDisplay({
   outfit,
   rating,
@@ -95,6 +142,76 @@ export default function OutfitResultsDisplay({
 }: OutfitResultsDisplayProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showReasoning, setShowReasoning] = useState(false);
+  const [flatLayState, setFlatLayState] = useState<FlatLayState>(() =>
+    extractFlatLayState(outfit)
+  );
+  const listenerAttachedRef = useRef(false);
+
+  useEffect(() => {
+    setFlatLayState(extractFlatLayState(outfit));
+    listenerAttachedRef.current = false;
+  }, [outfit.id]);
+
+  useEffect(() => {
+    if (!outfit.id) return;
+    if (flatLayState.status === 'done' && flatLayState.url) return;
+    if (listenerAttachedRef.current) return;
+
+    let isMounted = true;
+    let unsubscribe: (() => void) | null = null;
+
+    listenerAttachedRef.current = true;
+
+    (async () => {
+      try {
+        const { db } = await import('@/lib/firebase/config');
+        const { doc, onSnapshot } = await import('firebase/firestore');
+        if (!isMounted) return;
+
+        const docRef = doc(db, 'outfits', outfit.id);
+        unsubscribe = onSnapshot(docRef, (snapshot) => {
+          if (!snapshot.exists()) return;
+          const data = snapshot.data() || {};
+          const metadata = data.metadata || {};
+          const url =
+            metadata.flat_lay_url ||
+            metadata.flatLayUrl ||
+            data.flat_lay_url ||
+            data.flatLayUrl ||
+            null;
+          const status =
+            metadata.flat_lay_status ||
+            metadata.flatLayStatus ||
+            data.flat_lay_status ||
+            data.flatLayStatus ||
+            (url ? 'done' : 'pending');
+          const error =
+            metadata.flat_lay_error ||
+            metadata.flatLayError ||
+            data.flat_lay_error ||
+            data.flatLayError ||
+            null;
+
+          setFlatLayState((prev) => ({
+            url: url ?? prev.url,
+            status: status ?? prev.status,
+            error: error ?? prev.error,
+          }));
+        });
+      } catch (error) {
+        console.error('Failed to attach flat lay listener:', error);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+      unsubscribe?.();
+    };
+  }, [outfit.id, flatLayState.status, flatLayState.url]);
+
+  const flatLayUrl = flatLayState.url;
+  const flatLayStatus = flatLayState.status;
+  const flatLayError = flatLayState.error;
 
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20';
@@ -110,14 +227,15 @@ export default function OutfitResultsDisplay({
 
   // DEBUG: Log flat lay URL
   console.log('🎨 OUTFIT RESULTS: outfit.metadata:', outfit.metadata);
-  console.log('🎨 OUTFIT RESULTS: flat_lay_url:', outfit.metadata?.flat_lay_url);
-  console.log('🎨 OUTFIT RESULTS: Should show flat lay?', !!outfit.metadata?.flat_lay_url);
+  console.log('🎨 OUTFIT RESULTS: flat_lay_url:', flatLayUrl);
+  console.log('🎨 OUTFIT RESULTS: flat_lay_status:', flatLayStatus);
+  console.log('🎨 OUTFIT RESULTS: Should show flat lay?', !!flatLayUrl);
 
   const handleDownload = async () => {
-    if (!outfit.metadata?.flat_lay_url) return;
+    if (!flatLayUrl) return;
     
     try {
-      const response = await fetch(outfit.metadata.flat_lay_url);
+      const response = await fetch(flatLayUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -133,20 +251,20 @@ export default function OutfitResultsDisplay({
   };
 
   const handleShare = async () => {
-    if (!outfit.metadata?.flat_lay_url) return;
+    if (!flatLayUrl) return;
     
     if (navigator.share) {
       try {
         await navigator.share({
           title: outfit.name,
           text: 'Check out this outfit!',
-          url: outfit.metadata.flat_lay_url
+          url: flatLayUrl
         });
       } catch (error) {
         console.error('Error sharing:', error);
       }
     } else {
-      navigator.clipboard.writeText(outfit.metadata.flat_lay_url);
+      navigator.clipboard.writeText(flatLayUrl);
       alert('Link copied to clipboard!');
     }
   };
@@ -198,59 +316,50 @@ export default function OutfitResultsDisplay({
 
         <CardContent className="space-y-6">
           {/* HERO: Flat Lay Image (Primary Display) */}
-          {outfit.metadata?.flat_lay_url && (
-            <div className="mb-6 p-6 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-2xl border-4 border-amber-500 dark:border-amber-600">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
-                  <Eye className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-                  Complete Outfit Preview
-                </h4>
-                <Badge className="bg-amber-600 text-white dark:bg-amber-500">
-                  Flat Lay
-                </Badge>
-              </div>
-              
-              {/* Flat lay image with auto height (no aspect ratio constraint) */}
-              <div className="w-full max-h-[600px] bg-white dark:bg-gray-900 rounded-xl overflow-visible border-2 border-amber-300 dark:border-amber-700">
-                <img
-                  src={outfit.metadata.flat_lay_url}
-                  alt={`${outfit.name} flat lay`}
-                  className="w-full h-auto object-contain"
-                  style={{ display: 'block', minHeight: '300px', maxHeight: '600px' }}
-                  onError={(e) => {
-                    console.error('🎨 FLAT LAY IMAGE ERROR:', e);
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                  onLoad={() => {
-                    console.log('🎨 FLAT LAY IMAGE LOADED SUCCESSFULLY ✅');
-                  }}
-                />
-              </div>
-              
-              {/* Action buttons */}
-              <div className="mt-4 flex gap-2 justify-end">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleDownload}
-                  className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleShare}
-                  className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
-                </Button>
-              </div>
+          <div className="mb-6 p-6 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/40 dark:to-orange-900/40 rounded-2xl border-4 border-amber-500 dark:border-amber-600">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-xl font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+                <Eye className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                Complete Outfit Preview
+              </h4>
+              <Badge className="bg-amber-600 text-white dark:bg-amber-500">
+                Flat Lay
+              </Badge>
             </div>
-          )}
+
+            <FlatLayViewer
+              flatLayUrl={flatLayUrl}
+              outfitName={outfit.name}
+              outfitItems={outfit.items}
+              className="w-full"
+              status={flatLayStatus}
+              error={flatLayError}
+              onViewChange={(view) => console.log('Flat lay view changed:', view)}
+            />
+
+            <div className="mt-4 flex gap-2 justify-end">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleDownload}
+                disabled={!flatLayUrl}
+                className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700 disabled:opacity-50"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleShare}
+                disabled={!flatLayUrl}
+                className="bg-amber-200 hover:bg-amber-300 dark:bg-amber-800 dark:hover:bg-amber-700 disabled:opacity-50"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
+          </div>
 
           {/* Outfit Items Grid (Secondary - Detailed View) */}
           <div>
