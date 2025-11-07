@@ -54,6 +54,32 @@ MATERIAL_SHADOWS = {
     "wool": {"blur": 6, "opacity": 0.16},
 }
 
+CATEGORY_ALIASES = {
+    "outerwear": [
+        "blazer", "jacket", "coat", "overcoat", "trench", "outerwear", "suit jacket",
+        "sport coat", "puffer coat", "peacoat", "cardigan", "topcoat"
+    ],
+    "top": [
+        "shirt", "t-shirt", "tee", "sweater", "hoodie", "top", "polo", "jersey",
+        "blouse", "crewneck", "knit top"
+    ],
+    "bottom": [
+        "pants", "trousers", "jeans", "shorts", "bottoms", "chinos", "slacks",
+        "skirt", "joggers"
+    ],
+    "shoes": [
+        "shoe", "shoes", "sneaker", "sneakers", "boot", "boots", "loafer",
+        "loafers", "heel", "heels", "sandals"
+    ],
+}
+
+CATEGORY_SHADOW_OVERRIDES = {
+    "outerwear": {"blur": 14, "opacity": 0.22},
+    "top": {"blur": 10, "opacity": 0.12},
+    "bottom": {"blur": 11, "opacity": 0.18},
+    "shoes": {"blur": 8, "opacity": 0.26},
+}
+
 # Initialize Firebase Admin SDK
 print("🔥 Initializing Firebase Admin SDK...")
 
@@ -169,8 +195,13 @@ def smooth_edges(img: Image.Image, edge_blur_radius: float = 1.5) -> Image.Image
     return Image.merge("RGBA", (r, g, b, a))
 
 
-def add_material_shadow(img: Image.Image, material: str = "cotton") -> Image.Image:
-    params = MATERIAL_SHADOWS.get(material, MATERIAL_SHADOWS["cotton"])
+def add_material_shadow(img: Image.Image, material: str = "cotton", override: dict | None = None) -> Image.Image:
+    params = MATERIAL_SHADOWS.get(material, MATERIAL_SHADOWS["cotton"]).copy()
+    if override:
+        if "blur" in override:
+            params["blur"] = override["blur"]
+        if "opacity" in override:
+            params["opacity"] = override["opacity"]
     alpha = img.split()[3]
     shadow = alpha.filter(ImageFilter.GaussianBlur(params["blur"]))
     shadow_layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
@@ -232,17 +263,50 @@ def resolve_material(data: dict) -> str:
 # Premium Flat Lay Functions
 # ----------------------------
 
-def generate_radial_background(size: tuple[int, int] = (1200, 1200), base_color: tuple[int, int, int] = (245, 245, 245), center_brightness: int = 255) -> Image.Image:
-    """Soft radial gradient for studio effect"""
+def generate_vertical_spotlight_background(
+    size: tuple[int, int] = (1200, 1200),
+    top_color: tuple[int, int, int] = (32, 34, 52),
+    mid_color: tuple[int, int, int] = (245, 245, 248),
+    bottom_color: tuple[int, int, int] = (30, 32, 48)
+) -> Image.Image:
+    """Create a vertical editorial spotlight gradient (darker edges, bright center)."""
     width, height = size
-    bg = Image.new("RGBA", size, base_color + (255,))
-    draw = ImageDraw.Draw(bg)
-    for i in range(width // 2, 0, -1):
-        alpha = int((1 - i / (width / 2)) * (255 - center_brightness / 255))
-        draw.ellipse(
-            (width / 2 - i, height / 2 - i, width / 2 + i, height / 2 + i),
-            fill=(255, 255, 255, alpha)
-        )
+    gradient = Image.new("RGB", (1, height))
+    for y in range(height):
+        t = y / (height - 1)
+        if t < 0.5:
+            ratio = t / 0.5
+            color = tuple(
+                int(top_color[i] + (mid_color[i] - top_color[i]) * ratio)
+                for i in range(3)
+            )
+        else:
+            ratio = (t - 0.5) / 0.5
+            color = tuple(
+                int(mid_color[i] + (bottom_color[i] - mid_color[i]) * ratio)
+                for i in range(3)
+            )
+        gradient.putpixel((0, y), color)
+
+    bg = gradient.resize((width, height), Image.Resampling.BICUBIC).convert("RGBA")
+
+    # Add subtle elliptical vignette for depth
+    vignette = Image.new("L", size, 0)
+    vignette_draw = ImageDraw.Draw(vignette)
+    vignette_draw.ellipse(
+        (
+            -width * 0.2,
+            height * 0.05,
+            width * 1.2,
+            height * 0.95,
+        ),
+        fill=180,
+    )
+    vignette_blur = vignette.filter(ImageFilter.GaussianBlur(radius=width * 0.12))
+    overlay = Image.new("RGBA", size, (255, 255, 255, 0))
+    overlay.putalpha(vignette_blur)
+    bg = Image.alpha_composite(bg, overlay)
+
     return bg
 
 
@@ -254,6 +318,175 @@ def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400) -> Image.Im
     return img.resize(new_size, Image.Resampling.LANCZOS)
 
 
+def categorize_item_type(source_item: dict) -> str:
+    """
+    Map raw wardrobe metadata into canonical categories:
+    outerwear, top, bottom, shoes, accessory.
+    """
+    potential_fields = [
+        source_item.get("category"),
+        source_item.get("type"),
+        source_item.get("subType"),
+        source_item.get("subtype"),
+        source_item.get("metadata", {}).get("category"),
+        source_item.get("metadata", {}).get("type"),
+        source_item.get("metadata", {}).get("originalType"),
+        source_item.get("metadata", {}).get("basicMetadata", {}).get("category")
+        if isinstance(source_item.get("metadata"), dict)
+        else None,
+    ]
+
+    for field in potential_fields:
+        if not field:
+            continue
+        value = str(field).lower()
+        for canonical, aliases in CATEGORY_ALIASES.items():
+            if any(alias in value for alias in aliases):
+                return canonical
+        if "accessor" in value or "bag" in value or "watch" in value:
+            return "accessory"
+
+    # Fallback heuristics based on keywords
+    value = str(source_item.get("name", "")).lower()
+    for canonical, aliases in CATEGORY_ALIASES.items():
+        if any(alias in value for alias in aliases):
+            return canonical
+    if "bag" in value or "belt" in value or "hat" in value or "glasses" in value:
+        return "accessory"
+
+    # Default to top if unsure, keeps layout stable
+    return "top"
+
+
+def editorial_column_layout(items: list[dict], canvas_w: int, canvas_h: int) -> list[dict]:
+    """
+    Arrange items along a vertical editorial axis with overlap and hierarchy.
+    Mutates item dicts to include `scaled_img`, `width`, `height`, `x`, `y`.
+    Returns items in render order (back to front).
+    """
+
+    def apply_scale(item: dict, scale: float):
+        base_img = item["img"]
+        new_size = (
+            max(1, int(base_img.width * scale)),
+            max(1, int(base_img.height * scale)),
+        )
+        item["scaled_img"] = base_img.resize(new_size, Image.Resampling.LANCZOS)
+        item["width"], item["height"] = item["scaled_img"].size
+        item["scale"] = scale
+
+    def place_center(item: dict, center_x: float, top_y: float):
+        item["x"] = int(center_x - item["width"] / 2)
+        item["y"] = int(top_y)
+
+    def pop_first(canonical: str) -> dict | None:
+        for candidate in items:
+            if candidate.get("_used"):
+                continue
+            if candidate.get("category") == canonical:
+                candidate["_used"] = True
+                return candidate
+        return None
+
+    def pop_all(canonical: str) -> list[dict]:
+        group = []
+        for candidate in items:
+            if candidate.get("_used"):
+                continue
+            if candidate.get("category") == canonical:
+                candidate["_used"] = True
+                group.append(candidate)
+        return group
+
+    outer = pop_first("outerwear")
+    top = pop_first("top")
+    bottom = pop_first("bottom")
+    shoe_items = pop_all("shoes")
+    accessories = [item for item in items if not item.get("_used")]
+    for accessory in accessories:
+        accessory["_used"] = True
+
+    center_x = canvas_w / 2
+    editorial_top = canvas_h * 0.18
+
+    render_order: list[dict] = []
+
+    if outer:
+        apply_scale(outer, 1.10)
+        top_y = max(editorial_top, (canvas_h * 0.24) - outer["height"] * 0.5)
+        place_center(outer, center_x, top_y)
+
+    if top:
+        apply_scale(top, 0.95)
+        if outer:
+            ref_top = outer["y"] + outer["height"] * 0.18
+        else:
+            ref_top = editorial_top + canvas_h * 0.02
+        place_center(top, center_x, ref_top)
+
+    if bottom:
+        apply_scale(bottom, 0.90)
+        if top:
+            ref_top = top["y"] + top["height"] * 0.35
+        elif outer:
+            ref_top = outer["y"] + outer["height"] * 0.4
+        else:
+            ref_top = editorial_top + canvas_h * 0.25
+        place_center(bottom, center_x, ref_top)
+
+    if shoe_items:
+        # Ensure deterministic order (left then right)
+        shoe_items = shoe_items[:2]
+        for idx, shoe in enumerate(shoe_items):
+            apply_scale(shoe, 0.70)
+            if bottom:
+                ref_top = bottom["y"] + bottom["height"] * 0.45
+            elif top:
+                ref_top = top["y"] + top["height"] * 0.6
+            else:
+                ref_top = editorial_top + canvas_h * 0.5
+
+            if len(shoe_items) == 1:
+                place_center(shoe, center_x, ref_top)
+            else:
+                direction = -1 if idx == 0 else 1
+                offset = shoe["width"] * 0.75
+                place_center(shoe, center_x + direction * offset, ref_top)
+
+    # Place accessories along left/right margins
+    if accessories:
+        side_offsets = [-canvas_w * 0.28, canvas_w * 0.28]
+        heights = [canvas_h * 0.28, canvas_h * 0.5, canvas_h * 0.72]
+        position_idx = 0
+        for accessory in accessories:
+            apply_scale(accessory, 0.65)
+            col = side_offsets[position_idx % len(side_offsets)]
+            row_idx = position_idx // len(side_offsets)
+            row_y = heights[min(row_idx, len(heights) - 1)]
+            place_center(accessory, center_x + col, row_y - accessory["height"] / 2)
+            position_idx += 1
+
+    # Determine render (z) order: bottom layer first
+    if accessories:
+        # Accessories under shoes but above background
+        render_order.extend(accessories)
+    if bottom:
+        render_order.append(bottom)
+    if shoe_items:
+        render_order.extend(shoe_items)
+    if top:
+        render_order.append(top)
+    if outer:
+        render_order.append(outer)
+
+    # Add any remaining items (should be none) to render order
+    for item in items:
+        if item not in render_order:
+            render_order.append(item)
+
+    return render_order
+
+
 def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1200, 1200)) -> Image.Image:
     """
     Compose multiple items into a polished flat lay.
@@ -261,41 +494,37 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1200, 120
     items: list of dicts with keys:
         - "img": PIL.Image (RGBA)
         - "material": str (optional, defaults to "cotton")
+        - "category": str (canonical category)
     """
-    import math
-    import random
-    
-    canvas = generate_radial_background(size=canvas_size)
-    num_items = len(items)
-    if num_items == 0:
+    canvas = generate_vertical_spotlight_background(size=canvas_size)
+    if not items:
         return canvas
 
-    # Layout: staggered grid with rotation + overlapping
-    margin = 40
-    cols = max(1, math.ceil(math.sqrt(num_items)))
-    rows = math.ceil(num_items / cols)
-    cell_w = (canvas_size[0] - margin * 2) / cols
-    cell_h = (canvas_size[1] - margin * 2) / rows
-    positions = []
-    angles = []
+    layout_items = editorial_column_layout(items, canvas_size[0], canvas_size[1])
 
-    for idx, item in enumerate(items):
-        col = idx % cols
-        row = idx // cols
-        x = margin + int(col * cell_w)
-        y = margin + int(row * cell_h)
-        positions.append((x, y))
-        angles.append(random.uniform(-5, 5))
+    for item in layout_items:
+        scaled = item.get("scaled_img")
+        if scaled is None:
+            # Ensure items without explicit scaling still render
+            scaled = normalize_item_for_flatlay(item["img"])
+            item["scaled_img"] = scaled
+            item["width"], item["height"] = scaled.size
 
-    for idx, item in enumerate(items):
-        img = normalize_item_for_flatlay(item["img"])
-        img = smooth_edges(img)
-        img = add_material_shadow(img, material=item.get("material", "cotton"))
-        rotated = img.rotate(angles[idx], expand=True)
-        x, y = positions[idx]
-        paste_x = x + (cell_w - rotated.width) // 2
-        paste_y = y + (cell_h - rotated.height) // 2
-        canvas.alpha_composite(rotated, (int(paste_x), int(paste_y)))
+        processed = smooth_edges(scaled)
+        shadow_override = CATEGORY_SHADOW_OVERRIDES.get(item.get("category"))
+        processed = add_material_shadow(
+            processed,
+            material=item.get("material", "cotton"),
+            override=shadow_override,
+        )
+        processed = apply_light_gradient(processed)
+
+        x = int(item.get("x", 0))
+        y = int(item.get("y", 0))
+        x = max(0, min(x, canvas_size[0] - processed.width))
+        y = max(0, min(y, canvas_size[1] - processed.height))
+
+        canvas.alpha_composite(processed, (x, y))
 
     return canvas
 
@@ -382,9 +611,13 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
 
         material = item.get("material") or resolve_material(item) or "cotton"
 
+        category = categorize_item_type(item)
+
         processed_images.append({
             "img": img,
-            "material": material
+            "material": material,
+            "category": category,
+            "source": item,
         })
     
     if not processed_images:
