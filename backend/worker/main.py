@@ -437,7 +437,7 @@ def generate_openai_flatlay_image(
             prompt=prompt,
             size="256x256",
             background="transparent",
-            quality="standard",
+            quality="high",
         )
 
         if not response.data:
