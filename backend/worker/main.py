@@ -15,6 +15,7 @@ from urllib.parse import urlparse, unquote
 from rembg import remove
 from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
+from uuid import uuid4
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 from google.cloud.firestore_v1 import FieldFilter
@@ -580,7 +581,10 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
 
         category = categorize_item_type(item)
 
+        item_unique_id = item_id or item.get("id") or str(uuid4())
+
         processed_images.append({
+            "id": item_unique_id,
             "img": img,
             "material": material,
             "category": category,
