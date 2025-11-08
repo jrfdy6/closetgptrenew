@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Navigation from "@/components/Navigation";
 import ClientOnlyNav from "@/components/ClientOnlyNav";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,7 @@ import {
 import Link from "next/link";
 import { useAuthContext } from "@/contexts/AuthContext";
 import dynamic from 'next/dynamic';
-import { dashboardService, DashboardData } from "@/lib/services/dashboardService";
+import { dashboardService, DashboardData, TopItem } from "@/lib/services/dashboardService";
 import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
@@ -281,6 +281,59 @@ export default function Dashboard() {
   const clampedStyleGoalsCompleted = totalStyleGoals > 0
     ? Math.min(styleGoalsCompleted, totalStyleGoals)
     : styleGoalsCompleted;
+
+  const topItemsByCategory = useMemo(() => {
+    if (!dashboardData?.topItems) return [];
+
+    const categoryConfig: Array<{ id: "top" | "bottom" | "shoe" | "accessory" | "jacket"; keywords: string[] }> = [
+      {
+        id: "top",
+        keywords: ["top", "shirt", "t-shirt", "tee", "blouse", "sweater", "hoodie", "polo", "tank", "dress", "longsleeve", "long sleeve"],
+      },
+      {
+        id: "bottom",
+        keywords: ["bottom", "pant", "pants", "trouser", "jean", "short", "skirt", "chino"],
+      },
+      {
+        id: "shoe",
+        keywords: ["shoe", "sneaker", "boot", "footwear", "loafer", "heel", "sandals"],
+      },
+      {
+        id: "accessory",
+        keywords: ["accessory", "belt", "watch", "scarf", "hat", "glove", "bag", "bracelet", "necklace", "jewelry", "sunglass", "sunglasses"],
+      },
+      {
+        id: "jacket",
+        keywords: ["jacket", "coat", "outerwear", "blazer"],
+      },
+    ];
+
+    const usedIds = new Set<string>();
+    const results: Array<TopItem & { category: typeof categoryConfig[number]["id"] }> = [];
+
+    categoryConfig.forEach(({ id, keywords }) => {
+      const match = dashboardData.topItems?.find((item) => {
+        if (!item || usedIds.has(item.id)) return false;
+        const type = (item.type || "").toLowerCase().replace(/\s+/g, "");
+        return keywords.some((keyword) => type.includes(keyword.replace(/\s+/g, "")));
+      });
+
+      if (match) {
+        usedIds.add(match.id);
+        results.push({ ...match, category: id });
+      }
+    });
+
+    return results;
+  }, [dashboardData?.topItems]);
+
+  const categoryLabels: Record<"top" | "bottom" | "shoe" | "accessory" | "jacket", string> = {
+    top: "Top",
+    bottom: "Bottom",
+    shoe: "Shoes",
+    accessory: "Accessory",
+    jacket: "Jacket",
+  };
 
   // Main dashboard - user is authenticated and data is loaded
   return (
@@ -569,9 +622,9 @@ export default function Dashboard() {
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Your top items will appear here based on:</p>
           </div>
           <div className="p-4 sm:p-6 lg:p-8">
-            {dashboardData?.topItems && dashboardData.topItems.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4">
-                {dashboardData.topItems.map((item, index) => (
+            {topItemsByCategory.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                {topItemsByCategory.map((item) => (
                   <div key={item.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-[1.02]">
                     {/* Item Image */}
                     <div className="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 relative">
@@ -598,6 +651,11 @@ export default function Dashboard() {
                           <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
                         </div>
                       )}
+                      <div className="absolute top-3 left-3">
+                        <Badge variant="secondary" className="text-xs uppercase tracking-wide">
+                          {categoryLabels[item.category]}
+                        </Badge>
+                      </div>
                     </div>
                     
                     {/* Item Details - Mobile Optimized */}
