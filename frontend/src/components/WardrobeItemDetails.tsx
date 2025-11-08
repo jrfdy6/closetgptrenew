@@ -331,14 +331,6 @@ export default function WardrobeItemDetails({
                     <Edit3 className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onClose}
-                    className="text-stone-600 hover:text-stone-900"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </>
               ) : (
                 <>
