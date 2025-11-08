@@ -8,7 +8,7 @@ DEFAULT_SUBSCRIPTION_TIER = "tier1"
 TIER_LIMITS: Dict[str, Optional[int]] = {
     "tier1": 1,
     "tier2": 7,
-    "tier3": None,
+    "tier3": 30,
 }
 
 WEEKLY_ALLOWANCE_SECONDS = 7 * 24 * 60 * 60

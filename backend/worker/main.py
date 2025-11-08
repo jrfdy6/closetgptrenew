@@ -1022,21 +1022,18 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             return
 
         flat_lay_url: str | None = None
-        flat_lay_renderer = "compositor_v1"
         openai_note: str | None = None
-        openai_attempted = False
         openai_used = False
+        reservation = None
 
         if openai_client and user_id:
             reservation = reserve_openai_flatlay_slot(user_id)
             if reservation.get("allowed"):
-                openai_attempted = True
                 openai_image, openai_error = generate_openai_flatlay_image(processed_images, doc_id, data, user_id)
                 if openai_image is not None:
                     uploaded_url = upload_flatlay_image(openai_image, doc_id, renderer_tag="openai_gpt4o")
                     if uploaded_url:
                         flat_lay_url = uploaded_url
-                        flat_lay_renderer = "openai_gpt4o"
                         openai_used = True
                         metrics['flat_lay_openai'] += 1
                     else:
@@ -1046,7 +1043,7 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                     release_openai_flatlay_slot(user_id)
                     metrics['flat_lay_openai_failed'] += 1
             else:
-                openai_note = reservation.get("reason") or "openai_limit_reached"
+                openai_note = reservation.get("reason") or "limit_reached"
                 print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
         else:
             if not openai_client:
@@ -1056,48 +1053,83 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             if openai_note:
                 print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
 
-        if not flat_lay_url:
-            canvas = compose_flatlay_image(processed_images)
-            if canvas is None:
-                raise Exception('Flat lay composition failed')
-            flat_lay_url = upload_flatlay_image(canvas, doc_id, renderer_tag="compositor_v1")
-            if openai_attempted:
-                metrics['flat_lay_renderer_fallbacks'] += 1
+        if openai_used and flat_lay_url:
+            update_payload = {
+                'flat_lay_status': 'done',
+                'flatLayStatus': 'done',
+                'flat_lay_url': flat_lay_url,
+                'flatLayUrl': flat_lay_url,
+                'flat_lay_error': None,
+                'flatLayError': None,
+                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+                'flat_lay_renderer': 'openai_gpt4o',
+                'flatLayRenderer': 'openai_gpt4o',
+                'metadata.flat_lay_status': 'done',
+                'metadata.flatLayStatus': 'done',
+                'metadata.flat_lay_url': flat_lay_url,
+                'metadata.flatLayUrl': flat_lay_url,
+                'metadata.flat_lay_error': None,
+                'metadata.flatLayError': None,
+                'metadata.flat_lay_renderer': 'openai_gpt4o',
+                'metadata.flatLayRenderer': 'openai_gpt4o',
+            }
+            if openai_note:
+                update_payload['metadata.flat_lay_renderer_note'] = openai_note
+                update_payload['flat_lay_renderer_note'] = openai_note
+                update_payload['flatLayRendererNote'] = openai_note
+            doc_ref.update(update_payload)
+            metrics['flat_lay_processed'] += 1
+            print(f"🎨 Outfit {doc_id}: OpenAI flat lay ready ({flat_lay_url})")
+            return
 
-        if not flat_lay_url:
-            raise Exception('Flat lay generation returned no URL')
-
+        # No OpenAI image produced – either quota exhausted or error
+        renderer_note = openai_note or 'openai_unavailable'
         update_payload = {
-            'flat_lay_status': 'done',
-            'flatLayStatus': 'done',
-            'flat_lay_url': flat_lay_url,
-            'flatLayUrl': flat_lay_url,
-            'flat_lay_error': None,
-            'flatLayError': None,
+            'flat_lay_url': None,
+            'flatLayUrl': None,
             'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
-            'flat_lay_renderer': flat_lay_renderer,
-            'flatLayRenderer': flat_lay_renderer,
-            'metadata.flat_lay_status': 'done',
-            'metadata.flatLayStatus': 'done',
-            'metadata.flat_lay_url': flat_lay_url,
-            'metadata.flatLayUrl': flat_lay_url,
-            'metadata.flat_lay_error': None,
-            'metadata.flatLayError': None,
-            'metadata.flat_lay_renderer': flat_lay_renderer,
-            'metadata.flatLayRenderer': flat_lay_renderer,
+            'flat_lay_renderer': 'wardrobe_grid',
+            'flatLayRenderer': 'wardrobe_grid',
+            'metadata.flat_lay_url': None,
+            'metadata.flatLayUrl': None,
+            'metadata.flat_lay_renderer': 'wardrobe_grid',
+            'metadata.flatLayRenderer': 'wardrobe_grid',
+            'metadata.flat_lay_renderer_note': renderer_note,
+            'flat_lay_renderer_note': renderer_note,
+            'flatLayRendererNote': renderer_note,
         }
-        if openai_note:
-            update_payload['metadata.flat_lay_renderer_note'] = openai_note
-            update_payload['flat_lay_renderer_note'] = openai_note
-            update_payload['flatLayRendererNote'] = openai_note
-            print(f"ℹ️  OpenAI flat lay note for outfit {doc_id} (user {user_id or 'unknown'}): {openai_note}")
+
+        if renderer_note == 'limit_reached':
+            message = 'OpenAI weekly flat lay quota reached'
+            update_payload.update({
+                'flat_lay_status': 'skipped',
+                'flatLayStatus': 'skipped',
+                'flat_lay_error': message,
+                'flatLayError': message,
+                'metadata.flat_lay_status': 'skipped',
+                'metadata.flatLayStatus': 'skipped',
+                'metadata.flat_lay_error': message,
+                'metadata.flatLayError': message,
+            })
+            metrics['flat_lay_skipped'] += 1
+            print(f"ℹ️  Outfit {doc_id}: OpenAI quota reached, showing wardrobe grid")
+        else:
+            message = renderer_note or 'OpenAI flat lay unavailable'
+            update_payload.update({
+                'flat_lay_status': 'failed',
+                'flatLayStatus': 'failed',
+                'flat_lay_error': message,
+                'flatLayError': message,
+                'metadata.flat_lay_status': 'failed',
+                'metadata.flatLayStatus': 'failed',
+                'metadata.flat_lay_error': message,
+                'metadata.flatLayError': message,
+            })
+            metrics['flat_lay_failed'] += 1
+            print(f"❌ Outfit {doc_id}: OpenAI flat lay unavailable - {message}")
 
         doc_ref.update(update_payload)
-        metrics['flat_lay_processed'] += 1
-        if openai_used:
-            print(f"🎨 Outfit {doc_id}: OpenAI flat lay ready ({flat_lay_url})")
-        else:
-            print(f"🎨 Outfit {doc_id}: Flat lay ready ({flat_lay_renderer})")
+        return
 
     except Exception as exc:
         error_message = str(exc)
