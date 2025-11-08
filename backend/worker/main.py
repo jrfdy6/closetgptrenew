@@ -467,31 +467,31 @@ def generate_openai_flatlay_image(
 
     prompt = build_flatlay_prompt(processed_images, outfit_data)
     try:
-            response = openai_client.responses.create(
-                model="gpt-4o",
-                temperature=0.6,
-                max_output_tokens=512,
-                input=[
-                    {
-                        "role": "system",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": (
-                                    "You are a senior fashion photographer tasked with generating premium "
-                                    "flat lay imagery for an AI wardrobe assistant. Produce photorealistic outfits."
-                                ),
-                            }
-                        ],
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt},
-                        ],
-                    },
-                ],
-            )
+        response = openai_client.responses.create(
+            model="gpt-4o",
+            temperature=0.6,
+            max_output_tokens=512,
+            input=[
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "You are a senior fashion photographer tasked with generating premium "
+                                "flat lay imagery for an AI wardrobe assistant. Produce photorealistic outfits."
+                            ),
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                    ],
+                },
+            ],
+        )
 
         image_bytes = _extract_image_bytes_from_openai_response(response)
         if not image_bytes:
