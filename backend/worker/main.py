@@ -39,14 +39,24 @@ for ancestor in [CURRENT_DIR.parent, CURRENT_DIR.parent.parent, CURRENT_DIR.pare
         _ensure_path(ancestor)
         _ensure_path(ancestor / "src")
 _ensure_path(CURRENT_DIR / "src")
-from src.services.subscription_utils import (
-    DEFAULT_SUBSCRIPTION_TIER,
-    TIER_LIMITS,
-    WEEKLY_ALLOWANCE_SECONDS,
-    parse_iso8601,
-    format_iso8601,
-    subscription_defaults,
-)
+try:
+    from src.services.subscription_utils import (
+        DEFAULT_SUBSCRIPTION_TIER,
+        TIER_LIMITS,
+        WEEKLY_ALLOWANCE_SECONDS,
+        parse_iso8601,
+        format_iso8601,
+        subscription_defaults,
+    )
+except ModuleNotFoundError:
+    from subscription_utils import (
+        DEFAULT_SUBSCRIPTION_TIER,
+        TIER_LIMITS,
+        WEEKLY_ALLOWANCE_SECONDS,
+        parse_iso8601,
+        format_iso8601,
+        subscription_defaults,
+    )
 
 # ----------------------------
 # Configuration
