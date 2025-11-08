@@ -107,8 +107,20 @@ export default function Dashboard() {
     CATEGORY_CONFIG.forEach(({ id, keywords }) => {
       const match = dashboardData.topItems.find((item) => {
         if (!item || usedIds.has(item.id)) return false;
+        const typeRaw = (item.type || "").toLowerCase();
+        const nameRaw = (item.name || "").toLowerCase();
         const type = (item.type || "").toLowerCase().replace(/\s+/g, "");
-        return keywords.some((keyword) => type.includes(keyword.replace(/\s+/g, "")));
+        const keywordMatchesType = keywords.some((keyword) => type.includes(keyword.replace(/\s+/g, "")));
+        if (keywordMatchesType) return true;
+
+        if (
+          id === "top" &&
+          keywords.some((keyword) => typeRaw.includes(keyword.toLowerCase()) || nameRaw.includes(keyword.toLowerCase()))
+        ) {
+          return true;
+        }
+
+        return keywords.some((keyword) => nameRaw.includes(keyword.toLowerCase()));
       });
 
       if (match) {
