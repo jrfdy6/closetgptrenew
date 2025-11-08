@@ -62,7 +62,7 @@ export function SmartWeatherOutfitGenerator({
   onOutfitGenerated 
 }: SmartWeatherOutfitGeneratorProps) {
   const { user } = useAuthContext();
-  const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError } = useAutoWeather();
+  const { weather, loading: weatherLoading, fetchWeatherByLocation, error: weatherError, isStale: weatherIsStale } = useAutoWeather();
   
   // Debug logging
   console.log('🔍 SmartWeatherOutfitGenerator mounted:', {
@@ -694,13 +694,31 @@ export function SmartWeatherOutfitGenerator({
       <CardContent className="space-y-6">
         {/* Weather Status Section */}
         <div className="space-y-4">
-          {weatherLoading ? (
+          {weatherLoading && !weather ? (
             <div className="flex items-center justify-center py-8">
               <RefreshCw className="h-6 w-6 animate-spin text-amber-500 mr-3" />
               <span className="text-stone-600 dark:text-stone-400">Getting your weather...</span>
             </div>
           ) : weather ? (
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-6">
+            <div className={`relative bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-6 transition-all ${weatherIsStale ? 'opacity-60 grayscale' : ''}`}>
+              <div className="flex items-center gap-2 mb-3">
+                {weather.fallback && (
+                  <Badge variant="secondary" className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                    Fallback Data
+                  </Badge>
+                )}
+                {weatherIsStale && (
+                  <Badge variant="secondary" className="text-xs bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300">
+                    Outdated
+                  </Badge>
+                )}
+                {weatherLoading && (
+                  <span className="text-xs text-stone-600 dark:text-stone-300 flex items-center gap-1">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    Updating
+                  </span>
+                )}
+              </div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-white/50 dark:bg-black/20 rounded-full flex items-center justify-center">

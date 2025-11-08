@@ -16,7 +16,9 @@ export function WeatherDisplay() {
     await fetchWeatherByLocation();
   };
 
-  if (loading) {
+  const hasWeather = Boolean(weather);
+
+  if (loading && !hasWeather) {
     return (
       <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm">
         <CardHeader className="pb-4">
@@ -35,7 +37,7 @@ export function WeatherDisplay() {
     );
   }
 
-  if (error && !weather) {
+  if (error && !hasWeather) {
     return (
       <Card className="border border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-900/20 backdrop-blur-sm">
         <CardHeader className="pb-4">
@@ -55,12 +57,14 @@ export function WeatherDisplay() {
     );
   }
 
-  if (!weather) {
+  if (!hasWeather) {
     return null;
   }
 
   const formattedWeather = formatWeatherForDisplay(weather);
   const recommendations = getClothingRecommendations(weather);
+  const usingFallback = Boolean(weather.fallback);
+  const isGreyedOut = isStale;
 
   return (
     <Card className="border border-stone-200 dark:border-stone-700 bg-white/50 dark:bg-stone-900/50 backdrop-blur-sm hover:shadow-xl transition-all duration-300">
@@ -71,7 +75,7 @@ export function WeatherDisplay() {
             Current Weather
           </CardTitle>
           <div className="flex items-center gap-2">
-            {weather.fallback && (
+            {usingFallback && (
               <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-1 rounded-full">
                 Fallback Data
               </span>
@@ -81,6 +85,12 @@ export function WeatherDisplay() {
                 Outdated
               </span>
             )}
+            {loading && (
+              <span className="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1">
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                Updating
+              </span>
+            )}
             <Button onClick={handleRefresh} variant="ghost" size="sm" disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
@@ -88,7 +98,7 @@ export function WeatherDisplay() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className={`space-y-4 transition-all ${isGreyedOut ? 'opacity-60 grayscale' : ''}`}>
           {/* Main Weather Info */}
           <div className="flex items-center justify-between">
             <div>

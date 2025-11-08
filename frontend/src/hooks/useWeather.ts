@@ -28,13 +28,37 @@ const FALLBACK_WEATHER: WeatherData = {
   fallback: true
 };
 
+const LAST_WEATHER_STORAGE_KEY = "closetgpt:last-weather-data";
+const LAST_WEATHER_UPDATED_KEY = "closetgpt:last-weather-updated";
+
 export function useWeather(options: UseWeatherOptions = {}): UseWeatherReturn {
   const { location, autoFetch = false, fallbackLocation = "Unknown Location" } = options;
   
-  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const getStoredWeather = (): WeatherData | null => {
+    if (typeof window === "undefined") return null;
+    try {
+      const stored = window.localStorage.getItem(LAST_WEATHER_STORAGE_KEY);
+      if (!stored) return null;
+      const parsed = JSON.parse(stored) as WeatherData;
+      return parsed ? { ...parsed, fallback: Boolean(parsed.fallback) } : null;
+    } catch (error) {
+      console.warn("Unable to parse stored weather:", error);
+      return null;
+    }
+  };
+
+  const getStoredUpdatedAt = (): Date | null => {
+    if (typeof window === "undefined") return null;
+    const stored = window.localStorage.getItem(LAST_WEATHER_UPDATED_KEY);
+    if (!stored) return null;
+    const timestamp = Number(stored);
+    return Number.isFinite(timestamp) ? new Date(timestamp) : null;
+  };
+
+  const [weather, setWeather] = useState<WeatherData | null>(() => getStoredWeather());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(() => getStoredUpdatedAt());
 
   // Check if weather data is stale
   const isStale = lastUpdated ? (Date.now() - lastUpdated.getTime()) > CACHE_DURATION : true;
@@ -68,16 +92,49 @@ export function useWeather(options: UseWeatherOptions = {}): UseWeatherReturn {
       const weatherData: WeatherData = await response.json();
       console.log("🌤️ Weather data received:", weatherData);
       
-      setWeather(weatherData);
-      setLastUpdated(new Date());
+      const sanitizedWeather: WeatherData = {
+        ...weatherData,
+        fallback: Boolean(weatherData.fallback)
+      };
+
+      setWeather(sanitizedWeather);
+      const now = new Date();
+      setLastUpdated(now);
+      
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(LAST_WEATHER_STORAGE_KEY, JSON.stringify(sanitizedWeather));
+        window.localStorage.setItem(LAST_WEATHER_UPDATED_KEY, String(now.getTime()));
+      }
+
       setError(null);
     } catch (err) {
       console.error("🌤️ Error fetching weather:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch weather");
       
-      // Set fallback weather data
-      setWeather(FALLBACK_WEATHER);
-      setLastUpdated(new Date());
+      // Preserve the last known weather if available, otherwise use fallback
+      setWeather((previousWeather) => {
+        if (previousWeather) {
+          return {
+            ...previousWeather,
+            fallback: Boolean(previousWeather.fallback)
+          };
+        }
+        const storedWeather = getStoredWeather();
+        if (storedWeather) {
+          return {
+            ...storedWeather,
+            fallback: Boolean(storedWeather.fallback)
+          };
+        }
+        return FALLBACK_WEATHER;
+      });
+
+      setLastUpdated((previousDate) => {
+        if (previousDate) return previousDate;
+        const storedDate = getStoredUpdatedAt();
+        if (storedDate) return storedDate;
+        return new Date();
+      });
     } finally {
       setLoading(false);
     }
