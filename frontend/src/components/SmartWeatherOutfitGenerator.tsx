@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,12 +79,17 @@ export function SmartWeatherOutfitGenerator({
   const [outfitError, setOutfitError] = useState<string | null>(null);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
   const [todayKey, setTodayKey] = useState<string>('');
+  const hasTriggeredAutoGenerationRef = useRef(false);
 
   // Initialize today's key for daily outfit generation
   useEffect(() => {
     const today = new Date().toDateString();
     setTodayKey(today);
   }, []);
+
+  useEffect(() => {
+    hasTriggeredAutoGenerationRef.current = false;
+  }, [todayKey, user?.uid]);
 
   // Auto-detect location and fetch weather on component mount
   useEffect(() => {
@@ -107,39 +112,6 @@ export function SmartWeatherOutfitGenerator({
   }, []);
 
   // Load today's outfit from storage if available (but don't auto-generate)
-  useEffect(() => {
-    if (weather && user && !generatedOutfit && todayKey) {
-      const storedOutfit = getTodaysOutfit();
-      if (storedOutfit) {
-        // Check if stored outfit is a fallback (low confidence, no items, or fallback name)
-        const isFallback = storedOutfit.confidence <= 0.6 || 
-                          !storedOutfit.items || 
-                          storedOutfit.items.length === 0 || 
-                          storedOutfit.name.includes('Weather-Appropriate');
-        
-        if (isFallback) {
-          console.log('🗑️ Clearing cached fallback outfit (not regenerating automatically)');
-          clearTodaysOutfit();
-          // Don't auto-generate - let the user click the button
-        } else {
-          console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
-          console.log('🔍 DEBUG: Loaded outfit items:', storedOutfit.items);
-          console.log('🔍 DEBUG: Loaded items count:', storedOutfit.items?.length || 0);
-          if (!storedOutfit.items || storedOutfit.items.length === 0) {
-            console.warn('⚠️ WARNING: Loaded outfit has no items! Clearing...');
-            clearTodaysOutfit();
-            // Don't auto-generate - let the user click the button
-            return;
-          }
-          setGeneratedOutfit(storedOutfit);
-          setLastGenerated(new Date(storedOutfit.generatedAt));
-        }
-      } else {
-        console.log('📋 No stored outfit found. User can click "Generate" to create one.');
-        // Don't auto-generate - let the user explicitly click the generate button
-      }
-    }
-  }, [weather, user, todayKey]);
 
   // Helper functions for daily outfit management
   const getTodaysOutfit = (): GeneratedOutfit | null => {
@@ -372,6 +344,51 @@ export function SmartWeatherOutfitGenerator({
       setIsGeneratingOutfit(false);
     }
   };
+
+  useEffect(() => {
+    if (!todayKey || !user) return;
+
+    const storedOutfit = getTodaysOutfit();
+    let validOutfit = storedOutfit;
+
+    if (storedOutfit) {
+      // Check if stored outfit is a fallback (low confidence, no items, or fallback name)
+      const isFallback = storedOutfit.confidence <= 0.6 || 
+                        !storedOutfit.items || 
+                        storedOutfit.items.length === 0 || 
+                        storedOutfit.name.includes('Weather-Appropriate');
+      
+      if (isFallback) {
+        console.log('🗑️ Clearing cached fallback outfit');
+        clearTodaysOutfit();
+        validOutfit = null;
+      } else if (!generatedOutfit) {
+        console.log('📅 Loading today\'s outfit from storage:', storedOutfit);
+        console.log('🔍 DEBUG: Loaded outfit items:', storedOutfit.items);
+        console.log('🔍 DEBUG: Loaded items count:', storedOutfit.items?.length || 0);
+        if (!storedOutfit.items || storedOutfit.items.length === 0) {
+          console.warn('⚠️ WARNING: Loaded outfit has no items! Clearing...');
+          clearTodaysOutfit();
+          validOutfit = null;
+        } else {
+          setGeneratedOutfit(storedOutfit);
+          setLastGenerated(new Date(storedOutfit.generatedAt));
+        }
+      }
+    }
+
+    if (
+      !validOutfit &&
+      weather &&
+      !generatedOutfit &&
+      !isGeneratingOutfit &&
+      !hasTriggeredAutoGenerationRef.current
+    ) {
+      console.log('⚡ Auto-generating today\'s outfit based on current weather');
+      hasTriggeredAutoGenerationRef.current = true;
+      generateTodaysOutfit();
+    }
+  }, [weather, user, todayKey, generatedOutfit, isGeneratingOutfit, generateTodaysOutfit]);
 
   const wearTodaysOutfit = async () => {
     if (!generatedOutfit || !user) return;
@@ -978,3 +995,4 @@ export function SmartWeatherOutfitGenerator({
 }
 
 export default SmartWeatherOutfitGenerator;
+
