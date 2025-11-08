@@ -212,18 +212,22 @@ export default function WardrobeInsightsHub({
 
   // Separate seasonal gaps from regular gaps
   const seasonalGaps = gaps.filter(gap => 
-    gap.type === 'seasonal' || 
+    (gap.type === 'seasonal' || 
     gap.category?.toLowerCase().includes('summer') || 
     gap.category?.toLowerCase().includes('winter') ||
-    gap.category?.toLowerCase().includes('essentials')
+    gap.category?.toLowerCase().includes('essentials')) &&
+    !(gap.id && gap.id.toString().startsWith('demo-'))
   );
   
   const regularGaps = gaps.filter(gap => 
     gap.type !== 'seasonal' && 
     !gap.category?.toLowerCase().includes('summer') && 
     !gap.category?.toLowerCase().includes('winter') &&
-    !gap.category?.toLowerCase().includes('essentials')
+    !gap.category?.toLowerCase().includes('essentials') &&
+    !(gap.id && gap.id.toString().startsWith('demo-'))
   );
+
+  const hasRealGaps = seasonalGaps.length > 0 || regularGaps.length > 0;
 
   // Default store recommendations if none provided
   const defaultStores: StoreRecommendation[] = [
@@ -318,6 +322,20 @@ export default function WardrobeInsightsHub({
 
           {/* Tab 2: Wardrobe Gap Analysis */}
           <TabsContent value="gap-analysis" className="space-y-6">
+            {!hasRealGaps && (
+              <Card className="border border-emerald-200 bg-emerald-50 dark:border-emerald-800/60 dark:bg-emerald-900/20">
+                <CardContent className="py-10 text-center space-y-3">
+                  <Sparkles className="w-10 h-10 mx-auto text-emerald-500" />
+                  <h3 className="text-xl font-semibold text-emerald-700 dark:text-emerald-300">
+                    You’ve hit all of your style goals!
+                  </h3>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-200/80 max-w-md mx-auto">
+                    Keep exploring new looks or revisit your wardrobe anytime to maintain your perfect balance.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Seasonal Essentials Section */}
             {seasonalGaps.length > 0 && (
               <div className="space-y-4">

@@ -620,16 +620,74 @@ class WardrobeAnalysisService:
         failure_gaps = self._analyze_outfit_failures(outfit_history)
         gaps.extend(failure_gaps)
         
-        # 7. If no gaps found, add some demonstration gaps
+        # 7. If no gaps found, add informative coverage cards with real counts
         if len(gaps) == 0:
-            gaps.extend(self._get_demonstration_gaps())
+            coverage_cards = self._get_demonstration_gaps(wardrobe)
+            if coverage_cards:
+                gaps.extend(coverage_cards)
         
         return gaps
     
-    def _get_demonstration_gaps(self) -> List[Dict[str, Any]]:
-        """Provide demonstration gaps when no real gaps are found."""
-        return [
-            {
+    def _get_demonstration_gaps(self, wardrobe: List[ClothingItem]) -> List[Dict[str, Any]]:
+        """
+        Provide informative coverage cards when no critical gaps exist.
+        Counts are calculated from the user's real wardrobe so progress bars are meaningful.
+        """
+
+        def build_search_text(item: ClothingItem) -> str:
+            parts = [
+                getattr(item, "name", ""),
+                getattr(item, "type", ""),
+                " ".join(getattr(item, "style", []) or []),
+                " ".join(getattr(item, "tags", []) or []),
+                " ".join(getattr(item, "occasion", []) or []),
+            ]
+            metadata = getattr(item, "metadata", {}) or {}
+            if isinstance(metadata, dict):
+                parts.append(metadata.get("naturalDescription", ""))
+                parts.extend(metadata.get("styleTags", []) or [])
+            return " ".join(str(part).lower() for part in parts if part)
+
+        def count_items(predicate) -> int:
+            return sum(1 for item in wardrobe if predicate(item))
+
+        versatile_types = {
+            "shirt", "dress_shirt", "t-shirt", "tee", "blazer", "jacket",
+            "pants", "trousers", "jeans", "chinos", "shoes", "sneakers", "loafer"
+        }
+        versatile_keywords = {
+            "versatile", "basic", "classic", "neutral", "essential",
+            "button down", "button-down", "wardrobe staple", "timeless"
+        }
+
+        def is_versatile(item: ClothingItem) -> bool:
+            item_type = getattr(item, "type", "") or ""
+            if item_type and item_type.lower() in versatile_types:
+                return True
+            text = build_search_text(item)
+            return any(keyword in text for keyword in versatile_keywords)
+
+        accessory_types = {"accessory", "belt", "watch", "scarf", "hat", "bracelet", "necklace"}
+        accessory_keywords = {"accessory", "belt", "watch", "scarf", "jewelry", "bracelet", "necklace"}
+
+        def is_accessory(item: ClothingItem) -> bool:
+            item_type = getattr(item, "type", "") or ""
+            if item_type and item_type.lower() in accessory_types:
+                return True
+            text = build_search_text(item)
+            return any(keyword in text for keyword in accessory_keywords)
+
+        versatile_target = 4
+        accessories_target = 3
+
+        versatile_count = count_items(is_versatile)
+        accessory_count = count_items(is_accessory)
+
+        cards: List[Dict[str, Any]] = []
+
+        if versatile_count < versatile_target:
+            gap_size = versatile_target - versatile_count
+            cards.append({
                 'id': 'demo-versatility',
                 'type': 'versatility',
                 'category': 'Versatile Basics',
@@ -637,17 +695,20 @@ class WardrobeAnalysisService:
                 'description': 'Consider adding more versatile basics that can be styled multiple ways for different occasions.',
                 'severity': 'low',
                 'suggestedItems': ['Classic white button-down', 'Dark wash jeans', 'Black blazer', 'White sneakers'],
-                'priority': 'medium',
-                'currentCount': 0,
-                'recommendedCount': 4,
-                'gapSize': 4,
+                'priority': 'high' if gap_size >= 3 else 'medium',
+                'currentCount': versatile_count,
+                'recommendedCount': versatile_target,
+                'gapSize': gap_size,
                 'data': {
-                    'current_count': 0,
-                    'required_count': 4,
+                    'current_count': versatile_count,
+                    'required_count': versatile_target,
                     'item_type': 'versatile_basics'
                 }
-            },
-            {
+            })
+
+        if accessory_count < accessories_target:
+            gap_size = accessories_target - accessory_count
+            cards.append({
                 'id': 'demo-accessories',
                 'type': 'accessories',
                 'category': 'Accessories',
@@ -655,17 +716,18 @@ class WardrobeAnalysisService:
                 'description': 'Accessories can transform basic outfits and add personality to your style.',
                 'severity': 'low',
                 'suggestedItems': ['Statement necklace', 'Leather belt', 'Silk scarf', 'Watch'],
-                'priority': 'low',
-                'currentCount': 0,
-                'recommendedCount': 3,
-                'gapSize': 3,
+                'priority': 'medium' if gap_size >= 2 else 'low',
+                'currentCount': accessory_count,
+                'recommendedCount': accessories_target,
+                'gapSize': gap_size,
                 'data': {
-                    'current_count': 0,
-                    'required_count': 3,
+                    'current_count': accessory_count,
+                    'required_count': accessories_target,
                     'item_type': 'accessories'
                 }
-            }
-        ]
+            })
+
+        return cards
     
     def _analyze_essential_items(self, wardrobe: List[ClothingItem]) -> List[Dict[str, Any]]:
         """Analyze missing essential wardrobe items."""
