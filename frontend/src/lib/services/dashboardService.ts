@@ -101,6 +101,57 @@ export interface TodaysOutfit {
   updatedAt: number;
 }
 
+const WARDROBE_CATEGORY_CONFIG: Array<{ id: "top" | "bottom" | "shoe" | "accessory" | "jacket"; keywords: string[] }> = [
+  {
+    id: "top",
+    keywords: ["top", "shirt", "t-shirt", "tee", "blouse", "sweater", "hoodie", "polo", "tank", "henley", "longsleeve", "long sleeve", "rugby", "jersey"],
+  },
+  {
+    id: "bottom",
+    keywords: ["bottom", "pant", "pants", "trouser", "jean", "short", "skirt", "chino"],
+  },
+  {
+    id: "shoe",
+    keywords: ["shoe", "sneaker", "boot", "loafer", "heel", "slides", "footwear"],
+  },
+  {
+    id: "accessory",
+    keywords: ["accessory", "belt", "watch", "scarf", "hat", "glove", "bag", "bracelet", "necklace", "jewelry", "suspenders", "sunglass", "sunglasses"],
+  },
+  {
+    id: "jacket",
+    keywords: ["jacket", "coat", "outerwear", "blazer"],
+  },
+];
+
+const normalizeString = (value: unknown): string =>
+  typeof value === "string" ? value.toLowerCase() : "";
+
+const flattenStringArray = (value: unknown): string =>
+  Array.isArray(value) ? value.map((entry) => normalizeString(entry)).join(" ") : "";
+
+const itemMatchesCategory = (item: any, keywords: string[]): boolean => {
+  const type = normalizeString(item?.type);
+  const name = normalizeString(item?.name);
+  const tags = flattenStringArray(item?.tags);
+  const style = flattenStringArray(item?.style);
+  const occasion = flattenStringArray(item?.occasion);
+  const combined = `${type} ${name} ${tags} ${style} ${occasion}`;
+  return keywords.some((keyword) => combined.includes(keyword.toLowerCase()));
+};
+
+const mapWardrobeItemToTopItem = (item: any) => ({
+  id: item.id,
+  name: item.name || "Unknown Item",
+  type: item.type || "clothing",
+  color: item.color || "unknown",
+  brand: item.brand || "Unknown",
+  wear_count: item.wearCount || 0,
+  last_worn: item.lastWorn,
+  image_url: item.imageUrl || item.image_url || item.image || "",
+  is_favorite: item.favorite || item.isFavorite || false,
+});
+
 class DashboardService {
   private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
     console.log('🔍 DEBUG: makeAuthenticatedRequest called with user:', user ? 'authenticated' : 'null');
@@ -595,22 +646,47 @@ class DashboardService {
       
       // Calculate top worn items from the wardrobe data we already have
       if (wardrobeItems && wardrobeItems.length > 0) {
-        // Sort by wear count and get top 5
-        const topItems = [...wardrobeItems]
-          .filter(item => item.wearCount > 0) // Only items that have been worn
-          .sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0))
-          .slice(0, 5)
-          .map(item => ({
-            id: item.id,
-            name: item.name || 'Unknown Item',
-            type: item.type || 'clothing',
-            color: item.color || 'unknown',
-            brand: item.brand || 'Unknown',
-            wear_count: item.wearCount || 0,
-            last_worn: item.lastWorn,
-            image_url: item.imageUrl || item.image_url || item.image || '',
-            is_favorite: item.favorite || item.isFavorite || false
-          }));
+        const usedIds = new Set<string>();
+        const categorySelections: any[] = [];
+
+        WARDROBE_CATEGORY_CONFIG.forEach((config) => {
+          let bestItem: any = null;
+          let bestWearCount = -Infinity;
+
+          wardrobeItems.forEach((item: any) => {
+            if (!itemMatchesCategory(item, config.keywords)) {
+              return;
+            }
+
+            const wearCount = item?.wearCount ?? 0;
+            if (!bestItem || wearCount > bestWearCount) {
+              bestItem = item;
+              bestWearCount = wearCount;
+            }
+          });
+
+          if (bestItem && !usedIds.has(bestItem.id)) {
+            categorySelections.push(bestItem);
+            usedIds.add(bestItem.id);
+          }
+        });
+
+        // Fallback to highest wear count items to ensure we always have data
+        const sortedByWear = [...wardrobeItems].sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0));
+        const combinedItems: any[] = [...categorySelections];
+
+        sortedByWear.forEach((item) => {
+          if (!item || usedIds.has(item.id)) {
+            return;
+          }
+          combinedItems.push(item);
+          usedIds.add(item.id);
+        });
+
+        const desiredCount = Math.max(WARDROBE_CATEGORY_CONFIG.length, 5);
+        const topItems = combinedItems
+          .slice(0, desiredCount)
+          .map(mapWardrobeItemToTopItem);
         
         console.log('🔍 DEBUG: Calculated top worn items:', topItems.length);
         console.log('🔍 DEBUG: Top items with images:', topItems.filter(i => i.image_url).length);
