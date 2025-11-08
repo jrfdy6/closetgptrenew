@@ -213,6 +213,13 @@ export default function WardrobePage() {
     setShowBottomSheet(true); // Use bottom sheet instead of modal
   };
 
+  const handleCloseBottomSheet = (preserveSelection = false) => {
+    setShowBottomSheet(false);
+    if (!preserveSelection) {
+      setSelectedItem(null);
+    }
+  };
+
   // Handle outfit generation with base item - ID-based approach
   const handleGenerateOutfitWithBaseItem = (baseItem: any) => {
     
@@ -822,14 +829,15 @@ export default function WardrobePage() {
       <WardrobeItemBottomSheet
         item={selectedItem}
         isOpen={showBottomSheet}
-        onClose={() => {
-          setShowBottomSheet(false);
-          setSelectedItem(null);
-        }}
+        onClose={() => handleCloseBottomSheet()}
         onGenerateOutfit={handleGenerateOutfitWithBaseItem}
         onToggleFavorite={handleToggleFavorite}
         onIncrementWear={handleWearIncrement}
-        onEdit={() => setShowItemDetails(true)}
+        onEdit={(item) => {
+          setSelectedItem(item);
+          setShowItemDetails(true);
+          handleCloseBottomSheet(true);
+        }}
         onDelete={deleteItem}
       />
 

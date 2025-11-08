@@ -187,7 +187,6 @@ export default function WardrobeItemBottomSheet({
               variant="outline"
               onClick={() => {
                 onEdit(item);
-                onClose();
               }}
               className="flex-col h-20 gap-1"
             >
