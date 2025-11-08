@@ -276,6 +276,12 @@ export default function Dashboard() {
     );
   }
 
+  const totalStyleGoals = dashboardData?.totalStyleGoals ?? 0;
+  const styleGoalsCompleted = dashboardData?.styleGoalsCompleted ?? 0;
+  const clampedStyleGoalsCompleted = totalStyleGoals > 0
+    ? Math.min(styleGoalsCompleted, totalStyleGoals)
+    : styleGoalsCompleted;
+
   // Main dashboard - user is authenticated and data is loaded
   return (
     <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
@@ -348,7 +354,7 @@ export default function Dashboard() {
               <div>
                 <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Goals</p>
                 <p className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
-                  {dashboardData?.styleGoalsCompleted || 0}/{dashboardData?.totalStyleGoals || 0}
+                  {clampedStyleGoalsCompleted}/{totalStyleGoals || 0}
                 </p>
               </div>
             </div>
