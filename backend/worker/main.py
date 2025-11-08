@@ -26,12 +26,19 @@ from google.cloud.firestore_v1 import FieldFilter
 
 # Ensure backend/src is importable when worker runs standalone
 CURRENT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = CURRENT_DIR.parent
-SRC_DIR = PROJECT_ROOT / "src"
-for candidate in {PROJECT_ROOT, SRC_DIR}:
-    candidate_str = str(candidate)
-    if candidate_str not in sys.path:
-        sys.path.append(candidate_str)
+
+def _ensure_path(path: Path):
+    if path and path.exists():
+        path_str = str(path)
+        if path_str not in sys.path:
+            sys.path.append(path_str)
+
+_ensure_path(CURRENT_DIR)
+for ancestor in [CURRENT_DIR.parent, CURRENT_DIR.parent.parent, CURRENT_DIR.parent.parent.parent]:
+    if ancestor and ancestor != ancestor.parent:
+        _ensure_path(ancestor)
+        _ensure_path(ancestor / "src")
+_ensure_path(CURRENT_DIR / "src")
 from src.services.subscription_utils import (
     DEFAULT_SUBSCRIPTION_TIER,
     TIER_LIMITS,
