@@ -454,6 +454,11 @@ def generate_openai_flatlay_image(
         image_bytes = base64.b64decode(image_b64)
 
         image = Image.open(BytesIO(image_bytes)).convert("RGBA")
+
+        TARGET_SIZE = 1024
+        if image.width < TARGET_SIZE or image.height < TARGET_SIZE:
+            image = image.resize((TARGET_SIZE, TARGET_SIZE), Image.Resampling.LANCZOS)
+
         print(f"✅ OpenAI flat lay generated for outfit {outfit_id} (user {user_id})")
         return image, None
 
