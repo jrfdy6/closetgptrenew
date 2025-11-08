@@ -152,6 +152,12 @@ const mapWardrobeItemToTopItem = (item: any) => ({
   is_favorite: item.favorite || item.isFavorite || false,
 });
 
+const calculatePreferenceScore = (item: any) => {
+  const wearCount = item?.wearCount ?? 0;
+  const isFavorite = Boolean(item?.favorite || item?.isFavorite);
+  return wearCount * (isFavorite ? 1.1 : 1);
+};
+
 class DashboardService {
   private async makeAuthenticatedRequest(endpoint: string, user: User | null, options: RequestInit = {}): Promise<any> {
     console.log('🔍 DEBUG: makeAuthenticatedRequest called with user:', user ? 'authenticated' : 'null');
@@ -651,17 +657,17 @@ class DashboardService {
 
         WARDROBE_CATEGORY_CONFIG.forEach((config) => {
           let bestItem: any = null;
-          let bestWearCount = -Infinity;
+          let bestScore = -Infinity;
 
           wardrobeItems.forEach((item: any) => {
             if (!itemMatchesCategory(item, config.keywords)) {
               return;
             }
 
-            const wearCount = item?.wearCount ?? 0;
-            if (!bestItem || wearCount > bestWearCount) {
+            const preferenceScore = calculatePreferenceScore(item);
+            if (!bestItem || preferenceScore > bestScore) {
               bestItem = item;
-              bestWearCount = wearCount;
+              bestScore = preferenceScore;
             }
           });
 
@@ -671,11 +677,13 @@ class DashboardService {
           }
         });
 
-        // Fallback to highest wear count items to ensure we always have data
-        const sortedByWear = [...wardrobeItems].sort((a, b) => (b.wearCount || 0) - (a.wearCount || 0));
+        // Fallback to highest preference score items to ensure we always have data
+        const sortedByPreference = [...wardrobeItems].sort(
+          (a, b) => calculatePreferenceScore(b) - calculatePreferenceScore(a)
+        );
         const combinedItems: any[] = [...categorySelections];
 
-        sortedByWear.forEach((item) => {
+        sortedByPreference.forEach((item) => {
           if (!item || usedIds.has(item.id)) {
             return;
           }
