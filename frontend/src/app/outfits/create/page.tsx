@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import type { LucideIcon } from 'lucide-react';
 import { 
   Plus, 
   X, 
@@ -19,13 +20,14 @@ import {
   ShoppingBag,
   Sparkles,
   Search,
-  Check,
   Loader2,
   ChevronRight,
   Info,
   Filter,
   Grid3x3,
-  LayoutGrid
+  LayoutGrid,
+  Layers,
+  PanelBottom
 } from 'lucide-react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useWardrobe } from '@/lib/hooks/useWardrobe';
@@ -37,16 +39,187 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-const ITEM_TYPE_ICONS = {
-  'top': Shirt,
-  'bottom': Shirt,
-  'shoes': Footprints,
-  'accessories': Watch,
-  'bag': ShoppingBag,
-  'outerwear': Shirt,
-  'underwear': Shirt,
-  'jewelry': Watch,
-  'other': Shirt
+type ItemCategory = 'tops' | 'bottoms' | 'dresses' | 'outerwear' | 'shoes' | 'accessories' | 'other';
+type CategoryFilterValue = 'all' | ItemCategory;
+
+const CATEGORY_LABELS: Record<CategoryFilterValue, string> = {
+  all: 'All',
+  tops: 'Tops',
+  bottoms: 'Bottoms',
+  dresses: 'Dresses',
+  outerwear: 'Outerwear',
+  shoes: 'Shoes',
+  accessories: 'Accessories',
+  other: 'Other'
+};
+
+const CATEGORY_ICONS: Record<ItemCategory | 'all', LucideIcon> = {
+  all: LayoutGrid,
+  tops: Shirt,
+  bottoms: PanelBottom,
+  dresses: Sparkles,
+  outerwear: Layers,
+  shoes: Footprints,
+  accessories: Watch,
+  other: Grid3x3
+};
+
+const CORE_CATEGORY_MAP: Record<string, ItemCategory> = {
+  top: 'tops',
+  tops: 'tops',
+  shirt: 'tops',
+  blouse: 'tops',
+  bottom: 'bottoms',
+  bottoms: 'bottoms',
+  pants: 'bottoms',
+  shorts: 'bottoms',
+  skirt: 'bottoms',
+  dress: 'dresses',
+  dresses: 'dresses',
+  outerwear: 'outerwear',
+  jacket: 'outerwear',
+  coat: 'outerwear',
+  blazer: 'outerwear',
+  shoes: 'shoes',
+  shoe: 'shoes',
+  footwear: 'shoes',
+  accessory: 'accessories',
+  accessories: 'accessories'
+};
+
+const TYPE_CATEGORY_MAP: Record<string, ItemCategory> = {
+  shirt: 'tops',
+  't-shirt': 'tops',
+  tee: 'tops',
+  tank: 'tops',
+  camisole: 'tops',
+  sweater: 'tops',
+  polo: 'tops',
+  blouse: 'tops',
+  cardigan: 'tops',
+  hoodie: 'outerwear',
+  sweatshirt: 'outerwear',
+  jacket: 'outerwear',
+  coat: 'outerwear',
+  blazer: 'outerwear',
+  trench: 'outerwear',
+  shacket: 'outerwear',
+  pants: 'bottoms',
+  jeans: 'bottoms',
+  shorts: 'bottoms',
+  skirt: 'bottoms',
+  leggings: 'bottoms',
+  trousers: 'bottoms',
+  joggers: 'bottoms',
+  dress: 'dresses',
+  jumpsuit: 'dresses',
+  romper: 'dresses',
+  shoes: 'shoes',
+  sneakers: 'shoes',
+  boots: 'shoes',
+  heels: 'shoes',
+  loafers: 'shoes',
+  flats: 'shoes',
+  sandals: 'shoes',
+  accessory: 'accessories',
+  accessories: 'accessories',
+  bag: 'accessories',
+  handbag: 'accessories',
+  tote: 'accessories',
+  backpack: 'accessories',
+  jewelry: 'accessories',
+  necklace: 'accessories',
+  scarf: 'accessories',
+  belt: 'accessories',
+  watch: 'accessories'
+};
+
+const CATEGORY_FILTERS: { value: CategoryFilterValue; label: string; icon: LucideIcon }[] = [
+  { value: 'all', label: CATEGORY_LABELS.all, icon: CATEGORY_ICONS.all },
+  { value: 'tops', label: CATEGORY_LABELS.tops, icon: CATEGORY_ICONS.tops },
+  { value: 'bottoms', label: CATEGORY_LABELS.bottoms, icon: CATEGORY_ICONS.bottoms },
+  { value: 'dresses', label: CATEGORY_LABELS.dresses, icon: CATEGORY_ICONS.dresses },
+  { value: 'outerwear', label: CATEGORY_LABELS.outerwear, icon: CATEGORY_ICONS.outerwear },
+  { value: 'shoes', label: CATEGORY_LABELS.shoes, icon: CATEGORY_ICONS.shoes },
+  { value: 'accessories', label: CATEGORY_LABELS.accessories, icon: CATEGORY_ICONS.accessories },
+  { value: 'other', label: CATEGORY_LABELS.other, icon: CATEGORY_ICONS.other }
+];
+
+const ITEM_TYPE_ICONS: Record<string, LucideIcon> = {
+  tops: Shirt,
+  top: Shirt,
+  shirt: Shirt,
+  blouse: Shirt,
+  sweater: Shirt,
+  tee: Shirt,
+  't-shirt': Shirt,
+  tank: Shirt,
+  camisole: Shirt,
+  bottoms: PanelBottom,
+  bottom: PanelBottom,
+  pants: PanelBottom,
+  jeans: PanelBottom,
+  shorts: PanelBottom,
+  skirt: PanelBottom,
+  leggings: PanelBottom,
+  trousers: PanelBottom,
+  joggers: PanelBottom,
+  dresses: Sparkles,
+  dress: Sparkles,
+  jumpsuit: Sparkles,
+  romper: Sparkles,
+  gown: Sparkles,
+  outerwear: Layers,
+  jacket: Layers,
+  coat: Layers,
+  blazer: Layers,
+  hoodie: Layers,
+  shacket: Layers,
+  trench: Layers,
+  shoes: Footprints,
+  footwear: Footprints,
+  sneakers: Footprints,
+  boots: Footprints,
+  heels: Footprints,
+  loafers: Footprints,
+  flats: Footprints,
+  sandals: Footprints,
+  accessories: Watch,
+  accessory: Watch,
+  jewelry: Watch,
+  necklace: Watch,
+  bracelet: Watch,
+  earrings: Watch,
+  bag: ShoppingBag,
+  handbag: ShoppingBag,
+  tote: ShoppingBag,
+  backpack: ShoppingBag,
+  other: Grid3x3
+};
+
+const resolveItemCategory = (item: ClothingItem): ItemCategory => {
+  const metadata = (item as unknown as { metadata?: any })?.metadata;
+  const visualAttributes = metadata?.visualAttributes;
+  const coreCategoryRaw = visualAttributes?.coreCategory;
+
+  if (coreCategoryRaw && typeof coreCategoryRaw === 'string') {
+    const mapped = CORE_CATEGORY_MAP[coreCategoryRaw.toLowerCase()];
+    if (mapped) {
+      return mapped;
+    }
+  }
+
+  const typeValue = item.type?.toLowerCase?.();
+  if (typeValue) {
+    if (TYPE_CATEGORY_MAP[typeValue]) {
+      return TYPE_CATEGORY_MAP[typeValue];
+    }
+    if (CORE_CATEGORY_MAP[typeValue]) {
+      return CORE_CATEGORY_MAP[typeValue];
+    }
+  }
+
+  return 'other';
 };
 
 const OCCASIONS = [
@@ -96,31 +269,27 @@ export default function CreateOutfitPage() {
   
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<CategoryFilterValue>('all');
   const [selectedColor, setSelectedColor] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
-    const groups: Record<string, ClothingItem[]> = {
-      'top': [],
-      'bottom': [],
-      'shoes': [],
-      'outerwear': [],
-      'accessories': [],
-      'bag': [],
-      'jewelry': [],
-      'other': []
+    const groups: Record<ItemCategory, ClothingItem[]> = {
+      tops: [],
+      bottoms: [],
+      dresses: [],
+      outerwear: [],
+      shoes: [],
+      accessories: [],
+      other: []
     };
-    
+
     wardrobeItems.forEach(item => {
-      if (groups[item.type]) {
-        groups[item.type].push(item);
-      } else {
-        groups['other'].push(item);
-      }
+      const category = resolveItemCategory(item);
+      groups[category].push(item);
     });
-    
+
     return groups;
   }, [wardrobeItems]);
 
@@ -151,7 +320,7 @@ export default function CreateOutfitPage() {
       }
       
       // Category filter
-      if (selectedCategory !== 'all' && item.type !== selectedCategory) return false;
+      if (selectedCategory !== 'all' && resolveItemCategory(item) !== selectedCategory) return false;
       
       // Color filter
       if (selectedColor !== 'all' && item.color?.toLowerCase() !== selectedColor) return false;
@@ -262,10 +431,6 @@ export default function CreateOutfitPage() {
     return <IconComponent className="h-4 w-4" />;
   };
 
-  const getCategoryCount = (category: string) => {
-    return selectedItems.filter(item => item.type === category).length;
-  };
-
   // Step 1: Build Outfit - Visual item selection
   if (currentStep === 'build') {
     return (
@@ -333,110 +498,121 @@ export default function CreateOutfitPage() {
                         {/* Outfit Canvas - Organized by Category */}
                         <div className="space-y-3">
                           {(() => {
-                            const mainCategories = ['outerwear', 'top', 'bottom', 'shoes', 'accessories', 'bag', 'jewelry'];
-                            const displayedItemIds = new Set<string>();
-                            
+                            const mainCategories: ItemCategory[] = ['outerwear', 'tops', 'dresses', 'bottoms', 'shoes', 'accessories'];
+
                             return (
                               <>
                                 {/* Main categories */}
                                 {mainCategories.map(category => {
-                                  const categoryItems = selectedItems.filter(item => item.type === category);
+                                  const categoryItems = selectedItems.filter(item => resolveItemCategory(item) === category);
                                   if (categoryItems.length === 0) return null;
-                                  
-                                  categoryItems.forEach(item => displayedItemIds.add(item.id));
-                                  
+
+                                  const IconComponent = ITEM_TYPE_ICONS[category] || ITEM_TYPE_ICONS.other;
+
                                   return (
                                     <div key={category} className="space-y-2">
                                       <div className="flex items-center gap-2 text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">
-                                        {getItemIcon(category)}
-                                        <span>{category}</span>
+                                        <IconComponent className="h-4 w-4" />
+                                        <span>{CATEGORY_LABELS[category]}</span>
                                       </div>
                                       <div className="space-y-2">
-                                        {categoryItems.map(item => (
-                                          <div
-                                            key={item.id}
-                                            className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
-                                          >
-                                            {item.imageUrl ? (
-                                              <img
-                                                src={item.imageUrl}
-                                                alt={item.name}
-                                                className="w-16 h-16 rounded-lg object-cover"
-                                              />
-                                            ) : (
-                                              <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
-                                                {getItemIcon(item.type)}
-                                              </div>
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
-                                                {item.name}
-                                              </p>
-                                              <p className="text-xs text-stone-500 capitalize">
-                                                {item.color}
-                                              </p>
-                                            </div>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleRemoveItem(item.id)}
-                                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                        {categoryItems.map(item => {
+                                          const itemIconCategory = resolveItemCategory(item);
+                                          const ItemIcon = ITEM_TYPE_ICONS[itemIconCategory] || ITEM_TYPE_ICONS.other;
+
+                                          return (
+                                            <div
+                                              key={item.id}
+                                              className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
                                             >
-                                              <X className="h-4 w-4" />
-                                            </Button>
-                                          </div>
-                                        ))}
+                                              {item.imageUrl ? (
+                                                <img
+                                                  src={item.imageUrl}
+                                                  alt={item.name}
+                                                  className="w-16 h-16 rounded-lg object-cover"
+                                                />
+                                              ) : (
+                                                <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
+                                                  <ItemIcon className="h-4 w-4" />
+                                                </div>
+                                              )}
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
+                                                  {item.name}
+                                                </p>
+                                                <p className="text-xs text-stone-500 capitalize">
+                                                  {item.color}
+                                                </p>
+                                              </div>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemoveItem(item.id)}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </Button>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   );
                                 })}
-                                
-                                {/* Other categories (catch-all for items not in main categories) */}
+
+                                {/* Other category */}
                                 {(() => {
-                                  const otherItems = selectedItems.filter(item => !displayedItemIds.has(item.id));
+                                  const otherItems = selectedItems.filter(item => resolveItemCategory(item) === 'other');
                                   if (otherItems.length === 0) return null;
-                                  
+
+                                  const IconComponent = ITEM_TYPE_ICONS.other;
+
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-center gap-2 text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">
-                                        {getItemIcon('other')}
-                                        <span>Other Items</span>
+                                        <IconComponent className="h-4 w-4" />
+                                        <span>{CATEGORY_LABELS.other}</span>
                                       </div>
                                       <div className="space-y-2">
-                                        {otherItems.map(item => (
-                                          <div
-                                            key={item.id}
-                                            className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
-                                          >
-                                            {item.imageUrl ? (
-                                              <img
-                                                src={item.imageUrl}
-                                                alt={item.name}
-                                                className="w-16 h-16 rounded-lg object-cover"
-                                              />
-                                            ) : (
-                                              <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
-                                                {getItemIcon(item.type)}
-                                              </div>
-                                            )}
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
-                                                {item.name}
-                                              </p>
-                                              <p className="text-xs text-stone-500 capitalize">
-                                                {item.type} • {item.color}
-                                              </p>
-                                            </div>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => handleRemoveItem(item.id)}
-                                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                        {otherItems.map(item => {
+                                          const itemIconCategory = resolveItemCategory(item);
+                                          const ItemIcon = ITEM_TYPE_ICONS[itemIconCategory] || ITEM_TYPE_ICONS.other;
+
+                                          return (
+                                            <div
+                                              key={item.id}
+                                              className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
                                             >
-                                              <X className="h-4 w-4" />
-                                            </Button>
-                                          </div>
-                                        ))}
+                                              {item.imageUrl ? (
+                                                <img
+                                                  src={item.imageUrl}
+                                                  alt={item.name}
+                                                  className="w-16 h-16 rounded-lg object-cover"
+                                                />
+                                              ) : (
+                                                <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
+                                                  <ItemIcon className="h-4 w-4" />
+                                                </div>
+                                              )}
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
+                                                  {item.name}
+                                                </p>
+                                                <p className="text-xs text-stone-500 capitalize">
+                                                  {item.type} • {item.color}
+                                                </p>
+                                              </div>
+                                              <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleRemoveItem(item.id)}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                              >
+                                                <X className="h-4 w-4" />
+                                              </Button>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   );
@@ -494,40 +670,37 @@ export default function CreateOutfitPage() {
                       />
                     </div>
 
-                    {/* Category Filter Pills */}
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedCategory('all')}
-                        className="h-8 px-3 text-xs rounded-full"
-                      >
-                        All Items
-                        <Badge variant="secondary" className="ml-2 h-5 px-2">
-                          {filteredItems.length}
-                        </Badge>
-                      </Button>
-                      {Object.entries(itemsByCategory).map(([category, items]) => {
-                        if (items.length === 0) return null;
-                        const count = getCategoryCount(category);
-                        return (
-                          <Button
-                            key={category}
-                            variant={selectedCategory === category ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setSelectedCategory(category)}
-                            className="h-8 px-3 text-xs rounded-full capitalize"
-                          >
-                            {getItemIcon(category)}
-                            <span className="ml-1">{category}</span>
-                            {count > 0 && (
-                              <Badge variant="secondary" className="ml-2 h-5 px-2 bg-green-100 text-green-700">
-                                {count}
-                              </Badge>
-                            )}
-                          </Button>
-                        );
-                      })}
+                    {/* Category Filter Chips */}
+                    <div className="-mx-2 overflow-x-auto pb-2">
+                      <div className="flex gap-2 px-2 min-w-max">
+                        {CATEGORY_FILTERS.map(({ value, label, icon: Icon }) => {
+                          const count = value === 'all' ? wardrobeItems.length : itemsByCategory[value as ItemCategory]?.length ?? 0;
+                          const isActive = selectedCategory === value;
+                          const isDisabled = value !== 'all' && count === 0;
+
+                          return (
+                            <Button
+                              key={value}
+                              variant={isActive ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setSelectedCategory(value)}
+                              disabled={isDisabled}
+                              className="h-9 px-4 rounded-full text-xs flex items-center gap-2 flex-shrink-0"
+                            >
+                              <Icon className="h-4 w-4" />
+                              <span>{label}</span>
+                              {count > 0 && (
+                                <Badge
+                                  variant="secondary"
+                                  className={`h-5 px-2 text-[10px] ${isActive ? 'bg-white text-stone-900' : 'bg-stone-100 text-stone-500 dark:bg-stone-800/60 dark:text-stone-300'}`}
+                                >
+                                  {count}
+                                </Badge>
+                              )}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Color Filter */}
