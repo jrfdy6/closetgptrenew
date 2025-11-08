@@ -34,6 +34,39 @@ import WardrobeInsightsHub from '@/components/ui/wardrobe-insights-hub';
 import SmartWeatherOutfitGenerator from "@/components/SmartWeatherOutfitGenerator";
 import { useAutoWeather } from '@/hooks/useWeather';
 
+type WardrobeCategory = "top" | "bottom" | "shoe" | "accessory" | "jacket";
+
+const CATEGORY_CONFIG: Array<{ id: WardrobeCategory; keywords: string[] }> = [
+  {
+    id: "top",
+    keywords: ["top", "shirt", "t-shirt", "tee", "blouse", "sweater", "hoodie", "polo", "tank", "dress", "longsleeve", "long sleeve"],
+  },
+  {
+    id: "bottom",
+    keywords: ["bottom", "pant", "pants", "trouser", "jean", "short", "skirt", "chino"],
+  },
+  {
+    id: "shoe",
+    keywords: ["shoe", "sneaker", "boot", "footwear", "loafer", "heel", "sandals"],
+  },
+  {
+    id: "accessory",
+    keywords: ["accessory", "belt", "watch", "scarf", "hat", "glove", "bag", "bracelet", "necklace", "jewelry", "sunglass", "sunglasses"],
+  },
+  {
+    id: "jacket",
+    keywords: ["jacket", "coat", "outerwear", "blazer"],
+  },
+];
+
+const CATEGORY_LABELS: Record<WardrobeCategory, string> = {
+  top: "Top",
+  bottom: "Bottom",
+  shoe: "Shoes",
+  accessory: "Accessory",
+  jacket: "Jacket",
+};
+
 // Dynamically import components to avoid SSR issues
 const WardrobeStats = dynamic(() => import('@/components/WardrobeStats'), {
   ssr: false,
@@ -64,6 +97,28 @@ export default function Dashboard() {
   
   // Weather hook for automatic location detection
   const { weather, fetchWeatherByLocation } = useAutoWeather();
+  
+  const topItemsByCategory = useMemo(() => {
+    if (!dashboardData?.topItems) return [];
+
+    const usedIds = new Set<string>();
+    const results: Array<TopItem & { category: WardrobeCategory }> = [];
+
+    CATEGORY_CONFIG.forEach(({ id, keywords }) => {
+      const match = dashboardData.topItems.find((item) => {
+        if (!item || usedIds.has(item.id)) return false;
+        const type = (item.type || "").toLowerCase().replace(/\s+/g, "");
+        return keywords.some((keyword) => type.includes(keyword.replace(/\s+/g, "")));
+      });
+
+      if (match) {
+        usedIds.add(match.id);
+        results.push({ ...match, category: id });
+      }
+    });
+
+    return results;
+  }, [dashboardData?.topItems]);
   
   console.log('🔍 Dashboard mounted, weather state:', weather?.location);
 
@@ -281,59 +336,6 @@ export default function Dashboard() {
   const clampedStyleGoalsCompleted = totalStyleGoals > 0
     ? Math.min(styleGoalsCompleted, totalStyleGoals)
     : styleGoalsCompleted;
-
-  const topItemsByCategory = useMemo(() => {
-    if (!dashboardData?.topItems) return [];
-
-    const categoryConfig: Array<{ id: "top" | "bottom" | "shoe" | "accessory" | "jacket"; keywords: string[] }> = [
-      {
-        id: "top",
-        keywords: ["top", "shirt", "t-shirt", "tee", "blouse", "sweater", "hoodie", "polo", "tank", "dress", "longsleeve", "long sleeve"],
-      },
-      {
-        id: "bottom",
-        keywords: ["bottom", "pant", "pants", "trouser", "jean", "short", "skirt", "chino"],
-      },
-      {
-        id: "shoe",
-        keywords: ["shoe", "sneaker", "boot", "footwear", "loafer", "heel", "sandals"],
-      },
-      {
-        id: "accessory",
-        keywords: ["accessory", "belt", "watch", "scarf", "hat", "glove", "bag", "bracelet", "necklace", "jewelry", "sunglass", "sunglasses"],
-      },
-      {
-        id: "jacket",
-        keywords: ["jacket", "coat", "outerwear", "blazer"],
-      },
-    ];
-
-    const usedIds = new Set<string>();
-    const results: Array<TopItem & { category: typeof categoryConfig[number]["id"] }> = [];
-
-    categoryConfig.forEach(({ id, keywords }) => {
-      const match = dashboardData.topItems?.find((item) => {
-        if (!item || usedIds.has(item.id)) return false;
-        const type = (item.type || "").toLowerCase().replace(/\s+/g, "");
-        return keywords.some((keyword) => type.includes(keyword.replace(/\s+/g, "")));
-      });
-
-      if (match) {
-        usedIds.add(match.id);
-        results.push({ ...match, category: id });
-      }
-    });
-
-    return results;
-  }, [dashboardData?.topItems]);
-
-  const categoryLabels: Record<"top" | "bottom" | "shoe" | "accessory" | "jacket", string> = {
-    top: "Top",
-    bottom: "Bottom",
-    shoe: "Shoes",
-    accessory: "Accessory",
-    jacket: "Jacket",
-  };
 
   // Main dashboard - user is authenticated and data is loaded
   return (
@@ -653,7 +655,7 @@ export default function Dashboard() {
                       )}
                       <div className="absolute top-3 left-3">
                         <Badge variant="secondary" className="text-xs uppercase tracking-wide">
-                          {categoryLabels[item.category]}
+                          {CATEGORY_LABELS[item.category]}
                         </Badge>
                       </div>
                     </div>
