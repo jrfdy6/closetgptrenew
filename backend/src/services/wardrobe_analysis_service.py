@@ -637,7 +637,10 @@ class WardrobeAnalysisService:
                 'description': 'Consider adding more versatile basics that can be styled multiple ways for different occasions.',
                 'severity': 'low',
                 'suggestedItems': ['Classic white button-down', 'Dark wash jeans', 'Black blazer', 'White sneakers'],
-                'priority': 2,
+                'priority': 'medium',
+                'currentCount': 0,
+                'recommendedCount': 4,
+                'gapSize': 4,
                 'data': {
                     'current_count': 0,
                     'required_count': 4,
@@ -652,7 +655,10 @@ class WardrobeAnalysisService:
                 'description': 'Accessories can transform basic outfits and add personality to your style.',
                 'severity': 'low',
                 'suggestedItems': ['Statement necklace', 'Leather belt', 'Silk scarf', 'Watch'],
-                'priority': 1,
+                'priority': 'low',
+                'currentCount': 0,
+                'recommendedCount': 3,
+                'gapSize': 3,
                 'data': {
                     'current_count': 0,
                     'required_count': 3,
@@ -767,8 +773,23 @@ class WardrobeAnalysisService:
             # Normalize and count
             for season in seasonal_tags:
                 normalized = season.lower().strip()
+
                 if normalized in seasonal_items:
                     seasonal_items[normalized] += 1
+                    continue
+
+                # Treat "all" or similar tags as all-season coverage
+                if normalized in {"all", "all-season", "all seasons", "year-round", "year round"}:
+                    for key in seasonal_items.keys():
+                        seasonal_items[key] += 1
+                    continue
+
+                # Handle combined season strings like "spring/summer"
+                if "/" in normalized:
+                    for part in normalized.split("/"):
+                        part_clean = part.strip()
+                        if part_clean in seasonal_items:
+                            seasonal_items[part_clean] += 1
         
         # print(f"DEBUG: Seasonal distribution: {seasonal_items}")
         
