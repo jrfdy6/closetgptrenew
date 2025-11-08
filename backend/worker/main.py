@@ -230,6 +230,47 @@ metrics = {
 }
 
 
+def _encode_image_to_base64(image: Image.Image) -> str:
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+
+def _extract_image_bytes_from_openai_response(response) -> bytes | None:
+    """Handle multiple possible OpenAI response formats for image data."""
+    try:
+        output = getattr(response, "output", None)
+        if output:
+            for item in output:
+                contents = getattr(item, "content", None) or []
+                for content in contents:
+                    content_type = getattr(content, "type", None)
+                    if content_type in {"output_image", "image"}:
+                        image_obj = getattr(content, "image", None) or {}
+                        b64_data = getattr(image_obj, "base64", None) or getattr(image_obj, "b64_json", None)
+                        if not b64_data and isinstance(image_obj, dict):
+                            b64_data = image_obj.get("base64") or image_obj.get("b64_json")
+                        if b64_data:
+                            return base64.b64decode(b64_data)
+    except Exception as parse_error:
+        print(f"⚠️  Error parsing OpenAI response output: {parse_error}")
+
+    try:
+        data = getattr(response, "data", None)
+        if data:
+            first = data[0]
+            if isinstance(first, dict):
+                b64_data = first.get("b64_json") or first.get("base64")
+            else:
+                b64_data = getattr(first, "b64_json", None) or getattr(first, "base64", None)
+            if b64_data:
+                return base64.b64decode(b64_data)
+    except Exception as fallback_error:
+        print(f"⚠️  Error parsing OpenAI legacy response: {fallback_error}")
+
+    return None
+
+
 def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
     """Attempt to reserve an OpenAI flat lay usage for the user."""
     result = {
@@ -431,27 +472,59 @@ def generate_openai_flatlay_image(
         return None, "openai_client_unavailable"
 
     prompt = build_flatlay_prompt(processed_images, outfit_data)
-    try:
-        response = openai_client.images.generate(
-            model="gpt-image-1",
-            prompt=prompt,
-            size="1024x1024",
-            background="transparent",
-            quality="high",
+
+    user_content: list[dict] = [{"type": "input_text", "text": prompt}]
+    image_count = 0
+    for item in processed_images:
+        img = item.get("img")
+        if not isinstance(img, Image.Image):
+            continue
+        try:
+            encoded = _encode_image_to_base64(img)
+            user_content.append(
+                {
+                    "type": "input_image",
+                    "image": {
+                        "base64": encoded,
+                        "mime_type": "image/png",
+                    },
+                }
+            )
+            image_count += 1
+        except Exception as encode_error:
+            print(
+                f"⚠️  Failed to encode image for OpenAI prompt (outfit {outfit_id}): {encode_error}"
+            )
+
+    if image_count == 0:
+        print(
+            f"⚠️  No images available for OpenAI prompt; falling back to text-only generation for outfit {outfit_id}"
         )
 
-        if not response.data:
+    try:
+        response = openai_client.responses.create(
+            model="gpt-4o",
+            input=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a senior fashion photographer tasked with generating premium "
+                        "flat lay imagery for an AI wardrobe assistant. Use the provided garment images "
+                        "exactly as reference; do not hallucinate new pieces."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": user_content,
+                },
+            ],
+            response_format={"type": "output_image"},
+            max_output_tokens=0,
+        )
+
+        image_bytes = _extract_image_bytes_from_openai_response(response)
+        if not image_bytes:
             return None, "no_image_returned"
-
-        first_entry = response.data[0]
-        if isinstance(first_entry, dict):
-            image_b64 = first_entry.get("b64_json") or first_entry.get("base64")
-        else:
-            image_b64 = getattr(first_entry, "b64_json", None) or getattr(first_entry, "base64", None)
-        if not image_b64:
-            return None, "no_image_payload"
-
-        image_bytes = base64.b64decode(image_b64)
 
         image = Image.open(BytesIO(image_bytes)).convert("RGBA")
 
@@ -899,7 +972,7 @@ def compose_flatlay_image(processed_images: list[dict]) -> Image.Image | None:
     if not processed_images:
         return None
     return premium_flatlay(processed_images)
-
+    
 
 def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str | None:
     """
