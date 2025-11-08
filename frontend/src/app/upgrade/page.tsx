@@ -25,8 +25,9 @@ const tiers = [
     id: 'tier2',
     name: 'Style Plus',
     description: 'Upgrade for weekly outfit visuals, priority processing, and deeper personalization.',
-    price: '$19',
+    price: '$6',
     cadence: 'per month',
+    annual: '$36 per year (save 50%)',
     highlight: 'Style enthusiasts',
     perks: [
       '7 premium flat lay credits per week',
@@ -39,9 +40,9 @@ const tiers = [
   },
   {
     id: 'tier3',
-    name: 'Elite Unlimited',
+    name: 'Style Premium',
     description: 'For creators and teams who want premium visuals on demand and concierge support.',
-    price: '$49',
+    price: '$10',
     cadence: 'per month',
     highlight: 'Creators & stylists',
     perks: [
@@ -109,6 +110,11 @@ export default function UpgradePage() {
                   <span className="text-sm text-stone-500 dark:text-stone-400 ml-2">
                     {tier.cadence}
                   </span>
+                  {tier.annual && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      {tier.annual}
+                    </p>
+                  )}
                 </div>
 
                 <ul className="space-y-3 text-sm text-stone-700 dark:text-stone-200">

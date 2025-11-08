@@ -425,6 +425,20 @@ export default function CreateOutfitPage() {
     setFlatLayActionLoading(true);
 
     try {
+      if (
+        flatLayUsage &&
+        flatLayUsage.remaining !== null &&
+        flatLayUsage.remaining <= 0
+      ) {
+        toast({
+          title: "No credits available",
+          description: "Upgrade your plan to unlock more flat lay credits.",
+          variant: "destructive"
+        });
+        setFlatLayActionLoading(false);
+        return;
+      }
+
       const outfitRef = doc(db, 'outfits', createdOutfitId);
       await updateDoc(outfitRef, {
         flat_lay_status: 'pending',
@@ -497,6 +511,10 @@ export default function CreateOutfitPage() {
       ? 'Checking your flat lay balance…'
       : (flatLayError || 'Unable to load your flat lay balance right now.');
 
+  const hasFlatLayCredits = flatLayUsage
+    ? (flatLayUsage.remaining === null || (flatLayUsage.remaining ?? 0) > 0)
+    : false;
+
   const flatLayDialog = (
     <AlertDialog open={flatLayPromptOpen}>
       <AlertDialogContent className="sm:max-w-md">
@@ -521,7 +539,11 @@ export default function CreateOutfitPage() {
         <div className="space-y-3">
           <Button
             onClick={handleFlatLayGenerate}
-            disabled={flatLayActionLoading || flatLayLoading}
+            disabled={
+              flatLayActionLoading ||
+              flatLayLoading ||
+              !hasFlatLayCredits
+            }
             className="w-full bg-stone-900 hover:bg-stone-800 text-white"
           >
             {flatLayActionLoading ? (
@@ -529,10 +551,23 @@ export default function CreateOutfitPage() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Requesting flat lay…
               </>
+            ) : !hasFlatLayCredits ? (
+              'No credits available'
             ) : (
               'Create flat lay now'
             )}
           </Button>
+          {!hasFlatLayCredits && !flatLayLoading && (
+            <Button
+              variant="outline"
+              className="w-full border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+              asChild
+            >
+              <Link href="/upgrade">
+                Upgrade to unlock more flat lays
+              </Link>
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={handleFlatLaySkip}
