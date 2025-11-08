@@ -7,10 +7,12 @@ Runs alpha matting on uploaded wardrobe items in the background
 import base64
 import os
 import time
+import sys
 import requests
 import numpy as np
 import multiprocessing
 from datetime import datetime, timezone
+from pathlib import Path
 from io import BytesIO
 from urllib.parse import urlparse, unquote
 from rembg import remove
@@ -21,6 +23,15 @@ from openai import OpenAI
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 from google.cloud.firestore_v1 import FieldFilter
+
+# Ensure backend/src is importable when worker runs standalone
+CURRENT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CURRENT_DIR.parent
+SRC_DIR = PROJECT_ROOT / "src"
+for candidate in {PROJECT_ROOT, SRC_DIR}:
+    candidate_str = str(candidate)
+    if candidate_str not in sys.path:
+        sys.path.append(candidate_str)
 from src.services.subscription_utils import (
     DEFAULT_SUBSCRIPTION_TIER,
     TIER_LIMITS,
