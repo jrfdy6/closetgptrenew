@@ -649,17 +649,8 @@ def generate_radial_background(
     base_color: tuple[int, int, int] = (245, 245, 245),
     center_brightness: int = 255
 ) -> Image.Image:
-    """Soft radial gradient for studio effect"""
-    width, height = size
-    bg = Image.new("RGBA", size, base_color + (255,))
-    draw = ImageDraw.Draw(bg)
-    for i in range(width // 2, 0, -1):
-        alpha = int((1 - i / (width / 2)) * (255 - center_brightness / 255))
-        draw.ellipse(
-            (width / 2 - i, height / 2 - i, width / 2 + i, height / 2 + i),
-            fill=(255, 255, 255, alpha)
-        )
-    return bg
+    """Return a solid color background for consistent studio look."""
+    return Image.new("RGBA", size, base_color + (255,))
 
 
 CATEGORY_SIZE_SCALE = {
