@@ -10,15 +10,25 @@ import time
 import requests
 import numpy as np
 import multiprocessing
+from datetime import datetime, timezone
 from io import BytesIO
 from urllib.parse import urlparse, unquote
 from rembg import remove
 from PIL import Image, UnidentifiedImageError, ImageFilter, ImageDraw
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 from uuid import uuid4
+from openai import OpenAI
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 from google.cloud.firestore_v1 import FieldFilter
+from src.services.subscription_utils import (
+    DEFAULT_SUBSCRIPTION_TIER,
+    TIER_LIMITS,
+    WEEKLY_ALLOWANCE_SECONDS,
+    parse_iso8601,
+    format_iso8601,
+    subscription_defaults,
+)
 
 # ----------------------------
 # Configuration
@@ -80,6 +90,18 @@ CATEGORY_SHADOW_OVERRIDES = {
     "bottom": {"blur": 11, "opacity": 0.18},
     "shoes": {"blur": 8, "opacity": 0.26},
 }
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+if OPENAI_API_KEY:
+    try:
+        openai_client = OpenAI(api_key=OPENAI_API_KEY)
+        print("✅ OpenAI client initialized for flat lay generation")
+    except Exception as openai_init_error:
+        print(f"⚠️  Failed to initialize OpenAI client: {openai_init_error}")
+        openai_client = None
+else:
+    print("ℹ️  OPENAI_API_KEY not provided; OpenAI flat lay generation disabled")
+    openai_client = None
 
 # Initialize Firebase Admin SDK
 print("🔥 Initializing Firebase Admin SDK...")
@@ -174,7 +196,304 @@ metrics = {
     "flat_lay_processed": 0,
     "flat_lay_failed": 0,
     "flat_lay_skipped": 0,
+    "flat_lay_openai": 0,
+    "flat_lay_openai_failed": 0,
+    "flat_lay_renderer_fallbacks": 0,
 }
+
+
+def reserve_openai_flatlay_slot(user_id: str | None) -> dict:
+    """Attempt to reserve an OpenAI flat lay usage for the user."""
+    result = {
+        "allowed": False,
+        "tier": DEFAULT_SUBSCRIPTION_TIER,
+        "limit": TIER_LIMITS.get(DEFAULT_SUBSCRIPTION_TIER),
+        "used": 0,
+        "week_start": None,
+        "reservation_active": False,
+        "reason": None,
+    }
+
+    if not user_id:
+        result["reason"] = "missing_user_id"
+        return result
+
+    doc_ref = db.collection("users").document(user_id)
+    transaction = db.transaction()
+
+    @firestore.transactional
+    def _reserve(txn):
+        snapshot = doc_ref.get(transaction=txn)
+        now = datetime.now(timezone.utc)
+
+        if snapshot.exists:
+            data = snapshot.to_dict() or {}
+        else:
+            data = {}
+
+        subscription = data.get("subscription") or {}
+        tier = subscription.get("tier") or DEFAULT_SUBSCRIPTION_TIER
+        limit = TIER_LIMITS.get(tier, 0)
+
+        used_raw = subscription.get("openai_flatlays_used", 0) or 0
+        try:
+            used = int(used_raw)
+        except (TypeError, ValueError):
+            used = 0
+
+        week_start = parse_iso8601(subscription.get("flatlay_week_start"))
+        if not week_start or (now - week_start).total_seconds() >= WEEKLY_ALLOWANCE_SECONDS:
+            used = 0
+            week_start = now
+
+        allowed = (limit is None) or (used < limit)
+        new_used = used + 1 if allowed else used
+
+        update_payload = {
+            "subscription.tier": tier,
+            "subscription.flatlay_week_start": format_iso8601(week_start),
+            "subscription.openai_flatlays_used": new_used if allowed else used,
+            "subscription.last_updated": firestore.SERVER_TIMESTAMP,
+        }
+
+        if snapshot.exists:
+            txn.update(doc_ref, update_payload)
+        else:
+            subscription_payload = subscription_defaults(tier=tier, now=week_start)
+            subscription_payload["openai_flatlays_used"] = new_used if allowed else used
+            subscription_payload["last_updated"] = firestore.SERVER_TIMESTAMP
+            txn.set(doc_ref, {"subscription": subscription_payload}, merge=True)
+
+        return {
+            "allowed": allowed,
+            "tier": tier,
+            "limit": limit,
+            "used": new_used if allowed else used,
+            "week_start": week_start,
+            "reservation_active": allowed,
+            "reason": None if allowed else "limit_reached",
+        }
+
+    try:
+        reserve_result = _reserve(transaction)
+        result.update(reserve_result)
+    except Exception as reservation_error:
+        print(f"⚠️  Failed to reserve OpenAI flat lay slot: {reservation_error}")
+        result["reason"] = "reservation_error"
+
+    return result
+
+
+def release_openai_flatlay_slot(user_id: str | None):
+    """Release a previously reserved OpenAI flat lay slot (e.g., after fallback)."""
+    if not user_id:
+        return
+
+    doc_ref = db.collection("users").document(user_id)
+    transaction = db.transaction()
+
+    @firestore.transactional
+    def _release(txn):
+        snapshot = doc_ref.get(transaction=txn)
+        if not snapshot.exists:
+            return
+
+        data = snapshot.to_dict() or {}
+        subscription = data.get("subscription") or {}
+        used_raw = subscription.get("openai_flatlays_used", 0) or 0
+
+        try:
+            used = int(used_raw)
+        except (TypeError, ValueError):
+            used = 0
+
+        if used <= 0:
+            return
+
+        txn.update(doc_ref, {"subscription.openai_flatlays_used": used - 1})
+
+    try:
+        _release(transaction)
+    except Exception as release_error:
+        print(f"⚠️  Failed to release OpenAI flat lay slot: {release_error}")
+
+
+def get_outfit_user_id(data: dict | None) -> str | None:
+    if not data:
+        return None
+    return (
+        data.get("userId")
+        or data.get("user_id")
+        or data.get("userID")
+        or (data.get("metadata") or {}).get("userId")
+        or (data.get("metadata") or {}).get("user_id")
+    )
+
+
+def build_flatlay_prompt(processed_images: list[dict], outfit_data: dict | None) -> str:
+    lines = [
+        "Create a cohesive, photorealistic fashion flat lay shot on a soft neutral studio background.",
+        "Arrange all pieces tastefully with natural shadows, crisp lighting, and realistic proportions.",
+    ]
+
+    if outfit_data:
+        style_tags = outfit_data.get("style") or outfit_data.get("styleTags")
+        occasion = outfit_data.get("occasion") or outfit_data.get("occasions")
+        season = outfit_data.get("season") or outfit_data.get("seasons")
+
+        context_parts = []
+        if style_tags:
+            if isinstance(style_tags, list):
+                context_parts.append(f"Style focus: {', '.join(style_tags[:3])}")
+            else:
+                context_parts.append(f"Style focus: {style_tags}")
+        if occasion:
+            if isinstance(occasion, list):
+                context_parts.append(f"Occasions: {', '.join(occasion[:3])}")
+            else:
+                context_parts.append(f"Occasion: {occasion}")
+        if season:
+            if isinstance(season, list):
+                context_parts.append(f"Season: {', '.join(season[:3])}")
+            else:
+                context_parts.append(f"Season: {season}")
+        if context_parts:
+            lines.append("Context: " + " | ".join(context_parts))
+
+    lines.append("Garment details:")
+    for idx, item in enumerate(processed_images, 1):
+        source = item.get("source") or {}
+        name = source.get("name") or source.get("title") or f"item {idx}"
+        category = item.get("category") or source.get("category") or source.get("type") or "garment"
+        material = item.get("material") or source.get("material")
+
+        colors = []
+        dominant_colors = source.get("dominantColors") or source.get("dominant_colors")
+        if isinstance(dominant_colors, list) and dominant_colors:
+            first_color = dominant_colors[0]
+            if isinstance(first_color, dict):
+                color_name = first_color.get("name")
+                if color_name:
+                    colors.append(color_name)
+            elif isinstance(first_color, str):
+                colors.append(first_color)
+
+        if isinstance(source.get("color"), str):
+            colors.append(source["color"])
+
+        descriptors = [category]
+        if colors:
+            descriptors.append(", ".join(dict.fromkeys(colors)))
+        if material:
+            descriptors.append(material)
+
+        lines.append(f"- {name}: {' | '.join(descriptors)}")
+
+    lines.append("Ensure the composition feels editorial and premium, with balanced spacing and a single consistent light direction.")
+    return "\n".join(lines)
+
+
+def _extract_image_bytes_from_openai_response(response) -> bytes | None:
+    """Handle multiple possible OpenAI response formats for image data."""
+    try:
+        output = getattr(response, "output", None)
+        if output:
+            for item in output:
+                contents = getattr(item, "content", None) or []
+                for content in contents:
+                    content_type = getattr(content, "type", None)
+                    if content_type in {"output_image", "image"}:
+                        image_obj = getattr(content, "image", None) or {}
+                        b64_data = getattr(image_obj, "base64", None) or getattr(image_obj, "b64_json", None)
+                        if not b64_data and isinstance(image_obj, dict):
+                            b64_data = image_obj.get("base64") or image_obj.get("b64_json")
+                        if b64_data:
+                            return base64.b64decode(b64_data)
+    except Exception as parse_error:
+        print(f"⚠️  Error parsing OpenAI response output: {parse_error}")
+
+    try:
+        data = getattr(response, "data", None)
+        if data:
+            first = data[0]
+            if isinstance(first, dict):
+                b64_data = first.get("b64_json") or first.get("base64")
+            else:
+                b64_data = getattr(first, "b64_json", None) or getattr(first, "base64", None)
+            if b64_data:
+                return base64.b64decode(b64_data)
+    except Exception as fallback_error:
+        print(f"⚠️  Error parsing OpenAI legacy response: {fallback_error}")
+
+    return None
+
+
+def generate_openai_flatlay_image(
+    processed_images: list[dict],
+    outfit_id: str,
+    outfit_data: dict | None,
+    user_id: str | None,
+) -> tuple[Image.Image | None, str | None]:
+    if openai_client is None:
+        return None, "openai_client_unavailable"
+
+    prompt = build_flatlay_prompt(processed_images, outfit_data)
+    try:
+        response = openai_client.responses.create(
+            model="gpt-4o",
+            modalities=["text", "image"],
+            temperature=0.6,
+            max_output_tokens=512,
+            input=[
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "You are a senior fashion photographer tasked with generating premium "
+                                "flat lay imagery for an AI wardrobe assistant. Produce photorealistic outfits."
+                            ),
+                        }
+                    ],
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                    ],
+                },
+            ],
+        )
+
+        image_bytes = _extract_image_bytes_from_openai_response(response)
+        if not image_bytes:
+            return None, "no_image_returned"
+
+        image = Image.open(BytesIO(image_bytes)).convert("RGBA")
+        print(f"✅ OpenAI flat lay generated for outfit {outfit_id} (user {user_id})")
+        return image, None
+
+    except Exception as openai_error:
+        print(f"⚠️  OpenAI flat lay generation failed for outfit {outfit_id}: {openai_error}")
+        return None, str(openai_error)
+
+
+def upload_flatlay_image(image: Image.Image, outfit_id: str, renderer_tag: str = "compositor_v1") -> str | None:
+    if image is None:
+        return None
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    path = f"flat_lays/outfit_{outfit_id}.png"
+    blob = bucket.blob(path)
+    blob.upload_from_file(buffer, content_type="image/png")
+    blob.make_public()
+    url = blob.public_url
+    print(f"✅ Uploaded {renderer_tag} flat lay for outfit {outfit_id}: {url}")
+    return url
 
 
 def _alpha_matting(bytes_data: bytes) -> bytes:
@@ -456,17 +775,8 @@ def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1200, 120
     return canvas
 
 
-def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
-    """
-    Create a premium flat lay from outfit items.
-    
-    outfit_items: list of dicts with keys:
-        - 'backgroundRemovedUrl': str (Firebase URL) or 'processed.png' path
-        - 'material': str (optional)
-        - 'id': str (item ID for fallback lookup)
-    
-    Returns: Firebase Storage URL of the flat lay image
-    """
+def prepare_flatlay_assets(outfit_items: list[dict], outfit_id: str) -> list[dict]:
+    """Download, normalize, and enrich outfit items for flat lay composition."""
     processed_images = []
     
     for item in outfit_items:
@@ -593,23 +903,30 @@ def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str:
     
     if not processed_images:
         print(f"❌ No valid images for flat lay {outfit_id}")
+    
+    return processed_images
+
+
+def compose_flatlay_image(processed_images: list[dict]) -> Image.Image | None:
+    if not processed_images:
+        return None
+    return premium_flatlay(processed_images)
+
+
+def create_premium_flatlay(outfit_items: list[dict], outfit_id: str) -> str | None:
+    """
+    Legacy helper to create and upload a premium flat lay from outfit items.
+    """
+    processed_images = prepare_flatlay_assets(outfit_items, outfit_id)
+    if not processed_images:
         return None
     
-    # Generate flat lay canvas
-    canvas = premium_flatlay(processed_images)
-    
-    # Upload to Firebase Storage
-    path = f"flat_lays/outfit_{outfit_id}.png"
-    buffer = BytesIO()
-    canvas.save(buffer, format="PNG")
-    buffer.seek(0)
-    blob = bucket.blob(path)
-    blob.upload_from_file(buffer, content_type="image/png")
-    blob.make_public()
-    flat_lay_url = blob.public_url
-    
-    print(f"✅ Created premium flat lay for outfit {outfit_id}: {flat_lay_url}")
-    return flat_lay_url
+    canvas = compose_flatlay_image(processed_images)
+    if canvas is None:
+        print(f"❌ Failed to compose flat lay canvas for outfit {outfit_id}")
+        return None
+
+    return upload_flatlay_image(canvas, outfit_id, renderer_tag="compositor_v1")
 
 
 def process_outfit_flat_lay(doc_id: str, data: dict):
@@ -633,11 +950,69 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             print(f"❌ Outfit {doc_id}: No items available for flat lay")
             return
 
-        flat_lay_url = create_premium_flatlay(items, doc_id)
+        user_id = get_outfit_user_id(data)
+        processed_images = prepare_flatlay_assets(items, doc_id)
+        if not processed_images:
+            failure_reason = 'No valid images available for flat lay composition'
+            doc_ref.update({
+                'flat_lay_status': 'failed',
+                'flatLayStatus': 'failed',
+                'flat_lay_error': failure_reason,
+                'flatLayError': failure_reason,
+                'metadata.flat_lay_status': 'failed',
+                'metadata.flatLayStatus': 'failed',
+                'metadata.flat_lay_error': failure_reason,
+                'metadata.flatLayError': failure_reason,
+                'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+            })
+            metrics['flat_lay_failed'] += 1
+            print(f"❌ Outfit {doc_id}: {failure_reason}")
+            return
+
+        flat_lay_url: str | None = None
+        flat_lay_renderer = "compositor_v1"
+        openai_note: str | None = None
+        openai_attempted = False
+        openai_used = False
+
+        if openai_client and user_id:
+            reservation = reserve_openai_flatlay_slot(user_id)
+            if reservation.get("allowed"):
+                openai_attempted = True
+                openai_image, openai_error = generate_openai_flatlay_image(processed_images, doc_id, data, user_id)
+                if openai_image is not None:
+                    uploaded_url = upload_flatlay_image(openai_image, doc_id, renderer_tag="openai_gpt4o")
+                    if uploaded_url:
+                        flat_lay_url = uploaded_url
+                        flat_lay_renderer = "openai_gpt4o"
+                        openai_used = True
+                        metrics['flat_lay_openai'] += 1
+                    else:
+                        openai_error = "upload_failed"
+                if not openai_used:
+                    openai_note = openai_error or "openai_generation_failed"
+                    release_openai_flatlay_slot(user_id)
+                    metrics['flat_lay_openai_failed'] += 1
+            else:
+                openai_note = reservation.get("reason") or "openai_limit_reached"
+        else:
+            if not openai_client:
+                openai_note = "openai_client_unavailable"
+            elif not user_id:
+                openai_note = "missing_user_id"
+
+        if not flat_lay_url:
+            canvas = compose_flatlay_image(processed_images)
+            if canvas is None:
+                raise Exception('Flat lay composition failed')
+            flat_lay_url = upload_flatlay_image(canvas, doc_id, renderer_tag="compositor_v1")
+            if openai_attempted:
+                metrics['flat_lay_renderer_fallbacks'] += 1
+
         if not flat_lay_url:
             raise Exception('Flat lay generation returned no URL')
 
-        doc_ref.update({
+        update_payload = {
             'flat_lay_status': 'done',
             'flatLayStatus': 'done',
             'flat_lay_url': flat_lay_url,
@@ -645,15 +1020,28 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             'flat_lay_error': None,
             'flatLayError': None,
             'flat_lay_updated_at': firestore.SERVER_TIMESTAMP,
+            'flat_lay_renderer': flat_lay_renderer,
+            'flatLayRenderer': flat_lay_renderer,
             'metadata.flat_lay_status': 'done',
             'metadata.flatLayStatus': 'done',
             'metadata.flat_lay_url': flat_lay_url,
             'metadata.flatLayUrl': flat_lay_url,
             'metadata.flat_lay_error': None,
             'metadata.flatLayError': None,
-        })
+            'metadata.flat_lay_renderer': flat_lay_renderer,
+            'metadata.flatLayRenderer': flat_lay_renderer,
+        }
+        if openai_note:
+            update_payload['metadata.flat_lay_renderer_note'] = openai_note
+            update_payload['flat_lay_renderer_note'] = openai_note
+            update_payload['flatLayRendererNote'] = openai_note
+
+        doc_ref.update(update_payload)
         metrics['flat_lay_processed'] += 1
-        print(f"🎨 Outfit {doc_id}: Flat lay ready")
+        if openai_used:
+            print(f"🎨 Outfit {doc_id}: OpenAI flat lay ready ({flat_lay_url})")
+        else:
+            print(f"🎨 Outfit {doc_id}: Flat lay ready ({flat_lay_renderer})")
 
     except Exception as exc:
         error_message = str(exc)

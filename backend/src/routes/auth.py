@@ -7,11 +7,11 @@ from fastapi import APIRouter, HTTPException, status, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
 import logging
 import firebase_admin
-from firebase_admin import auth as firebase_auth
+from firebase_admin import auth as firebase_auth, firestore
 import asyncio
 import signal
 from contextlib import asynccontextmanager
@@ -22,6 +22,10 @@ from ..core.logging import get_logger
 from ..config.firebase import db
 from ..models.analytics_event import AnalyticsEvent
 from ..services.analytics_service import log_analytics_event
+from ..services.subscription_utils import (
+    DEFAULT_SUBSCRIPTION_TIER,
+    subscription_defaults,
+)
 
 # HTTP Bearer scheme for token extraction
 security = HTTPBearer()
@@ -178,19 +182,44 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
         email = (decoded_token.get("email") if decoded_token else None)
         name = (decoded_token.get("name", email) if decoded_token else email)
         
-        # Check if user exists in our database
-        user_doc = db.collection('users').document(user_id).get()
-        
+        user_doc_ref = db.collection('users').document(user_id)
+        user_doc = user_doc_ref.get()
+        now_utc = datetime.now(timezone.utc)
+
         if not user_doc.exists:
-            # Create user document if it doesn't exist
+            subscription_payload = subscription_defaults(
+                tier=DEFAULT_SUBSCRIPTION_TIER,
+                now=now_utc,
+            )
+            subscription_payload["last_updated"] = firestore.SERVER_TIMESTAMP
+
             user_doc_data = {
                 'email': email,
                 'name': name,
-                'created_at': datetime.utcnow(),
-                'updated_at': datetime.utcnow(),
-                'firebase_uid': user_id
+                'created_at': now_utc,
+                'updated_at': now_utc,
+                'firebase_uid': user_id,
+                'subscription': subscription_payload,
             }
-            db.collection('users').document(user_id).set(user_doc_data)
+            user_doc_ref.set(user_doc_data)
+        else:
+            user_data = user_doc.to_dict() or {}
+            subscription = user_data.get('subscription') or {}
+            subscription_updates = {}
+
+            if not subscription.get('tier'):
+                subscription_updates['subscription.tier'] = DEFAULT_SUBSCRIPTION_TIER
+            if 'openai_flatlays_used' not in subscription:
+                subscription_updates['subscription.openai_flatlays_used'] = 0
+            if 'flatlay_week_start' not in subscription:
+                subscription_updates['subscription.flatlay_week_start'] = subscription_defaults(
+                    tier=subscription.get('tier') or DEFAULT_SUBSCRIPTION_TIER,
+                    now=now_utc,
+                )['flatlay_week_start']
+
+            if subscription_updates:
+                subscription_updates['subscription.last_updated'] = firestore.SERVER_TIMESTAMP
+                user_doc_ref.update(subscription_updates)
         
         return {
             "user_id": user_id,
