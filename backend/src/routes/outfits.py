@@ -5975,17 +5975,25 @@ async def create_outfit(
             "season": "all",  # Default to all seasons for custom outfits
             "mood": "custom",  # Default mood for custom outfits
             "updatedAt": request.createdAt or int(time.time()),
-            "metadata": {"created_method": "custom", "flat_lay_status": "pending", "flatLayStatus": "pending"},
+            "metadata": {
+                "created_method": "custom",
+                "flat_lay_status": "awaiting_consent",
+                "flatLayStatus": "awaiting_consent",
+                "flat_lay_requested": False,
+                "flatLayRequested": False
+            },
             "wasSuccessful": True,
             "baseItemId": None,
             "validationErrors": [],
             "userFeedback": None,
-            "flat_lay_status": "pending",
-            "flatLayStatus": "pending",
+            "flat_lay_status": "awaiting_consent",
+            "flatLayStatus": "awaiting_consent",
             "flat_lay_url": None,
             "flatLayUrl": None,
             "flat_lay_error": None,
-            "flatLayError": None
+            "flatLayError": None,
+            "flat_lay_requested": False,
+            "flatLayRequested": False
         }
         
         # Save outfit to Firestore

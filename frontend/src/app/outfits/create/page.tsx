@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import type { LucideIcon } from 'lucide-react';
 import { 
   Plus, 
@@ -33,11 +40,14 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useWardrobe } from '@/lib/hooks/useWardrobe';
 import { useOutfits } from '@/lib/hooks/useOutfits_proper';
 import { ClothingItem } from '@/lib/services/outfitService';
+import { db } from '@/lib/firebase/config';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 type ItemCategory = 'tops' | 'bottoms' | 'dresses' | 'outerwear' | 'shoes' | 'accessories' | 'other';
 type CategoryFilterValue = 'all' | ItemCategory;
@@ -144,6 +154,25 @@ const CATEGORY_FILTERS: { value: CategoryFilterValue; label: string; icon: Lucid
   { value: 'accessories', label: CATEGORY_LABELS.accessories, icon: CATEGORY_ICONS.accessories },
   { value: 'other', label: CATEGORY_LABELS.other, icon: CATEGORY_ICONS.other }
 ];
+
+interface FlatLayUsage {
+  tier: string;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+}
+
+const SUBSCRIPTION_TIER_LIMITS: Record<string, number | null> = {
+  tier1: 1,
+  tier2: 7,
+  tier3: 30
+};
+
+const SUBSCRIPTION_TIER_NAMES: Record<string, string> = {
+  tier1: 'Style Starter',
+  tier2: 'Pro Stylist',
+  tier3: 'Elite Unlimited'
+};
 
 const ITEM_TYPE_ICONS: Record<string, LucideIcon> = {
   tops: Shirt,
@@ -272,6 +301,12 @@ export default function CreateOutfitPage() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilterValue>('all');
   const [selectedColor, setSelectedColor] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
+  const [flatLayPromptOpen, setFlatLayPromptOpen] = useState(false);
+  const [createdOutfitId, setCreatedOutfitId] = useState<string | null>(null);
+  const [flatLayUsage, setFlatLayUsage] = useState<FlatLayUsage | null>(null);
+  const [flatLayLoading, setFlatLayLoading] = useState(false);
+  const [flatLayActionLoading, setFlatLayActionLoading] = useState(false);
+  const [flatLayError, setFlatLayError] = useState<string | null>(null);
 
   // Group items by category
   const itemsByCategory = useMemo(() => {
@@ -334,6 +369,36 @@ export default function CreateOutfitPage() {
     });
   }, [wardrobeItems, selectedItems, searchQuery, selectedCategory, selectedColor]);
 
+  const loadFlatLayUsage = useCallback(async () => {
+    if (!user?.uid) {
+      setFlatLayUsage(null);
+      return;
+    }
+
+    setFlatLayLoading(true);
+    setFlatLayError(null);
+
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      const snapshot = await getDoc(userDocRef);
+      const data = snapshot.exists() ? snapshot.data() as any : {};
+      const subscription = data?.subscription ?? {};
+      const rawTier = typeof subscription?.tier === 'string' ? subscription.tier.toLowerCase() : 'tier1';
+      const tier = SUBSCRIPTION_TIER_LIMITS[rawTier] !== undefined ? rawTier : 'tier1';
+      const used = Number(subscription?.openai_flatlays_used ?? 0);
+      const limit = SUBSCRIPTION_TIER_LIMITS[tier] ?? null;
+      const remaining = typeof limit === 'number' ? Math.max(limit - used, 0) : null;
+
+      setFlatLayUsage({ tier, limit, used, remaining });
+    } catch (error) {
+      console.error('Error loading flat lay usage:', error);
+      setFlatLayError('Unable to load your flat lay balance right now.');
+      setFlatLayUsage(null);
+    } finally {
+      setFlatLayLoading(false);
+    }
+  }, [user?.uid]);
+
   const handleAddItem = (item: ClothingItem) => {
     if (selectedItems.length >= 10) {
       toast({
@@ -349,6 +414,146 @@ export default function CreateOutfitPage() {
   const handleRemoveItem = (itemId: string) => {
     setSelectedItems(selectedItems.filter(item => item.id !== itemId));
   };
+
+  const handleFlatLayGenerate = async () => {
+    if (!createdOutfitId) {
+      setFlatLayPromptOpen(false);
+      router.push('/outfits');
+      return;
+    }
+
+    setFlatLayActionLoading(true);
+
+    try {
+      const outfitRef = doc(db, 'outfits', createdOutfitId);
+      await updateDoc(outfitRef, {
+        flat_lay_status: 'pending',
+        flatLayStatus: 'pending',
+        'metadata.flat_lay_status': 'pending',
+        'metadata.flatLayStatus': 'pending',
+        flat_lay_requested: true,
+        flatLayRequested: true,
+        flat_lay_error: null,
+        flatLayError: null
+      });
+
+      toast({
+        title: "Flat lay on the way!",
+        description: "We’ll craft your premium flat lay and notify you once it’s ready.",
+      });
+    } catch (error) {
+      console.error('Error requesting flat lay:', error);
+      toast({
+        title: "Unable to request flat lay",
+        description: "Please try again from your outfits list.",
+        variant: "destructive"
+      });
+    } finally {
+      setFlatLayActionLoading(false);
+      setFlatLayPromptOpen(false);
+      setFlatLayUsage(null);
+      setCreatedOutfitId(null);
+      router.push('/outfits');
+    }
+  };
+
+  const handleFlatLaySkip = async () => {
+    if (flatLayActionLoading) return;
+    setFlatLayActionLoading(true);
+
+    if (createdOutfitId) {
+      try {
+        const outfitRef = doc(db, 'outfits', createdOutfitId);
+        await updateDoc(outfitRef, {
+          flat_lay_status: 'declined',
+          flatLayStatus: 'declined',
+          'metadata.flat_lay_status': 'declined',
+          'metadata.flatLayStatus': 'declined',
+          flat_lay_requested: false,
+          flatLayRequested: false
+        });
+      } catch (error) {
+        console.error('Error updating flat lay status:', error);
+      }
+    }
+
+    setFlatLayActionLoading(false);
+    setFlatLayPromptOpen(false);
+    setFlatLayUsage(null);
+    setCreatedOutfitId(null);
+    toast({
+      title: "Flat lay skipped",
+      description: "You can always generate a flat lay later from My Outfits.",
+    });
+    router.push('/outfits');
+  };
+
+  const tierName = flatLayUsage ? (SUBSCRIPTION_TIER_NAMES[flatLayUsage.tier] || flatLayUsage.tier) : '';
+  const flatLayBalanceText = flatLayUsage
+    ? (flatLayUsage.remaining !== null && flatLayUsage.limit !== null
+        ? `${flatLayUsage.remaining} of ${flatLayUsage.limit} flat lays left this week`
+        : 'Unlimited flat lays available this week')
+    : flatLayLoading
+      ? 'Checking your flat lay balance…'
+      : (flatLayError || 'Unable to load your flat lay balance right now.');
+
+  const flatLayDialog = (
+    <AlertDialog open={flatLayPromptOpen}>
+      <AlertDialogContent className="sm:max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-2xl font-semibold flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            Create a premium flat lay?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="space-y-2 text-sm text-stone-600 dark:text-stone-400">
+            <p>Upgrade your outfit with a magazine-ready flat lay.</p>
+            <div className="rounded-lg bg-stone-100 dark:bg-stone-800/60 px-4 py-3">
+              <p className="font-semibold text-stone-900 dark:text-stone-100">
+                {flatLayUsage ? `${tierName} plan` : 'Checking plan…'}
+              </p>
+              <p className="text-xs text-stone-600 dark:text-stone-300 mt-1">
+                {flatLayBalanceText}
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-3">
+          <Button
+            onClick={handleFlatLayGenerate}
+            disabled={flatLayActionLoading || flatLayLoading}
+            className="w-full bg-stone-900 hover:bg-stone-800 text-white"
+          >
+            {flatLayActionLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Requesting flat lay…
+              </>
+            ) : (
+              'Create flat lay now'
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleFlatLaySkip}
+            disabled={flatLayActionLoading}
+            className="w-full"
+          >
+            Not right now
+          </Button>
+          <Button
+            variant="ghost"
+            asChild
+            className="w-full text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+          >
+            <Link href="/upgrade">
+              Upgrade for more flat lays
+            </Link>
+          </Button>
+        </div>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 
   const handleProceedToDetails = () => {
     if (selectedItems.length === 0) {
@@ -406,14 +611,25 @@ export default function CreateOutfitPage() {
         user_id: outfitData.user_id 
       });
 
-      await createOutfit(outfitData);
+      const createdOutfit = await createOutfit(outfitData);
       
-      toast({
-        title: "Outfit created!",
-        description: "Your outfit has been saved successfully.",
-      });
-
-      router.push('/outfits');
+      if (createdOutfit?.id) {
+        setCreatedOutfitId(createdOutfit.id);
+        setFlatLayUsage(null);
+        setFlatLayPromptOpen(true);
+        loadFlatLayUsage();
+        
+        toast({
+          title: "Outfit created!",
+          description: "Your outfit has been saved successfully.",
+        });
+      } else {
+        toast({
+          title: "Outfit saved",
+          description: "Your outfit was saved, but we couldn't confirm the ID for flat lay generation.",
+        });
+        router.push('/outfits');
+      }
     } catch (error) {
       console.error('Error creating outfit:', error);
       toast({
@@ -434,7 +650,9 @@ export default function CreateOutfitPage() {
   // Step 1: Build Outfit - Visual item selection
   if (currentStep === 'build') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <>
+        {flatLayDialog}
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
         <Navigation />
         
         {/* Header */}
@@ -794,13 +1012,16 @@ export default function CreateOutfitPage() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   // Step 2: Add Details
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+    <>
+      {flatLayDialog}
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
       
       {/* Header */}
@@ -978,5 +1199,6 @@ export default function CreateOutfitPage() {
 
       <ClientOnlyNav />
     </div>
+    </>
   );
 }
