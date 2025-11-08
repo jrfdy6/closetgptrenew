@@ -748,10 +748,27 @@ class WardrobeAnalysisService:
         seasonal_items = {'summer': 0, 'winter': 0, 'spring': 0, 'fall': 0}
         
         for item in wardrobe:
+            seasonal_tags = set()
+
+            # Primary field used by many wardrobe records
+            if hasattr(item, 'season') and item.season:
+                if isinstance(item.season, (list, tuple, set)):
+                    seasonal_tags.update(item.season)
+                elif isinstance(item.season, str):
+                    seasonal_tags.add(item.season)
+
+            # Legacy/alternative field
             if hasattr(item, 'seasonality') and item.seasonality:
-                for season in item.seasonality:
-                    if season in seasonal_items:
-                        seasonal_items[season] += 1
+                if isinstance(item.seasonality, (list, tuple, set)):
+                    seasonal_tags.update(item.seasonality)
+                elif isinstance(item.seasonality, str):
+                    seasonal_tags.add(item.seasonality)
+
+            # Normalize and count
+            for season in seasonal_tags:
+                normalized = season.lower().strip()
+                if normalized in seasonal_items:
+                    seasonal_items[normalized] += 1
         
         # print(f"DEBUG: Seasonal distribution: {seasonal_items}")
         
