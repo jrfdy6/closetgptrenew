@@ -281,10 +281,21 @@ def generate_radial_background(
     return bg
 
 
-def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400) -> Image.Image:
-    """Scale item to max width/height while preserving aspect ratio"""
+CATEGORY_SIZE_SCALE = {
+    "outerwear": 1.00,
+    "top": 0.90,
+    "bottom": 0.88,
+    "shoes": 0.65,
+    "accessory": 0.55,
+}
+
+
+def normalize_item_for_flatlay(img: Image.Image, max_dim: int = 400, category: str | None = None) -> Image.Image:
+    """Scale item to max width/height while preserving aspect ratio and applying category multipliers."""
     w, h = img.size
     scale = min(max_dim / w, max_dim / h, 1.0)
+    if category and category in CATEGORY_SIZE_SCALE:
+        scale *= CATEGORY_SIZE_SCALE[category]
     new_size = (int(w * scale), int(h * scale))
     return img.resize(new_size, Image.Resampling.LANCZOS)
 
@@ -340,49 +351,107 @@ def categorize_item_type(source_item: dict) -> str:
     return "top"
 
 
+def smart_grid_layout(items: list[dict], canvas_size: tuple[int, int]) -> list[dict]:
+    """Assign adaptive positions based on item categories and count."""
+    width, height = canvas_size
+    center_x = width / 2
+    center_y = height / 2
+
+    slots = {
+        "top_left": (width * 0.28, height * 0.28),
+        "top_right": (width * 0.72, height * 0.28),
+        "bottom_left": (width * 0.28, height * 0.72),
+        "bottom_right": (width * 0.72, height * 0.72),
+        "bottom_center": (center_x, height * 0.82),
+        "top_center": (center_x, height * 0.22),
+        "center": (center_x, center_y),
+    }
+
+    categorized = {"outerwear": [], "top": [], "bottom": [], "shoes": [], "accessory": []}
+    for item in items:
+        cat = item.get("category") or "top"
+        categorized.setdefault(cat, []).append(item)
+
+    assignments: dict = {}
+    used_slots: set[str] = set()
+
+    def claim(slot_name: str):
+        if slot_name in used_slots:
+            return None
+        used_slots.add(slot_name)
+        return slot_name
+
+    for category in ["outerwear", "top"]:
+        for item in categorized.get(category, []):
+            slot = claim("top_left") or claim("top_center") or claim("top_right") or claim("center")
+            if slot:
+                assignments[item["id"]] = slot
+
+    for item in categorized.get("bottom", []):
+        slot = claim("top_right") or claim("bottom_left") or claim("center")
+        if slot:
+            assignments[item["id"]] = slot
+
+    shoe_items = categorized.get("shoes", [])
+    if shoe_items:
+        if len(shoe_items) == 1:
+            slot = claim("bottom_center") or claim("bottom_left") or claim("bottom_right")
+            if slot:
+                assignments[shoe_items[0]["id"]] = slot
+        else:
+            left_slot = claim("bottom_left") or claim("bottom_center")
+            right_slot = claim("bottom_right") or claim("bottom_center")
+            if left_slot and len(shoe_items) > 0:
+                assignments[shoe_items[0]["id"]] = left_slot
+            if right_slot and len(shoe_items) > 1:
+                assignments[shoe_items[1]["id"]] = right_slot
+            for idx in range(2, len(shoe_items)):
+                slot = claim("bottom_center") or claim("center") or claim("top_center")
+                if slot:
+                    assignments[shoe_items[idx]["id"]] = slot
+
+    for item in categorized.get("accessory", []):
+        slot = claim("center") or claim("top_center") or claim("bottom_center")
+        if slot:
+            assignments[item["id"]] = slot
+
+    for item in items:
+        if item["id"] not in assignments:
+            slot = claim("center") or claim("top_center") or claim("bottom_center")
+            if slot:
+                assignments[item["id"]] = slot
+
+    positioned: list[dict] = []
+    for item in items:
+        slot_name = assignments.get(item["id"], "center")
+        slot_pos = slots.get(slot_name, (center_x, center_y))
+        positioned.append({**item, "slot": slot_name, "slot_pos": slot_pos})
+
+    return positioned
+
+
 def premium_flatlay(items: list[dict], canvas_size: tuple[int, int] = (1200, 1200)) -> Image.Image:
-    """
-    Compose multiple items into a polished flat lay.
-    
-    items: list of dicts with keys:
-        - "img": PIL.Image (RGBA)
-        - "material": str (optional, defaults to "cotton")
-    """
-    import math
-    import random
-    
+    """Compose multiple items into a polished flat lay."""
     canvas = generate_radial_background(size=canvas_size)
-    num_items = len(items)
-    if num_items == 0:
+    if not items:
         return canvas
-    
-    # Layout: staggered grid with rotation + overlapping
-    margin = 40
-    cols = max(1, math.ceil(math.sqrt(num_items)))
-    rows = math.ceil(num_items / cols)
-    cell_w = (canvas_size[0] - margin * 2) / cols
-    cell_h = (canvas_size[1] - margin * 2) / rows
-    positions = []
-    angles = []
-    
-    for idx, item in enumerate(items):
-        col = idx % cols
-        row = idx // cols
-        x = margin + int(col * cell_w)
-        y = margin + int(row * cell_h)
-        positions.append((x, y))
-        angles.append(random.uniform(-5, 5))
-    
-    for idx, item in enumerate(items):
-        img = normalize_item_for_flatlay(item["img"])
+
+    positioned = smart_grid_layout(items, canvas_size)
+
+    for item in positioned:
+        category = item.get("category")
+        img = normalize_item_for_flatlay(item["img"], max_dim=420, category=category)
         img = smooth_edges(img)
         img = add_material_shadow(img, material=item.get("material", "cotton"))
-        rotated = img.rotate(angles[idx], expand=True)
-        x, y = positions[idx]
-        paste_x = x + (cell_w - rotated.width) // 2
-        paste_y = y + (cell_h - rotated.height) // 2
-        canvas.alpha_composite(rotated, (int(paste_x), int(paste_y)))
-    
+
+        x_center, y_center = item["slot_pos"]
+        x = int(x_center - img.width / 2)
+        y = int(y_center - img.height / 2)
+        x = max(0, min(x, canvas_size[0] - img.width))
+        y = max(0, min(y, canvas_size[1] - img.height))
+
+        canvas.alpha_composite(img, (x, y))
+
     return canvas
 
 
