@@ -1017,11 +1017,14 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
                     metrics['flat_lay_openai_failed'] += 1
             else:
                 openai_note = reservation.get("reason") or "openai_limit_reached"
+                print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
         else:
             if not openai_client:
                 openai_note = "openai_client_unavailable"
             elif not user_id:
                 openai_note = "missing_user_id"
+            if openai_note:
+                print(f"ℹ️  Skipping OpenAI for outfit {doc_id}: {openai_note}")
 
         if not flat_lay_url:
             canvas = compose_flatlay_image(processed_images)
@@ -1057,6 +1060,7 @@ def process_outfit_flat_lay(doc_id: str, data: dict):
             update_payload['metadata.flat_lay_renderer_note'] = openai_note
             update_payload['flat_lay_renderer_note'] = openai_note
             update_payload['flatLayRendererNote'] = openai_note
+            print(f"ℹ️  OpenAI flat lay note for outfit {doc_id} (user {user_id or 'unknown'}): {openai_note}")
 
         doc_ref.update(update_payload)
         metrics['flat_lay_processed'] += 1
