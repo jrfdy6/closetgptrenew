@@ -474,15 +474,10 @@ def generate_openai_flatlay_image(
             input=[
                 {
                     "role": "system",
-                    "content": [
-                        {
-                            "type": "output_text",
-                            "text": (
-                                "You are a senior fashion photographer tasked with generating premium "
-                                "flat lay imagery for an AI wardrobe assistant. Produce photorealistic outfits."
-                            ),
-                        }
-                    ],
+                    "content": (
+                        "You are a senior fashion photographer tasked with generating premium "
+                        "flat lay imagery for an AI wardrobe assistant. Produce photorealistic outfits."
+                    ),
                 },
                 {
                     "role": "user",
