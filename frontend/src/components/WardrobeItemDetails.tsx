@@ -57,7 +57,6 @@ interface WardrobeItemDetailsProps {
   onToggleFavorite: (itemId: string) => Promise<void>;
   onIncrementWear: (itemId: string) => Promise<void>;
   onGenerateOutfit: (item: WardrobeItem) => void;
-  startInEditMode?: boolean;
 }
 
 const ITEM_TYPES = [
@@ -113,10 +112,8 @@ export default function WardrobeItemDetails({
   onDelete,
   onToggleFavorite,
   onIncrementWear,
-  onGenerateOutfit,
-  startInEditMode = true
+  onGenerateOutfit
 }: WardrobeItemDetailsProps) {
-  const [isEditing, setIsEditing] = useState(startInEditMode);
   const [editedItem, setEditedItem] = useState<Partial<WardrobeItem>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -145,19 +142,12 @@ export default function WardrobeItemDetails({
     }
   }, [item]);
 
-  useEffect(() => {
-    if (isOpen) {
-      setIsEditing(startInEditMode);
-    }
-  }, [isOpen, startInEditMode, item?.id]);
-
   const handleSave = async () => {
     if (!item) return;
     
     setIsSaving(true);
     try {
       await onUpdate(item.id, editedItem);
-      setIsEditing(false);
     } catch (error) {
       console.error('Failed to update item:', error);
     } finally {
@@ -319,29 +309,17 @@ export default function WardrobeItemDetails({
         <DialogHeader className="pr-16">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">
-              {isEditing ? 'Edit Item' : 'Item Details'}
+              Edit Item
             </DialogTitle>
-            {isEditing ? (
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-stone-900 hover:bg-stone-800 text-white"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-            ) : !startInEditMode ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-                className="text-stone-700 hover:text-stone-900"
-              >
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            ) : null}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-stone-900 hover:bg-stone-800 text-white"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
           </div>
         </DialogHeader>
 
@@ -388,9 +366,8 @@ export default function WardrobeItemDetails({
 
           {/* Details Section */}
           <div className="space-y-6">
-            {isEditing ? (
-              /* Edit Form */
-              <div className="space-y-4">
+            {/* Edit Form */}
+            <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name" className="text-stone-700 dark:text-stone-300 font-medium">Name</Label>
@@ -663,257 +640,7 @@ export default function WardrobeItemDetails({
                     ))}
                   </div>
                 </div>
-              </div>
-            ) : (
-              /* View Mode */
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-serif text-stone-900 dark:text-stone-100 mb-2">{item.name}</h2>
-                  <div className="flex items-center gap-2 text-stone-600 dark:text-stone-400">
-                    <span>{getTypeIcon(item.type)}</span>
-                    <span className="capitalize">{item.type}</span>
-                    {item.brand && (
-                      <>
-                        <span>•</span>
-                        <span>{item.brand}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <Card className="border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Palette className="w-4 h-4 text-stone-600" />
-                        <span className="font-medium text-stone-900 dark:text-stone-100">Color</span>
-                      </div>
-                      <Badge className={`${getColorBadge(item.color)}`}>
-                        {item.color}
-                      </Badge>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/50">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="w-4 h-4 text-stone-600" />
-                        <span className="font-medium text-stone-900 dark:text-stone-100">Wear Count</span>
-                      </div>
-                      <span className="text-2xl font-bold text-stone-900 dark:text-stone-100">{item.wearCount}</span>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Description</h3>
-                  <p className="text-stone-600 dark:text-stone-400">
-                    {getDescription() || <span className="text-stone-400 italic">No description provided</span>}
-                  </p>
-                </div>
-
-                {/* All Physical Attributes */}
-                <div>
-                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">Physical Attributes</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {isFieldRelevant('size') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Size</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {item.size || <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('sleeveLength') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Sleeve Length</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('sleeveLength') ? String(getVisualAttribute('sleeveLength')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('sleeveLength')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('fit') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Fit</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('fit') ? String(getVisualAttribute('fit')).charAt(0).toUpperCase() + String(getVisualAttribute('fit')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('neckline') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Neckline</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('neckline') ? String(getVisualAttribute('neckline')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('neckline')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('length') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Length</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('length') ? String(getVisualAttribute('length')).charAt(0).toUpperCase() + String(getVisualAttribute('length')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('transparency') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Transparency</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('transparency') ? String(getVisualAttribute('transparency')).charAt(0).toUpperCase() + String(getVisualAttribute('transparency')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('collarType') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Collar Type</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('collarType') ? String(getVisualAttribute('collarType')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('collarType')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('embellishments') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Embellishments</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('embellishments') ? String(getVisualAttribute('embellishments')).charAt(0).toUpperCase() + String(getVisualAttribute('embellishments')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('printSpecificity') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Print Type</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('printSpecificity') ? String(getVisualAttribute('printSpecificity')).charAt(0).toUpperCase() + String(getVisualAttribute('printSpecificity')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('rise') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Rise</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('rise') ? String(getVisualAttribute('rise')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('rise')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('legOpening') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Leg Opening</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('legOpening') ? String(getVisualAttribute('legOpening')).charAt(0).toUpperCase() + String(getVisualAttribute('legOpening')).slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('heelHeight') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Heel Height</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('heelHeight') ? String(getVisualAttribute('heelHeight')).replace('-', ' ').charAt(0).toUpperCase() + String(getVisualAttribute('heelHeight')).replace('-', ' ').slice(1) : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    {isFieldRelevant('statementLevel') && (
-                      <div>
-                        <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Statement Level</h4>
-                        <p className="text-stone-600 dark:text-stone-400">
-                          {getVisualAttribute('statementLevel') !== null && getVisualAttribute('statementLevel') !== undefined ? `${getVisualAttribute('statementLevel')}/10` : <span className="text-stone-400 italic">Not specified</span>}
-                        </p>
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Purchase Price</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {item.purchasePrice && item.purchasePrice > 0 ? `$${item.purchasePrice.toFixed(2)}` : <span className="text-stone-400 italic">Not specified</span>}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Materials */}
-                <div>
-                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Materials</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {getMaterials().length > 0 ? (
-                      getMaterials().map((material, index) => (
-                        <Badge key={index} variant="outline">
-                          {material}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-stone-400 italic">No materials specified</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Styles */}
-                <div>
-                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Styles</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {item.style && item.style.length > 0 ? (
-                      item.style.map((style, index) => (
-                        <Badge key={index} variant="outline">
-                          {style}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-stone-400 italic">No styles specified</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Seasons */}
-                <div>
-                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Seasons</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {item.season && item.season.length > 0 ? (
-                      item.season.map((season, index) => (
-                        <Badge key={index} variant="outline">
-                          {season}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-stone-400 italic">No seasons specified</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Occasions */}
-                <div>
-                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-2">Occasions</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {item.occasion && item.occasion.length > 0 ? (
-                      item.occasion.map((occasion, index) => (
-                        <Badge key={index} variant="outline">
-                          {occasion}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-stone-400 italic">No occasions specified</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Metadata */}
-                <div>
-                  <h3 className="font-medium text-stone-900 dark:text-stone-100 mb-4">Metadata</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Last Worn</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {item.lastWorn ? formatLastWorn(item.lastWorn) : <span className="text-stone-400 italic">Never worn</span>}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-stone-700 dark:text-stone-300 mb-1">Purchase Date</h4>
-                      <p className="text-stone-600 dark:text-stone-400">
-                        {item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : <span className="text-stone-400 italic">Not specified</span>}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
