@@ -32,13 +32,51 @@ export async function POST(
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      const backendResponse = await fetch(
-        `${backendUrl.replace(/\/$/, '')}/api/outfits/${outfitId}/toggle-favorite`,
+      const baseUrl = backendUrl.replace(/\/$/, '');
+
+      const outfitResponse = await fetch(
+        `${baseUrl}/api/outfits/${outfitId}`,
         {
-          method: 'POST',
+          method: 'GET',
           headers: {
             Authorization: authHeader
           },
+          signal: controller.signal
+        }
+      );
+
+      if (!outfitResponse.ok) {
+        clearTimeout(timeoutId);
+        const errorPayload = await outfitResponse.json().catch(() => ({}));
+        console.error(
+          `❌ [API] Failed to load outfit ${outfitId} before toggling favorite`,
+          errorPayload
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            error: errorPayload.detail || 'Failed to load outfit before update',
+            details: errorPayload.detail || 'Unknown backend error'
+          },
+          { status: outfitResponse.status }
+        );
+      }
+
+      const outfitJson = await outfitResponse.json();
+      const existingOutfit = outfitJson?.data ?? outfitJson ?? {};
+      const currentFavorite =
+        existingOutfit.isFavorite ?? existingOutfit.favorite ?? false;
+      const nextFavorite = !currentFavorite;
+
+      const backendResponse = await fetch(
+        `${baseUrl}/api/outfits/${outfitId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: authHeader,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ isFavorite: nextFavorite }),
           signal: controller.signal
         }
       );
@@ -69,7 +107,8 @@ export async function POST(
       return NextResponse.json(
         data ?? {
           success: true,
-          message: 'Outfit favorite status toggled successfully'
+          message: 'Outfit favorite status toggled successfully',
+          data: { id: outfitId, isFavorite: nextFavorite }
         }
       );
     } catch (fetchError: any) {
