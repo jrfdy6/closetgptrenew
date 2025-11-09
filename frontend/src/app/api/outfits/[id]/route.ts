@@ -171,7 +171,6 @@ export async function PUT(
     console.log('🔍 DEBUG: Updating outfit:', outfitId, 'with data:', body);
     
     // Call the production backend
-      const fullBackendUrl = buildBackendUrl(`/api/outfits/${outfitId}`);
     const fullBackendUrl = buildBackendUrl(`/api/outfits/${outfitId}`);
     console.log('🔍 DEBUG: About to call backend PUT:', fullBackendUrl);
     
