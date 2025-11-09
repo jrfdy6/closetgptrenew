@@ -2,6 +2,61 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  'https://closetgptrenew-production.up.railway.app';
+
+function buildBackendUrl(path: string) {
+  return `${BACKEND_URL.replace(/\/$/, '')}${path}`;
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Authorization header required' },
+        { status: 401 }
+      );
+    }
+
+    const outfitId = params.id;
+    const response = await fetch(
+      buildBackendUrl(`/api/outfits/${outfitId}`),
+      {
+        method: 'GET',
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: data.detail || 'Failed to fetch outfit'
+        },
+        { status: response.status }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('❌ Error in outfits GET API route:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch outfit' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -35,14 +90,14 @@ export async function POST(
         );
       }
 
-      const response = await fetch(fullBackendUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': authHeader,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
+    const response = await fetch(fullBackendUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
       
       console.log('🔍 DEBUG: Backend response received:', {
         status: response.status,
@@ -116,8 +171,8 @@ export async function PUT(
     console.log('🔍 DEBUG: Updating outfit:', outfitId, 'with data:', body);
     
     // Call the production backend
-    const backendUrl = 'https://closetgptrenew-production.up.railway.app';
-    const fullBackendUrl = `${backendUrl}/api/outfit/${outfitId}`;
+      const fullBackendUrl = buildBackendUrl(`/api/outfits/${outfitId}`);
+    const fullBackendUrl = buildBackendUrl(`/api/outfits/${outfitId}`);
     console.log('🔍 DEBUG: About to call backend PUT:', fullBackendUrl);
     
     const response = await fetch(fullBackendUrl, {
