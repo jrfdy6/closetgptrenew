@@ -412,6 +412,7 @@ class RobustOutfitGenerationService:
         item_type = str(self.safe_get_item_type(item)).lower()
         item_name = self.safe_get_item_name(item).lower()
         item_name_lower = item_name
+        item_name_lower = item_name
         
         # Formal items (3-4)
         if any(kw in item_type or kw in item_name for kw in ['tuxedo', 'gown', 'bow tie', 'cufflink']):
