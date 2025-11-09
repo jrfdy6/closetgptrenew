@@ -960,15 +960,17 @@ async def create_outfit(
             "description": description,
             "items": normalized_items,
             "user_id": current_user_id,
-            "createdAt": server_timestamp,
-            "updatedAt": server_timestamp,
+            "createdAt": current_time_ms,
+            "updatedAt": current_time_ms,
+            "created_at": server_timestamp,
+            "updated_at": server_timestamp,
             "is_custom": True,
             "confidence_score": 1.0,
             "reasoning": f"Custom outfit created by user: {description or 'No description provided'}",
             "explanation": description or f"Custom {style} outfit for {occasion}",
-            "styleTags": [style.lower().replace(' ', '_')],
+            "styleTags": [style.lower().replace(' ', '_') if style else 'custom_style'],
             "colorHarmony": "custom",
-            "styleNotes": f"Custom {style} style selected by user",
+            "styleNotes": f"Custom {style} style selected by user" if style else "Custom outfit selected by user",
             "season": "all",
             "mood": "custom",
             "metadata": {"created_method": "custom"},
@@ -997,11 +999,12 @@ async def create_outfit(
             "success": True,
             "id": outfit_data["id"],
             "name": outfit_data["name"],
-            "items": outfit_data["items"],
+            "items": normalized_items,
             "style": outfit_data["style"],
             "occasion": outfit_data["occasion"],
             "description": outfit_data.get("description", ""),
-            "createdAt": outfit_data["createdAt"]
+            "createdAt": current_time_ms,
+            "created_at": datetime.utcnow().isoformat()
         }
         
     except HTTPException:
