@@ -416,6 +416,7 @@ class RobustOutfitGenerationService:
         item_name_lower = item_name
         item_name_lower = item_name
         item_name_lower = item_name
+        item_name_lower = item_name
         
         # Formal items (3-4)
         if any(kw in item_type or kw in item_name for kw in ['tuxedo', 'gown', 'bow tie', 'cufflink']):
@@ -3478,6 +3479,15 @@ class RobustOutfitGenerationService:
                     return False
                 if 'jeans' in item_type_lower or 'denim' in item_type_lower:
                     logger.info(f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED DENIM TYPE '{item_name[:40]}'")
+                    return False
+                restrictive_waistbands = {
+                    'button', 'button_zip', 'zip', 'zipper', 'belt_loops', 'belt loop',
+                    'hook', 'hook_bar', 'hook-and-bar', 'hook_and_bar', 'tab', 'fixed', 'snap'
+                }
+                if waistband_type in restrictive_waistbands:
+                    logger.info(
+                        f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED STRUCTURED WAISTBAND '{item_name[:40]}' - waistbandType={waistband_type}"
+                    )
                     return False
 
                 has_relaxed_name = any(marker in item_name_lower for marker in relaxed_name_markers)
