@@ -413,6 +413,7 @@ export default function OutfitGrid({
 
   // Intersection observer for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const refreshQueryHandledRef = useRef(false);
   
   // Debounced refresh function to prevent multiple simultaneous refreshes
   const debouncedRefresh = useCallback(() => {
@@ -519,26 +520,6 @@ export default function OutfitGrid({
   // The useOutfits hook already handles initial data fetching
 
   /**
-   * Check for refresh parameter in URL and trigger refresh
-   */
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refreshParam = urlParams.get('refresh');
-    
-    if (refreshParam) {
-      console.log('🔄 [OutfitGrid] Refresh parameter detected, triggering immediate refresh');
-      refresh();
-      
-      // Clean up URL without refresh param
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-    }
-  }, [refresh]);
-
-  // Removed window focus and page visibility refresh triggers to prevent loops
-  // Only keeping URL parameter and event-based refreshes
-
-  /**
    * Listen for outfit marked as worn events to refresh outfit data
    */
   useEffect(() => {
@@ -555,23 +536,32 @@ export default function OutfitGrid({
   }, [debouncedRefresh]);
 
   /**
-   * Check for refresh parameter in URL (from outfit generation page)
-   * Only run once on mount to prevent loops
+   * Handle refresh query parameter once to avoid repeated reload loops.
+   * Ensures the outfits grid only reacts a single time even if the callback identities change.
    */
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refreshParam = urlParams.get('refresh');
-    
-    if (refreshParam) {
-      console.log('🔄 [OutfitGrid] Refresh parameter detected, refreshing outfits...');
-      debouncedRefresh();
-      
-      // Clean up URL by removing the refresh parameter
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.delete('refresh');
-      window.history.replaceState({}, '', newUrl.toString());
+
+    if (!refreshParam) {
+      return;
     }
-  }, []); // Empty dependency array - only run once on mount
+
+    if (!refreshQueryHandledRef.current) {
+      refreshQueryHandledRef.current = true;
+      console.log('🔄 [OutfitGrid] Refresh parameter detected, triggering debounced refresh');
+      debouncedRefresh();
+    } else {
+      console.log('🔄 [OutfitGrid] Refresh parameter already handled, skipping duplicate refresh');
+    }
+
+    urlParams.delete('refresh');
+    const remainingQuery = urlParams.toString();
+    const cleanUrl = remainingQuery
+      ? `${window.location.pathname}?${remainingQuery}`
+      : window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+  }, [debouncedRefresh]);
 
   /**
    * Intersection observer for automatic infinite scroll
