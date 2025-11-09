@@ -13,7 +13,6 @@ import {
   Heart, 
   Sparkles, 
   Trash2, 
-  Edit3, 
   Save, 
   X, 
   Calendar,
@@ -114,6 +113,7 @@ export default function WardrobeItemDetails({
   onIncrementWear,
   onGenerateOutfit
 }: WardrobeItemDetailsProps) {
+  const isEditing = true;
   const [editedItem, setEditedItem] = useState<Partial<WardrobeItem>>({});
   const [isSaving, setIsSaving] = useState(false);
 
