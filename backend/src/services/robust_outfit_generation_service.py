@@ -2623,9 +2623,13 @@ class RobustOutfitGenerationService:
                         ok_style = True
                         heuristics_applied.append("monochrome_neutral_color")
                     # Allow essentials if metadata lacks color info entirely
-                    elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes', 'outerwear'} and not monochrome_color_tokens:
+                    elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes', 'outerwear'} and (not monochrome_color_tokens or monochrome_color_tokens == {'neutral'}):
                         ok_style = True
                         heuristics_applied.append("monochrome_core_category")
+                # Hard block items flagged as contrast
+                if ok_style and any(token == "contrast" for token in monochrome_color_tokens):
+                    ok_style = False
+                    heuristics_applied.append("monochrome_contrast_block")
                 if not ok_occ and ok_style:
                     ok_occ = True
                     heuristics_applied.append("style_implies_monochrome")
@@ -5132,7 +5136,7 @@ class RobustOutfitGenerationService:
                 for token in base_tokens:
                     if token in color_value:
                         return token
-                return None
+                return "contrast"
             
             def _extract_item_color_tokens(item_obj: ClothingItem) -> List[str]:
                 tokens: List[str] = []
@@ -5281,8 +5285,8 @@ class RobustOutfitGenerationService:
                         base_score += 0.05
                         logger.debug(f"  🎯 MONOCHROME NEUTRAL: {self.safe_get_item_name(item)} neutral fallback (+0.05)")
                     else:
-                        base_score -= 0.4
-                        logger.debug(f"  ⚠️ MONOCHROME CONTRAST: {self.safe_get_item_name(item)} diverges from {preferred_monochrome_color} (-0.40)")
+                        base_score -= 1.0
+                        logger.debug(f"  ⚠️ MONOCHROME CONTRAST: {self.safe_get_item_name(item)} diverges from {preferred_monochrome_color} (-1.00)")
             
             # Style-specific metadata scoring (e.g., colorblock)
             if target_style == 'colorblock' and calculate_colorblock_metadata_score:
