@@ -42,9 +42,6 @@ export async function POST(
           signal: controller.signal
         }
       );
-export async function OPTIONS() {
-  return NextResponse.json({}, { status: 204 });
-}
 
       clearTimeout(timeoutId);
 
@@ -118,5 +115,9 @@ export async function OPTIONS() {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 204 });
 }
 
