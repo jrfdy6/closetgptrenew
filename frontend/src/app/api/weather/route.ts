@@ -3,6 +3,35 @@ import { NextResponse } from "next/server";
 // Force dynamic rendering since we use request.url
 export const dynamic = 'force-dynamic';
 
+const FALLBACK_WEATHER = {
+  temperature: 72.0,
+  condition: "Clear",
+  humidity: 65,
+  wind_speed: 5.0,
+  precipitation: 0.0,
+};
+
+function createFallbackResponse(
+  location: string | undefined,
+  error: string
+) {
+  const responsePayload = {
+    ...FALLBACK_WEATHER,
+    location: location || "Fallback Location",
+    fallback: true,
+    error,
+  };
+
+  return NextResponse.json(responsePayload, {
+    status: 200,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
+
 export async function POST(request: Request) {
   try {
     console.log("🌤️ Frontend weather API route called");
@@ -27,34 +56,26 @@ export async function POST(request: Request) {
     console.log("🌤️ Backend response status:", response.status);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("🌤️ Backend error:", errorData);
-      
-      // If backend returns 404 (Not Found), provide fallback data
-      if (response.status === 404) {
-        console.log("🌤️ Weather endpoint not available, providing fallback data");
-        return NextResponse.json(
-          { 
-            temperature: 72.0,
-            condition: "Clear",
-            humidity: 65,
-            wind_speed: 5.0,
-            location: requestBody.location || "Default Location",
-            precipitation: 0.0,
-            fallback: true
-          },
-          { 
-            status: 200,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            },
-          }
-        );
+      let parsedError: any = null;
+      let rawError = "";
+      try {
+        rawError = await response.text();
+        parsedError = rawError ? JSON.parse(rawError) : null;
+      } catch (parseError) {
+        console.warn("🌤️ Backend returned non-JSON error payload", parseError);
       }
-      
-      throw new Error(errorData.detail || errorData.message || 'Failed to fetch weather data');
+
+      const reason =
+        parsedError?.detail ||
+        parsedError?.message ||
+        parsedError?.error ||
+        rawError ||
+        `Backend weather error ${response.status}`;
+
+      console.error("🌤️ Backend error:", reason, { status: response.status });
+
+      // Always return a graceful fallback for non-OK responses
+      return createFallbackResponse(requestBody.location, reason);
     }
 
     const weatherData = await response.json();
@@ -71,45 +92,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("🌤️ Error fetching weather:", error);
     
-    // Provide fallback weather data if backend is unavailable
-    if (error instanceof Error && (error.message.includes('fetch') || error.message.includes('timeout'))) {
-      console.log("🌤️ Backend unavailable, providing fallback weather data");
-      return NextResponse.json(
-        { 
-          temperature: 72.0,
-          condition: "Clear",
-          humidity: 65,
-          wind_speed: 5.0,
-          location: "Default Location",
-          precipitation: 0.0,
-          fallback: true
-        },
-        { 
-          status: 200,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          },
-        }
-      );
-    }
-    
-    return NextResponse.json(
-      { 
-        error: "Failed to fetch weather data", 
-        details: error instanceof Error ? error.message : "Unknown error",
-        stack: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined
-      },
-      { 
-        status: 500,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      }
-    );
+    const message =
+      error instanceof Error ? error.message : "Unknown weather fetch error";
+    console.log("🌤️ Backend unavailable or unexpected error, providing fallback weather data");
+    return createFallbackResponse(undefined, message);
   }
 }
 
