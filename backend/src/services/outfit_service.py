@@ -7,6 +7,7 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from firebase_admin import firestore
+from uuid import uuid4
 
 # Import the established pattern components
 from ..core.exceptions import ValidationError, DatabaseError
@@ -102,6 +103,7 @@ class OutfitService:
                             logger.warning(f"⚠️ Unknown createdAt type for outfit {doc.id}: {type(created_at)}")
                             outfit_data['createdAt'] = datetime.utcnow()
                     
+                    outfit_data = self._sanitize_outfit_document(outfit_data, doc.id)
                     outfit = Outfit(**outfit_data)
                     outfits.append(outfit)
                 except Exception as e:
@@ -149,6 +151,7 @@ class OutfitService:
             
             # Transform to business object
             outfit_data['id'] = doc.id
+            outfit_data = self._sanitize_outfit_document(outfit_data, doc.id)
             outfit = Outfit(**outfit_data)
             
             logger.info(f"✅ Successfully retrieved outfit {outfit_id}")
@@ -490,6 +493,86 @@ class OutfitService:
         except Exception as e:
             logger.error(f"❌ Failed to toggle favorite for outfit {outfit_id}: {e}")
             raise DatabaseError(f"Failed to toggle outfit favorite: {str(e)}")
+
+    # ===== INTERNAL UTILITIES =====
+
+    def _sanitize_outfit_document(self, outfit_data: Dict[str, Any], outfit_id: str) -> Dict[str, Any]:
+        """
+        Normalize outfit documents so they satisfy the Outfit Pydantic model.
+        Ensures required fields exist and have the correct shape.
+        """
+        if not outfit_data:
+            return outfit_data
+
+        user_id = outfit_data.get('user_id') or outfit_data.get('userId') or ''
+
+        items = outfit_data.get('items', [])
+        sanitized_items: List[Dict[str, Any]] = []
+
+        for idx, item in enumerate(items or []):
+            if isinstance(item, dict):
+                sanitized = item.copy()
+
+                sanitized.setdefault('id', sanitized.get('id') or sanitized.get('itemId') or str(uuid4()))
+                sanitized.setdefault('name', sanitized.get('name') or sanitized.get('title') or 'Unnamed Item')
+                sanitized.setdefault('userId', sanitized.get('userId') or user_id)
+
+                # Normalise subtype/type/category
+                sub_type = sanitized.get('subType') or sanitized.get('category') or sanitized.get('type')
+                sanitized['subType'] = sub_type or 'general'
+                item_type = sanitized.get('type') or sanitized.get('category') or sanitized.get('subType')
+                sanitized['type'] = item_type or 'general'
+
+                # Ensure color and image keys exist
+                sanitized.setdefault('color', sanitized.get('color') or sanitized.get('primaryColor') or '')
+                sanitized.setdefault('imageUrl', sanitized.get('imageUrl') or sanitized.get('image_url') or sanitized.get('image') or '')
+
+                # Ensure style/occasion lists
+                style_value = sanitized.get('style')
+                if isinstance(style_value, str):
+                    sanitized['style'] = [style_value]
+                elif not style_value:
+                    sanitized['style'] = ['casual']
+
+                occasion_value = sanitized.get('occasion')
+                if isinstance(occasion_value, str):
+                    sanitized['occasion'] = [occasion_value]
+                elif not occasion_value:
+                    sanitized['occasion'] = ['casual']
+
+                # Optional list fields default to lists
+                if sanitized.get('dominantColors') is None or isinstance(sanitized.get('dominantColors'), str):
+                    sanitized['dominantColors'] = []
+                if sanitized.get('matchingColors') is None or isinstance(sanitized.get('matchingColors'), str):
+                    sanitized['matchingColors'] = []
+
+                # Numeric defaults
+                sanitized.setdefault('wearCount', sanitized.get('wearCount', 0) or 0)
+                sanitized.setdefault('favorite_score', sanitized.get('favorite_score', 0.0) or 0.0)
+
+                # Metadata should be dict if present
+                metadata = sanitized.get('metadata')
+                if metadata is None:
+                    sanitized['metadata'] = {}
+                elif not isinstance(metadata, dict):
+                    sanitized['metadata'] = {'value': metadata}
+
+                sanitized_items.append(sanitized)
+            else:
+                logger.warning(f"⚠️ Outfit {outfit_id} contains non-dict item at index {idx}, skipping")
+
+        outfit_data['items'] = sanitized_items
+
+        # Ensure top-level timestamps are consistent (Pydantic handles conversion afterwards)
+        if 'createdAt' not in outfit_data:
+            outfit_data['createdAt'] = datetime.utcnow()
+        if 'updatedAt' not in outfit_data or outfit_data.get('updatedAt') is None:
+            outfit_data['updatedAt'] = outfit_data.get('createdAt')
+
+        # isFavorite default
+        outfit_data.setdefault('isFavorite', outfit_data.get('isFavorite', False) or False)
+
+        return outfit_data
     
     async def get_outfit_stats(self, user_id: str) -> Dict[str, Any]:
         """
