@@ -365,6 +365,10 @@ class DiversityFilterService:
         # Use same-combination outfits for similarity check, or all if none found
         comparison_outfits = same_combo_outfits if same_combo_outfits else recent_outfits
         
+        occasion_lower = (occasion or "").lower()
+        style_lower = (style or "").lower()
+        is_loungewear_combo = occasion_lower in {'loungewear', 'lounge', 'home', 'relaxed'} or style_lower == 'loungewear'
+
         for item in items:
             base_score = 1.0
             diversity_boost = 0.0
@@ -383,18 +387,31 @@ class DiversityFilterService:
                             same_combo_usage += 1
                             break  # Count each outfit only once
             
+            never_used_boost = 0.8
+            lightly_used_boost = 0.3
+            moderate_penalty = -0.2
+            overuse_penalty = -1.5
+
+            if is_loungewear_combo:
+                # Loungewear wardrobes often have limited cozy layers.
+                # Use gentler rewards/penalties so we don't strip every lounge piece.
+                never_used_boost = 0.5
+                lightly_used_boost = 0.2
+                moderate_penalty = -0.1
+                overuse_penalty = -0.75
+
             if same_combo_usage == 0:
-                diversity_boost += 0.8  # INCREASED: Not used in this combination (was 0.5)
-                logger.debug(f"  🆕 {item.name[:30]}: Not used in {occasion}/{style} → +0.80")
+                diversity_boost += never_used_boost
+                logger.debug(f"  🆕 {item.name[:30]}: Not used in {occasion}/{style} → {never_used_boost:+.2f}")
             elif same_combo_usage == 1:
-                diversity_boost += 0.3  # Lightly used in this combination
-                logger.debug(f"  🌱 {item.name[:30]}: Used 1x in {occasion}/{style} → +0.30")
+                diversity_boost += lightly_used_boost
+                logger.debug(f"  🌱 {item.name[:30]}: Used 1x in {occasion}/{style} → {lightly_used_boost:+.2f}")
             elif same_combo_usage == 2:
-                diversity_boost -= 0.2  # Moderately used - small penalty to discourage
-                logger.debug(f"  ➖ {item.name[:30]}: Used 2x in {occasion}/{style} → -0.20")
+                diversity_boost += moderate_penalty
+                logger.debug(f"  ➖ {item.name[:30]}: Used 2x in {occasion}/{style} → {moderate_penalty:+.2f}")
             elif same_combo_usage >= 3:
-                diversity_boost -= 1.5  # MASSIVE penalty: Overused in this combination (was -0.5)
-                logger.warning(f"  🔁 {item.name[:30]}: Overused {same_combo_usage}x in {occasion}/{style} → -1.50")
+                diversity_boost += overuse_penalty
+                logger.warning(f"  🔁 {item.name[:30]}: Overused {same_combo_usage}x in {occasion}/{style} → {overuse_penalty:+.2f}")
             
             # Boost items that are different from recent SAME-COMBO outfits
             if comparison_outfits:

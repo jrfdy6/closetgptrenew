@@ -2588,6 +2588,10 @@ class RobustOutfitGenerationService:
                 logger.debug(f"🛋️ LOUNGE HEURISTICS APPLIED: {debug_entry_extra}")
                 if hasattr(context, "metadata_notes") and isinstance(context.metadata_notes, dict):
                     context.metadata_notes.setdefault("lounge_heuristics", []).append(debug_entry_extra)
+                    lounge_list = context.metadata_notes.setdefault("lounge_item_ids", [])
+                    item_identifier = debug_entry_extra['item_id']
+                    if item_identifier not in lounge_list:
+                        lounge_list.append(item_identifier)
             
             # Build rejection reasons
             if not ok_occ:
@@ -5015,6 +5019,10 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎨 COLOR THEORY: Using color palette for skin tone category")
         
+        lounge_boost_ids = set()
+        if target_style == 'loungewear' and hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
+            lounge_boost_ids = set(context.metadata_notes.get('lounge_item_ids', []) or [])
+        
         try:
             from src.routes.outfits.styling import calculate_colorblock_metadata_score
         except ImportError:
@@ -5084,6 +5092,10 @@ class RobustOutfitGenerationService:
                     if pref_brand and pref_brand.lower() in item_brand.lower():
                         base_score += 0.10
                         break
+            
+            if target_style == 'loungewear' and item_id in lounge_boost_ids:
+                base_score += 0.40
+                logger.debug(f"  🛋️ LOUNGE BOOST: {self.safe_get_item_name(item)} (+0.40 for lounge heuristics)")
             
             # Style-specific metadata scoring (e.g., colorblock)
             if target_style == 'colorblock' and calculate_colorblock_metadata_score:
@@ -5811,6 +5823,17 @@ class RobustOutfitGenerationService:
             recommended_layers = max(0, recommended_layers - 1)  # Reduce layers for movement
             logger.info(f"  🏃 Athletic occasion → Reduce layers for mobility")
         
+        loungewear_mode = occasion_lower in ['loungewear', 'lounge', 'home', 'relaxed'] or style_lower == 'loungewear'
+        lounge_item_ids: set = set()
+        if loungewear_mode and isinstance(context.metadata_notes, dict):
+            lounge_item_ids = set(context.metadata_notes.get('lounge_item_ids', []) or [])
+            if lounge_item_ids:
+                logger.info(f"🛋️ LOUNGE MODE: {len(lounge_item_ids)} lounge-qualified items available after filtering")
+
+        if loungewear_mode:
+            min_items = max(min_items, 4)
+            logger.info(f"🛋️ LOUNGE MODE: Minimum items increased to {min_items} for cozy layering")
+
         target_items = min(min_items + recommended_layers, max_items)
         logger.info(f"🎯 TARGET: {target_items} items (min={min_items}, max={max_items}, layers={recommended_layers})")
         
@@ -6232,6 +6255,19 @@ class RobustOutfitGenerationService:
         
         # Phase 2: Add layering pieces based on target count
         logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
+        outerwear_threshold = 0.6
+        mid_layer_threshold = 0.6
+        accessory_threshold = 0.7
+        if loungewear_mode:
+            outerwear_threshold = 0.45
+            mid_layer_threshold = 0.45
+            accessory_threshold = 0.85  # Accessories rarely needed for lounge sets
+
+        lounge_layer_keywords = ['sweater', 'cardigan', 'vest', 'hoodie', 'pullover', 'fleece', 'crewneck', 'henley', 'thermal', 'knit', 'zip', 'jogger']
+
+        def _is_lounge_layer_name(name_lower: str) -> bool:
+            return any(kw in name_lower for kw in lounge_layer_keywords)
+
         for item_id, score_data in sorted_items:
             if len(selected_items) >= target_items:
                 break
@@ -6242,10 +6278,17 @@ class RobustOutfitGenerationService:
             
             category = self._get_item_category(item)
             item_name_lower = (self.safe_get_item_name(item) if item else "Unknown").lower()
+            item_identifier = self.safe_get_item_attr(item, 'id', '')
+
+            if loungewear_mode and lounge_item_ids and item_identifier:
+                # Prefer items flagged by lounge heuristics when available
+                if category in ['tops', 'outerwear'] and item_identifier not in lounge_item_ids and not _is_lounge_layer_name(item_name_lower):
+                    logger.debug(f"  ⏭️ Lounge layer skip: {self.safe_get_item_name(item)} not flagged as lounge candidate")
+                    continue
             
             # Determine layering appropriateness
             # VERSION: 2025-10-11-DUPLICATE-FIX
-            if category == 'outerwear' and score_data['composite_score'] > 0.6:
+            if category == 'outerwear' and score_data['composite_score'] > outerwear_threshold:
                 # ✅ FIX: Check if outerwear already exists before adding
                 has_outerwear = any(self._get_item_category(i) == 'outerwear' for i in selected_items)
                 
@@ -6260,13 +6303,12 @@ class RobustOutfitGenerationService:
                 elif has_outerwear:
                     logger.warning(f"  ⏭️ Outerwear: {self.safe_get_item_name(item)} - SKIPPED (already have outerwear)")
             
-            elif category == 'tops' and score_data['composite_score'] > 0.6:
+            elif category == 'tops' and score_data['composite_score'] > mid_layer_threshold:
                 # ✅ FIX: Check if mid-layer already exists before adding
-                is_mid_layer = any(kw in item_name_lower for kw in ['sweater', 'cardigan', 'vest'])
+                is_mid_layer = _is_lounge_layer_name(item_name_lower)
                 has_mid_layer = any(
-                    kw in self.safe_get_item_name(i).lower() 
-                    for i in selected_items 
-                    for kw in ['sweater', 'cardigan', 'vest']
+                    _is_lounge_layer_name(self.safe_get_item_name(i).lower())
+                    for i in selected_items
                 )
                 
                 if is_mid_layer and not has_mid_layer and temp < 70:
@@ -6276,7 +6318,7 @@ class RobustOutfitGenerationService:
                 elif is_mid_layer and has_mid_layer:
                     logger.warning(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
             
-            elif category == 'accessories' and score_data['composite_score'] > 0.7:
+            elif category == 'accessories' and score_data['composite_score'] > accessory_threshold:
                 # Accessories can have multiple items (belts, watches, etc.)
                 if temp < 50 or occasion_lower in ['formal', 'business']:
                     # Limit to 2 accessories max
@@ -6289,6 +6331,25 @@ class RobustOutfitGenerationService:
         
         # Ensure minimum items
         if len(selected_items) < min_items:
+            if loungewear_mode and lounge_item_ids:
+                logger.info(f"🛋️ LOUNGE MODE: Adding lounge-qualified layers to reach minimum {min_items}")
+                for item_id, score_data in sorted_items:
+                    if len(selected_items) >= min_items:
+                        break
+                    candidate = score_data['item']
+                    if candidate in selected_items:
+                        continue
+                    candidate_id = self.safe_get_item_attr(candidate, 'id', '')
+                    if candidate_id and candidate_id not in lounge_item_ids and not _is_lounge_layer_name(self.safe_get_item_name(candidate).lower()):
+                        continue
+                    if score_data['composite_score'] < 0.25:
+                        continue
+                    # CRITICAL: Apply hard filter to lounge fillers too
+                    if not self._hard_filter(candidate, context.occasion, context.style):
+                        continue
+                    selected_items.append(candidate)
+                    logger.info(f"  🛋️ Added lounge filler: {self.safe_get_item_name(candidate)} (score={score_data['composite_score']:.2f})")
+
             logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
             # First pass: Try to add items from non-essential categories (outerwear, accessories)
             for item_id, score_data in sorted_items:
