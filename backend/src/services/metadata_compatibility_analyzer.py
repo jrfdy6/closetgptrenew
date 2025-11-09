@@ -164,7 +164,9 @@ class MetadataCompatibilityAnalyzer:
             'loungewear',
             'monochrome',
             'old money',
-            'urban professional'
+            'urban professional',
+            'artsy',
+            'avant-garde'
         }
 
         if occasion_lower in skip_for_occasion and style_lower not in color_sensitive_styles:

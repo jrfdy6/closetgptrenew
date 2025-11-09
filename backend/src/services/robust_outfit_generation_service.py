@@ -3396,8 +3396,57 @@ class RobustOutfitGenerationService:
                     if formal_level in ['formal', 'business', 'professional']:
                         logger.info(f"🚫 LOUNGEWEAR METADATA: BLOCKED {item_name[:40]} - formalLevel={formal_level}")
                         return False
+                    if style_lower in ['artsy', 'avant-garde']:
+                        material = (visual_attrs.get('material') or '').lower()
+                        if material in ['leather', 'patent leather'] and item_type_lower not in ['slipper', 'loafers']:
+                            logger.info(f"🚫 LOUNGEWEAR ARTSY METADATA: BLOCKED {item_name[:40]} - material={material}")
+                            return False
             
             logger.info(f"✅ LOUNGEWEAR HARD FILTER: PASSED '{item_name[:40]}'")
+
+            if style_lower in ['artsy', 'avant-garde']:
+                athletic_keywords = [
+                    'athletic', 'running', 'training', 'performance', 'sport',
+                    'sneaker', 'tennis', 'basketball', 'track', 'gym', 'football', 'cleat'
+                ]
+                relaxed_keywords = [
+                    'knit', 'fleece', 'cashmere', 'wool', 'cotton', 'modal', 'jersey',
+                    'cardigan', 'kimono', 'robe', 'poncho', 'wrap', 'wide-leg', 'wide leg',
+                    'palazzo', 'lounge', 'relaxed', 'soft', 'drape', 'flowy'
+                ]
+
+                visual_attrs = {}
+                if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                    visual_attrs = item.metadata.get('visualAttributes', {}) or {}
+                shoe_type = (visual_attrs.get('shoeType') or '').lower() if isinstance(visual_attrs, dict) else ''
+                material = (visual_attrs.get('material') or '').lower() if isinstance(visual_attrs, dict) else ''
+                waistband_type = (visual_attrs.get('waistbandType') or '').lower() if isinstance(visual_attrs, dict) else ''
+
+                name_has_athletic = any(keyword in item_name_lower for keyword in athletic_keywords)
+                type_has_athletic = any(keyword in item_type_lower for keyword in athletic_keywords)
+                shoe_is_athletic = any(keyword in shoe_type for keyword in ['sneaker', 'trainer', 'running', 'basketball'])
+
+                if name_has_athletic or type_has_athletic or shoe_is_athletic:
+                    logger.info(f"🚫 LOUNGEWEAR ARTSY FILTER: BLOCKED ATHLETIC ITEM '{item_name[:40]}'")
+                    return False
+
+                relaxed_materials = [
+                    'knit', 'fleece', 'cashmere', 'wool', 'cotton', 'modal', 'velvet', 'velour', 'jersey', 'boucle'
+                ]
+                is_relaxed_material = any(mat in material for mat in relaxed_materials)
+                is_relaxed_name = any(keyword in item_name_lower for keyword in relaxed_keywords)
+
+                if item_type_lower in ['bottoms', 'pants', 'shorts'] and not (
+                    waistband_type in ['elastic', 'drawstring', 'elastic_drawstring'] or
+                    is_relaxed_material or is_relaxed_name
+                ):
+                    logger.info(f"🚫 LOUNGEWEAR ARTSY FILTER: BLOCKED STRUCTURED BOTTOM '{item_name[:40]}'")
+                    return False
+
+                top_types = ['tops', 'top', 'shirt', 't_shirt', 't-shirt', 'sweater', 'hoodie', 'cardigan']
+                if item_type_lower in top_types and not (is_relaxed_material or is_relaxed_name):
+                    logger.info(f"🚫 LOUNGEWEAR ARTSY FILTER: BLOCKED STRUCTURED TOP '{item_name[:40]}'")
+                    return False
         
         # PARTY/DATE HARD BLOCKS - Block overly casual/athletic items
         if occasion_lower in ['party', 'date', 'night out', 'club', 'dinner']:
