@@ -961,10 +961,10 @@ async def create_outfit(
             "description": description,
             "items": normalized_items,
             "user_id": current_user_id,
-            "createdAt": server_timestamp,
-            "updatedAt": server_timestamp,
-            "created_at_ms": current_time_ms,
-            "updated_at_ms": current_time_ms,
+            "createdAt": current_time_ms,
+            "updatedAt": current_time_ms,
+            "created_at_timestamp": server_timestamp,
+            "updated_at_timestamp": server_timestamp,
             "created_at_iso": current_time_iso,
             "updated_at_iso": current_time_iso,
             "is_custom": True,
@@ -1010,14 +1010,15 @@ async def create_outfit(
         response_payload.setdefault("id", outfit_id)
         response_payload.setdefault("items", normalized_items)
         
-        created_at_value = response_payload.get("createdAt")
-        if created_at_value is not None:
-            if hasattr(created_at_value, "isoformat"):
-                response_payload["createdAt"] = created_at_value.isoformat()
-            elif isinstance(created_at_value, (int, float)):
-                response_payload["createdAt"] = datetime.fromtimestamp(created_at_value / 1000).isoformat()
+        created_at_value = response_payload.get("createdAt", current_time_ms)
+        created_at_iso = current_time_iso
+        if isinstance(created_at_value, (int, float)):
+            created_at_iso = datetime.fromtimestamp(created_at_value / 1000).isoformat()
+        elif hasattr(created_at_value, "isoformat"):
+            created_at_iso = created_at_value.isoformat()
+            response_payload["createdAt"] = current_time_ms
         else:
-            response_payload["createdAt"] = current_time_iso
+            response_payload["createdAt"] = current_time_ms
         
         return {
             "success": True,
@@ -1027,7 +1028,7 @@ async def create_outfit(
             "style": response_payload.get("style", style),
             "occasion": response_payload.get("occasion", occasion),
             "description": response_payload.get("description", description),
-            "createdAt": response_payload["createdAt"]
+            "createdAt": created_at_iso
         }
         
     except HTTPException:
