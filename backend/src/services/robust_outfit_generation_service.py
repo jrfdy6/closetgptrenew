@@ -3028,6 +3028,8 @@ class RobustOutfitGenerationService:
         else:
             item_type = str(raw_type).lower()
         occasion_lower = occasion.lower()
+        style_lower = (style or '').lower()
+        item_type_lower = item_type
         
         logger.info(f"🔍 HARD FILTER ENTRY: Checking '{item_name[:30]}' (type={item_type}) for {occasion}")
         
