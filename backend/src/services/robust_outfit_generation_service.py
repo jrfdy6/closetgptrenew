@@ -3414,7 +3414,7 @@ class RobustOutfitGenerationService:
             
             # Block overly casual items
             too_casual_blocks = [
-                'crocs', 'flip-flop', 'slide sandal',
+                'crocs', 'flip-flop', 'slide sandal', 'slide', 'slides', 'slipper',
                 'graphic tee', 'band tee',
                 'pajama', 'sleepwear'
             ]
@@ -6336,6 +6336,10 @@ class RobustOutfitGenerationService:
         style_lower = (context.style if context else "unknown").lower()
         mood_lower = (context.mood if context else "unknown").lower() if (context.mood if context else "unknown") else ''
         is_minimalistic = 'minimal' in style_lower or 'minimal' in mood_lower or style_lower == 'minimalist'
+        party_polish_contexts = {
+            'party', 'evening', 'formal', 'wedding', 'cocktail', 'dinner', 'night out'
+        }
+        requires_minimalist_party_polish = is_minimalistic and occasion_lower in party_polish_contexts
         
         # Determine recommended item count based on weather and occasion
         min_items = 3  # Always need top, bottom, shoes
@@ -6383,6 +6387,14 @@ class RobustOutfitGenerationService:
         if loungewear_mode:
             min_items = max(min_items, 4)
             logger.info(f"🛋️ LOUNGE MODE: Minimum items increased to {min_items} for cozy layering")
+
+        if requires_minimalist_party_polish:
+            previous_min = min_items
+            min_items = max(min_items, 4)
+            if min_items != previous_min:
+                logger.info(f"🎉 MINIMALIST PARTY: Minimum items increased to {min_items} to ensure polish")
+            recommended_layers = max(recommended_layers, 1)
+            logger.info(f"🎉 MINIMALIST PARTY: Enforcing at least one polish layer/accessory")
 
         target_items = min(min_items + recommended_layers, max_items)
         logger.info(f"🎯 TARGET: {target_items} items (min={min_items}, max={max_items}, layers={recommended_layers})")
@@ -6614,6 +6626,43 @@ class RobustOutfitGenerationService:
                 if not base_item_obj:
                     logger.error(f"❌ PHASE 0: Base item {context.base_item_id} not found in wardrobe!")
         
+        def _is_polished_party_shoe(item_obj: Any) -> bool:
+            """Return False when a shoe is clearly too casual for minimalist party/formal outfits."""
+            shoe_formality = self._get_item_formality_level(item_obj)
+            if shoe_formality is not None and shoe_formality >= 2:
+                return True
+
+            item_name_lower = (self.safe_get_item_name(item_obj) or "unknown").lower()
+            metadata = getattr(item_obj, 'metadata', None)
+            shoe_type = ""
+            material = ""
+            if isinstance(metadata, dict):
+                visual_attrs = metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    shoe_type = (visual_attrs.get('shoeType') or "").lower()
+                    material = (visual_attrs.get('material') or "").lower()
+
+            polished_markers = [
+                'oxford', 'loafer', 'derby', 'monk', 'chelsea', 'wingtip', 'pump',
+                'heel', 'dress', 'patent', 'brogue', 'strappy', 'kitten heel'
+            ]
+            if any(marker in item_name_lower for marker in polished_markers):
+                return True
+            if any(marker in shoe_type for marker in polished_markers):
+                return True
+            if material in ['leather', 'patent leather', 'suede'] and 'sneaker' not in shoe_type and 'sneaker' not in item_name_lower:
+                return True
+
+            casual_markers = [
+                'sneaker', 'trainer', 'running', 'slide', 'slides', 'flip flop', 'flip-flop',
+                'slipper', 'house shoe', 'water shoe', 'foam', 'athletic', 'pool slide'
+            ]
+            if any(marker in item_name_lower for marker in casual_markers):
+                return False
+            if shoe_type and any(marker in shoe_type for marker in casual_markers):
+                return False
+            return True
+        
         # Phase 1: Fill essential categories (tops, bottoms, shoes)
         logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
         logger.debug(f"🔍 DEBUG PHASE 1: Starting with {len(sorted_items)} scored items")
@@ -6684,6 +6733,10 @@ class RobustOutfitGenerationService:
                         if self._is_forbidden_combination(item, selected_items):
                             logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} creates forbidden combination with existing items")
                             continue  # Skip this item
+                        if category == 'shoes' and requires_minimalist_party_polish:
+                            if not _is_polished_party_shoe(item):
+                                logger.info(f"  ⏭️ Essential shoes: {self.safe_get_item_name(item)} skipped — not polished enough for minimalist {context.occasion}")
+                                continue
                         if not _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
                             continue
                         
@@ -6830,6 +6883,11 @@ class RobustOutfitGenerationService:
             mid_layer_threshold = 0.45
             accessory_threshold = 0.85  # Accessories rarely needed for lounge sets
 
+        if requires_minimalist_party_polish:
+            outerwear_threshold = min(outerwear_threshold, 0.45)
+            mid_layer_threshold = min(mid_layer_threshold, 0.55)
+            accessory_threshold = min(accessory_threshold, 0.55)
+
         lounge_layer_keywords = ['sweater', 'cardigan', 'vest', 'hoodie', 'pullover', 'fleece', 'crewneck', 'henley', 'thermal', 'knit', 'zip', 'jogger']
 
         def _is_lounge_layer_name(name_lower: str) -> bool:
@@ -6899,6 +6957,45 @@ class RobustOutfitGenerationService:
                             logger.warning(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                     else:
                         logger.warning(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
+        
+        if requires_minimalist_party_polish and len(selected_items) < max_items:
+            has_outerwear = any(self._get_item_category(i) == 'outerwear' for i in selected_items)
+            has_accessory = any(self._get_item_category(i) == 'accessories' for i in selected_items)
+
+            if not has_outerwear and len(selected_items) < max_items:
+                for candidate_id, score_data in sorted_items:
+                    candidate_item = score_data['item']
+                    if candidate_item in selected_items:
+                        continue
+                    if self._get_item_category(candidate_item) != 'outerwear':
+                        continue
+                    if score_data['composite_score'] < 0.1:
+                        continue
+                    if not self._hard_filter(candidate_item, context.occasion, context.style):
+                        continue
+                    if not _is_monochrome_allowed(candidate_item, candidate_id, score_data, log_prefix="  "):
+                        continue
+                    selected_items.append(candidate_item)
+                    categories_filled['outerwear'] = True
+                    logger.info(f"  ✅ MINIMALIST PARTY: Added polish outer layer {self.safe_get_item_name(candidate_item)}")
+                    break
+
+            if not has_accessory and len(selected_items) < max_items:
+                for candidate_id, score_data in sorted_items:
+                    candidate_item = score_data['item']
+                    if candidate_item in selected_items:
+                        continue
+                    if self._get_item_category(candidate_item) != 'accessories':
+                        continue
+                    if score_data['composite_score'] < 0.05:
+                        continue
+                    if not self._hard_filter(candidate_item, context.occasion, context.style):
+                        continue
+                    if not _is_monochrome_allowed(candidate_item, candidate_id, score_data, log_prefix="  "):
+                        continue
+                    selected_items.append(candidate_item)
+                    logger.info(f"  ✅ MINIMALIST PARTY: Added polish accessory {self.safe_get_item_name(candidate_item)}")
+                    break
         
         # Ensure minimum items
         if len(selected_items) < min_items:
