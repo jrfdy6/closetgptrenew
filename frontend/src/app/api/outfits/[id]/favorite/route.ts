@@ -22,8 +22,8 @@ export async function POST(
     }
 
     const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
       process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
       'https://closetgptrenew-production.up.railway.app';
 
     console.log(`❤️ [API] Toggling favorite for outfit ${outfitId}`);
@@ -33,7 +33,7 @@ export async function POST(
 
     try {
       const backendResponse = await fetch(
-        `${backendUrl}/api/outfits/${outfitId}/toggle-favorite`,
+        `${backendUrl.replace(/\/$/, '')}/api/outfits/${outfitId}/toggle-favorite`,
         {
           method: 'POST',
           headers: {
@@ -42,6 +42,9 @@ export async function POST(
           signal: controller.signal
         }
       );
+export async function OPTIONS() {
+  return NextResponse.json({}, { status: 204 });
+}
 
       clearTimeout(timeoutId);
 
