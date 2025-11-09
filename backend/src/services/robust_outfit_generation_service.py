@@ -2480,6 +2480,11 @@ class RobustOutfitGenerationService:
             'sand', 'camel', 'navy', 'ink', 'espresso', 'muted green', 'sage',
             'olive', 'olive green', 'dusty blue', 'dusty pink', 'mauve', 'khaki'
         }
+        allowed_monochrome_patterns = {
+            '', 'solid', 'smooth', 'plain', 'minimal', 'matte', 'uniform',
+            'ribbed', 'knit', 'waffle', 'cable knit', 'micro', 'subtle texture',
+            'heather', 'heathered', 'marled', 'slub'
+        }
         is_lounge_request = False
         is_monochrome_request = False
         if context and (context.style or context.occasion):
@@ -2532,6 +2537,7 @@ class RobustOutfitGenerationService:
             waistband_type = None
             formal_level = None
             core_category = None
+            monochrome_pattern = ''
             if hasattr(raw_item, 'metadata') and raw_item.metadata:
                 metadata_obj = raw_item.metadata
                 visual_attrs = None
@@ -2543,10 +2549,12 @@ class RobustOutfitGenerationService:
                     waistband_type = (visual_attrs.get('waistbandType') or '').lower()
                     formal_level = (visual_attrs.get('formalLevel') or '').lower()
                     core_category = (visual_attrs.get('coreCategory') or '')
+                    monochrome_pattern = (visual_attrs.get('pattern') or '').lower()
                 else:
                     waistband_type = (getattr(visual_attrs, 'waistbandType', '') or '').lower()
                     formal_level = (getattr(visual_attrs, 'formalLevel', '') or '').lower()
                     core_category = getattr(visual_attrs, 'coreCategory', '')
+                    monochrome_pattern = (getattr(visual_attrs, 'pattern', '') or '').lower()
             heuristics_applied = []
             monochrome_color_tokens = set()
             normalized_monochrome_color = None
@@ -2665,6 +2673,12 @@ class RobustOutfitGenerationService:
                         ok_occ = True
                         heuristics_applied.append("style_implies_lounge")
             if is_monochrome_request:
+                pattern_blocked = False
+                if monochrome_pattern and monochrome_pattern not in allowed_monochrome_patterns:
+                    pattern_blocked = True
+                    if "monochrome_pattern_block" not in heuristics_applied:
+                        heuristics_applied.append("monochrome_pattern_block")
+                    reasons.append(f"Pattern '{monochrome_pattern}' not allowed for monochrome")
                 if not ok_style:
                     # Style synonyms (minimalist, classic, etc.)
                     if set(item_styles) & monochrome_style_synonyms:
@@ -2682,6 +2696,8 @@ class RobustOutfitGenerationService:
                 if ok_style and normalized_monochrome_color == "contrast":
                     ok_style = False
                     heuristics_applied.append("monochrome_contrast_block")
+                if ok_style and pattern_blocked:
+                    ok_style = False
                 if not ok_occ and ok_style:
                     ok_occ = True
                     heuristics_applied.append("style_implies_monochrome")
@@ -2871,6 +2887,13 @@ class RobustOutfitGenerationService:
                             break
                     if tokens and normalized == "contrast":
                         logger.info(f"🆘 EMERGENCY: Skipped {getattr(item, 'name', 'Unknown')} due to contrast color in monochrome fallback")
+                        continue
+                    visual_attrs = normalized_item.get('visualAttributes', {})
+                    pattern_value = ''
+                    if isinstance(visual_attrs, dict):
+                        pattern_value = (visual_attrs.get('pattern') or '').lower()
+                    if pattern_value and pattern_value not in allowed_monochrome_patterns:
+                        logger.info(f"🆘 EMERGENCY: Skipped {getattr(item, 'name', 'Unknown')} due to pattern '{pattern_value}' in monochrome fallback")
                         continue
                     fallback_items.append(item)
             else:
@@ -5406,6 +5429,21 @@ class RobustOutfitGenerationService:
             
             if target_style == 'monochrome':
                 primary_color = monochrome_color_map.get(item_id)
+                monochrome_pattern_value = ''
+                metadata_obj = self.safe_get_item_attr(item, 'metadata')
+                if metadata_obj:
+                    visual_attrs = self.safe_get_item_attr(metadata_obj, 'visualAttributes')
+                    if visual_attrs:
+                        monochrome_pattern_value = (self.safe_get_item_attr(visual_attrs, 'pattern', '') or '').lower()
+                allowed_monochrome_patterns = {
+                    '', 'solid', 'smooth', 'plain', 'minimal', 'matte', 'uniform',
+                    'ribbed', 'knit', 'waffle', 'cable knit', 'micro', 'subtle texture',
+                    'heather', 'heathered', 'marled', 'slub'
+                }
+                if monochrome_pattern_value and monochrome_pattern_value not in allowed_monochrome_patterns:
+                    base_score -= 5.0
+                    scores['diversity_score'] = 0.0
+                    logger.debug(f"  ⚠️ MONOCHROME PATTERN: {self.safe_get_item_name(item)} has pattern '{monochrome_pattern_value}' (-5.00)")
                 similar_families = {
                     'black': {'black', 'charcoal', 'gray', 'grey'},
                     'charcoal': {'black', 'charcoal', 'gray', 'grey'},
