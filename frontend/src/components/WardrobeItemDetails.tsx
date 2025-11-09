@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +57,7 @@ interface WardrobeItemDetailsProps {
   onToggleFavorite: (itemId: string) => Promise<void>;
   onIncrementWear: (itemId: string) => Promise<void>;
   onGenerateOutfit: (item: WardrobeItem) => void;
+  startInEditMode?: boolean;
 }
 
 const ITEM_TYPES = [
@@ -112,9 +113,10 @@ export default function WardrobeItemDetails({
   onDelete,
   onToggleFavorite,
   onIncrementWear,
-  onGenerateOutfit
+  onGenerateOutfit,
+  startInEditMode = true
 }: WardrobeItemDetailsProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(startInEditMode);
   const [editedItem, setEditedItem] = useState<Partial<WardrobeItem>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -143,6 +145,12 @@ export default function WardrobeItemDetails({
     }
   }, [item]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setIsEditing(startInEditMode);
+    }
+  }, [isOpen, startInEditMode, item?.id]);
+
   const handleSave = async () => {
     if (!item) return;
     
@@ -155,23 +163,6 @@ export default function WardrobeItemDetails({
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleCancel = () => {
-    setEditedItem({
-      name: item?.name || '',
-      type: item?.type || '',
-      color: item?.color || '',
-      style: item?.style || [],
-      season: item?.season || [],
-      occasion: item?.occasion || [],
-      description: item?.description || '',
-      brand: item?.brand || '',
-      size: item?.size || '',
-      material: item?.material || '',
-      purchasePrice: item?.purchasePrice || 0
-    });
-    setIsEditing(false);
   };
 
   const handleDelete = async () => {
@@ -313,48 +304,44 @@ export default function WardrobeItemDetails({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
+      <DialogContent className="relative max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+        <DialogClose asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-6 right-6 text-stone-600 hover:text-stone-900"
+            aria-label="Close"
+            disabled={isSaving}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </DialogClose>
+        <DialogHeader className="pr-16">
+          <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">
               {isEditing ? 'Edit Item' : 'Item Details'}
             </DialogTitle>
-            <div className="flex gap-2">
-              {!isEditing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                    className="text-stone-700 hover:text-stone-900"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                    className="text-stone-700 hover:text-stone-900"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="bg-stone-900 hover:bg-stone-800 text-white"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {isSaving ? 'Saving...' : 'Save'}
-                  </Button>
-                </>
-              )}
-            </div>
+            {isEditing ? (
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+                className="bg-stone-900 hover:bg-stone-800 text-white"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            ) : !startInEditMode ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="text-stone-700 hover:text-stone-900"
+              >
+                <Edit3 className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            ) : null}
           </div>
         </DialogHeader>
 

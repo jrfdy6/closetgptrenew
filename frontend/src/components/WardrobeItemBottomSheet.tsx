@@ -56,10 +56,14 @@ export default function WardrobeItemBottomSheet({
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose}>
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      className="md:left-1/2 md:right-auto md:w-full md:max-w-xl md:translate-x-[-50%]"
+    >
       <div className="p-6 space-y-6 max-w-2xl mx-auto">
         {/* Image Section */}
-        <div className="relative w-full max-w-sm mx-auto aspect-[3/4] bg-gray-100 dark:bg-[#3D2F24] rounded-2xl overflow-hidden">
+        <div className="relative w-full max-w-xs md:max-w-sm mx-auto aspect-[3/4] bg-gray-100 dark:bg-[#3D2F24] rounded-2xl overflow-hidden">
           {!imageLoaded && (
             <div className="absolute inset-0 animate-pulse bg-gray-200 dark:bg-[#8A827A]" />
           )}
