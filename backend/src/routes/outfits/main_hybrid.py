@@ -948,7 +948,9 @@ async def create_outfit(
         
         # Create outfit data
         outfit_id = str(uuid4())
-        current_time = int(time.time() * 1000)  # Milliseconds timestamp
+        from firebase_admin import firestore
+        server_timestamp = firestore.SERVER_TIMESTAMP
+        current_time_ms = int(time.time() * 1000)
         
         outfit_data = {
             "id": outfit_id,
@@ -958,8 +960,8 @@ async def create_outfit(
             "description": description,
             "items": normalized_items,
             "user_id": current_user_id,
-            "createdAt": current_time,
-            "updatedAt": current_time,
+            "createdAt": server_timestamp,
+            "updatedAt": server_timestamp,
             "is_custom": True,
             "confidence_score": 1.0,
             "reasoning": f"Custom outfit created by user: {description or 'No description provided'}",
