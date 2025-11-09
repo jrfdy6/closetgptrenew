@@ -159,6 +159,12 @@ class MetadataCompatibilityAnalyzer:
 
         if occasion_lower in skip_for_occasion and style_lower not in color_sensitive_styles:
             logger.info(f"⚡ PERFORMANCE: Skipping detailed metadata compatibility for casual occasion '{occasion_lower}' (style='{style_lower or 'unknown'}')")
+            if hasattr(context, "metadata_notes") and isinstance(context.metadata_notes, dict):
+                context.metadata_notes["compatibility_skip_reason"] = {
+                    "occasion": occasion_lower,
+                    "style": style_lower,
+                    "reason": "casual_short_circuit"
+                }
             # Set default neutral scores for all items
             for item_id, scores in item_scores.items():
                 scores['compatibility_score'] = 1.0  # Neutral/good score
@@ -172,6 +178,8 @@ class MetadataCompatibilityAnalyzer:
                 }
             logger.info(f"⚡ PERFORMANCE: Set default scores for {len(item_scores)} items")
             return
+        elif hasattr(context, "metadata_notes") and isinstance(context.metadata_notes, dict):
+            context.metadata_notes["compatibility_skip_reason"] = None
         
         # Collect all items for outfit-level checks
         all_items = [scores['item'] for scores in item_scores.values()]

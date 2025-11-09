@@ -14,7 +14,7 @@ import uuid
 import traceback
 from typing import Dict, List, Any, Optional, Tuple, Union
 from datetime import datetime, timedelta
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 # Robust import strategy to handle different execution contexts
@@ -282,6 +282,7 @@ class GenerationContext:
     max_retries: int = 3
     wardrobe_original: Optional[List[ClothingItem]] = None  # Original wardrobe before filtering
     warnings: Optional[List[str]] = None  # Warnings about outfit generation
+    metadata_notes: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class ValidationResult:
@@ -1766,6 +1767,18 @@ class RobustOutfitGenerationService:
                 logger.info(f"✅ FALLBACK SUCCESS: Generated outfit with {fallback_strategy.value}")
                 logger.info(f"📊 Fallback validation: valid={validation.is_valid}, confidence={validation.confidence:.2f}")
                 logger.info(f"📦 Fallback outfit items: {[getattr(item, 'name', 'Unknown') for item in outfit.items]}")
+                
+                context.metadata_notes["fallback_strategy_used"] = fallback_strategy.value
+                if outfit.metadata is None:
+                    outfit.metadata = {}
+                outfit.metadata.update({
+                    "fallback_used": True,
+                    "fallback_strategy": fallback_strategy.value,
+                    "fallback_validation": {
+                        "is_valid": validation.is_valid,
+                        "confidence": validation.confidence
+                    }
+                })
                 
                 return outfit
                 
@@ -6353,6 +6366,32 @@ class RobustOutfitGenerationService:
         if item_scores:
             logger.debug(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, (safe_get(scores, 'composite_score', 0) if scores else 0)) for item_id, scores in list(item_scores.items())[:3]]}")
         
+        # Build summary of top candidate scores for observability
+        top_candidates: List[Dict[str, Any]] = []
+        try:
+            sorted_candidate_items = sorted(
+                item_scores.items(),
+                key=lambda x: x[1].get('composite_score', 0.0),
+                reverse=True
+            )
+            for item_id, score_data in sorted_candidate_items[:5]:
+                candidate_item = score_data.get('item')
+                top_candidates.append({
+                    "itemId": getattr(candidate_item, 'id', item_id),
+                    "name": self.safe_get_item_name(candidate_item) if candidate_item else item_id,
+                    "composite": round(score_data.get('composite_score', 0.0), 3),
+                    "body": round(score_data.get('body_type_score', 0.0), 3),
+                    "style": round(score_data.get('style_profile_score', 0.0), 3),
+                    "weather": round(score_data.get('weather_score', 0.0), 3),
+                    "feedback": round(score_data.get('user_feedback_score', 0.0), 3),
+                    "compatibility": round(score_data.get('compatibility_score', 0.0), 3),
+                    "diversity": round(score_data.get('diversity_score', 0.0), 3) if 'diversity_score' in score_data else None,
+                    "diversity_penalty": round(score_data.get('session_penalty', 0.0), 3) if 'session_penalty' in score_data else None
+                })
+        except Exception as summary_error:
+            logger.debug(f"⚠️ Failed to build top candidate summary: {summary_error}")
+            top_candidates = []
+
         # Create outfit
         outfit = OutfitGeneratedOutfit(
             id=str(uuid.uuid4()),
@@ -6383,7 +6422,10 @@ class RobustOutfitGenerationService:
                 "color_theory_applied": True,
                 "analyzers_used": ["body_type", "style_profile", "weather", "user_feedback", "metadata_compatibility", "diversity"],
                 "outfit_strategies_enabled": True,
-                "warnings": context.warnings if hasattr(context, 'warnings') and context.warnings else []
+                "warnings": context.warnings if hasattr(context, 'warnings') and context.warnings else [],
+                "top_candidates": top_candidates,
+                "total_items_scored": len(item_scores),
+                "metadata_notes": context.metadata_notes if hasattr(context, 'metadata_notes') else {}
             },
             wasSuccessful=True,
             baseItemId=context.base_item_id,
