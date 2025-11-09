@@ -412,6 +412,7 @@ class RobustOutfitGenerationService:
         item_type = str(self.safe_get_item_type(item)).lower()
         item_name = self.safe_get_item_name(item).lower()
         item_name_lower = item_name
+        item_name_lower = item_name
         
         # Formal items (3-4)
         if any(kw in item_type or kw in item_name for kw in ['tuxedo', 'gown', 'bow tie', 'cufflink']):
@@ -3390,7 +3391,9 @@ class RobustOutfitGenerationService:
                 return False
             
             # Check metadata for formal formalLevel
+            metadata = {}
             if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                metadata = item.metadata
                 visual_attrs = item.metadata.get('visualAttributes', {})
                 if isinstance(visual_attrs, dict):
                     formal_level = (visual_attrs.get('formalLevel') or '').lower()
@@ -3447,6 +3450,40 @@ class RobustOutfitGenerationService:
                 top_types = ['tops', 'top', 'shirt', 't_shirt', 't-shirt', 'sweater', 'hoodie', 'cardigan']
                 if item_type_lower in top_types and not (is_relaxed_material or is_relaxed_name):
                     logger.info(f"🚫 LOUNGEWEAR ARTSY FILTER: BLOCKED STRUCTURED TOP '{item_name[:40]}'")
+                    return False
+
+            # Enforce drawstring/relaxed bottoms for all loungewear looks
+            if item_type_lower in ['bottoms', 'pants', 'trousers', 'shorts', 'leggings', 'jeans', 'chinos']:
+                visual_attrs = metadata.get('visualAttributes', {}) if isinstance(metadata, dict) else {}
+                waistband_type = (visual_attrs.get('waistbandType') or '').lower() if isinstance(visual_attrs, dict) else ''
+                style_tags = metadata.get('styleTags') if isinstance(metadata, dict) else None
+                style_tags_lower = [tag.lower() for tag in style_tags] if isinstance(style_tags, (list, tuple)) else []
+
+                relaxed_name_markers = [
+                    'drawstring', 'elastic waist', 'elastic-waist', 'elasticized waist', 'elasticized-waist',
+                    'jogger', 'joggers', 'track pant', 'track-pant', 'sweatpant', 'sweat pant',
+                    'sweatshort', 'sweat short', 'lounge', 'relaxed fit', 'relaxed-fit', 'pajama', 'pj',
+                    'knit pant', 'knit short', 'wide-leg', 'wide leg', 'palazzo'
+                ]
+                structured_blocks = [
+                    'jean', 'denim', 'chino', 'trouser', 'dress pant', 'dress trouser',
+                    'slack', 'suit pant', 'crease', 'pleated trouser', 'khaki', 'gabardine'
+                ]
+
+                if any(block in item_name_lower for block in structured_blocks):
+                    logger.info(f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED STRUCTURED BOTTOM '{item_name[:40]}'")
+                    return False
+
+                has_relaxed_name = any(marker in item_name_lower for marker in relaxed_name_markers)
+                has_relaxed_tag = any(tag in style_tags_lower for tag in ['loungewear', 'lounge', 'relaxed', 'comfort'])
+                has_drawstring = waistband_type in ['drawstring', 'elastic_drawstring']
+                has_elastic = waistband_type in ['elastic', 'elastic_drawstring', 'elastic waistband', 'elastic waist']
+
+                if not (has_drawstring or has_elastic or has_relaxed_name or has_relaxed_tag):
+                    logger.info(
+                        f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED NON-DRAWSTRING BOTTOM '{item_name[:40]}' "
+                        f"(waistband={waistband_type or 'none'})"
+                    )
                     return False
         
         # PARTY/DATE HARD BLOCKS - Block overly casual/athletic items
