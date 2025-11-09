@@ -884,6 +884,68 @@ async def create_outfit(
         # Import here to avoid circular imports
         from uuid import uuid4
         
+        # Normalize items to match OutfitItem schema expectations
+        normalized_items = []
+        for idx, item in enumerate(items):
+            if not isinstance(item, dict):
+                logger.warning(f"⚠️ Invalid item format at index {idx}: {item}")
+                continue
+            
+            normalized = item.copy()
+            
+            normalized.setdefault("id", normalized.get("id") or normalized.get("itemId") or f"custom_item_{idx}")
+            normalized.setdefault("name", normalized.get("name") or normalized.get("title") or "Unnamed Item")
+            
+            user_id_value = normalized.get("userId") or normalized.get("user_id") or current_user_id
+            normalized["userId"] = user_id_value
+            normalized["user_id"] = user_id_value
+            
+            # Derive type/subType/category information
+            category_value = normalized.get("category") or normalized.get("type") or normalized.get("subType")
+            if isinstance(category_value, str):
+                normalized["category"] = category_value
+            
+            normalized["subType"] = normalized.get("subType") or category_value or "general"
+            normalized["type"] = normalized.get("type") or category_value or normalized["subType"]
+            
+            # Ensure color and imagery fields exist
+            normalized["color"] = normalized.get("color") or normalized.get("primaryColor") or "unknown"
+            normalized["imageUrl"] = normalized.get("imageUrl") or normalized.get("image_url") or normalized.get("image") or ""
+            if normalized.get("thumbnailUrl") is None and normalized.get("thumbnail_url"):
+                normalized["thumbnailUrl"] = normalized.get("thumbnail_url")
+            if normalized.get("backgroundRemovedUrl") is None and normalized.get("background_removed_url"):
+                normalized["backgroundRemovedUrl"] = normalized.get("background_removed_url")
+            
+            # List fields required by OutfitItem schema
+            style_value = normalized.get("style")
+            if isinstance(style_value, str):
+                normalized["style"] = [style_value]
+            elif isinstance(style_value, list) and style_value:
+                normalized["style"] = style_value
+            else:
+                normalized["style"] = ["casual"]
+            
+            occasion_value = normalized.get("occasion")
+            if isinstance(occasion_value, str):
+                normalized["occasion"] = [occasion_value]
+            elif isinstance(occasion_value, list) and occasion_value:
+                normalized["occasion"] = occasion_value
+            else:
+                normalized["occasion"] = [occasion or "Casual"]
+            
+            if normalized.get("dominantColors") is None or isinstance(normalized.get("dominantColors"), str):
+                normalized["dominantColors"] = []
+            if normalized.get("matchingColors") is None or isinstance(normalized.get("matchingColors"), str):
+                normalized["matchingColors"] = []
+            
+            if normalized.get("metadata") is None:
+                normalized["metadata"] = {}
+            
+            normalized_items.append(normalized)
+        
+        if not normalized_items:
+            raise HTTPException(status_code=400, detail="Unable to process outfit items")
+        
         # Create outfit data
         outfit_id = str(uuid4())
         current_time = int(time.time() * 1000)  # Milliseconds timestamp
@@ -894,7 +956,7 @@ async def create_outfit(
             "occasion": occasion,
             "style": style,
             "description": description,
-            "items": items,
+            "items": normalized_items,
             "user_id": current_user_id,
             "createdAt": current_time,
             "updatedAt": current_time,
