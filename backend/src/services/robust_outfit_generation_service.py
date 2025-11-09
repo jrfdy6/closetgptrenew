@@ -1082,6 +1082,8 @@ class RobustOutfitGenerationService:
         # ═══════════════════════════════════════════════════════════════════════
         
         diversity_weight = 0.30  # 30% weight for diversity - INCREASED to ensure variety (was 0.10)
+        if (context.style or "").lower() == 'monochrome':
+            diversity_weight = 0.18  # Keep some rotation but avoid fighting monochrome cohesion
         
         # Adjust other weights to accommodate diversity dimension (must sum to 100%)
         if temp > 75 or temp < 50:  # Extreme weather
@@ -1179,6 +1181,8 @@ class RobustOutfitGenerationService:
                 body_weight = 0.12
                 user_feedback_weight = 0.23  # ⬆️ BOOSTED from 0.12 (reduced from 0.30 to keep diversity higher)
                 diversity_weight = 0.22  # ⬇️ REDUCED from 0.30 but still significant (was 0.15)
+                if (context.style or "").lower() == 'monochrome':
+                    diversity_weight = min(diversity_weight, 0.18)
             
             logger.info(f"⭐ FAVORITES MODE WEIGHTS: UserFeedback={user_feedback_weight} (+100%), Diversity={diversity_weight} (kept at ~20% to ensure variety)")
             logger.info(f"🎯 ADJUSTED WEIGHTS (6D): Weather={weather_weight}, Compat={compatibility_weight}, Style={style_weight}, Body={body_weight}, Feedback={user_feedback_weight}, Diversity={diversity_weight}")
@@ -2466,7 +2470,17 @@ class RobustOutfitGenerationService:
         }
         lounge_waistbands = {'elastic', 'drawstring', 'elastic_drawstring'}
         lounge_formality = {'casual', 'relaxed', 'loungewear', 'sleepwear', 'athleisure'}
+        monochrome_style_synonyms = {
+            'minimalist', 'modern', 'classic', 'clean lines', 'monochrome minimal',
+            'neutral', 'timeless', 'scandinavian minimalism', 'japanese minimalism'
+        }
+        monochrome_neutral_colors = {
+            'black', 'white', 'off-white', 'ivory', 'cream', 'grey', 'gray',
+            'charcoal', 'slate', 'ash', 'silver', 'taupe', 'beige', 'stone',
+            'sand', 'camel', 'navy', 'ink', 'espresso'
+        }
         is_lounge_request = False
+        is_monochrome_request = False
         if context and (context.style or context.occasion):
             style_lower = (context.style or "").lower()
             occasion_lower = (context.occasion or "").lower()
@@ -2474,6 +2488,7 @@ class RobustOutfitGenerationService:
                 style_lower in lounge_keywords or
                 occasion_lower in lounge_keywords
             )
+            is_monochrome_request = style_lower == 'monochrome'
         
         # Apply filtering logic matching the JavaScript implementation
         for raw_item in (context.wardrobe if context else []):
@@ -2532,6 +2547,29 @@ class RobustOutfitGenerationService:
                     formal_level = (getattr(visual_attrs, 'formalLevel', '') or '').lower()
                     core_category = getattr(visual_attrs, 'coreCategory', '')
             heuristics_applied = []
+            monochrome_color_tokens = set()
+            if is_monochrome_request:
+                item_color_attr = (self.safe_get_item_attr(raw_item, 'color', '') or '').lower()
+                if item_color_attr:
+                    monochrome_color_tokens.add(item_color_attr)
+                dominant_colors = getattr(raw_item, 'dominantColors', []) or item.get('dominantColors', [])
+                if dominant_colors:
+                    for color_entry in dominant_colors:
+                        if isinstance(color_entry, dict):
+                            color_name = (color_entry.get('name') or '').lower()
+                            if color_name:
+                                monochrome_color_tokens.add(color_name)
+                        else:
+                            color_name = getattr(color_entry, 'name', None)
+                            if color_name:
+                                monochrome_color_tokens.add(str(color_name).lower())
+                if isinstance(item_color_attr, str) and ' ' in item_color_attr:
+                    for token in item_color_attr.split():
+                        monochrome_color_tokens.add(token)
+            
+            item_occasions = self._get_normalized_or_raw(item, 'occasion')
+            item_styles = self._get_normalized_or_raw(item, 'style')
+            item_moods = self._get_normalized_or_raw(item, 'mood')
             
             if semantic_filtering:
                 # Use semantic filtering with compatibility helpers
@@ -2540,11 +2578,6 @@ class RobustOutfitGenerationService:
                 ok_mood = mood_matches(context.mood if context else None, item.get('mood', []))
             else:
                 # Enhanced: Use normalized metadata for consistent filtering
-                # Try normalized fields first (already lowercase), fallback to raw
-                item_occasions = self._get_normalized_or_raw(item, 'occasion')
-                item_styles = self._get_normalized_or_raw(item, 'style')
-                item_moods = self._get_normalized_or_raw(item, 'mood')
-                
                 context_occasion = (context.occasion or "").lower() if context else ""
                 context_style = (context.style or "").lower() if context else ""
                 context_mood = (context.mood or "").lower() if context else ""
@@ -2554,44 +2587,68 @@ class RobustOutfitGenerationService:
                 ok_style = any(s == context_style for s in item_styles)
                 ok_mood = len(item_moods) == 0 or any(m == context_mood for m in item_moods)
                 
-                if is_lounge_request:
-                    if not ok_style:
-                        if set(item_styles) & lounge_keywords:
-                            ok_style = True
-                            heuristics_applied.append("style_tag_lounge_match")
-                        elif any(tok in item_name_lower for tok in lounge_name_tokens):
-                            ok_style = True
-                            heuristics_applied.append("name_lounge_keyword")
-                        elif waistband_type in lounge_waistbands:
-                            ok_style = True
-                            heuristics_applied.append("waistband_lounge")
-                        elif formal_level in lounge_formality:
-                            ok_style = True
-                            heuristics_applied.append("formality_lounge")
-                        elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes'}:
-                            # Allow neutral essentials when metadata is sparse
-                            ok_style = True
-                            heuristics_applied.append("core_category_lounge")
-                    if not ok_occ:
-                        if set(item_occasions) & lounge_keywords:
-                            ok_occ = True
-                            heuristics_applied.append("occasion_tag_lounge_match")
-                        elif ok_style:
-                            ok_occ = True
-                            heuristics_applied.append("style_implies_lounge")
+            if is_lounge_request:
+                if not ok_style:
+                    if set(item_styles) & lounge_keywords:
+                        ok_style = True
+                        heuristics_applied.append("style_tag_lounge_match")
+                    elif any(tok in item_name_lower for tok in lounge_name_tokens):
+                        ok_style = True
+                        heuristics_applied.append("name_lounge_keyword")
+                    elif waistband_type in lounge_waistbands:
+                        ok_style = True
+                        heuristics_applied.append("waistband_lounge")
+                    elif formal_level in lounge_formality:
+                        ok_style = True
+                        heuristics_applied.append("formality_lounge")
+                    elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes'}:
+                        # Allow neutral essentials when metadata is sparse
+                        ok_style = True
+                        heuristics_applied.append("core_category_lounge")
+                if not ok_occ:
+                    if set(item_occasions) & lounge_keywords:
+                        ok_occ = True
+                        heuristics_applied.append("occasion_tag_lounge_match")
+                    elif ok_style:
+                        ok_occ = True
+                        heuristics_applied.append("style_implies_lounge")
+            if is_monochrome_request:
+                if not ok_style:
+                    # Style synonyms (minimalist, classic, etc.)
+                    if set(item_styles) & monochrome_style_synonyms:
+                        ok_style = True
+                        heuristics_applied.append("monochrome_style_synonym")
+                    # Neutral color detection via color attribute or dominant colors
+                    elif any(color in monochrome_neutral_colors for color in monochrome_color_tokens):
+                        ok_style = True
+                        heuristics_applied.append("monochrome_neutral_color")
+                    # Allow essentials if metadata lacks color info entirely
+                    elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes', 'outerwear'} and not monochrome_color_tokens:
+                        ok_style = True
+                        heuristics_applied.append("monochrome_core_category")
+                if not ok_occ and ok_style:
+                    ok_occ = True
+                    heuristics_applied.append("style_implies_monochrome")
             
             if heuristics_applied:
                 debug_entry_extra = {
                     'heuristics': heuristics_applied,
                     'item_id': item.get('id', getattr(raw_item, 'id', 'unknown'))
                 }
-                logger.debug(f"🛋️ LOUNGE HEURISTICS APPLIED: {debug_entry_extra}")
+                logger.debug(f"🎯 STYLE HEURISTICS APPLIED: {debug_entry_extra}")
                 if hasattr(context, "metadata_notes") and isinstance(context.metadata_notes, dict):
-                    context.metadata_notes.setdefault("lounge_heuristics", []).append(debug_entry_extra)
-                    lounge_list = context.metadata_notes.setdefault("lounge_item_ids", [])
-                    item_identifier = debug_entry_extra['item_id']
-                    if item_identifier not in lounge_list:
-                        lounge_list.append(item_identifier)
+                    if is_lounge_request:
+                        context.metadata_notes.setdefault("lounge_heuristics", []).append(debug_entry_extra)
+                        lounge_list = context.metadata_notes.setdefault("lounge_item_ids", [])
+                        item_identifier = debug_entry_extra['item_id']
+                        if item_identifier not in lounge_list:
+                            lounge_list.append(item_identifier)
+                    if is_monochrome_request:
+                        context.metadata_notes.setdefault("monochrome_heuristics", []).append(debug_entry_extra)
+                        mono_list = context.metadata_notes.setdefault("monochrome_item_ids", [])
+                        item_identifier = debug_entry_extra['item_id']
+                        if item_identifier not in mono_list:
+                            mono_list.append(item_identifier)
             
             # Build rejection reasons
             if not ok_occ:
@@ -4618,6 +4675,16 @@ class RobustOutfitGenerationService:
         item_name = getattr(item, 'name', 'Unknown')
         
         # METADATA CHECK: Use coreCategory from metadata if available (most accurate!)
+        item_name_lower = self.safe_get_item_name(item).lower()
+        raw_item_type = getattr(item, 'type', '')
+        item_type_lower = ''
+        if hasattr(raw_item_type, 'value'):
+            item_type_lower = raw_item_type.value.lower()
+        elif hasattr(raw_item_type, 'name'):
+            item_type_lower = raw_item_type.name.lower()
+        else:
+            item_type_lower = str(raw_item_type).lower()
+        
         if hasattr(item, 'metadata') and item.metadata:
             if isinstance(item.metadata, dict):
                 visual_attrs = item.metadata.get('visualAttributes', {})
@@ -4642,17 +4709,15 @@ class RobustOutfitGenerationService:
                             'accessories': 'accessories'
                         }
                         if core_category in core_category_map:
-                            logger.debug(f"🏷️ CATEGORY (metadata): '{item_name[:50]}' coreCategory='{core_category}' → '{core_category_map[core_category]}'")
-                            return core_category_map[core_category]
+                            category = core_category_map[core_category]
+                            if category == 'tops' and any(keyword in item_type_lower or keyword in item_name_lower for keyword in ['blazer', 'jacket', 'coat']):
+                                category = 'outerwear'
+                            logger.debug(f"🏷️ CATEGORY (metadata): '{item_name[:50]}' coreCategory='{core_category}' → '{category}'")
+                            return category
         
         # Fallback to type-based detection
         # Handle enum types (e.g., ClothingType.SHIRT)
-        if hasattr(item_type, 'value'):
-            item_type = item_type.value.lower()
-        elif hasattr(item_type, 'name'):
-            item_type = item_type.name.lower()
-        else:
-            item_type = str(item_type).lower()
+        item_type = item_type_lower
         
         # Handle ClothingType enum format (e.g., "ClothingType.SHIRT" -> "shirt")
         if 'clothingtype.' in item_type:
@@ -5023,6 +5088,101 @@ class RobustOutfitGenerationService:
         if target_style == 'loungewear' and hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
             lounge_boost_ids = set(context.metadata_notes.get('lounge_item_ids', []) or [])
         
+        monochrome_color_map: Dict[str, str] = {}
+        monochrome_color_counts: Dict[str, int] = {}
+        preferred_monochrome_color: Optional[str] = None
+        if target_style == 'monochrome':
+            def _normalize_monochrome_color(color_value: Optional[str]) -> Optional[str]:
+                if not color_value:
+                    return None
+                color_value = color_value.lower().strip()
+                color_aliases = {
+                    'grey': 'gray',
+                    'charcoal gray': 'charcoal',
+                    'dark gray': 'charcoal',
+                    'light gray': 'gray',
+                    'off white': 'off-white',
+                    'offwhite': 'off-white',
+                    'cream': 'cream',
+                    'ivory': 'cream',
+                    'stone': 'beige',
+                    'sand': 'beige',
+                    'taupe': 'beige',
+                    'camel': 'beige',
+                    'tan': 'beige',
+                    'espresso': 'espresso',
+                    'coffee': 'espresso',
+                    'chocolate': 'espresso',
+                    'ink': 'navy',
+                    'midnight': 'navy',
+                    'ebony': 'black',
+                    'slate': 'gray',
+                    'ash': 'gray',
+                    'silver': 'gray',
+                }
+                if color_value in color_aliases:
+                    return color_aliases[color_value]
+                base_tokens = {
+                    'black', 'white', 'off-white', 'gray', 'charcoal',
+                    'cream', 'beige', 'navy', 'espresso'
+                }
+                if color_value in base_tokens:
+                    return color_value
+                # Fallback for compound names like "dark charcoal"
+                for token in base_tokens:
+                    if token in color_value:
+                        return token
+                return None
+            
+            def _extract_item_color_tokens(item_obj: ClothingItem) -> List[str]:
+                tokens: List[str] = []
+                simple_color = (self.safe_get_item_attr(item_obj, 'color', '') or '').lower()
+                if simple_color:
+                    tokens.append(simple_color)
+                dominant = getattr(item_obj, 'dominantColors', None)
+                if dominant:
+                    for entry in dominant:
+                        if isinstance(entry, dict):
+                            name = (entry.get('name') or '').lower()
+                            if name:
+                                tokens.append(name)
+                        else:
+                            name = getattr(entry, 'name', None)
+                            if name:
+                                tokens.append(str(name).lower())
+                metadata_obj = getattr(item_obj, 'metadata', None)
+                if isinstance(metadata_obj, dict):
+                    palette = (metadata_obj.get('visualAttributes', {}) or {}).get('colorPalette', '')
+                    if palette:
+                        tokens.append(str(palette).lower())
+                return tokens
+            
+            for item_id, scores in item_scores.items():
+                item_obj = scores['item']
+                item_tokens = _extract_item_color_tokens(item_obj)
+                normalized_color = None
+                for token in item_tokens:
+                    normalized = _normalize_monochrome_color(token)
+                    if normalized:
+                        normalized_color = normalized
+                        break
+                if not normalized_color:
+                    normalized_color = 'neutral'
+                monochrome_color_map[item_id] = normalized_color
+                monochrome_color_counts[normalized_color] = monochrome_color_counts.get(normalized_color, 0) + 1
+            
+            if monochrome_color_counts:
+                priority = ['black', 'charcoal', 'gray', 'white', 'off-white', 'cream', 'beige', 'navy', 'espresso', 'neutral']
+                preferred_monochrome_color = max(
+                    monochrome_color_counts.items(),
+                    key=lambda kv: (kv[1], -priority.index(kv[0]) if kv[0] in priority else -len(priority))
+                )[0]
+                if hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
+                    context.metadata_notes.setdefault('monochrome_palette', {
+                        'preferred_color': preferred_monochrome_color,
+                        'color_counts': monochrome_color_counts
+                    })
+        
         try:
             from src.routes.outfits.styling import calculate_colorblock_metadata_score
         except ImportError:
@@ -5096,6 +5256,33 @@ class RobustOutfitGenerationService:
             if target_style == 'loungewear' and item_id in lounge_boost_ids:
                 base_score += 0.40
                 logger.debug(f"  🛋️ LOUNGE BOOST: {self.safe_get_item_name(item)} (+0.40 for lounge heuristics)")
+            
+            if target_style == 'monochrome':
+                primary_color = monochrome_color_map.get(item_id)
+                similar_families = {
+                    'black': {'black', 'charcoal', 'gray', 'grey'},
+                    'charcoal': {'black', 'charcoal', 'gray', 'grey'},
+                    'gray': {'gray', 'grey', 'charcoal', 'silver', 'ash', 'slate'},
+                    'white': {'white', 'off-white', 'cream'},
+                    'off-white': {'white', 'off-white', 'cream'},
+                    'cream': {'cream', 'off-white', 'beige'},
+                    'beige': {'beige', 'cream', 'sand', 'taupe'},
+                    'navy': {'navy', 'ink'},
+                    'espresso': {'espresso', 'brown', 'chocolate'}
+                }
+                if preferred_monochrome_color:
+                    if primary_color == preferred_monochrome_color:
+                        base_score += 0.35
+                        logger.debug(f"  🎯 MONOCHROME MATCH: {self.safe_get_item_name(item)} aligns with palette ({preferred_monochrome_color}) (+0.35)")
+                    elif primary_color in similar_families.get(preferred_monochrome_color, set()):
+                        base_score += 0.15
+                        logger.debug(f"  🎯 MONOCHROME FAMILY: {self.safe_get_item_name(item)} similar to {preferred_monochrome_color} (+0.15)")
+                    elif primary_color == 'neutral':
+                        base_score += 0.05
+                        logger.debug(f"  🎯 MONOCHROME NEUTRAL: {self.safe_get_item_name(item)} neutral fallback (+0.05)")
+                    else:
+                        base_score -= 0.4
+                        logger.debug(f"  ⚠️ MONOCHROME CONTRAST: {self.safe_get_item_name(item)} diverges from {preferred_monochrome_color} (-0.40)")
             
             # Style-specific metadata scoring (e.g., colorblock)
             if target_style == 'colorblock' and calculate_colorblock_metadata_score:

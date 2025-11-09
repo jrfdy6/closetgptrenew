@@ -369,6 +369,8 @@ class DiversityFilterService:
         style_lower = (style or "").lower()
         is_loungewear_combo = occasion_lower in {'loungewear', 'lounge', 'home', 'relaxed'} or style_lower == 'loungewear'
 
+        is_monochrome_combo = style_lower == 'monochrome'
+
         for item in items:
             base_score = 1.0
             diversity_boost = 0.0
@@ -400,6 +402,11 @@ class DiversityFilterService:
                 moderate_penalty = -0.1
                 overuse_penalty = -0.75
 
+            if is_monochrome_combo:
+                never_used_boost = 0.6
+                lightly_used_boost = 0.2
+                moderate_penalty = -0.1
+                overuse_penalty = -0.5
             if same_combo_usage == 0:
                 diversity_boost += never_used_boost
                 logger.debug(f"  🆕 {item.name[:30]}: Not used in {occasion}/{style} → {never_used_boost:+.2f}")
