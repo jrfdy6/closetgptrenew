@@ -951,6 +951,7 @@ async def create_outfit(
         from firebase_admin import firestore
         server_timestamp = firestore.SERVER_TIMESTAMP
         current_time_ms = int(time.time() * 1000)
+        current_time_iso = datetime.utcnow().isoformat()
         
         outfit_data = {
             "id": outfit_id,
@@ -960,10 +961,12 @@ async def create_outfit(
             "description": description,
             "items": normalized_items,
             "user_id": current_user_id,
-            "createdAt": current_time_ms,
-            "updatedAt": current_time_ms,
-            "created_at": server_timestamp,
-            "updated_at": server_timestamp,
+            "createdAt": server_timestamp,
+            "updatedAt": server_timestamp,
+            "created_at_ms": current_time_ms,
+            "updated_at_ms": current_time_ms,
+            "created_at_iso": current_time_iso,
+            "updated_at_iso": current_time_iso,
             "is_custom": True,
             "confidence_score": 1.0,
             "reasoning": f"Custom outfit created by user: {description or 'No description provided'}",
@@ -983,8 +986,15 @@ async def create_outfit(
         try:
             from src.config.firebase import db
             if db:
-                db.collection('outfits').document(outfit_id).set(outfit_data)
+                outfit_ref = db.collection('outfits').document(outfit_id)
+                outfit_ref.set(outfit_data)
                 logger.info(f"✅ Saved outfit {outfit_id} to Firestore with {len(items)} items")
+                
+                # Fetch the persisted document so server timestamps resolve
+                saved_doc = outfit_ref.get()
+                saved_data = saved_doc.to_dict() if saved_doc.exists else outfit_data
+                saved_data = saved_data or outfit_data
+                saved_data["id"] = outfit_id
             else:
                 logger.warning("⚠️ Firebase not available, outfit not saved to database")
                 raise HTTPException(status_code=500, detail="Database not available")
@@ -994,17 +1004,30 @@ async def create_outfit(
         
         logger.info(f"✅ Outfit created: {outfit_id} for user {current_user_id}")
         
-        # Return response
+        # Build response with normalized values
+        response_payload = saved_data if 'saved_data' in locals() else outfit_data
+        response_payload = response_payload.copy()
+        response_payload.setdefault("id", outfit_id)
+        response_payload.setdefault("items", normalized_items)
+        
+        created_at_value = response_payload.get("createdAt")
+        if created_at_value is not None:
+            if hasattr(created_at_value, "isoformat"):
+                response_payload["createdAt"] = created_at_value.isoformat()
+            elif isinstance(created_at_value, (int, float)):
+                response_payload["createdAt"] = datetime.fromtimestamp(created_at_value / 1000).isoformat()
+        else:
+            response_payload["createdAt"] = current_time_iso
+        
         return {
             "success": True,
-            "id": outfit_data["id"],
-            "name": outfit_data["name"],
-            "items": normalized_items,
-            "style": outfit_data["style"],
-            "occasion": outfit_data["occasion"],
-            "description": outfit_data.get("description", ""),
-            "createdAt": current_time_ms,
-            "created_at": datetime.utcnow().isoformat()
+            "id": response_payload["id"],
+            "name": response_payload.get("name", name),
+            "items": response_payload.get("items", normalized_items),
+            "style": response_payload.get("style", style),
+            "occasion": response_payload.get("occasion", occasion),
+            "description": response_payload.get("description", description),
+            "createdAt": response_payload["createdAt"]
         }
         
     except HTTPException:
