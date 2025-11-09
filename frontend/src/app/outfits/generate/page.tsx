@@ -236,7 +236,7 @@ export default function OutfitGenerationPage() {
     // Feminine & Romantic
     'Romantic', 'Boho', 'French Girl', 'Pinup',
     // Modern & Minimal
-    'Minimalist', 'Modern', 'Scandinavian',
+    'Minimalist', 'Modern', 'Scandinavian', 'Monochrome',
     // Alternative & Edgy
     'Gothic', 'Punk', 'Cyberpunk', 'Edgy',
     // Seasonal & Lifestyle

@@ -51,7 +51,14 @@ export class DataValidator {
     const styleResult = this.validateField(data.style, {
       required: true,
       type: 'string',
-      enum: ['Classic', 'Modern', 'Vintage', 'Bohemian', 'Minimalist', 'Grunge', 'Preppy', 'Streetwear', 'Dark Academia', 'Light Academia', 'Old Money', 'Y2K', 'Avant-Garde', 'Artsy', 'Maximalist', 'Colorblock', 'Business Casual', 'Urban Professional', 'Techwear', 'Hipster', 'Scandinavian', 'Gothic', 'Punk', 'Cyberpunk', 'Edgy', 'Coastal Chic', 'Athleisure', 'Casual Cool']
+      enum: [
+        'Classic', 'Modern', 'Vintage', 'Bohemian', 'Minimalist', 'Grunge', 'Preppy', 'Streetwear',
+        'Dark Academia', 'Light Academia', 'Old Money', 'Y2K', 'Avant-Garde', 'Artsy', 'Maximalist',
+        'Colorblock', 'Business Casual', 'Urban Professional', 'Techwear', 'Hipster', 'Scandinavian',
+        'Gothic', 'Punk', 'Cyberpunk', 'Edgy', 'Coastal Chic', 'Athleisure', 'Casual Cool',
+        'Coastal Grandmother', 'Clean Girl', 'Cottagecore', 'Romantic', 'Boho', 'French Girl', 'Pinup',
+        'Loungewear', 'Workout', 'Monochrome'
+      ]
     });
     if (!styleResult.isValid) errors.push(...styleResult.errors);
     else sanitized.style = styleResult.sanitizedValue;

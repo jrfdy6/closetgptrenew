@@ -4589,6 +4589,27 @@ class RobustOutfitGenerationService:
         
         return category
     
+    def _convert_item_to_style_dict(self, item: ClothingItem) -> Dict[str, Any]:
+        """Convert item to dictionary suitable for style scoring utilities."""
+        if isinstance(item, dict):
+            return item
+        
+        # Pydantic models provide model_dump
+        if hasattr(item, "model_dump"):
+            try:
+                return item.model_dump(exclude_none=False)
+            except Exception as e:
+                logger.debug(f"⚠️ STYLE SCORING: model_dump failed for {getattr(item, 'id', 'unknown')}: {e}")
+        
+        # Fallback to __dict__
+        if hasattr(item, "__dict__"):
+            return {
+                key: value
+                for key, value in item.__dict__.items()
+            }
+        
+        return {}
+    
     def _check_inappropriate_combination(self, item1: ClothingItem, item2: ClothingItem) -> bool:
         """Check if two items form an inappropriate combination - simplified version"""
         # For now, allow all combinations
@@ -4876,6 +4897,12 @@ class RobustOutfitGenerationService:
         
         logger.info(f"🎨 COLOR THEORY: Using color palette for skin tone category")
         
+        try:
+            from src.routes.outfits.styling import calculate_colorblock_metadata_score
+        except ImportError:
+            calculate_colorblock_metadata_score = None
+            logger.debug("⚠️ STYLE PROFILE: Could not import calculate_colorblock_metadata_score")
+        
         for item_id, scores in item_scores.items():
             item = scores['item']
             base_score = 0.5  # Default neutral score
@@ -4939,6 +4966,23 @@ class RobustOutfitGenerationService:
                     if pref_brand and pref_brand.lower() in item_brand.lower():
                         base_score += 0.10
                         break
+            
+            # Style-specific metadata scoring (e.g., colorblock)
+            if target_style == 'colorblock' and calculate_colorblock_metadata_score:
+                item_dict = self._convert_item_to_style_dict(item)
+                if item_dict:
+                    try:
+                        colorblock_score = calculate_colorblock_metadata_score(item_dict)
+                        # Normalize: clamp to [-40, 60] then scale to approximately [-0.6, +1.0]
+                        clamped_score = max(min(colorblock_score, 60), -40)
+                        normalized_bonus = (clamped_score / 60.0) * 0.6  # scale factor
+                        base_score += normalized_bonus
+                        logger.debug(
+                            f"  🎨 COLORBLOCK META: {self.safe_get_item_name(item)} "
+                            f"score={colorblock_score} → bonus={normalized_bonus:+.2f}"
+                        )
+                    except Exception as metadata_error:
+                        logger.debug(f"⚠️ COLORBLOCK META: Failed scoring {self.safe_get_item_name(item)}: {metadata_error}")
             
             # Occasion appropriateness
             item_occasions = getattr(item, 'occasion', [])

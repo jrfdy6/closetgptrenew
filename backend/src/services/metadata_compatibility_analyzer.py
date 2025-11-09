@@ -153,8 +153,12 @@ class MetadataCompatibilityAnalyzer:
         
         # PERFORMANCE: Skip detailed compatibility for casual occasions (not critical)
         occasion_lower = safe_get(context, 'occasion', '').lower()
-        if occasion_lower in ['loungewear', 'lounge', 'relaxed', 'home', 'casual', 'weekend']:
-            logger.info(f"⚡ PERFORMANCE: Skipping detailed metadata compatibility for casual occasion '{occasion_lower}' (using default scores)")
+        style_lower = safe_get(context, 'style', '').lower()
+        skip_for_occasion = {'loungewear', 'lounge', 'relaxed', 'home', 'casual', 'weekend'}
+        color_sensitive_styles = {'colorblock', 'maximalist', 'print on print', 'art pop', 'bold graphics'}
+
+        if occasion_lower in skip_for_occasion and style_lower not in color_sensitive_styles:
+            logger.info(f"⚡ PERFORMANCE: Skipping detailed metadata compatibility for casual occasion '{occasion_lower}' (style='{style_lower or 'unknown'}')")
             # Set default neutral scores for all items
             for item_id, scores in item_scores.items():
                 scores['compatibility_score'] = 1.0  # Neutral/good score
