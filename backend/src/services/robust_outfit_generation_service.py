@@ -2477,7 +2477,8 @@ class RobustOutfitGenerationService:
         monochrome_neutral_colors = {
             'black', 'white', 'off-white', 'ivory', 'cream', 'grey', 'gray',
             'charcoal', 'slate', 'ash', 'silver', 'taupe', 'beige', 'stone',
-            'sand', 'camel', 'navy', 'ink', 'espresso'
+            'sand', 'camel', 'navy', 'ink', 'espresso', 'muted green', 'sage',
+            'olive', 'olive green', 'dusty blue', 'dusty pink', 'mauve', 'khaki'
         }
         is_lounge_request = False
         is_monochrome_request = False
@@ -2548,6 +2549,7 @@ class RobustOutfitGenerationService:
                     core_category = getattr(visual_attrs, 'coreCategory', '')
             heuristics_applied = []
             monochrome_color_tokens = set()
+            normalized_monochrome_color = None
             if is_monochrome_request:
                 item_color_attr = (self.safe_get_item_attr(raw_item, 'color', '') or '').lower()
                 if item_color_attr:
@@ -2566,6 +2568,56 @@ class RobustOutfitGenerationService:
                 if isinstance(item_color_attr, str) and ' ' in item_color_attr:
                     for token in item_color_attr.split():
                         monochrome_color_tokens.add(token)
+                
+                def _normalize_monochrome_token(token: str) -> Optional[str]:
+                    token = token.lower().strip()
+                    if not token:
+                        return None
+                    color_aliases = {
+                        'grey': 'gray',
+                        'charcoal gray': 'charcoal',
+                        'dark gray': 'charcoal',
+                        'light gray': 'gray',
+                        'off white': 'off-white',
+                        'offwhite': 'off-white',
+                        'cream': 'cream',
+                        'ivory': 'cream',
+                        'stone': 'beige',
+                        'sand': 'beige',
+                        'taupe': 'beige',
+                        'camel': 'beige',
+                        'tan': 'beige',
+                        'muted olive': 'olive',
+                        'sage green': 'sage',
+                        'dusty-rose': 'dusty pink',
+                        'dusty rose': 'dusty pink',
+                        'olive green': 'olive',
+                        'navy blue': 'navy',
+                        'dark blue': 'navy',
+                        'midnight blue': 'navy',
+                        'midnight navy': 'navy',
+                        'midnight': 'navy',
+                        'chalk': 'off-white'
+                    }
+                    if token in color_aliases:
+                        token = color_aliases[token]
+                    if token in monochrome_neutral_colors:
+                        return token
+                    for neutral in monochrome_neutral_colors:
+                        if neutral in token:
+                            return neutral
+                    return "contrast"
+                
+                if monochrome_color_tokens:
+                    for token in monochrome_color_tokens:
+                        normalized = _normalize_monochrome_token(token)
+                        if normalized and normalized != "contrast":
+                            normalized_monochrome_color = normalized
+                            break
+                    if normalized_monochrome_color is None:
+                        normalized_monochrome_color = "contrast"
+                else:
+                    normalized_monochrome_color = "neutral"
             
             item_occasions = self._get_normalized_or_raw(item, 'occasion')
             item_styles = self._get_normalized_or_raw(item, 'style')
@@ -2619,15 +2671,15 @@ class RobustOutfitGenerationService:
                         ok_style = True
                         heuristics_applied.append("monochrome_style_synonym")
                     # Neutral color detection via color attribute or dominant colors
-                    elif any(color in monochrome_neutral_colors for color in monochrome_color_tokens):
+                    elif normalized_monochrome_color and normalized_monochrome_color != "contrast":
                         ok_style = True
                         heuristics_applied.append("monochrome_neutral_color")
                     # Allow essentials if metadata lacks color info entirely
-                    elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes', 'outerwear'} and (not monochrome_color_tokens or monochrome_color_tokens == {'neutral'}):
+                    elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes', 'outerwear'} and (not monochrome_color_tokens or normalized_monochrome_color == 'neutral'):
                         ok_style = True
                         heuristics_applied.append("monochrome_core_category")
                 # Hard block items flagged as contrast
-                if ok_style and any(token == "contrast" for token in monochrome_color_tokens):
+                if ok_style and normalized_monochrome_color == "contrast":
                     ok_style = False
                     heuristics_applied.append("monochrome_contrast_block")
                 if not ok_occ and ok_style:
@@ -2753,9 +2805,85 @@ class RobustOutfitGenerationService:
             
             # Emergency: Use any available items (hard filters were too strict)
             logger.info(f"🆘 EMERGENCY: Using all wardrobe items as fallback")
-            for item in (context.wardrobe if context else []):
-                valid_items.append(item)
-                logger.info(f"🆘 EMERGENCY: Added {getattr(item, 'name', 'Unknown')} (emergency fallback)")
+            fallback_items = []
+            if is_monochrome_request:
+                def _normalize_monochrome_token(token: str) -> Optional[str]:
+                    token = token.lower().strip()
+                    if not token:
+                        return None
+                    color_aliases = {
+                        'grey': 'gray',
+                        'charcoal gray': 'charcoal',
+                        'dark gray': 'charcoal',
+                        'light gray': 'gray',
+                        'off white': 'off-white',
+                        'offwhite': 'off-white',
+                        'cream': 'cream',
+                        'ivory': 'cream',
+                        'stone': 'beige',
+                        'sand': 'beige',
+                        'taupe': 'beige',
+                        'camel': 'beige',
+                        'tan': 'beige',
+                        'muted olive': 'olive',
+                        'sage green': 'sage',
+                        'dusty-rose': 'dusty pink',
+                        'dusty rose': 'dusty pink',
+                        'olive green': 'olive',
+                        'navy blue': 'navy',
+                        'dark blue': 'navy',
+                        'midnight blue': 'navy',
+                        'midnight navy': 'navy',
+                        'midnight': 'navy',
+                        'chalk': 'off-white'
+                    }
+                    if token in color_aliases:
+                        token = color_aliases[token]
+                    if token in monochrome_neutral_colors:
+                        return token
+                    for neutral in monochrome_neutral_colors:
+                        if neutral in token:
+                            return neutral
+                    return "contrast"
+
+                for item in (context.wardrobe if context else []):
+                    normalized_item = normalize_item_metadata(item)
+                    tokens = set()
+                    color_attr = (self.safe_get_item_attr(normalized_item, 'color', '') or '').lower()
+                    if color_attr:
+                        tokens.add(color_attr)
+                        if ' ' in color_attr:
+                            tokens.update(color_attr.split())
+                    dominant_colors = normalized_item.get('dominantColors', []) or getattr(item, 'dominantColors', []) or []
+                    for color_entry in dominant_colors:
+                        if isinstance(color_entry, dict):
+                            name = (color_entry.get('name') or '').lower()
+                        else:
+                            name = getattr(color_entry, 'name', None)
+                            if name:
+                                name = str(name).lower()
+                        if name:
+                            tokens.add(name)
+                    normalized = None
+                    for token in tokens:
+                        normalized = _normalize_monochrome_token(token)
+                        if normalized and normalized != "contrast":
+                            break
+                    if tokens and normalized == "contrast":
+                        logger.info(f"🆘 EMERGENCY: Skipped {getattr(item, 'name', 'Unknown')} due to contrast color in monochrome fallback")
+                        continue
+                    fallback_items.append(item)
+            else:
+                fallback_items = list(context.wardrobe if context else [])
+
+            if fallback_items:
+                for item in fallback_items:
+                    valid_items.append(item)
+                    logger.info(f"🆘 EMERGENCY: Added {getattr(item, 'name', 'Unknown')} (emergency fallback)")
+            else:
+                for item in (context.wardrobe if context else []):
+                    valid_items.append(item)
+                    logger.info(f"🆘 EMERGENCY: Added {getattr(item, 'name', 'Unknown')} (emergency fallback)")
             
             logger.info(f"🆘 EMERGENCY FALLBACK: Total items after emergency: {len(valid_items)}")
         
@@ -5096,9 +5224,17 @@ class RobustOutfitGenerationService:
         monochrome_color_counts: Dict[str, int] = {}
         preferred_monochrome_color: Optional[str] = None
         if target_style == 'monochrome':
-            def _normalize_monochrome_color(color_value: Optional[str]) -> Optional[str]:
+            monochrome_neutral_colors = {
+                'black', 'white', 'off-white', 'ivory', 'cream', 'grey', 'gray',
+                'charcoal', 'slate', 'ash', 'silver', 'taupe', 'beige', 'stone',
+                'sand', 'camel', 'navy', 'ink', 'espresso', 'muted green', 'sage',
+                'olive', 'olive green', 'dusty blue', 'dusty pink', 'mauve', 'khaki'
+            }
+            def _normalize_monochrome_color(color_value: Optional[str], neutral_set: Optional[set] = None) -> Optional[str]:
                 if not color_value:
                     return None
+                if neutral_set is None:
+                    neutral_set = monochrome_neutral_colors
                 color_value = color_value.lower().strip()
                 color_aliases = {
                     'grey': 'gray',
@@ -5119,17 +5255,24 @@ class RobustOutfitGenerationService:
                     'chocolate': 'espresso',
                     'ink': 'navy',
                     'midnight': 'navy',
+                    'navy blue': 'navy',
+                    'dark blue': 'navy',
+                    'midnight blue': 'navy',
+                    'midnight navy': 'navy',
                     'ebony': 'black',
                     'slate': 'gray',
                     'ash': 'gray',
                     'silver': 'gray',
+                    'muted olive': 'olive',
+                    'sage green': 'sage',
+                    'dusty-rose': 'dusty pink',
+                    'dusty rose': 'dusty pink',
+                    'olive green': 'olive',
+                    'chalk': 'off-white'
                 }
                 if color_value in color_aliases:
                     return color_aliases[color_value]
-                base_tokens = {
-                    'black', 'white', 'off-white', 'gray', 'charcoal',
-                    'cream', 'beige', 'navy', 'espresso'
-                }
+                base_tokens = neutral_set
                 if color_value in base_tokens:
                     return color_value
                 # Fallback for compound names like "dark charcoal"
@@ -5285,8 +5428,13 @@ class RobustOutfitGenerationService:
                         base_score += 0.05
                         logger.debug(f"  🎯 MONOCHROME NEUTRAL: {self.safe_get_item_name(item)} neutral fallback (+0.05)")
                     else:
-                        base_score -= 1.0
-                        logger.debug(f"  ⚠️ MONOCHROME CONTRAST: {self.safe_get_item_name(item)} diverges from {preferred_monochrome_color} (-1.00)")
+                        base_score -= 5.0
+                        scores['diversity_score'] = 0.0
+                        logger.debug(f"  ⚠️ MONOCHROME CONTRAST: {self.safe_get_item_name(item)} diverges from {preferred_monochrome_color} (-5.00)")
+                elif primary_color == "contrast":
+                    base_score -= 5.0
+                    scores['diversity_score'] = 0.0
+                    logger.debug(f"  ⚠️ MONOCHROME CONTRAST: {self.safe_get_item_name(item)} lacks neutral palette (-5.00)")
             
             # Style-specific metadata scoring (e.g., colorblock)
             if target_style == 'colorblock' and calculate_colorblock_metadata_score:
