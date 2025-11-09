@@ -20,6 +20,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from src.utils.auth_utils import extract_uid_from_request
 from src.auth.auth_service import get_current_user_id
 
+from src.services.outfit_service import OutfitService
+from src.core.exceptions import ValidationError, DatabaseError
+from src.custom_types.outfit import OutfitUpdate
+
 logger = logging.getLogger(__name__)
 
 # Create router
@@ -69,6 +73,8 @@ if PERSONALIZATION_SERVICE_AVAILABLE:
 else:
     personalization_service = None
 
+outfit_service = OutfitService()
+
 @router.get("/health")
 async def health_check():
     """Health check for the main hybrid outfit generation system"""
@@ -89,6 +95,108 @@ async def health_check():
             "error": str(e),
             "main_outfit_generation_enabled": False
         }
+
+
+@router.get("/{outfit_id}")
+async def get_outfit_detail(
+    outfit_id: str,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Retrieve a single outfit by ID for the authenticated user."""
+    try:
+        outfit = await outfit_service.get_outfit_by_id(current_user_id, outfit_id)
+        if not outfit:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Outfit not found"
+            )
+        return {
+            "success": True,
+            "data": outfit.dict(),
+            "message": "Outfit retrieved successfully"
+        }
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except DatabaseError as e:
+        logger.error(f"❌ Failed to get outfit {outfit_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve outfit"
+        )
+    except Exception as e:
+        logger.error(f"❌ Unexpected error retrieving outfit {outfit_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve outfit"
+        )
+
+
+@router.put("/{outfit_id}")
+async def update_outfit_detail(
+    outfit_id: str,
+    payload: OutfitUpdate,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Update an existing outfit."""
+    try:
+        updated = await outfit_service.update_outfit(current_user_id, outfit_id, payload)
+        return {
+            "success": True,
+            "data": updated.dict(),
+            "message": "Outfit updated successfully"
+        }
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except DatabaseError as e:
+        logger.error(f"❌ Failed to update outfit {outfit_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update outfit"
+        )
+    except Exception as e:
+        logger.error(f"❌ Unexpected error updating outfit {outfit_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update outfit"
+        )
+
+
+@router.post("/{outfit_id}/favorite")
+async def toggle_outfit_favorite(
+    outfit_id: str,
+    current_user_id: str = Depends(get_current_user_id)
+):
+    """Toggle the favorite status of an outfit."""
+    try:
+        await outfit_service.toggle_outfit_favorite(current_user_id, outfit_id)
+        return {
+            "success": True,
+            "message": "Outfit favorite status toggled successfully",
+            "data": {"id": outfit_id}
+        }
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except DatabaseError as e:
+        logger.error(f"❌ Failed to toggle favorite for outfit {outfit_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to toggle outfit favorite"
+        )
+    except Exception as e:
+        logger.error(f"❌ Unexpected error toggling favorite for outfit {outfit_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to toggle outfit favorite"
+        )
 
 @router.post("/debug-filter")
 async def debug_outfit_filtering(
