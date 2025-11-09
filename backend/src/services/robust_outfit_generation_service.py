@@ -3425,6 +3425,33 @@ class RobustOutfitGenerationService:
             
             logger.info(f"✅ PARTY/DATE HARD FILTER: PASSED '{item_name[:40]}'")
         
+        if style_lower in ['old money', 'urban professional']:
+            logger.info(f"🏛️ OLD MONEY STYLE FILTER ACTIVE for {style}")
+            casual_blocks = [
+                'athletic', 'gym', 'workout', 'training', 'sport', 'sports jersey',
+                'jersey', 'basketball', 'football', 'baseball', 'soccer',
+                'sweatshort', 'sweat short', 'sweatpant', 'sweat pant', 'jogger',
+                'hoodie', 'graphic tee', 'band tee', 'denim short', 'cargo short',
+                'crocs', 'sneaker', 'slides', 'flip-flop', 'flip flop'
+            ]
+            if any(block in item_name_lower for block in casual_blocks):
+                logger.info(f"🚫 OLD MONEY FILTER: BLOCKED TOO CASUAL '{item_name[:40]}'")
+                return False
+            
+            if item_type_lower in ['sweatshirt', 'hoodie', 'athletic wear', 'gym wear']:
+                logger.info(f"🚫 OLD MONEY FILTER: BLOCKED TYPE '{item_type}'")
+                return False
+            
+            if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
+                visual_attrs = item.metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    if formal_level in ['athletic', 'sport', 'casual']:
+                        logger.info(f"🚫 OLD MONEY METADATA: BLOCKED '{item_name[:40]}' (formalLevel={formal_level})")
+                        return False
+            
+            logger.info(f"✅ OLD MONEY FILTER: PASSED '{item_name[:40]}'")
+        
         # Try compatibility matrix (will likely fail but doesn't matter now)
         try:
             from ..services.compatibility_matrix import CompatibilityMatrix
@@ -6662,6 +6689,51 @@ class RobustOutfitGenerationService:
             if shoe_type and any(marker in shoe_type for marker in casual_markers):
                 return False
             return True
+
+        def _is_polished_party_bottom(item_obj: Any) -> bool:
+            """Return False when a bottom is too casual (e.g., denim) for minimalist party/formal outfits."""
+            bottom_formality = self._get_item_formality_level(item_obj)
+            if bottom_formality is not None and bottom_formality >= 2:
+                return True
+
+            item_name_lower = (self.safe_get_item_name(item_obj) or "unknown").lower()
+            item_type_lower = (self.safe_get_item_attr(item_obj, 'type', '') or '').lower()
+            metadata = getattr(item_obj, 'metadata', None)
+            fabric = ""
+            if isinstance(metadata, dict):
+                visual_attrs = metadata.get('visualAttributes', {})
+                if isinstance(visual_attrs, dict):
+                    fabric = (visual_attrs.get('fabric') or '').lower()
+
+            polished_markers = [
+                'trouser', 'trousers', 'suit pant', 'dress pant', 'dress trouser',
+                'slack', 'slacks', 'tailored', 'pleated', 'crease', 'wool', 'chino',
+                'gabardine', 'tuxedo', 'tux', 'formal'
+            ]
+            if any(marker in item_name_lower for marker in polished_markers):
+                return True
+            if any(marker in item_type_lower for marker in polished_markers):
+                return True
+            if fabric in ['wool', 'silk', 'sateen', 'gabardine']:
+                return True
+
+            casual_markers = [
+                'jean', 'denim', 'cargo', 'jogger', 'sweatpant', 'sweat pant',
+                'athletic', 'track pant', 'khaki short', 'shorts'
+            ]
+            if any(marker in item_name_lower for marker in casual_markers):
+                return False
+            if item_type_lower and any(marker in item_type_lower for marker in casual_markers):
+                return False
+            return True
+        
+        preferred_polished_bottom_id = None
+        if requires_minimalist_party_polish:
+            for candidate_id, candidate_score in sorted_items:
+                candidate_item = candidate_score['item']
+                if self._get_item_category(candidate_item) == 'bottoms' and _is_polished_party_bottom(candidate_item):
+                    preferred_polished_bottom_id = candidate_id
+                    break
         
         # Phase 1: Fill essential categories (tops, bottoms, shoes)
         logger.info(f"📦 PHASE 1: Selecting essential items (top, bottom, shoes)")
@@ -6728,6 +6800,12 @@ class RobustOutfitGenerationService:
                 if category not in categories_filled:
                     # CRITICAL: Don't select items with very negative scores, even as essentials
                     composite_score = score_data['composite_score']
+                    if category == 'bottoms' and requires_minimalist_party_polish:
+                        if preferred_polished_bottom_id and item_id != preferred_polished_bottom_id and not _is_polished_party_bottom(item):
+                            logger.info(f"  ⏭️ Essential bottoms: {self.safe_get_item_name(item)} skipped — looking for polished option first")
+                            continue
+                        if not _is_polished_party_bottom(item) and not preferred_polished_bottom_id:
+                            logger.warning(f"  ⚠️ Essential bottoms: No polished option available; allowing {self.safe_get_item_name(item)}")
                     if composite_score > -1.0:  # Allow slightly negative scores, but not terrible ones
                         # FORBIDDEN COMBINATIONS CHECK: Prevent fashion faux pas
                         if self._is_forbidden_combination(item, selected_items):
@@ -7018,6 +7096,32 @@ class RobustOutfitGenerationService:
                     if _is_monochrome_allowed(candidate, candidate_id, score_data, log_prefix="  "):
                         selected_items.append(candidate)
                         logger.info(f"  🛋️ Added lounge filler: {self.safe_get_item_name(candidate)} (score={score_data['composite_score']:.2f})")
+
+            if requires_minimalist_party_polish and len(selected_items) < min_items:
+                polish_filler_categories = ['outerwear', 'accessories']
+                for desired_category in polish_filler_categories:
+                    if len(selected_items) >= min_items:
+                        break
+                    for item_id, score_data in sorted_items:
+                        if len(selected_items) >= min_items:
+                            break
+                        candidate = score_data['item']
+                        if candidate in selected_items:
+                            continue
+                        candidate_category = self._get_item_category(candidate)
+                        if candidate_category != desired_category:
+                            continue
+                        if score_data['composite_score'] < -0.25:
+                            continue
+                        if not self._hard_filter(candidate, context.occasion, context.style):
+                            continue
+                        if not _is_monochrome_allowed(candidate, item_id, score_data, log_prefix="  "):
+                            continue
+                        selected_items.append(candidate)
+                        if desired_category == 'outerwear':
+                            categories_filled['outerwear'] = True
+                        logger.info(f"  ✅ MINIMALIST PARTY: Added polish {desired_category} filler {self.safe_get_item_name(candidate)}")
+                        break
 
             logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
             # First pass: Try to add items from non-essential categories (outerwear, accessories)
