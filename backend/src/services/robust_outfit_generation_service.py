@@ -5338,6 +5338,7 @@ class RobustOutfitGenerationService:
                         tokens.append(str(palette).lower())
                 return tokens
             
+            color_category_counts: Dict[str, Dict[str, int]] = {}
             for item_id, scores in item_scores.items():
                 item_obj = scores['item']
                 item_tokens = _extract_item_color_tokens(item_obj)
@@ -5352,20 +5353,75 @@ class RobustOutfitGenerationService:
                 monochrome_color_map[item_id] = normalized_color
                 monochrome_color_counts[normalized_color] = monochrome_color_counts.get(normalized_color, 0) + 1
                 scores['monochrome_color'] = normalized_color
+                category = self._get_item_category(item_obj)
+                if category:
+                    category_map = color_category_counts.setdefault(normalized_color, {})
+                    category_map[category] = category_map.get(category, 0) + 1
             
             if monochrome_color_counts:
-                priority = ['black', 'charcoal', 'gray', 'white', 'off-white', 'cream', 'beige', 'navy', 'espresso', 'neutral']
-                preferred_monochrome_color = max(
-                    monochrome_color_counts.items(),
-                    key=lambda kv: (kv[1], -priority.index(kv[0]) if kv[0] in priority else -len(priority))
-                )[0]
+                palette_entry = None
                 if hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
-                    allowed_family = set(similar_families.get(preferred_monochrome_color, set()) or set())
-                    allowed_family.add(preferred_monochrome_color)
                     palette_entry = context.metadata_notes.setdefault('monochrome_palette', {})
-                    palette_entry['preferred_color'] = preferred_monochrome_color
+                palette_candidates: List[Dict[str, Any]] = []
+                essential_categories = ['tops', 'bottoms', 'shoes']
+                neutral_cat_counts = color_category_counts.get('neutral', {})
+
+                for color, total_count in monochrome_color_counts.items():
+                    if color in ('contrast',):
+                        continue
+                    family_set = set(similar_families.get(color, set()))
+                    family_set.add(color)
+                    family_cat_counts = {cat: neutral_cat_counts.get(cat, 0) for cat in essential_categories}
+                    for family_color in family_set:
+                        cat_counts = color_category_counts.get(family_color, {})
+                        for cat in essential_categories:
+                            family_cat_counts[cat] = family_cat_counts.get(cat, 0) + cat_counts.get(cat, 0)
+                    viability = min(family_cat_counts.get(cat, 0) for cat in essential_categories)
+                    if viability <= 0:
+                        continue
+                    total_family_items = sum(family_cat_counts.values())
+                    palette_candidates.append({
+                        'color': color,
+                        'family': sorted(family_set),
+                        'weight': viability,
+                        'viability': viability,
+                        'family_category_counts': family_cat_counts,
+                        'total_family_items': total_family_items,
+                        'raw_count': total_count
+                    })
+
+                if palette_entry is not None:
                     palette_entry['color_counts'] = monochrome_color_counts
-                    palette_entry['allowed_family'] = sorted(allowed_family)
+                    palette_entry['item_colors'] = monochrome_color_map
+                    palette_entry['palette_candidates'] = palette_candidates
+
+                if palette_candidates:
+                    import random
+                    weights = [max(candidate['weight'], 0.01) for candidate in palette_candidates]
+                    chosen_candidate = random.choices(palette_candidates, weights=weights, k=1)[0]
+                    preferred_monochrome_color = chosen_candidate['color']
+                    chosen_family = set(chosen_candidate['family'])
+                    if palette_entry is not None:
+                        palette_entry['selected_candidate'] = chosen_candidate
+                else:
+                    priority = ['black', 'charcoal', 'gray', 'white', 'off-white', 'cream', 'beige', 'navy', 'espresso', 'neutral']
+                    preferred_monochrome_color = max(
+                        monochrome_color_counts.items(),
+                        key=lambda kv: (kv[1], -priority.index(kv[0]) if kv[0] in priority else -len(priority))
+                    )[0]
+                    chosen_family = set(similar_families.get(preferred_monochrome_color, set()) or set())
+                    chosen_family.add(preferred_monochrome_color)
+                    if palette_entry is not None:
+                        palette_entry['selected_candidate'] = {
+                            'color': preferred_monochrome_color,
+                            'family': sorted(chosen_family),
+                            'viability': None,
+                            'fallback': True
+                        }
+
+                if palette_entry is not None:
+                    palette_entry['preferred_color'] = preferred_monochrome_color
+                    palette_entry['allowed_family'] = sorted(chosen_family)
                     palette_entry['item_colors'] = monochrome_color_map
         
         try:
