@@ -418,7 +418,7 @@ export default function CreateOutfitPage() {
   const handleFlatLayGenerate = async () => {
     if (!createdOutfitId) {
       setFlatLayPromptOpen(false);
-      router.push('/outfits');
+      router.push('/outfits?refresh=1');
       return;
     }
 
@@ -467,7 +467,7 @@ export default function CreateOutfitPage() {
       setFlatLayPromptOpen(false);
       setFlatLayUsage(null);
       setCreatedOutfitId(null);
-      router.push('/outfits');
+      router.push('/outfits?refresh=1');
     }
   };
 
@@ -499,7 +499,7 @@ export default function CreateOutfitPage() {
       title: "Flat lay skipped",
       description: "You can always generate a flat lay later from My Outfits.",
     });
-    router.push('/outfits');
+    router.push('/outfits?refresh=1');
   };
 
   const tierName = flatLayUsage ? (SUBSCRIPTION_TIER_NAMES[flatLayUsage.tier] || flatLayUsage.tier) : '';
@@ -575,15 +575,6 @@ export default function CreateOutfitPage() {
             className="w-full"
           >
             Not right now
-          </Button>
-          <Button
-            variant="ghost"
-            asChild
-            className="w-full text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
-          >
-            <Link href="/upgrade">
-              Upgrade for more flat lays
-            </Link>
           </Button>
         </div>
       </AlertDialogContent>
@@ -663,7 +654,7 @@ export default function CreateOutfitPage() {
           title: "Outfit saved",
           description: "Your outfit was saved, but we couldn't confirm the ID for flat lay generation.",
         });
-        router.push('/outfits');
+        router.push('/outfits?refresh=1');
       }
     } catch (error) {
       console.error('Error creating outfit:', error);

@@ -402,6 +402,7 @@ export default function OutfitGrid({
   // ===== LOCAL STATE =====
   const [filters, setFilters] = useState<OutfitFilters>({});
   const [searchResults, setSearchResults] = useState<Outfit[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [sortBy, setSortBy] = useState<'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least'>('date-newest');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -446,11 +447,20 @@ export default function OutfitGrid({
   };
 
   // ===== COMPUTED VALUES =====
+  const totalFavorites = useMemo(
+    () => outfits.filter(outfit => outfit.isFavorite).length,
+    [outfits]
+  );
+
   const filteredOutfits = useMemo(() => {
     let baseOutfits = outfits;
     
     if (isSearching && searchResults.length > 0) {
       baseOutfits = searchResults;
+    }
+
+    if (showFavoritesOnly) {
+      baseOutfits = baseOutfits.filter(outfit => outfit.isFavorite);
     }
     
     // Apply sorting based on selected option
@@ -502,7 +512,7 @@ export default function OutfitGrid({
     }
     
     return sorted;
-  }, [outfits, searchResults, isSearching, sortBy]);
+  }, [outfits, searchResults, isSearching, sortBy, showFavoritesOnly]);
 
   // ===== EFFECTS =====
   // Removed problematic useEffect that was causing infinite refresh loop
@@ -727,17 +737,41 @@ export default function OutfitGrid({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            {isSearching ? 'Search Results' : 'All Outfits'}
+            {isSearching ? 'Search Results' : showFavoritesOnly ? 'Favorite Outfits' : 'All Outfits'}
           </h2>
           <p className="text-gray-600">
-            {isSearching 
-              ? `Found ${searchResults.length} outfits matching your search`
-              : `Showing ${filteredOutfits.length} of ${outfits.length} total outfits`
-            }
+            {(() => {
+              const displayCount = filteredOutfits.length;
+              const searchLabel = displayCount === 1 ? 'outfit' : 'outfits';
+              
+              if (isSearching) {
+                return `Found ${displayCount} ${showFavoritesOnly ? 'favorite ' : ''}${searchLabel} matching your search`;
+              }
+              
+              if (showFavoritesOnly) {
+                return `Showing ${displayCount} of ${totalFavorites} favorite ${totalFavorites === 1 ? 'outfit' : 'outfits'}`;
+              }
+              
+              return `Showing ${displayCount} of ${outfits.length} total ${outfits.length === 1 ? 'outfit' : 'outfits'}`;
+            })()}
           </p>
         </div>
         
         <div className="flex gap-2">
+          <Button
+            onClick={() => setShowFavoritesOnly(prev => !prev)}
+            variant={showFavoritesOnly ? 'default' : 'outline'}
+            size="sm"
+            className={cn(
+              "flex items-center gap-2 border",
+              showFavoritesOnly
+                ? "bg-red-100 text-red-600 border-red-200 hover:bg-red-200"
+                : "text-gray-600 border-gray-200 hover:bg-gray-100"
+            )}
+          >
+            <Heart className={cn("h-4 w-4", showFavoritesOnly ? "fill-current" : "")} />
+            {showFavoritesOnly ? 'Favorites Only' : 'Favorites'}
+          </Button>
           <Button 
             onClick={() => {
               console.log('🔄 [OutfitGrid] Manual refresh triggered by user');
@@ -789,15 +823,23 @@ export default function OutfitGrid({
             </svg>
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {isSearching ? 'No outfits found' : 'No outfits yet'}
+            {isSearching
+              ? showFavoritesOnly ? 'No favorite outfits found' : 'No outfits found'
+              : showFavoritesOnly ? 'No favorite outfits yet' : 'No outfits yet'}
           </h3>
           <p className="text-gray-500 mb-4">
-            {isSearching 
+            {isSearching
               ? 'Try adjusting your search terms or filters'
-              : 'Create your first outfit to get started'
-            }
+              : showFavoritesOnly
+                ? 'Tap the heart icon on outfits you love to collect them here.'
+                : 'Create your first outfit to get started'}
           </p>
-          {!isSearching && (
+          {!isSearching && showFavoritesOnly && (
+            <Button onClick={() => setShowFavoritesOnly(false)} variant="outline">
+              View all outfits
+            </Button>
+          )}
+          {!isSearching && !showFavoritesOnly && (
             <Button onClick={refresh} variant="outline">
               Refresh
             </Button>
