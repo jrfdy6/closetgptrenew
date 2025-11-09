@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ import {
   Sparkles, 
   Trash2, 
   Save, 
-  X, 
   Calendar,
   Shirt,
   Palette,
@@ -113,7 +112,6 @@ export default function WardrobeItemDetails({
   onIncrementWear,
   onGenerateOutfit
 }: WardrobeItemDetailsProps) {
-  const isEditing = true;
   const [editedItem, setEditedItem] = useState<Partial<WardrobeItem>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -294,18 +292,7 @@ export default function WardrobeItemDetails({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="relative max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
-        <DialogClose asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-6 right-6 text-stone-600 hover:text-stone-900"
-            aria-label="Close"
-            disabled={isSaving}
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </DialogClose>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pr-16">
           <div className="flex items-center justify-between gap-4">
             <DialogTitle className="text-2xl font-serif text-stone-900 dark:text-stone-100">
