@@ -3475,6 +3475,9 @@ class RobustOutfitGenerationService:
                 if any(block in item_name_lower for block in structured_blocks):
                     logger.info(f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED STRUCTURED BOTTOM '{item_name[:40]}'")
                     return False
+                if 'jeans' in item_type_lower or 'denim' in item_type_lower:
+                    logger.info(f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED DENIM TYPE '{item_name[:40]}'")
+                    return False
 
                 has_relaxed_name = any(marker in item_name_lower for marker in relaxed_name_markers)
                 has_relaxed_tag = any(tag in style_tags_lower for tag in ['loungewear', 'lounge', 'relaxed', 'comfort'])
