@@ -69,7 +69,7 @@ async def get_simple_outfit_stats(
         try:
             # Try to get from user_stats first (fast)
             stats_ref = db.collection('user_stats').document(current_user.id)
-            stats_doc = await stats_ref.get() if stats_ref else None
+            stats_doc = stats_ref.get() if stats_ref else None
             
             if stats_doc.exists:
                 stats_data = stats_doc.to_dict()

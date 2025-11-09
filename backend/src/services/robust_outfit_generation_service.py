@@ -4628,6 +4628,30 @@ class RobustOutfitGenerationService:
         # For now, allow all combinations
         return False
     
+    def _deduplicate_items(self, items: List[ClothingItem], context: GenerationContext) -> List[ClothingItem]:
+        """Remove duplicate items (by id or name) from the final outfit selection."""
+        seen_keys = set()
+        unique_items = []
+        deduped_keys = []
+        
+        for item in items:
+            item_id = self.safe_get_item_attr(item, 'id', None)
+            fallback_name = self.safe_get_item_name(item)
+            key = item_id or fallback_name
+            
+            if key not in seen_keys:
+                seen_keys.add(key)
+                unique_items.append(item)
+            else:
+                deduped_keys.append(key)
+        
+        if deduped_keys:
+            logger.info(f"🔁 DEDUPLICATION: Removed {len(deduped_keys)} duplicate items: {deduped_keys[:5]}{'...' if len(deduped_keys) > 5 else ''}")
+            if hasattr(context, "metadata_notes") and isinstance(context.metadata_notes, dict):
+                context.metadata_notes.setdefault("deduplicated_items", []).extend(deduped_keys)
+        
+        return unique_items
+    
     # ═══════════════════════════════════════════════════════════════════════
     # MULTI-LAYERED SCORING ANALYZERS
     # ═══════════════════════════════════════════════════════════════════════
@@ -6365,6 +6389,12 @@ class RobustOutfitGenerationService:
         logger.debug(f"🔍 DEBUG FINAL SELECTION: Item scores count: {len(item_scores)}")
         if item_scores:
             logger.debug(f"🔍 DEBUG FINAL SELECTION: Top 3 scored items: {[(item_id, (safe_get(scores, 'composite_score', 0) if scores else 0)) for item_id, scores in list(item_scores.items())[:3]]}")
+        
+        # Deduplicate selected items before building outfit
+        unique_selected_items = self._deduplicate_items(selected_items, context)
+        if len(unique_selected_items) != len(selected_items):
+            logger.info(f"🔁 DEDUPLICATION: Final outfit items reduced from {len(selected_items)} to {len(unique_selected_items)}")
+        selected_items = unique_selected_items
         
         # Build summary of top candidate scores for observability
         top_candidates: List[Dict[str, Any]] = []
