@@ -2454,6 +2454,27 @@ class RobustOutfitGenerationService:
                 user_gender = user_gender.lower()
                 logger.info(f"🚻 GENDER FILTER: User gender = {user_gender}")
         
+        lounge_keywords = {
+            'loungewear', 'lounge', 'relaxed', 'relax', 'casual', 'weekend',
+            'comfort', 'comfortable', 'comfy', 'athleisure', 'home', 'sleep',
+            'pajama', 'pajamas', 'stay-home', 'stayhome'
+        }
+        lounge_name_tokens = {
+            'sweat', 'jogger', 'hoodie', 'henley', 'tee', 't-shirt', 'tank',
+            'thermal', 'fleece', 'knit', 'slouch', 'relaxed', 'soft', 'cozy',
+            'pajama', 'sleep', 'lounge', 'comfort', 'shorts'
+        }
+        lounge_waistbands = {'elastic', 'drawstring', 'elastic_drawstring'}
+        lounge_formality = {'casual', 'relaxed', 'loungewear', 'sleepwear', 'athleisure'}
+        is_lounge_request = False
+        if context and (context.style or context.occasion):
+            style_lower = (context.style or "").lower()
+            occasion_lower = (context.occasion or "").lower()
+            is_lounge_request = (
+                style_lower in lounge_keywords or
+                occasion_lower in lounge_keywords
+            )
+        
         # Apply filtering logic matching the JavaScript implementation
         for raw_item in (context.wardrobe if context else []):
             # Skip base item since it's already added to valid_items
@@ -2490,6 +2511,28 @@ class RobustOutfitGenerationService:
                 if not gender_appropriate:
                     continue  # Skip this item entirely
             
+            item_name_lower = self.safe_get_item_name(raw_item).lower()
+            item_type_lower = str(self.safe_get_item_type(raw_item)).lower()
+            waistband_type = None
+            formal_level = None
+            core_category = None
+            if hasattr(raw_item, 'metadata') and raw_item.metadata:
+                metadata_obj = raw_item.metadata
+                visual_attrs = None
+                if isinstance(metadata_obj, dict):
+                    visual_attrs = metadata_obj.get('visualAttributes', {})
+                else:
+                    visual_attrs = getattr(metadata_obj, 'visualAttributes', None)
+                if isinstance(visual_attrs, dict):
+                    waistband_type = (visual_attrs.get('waistbandType') or '').lower()
+                    formal_level = (visual_attrs.get('formalLevel') or '').lower()
+                    core_category = (visual_attrs.get('coreCategory') or '')
+                else:
+                    waistband_type = (getattr(visual_attrs, 'waistbandType', '') or '').lower()
+                    formal_level = (getattr(visual_attrs, 'formalLevel', '') or '').lower()
+                    core_category = getattr(visual_attrs, 'coreCategory', '')
+            heuristics_applied = []
+            
             if semantic_filtering:
                 # Use semantic filtering with compatibility helpers
                 ok_occ = occasion_matches(context.occasion if context else None, item.get('occasion', []))
@@ -2510,6 +2553,41 @@ class RobustOutfitGenerationService:
                 ok_occ = any(s == context_occasion for s in item_occasions)
                 ok_style = any(s == context_style for s in item_styles)
                 ok_mood = len(item_moods) == 0 or any(m == context_mood for m in item_moods)
+                
+                if is_lounge_request:
+                    if not ok_style:
+                        if set(item_styles) & lounge_keywords:
+                            ok_style = True
+                            heuristics_applied.append("style_tag_lounge_match")
+                        elif any(tok in item_name_lower for tok in lounge_name_tokens):
+                            ok_style = True
+                            heuristics_applied.append("name_lounge_keyword")
+                        elif waistband_type in lounge_waistbands:
+                            ok_style = True
+                            heuristics_applied.append("waistband_lounge")
+                        elif formal_level in lounge_formality:
+                            ok_style = True
+                            heuristics_applied.append("formality_lounge")
+                        elif core_category and str(core_category).lower() in {'top', 'bottom', 'shoes'}:
+                            # Allow neutral essentials when metadata is sparse
+                            ok_style = True
+                            heuristics_applied.append("core_category_lounge")
+                    if not ok_occ:
+                        if set(item_occasions) & lounge_keywords:
+                            ok_occ = True
+                            heuristics_applied.append("occasion_tag_lounge_match")
+                        elif ok_style:
+                            ok_occ = True
+                            heuristics_applied.append("style_implies_lounge")
+            
+            if heuristics_applied:
+                debug_entry_extra = {
+                    'heuristics': heuristics_applied,
+                    'item_id': item.get('id', getattr(raw_item, 'id', 'unknown'))
+                }
+                logger.debug(f"🛋️ LOUNGE HEURISTICS APPLIED: {debug_entry_extra}")
+                if hasattr(context, "metadata_notes") and isinstance(context.metadata_notes, dict):
+                    context.metadata_notes.setdefault("lounge_heuristics", []).append(debug_entry_extra)
             
             # Build rejection reasons
             if not ok_occ:
@@ -2526,6 +2604,8 @@ class RobustOutfitGenerationService:
                 'valid': ok_occ and ok_style and ok_mood,
                 'reasons': reasons
             }
+            if heuristics_applied:
+                debug_entry['heuristics'] = heuristics_applied
             debug_analysis.append(debug_entry)
             
             # ADAPTIVE LOGIC: For mismatches, use OR (occasion OR style), ignore mood
@@ -2598,6 +2678,7 @@ class RobustOutfitGenerationService:
                     # Item blocked by hard filter
                     debug_entry['valid'] = False
                     debug_entry['reasons'].append("Blocked by hard filter (formal/inappropriate item)")
+        
         
         logger.info(f"🔍 HARD FILTER: Results - {len(valid_items)} passed filters, {len(debug_analysis) - len(valid_items)} rejected")
         

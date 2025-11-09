@@ -155,7 +155,7 @@ class MetadataCompatibilityAnalyzer:
         occasion_lower = safe_get(context, 'occasion', '').lower()
         style_lower = safe_get(context, 'style', '').lower()
         skip_for_occasion = {'loungewear', 'lounge', 'relaxed', 'home', 'casual', 'weekend'}
-        color_sensitive_styles = {'colorblock', 'maximalist', 'print on print', 'art pop', 'bold graphics'}
+        color_sensitive_styles = {'colorblock', 'maximalist', 'print on print', 'art pop', 'bold graphics', 'loungewear'}
 
         if occasion_lower in skip_for_occasion and style_lower not in color_sensitive_styles:
             logger.info(f"⚡ PERFORMANCE: Skipping detailed metadata compatibility for casual occasion '{occasion_lower}' (style='{style_lower or 'unknown'}')")
