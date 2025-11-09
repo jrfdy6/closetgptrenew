@@ -5253,6 +5253,17 @@ class RobustOutfitGenerationService:
                 'sand', 'camel', 'navy', 'ink', 'espresso', 'muted green', 'sage',
                 'olive', 'olive green', 'dusty blue', 'dusty pink', 'mauve', 'khaki'
             }
+            similar_families = {
+                'black': {'black', 'charcoal', 'gray', 'grey'},
+                'charcoal': {'black', 'charcoal', 'gray', 'grey'},
+                'gray': {'gray', 'grey', 'charcoal', 'silver', 'ash', 'slate'},
+                'white': {'white', 'off-white', 'cream', 'beige'},
+                'off-white': {'white', 'off-white', 'cream', 'beige'},
+                'cream': {'cream', 'off-white', 'beige', 'white'},
+                'beige': {'beige', 'cream', 'sand', 'taupe', 'off-white', 'white'},
+                'navy': {'navy', 'ink'},
+                'espresso': {'espresso', 'brown', 'chocolate'}
+            }
             def _normalize_monochrome_color(color_value: Optional[str], neutral_set: Optional[set] = None) -> Optional[str]:
                 if not color_value:
                     return None
@@ -5340,6 +5351,7 @@ class RobustOutfitGenerationService:
                     normalized_color = 'neutral'
                 monochrome_color_map[item_id] = normalized_color
                 monochrome_color_counts[normalized_color] = monochrome_color_counts.get(normalized_color, 0) + 1
+                scores['monochrome_color'] = normalized_color
             
             if monochrome_color_counts:
                 priority = ['black', 'charcoal', 'gray', 'white', 'off-white', 'cream', 'beige', 'navy', 'espresso', 'neutral']
@@ -5348,10 +5360,13 @@ class RobustOutfitGenerationService:
                     key=lambda kv: (kv[1], -priority.index(kv[0]) if kv[0] in priority else -len(priority))
                 )[0]
                 if hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
-                    context.metadata_notes.setdefault('monochrome_palette', {
-                        'preferred_color': preferred_monochrome_color,
-                        'color_counts': monochrome_color_counts
-                    })
+                    allowed_family = set(similar_families.get(preferred_monochrome_color, set()) or set())
+                    allowed_family.add(preferred_monochrome_color)
+                    palette_entry = context.metadata_notes.setdefault('monochrome_palette', {})
+                    palette_entry['preferred_color'] = preferred_monochrome_color
+                    palette_entry['color_counts'] = monochrome_color_counts
+                    palette_entry['allowed_family'] = sorted(allowed_family)
+                    palette_entry['item_colors'] = monochrome_color_map
         
         try:
             from src.routes.outfits.styling import calculate_colorblock_metadata_score
@@ -5444,17 +5459,6 @@ class RobustOutfitGenerationService:
                     base_score -= 5.0
                     scores['diversity_score'] = 0.0
                     logger.debug(f"  ⚠️ MONOCHROME PATTERN: {self.safe_get_item_name(item)} has pattern '{monochrome_pattern_value}' (-5.00)")
-                similar_families = {
-                    'black': {'black', 'charcoal', 'gray', 'grey'},
-                    'charcoal': {'black', 'charcoal', 'gray', 'grey'},
-                    'gray': {'gray', 'grey', 'charcoal', 'silver', 'ash', 'slate'},
-                    'white': {'white', 'off-white', 'cream'},
-                    'off-white': {'white', 'off-white', 'cream'},
-                    'cream': {'cream', 'off-white', 'beige'},
-                    'beige': {'beige', 'cream', 'sand', 'taupe'},
-                    'navy': {'navy', 'ink'},
-                    'espresso': {'espresso', 'brown', 'chocolate'}
-                }
                 if preferred_monochrome_color:
                     if primary_color == preferred_monochrome_color:
                         base_score += 0.35
@@ -6109,6 +6113,119 @@ class RobustOutfitGenerationService:
         strategy_description = strategy_selector.get_strategy_description(selected_strategy)
         logger.info(f"🎨 SELECTED STRATEGY: {selected_strategy.value} - {strategy_description}")
         
+        target_style_lower = (context.style or "").lower() if context else ""
+        preferred_monochrome_color = None
+        allowed_monochrome_colors: set[str] = set()
+        monochrome_item_colors: Dict[str, str] = {}
+        monochrome_neutral_colors = {
+            'black', 'white', 'off-white', 'ivory', 'cream', 'grey', 'gray',
+            'charcoal', 'slate', 'ash', 'silver', 'taupe', 'beige', 'stone',
+            'sand', 'camel', 'navy', 'ink', 'espresso', 'muted green', 'sage',
+            'olive', 'olive green', 'dusty blue', 'dusty pink', 'mauve', 'khaki'
+        }
+        color_aliases_map = {
+            'grey': 'gray',
+            'charcoal gray': 'charcoal',
+            'dark gray': 'charcoal',
+            'light gray': 'gray',
+            'off white': 'off-white',
+            'offwhite': 'off-white',
+            'cream': 'cream',
+            'ivory': 'cream',
+            'stone': 'beige',
+            'sand': 'beige',
+            'taupe': 'beige',
+            'camel': 'beige',
+            'tan': 'beige',
+            'muted olive': 'olive',
+            'sage green': 'sage',
+            'dusty-rose': 'dusty pink',
+            'dusty rose': 'dusty pink',
+            'olive green': 'olive',
+            'navy blue': 'navy',
+            'dark blue': 'navy',
+            'midnight blue': 'navy',
+            'midnight navy': 'navy',
+            'midnight': 'navy',
+            'chalk': 'off-white'
+        }
+
+        if target_style_lower == 'monochrome':
+            palette_notes = {}
+            if hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
+                palette_notes = safe_get(context.metadata_notes, 'monochrome_palette', {}) or {}
+            preferred_monochrome_color = palette_notes.get('preferred_color')
+            monochrome_item_colors = palette_notes.get('item_colors', {}) or {}
+            allowed_monochrome_colors = set(palette_notes.get('allowed_family', []) or [])
+            if preferred_monochrome_color:
+                allowed_monochrome_colors.add(preferred_monochrome_color)
+            allowed_monochrome_colors.add('neutral')
+
+        def _normalize_monochrome_value(color_value: Optional[str]) -> Optional[str]:
+            if not color_value:
+                return None
+            token = color_value.lower().strip()
+            if token in color_aliases_map:
+                token = color_aliases_map[token]
+            if token in monochrome_neutral_colors:
+                return token
+            for neutral in monochrome_neutral_colors:
+                if neutral in token:
+                    return neutral
+            return "contrast"
+
+        def _is_monochrome_allowed(item_obj: Any, item_id: Optional[str], score_data: Optional[dict], allow_base: bool = False, log_prefix: str = "") -> bool:
+            if target_style_lower != 'monochrome' or not preferred_monochrome_color:
+                return True
+            if allow_base:
+                return True
+
+            color_value: Optional[str] = None
+            if score_data:
+                color_value = score_data.get('monochrome_color')
+            if (not color_value or color_value == 'neutral') and item_id:
+                color_value = monochrome_item_colors.get(item_id)
+            if not color_value or color_value == 'neutral':
+                return True
+
+            if color_value == "contrast":
+                logger.debug(f"{log_prefix}⏭️ MONOCHROME SKIP: {self.safe_get_item_name(item_obj)} color=contrast (palette {preferred_monochrome_color})")
+                return False
+
+            if color_value in allowed_monochrome_colors:
+                return True
+
+            # Attempt to normalize from raw color data if needed
+            raw_color = (self.safe_get_item_attr(item_obj, 'color', '') or '')
+            normalized = _normalize_monochrome_value(raw_color)
+            if normalized and normalized != color_value:
+                color_value = normalized
+            if color_value == "contrast":
+                logger.debug(f"{log_prefix}⏭️ MONOCHROME SKIP: {self.safe_get_item_name(item_obj)} color=contrast (palette {preferred_monochrome_color})")
+                return False
+            if color_value in allowed_monochrome_colors:
+                return True
+
+            # Check dominant colors if available
+            dominant_colors = getattr(item_obj, 'dominantColors', []) or []
+            for entry in dominant_colors:
+                if isinstance(entry, dict):
+                    name = (entry.get('name') or '').lower()
+                else:
+                    name = getattr(entry, 'name', None)
+                    if name:
+                        name = str(name).lower()
+                if name:
+                    normalized = _normalize_monochrome_value(name)
+                    if normalized == "contrast":
+                        logger.debug(f"{log_prefix}⏭️ MONOCHROME SKIP: {self.safe_get_item_name(item_obj)} dominant color contrast (palette {preferred_monochrome_color})")
+                        return False
+                    if normalized in allowed_monochrome_colors or normalized == 'neutral':
+                        return True
+
+            logger.debug(f"{log_prefix}⏭️ MONOCHROME SKIP: {self.safe_get_item_name(item_obj)} color={color_value} not in palette {allowed_monochrome_colors}")
+            return False
+
         # DEBUG: Log item scores details
         if item_scores:
             logger.debug(f"🔍 DEBUG SCORES: First 3 item scores:")
@@ -6511,6 +6628,8 @@ class RobustOutfitGenerationService:
                         if self._is_forbidden_combination(item, selected_items):
                             logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} creates forbidden combination with existing items")
                             continue  # Skip this item
+                        if not _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
+                            continue
                         
                         selected_items.append(item)
                         categories_filled[category] = True
@@ -6559,6 +6678,8 @@ class RobustOutfitGenerationService:
                             passes_hard_filter = self._hard_filter(item, context.occasion, context.style)
                             
                             if passes_hard_filter:
+                                if not _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
+                                    continue
                                 selected_items.append(item)
                                 categories_filled[missing_cat] = True
                                 logger.info(f"  ✅ SAFETY NET: Added {missing_cat} '{self.safe_get_item_name(item)}' (score={composite_score:.2f})")
@@ -6603,16 +6724,20 @@ class RobustOutfitGenerationService:
                             shoe_scores.sort(key=lambda x: x[1], reverse=True)
                             best_shoe, best_score = shoe_scores[0]
                             
-                            selected_items.append(best_shoe)
-                            categories_filled['shoes'] = True
-                            
-                            logger.warning(f"⚠️ LAST RESORT: Added best available shoe '{self.safe_get_item_name(best_shoe)}' (score={best_score:.2f})")
-                            logger.warning(f"⚠️ WARNING: This shoe might not be ideal for {context.occasion} occasion")
-                            
-                            # Mark this outfit as having a potential mismatch
-                            if not hasattr(context, 'warnings') or context.warnings is None:
-                                context.warnings = []
-                            context.warnings.append(f"Shoes ({self.safe_get_item_name(best_shoe)}) may not be ideal for {context.occasion} occasion")
+                            shoe_id = self.safe_get_item_attr(best_shoe, 'id', '')
+                            if _is_monochrome_allowed(best_shoe, shoe_id, None, log_prefix="  "):
+                                selected_items.append(best_shoe)
+                                categories_filled['shoes'] = True
+                                
+                                logger.warning(f"⚠️ LAST RESORT: Added best available shoe '{self.safe_get_item_name(best_shoe)}' (score={best_score:.2f})")
+                                logger.warning(f"⚠️ WARNING: This shoe might not be ideal for {context.occasion} occasion")
+                                
+                                # Mark this outfit as having a potential mismatch
+                                if not hasattr(context, 'warnings') or context.warnings is None:
+                                    context.warnings = []
+                                context.warnings.append(f"Shoes ({self.safe_get_item_name(best_shoe)}) may not be ideal for {context.occasion} occasion")
+                            else:
+                                logger.warning(f"⚠️ LAST RESORT: Skipped shoe '{self.safe_get_item_name(best_shoe)}' due to monochrome palette mismatch")
                         else:
                             logger.error(f"🚫 LAST RESORT FAILED: All shoes are already selected")
                     else:
@@ -6624,11 +6749,20 @@ class RobustOutfitGenerationService:
         
         # EMERGENCY BYPASS: If no items selected, force select the first item
         if len(selected_items) == 0 and sorted_items:
-            logger.warning(f"🚨 EMERGENCY BYPASS: No items selected in Phase 1, forcing selection of first item")
-            first_item = sorted_items[0][1]['item']
-            selected_items.append(first_item)
-            categories_filled['tops'] = True  # Assume it's a top
-            logger.info(f"🚨 EMERGENCY BYPASS: Forced selection of {self.safe_get_item_name(first_item)}")
+            logger.warning(f"🚨 EMERGENCY BYPASS: No items selected in Phase 1, forcing selection of first palette-compatible item")
+            forced_item = None
+            forced_category = 'tops'
+            for candidate_id, candidate_score in sorted_items:
+                candidate_item = candidate_score['item']
+                if _is_monochrome_allowed(candidate_item, candidate_id, candidate_score, log_prefix="  "):
+                    forced_item = candidate_item
+                    forced_category = self._get_item_category(candidate_item) or 'tops'
+                    break
+            if forced_item is None:
+                forced_item = sorted_items[0][1]['item']
+            selected_items.append(forced_item)
+            categories_filled[forced_category] = True
+            logger.info(f"🚨 EMERGENCY BYPASS: Forced selection of {self.safe_get_item_name(forced_item)}")
         
         # Phase 2: Add layering pieces based on target count
         logger.info(f"📦 PHASE 2: Adding {recommended_layers} layering pieces")
@@ -6674,6 +6808,8 @@ class RobustOutfitGenerationService:
                     if self._is_forbidden_combination(item, selected_items):
                         logger.warning(f"  🚫 FORBIDDEN COMBO: {self.safe_get_item_name(item)} (outerwear) would create forbidden combination")
                     else:
+                        if not _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
+                            continue
                         selected_items.append(item)
                         categories_filled['outerwear'] = True  # Track that we added outerwear
                         logger.warning(f"  ✅ Outerwear: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
@@ -6689,9 +6825,10 @@ class RobustOutfitGenerationService:
                 )
                 
                 if is_mid_layer and not has_mid_layer and temp < 70:
-                    selected_items.append(item)
-                    categories_filled['mid'] = True  # Track that we added mid-layer
-                    logger.warning(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                    if _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
+                        selected_items.append(item)
+                        categories_filled['mid'] = True  # Track that we added mid-layer
+                        logger.warning(f"  ✅ Mid-layer: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                 elif is_mid_layer and has_mid_layer:
                     logger.warning(f"  ⏭️ Mid-layer: {self.safe_get_item_name(item)} - SKIPPED (already have mid-layer)")
             
@@ -6701,8 +6838,9 @@ class RobustOutfitGenerationService:
                     # Limit to 2 accessories max
                     accessory_count = sum(1 for i in selected_items if self._get_item_category(i) == 'accessories')
                     if accessory_count < 2:
-                        selected_items.append(item)
-                        logger.warning(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
+                        if _is_monochrome_allowed(item, item_id, score_data, log_prefix="  "):
+                            selected_items.append(item)
+                            logger.warning(f"  ✅ Accessory: {self.safe_get_item_name(item)} (score={score_data['composite_score']:.2f})")
                     else:
                         logger.warning(f"  ⏭️ Accessory: {self.safe_get_item_name(item)} - SKIPPED (already have 2 accessories)")
         
@@ -6724,8 +6862,9 @@ class RobustOutfitGenerationService:
                     # CRITICAL: Apply hard filter to lounge fillers too
                     if not self._hard_filter(candidate, context.occasion, context.style):
                         continue
-                    selected_items.append(candidate)
-                    logger.info(f"  🛋️ Added lounge filler: {self.safe_get_item_name(candidate)} (score={score_data['composite_score']:.2f})")
+                    if _is_monochrome_allowed(candidate, candidate_id, score_data, log_prefix="  "):
+                        selected_items.append(candidate)
+                        logger.info(f"  🛋️ Added lounge filler: {self.safe_get_item_name(candidate)} (score={score_data['composite_score']:.2f})")
 
             logger.warning(f"⚠️ Only {len(selected_items)} items selected, adding more to reach minimum {min_items}...")
             # First pass: Try to add items from non-essential categories (outerwear, accessories)
@@ -6743,9 +6882,10 @@ class RobustOutfitGenerationService:
                         logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (blocked by hard filter for {context.occasion})")
                         continue
                     
-                    selected_items.append(score_data['item'])
-                    categories_filled[item_category] = True
-                    logger.info(f"  ➕ Filler (non-essential): {self.safe_get_item_name(score_data['item'])} ({item_category}, score={score_data['composite_score']:.2f})")
+                    if _is_monochrome_allowed(score_data['item'], item_id, score_data, log_prefix="  "):
+                        selected_items.append(score_data['item'])
+                        categories_filled[item_category] = True
+                        logger.info(f"  ➕ Filler (non-essential): {self.safe_get_item_name(score_data['item'])} ({item_category}, score={score_data['composite_score']:.2f})")
             
             # Second pass: If still below minimum, allow adding from essential categories that have multiple items available
             if len(selected_items) < min_items:
@@ -6762,8 +6902,9 @@ class RobustOutfitGenerationService:
                         
                         # Only add if score is reasonable (prevents adding low-quality items just to fill quota)
                         if score_data['composite_score'] > 0.3:
-                            selected_items.append(score_data['item'])
-                            logger.info(f"  ➕ Filler (essential): {self.safe_get_item_name(score_data['item'])} ({item_category}, score={score_data['composite_score']:.2f})")
+                            if _is_monochrome_allowed(score_data['item'], item_id, score_data, log_prefix="  "):
+                                selected_items.append(score_data['item'])
+                                logger.info(f"  ➕ Filler (essential): {self.safe_get_item_name(score_data['item'])} ({item_category}, score={score_data['composite_score']:.2f})")
                         else:
                             logger.debug(f"  ⏭️ Filler: {self.safe_get_item_name(score_data['item'])} - SKIPPED (score too low: {score_data['composite_score']:.2f})")
         
@@ -6783,6 +6924,18 @@ class RobustOutfitGenerationService:
             selected_items = deduplicated_items
         
         logger.info(f"🎯 FINAL SELECTION: {len(selected_items)} items")
+
+        if target_style_lower == 'monochrome' and hasattr(context, 'metadata_notes') and isinstance(context.metadata_notes, dict):
+            selection_colors: Dict[str, str] = {}
+            for item in selected_items:
+                item_id = self.safe_get_item_attr(item, 'id', '')
+                color_value = None
+                if item_id:
+                    color_value = monochrome_item_colors.get(item_id)
+                if not color_value or color_value == 'neutral':
+                    color_value = _normalize_monochrome_value(self.safe_get_item_attr(item, 'color', '') or '')
+                selection_colors[item_id or self.safe_get_item_name(item)] = color_value or 'neutral'
+            context.metadata_notes['monochrome_selected_colors'] = selection_colors
         
         # Mark selected items as seen in this session (prevents repetition in same session)
         logger.info(f"📍 Marking {len(selected_items)} items as seen in session {session_id[:8]}...")
@@ -6828,6 +6981,10 @@ class RobustOutfitGenerationService:
                     alternative = (safe_get(suggestion, 'alternative') if suggestion else None)
                     
                     if item_to_replace and alternative:
+                        alt_id = self.safe_get_item_attr(alternative, "id", "") if alternative else ""
+                        if not _is_monochrome_allowed(alternative, alt_id, None, log_prefix="  "):
+                            logger.debug(f"  ⏭️ Diversity swap skipped for {getattr(alternative, 'name', 'Unknown')} due to monochrome palette mismatch")
+                            continue
                         # Replace in selected items
                         selected_items = [alternative if self.safe_get_item_attr(item, "id", "") == item_to_replace.id else item 
                                         for item in selected_items]

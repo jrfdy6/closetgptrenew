@@ -25,6 +25,8 @@ class WeatherData(BaseModel):
     wind_speed: float
     location: str
     precipitation: float = 0.0
+    fallback: bool = False
+    error: str | None = None
 
 @router.post("/weather")
 async def get_weather(request: WeatherRequest):
@@ -33,10 +35,23 @@ async def get_weather(request: WeatherRequest):
     Location can be a city name or coordinates (latitude,longitude).
     """
     try:
+        def build_fallback(error_msg: str) -> WeatherData:
+            logger.warning(f"Using fallback weather response: {error_msg}")
+            return WeatherData(
+                temperature=68.0,
+                condition="Clear",
+                humidity=55,
+                wind_speed=3.0,
+                location=request.location or "Unknown Location",
+                precipitation=0.0,
+                fallback=True,
+                error=error_msg
+            )
+
         # Get OpenWeather API key from environment
-        api_key = os.getenv("OPENWEATHER_API_KEY")
+        api_key = os.getenv("OPENWEATHER_API_KEY") or os.getenv("WEATHER_API_KEY")
         if not api_key:
-            raise HTTPException(status_code=500, detail="OpenWeather API key not configured")
+            return build_fallback("OpenWeather API key not configured")
 
         # Determine if location is coordinates or city name
         if "," in request.location:
@@ -72,20 +87,20 @@ async def get_weather(request: WeatherRequest):
                 logger.info(f"Weather data retrieved successfully for {data.get('name', 'unknown location')}")
             except httpx.TimeoutException:
                 logger.error("Timeout while fetching weather data")
-                raise HTTPException(status_code=500, detail="Weather service timeout")
+                return build_fallback("Weather service timeout")
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 404:
                     logger.error(f"Location not found: {request.location}")
                     raise HTTPException(status_code=404, detail="Location not found")
                 elif e.response.status_code == 401:
                     logger.error("Invalid OpenWeather API key")
-                    raise HTTPException(status_code=500, detail="Weather service configuration error")
+                    return build_fallback("Weather service configuration error")
                 else:
                     logger.error(f"OpenWeather API error: {e.response.status_code}")
-                    raise HTTPException(status_code=500, detail="Error fetching weather data")
+                    return build_fallback(f"Weather provider error {e.response.status_code}")
             except httpx.RequestError as e:
                 logger.error(f"Network error while fetching weather: {str(e)}")
-                raise HTTPException(status_code=500, detail="Network error while fetching weather data")
+                return build_fallback("Network error while fetching weather data")
 
         # Extract relevant weather data
         weather_data = WeatherData(
@@ -94,7 +109,9 @@ async def get_weather(request: WeatherRequest):
             humidity=data["main"]["humidity"],
             wind_speed=data["wind"]["speed"],
             location=data["name"],
-            precipitation=data.get("rain", {}).get("1h", 0.0)  # Get 1h rain if available
+            precipitation=data.get("rain", {}).get("1h", 0.0),  # Get 1h rain if available
+            fallback=False,
+            error=None
         )
 
         return weather_data
@@ -103,4 +120,13 @@ async def get_weather(request: WeatherRequest):
         raise
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error") 
+        return WeatherData(
+            temperature=68.0,
+            condition="Clear",
+            humidity=55,
+            wind_speed=3.0,
+            location=request.location or "Unknown Location",
+            precipitation=0.0,
+            fallback=True,
+            error="Unexpected server error"
+        )
