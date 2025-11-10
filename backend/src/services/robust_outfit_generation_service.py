@@ -3418,6 +3418,50 @@ class RobustOutfitGenerationService:
             
             logger.info(f"✅ LOUNGEWEAR HARD FILTER: PASSED '{item_name[:40]}'")
 
+            # --- RELAXED BOTTOMS METADATA ENRICHMENT ---
+            def _ensure_relaxed_metadata(meta: dict):
+                if not isinstance(meta, dict):
+                    return meta
+                visual_attrs_local = meta.get('visualAttributes')
+                if not isinstance(visual_attrs_local, dict):
+                    visual_attrs_local = {}
+                    meta['visualAttributes'] = visual_attrs_local
+
+                # Infer relaxed waistband / closure / fit heuristically from naming
+                name_tokens = item_name_lower.split()
+                has_drawstring_name = any(token in item_name_lower for token in ['drawstring', 'elastic'])
+                has_pull_on_name = any(token in item_name_lower for token in ['pull-on', 'pull on'])
+                has_relaxed_name_token = any(token in item_name_lower for token in ['relaxed', 'loose', 'casual'])
+
+                waistband_type = (visual_attrs_local.get('waistbandType') or '').lower()
+                if not waistband_type and (has_drawstring_name or 'elastic waist' in item_name_lower):
+                    visual_attrs_local['waistbandType'] = 'elastic'
+                    waistband_type = 'elastic'
+
+                closure_type_local = (visual_attrs_local.get('closure') or '').lower()
+                if not closure_type_local and (has_pull_on_name or waistband_type in ['elastic', 'drawstring']):
+                    visual_attrs_local['closure'] = 'pull-on'
+                    closure_type_local = 'pull-on'
+
+                fit_local = (visual_attrs_local.get('fit') or '').lower()
+                if not fit_local and has_relaxed_name_token:
+                    visual_attrs_local['fit'] = 'relaxed'
+                    fit_local = 'relaxed'
+
+                silhouette_local = (visual_attrs_local.get('silhouette') or '').lower()
+                if not silhouette_local and has_relaxed_name_token:
+                    visual_attrs_local['silhouette'] = 'relaxed'
+
+                style_tags_local = meta.get('styleTags')
+                if isinstance(style_tags_local, list):
+                    lowered = {tag.lower() for tag in style_tags_local}
+                    if 'loungewear' not in lowered and has_relaxed_name_token:
+                        style_tags_local.append('Loungewear')
+                elif style_tags_local is None and has_relaxed_name_token:
+                    meta['styleTags'] = ['Loungewear']
+
+                return meta
+
             if style_lower in ['artsy', 'avant-garde']:
                 athletic_keywords = [
                     'athletic', 'running', 'training', 'performance', 'sport',
@@ -3465,7 +3509,13 @@ class RobustOutfitGenerationService:
             # Enforce drawstring/relaxed bottoms for all loungewear looks
             if item_type_lower in ['bottoms', 'pants', 'trousers', 'shorts', 'leggings', 'jeans', 'chinos']:
                 visual_attrs = metadata.get('visualAttributes', {}) if isinstance(metadata, dict) else {}
+                if isinstance(metadata, dict):
+                    metadata = _ensure_relaxed_metadata(metadata)
+                    visual_attrs = metadata.get('visualAttributes', {}) if isinstance(metadata, dict) else {}
                 waistband_type = (visual_attrs.get('waistbandType') or '').lower() if isinstance(visual_attrs, dict) else ''
+                closure_type = (visual_attrs.get('closure') or '').lower() if isinstance(visual_attrs, dict) else ''
+                fit_descriptor = (visual_attrs.get('fit') or '').lower() if isinstance(visual_attrs, dict) else ''
+                silhouette = (visual_attrs.get('silhouette') or '').lower() if isinstance(visual_attrs, dict) else ''
                 style_tags = metadata.get('styleTags') if isinstance(metadata, dict) else None
                 style_tags_lower = [tag.lower() for tag in style_tags] if isinstance(style_tags, (list, tuple)) else []
 
@@ -3473,7 +3523,8 @@ class RobustOutfitGenerationService:
                     'drawstring', 'elastic waist', 'elastic-waist', 'elasticized waist', 'elasticized-waist',
                     'jogger', 'joggers', 'track pant', 'track-pant', 'sweatpant', 'sweat pant',
                     'sweatshort', 'sweat short', 'lounge', 'relaxed fit', 'relaxed-fit', 'pajama', 'pj',
-                    'knit pant', 'knit short', 'wide-leg', 'wide leg', 'palazzo'
+                    'knit pant', 'knit short', 'wide-leg', 'wide leg', 'palazzo', 'pull-on', 'pull on',
+                    'loose', 'casual short', 'casual shorts'
                 ]
                 structured_blocks = [
                     'jean', 'denim', 'chino', 'trouser', 'dress pant', 'dress trouser',
@@ -3500,11 +3551,22 @@ class RobustOutfitGenerationService:
                 has_relaxed_tag = any(tag in style_tags_lower for tag in ['loungewear', 'lounge', 'relaxed', 'comfort'])
                 has_drawstring = waistband_type in ['drawstring', 'elastic_drawstring']
                 has_elastic = waistband_type in ['elastic', 'elastic_drawstring', 'elastic waistband', 'elastic waist']
+                has_pull_on_closure = any(token in closure_type for token in ['pull-on', 'pull on', 'elastic'])
+                has_relaxed_fit = any(token in fit_descriptor for token in ['relaxed', 'loose', 'easy', 'comfort'])
+                has_relaxed_silhouette = any(token in silhouette for token in ['relaxed', 'loose', 'wide', 'flowy'])
 
-                if not (has_drawstring or has_elastic or has_relaxed_name or has_relaxed_tag):
+                if not (
+                    has_drawstring
+                    or has_elastic
+                    or has_relaxed_name
+                    or has_relaxed_tag
+                    or has_pull_on_closure
+                    or has_relaxed_fit
+                    or has_relaxed_silhouette
+                ):
                     logger.info(
                         f"🚫 LOUNGEWEAR HARD FILTER: BLOCKED NON-DRAWSTRING BOTTOM '{item_name[:40]}' "
-                        f"(waistband={waistband_type or 'none'})"
+                        f"(waistband={waistband_type or 'none'}, closure={closure_type or 'none'}, fit={fit_descriptor or 'none'})"
                     )
                     return False
         
