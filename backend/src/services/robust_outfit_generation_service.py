@@ -3452,6 +3452,10 @@ class RobustOutfitGenerationService:
                 if not silhouette_local and has_relaxed_name_token:
                     visual_attrs_local['silhouette'] = 'relaxed'
 
+                core_category = (visual_attrs_local.get('coreCategory') or '').lower()
+                if not core_category and any(token in item_name_lower for token in ['short', 'shorts', 'bermuda']):
+                    visual_attrs_local['coreCategory'] = 'shorts'
+
                 style_tags_local = meta.get('styleTags')
                 if isinstance(style_tags_local, list):
                     lowered = {tag.lower() for tag in style_tags_local}
