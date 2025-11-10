@@ -3476,9 +3476,14 @@ class RobustOutfitGenerationService:
                 visual_attrs = {}
                 if hasattr(item, 'metadata') and item.metadata and isinstance(item.metadata, dict):
                     visual_attrs = item.metadata.get('visualAttributes', {}) or {}
+                    metadata = _ensure_relaxed_metadata(item.metadata)
+                    visual_attrs = metadata.get('visualAttributes', {}) or {}
                 shoe_type = (visual_attrs.get('shoeType') or '').lower() if isinstance(visual_attrs, dict) else ''
                 material = (visual_attrs.get('material') or '').lower() if isinstance(visual_attrs, dict) else ''
                 waistband_type = (visual_attrs.get('waistbandType') or '').lower() if isinstance(visual_attrs, dict) else ''
+                closure_type = (visual_attrs.get('closure') or '').lower() if isinstance(visual_attrs, dict) else ''
+                fit_descriptor = (visual_attrs.get('fit') or '').lower() if isinstance(visual_attrs, dict) else ''
+                silhouette = (visual_attrs.get('silhouette') or '').lower() if isinstance(visual_attrs, dict) else ''
 
                 name_has_athletic = any(keyword in item_name_lower for keyword in athletic_keywords)
                 type_has_athletic = any(keyword in item_type_lower for keyword in athletic_keywords)
@@ -3493,10 +3498,18 @@ class RobustOutfitGenerationService:
                 ]
                 is_relaxed_material = any(mat in material for mat in relaxed_materials)
                 is_relaxed_name = any(keyword in item_name_lower for keyword in relaxed_keywords)
+                has_drawstring = waistband_type in ['elastic', 'drawstring', 'elastic_drawstring']
+                has_relaxed_closure = any(token in closure_type for token in ['pull-on', 'pull on', 'elastic'])
+                has_relaxed_fit = any(token in fit_descriptor for token in ['relaxed', 'loose', 'easy', 'comfort'])
+                has_relaxed_silhouette = any(token in silhouette for token in ['relaxed', 'loose', 'flowy', 'wide'])
 
                 if item_type_lower in ['bottoms', 'pants', 'shorts'] and not (
-                    waistband_type in ['elastic', 'drawstring', 'elastic_drawstring'] or
-                    is_relaxed_material or is_relaxed_name
+                    has_drawstring
+                    or is_relaxed_material
+                    or is_relaxed_name
+                    or has_relaxed_closure
+                    or has_relaxed_fit
+                    or has_relaxed_silhouette
                 ):
                     logger.info(f"🚫 LOUNGEWEAR ARTSY FILTER: BLOCKED STRUCTURED BOTTOM '{item_name[:40]}'")
                     return False
