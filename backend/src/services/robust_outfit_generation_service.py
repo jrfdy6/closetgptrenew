@@ -413,6 +413,8 @@ class RobustOutfitGenerationService:
         item_type = str(self.safe_get_item_type(item)).lower()
         item_name = self.safe_get_item_name(item).lower()
         item_name_lower = item_name
+        logger.info(f"✅ COMMIT 378ebeee9: _hard_filter analyzing '{item_name[:40]}'")
+        item_name_lower = item_name
         item_name_lower = item_name
         item_name_lower = item_name
         item_name_lower = item_name
