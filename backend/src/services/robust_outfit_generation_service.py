@@ -3031,6 +3031,8 @@ class RobustOutfitGenerationService:
         # BUILD MARKER v2025-10-13-02:50 - Force Railway to detect change
         
         item_name = self.safe_get_item_name(item).lower()
+        item_name_lower = item_name
+        logger.info(f"✅ COMMIT 378ebeee9: _hard_filter analyzing '{item_name[:40]}'")
         # Extract just the enum value, not the full "ClothingType.SHIRT" string
         raw_type = getattr(item, 'type', '')
         if hasattr(raw_type, 'value'):
