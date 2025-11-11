@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from firebase_admin import firestore
 
 from src.utils.auth_utils import extract_uid_from_request
 from src.auth.auth_service import get_current_user_id
@@ -619,7 +620,11 @@ async def get_outfits(
         # Fetch more than requested to ensure custom outfits (with timestamp createdAt) are included.
         fetch_limit = min(1000, max((requested_offset + requested_limit) * 2, requested_limit * 4, 100))
 
-        base_query = db.collection('outfits').where('user_id', '==', current_user_id)
+        base_query = (
+            db.collection('outfits')
+            .where('user_id', '==', current_user_id)
+            .order_by('__name__', direction=firestore.Query.DESCENDING)
+        )
 
         docs = []
         for idx, doc in enumerate(base_query.stream()):
