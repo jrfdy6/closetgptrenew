@@ -2384,9 +2384,8 @@ class RobustOutfitGenerationService:
 
             relaxed_keywords = [
                 'drawstring', 'pull-on', 'pull on', 'elastic waist', 'elastic-waist',
-                'elasticized waist', 'elasticized-waist', 'elastic', 'elastic waistband',
-                'lounge', 'lounging', 'sweat', 'fleece', 'knit', 'jersey', 'terry', 'modal',
-                'relaxed', 'relaxed fit', 'comfort', 'comfortable', 'cozy', 'baggy', 'loose', 'soft'
+                'elasticized waist', 'elasticized-waist', 'elastic', 'lounge', 'sweat',
+                'fleece', 'knit', 'jersey', 'terry', 'modal', 'relaxed', 'comfort', 'baggy'
             ]
             soft_fabrics = ['fleece', 'knit', 'jersey', 'cotton', 'modal', 'terry']
 
