@@ -644,31 +644,48 @@ async def get_outfits(
                 continue
 
         def extract_created_timestamp(outfit: Dict[str, Any]) -> float:
-            value = outfit.get('createdAt') or outfit.get('created_at_ms') or outfit.get('created_at_timestamp')
-            if value is None:
-                return 0.0
+            timestamp_candidates = [
+                ("createdAt", outfit.get("createdAt")),
+                ("created_at_ms", outfit.get("created_at_ms")),
+                ("created_at_timestamp", outfit.get("created_at_timestamp")),
+                ("created_at_iso", outfit.get("created_at_iso")),
+            ]
 
-            if isinstance(value, (int, float)):
-                # Treat large numbers as milliseconds
-                return float(value / 1000.0 if value > 1e12 else value)
+            for key, value in timestamp_candidates:
+                if value is None:
+                    continue
 
-            if isinstance(value, datetime):
-                return value.timestamp()
+                if isinstance(value, (int, float)):
+                    return float(value / 1000.0 if value > 1e12 else value)
 
-            if hasattr(value, 'timestamp'):
-                try:
+                if isinstance(value, datetime):
                     return value.timestamp()
-                except Exception:
-                    pass
 
-            if isinstance(value, str):
-                try:
-                    iso_value = value.replace('Z', '+00:00') if value.endswith('Z') else value
-                    dt = datetime.fromisoformat(iso_value)
-                    return dt.timestamp()
-                except Exception:
-                    logger.debug(f"Unable to parse createdAt string for outfit {outfit.get('id')}: {value}")
-                    return 0.0
+                if hasattr(value, "timestamp"):
+                    try:
+                        return value.timestamp()
+                    except Exception:
+                        logger.debug(
+                            "Unable to use timestamp() for outfit %s key %s: %s",
+                            outfit.get("id"),
+                            key,
+                            value,
+                        )
+                        continue
+
+                if isinstance(value, str):
+                    try:
+                        iso_value = value.replace('Z', '+00:00') if value.endswith('Z') else value
+                        dt = datetime.fromisoformat(iso_value)
+                        return dt.timestamp()
+                    except Exception:
+                        logger.debug(
+                            "Unable to parse createdAt string for outfit %s key %s: %s",
+                            outfit.get("id"),
+                            key,
+                            value,
+                        )
+                        continue
 
             return 0.0
 
