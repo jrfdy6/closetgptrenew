@@ -2348,7 +2348,7 @@ class RobustOutfitGenerationService:
         }
         lounge_waistbands = {'elastic', 'drawstring', 'elastic_drawstring'}
         lounge_materials = {
-            'knit', 'fleece', 'cashmere', 'wool', 'modal', 'jersey', 'velour', 'velvet', 'cotton'
+            'knit', 'fleece', 'cashmere', 'wool', 'modal', 'jersey', 'velour', 'velvet', 'cotton', 'terry'
         }
         is_loungewear_target = target_occasion_lower in lounge_keywords
 
@@ -2361,18 +2361,24 @@ class RobustOutfitGenerationService:
                 visual_attrs_local = {}
                 metadata_obj['visualAttributes'] = visual_attrs_local
             waistband = (visual_attrs_local.get('waistbandType') or '').lower()
-            if not waistband and any(tok in item_name_lower for tok in ['drawstring', 'elastic']):
-                visual_attrs_local['waistbandType'] = 'elastic'
-                waistband = 'elastic'
-            if not (visual_attrs_local.get('closure') or '') and any(tok in item_name_lower for tok in ['pull-on', 'pull on']):
+            waistband_tokens = ['drawstring', 'elastic waist', 'elastic-waist', 'elasticized waist', 'pull-on', 'pull on']
+            if not waistband and any(tok in item_name_lower for tok in waistband_tokens):
+                visual_attrs_local['waistbandType'] = 'drawstring' if 'drawstring' in item_name_lower else 'elastic'
+                waistband = visual_attrs_local['waistbandType']
+            if not (visual_attrs_local.get('closure') or '') and any(tok in item_name_lower for tok in ['pull-on', 'pull on', 'elastic waist']):
                 visual_attrs_local['closure'] = 'pull-on'
-            if not (visual_attrs_local.get('fit') or '') and any(tok in item_name_lower for tok in ['relaxed', 'loose', 'easy']):
+            if not (visual_attrs_local.get('fit') or '') and any(tok in item_name_lower for tok in ['relaxed', 'loose', 'easy', 'comfort', 'baggy']):
                 visual_attrs_local['fit'] = 'relaxed'
-            if not (visual_attrs_local.get('silhouette') or '') and any(tok in item_name_lower for tok in ['relaxed', 'loose', 'wide']):
+            if not (visual_attrs_local.get('silhouette') or '') and any(tok in item_name_lower for tok in ['relaxed', 'loose', 'wide', 'palazzo']):
                 visual_attrs_local['silhouette'] = 'relaxed'
+            if not (visual_attrs_local.get('material') or '') and any(tok in item_name_lower for tok in ['fleece', 'knit', 'jersey', 'cotton', 'terry', 'modal']):
+                visual_attrs_local['material'] = next(tok for tok in ['fleece', 'knit', 'jersey', 'cotton', 'terry', 'modal'] if tok in item_name_lower)
             core_category = (visual_attrs_local.get('coreCategory') or '').lower()
             if not core_category and any(tok in item_name_lower for tok in ['short', 'shorts', 'jogger', 'pant']):
-                visual_attrs_local['coreCategory'] = 'shorts' if 'short' in item_name_lower else 'bottoms'
+                if 'short' in item_name_lower:
+                    visual_attrs_local['coreCategory'] = 'shorts'
+                elif any(tok in item_name_lower for tok in ['pant', 'jogger', 'trouser', 'sweat']):
+                    visual_attrs_local['coreCategory'] = 'bottoms'
             style_tags_local = metadata_obj.get('styleTags')
             if isinstance(style_tags_local, list):
                 if not any(tag.lower() == 'loungewear' for tag in style_tags_local):
