@@ -504,51 +504,120 @@ class OutfitService:
         if not outfit_data:
             return outfit_data
 
-        user_id = outfit_data.get('user_id') or outfit_data.get('userId') or ''
+        user_id = (
+            outfit_data.get('user_id')
+            or outfit_data.get('userId')
+            or outfit_data.get('userID')
+            or outfit_data.get('uid')
+            or ''
+        )
+        if not user_id:
+            # Fallback to nested profile if available
+            profile = outfit_data.get('user_profile') or {}
+            user_id = profile.get('id') or profile.get('user_id') or ''
+        if user_id:
+            outfit_data['user_id'] = user_id
 
         items = outfit_data.get('items', [])
         sanitized_items: List[Dict[str, Any]] = []
 
         for idx, item in enumerate(items or []):
             if isinstance(item, dict):
-                sanitized = item.copy()
+                sanitized = dict(item)
 
-                sanitized.setdefault('id', sanitized.get('id') or sanitized.get('itemId') or str(uuid4()))
-                sanitized.setdefault('name', sanitized.get('name') or sanitized.get('title') or 'Unnamed Item')
-                sanitized.setdefault('userId', sanitized.get('userId') or user_id)
+                sanitized['id'] = (
+                    sanitized.get('id')
+                    or sanitized.get('itemId')
+                    or sanitized.get('item_id')
+                    or str(uuid4())
+                )
+                sanitized['name'] = sanitized.get('name') or sanitized.get('title') or 'Unnamed Item'
+
+                sanitized_user_id = (
+                    sanitized.get('userId')
+                    or sanitized.get('user_id')
+                    or user_id
+                )
+                if not sanitized_user_id:
+                    sanitized_user_id = outfit_data.get('user_id') or ''
+                sanitized['userId'] = sanitized_user_id
+                sanitized['user_id'] = sanitized_user_id
 
                 # Normalise subtype/type/category
-                sub_type = sanitized.get('subType') or sanitized.get('category') or sanitized.get('type')
+                sub_type = (
+                    sanitized.get('subType')
+                    or sanitized.get('sub_type')
+                    or sanitized.get('category')
+                    or sanitized.get('type')
+                )
                 sanitized['subType'] = sub_type or 'general'
-                item_type = sanitized.get('type') or sanitized.get('category') or sanitized.get('subType')
+
+                item_type = (
+                    sanitized.get('type')
+                    or sanitized.get('category')
+                    or sanitized.get('subType')
+                )
                 sanitized['type'] = item_type or 'general'
 
+                if 'category' not in sanitized or not sanitized.get('category'):
+                    sanitized['category'] = sanitized['type']
+
                 # Ensure color and image keys exist
-                sanitized.setdefault('color', sanitized.get('color') or sanitized.get('primaryColor') or '')
-                sanitized.setdefault('imageUrl', sanitized.get('imageUrl') or sanitized.get('image_url') or sanitized.get('image') or '')
+                sanitized['color'] = (
+                    sanitized.get('color')
+                    or sanitized.get('primaryColor')
+                    or sanitized.get('dominantColor')
+                    or ''
+                )
+                sanitized_image_url = (
+                    sanitized.get('imageUrl')
+                    or sanitized.get('image_url')
+                    or sanitized.get('image')
+                    or sanitized.get('thumbnailUrl')
+                    or sanitized.get('thumbnail_url')
+                    or ''
+                )
+                sanitized['imageUrl'] = sanitized_image_url
 
                 # Ensure style/occasion lists
                 style_value = sanitized.get('style')
-                if isinstance(style_value, str):
-                    sanitized['style'] = [style_value]
-                elif not style_value:
+                if isinstance(style_value, list):
+                    style_list = [str(value) for value in style_value if value]
+                    sanitized['style'] = style_list or ['casual']
+                elif isinstance(style_value, str) and style_value.strip():
+                    sanitized['style'] = [style_value.strip()]
+                else:
                     sanitized['style'] = ['casual']
 
                 occasion_value = sanitized.get('occasion')
-                if isinstance(occasion_value, str):
-                    sanitized['occasion'] = [occasion_value]
-                elif not occasion_value:
+                if isinstance(occasion_value, list):
+                    occasion_list = [str(value) for value in occasion_value if value]
+                    sanitized['occasion'] = occasion_list or ['casual']
+                elif isinstance(occasion_value, str) and occasion_value.strip():
+                    sanitized['occasion'] = [occasion_value.strip()]
+                else:
                     sanitized['occasion'] = ['casual']
 
                 # Optional list fields default to lists
-                if sanitized.get('dominantColors') is None or isinstance(sanitized.get('dominantColors'), str):
+                dominant_colors = sanitized.get('dominantColors')
+                if not isinstance(dominant_colors, list):
                     sanitized['dominantColors'] = []
-                if sanitized.get('matchingColors') is None or isinstance(sanitized.get('matchingColors'), str):
+                matching_colors = sanitized.get('matchingColors')
+                if not isinstance(matching_colors, list):
                     sanitized['matchingColors'] = []
 
                 # Numeric defaults
-                sanitized.setdefault('wearCount', sanitized.get('wearCount', 0) or 0)
-                sanitized.setdefault('favorite_score', sanitized.get('favorite_score', 0.0) or 0.0)
+                try:
+                    wear_count = int(sanitized.get('wearCount') or 0)
+                except (TypeError, ValueError):
+                    wear_count = 0
+                sanitized['wearCount'] = max(wear_count, 0)
+
+                try:
+                    favorite_score = float(sanitized.get('favorite_score') or 0.0)
+                except (TypeError, ValueError):
+                    favorite_score = 0.0
+                sanitized['favorite_score'] = favorite_score
 
                 # Metadata should be dict if present
                 metadata = sanitized.get('metadata')
