@@ -3506,6 +3506,7 @@ class RobustOutfitGenerationService:
                 has_relaxed_closure = any(token in closure_type for token in ['pull-on', 'pull on', 'elastic'])
                 has_relaxed_fit = any(token in fit_descriptor for token in ['relaxed', 'loose', 'easy', 'comfort'])
                 has_relaxed_silhouette = any(token in silhouette for token in ['relaxed', 'loose', 'flowy', 'wide'])
+                core_category = (visual_attrs.get('coreCategory') or '').lower() if isinstance(visual_attrs, dict) else ''
 
                 if item_type_lower in ['bottoms', 'pants', 'shorts'] and not (
                     has_drawstring
@@ -3514,6 +3515,7 @@ class RobustOutfitGenerationService:
                     or has_relaxed_closure
                     or has_relaxed_fit
                     or has_relaxed_silhouette
+                    or core_category in ['shorts', 'loungewear']
                 ):
                     logger.info(f"🚫 LOUNGEWEAR ARTSY FILTER: BLOCKED STRUCTURED BOTTOM '{item_name[:40]}'")
                     return False
