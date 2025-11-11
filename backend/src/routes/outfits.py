@@ -3996,6 +3996,35 @@ def convert_firebase_url(raw_image_url: str) -> str:
             return f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
     return raw_image_url
 
+def compute_created_at_ms(created_at) -> int:
+    """Convert any supported created_at value to epoch milliseconds."""
+    try:
+        if created_at is None:
+            return int(time.time() * 1000)
+        
+        if isinstance(created_at, (int, float)):
+            # Distinguish between seconds and milliseconds
+            return int(created_at if created_at > 1e12 else created_at * 1000)
+        
+        if isinstance(created_at, str):
+            try:
+                parsed = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                return int(parsed.timestamp() * 1000)
+            except Exception:
+                return int(time.time() * 1000)
+        
+        if FIRESTORE_TIMESTAMP_AVAILABLE and isinstance(created_at, DatetimeWithNanoseconds):
+            return int(created_at.timestamp() * 1000)
+        
+        if isinstance(created_at, datetime):
+            return int(created_at.timestamp() * 1000)
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to compute created_at_ms from {created_at}: {e}")
+    
+    return int(time.time() * 1000)
+
+
 def normalize_created_at(created_at) -> str:
     """Safely normalize Firestore created_at into ISO8601 string."""
     try:
@@ -4186,14 +4215,14 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             use_firestore_ordering = False
         
         # Apply pagination based on whether ordering worked
+        # Always fetch a small buffer to ensure custom outfits are included even if Firestore ordering differs
+        fetch_limit = limit + offset + 50
+        fetch_limit = min(max(fetch_limit, limit), 250)
+        
         if use_firestore_ordering:
-            # Firestore ordering worked, use efficient pagination
-            if offset > 0:
-                outfits_ref = outfits_ref.offset(offset)
-            outfits_ref = outfits_ref.limit(limit)
+            outfits_ref = outfits_ref.limit(fetch_limit)
         else:
-            # Firestore ordering failed, fetch more for client-side sorting
-            outfits_ref = outfits_ref.limit(min(100, offset + limit * 2))
+            outfits_ref = outfits_ref.limit(min(fetch_limit, 250))
         
         logger.info(f"🔍 DEBUG: Firestore query: limit={limit}, offset={offset}")
         
@@ -4213,8 +4242,24 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
                 outfit_data = doc.to_dict()
                 outfit_data['id'] = doc.id
                 
+                # Compute consistent milliseconds timestamp
+                raw_created_at = (
+                    outfit_data.get('createdAt')
+                    or outfit_data.get('created_at_timestamp')
+                    or outfit_data.get('created_at_ms')
+                )
+                created_at_ms = compute_created_at_ms(raw_created_at)
+                outfit_data['created_at_ms'] = created_at_ms
+                
+                # Backfill missing milliseconds field in Firestore for future ordering
+                if not outfit_data.get('created_at_ms'):
+                    try:
+                        doc.reference.update({"created_at_ms": created_at_ms})
+                    except Exception as update_error:
+                        logger.debug(f"🔁 DEBUG: Skipped created_at_ms backfill for {doc.id}: {update_error}")
+                
                 # Normalize timestamp immediately to prevent later errors
-        outfit_data['createdAt'] = normalize_created_at((outfit_data.get('createdAt') if outfit_data else None))
+                outfit_data['createdAt'] = normalize_created_at(raw_created_at)
                 
                 outfits.append(outfit_data)
         logger.info(f"🔍 DEBUG: Found outfit: {((outfit_data.get('name', 'unnamed') if outfit_data else 'unnamed') if outfit_data else 'unnamed')} (ID: {doc.id}, Created: {outfit_data.get('createdAt', 'Unknown')})")
@@ -4247,18 +4292,14 @@ async def get_user_outfits(user_id: str, limit: int = 50, offset: int = 0) -> Li
             logger.info(f"⚠️ DEBUG: Skipping wardrobe cache for {len(outfits)} outfits (too many for performance)")
             wardrobe_cache = None
         
-        # Check if we need client-side sorting (when Firestore ordering failed)
-        if not use_firestore_ordering:
-            logger.info("🔄 DEBUG: Applying client-side sorting since Firestore ordering failed")
-            # Timestamps already normalized during collection, just sort
-        outfits.sort(key=lambda x: (x.get('createdAt', '') if x else ''), reverse=True)
+        # Always apply client-side sorting to ensure consistency across mixed timestamp types
+        outfits.sort(key=lambda x: x.get('created_at_ms', 0), reverse=True)
         
-        # Apply pagination after sorting (ONLY when client-side sorting was used)
-        if not use_firestore_ordering:
-            start_idx = offset
-            end_idx = offset + limit
-            outfits = outfits[start_idx:end_idx]
-            logger.info(f"✅ DEBUG: Client-side sorted and paginated to {len(outfits)} outfits")
+        # Apply pagination in application layer
+        start_idx = offset
+        end_idx = offset + limit
+        outfits = outfits[start_idx:end_idx]
+        logger.info(f"✅ DEBUG: Client-side sorted and paginated to {len(outfits)} outfits (offset={offset}, limit={limit})")
         
         # Final pass: resolve items using cache (reduced logging)
         for outfit_data in outfits:
