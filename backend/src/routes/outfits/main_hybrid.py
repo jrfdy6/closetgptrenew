@@ -619,12 +619,13 @@ async def get_outfits(
         # Fetch more than requested to ensure custom outfits (with timestamp createdAt) are included.
         fetch_limit = min(1000, max((requested_offset + requested_limit) * 2, requested_limit * 4, 100))
 
-        base_query = db.collection('outfits')\
-            .where('user_id', '==', current_user_id)\
-            .order_by('createdAt', direction='DESCENDING')\
-            .limit(fetch_limit)
+        base_query = db.collection('outfits').where('user_id', '==', current_user_id)
 
-        docs = list(base_query.stream())
+        docs = []
+        for idx, doc in enumerate(base_query.stream()):
+            docs.append(doc)
+            if idx + 1 >= fetch_limit:
+                break
         outfits_raw: List[Dict[str, Any]] = []
 
         for doc in docs:
