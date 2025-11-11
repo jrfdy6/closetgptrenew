@@ -1064,39 +1064,76 @@ async def create_outfit(
         
         logger.info(f"✅ Outfit created: {outfit_id} for user {current_user_id}")
         
-        # Build response with normalized values
-        response_payload = saved_data if 'saved_data' in locals() else outfit_data
-        response_payload = response_payload.copy()
-        response_payload.setdefault("id", outfit_id)
-        response_payload.setdefault("items", normalized_items)
-        
-        created_at_value = response_payload.get("createdAt") or response_payload.get("created_at_timestamp")
-        created_at_iso = current_time_iso
-        created_at_ms = response_payload.get("created_at_ms", current_time_ms)
-        
-        if hasattr(created_at_value, "isoformat"):
-            created_at_iso = created_at_value.isoformat()
-        elif isinstance(created_at_value, (int, float)):
-            created_at_ms = int(created_at_value if created_at_value > 1e12 else created_at_value * 1000)
-            created_at_iso = datetime.utcfromtimestamp(created_at_ms / 1000).isoformat()
-        elif isinstance(created_at_value, str):
-            created_at_iso = created_at_value
-        else:
-            created_at_iso = current_time_iso
-        
-        response_payload["createdAt"] = created_at_ms
-        response_payload["created_at_iso"] = created_at_iso
-        
+        # Build response with fully normalised payload
+        raw_payload = (saved_data if 'saved_data' in locals() else outfit_data) or {}
+        raw_payload = dict(raw_payload)
+        raw_payload.setdefault("id", outfit_id)
+        raw_payload.setdefault("user_id", current_user_id)
+        raw_payload.setdefault("items", normalized_items)
+
+        # Normalise using the shared sanitizer so POST responses match GET payloads
+        try:
+            normalized_payload = outfit_service._sanitize_outfit_document(raw_payload, outfit_id)
+        except Exception as sanitize_error:
+            logger.warning(f"⚠️ Failed to sanitize newly created outfit {outfit_id}: {sanitize_error}")
+            normalized_payload = raw_payload
+
+        # Helper to convert any timestamp-ish value into milliseconds
+        def _to_epoch_ms(value: Any, fallback_ms: int) -> int:
+            if value is None:
+                return fallback_ms
+
+            if isinstance(value, (int, float)):
+                return int(value if value > 1e12 else value * 1000)
+
+            if isinstance(value, datetime):
+                return int(value.timestamp() * 1000)
+
+            if hasattr(value, "timestamp"):
+                try:
+                    return int(value.timestamp() * 1000)
+                except Exception:
+                    return fallback_ms
+
+            if isinstance(value, str):
+                try:
+                    iso_value = value.replace('Z', '+00:00') if value.endswith('Z') else value
+                    dt = datetime.fromisoformat(iso_value)
+                    return int(dt.timestamp() * 1000)
+                except Exception:
+                    return fallback_ms
+
+            return fallback_ms
+
+        created_epoch_ms = _to_epoch_ms(
+            normalized_payload.get("createdAt")
+            or normalized_payload.get("created_at_ms")
+            or normalized_payload.get("created_at_timestamp"),
+            current_time_ms
+        )
+        updated_epoch_ms = _to_epoch_ms(
+            normalized_payload.get("updatedAt")
+            or normalized_payload.get("updated_at_ms")
+            or normalized_payload.get("updated_at_timestamp"),
+            created_epoch_ms
+        )
+
+        created_iso = datetime.utcfromtimestamp(created_epoch_ms / 1000).isoformat()
+        updated_iso = datetime.utcfromtimestamp(updated_epoch_ms / 1000).isoformat()
+
+        normalized_payload["id"] = outfit_id
+        normalized_payload["user_id"] = current_user_id
+        normalized_payload["createdAt"] = created_epoch_ms
+        normalized_payload["updatedAt"] = updated_epoch_ms
+        normalized_payload["created_at_ms"] = created_epoch_ms
+        normalized_payload["updated_at_ms"] = updated_epoch_ms
+        normalized_payload["created_at_iso"] = created_iso
+        normalized_payload["updated_at_iso"] = updated_iso
+
         return {
             "success": True,
-            "id": response_payload["id"],
-            "name": response_payload.get("name", name),
-            "items": response_payload.get("items", normalized_items),
-            "style": response_payload.get("style", style),
-            "occasion": response_payload.get("occasion", occasion),
-            "description": response_payload.get("description", description),
-            "createdAt": created_at_iso,
-            "createdAtMs": created_at_ms
+            "outfit": normalized_payload,
+            "message": "Outfit created successfully"
         }
         
     except HTTPException:

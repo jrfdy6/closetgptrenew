@@ -49,13 +49,19 @@ class OutfitService {
   }
 
   async createOutfit(outfit: OutfitCreate, token: string): Promise<Outfit> {
-    return this.makeRequest('/outfits', {
+    const response = await this.makeRequest('/outfits', {
       method: 'POST',
       body: JSON.stringify(outfit),
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (response?.outfit) {
+      return response.outfit as Outfit;
+    }
+
+    return response as Outfit;
   }
 
   async updateOutfit(id: string, outfit: OutfitUpdate, token: string): Promise<Outfit> {
