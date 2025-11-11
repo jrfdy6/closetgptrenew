@@ -1002,7 +1002,10 @@ async def create_outfit(
             raise HTTPException(status_code=400, detail="Unable to process outfit items")
         
         # Create outfit data
-        outfit_id = str(uuid4())
+        # Use same prefix pattern as generated outfits so Firestore console ordering aligns
+        timestamp_ms = int(time.time() * 1000)
+        random_suffix = uuid4().hex[:6]
+        outfit_id = f"outfit_{timestamp_ms}_{random_suffix}"
         from firebase_admin import firestore
         server_timestamp = firestore.SERVER_TIMESTAMP
         current_time_ms = int(time.time() * 1000)
