@@ -611,38 +611,75 @@ async def get_outfits(
         # Import Firebase
         from src.config.firebase import db
         
-        # Query outfits collection (generated outfits with items arrays)
-        # Using user_id + createdAt (matches existing index)
-        query = db.collection('outfits')\
+        # Firestore ordering struggles when createdAt mixes numeric + timestamp types.
+        # Fetch a generous slice, normalize + sort in Python, then paginate.
+        requested_limit = limit or 50
+        requested_offset = max(offset, 0)
+
+        # Fetch more than requested to ensure custom outfits (with timestamp createdAt) are included.
+        fetch_limit = min(1000, max((requested_offset + requested_limit) * 2, requested_limit * 4, 100))
+
+        base_query = db.collection('outfits')\
             .where('user_id', '==', current_user_id)\
             .order_by('createdAt', direction='DESCENDING')\
-            .limit(limit)
-        
-        if offset > 0:
-            # Get the last document from the previous page for pagination
-            prev_query = db.collection('outfits')\
-                .where('user_id', '==', current_user_id)\
-                .order_by('createdAt', direction='DESCENDING')\
-                .limit(offset)
-            prev_docs = list(prev_query.stream())
-            if prev_docs:
-                query = query.start_after(prev_docs[-1])
-        
-        # Fetch outfits
-        docs = query.stream()
-        outfits = []
-        
+            .limit(fetch_limit)
+
+        docs = list(base_query.stream())
+        outfits_raw: List[Dict[str, Any]] = []
+
         for doc in docs:
-            outfit_data = doc.to_dict()
-            outfit_data['id'] = doc.id
-            outfits.append(outfit_data)
-        
-        logger.info(f"✅ Retrieved {len(outfits)} generated outfits for user {current_user_id}")
+            data = doc.to_dict() or {}
+            data['id'] = doc.id
+            outfits_raw.append(data)
+
+        # Normalize documents so they satisfy the Outfit model expectations.
+        normalized_outfits: List[Dict[str, Any]] = []
+        for outfit in outfits_raw:
+            try:
+                normalized = outfit_service._sanitize_outfit_document(dict(outfit), outfit.get('id', 'unknown'))
+                normalized_outfits.append(normalized)
+            except Exception as sanitize_error:
+                logger.warning(f"⚠️ Failed to sanitize outfit {outfit.get('id')}: {sanitize_error}")
+                continue
+
+        def extract_created_timestamp(outfit: Dict[str, Any]) -> float:
+            value = outfit.get('createdAt') or outfit.get('created_at_ms') or outfit.get('created_at_timestamp')
+            if value is None:
+                return 0.0
+
+            if isinstance(value, (int, float)):
+                # Treat large numbers as milliseconds
+                return float(value / 1000.0 if value > 1e12 else value)
+
+            if isinstance(value, datetime):
+                return value.timestamp()
+
+            if hasattr(value, 'timestamp'):
+                try:
+                    return value.timestamp()
+                except Exception:
+                    pass
+
+            if isinstance(value, str):
+                try:
+                    iso_value = value.replace('Z', '+00:00') if value.endswith('Z') else value
+                    dt = datetime.fromisoformat(iso_value)
+                    return dt.timestamp()
+                except Exception:
+                    logger.debug(f"Unable to parse createdAt string for outfit {outfit.get('id')}: {value}")
+                    return 0.0
+
+            return 0.0
+
+        normalized_outfits.sort(key=extract_created_timestamp, reverse=True)
+
+        sliced_outfits = normalized_outfits[requested_offset:requested_offset + requested_limit]
+        logger.info(f"✅ Retrieved {len(sliced_outfits)} generated outfits for user {current_user_id}")
         
         return {
             "success": True,
-            "outfits": outfits,
-            "count": len(outfits),
+            "outfits": sliced_outfits,
+            "count": len(sliced_outfits),
             "limit": limit,
             "offset": offset,
             "user_id": current_user_id,
