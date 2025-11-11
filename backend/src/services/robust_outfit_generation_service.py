@@ -7097,6 +7097,7 @@ class RobustOutfitGenerationService:
                     if self._get_item_category(item) == 'bottoms'
                 ]
                 if all_bottoms:
+                    import random
                     scored_bottoms = []
                     for bottom in all_bottoms:
                         if bottom in selected_items:
@@ -7119,8 +7120,11 @@ class RobustOutfitGenerationService:
                         soft_score = self._soft_score(bottom, context.occasion, context.style, context.mood, context.weather)
                         scored_bottoms.append((bottom, priority, soft_score))
                     if scored_bottoms:
-                        scored_bottoms.sort(key=lambda x: (x[1], x[2]), reverse=True)
-                        best_bottom, priority, best_score = scored_bottoms[0]
+                        fresh_bottoms = [entry for entry in scored_bottoms if self.safe_get_item_attr(entry[0], 'id', '') not in recently_used_item_ids]
+                        candidate_list = fresh_bottoms if fresh_bottoms else scored_bottoms
+                        random.shuffle(candidate_list)
+                        candidate_list.sort(key=lambda x: (x[1], x[2]), reverse=True)
+                        best_bottom, priority, best_score = candidate_list[0]
                         bottom_id = self.safe_get_item_attr(best_bottom, 'id', '')
                         if _is_monochrome_allowed(best_bottom, bottom_id, None, log_prefix="  "):
                             selected_items.append(best_bottom)
