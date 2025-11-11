@@ -2379,14 +2379,24 @@ class RobustOutfitGenerationService:
             waistband = (visual_attrs_local.get('waistbandType') or '').lower()
 
             natural_description = str(metadata_obj.get('naturalDescription') or '').lower()
+
+            normalized_obj = metadata_obj.get('normalized', {}) or {}
+            normalized_lists = []
+            for key in ['tags', 'style', 'occasion', 'mood']:
+                value = normalized_obj.get(key)
+                if isinstance(value, list):
+                    normalized_lists.extend(str(v).lower() for v in value)
+                elif value:
+                    normalized_lists.append(str(value).lower())
+
             all_tags_lower = [str(tag).lower() for tag in (metadata_tags + style_tags_local + occasion_tags_local)]
+            all_tags_lower.extend(normalized_lists)
             tags_text = ' '.join(all_tags_lower)
 
             relaxed_keywords = [
                 'drawstring', 'pull-on', 'pull on', 'elastic waist', 'elastic-waist',
-                'elasticized waist', 'elasticized-waist', 'elastic', 'elastic waistband',
-                'lounge', 'lounging', 'sweat', 'fleece', 'knit', 'jersey', 'terry', 'modal',
-                'relaxed', 'relaxed fit', 'comfort', 'comfortable', 'cozy', 'baggy', 'loose', 'soft'
+                'elasticized waist', 'elasticized-waist', 'elastic', 'lounge', 'sweat',
+                'fleece', 'knit', 'jersey', 'terry', 'modal', 'relaxed', 'comfort', 'baggy'
             ]
             soft_fabrics = ['fleece', 'knit', 'jersey', 'cotton', 'modal', 'terry']
 
