@@ -3584,47 +3584,109 @@ class RobustOutfitGenerationService:
             def _ensure_relaxed_metadata(meta: dict):
                 if not isinstance(meta, dict):
                     return meta
+
+                def _ensure_list(value):
+                    if isinstance(value, list):
+                        return value
+                    if value is None:
+                        return []
+                    return [value]
+
                 visual_attrs_local = meta.get('visualAttributes')
                 if not isinstance(visual_attrs_local, dict):
                     visual_attrs_local = {}
                     meta['visualAttributes'] = visual_attrs_local
 
-                # Infer relaxed waistband / closure / fit heuristically from naming
-                name_tokens = item_name_lower.split()
-                has_drawstring_name = any(token in item_name_lower for token in ['drawstring', 'elastic'])
-                has_pull_on_name = any(token in item_name_lower for token in ['pull-on', 'pull on'])
-                has_relaxed_name_token = any(token in item_name_lower for token in ['relaxed', 'loose', 'casual'])
+                tags_local = _ensure_list(meta.get('tags'))
+                meta['tags'] = tags_local
+                style_tags_local = _ensure_list(meta.get('styleTags'))
+                meta['styleTags'] = style_tags_local
+                occasion_tags_local = _ensure_list(meta.get('occasionTags'))
+                meta['occasionTags'] = occasion_tags_local
 
+                natural_description = str(meta.get('naturalDescription') or '').lower()
+                normalized_obj = meta.get('normalized', {}) or {}
+                normalized_lists = []
+                for key in ['tags', 'style', 'occasion', 'mood']:
+                    value = normalized_obj.get(key)
+                    if isinstance(value, list):
+                        normalized_lists.extend(str(v).lower() for v in value)
+                    elif value:
+                        normalized_lists.append(str(value).lower())
+
+                all_tags_lower = [str(tag).lower() for tag in (tags_local + style_tags_local + occasion_tags_local)]
+                all_tags_lower.extend(normalized_lists)
+
+                source_texts = [
+                    ('name', item_name_lower),
+                    ('description', natural_description),
+                    ('tags', ' '.join(all_tags_lower))
+                ]
+
+                relaxed_keywords = [
+                    'drawstring', 'pull-on', 'pull on', 'elastic waist', 'elastic-waist',
+                    'elasticized waist', 'elasticized-waist', 'elastic', 'elastic waistband',
+                    'lounge', 'lounging', 'sweat', 'sweatpant', 'sweatshort', 'fleece', 'knit',
+                    'jersey', 'terry', 'modal', 'relaxed', 'relax', 'comfort', 'comfortable',
+                    'cozy', 'cosy', 'baggy', 'loose', 'soft', 'linen', 'beach', 'vacation', 'resort'
+                ]
+                soft_fabrics = ['fleece', 'knit', 'jersey', 'cotton', 'modal', 'terry', 'linen']
+                relaxed_waistband_types = {'drawstring', 'elastic'}
+
+                match_keyword = None
+                match_source = None
+                for source_name, text in source_texts:
+                    if not text:
+                        continue
+                    lowered_text = text.lower()
+                    for keyword in relaxed_keywords:
+                        if keyword in lowered_text:
+                            match_keyword = keyword
+                            match_source = source_name
+                            break
+                    if match_keyword:
+                        break
+
+                combined_text = ' '.join(text.lower() for _, text in source_texts if text)
                 waistband_type = (visual_attrs_local.get('waistbandType') or '').lower()
-                if not waistband_type and (has_drawstring_name or 'elastic waist' in item_name_lower):
-                    visual_attrs_local['waistbandType'] = 'elastic'
-                    waistband_type = 'elastic'
 
-                closure_type_local = (visual_attrs_local.get('closure') or '').lower()
-                if not closure_type_local and (has_pull_on_name or waistband_type in ['elastic', 'drawstring']):
-                    visual_attrs_local['closure'] = 'pull-on'
-                    closure_type_local = 'pull-on'
+                if match_keyword:
+                    if waistband_type not in relaxed_waistband_types:
+                        new_waistband = 'drawstring' if 'drawstring' in combined_text else 'elastic'
+                        visual_attrs_local['waistbandType'] = new_waistband
+                        waistband_type = new_waistband
 
-                fit_local = (visual_attrs_local.get('fit') or '').lower()
-                if not fit_local and has_relaxed_name_token:
-                    visual_attrs_local['fit'] = 'relaxed'
-                    fit_local = 'relaxed'
+                    if not (visual_attrs_local.get('closure') or ''):
+                        visual_attrs_local['closure'] = 'pull-on'
+                    if not (visual_attrs_local.get('fit') or ''):
+                        visual_attrs_local['fit'] = 'relaxed'
+                    if not (visual_attrs_local.get('silhouette') or ''):
+                        visual_attrs_local['silhouette'] = 'relaxed'
+                    if not (visual_attrs_local.get('material') or ''):
+                        for fabric in soft_fabrics:
+                            if fabric in combined_text:
+                                visual_attrs_local['material'] = fabric
+                                break
 
-                silhouette_local = (visual_attrs_local.get('silhouette') or '').lower()
-                if not silhouette_local and has_relaxed_name_token:
-                    visual_attrs_local['silhouette'] = 'relaxed'
+                    core_category = (visual_attrs_local.get('coreCategory') or '').lower()
+                    if core_category not in ['shorts', 'bottoms']:
+                        if 'short' in combined_text:
+                            visual_attrs_local['coreCategory'] = 'shorts'
+                        elif any(tok in combined_text for tok in ['pant', 'jogger', 'trouser', 'sweat']):
+                            visual_attrs_local['coreCategory'] = 'bottoms'
 
-                core_category = (visual_attrs_local.get('coreCategory') or '').lower()
-                if not core_category and any(token in item_name_lower for token in ['short', 'shorts', 'bermuda']):
-                    visual_attrs_local['coreCategory'] = 'shorts'
+                    def _append_loungewear_once(tag_list):
+                        if 'loungewear' not in [str(tag).lower() for tag in tag_list]:
+                            tag_list.append('Loungewear')
 
-                style_tags_local = meta.get('styleTags')
-                if isinstance(style_tags_local, list):
-                    lowered = {tag.lower() for tag in style_tags_local}
-                    if 'loungewear' not in lowered and has_relaxed_name_token:
-                        style_tags_local.append('Loungewear')
-                elif style_tags_local is None and has_relaxed_name_token:
-                    meta['styleTags'] = ['Loungewear']
+                    _append_loungewear_once(tags_local)
+                    _append_loungewear_once(style_tags_local)
+                    _append_loungewear_once(occasion_tags_local)
+
+                    logger.debug(
+                        f"🛋️ RELAXED INFERENCE: Applied lounge metadata for '{self.safe_get_item_name(item)[:60]}' "
+                        f"(keyword='{match_keyword}', source='{match_source}')"
+                    )
 
                 return meta
 
