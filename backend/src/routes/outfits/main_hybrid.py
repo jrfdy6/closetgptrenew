@@ -673,7 +673,24 @@ async def get_outfits(
 
         normalized_outfits.sort(key=extract_created_timestamp, reverse=True)
 
+        for idx, outfit in enumerate(normalized_outfits[:10]):
+            logger.debug(
+                "🪪 Outfit order preview %s: id=%s createdAt=%s created_at_ms=%s created_at_iso=%s",
+                idx,
+                outfit.get("id"),
+                outfit.get("createdAt"),
+                outfit.get("created_at_ms"),
+                outfit.get("created_at_iso"),
+            )
+
         sliced_outfits = normalized_outfits[requested_offset:requested_offset + requested_limit]
+        if sliced_outfits:
+            logger.debug(
+                "🪪 Outfit slice range: first_id=%s last_id=%s total=%s",
+                sliced_outfits[0].get("id"),
+                sliced_outfits[-1].get("id"),
+                len(sliced_outfits),
+            )
         logger.info(f"✅ Retrieved {len(sliced_outfits)} generated outfits for user {current_user_id}")
         
         return {
