@@ -2336,82 +2336,6 @@ class RobustOutfitGenerationService:
         
         target_occasion_lower = target_occasion.lower() if target_occasion else ""
         
-        lounge_keywords = {
-            'loungewear', 'lounge', 'relaxed', 'relax', 'casual', 'weekend',
-            'comfort', 'comfortable', 'comfy', 'athleisure', 'home', 'sleep',
-            'pajama', 'pajamas', 'stay-home', 'stayhome'
-        }
-        lounge_name_tokens = {
-            'sweat', 'jogger', 'hoodie', 'henley', 'tee', 't-shirt', 'tank',
-            'thermal', 'fleece', 'knit', 'slouch', 'relaxed', 'soft', 'cozy',
-            'pajama', 'sleep', 'lounge', 'comfort', 'short', 'shorts', 'pull-on', 'pull on'
-        }
-        lounge_waistbands = {'elastic', 'drawstring', 'elastic_drawstring'}
-        lounge_materials = {
-            'knit', 'fleece', 'cashmere', 'wool', 'modal', 'jersey', 'velour', 'velvet', 'cotton'
-        }
-        is_loungewear_target = target_occasion_lower in lounge_keywords
-
-        def _ensure_lounge_metadata(item_obj, item_name_lower):
-            metadata_obj = getattr(item_obj, 'metadata', None)
-            if not isinstance(metadata_obj, dict):
-                return metadata_obj
-            visual_attrs_local = metadata_obj.get('visualAttributes')
-            if not isinstance(visual_attrs_local, dict):
-                visual_attrs_local = {}
-                metadata_obj['visualAttributes'] = visual_attrs_local
-            waistband = (visual_attrs_local.get('waistbandType') or '').lower()
-            if not waistband and any(tok in item_name_lower for tok in ['drawstring', 'elastic']):
-                visual_attrs_local['waistbandType'] = 'elastic'
-                waistband = 'elastic'
-            if not (visual_attrs_local.get('closure') or '') and any(tok in item_name_lower for tok in ['pull-on', 'pull on']):
-                visual_attrs_local['closure'] = 'pull-on'
-            if not (visual_attrs_local.get('fit') or '') and any(tok in item_name_lower for tok in ['relaxed', 'loose', 'easy']):
-                visual_attrs_local['fit'] = 'relaxed'
-            if not (visual_attrs_local.get('silhouette') or '') and any(tok in item_name_lower for tok in ['relaxed', 'loose', 'wide']):
-                visual_attrs_local['silhouette'] = 'relaxed'
-            core_category = (visual_attrs_local.get('coreCategory') or '').lower()
-            if not core_category and any(tok in item_name_lower for tok in ['short', 'shorts', 'jogger', 'pant']):
-                visual_attrs_local['coreCategory'] = 'shorts' if 'short' in item_name_lower else 'bottoms'
-            style_tags_local = metadata_obj.get('styleTags')
-            if isinstance(style_tags_local, list):
-                if not any(tag.lower() == 'loungewear' for tag in style_tags_local):
-                    style_tags_local.append('Loungewear')
-            elif style_tags_local is None:
-                metadata_obj['styleTags'] = ['Loungewear']
-            occasion_tags_local = metadata_obj.get('occasionTags')
-            if isinstance(occasion_tags_local, list):
-                if not any(tag.lower() == 'loungewear' for tag in occasion_tags_local):
-                    occasion_tags_local.append('Loungewear')
-            elif occasion_tags_local is None:
-                metadata_obj['occasionTags'] = ['Loungewear']
-            return metadata_obj
-
-        def _is_lounge_candidate(item_obj):
-            item_name_lower = self.safe_get_item_name(item_obj).lower()
-            item_type_lower = str(self.safe_get_item_type(item_obj)).lower()
-            metadata_obj = getattr(item_obj, 'metadata', None)
-            visual_attrs_local = {}
-            style_tags = []
-            occasion_tags = []
-            material = ''
-            waistband = ''
-            if isinstance(metadata_obj, dict):
-                visual_attrs_local = metadata_obj.get('visualAttributes', {}) or {}
-                style_tags = metadata_obj.get('styleTags', []) or []
-                occasion_tags = metadata_obj.get('occasionTags', []) or []
-                material = (visual_attrs_local.get('material') or '').lower()
-                waistband = (visual_attrs_local.get('waistbandType') or '').lower()
-            passes_tag = any(tag.lower() in lounge_keywords for tag in style_tags + occasion_tags)
-            passes_name = any(tok in item_name_lower for tok in lounge_name_tokens)
-            passes_waistband = waistband in lounge_waistbands
-            passes_material = any(mat in material for mat in lounge_materials)
-            is_soft_category = item_type_lower in ['bottoms', 'pants', 'shorts', 'leggings', 'joggers', 'tops', 'top', 'shirt', 't-shirt', 'hoodie', 'sweater']
-            qualifies = is_soft_category and (passes_tag or passes_name or passes_waistband or passes_material)
-            if qualifies:
-                _ensure_lounge_metadata(item_obj, item_name_lower)
-            return qualifies
-
         logger.info(f"🎯 OCCASION-FIRST FILTER: Target occasion='{target_occasion_lower}', min_items={min_items}, base_item_id={base_item_id}")
         
         # 0️⃣ PRE-APPROVE BASE ITEM: Add base item first if specified
@@ -2441,9 +2365,6 @@ class RobustOutfitGenerationService:
             # Check for exact match
             if target_occasion_lower in item_occasions:
                 candidates.append(item)
-                continue
-            if is_loungewear_target and _is_lounge_candidate(item):
-                candidates.append(item)
         
         logger.info(f"  ✅ Exact matches: {len(candidates)} items")
         
@@ -2464,13 +2385,6 @@ class RobustOutfitGenerationService:
                 for item in wardrobe:
                     item_occasions = self._get_normalized_or_raw(item, 'occasion')
                     if fallback_occasion in item_occasions and item not in candidates:
-                        fallback_matches.append(item)
-                    elif (
-                        is_loungewear_target
-                        and _is_lounge_candidate(item)
-                        and item not in candidates
-                        and item not in fallback_matches
-                    ):
                         fallback_matches.append(item)
                 
                 if fallback_matches:
