@@ -5086,6 +5086,12 @@ class RobustOutfitGenerationService:
                             category = core_category_map[core_category]
                             if category == 'tops' and any(keyword in item_type_lower or keyword in item_name_lower for keyword in ['blazer', 'jacket', 'coat']):
                                 category = 'outerwear'
+                            elif category == 'bottoms' and item_type_lower in ['sweater', 'shirt', 'top', 't-shirt', 't_shirt', 'hoodie', 'cardigan']:
+                                logger.debug(
+                                    f"🏷️ CATEGORY (metadata override): '{item_name[:50]}' coreCategory='{core_category}' "
+                                    f"but type='{item_type_lower}' → treating as 'tops'"
+                                )
+                                category = 'tops'
                             logger.debug(f"🏷️ CATEGORY (metadata): '{item_name[:50]}' coreCategory='{core_category}' → '{category}'")
                             return category
         
