@@ -961,8 +961,10 @@ async def create_outfit(
             "description": description,
             "items": normalized_items,
             "user_id": current_user_id,
-            "createdAt": current_time_ms,
-            "updatedAt": current_time_ms,
+            "createdAt": server_timestamp,
+            "updatedAt": server_timestamp,
+            "created_at_ms": current_time_ms,
+            "updated_at_ms": current_time_ms,
             "created_at_timestamp": server_timestamp,
             "updated_at_timestamp": server_timestamp,
             "created_at_iso": current_time_iso,
@@ -1010,15 +1012,22 @@ async def create_outfit(
         response_payload.setdefault("id", outfit_id)
         response_payload.setdefault("items", normalized_items)
         
-        created_at_value = response_payload.get("createdAt", current_time_ms)
+        created_at_value = response_payload.get("createdAt") or response_payload.get("created_at_timestamp")
         created_at_iso = current_time_iso
-        if isinstance(created_at_value, (int, float)):
-            created_at_iso = datetime.fromtimestamp(created_at_value / 1000).isoformat()
-        elif hasattr(created_at_value, "isoformat"):
+        created_at_ms = response_payload.get("created_at_ms", current_time_ms)
+        
+        if hasattr(created_at_value, "isoformat"):
             created_at_iso = created_at_value.isoformat()
-            response_payload["createdAt"] = current_time_ms
+        elif isinstance(created_at_value, (int, float)):
+            created_at_ms = int(created_at_value if created_at_value > 1e12 else created_at_value * 1000)
+            created_at_iso = datetime.utcfromtimestamp(created_at_ms / 1000).isoformat()
+        elif isinstance(created_at_value, str):
+            created_at_iso = created_at_value
         else:
-            response_payload["createdAt"] = current_time_ms
+            created_at_iso = current_time_iso
+        
+        response_payload["createdAt"] = created_at_ms
+        response_payload["created_at_iso"] = created_at_iso
         
         return {
             "success": True,
@@ -1028,7 +1037,8 @@ async def create_outfit(
             "style": response_payload.get("style", style),
             "occasion": response_payload.get("occasion", occasion),
             "description": response_payload.get("description", description),
-            "createdAt": created_at_iso
+            "createdAt": created_at_iso,
+            "createdAtMs": created_at_ms
         }
         
     except HTTPException:
