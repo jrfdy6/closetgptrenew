@@ -542,7 +542,7 @@ export default function OutfitGrid({
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const refreshParam = urlParams.get('refresh');
-
+    
     if (!refreshParam) {
       return;
     }
@@ -818,7 +818,7 @@ export default function OutfitGrid({
               : showFavoritesOnly ? 'No favorite outfits yet' : 'No outfits yet'}
           </h3>
           <p className="text-gray-500 mb-4">
-            {isSearching
+            {isSearching 
               ? 'Try adjusting your search terms or filters'
               : showFavoritesOnly
                 ? 'Tap the heart icon on outfits you love to collect them here.'

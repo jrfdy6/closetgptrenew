@@ -1340,20 +1340,24 @@ class RobustOutfitGenerationService:
             if conflict_stats['conflicts_by_field']:
                 logger.info(f"📊 CONFLICTS BY FIELD: {conflict_stats['conflicts_by_field']}")
         
-        # Queue flat lay generation for worker processing
+        # Initialize flat lay metadata but wait for explicit user consent
         if self.enable_flat_lay_generation and outfit.items:
             if not hasattr(outfit, 'metadata') or outfit.metadata is None:
                 outfit.metadata = {}
             for key in ['flat_lay_status', 'flatLayStatus']:
-                outfit.metadata[key] = 'pending'
+                outfit.metadata[key] = 'awaiting_consent'
             for key in ['flat_lay_url', 'flatLayUrl', 'flat_lay_error', 'flatLayError']:
                 outfit.metadata.pop(key, None)
+            for key in ['flat_lay_requested', 'flatLayRequested']:
+                outfit.metadata[key] = False
             for attr in ['flat_lay_status', 'flatLayStatus']:
-                setattr(outfit, attr, 'pending')
+                setattr(outfit, attr, 'awaiting_consent')
             for attr in ['flat_lay_url', 'flatLayUrl', 'flat_lay_error', 'flatLayError']:
                 setattr(outfit, attr, None)
+            for attr in ['flat_lay_requested', 'flatLayRequested']:
+                setattr(outfit, attr, False)
             outfit.metadata['flat_lay_worker'] = 'premium_v1'
-            logger.info("🎨 Flat lay generation scheduled asynchronously (status=pending)")
+            logger.info("🎨 Flat lay generation awaiting user request (status=awaiting_consent)")
         
         return outfit
     

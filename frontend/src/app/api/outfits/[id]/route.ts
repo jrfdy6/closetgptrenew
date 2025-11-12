@@ -90,14 +90,14 @@ export async function POST(
         );
       }
 
-    const response = await fetch(fullBackendUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+      const response = await fetch(fullBackendUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
       
       console.log('🔍 DEBUG: Backend response received:', {
         status: response.status,

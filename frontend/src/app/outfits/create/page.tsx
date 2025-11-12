@@ -319,12 +319,12 @@ export default function CreateOutfitPage() {
       accessories: [],
       other: []
     };
-
+    
     wardrobeItems.forEach(item => {
       const category = resolveItemCategory(item);
       groups[category].push(item);
     });
-
+    
     return groups;
   }, [wardrobeItems]);
 
@@ -644,11 +644,11 @@ export default function CreateOutfitPage() {
         setFlatLayUsage(null);
         setFlatLayPromptOpen(true);
         loadFlatLayUsage();
-        
-        toast({
-          title: "Outfit created!",
-          description: "Your outfit has been saved successfully.",
-        });
+      
+      toast({
+        title: "Outfit created!",
+        description: "Your outfit has been saved successfully.",
+      });
       } else {
         toast({
           title: "Outfit saved",
@@ -678,7 +678,7 @@ export default function CreateOutfitPage() {
     return (
       <>
         {flatLayDialog}
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
         <Navigation />
         
         {/* Header */}
@@ -743,16 +743,16 @@ export default function CreateOutfitPage() {
                         <div className="space-y-3">
                           {(() => {
                             const mainCategories: ItemCategory[] = ['outerwear', 'tops', 'dresses', 'bottoms', 'shoes', 'accessories'];
-
+                            
                             return (
                               <>
                                 {/* Main categories */}
                                 {mainCategories.map(category => {
                                   const categoryItems = selectedItems.filter(item => resolveItemCategory(item) === category);
                                   if (categoryItems.length === 0) return null;
-
+                                  
                                   const IconComponent = ITEM_TYPE_ICONS[category] || ITEM_TYPE_ICONS.other;
-
+                                  
                                   return (
                                     <div key={category} className="space-y-2">
                                       <div className="flex items-center gap-2 text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">
@@ -765,52 +765,52 @@ export default function CreateOutfitPage() {
                                           const ItemIcon = ITEM_TYPE_ICONS[itemIconCategory] || ITEM_TYPE_ICONS.other;
 
                                           return (
-                                            <div
-                                              key={item.id}
-                                              className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
-                                            >
-                                              {item.imageUrl ? (
-                                                <img
-                                                  src={item.imageUrl}
-                                                  alt={item.name}
-                                                  className="w-16 h-16 rounded-lg object-cover"
-                                                />
-                                              ) : (
-                                                <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
+                                          <div
+                                            key={item.id}
+                                            className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
+                                          >
+                                            {item.imageUrl ? (
+                                              <img
+                                                src={item.imageUrl}
+                                                alt={item.name}
+                                                className="w-16 h-16 rounded-lg object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
                                                   <ItemIcon className="h-4 w-4" />
-                                                </div>
-                                              )}
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
-                                                  {item.name}
-                                                </p>
-                                                <p className="text-xs text-stone-500 capitalize">
-                                                  {item.color}
-                                                </p>
                                               </div>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleRemoveItem(item.id)}
-                                                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
-                                              >
-                                                <X className="h-4 w-4" />
-                                              </Button>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
+                                                {item.name}
+                                              </p>
+                                              <p className="text-xs text-stone-500 capitalize">
+                                                {item.color}
+                                              </p>
                                             </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleRemoveItem(item.id)}
+                                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
                                           );
                                         })}
                                       </div>
                                     </div>
                                   );
                                 })}
-
+                                
                                 {/* Other category */}
                                 {(() => {
                                   const otherItems = selectedItems.filter(item => resolveItemCategory(item) === 'other');
                                   if (otherItems.length === 0) return null;
 
                                   const IconComponent = ITEM_TYPE_ICONS.other;
-
+                                  
                                   return (
                                     <div className="space-y-2">
                                       <div className="flex items-center gap-2 text-xs font-medium text-stone-600 dark:text-stone-400 uppercase">
@@ -823,38 +823,38 @@ export default function CreateOutfitPage() {
                                           const ItemIcon = ITEM_TYPE_ICONS[itemIconCategory] || ITEM_TYPE_ICONS.other;
 
                                           return (
-                                            <div
-                                              key={item.id}
-                                              className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
-                                            >
-                                              {item.imageUrl ? (
-                                                <img
-                                                  src={item.imageUrl}
-                                                  alt={item.name}
-                                                  className="w-16 h-16 rounded-lg object-cover"
-                                                />
-                                              ) : (
-                                                <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
+                                          <div
+                                            key={item.id}
+                                            className="group relative flex items-center gap-3 p-3 bg-white dark:bg-stone-800 rounded-lg border-2 border-stone-200 dark:border-stone-700 hover:border-stone-900 dark:hover:border-stone-400 transition-all"
+                                          >
+                                            {item.imageUrl ? (
+                                              <img
+                                                src={item.imageUrl}
+                                                alt={item.name}
+                                                className="w-16 h-16 rounded-lg object-cover"
+                                              />
+                                            ) : (
+                                              <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-lg flex items-center justify-center">
                                                   <ItemIcon className="h-4 w-4" />
-                                                </div>
-                                              )}
-                                              <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
-                                                  {item.name}
-                                                </p>
-                                                <p className="text-xs text-stone-500 capitalize">
-                                                  {item.type} • {item.color}
-                                                </p>
                                               </div>
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleRemoveItem(item.id)}
-                                                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
-                                              >
-                                                <X className="h-4 w-4" />
-                                              </Button>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                              <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
+                                                {item.name}
+                                              </p>
+                                              <p className="text-xs text-stone-500 capitalize">
+                                                {item.type} • {item.color}
+                                              </p>
                                             </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleRemoveItem(item.id)}
+                                              className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 text-stone-400 hover:text-red-600"
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
                                           );
                                         })}
                                       </div>
@@ -922,28 +922,28 @@ export default function CreateOutfitPage() {
                           const isActive = selectedCategory === value;
                           const isDisabled = value !== 'all' && count === 0;
 
-                          return (
-                            <Button
+                        return (
+                          <Button
                               key={value}
                               variant={isActive ? 'default' : 'outline'}
-                              size="sm"
+                            size="sm"
                               onClick={() => setSelectedCategory(value)}
                               disabled={isDisabled}
                               className="h-9 px-4 rounded-full text-xs flex items-center gap-2 flex-shrink-0"
-                            >
+                          >
                               <Icon className="h-4 w-4" />
                               <span>{label}</span>
-                              {count > 0 && (
+                            {count > 0 && (
                                 <Badge
                                   variant="secondary"
                                   className={`h-5 px-2 text-[10px] ${isActive ? 'bg-white text-stone-900' : 'bg-stone-100 text-stone-500 dark:bg-stone-800/60 dark:text-stone-300'}`}
                                 >
-                                  {count}
-                                </Badge>
-                              )}
-                            </Button>
-                          );
-                        })}
+                                {count}
+                              </Badge>
+                            )}
+                          </Button>
+                        );
+                      })}
                       </div>
                     </div>
 
@@ -1038,7 +1038,7 @@ export default function CreateOutfitPage() {
             </div>
           </div>
         </div>
-        </div>
+      </div>
       </>
     );
   }
@@ -1047,7 +1047,7 @@ export default function CreateOutfitPage() {
   return (
     <>
       {flatLayDialog}
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 dark:from-amber-950 dark:via-amber-900 dark:to-orange-950">
       <Navigation />
       
       {/* Header */}

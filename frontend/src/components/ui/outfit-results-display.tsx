@@ -23,10 +23,12 @@ import {
   ArrowRight,
   Eye,
   Share2,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import StyleEducationModule from './style-education-module';
 import FlatLayViewer from '../FlatLayViewer';
+import Link from 'next/link';
 
 interface GeneratedOutfit {
   id: string;
@@ -79,6 +81,13 @@ interface OutfitRating {
   feedback?: string;
 }
 
+interface FlatLayUsageInfo {
+  tier: string;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+}
+
 interface OutfitResultsDisplayProps {
   outfit: GeneratedOutfit;
   rating: OutfitRating;
@@ -91,6 +100,13 @@ interface OutfitResultsDisplayProps {
   onViewOutfits: () => void;
   ratingSubmitted: boolean;
   isWorn?: boolean;
+  flatLayUsage?: FlatLayUsageInfo | null;
+  flatLayLoading?: boolean;
+  flatLayError?: string | null;
+  onRequestFlatLay?: () => void;
+  onSkipFlatLay?: () => void;
+  flatLayActionLoading?: boolean;
+  hasFlatLayCredits?: boolean;
 }
 
 interface FlatLayState {
@@ -112,7 +128,7 @@ function extractFlatLayState(outfit: GeneratedOutfit): FlatLayState {
     metadata.flatLayStatus ??
     outfit.flat_lay_status ??
     outfit.flatLayStatus ??
-    (url ? 'done' : 'pending');
+    (url ? 'done' : 'awaiting_consent');
   const error =
     metadata.flat_lay_error ??
     metadata.flatLayError ??
@@ -138,7 +154,14 @@ export default function OutfitResultsDisplay({
   onRegenerate,
   onViewOutfits,
   ratingSubmitted,
-  isWorn = false
+  isWorn = false,
+  flatLayUsage = null,
+  flatLayLoading = false,
+  flatLayError = null,
+  onRequestFlatLay,
+  onSkipFlatLay,
+  flatLayActionLoading = false,
+  hasFlatLayCredits = false
 }: OutfitResultsDisplayProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showReasoning, setShowReasoning] = useState(false);
@@ -184,7 +207,7 @@ export default function OutfitResultsDisplay({
             metadata.flatLayStatus ||
             data.flat_lay_status ||
             data.flatLayStatus ||
-            (url ? 'done' : 'pending');
+            (url ? 'done' : 'awaiting_consent');
           const error =
             metadata.flat_lay_error ||
             metadata.flatLayError ||
@@ -212,6 +235,38 @@ export default function OutfitResultsDisplay({
   const flatLayUrl = flatLayState.url;
   const flatLayStatus = flatLayState.status;
   const flatLayError = flatLayState.error;
+  const normalizedFlatLayStatus = (flatLayStatus ?? '').toLowerCase();
+  const showFlatLayActions =
+    typeof onRequestFlatLay === 'function' &&
+    !flatLayUrl &&
+    (normalizedFlatLayStatus === '' ||
+      ['awaiting_consent', 'manual_pending', 'declined', 'skipped'].includes(normalizedFlatLayStatus));
+  const flatLayBalanceText = flatLayUsage
+    ? flatLayUsage.remaining !== null
+      ? `You got ${flatLayUsage.remaining} left of flat lays this week.`
+      : 'Unlimited flat lays available this week.'
+    : flatLayLoading
+      ? 'Checking your flat lay balance…'
+      : (flatLayError || 'Unable to load your flat lay balance right now.');
+  const requestDisabled =
+    flatLayActionLoading || flatLayLoading || !hasFlatLayCredits || !onRequestFlatLay;
+  const showUpgradeButton = !flatLayLoading && !hasFlatLayCredits;
+  const renderRequestButtonContent = () => {
+    if (flatLayActionLoading) {
+      return (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Requesting flat lay…
+        </>
+      );
+    }
+
+    if (!hasFlatLayCredits) {
+      return 'No credits available';
+    }
+
+    return 'Create flat lay now';
+  };
 
   const getConfidenceColor = (score: number) => {
     if (score >= 0.8) return 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-900/20';
@@ -336,6 +391,49 @@ export default function OutfitResultsDisplay({
               error={flatLayError}
               onViewChange={(view) => console.log('Flat lay view changed:', view)}
             />
+
+            {showFlatLayActions && (
+              <div className="mt-4 rounded-xl border border-amber-200 dark:border-amber-700 bg-white/70 dark:bg-stone-900/60 p-4 shadow-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">
+                    Upgrade this outfit with a premium flat lay.
+                  </p>
+                  <p className="text-xs text-stone-600 dark:text-stone-400">
+                    {flatLayBalanceText}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button
+                    onClick={() => onRequestFlatLay?.()}
+                    disabled={requestDisabled}
+                    className="w-full sm:w-auto bg-stone-900 hover:bg-stone-800 text-white"
+                  >
+                    {renderRequestButtonContent()}
+                  </Button>
+                  {showUpgradeButton && (
+                    <Button
+                      variant="outline"
+                      className="w-full sm:w-auto border-amber-500 text-amber-600 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30"
+                      asChild
+                    >
+                      <Link href="/upgrade">
+                        Upgrade to unlock more flat lays
+                      </Link>
+                    </Button>
+                  )}
+                  {onSkipFlatLay && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => onSkipFlatLay?.()}
+                      disabled={flatLayActionLoading}
+                      className="w-full sm:w-auto text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-stone-100"
+                    >
+                      Not right now
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 flex gap-2 justify-end">
               <Button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,7 @@ import StyleEducationModule from '@/components/ui/style-education-module';
 // Phase 2: Progressive Reveal Components
 import OutfitRevealAnimation from '@/components/OutfitRevealAnimation';
 import SwipeableOutfitCard from '@/components/SwipeableOutfitCard';
+import { useToast } from '@/components/ui/use-toast';
 
 interface OutfitGenerationForm {
   occasion: string;
@@ -73,6 +74,14 @@ interface GeneratedOutfit {
     colorStrategy?: any;
     styleSynergy?: any;
   };
+  flat_lay_status?: string;
+  flatLayStatus?: string;
+  flat_lay_url?: string | null;
+  flatLayUrl?: string | null;
+  flat_lay_error?: string | null;
+  flatLayError?: string | null;
+  flat_lay_requested?: boolean;
+  flatLayRequested?: boolean;
 }
 
 interface OutfitRating {
@@ -82,14 +91,70 @@ interface OutfitRating {
   feedback?: string;
 }
 
+interface FlatLayUsage {
+  tier: string;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+}
+
+const SUBSCRIPTION_TIER_LIMITS: Record<string, number | null> = {
+  tier1: 1,
+  tier2: 7,
+  tier3: 30,
+};
+
 export default function OutfitGenerationPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useFirebase();
   const { weather, loading: weatherLoading, fetchWeatherByLocation } = useAutoWeather();
+  const { toast } = useToast();
   const [baseItem, setBaseItem] = useState<any>(null);
   const [wardrobeItems, setWardrobeItems] = useState<any[]>([]);
   const [wardrobeLoading, setWardrobeLoading] = useState(false);
   const [freshWeatherData, setFreshWeatherData] = useState<WeatherData | null>(null);
+  const [flatLayUsage, setFlatLayUsage] = useState<FlatLayUsage | null>(null);
+  const [flatLayLoading, setFlatLayLoading] = useState(false);
+  const [flatLayError, setFlatLayError] = useState<string | null>(null);
+  const [flatLayActionLoading, setFlatLayActionLoading] = useState(false);
+  
+  const loadFlatLayUsage = useCallback(async () => {
+    if (!user?.uid) {
+      setFlatLayUsage(null);
+      return;
+    }
+
+    setFlatLayLoading(true);
+    setFlatLayError(null);
+
+    try {
+      const [{ db }, firestore] = await Promise.all([
+        import('@/lib/firebase/config'),
+        import('firebase/firestore'),
+      ]);
+
+      const userDocRef = firestore.doc(db, 'users', user.uid);
+      const snapshot = await firestore.getDoc(userDocRef);
+      const data = snapshot.exists() ? (snapshot.data() as any) : {};
+      const subscription = data?.subscription ?? {};
+      const rawTier =
+        typeof subscription?.tier === 'string' ? subscription.tier.toLowerCase() : 'tier1';
+      const tier = Object.prototype.hasOwnProperty.call(SUBSCRIPTION_TIER_LIMITS, rawTier)
+        ? rawTier
+        : 'tier1';
+      const used = Number(subscription?.openai_flatlays_used ?? 0);
+      const limit = SUBSCRIPTION_TIER_LIMITS[tier] ?? null;
+      const remaining = typeof limit === 'number' ? Math.max(limit - used, 0) : null;
+
+      setFlatLayUsage({ tier, limit, used, remaining });
+    } catch (error) {
+      console.error('Error loading flat lay usage:', error);
+      setFlatLayError('Unable to load your flat lay balance right now.');
+      setFlatLayUsage(null);
+    } finally {
+      setFlatLayLoading(false);
+    }
+  }, [user?.uid]);
   
   // Extract base item ID from URL parameters
   useEffect(() => {
@@ -216,6 +281,16 @@ export default function OutfitGenerationPage() {
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [filteredStyles, setFilteredStyles] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (generatedOutfit && user?.uid) {
+      loadFlatLayUsage();
+    }
+
+    if (!generatedOutfit) {
+      setFlatLayUsage(null);
+    }
+  }, [generatedOutfit?.id, user?.uid, loadFlatLayUsage]);
 
   const occasions = [
     // Simple occasion values (matching backend validation error)
@@ -553,12 +628,14 @@ export default function OutfitGenerationPage() {
 
       const enrichedMetadata = {
         ...(data.metadata ?? {}),
-        flat_lay_status: data.metadata?.flat_lay_status ?? data.flat_lay_status ?? 'pending',
-        flatLayStatus: data.metadata?.flatLayStatus ?? data.flatLayStatus ?? 'pending',
+        flat_lay_status: data.metadata?.flat_lay_status ?? data.flat_lay_status ?? 'awaiting_consent',
+        flatLayStatus: data.metadata?.flatLayStatus ?? data.flatLayStatus ?? 'awaiting_consent',
         flat_lay_url: data.metadata?.flat_lay_url ?? data.flat_lay_url ?? null,
         flatLayUrl: data.metadata?.flatLayUrl ?? data.flatLayUrl ?? null,
         flat_lay_error: data.metadata?.flat_lay_error ?? data.flat_lay_error ?? null,
         flatLayError: data.metadata?.flatLayError ?? data.flatLayError ?? null,
+        flat_lay_requested: data.metadata?.flat_lay_requested ?? data.flat_lay_requested ?? false,
+        flatLayRequested: data.metadata?.flatLayRequested ?? data.flatLayRequested ?? false,
       };
 
       const enrichedData = {
@@ -570,6 +647,8 @@ export default function OutfitGenerationPage() {
         flatLayUrl: data.flatLayUrl ?? enrichedMetadata.flatLayUrl,
         flat_lay_error: data.flat_lay_error ?? enrichedMetadata.flat_lay_error,
         flatLayError: data.flatLayError ?? enrichedMetadata.flatLayError,
+        flat_lay_requested: data.flat_lay_requested ?? enrichedMetadata.flat_lay_requested ?? false,
+        flatLayRequested: data.flatLayRequested ?? enrichedMetadata.flatLayRequested ?? false,
       };
 
       setGeneratedOutfit(enrichedData);
@@ -622,6 +701,8 @@ export default function OutfitGenerationPage() {
             flatLayUrl: enrichedMetadata.flatLayUrl,
             flat_lay_error: enrichedMetadata.flat_lay_error,
             flatLayError: enrichedMetadata.flatLayError,
+            flat_lay_requested: enrichedMetadata.flat_lay_requested ?? false,
+            flatLayRequested: enrichedMetadata.flatLayRequested ?? false,
           };
           
           // Save directly to Firestore
@@ -649,6 +730,169 @@ export default function OutfitGenerationPage() {
       setGenerating(false);
     }
   };
+
+  const hasFlatLayCredits = flatLayUsage
+    ? flatLayUsage.remaining === null || (flatLayUsage.remaining ?? 0) > 0
+    : false;
+
+  const handleFlatLayRequest = useCallback(async () => {
+    if (!generatedOutfit?.id || !user) {
+      return;
+    }
+
+    if (
+      flatLayUsage &&
+      flatLayUsage.remaining !== null &&
+      flatLayUsage.remaining <= 0
+    ) {
+      toast({
+        title: "No credits available",
+        description: "Upgrade your plan to unlock more flat lay credits.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setFlatLayActionLoading(true);
+
+    try {
+      const [{ db }, firestore] = await Promise.all([
+        import('@/lib/firebase/config'),
+        import('firebase/firestore'),
+      ]);
+
+      const outfitRef = firestore.doc(db, 'outfits', generatedOutfit.id);
+
+      await firestore.updateDoc(outfitRef, {
+        flat_lay_status: 'pending',
+        flatLayStatus: 'pending',
+        'metadata.flat_lay_status': 'pending',
+        'metadata.flatLayStatus': 'pending',
+        flat_lay_requested: true,
+        flatLayRequested: true,
+        'metadata.flat_lay_requested': true,
+        'metadata.flatLayRequested': true,
+        flat_lay_error: null,
+        flatLayError: null,
+        'metadata.flat_lay_error': null,
+        'metadata.flatLayError': null,
+        'metadata.flat_lay_worker': 'premium_v1',
+        'metadata.flatLayWorker': 'premium_v1',
+      });
+
+      setGeneratedOutfit(prev =>
+        prev
+          ? {
+              ...prev,
+              flat_lay_status: 'pending',
+              flatLayStatus: 'pending',
+              flat_lay_url: null,
+              flatLayUrl: null,
+              flat_lay_error: null,
+              flatLayError: null,
+              flat_lay_requested: true,
+              flatLayRequested: true,
+              metadata: {
+                ...(prev.metadata ?? {}),
+                flat_lay_status: 'pending',
+                flatLayStatus: 'pending',
+                flat_lay_url: null,
+                flatLayUrl: null,
+                flat_lay_error: null,
+                flatLayError: null,
+                flat_lay_requested: true,
+                flatLayRequested: true,
+                flat_lay_worker: 'premium_v1',
+                flatLayWorker: 'premium_v1',
+              },
+            }
+          : prev
+      );
+
+      toast({
+        title: "Flat lay on the way!",
+        description: "We’ll craft your premium flat lay and notify you once it’s ready.",
+      });
+
+      loadFlatLayUsage();
+    } catch (error) {
+      console.error('Error requesting flat lay:', error);
+      toast({
+        title: "Unable to request flat lay",
+        description: "Please try again from your outfits list.",
+        variant: "destructive"
+      });
+    } finally {
+      setFlatLayActionLoading(false);
+    }
+  }, [generatedOutfit?.id, user, flatLayUsage, toast, loadFlatLayUsage]);
+
+  const handleFlatLaySkip = useCallback(async () => {
+    if (!generatedOutfit?.id || !user) {
+      return;
+    }
+
+    if (flatLayActionLoading) {
+      return;
+    }
+
+    setFlatLayActionLoading(true);
+
+    try {
+      const [{ db }, firestore] = await Promise.all([
+        import('@/lib/firebase/config'),
+        import('firebase/firestore'),
+      ]);
+
+      const outfitRef = firestore.doc(db, 'outfits', generatedOutfit.id);
+
+      await firestore.updateDoc(outfitRef, {
+        flat_lay_status: 'declined',
+        flatLayStatus: 'declined',
+        'metadata.flat_lay_status': 'declined',
+        'metadata.flatLayStatus': 'declined',
+        flat_lay_requested: false,
+        flatLayRequested: false,
+        'metadata.flat_lay_requested': false,
+        'metadata.flatLayRequested': false,
+      });
+
+      setGeneratedOutfit(prev =>
+        prev
+          ? {
+              ...prev,
+              flat_lay_status: 'declined',
+              flatLayStatus: 'declined',
+              flat_lay_requested: false,
+              flatLayRequested: false,
+              metadata: {
+                ...(prev.metadata ?? {}),
+                flat_lay_status: 'declined',
+                flatLayStatus: 'declined',
+                flat_lay_requested: false,
+                flatLayRequested: false,
+              },
+            }
+          : prev
+      );
+
+      toast({
+        title: "Flat lay skipped",
+        description: "You can always generate a flat lay later from My Outfits.",
+      });
+
+      loadFlatLayUsage();
+    } catch (error) {
+      console.error('Error updating flat lay status:', error);
+      toast({
+        title: "Unable to update flat lay",
+        description: "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setFlatLayActionLoading(false);
+    }
+  }, [generatedOutfit?.id, user, flatLayActionLoading, toast, loadFlatLayUsage]);
 
   const handleWearOutfit = async () => {
     if (!generatedOutfit || !user) return;
@@ -828,7 +1072,22 @@ export default function OutfitGenerationPage() {
             createdAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
             updatedAt: Math.floor(Date.now() / 1000),      // timestamp in seconds
           })),
-          createdAt: Math.floor(Date.now() / 1000)
+          createdAt: Math.floor(Date.now() / 1000),
+          metadata: {
+            ...(generatedOutfit.metadata ?? {}),
+            flat_lay_status: 'awaiting_consent',
+            flatLayStatus: 'awaiting_consent',
+            flat_lay_requested: false,
+            flatLayRequested: false,
+          },
+          flat_lay_status: 'awaiting_consent',
+          flatLayStatus: 'awaiting_consent',
+          flat_lay_url: null,
+          flatLayUrl: null,
+          flat_lay_error: null,
+          flatLayError: null,
+          flat_lay_requested: false,
+          flatLayRequested: false,
         };
         
         console.log('🔍 DEBUG: Outfit creation payload:', JSON.stringify(outfitPayload, null, 2));
@@ -997,6 +1256,13 @@ export default function OutfitGenerationPage() {
                 onViewOutfits={() => router.push(`/outfits?refresh=${Date.now()}`)}
                 ratingSubmitted={ratingSubmitted}
                 isWorn={generatedOutfit?.isWorn}
+                flatLayUsage={flatLayUsage}
+                flatLayLoading={flatLayLoading}
+                flatLayError={flatLayError}
+                onRequestFlatLay={handleFlatLayRequest}
+                onSkipFlatLay={handleFlatLaySkip}
+                flatLayActionLoading={flatLayActionLoading}
+                hasFlatLayCredits={hasFlatLayCredits}
               />
               </>
             ) : generating ? (
