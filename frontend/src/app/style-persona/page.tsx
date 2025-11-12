@@ -350,11 +350,18 @@ export default function StylePersonaPage() {
     console.log('🎭 [Style Persona] Determining persona for profile:', profile);
     
     // First, try to use the stored persona from the profile
-    if (profile?.stylePersona) {
-      console.log('🎭 [Style Persona] Using stored persona:', profile.stylePersona);
+    const storedPersona =
+      (profile?.stylePersona as StylePersona | undefined) ||
+      (profile as any)?.style_persona;
+
+    if (storedPersona && storedPersona.id && STYLE_PERSONAS[storedPersona.id]) {
+      console.log('🎭 [Style Persona] Using stored persona:', storedPersona);
       
       // Override the stored persona's examples with gender-specific ones
-      const basePersona = profile.stylePersona as StylePersona;
+      const basePersona = {
+        ...STYLE_PERSONAS[storedPersona.id],
+        ...storedPersona,
+      } as StylePersona;
       const genderSpecificExamples = getGenderSpecificCelebrities(basePersona.id, profile?.gender);
       
       return {
@@ -364,28 +371,108 @@ export default function StylePersonaPage() {
     }
 
     // Fallback: determine persona based on style preferences
-    if (!profile?.stylePreferences || profile.stylePreferences.length === 0) {
-      return STYLE_PERSONAS.rebel; // Default fallback
+    const combinedPreferences = [
+      ...(profile?.stylePreferences || []),
+      ...((profile?.preferences?.style || []) as string[]),
+      ...((profile as any)?.style_preferences || []),
+    ]
+      .filter(Boolean)
+      .map((pref) => pref.toString().toLowerCase());
+    
+    const personaScores: Record<string, number> = {
+      architect: 0,
+      strategist: 0,
+      innovator: 0,
+      classic: 0,
+      wanderer: 0,
+      rebel: 0,
+      connoisseur: 0,
+      modernist: 0,
+    };
+
+    const bump = (persona: keyof typeof personaScores, amount = 1) => {
+      personaScores[persona] += amount;
+    };
+
+    combinedPreferences.forEach((pref) => {
+      if (pref.includes('minimal') || pref.includes('architect') || pref.includes('structured')) {
+        bump('architect', 3);
+        bump('modernist', 2);
+      }
+      if (pref.includes('street') || pref.includes('urban') || pref.includes('rebel') || pref.includes('bold')) {
+        bump('rebel', 3);
+        bump('strategist', 1);
+      }
+      if (pref.includes('classic') || pref.includes('old money') || pref.includes('heritage')) {
+        bump('classic', 3);
+        bump('connoisseur', 2);
+      }
+      if (pref.includes('luxury') || pref.includes('connoisseur') || pref.includes('refined')) {
+        bump('connoisseur', 3);
+        bump('classic', 1);
+      }
+      if (pref.includes('boho') || pref.includes('cottage') || pref.includes('wanderer')) {
+        bump('wanderer', 3);
+        bump('rebel', 1);
+      }
+      if (pref.includes('innovator') || pref.includes('creative') || pref.includes('trend')) {
+        bump('innovator', 2);
+        bump('modernist', 1);
+        bump('rebel', 1);
+      }
+      if (pref.includes('modern') || pref.includes('contemporary')) {
+        bump('modernist', 3);
+        bump('architect', 1);
+      }
+    });
+
+    const stylePersonality =
+      profile?.stylePersonality ||
+      (profile as any)?.style_personality ||
+      null;
+
+    if (stylePersonality) {
+      if ((stylePersonality.minimal ?? 0) >= 0.6) {
+        bump('architect', 3);
+        bump('modernist', 2);
+      }
+      if ((stylePersonality.classic ?? 0) >= 0.6) {
+        bump('classic', 3);
+        bump('connoisseur', 2);
+      }
+      if ((stylePersonality.bold ?? 0) >= 0.6) {
+        bump('rebel', 3);
+        bump('innovator', 1);
+      }
+      if ((stylePersonality.creative ?? 0) >= 0.6) {
+        bump('innovator', 2);
+        bump('wanderer', 1);
+      }
+      if ((stylePersonality.modern ?? 0) >= 0.6) {
+        bump('modernist', 2);
+        bump('strategist', 1);
+      }
     }
 
-    // Simple logic to determine persona based on style preferences
-    const preferences = profile.stylePreferences.map(p => p.toLowerCase());
-    
-    if (preferences.some(p => p.includes('architect') || p.includes('structured') || p.includes('geometric'))) {
-      return STYLE_PERSONAS.architect;
-    } else if (preferences.some(p => p.includes('rebel') || p.includes('bold') || p.includes('edgy'))) {
-      return STYLE_PERSONAS.rebel;
-    } else if (preferences.some(p => p.includes('connoisseur') || p.includes('luxury') || p.includes('refined'))) {
-      return STYLE_PERSONAS.connoisseur;
-    } else if (preferences.some(p => p.includes('modernist') || p.includes('modern') || p.includes('contemporary'))) {
-      return STYLE_PERSONAS.modernist;
+    const ranked = Object.entries(personaScores)
+      .sort(([, a], [, b]) => b - a);
+
+    const [topPersona, topScore] = ranked[0];
+
+    if (topScore > 0) {
+      return STYLE_PERSONAS[topPersona as keyof typeof STYLE_PERSONAS];
     }
-    
-    return STYLE_PERSONAS.rebel; // Default fallback
+
+    return STYLE_PERSONAS.strategist; // Default fallback
   };
 
   const generateStyleFingerprint = () => {
-    if (!profile?.stylePersonality) {
+    const stylePersonality =
+      profile?.stylePersonality ||
+      (profile as any)?.style_personality ||
+      null;
+
+    if (!stylePersonality) {
       return {
         creativeExpression: { restrained: 30, expressive: 70 },
         trendAwareness: { timeless: 40, trendsetting: 60 },
@@ -393,20 +480,18 @@ export default function StylePersonaPage() {
       };
     }
 
-    const personality = profile.stylePersonality;
-    
     return {
       creativeExpression: {
-        restrained: Math.round((1 - (personality.creative || 0.5)) * 100),
-        expressive: Math.round((personality.creative || 0.5) * 100)
+        restrained: Math.round((1 - (stylePersonality.creative || 0.5)) * 100),
+        expressive: Math.round((stylePersonality.creative || 0.5) * 100)
       },
       trendAwareness: {
-        timeless: Math.round((1 - (personality.trendy || 0.6)) * 100),
-        trendsetting: Math.round((personality.trendy || 0.6) * 100)
+        timeless: Math.round((1 - (stylePersonality.trendy || 0.6)) * 100),
+        trendsetting: Math.round((stylePersonality.trendy || 0.6) * 100)
       },
       wardrobeFlexibility: {
-        focused: Math.round((1 - (personality.versatile || 0.5)) * 100),
-        versatile: Math.round((personality.versatile || 0.5) * 100)
+        focused: Math.round((1 - (stylePersonality.versatile || 0.5)) * 100),
+        versatile: Math.round((stylePersonality.versatile || 0.5) * 100)
       }
     };
   };
