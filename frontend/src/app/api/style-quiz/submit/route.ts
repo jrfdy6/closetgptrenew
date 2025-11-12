@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
       submission.stylePreferences || [], 
       submission.colorPreferences || [],
       userName,
-      userEmail
+      userEmail,
+      userId
     );
 
     console.log('🔍 [Quiz Submit] Profile update data:', JSON.stringify(profileUpdate, null, 2));
@@ -171,7 +172,8 @@ function mapQuizAnswersToProfile(
   stylePreferences: string[], 
   colorPreferences: string[],
   userName: string = 'Quiz User',
-  userEmail: string = 'quiz@example.com'
+  userEmail: string = 'quiz@example.com',
+  userId: string = 'quiz-user'
 ) {
   // Calculate style personality scores based on preferences
   const stylePersonality = calculateStylePersonality(stylePreferences, userAnswers);
@@ -179,11 +181,42 @@ function mapQuizAnswersToProfile(
   // Determine the style persona based on quiz answers
   const determinedPersona = determineStylePersona(userAnswers, stylePreferences);
   
+  const resolvedColorPreferences =
+    colorPreferences.length > 0
+      ? colorPreferences
+      : Array.from(
+          new Set(
+            [
+              ...(colorAnalysis?.palette?.primary || []),
+              ...(colorAnalysis?.palette?.secondary || []),
+              ...(colorAnalysis?.palette?.accents || []),
+            ]
+              .filter(Boolean)
+              .slice(0, 8)
+          )
+        );
+
+  const resolvedStylePreferences =
+    stylePreferences.length > 0
+      ? stylePreferences
+      : Array.from(
+          new Set(
+            [
+              determinedPersona.name,
+              ...(Object.keys(stylePersonality || {}) || []),
+            ]
+              .map((value) => value.toString())
+              .filter(Boolean)
+          )
+        );
+
   // Map basic profile fields
   const profileUpdate: any = {
     // Required fields for backend
     name: userName,
     email: userEmail,
+    userId,
+    user_id: userId,
     
     // Quiz-specific fields
     gender: userAnswers.gender,
@@ -205,20 +238,22 @@ function mapQuizAnswersToProfile(
     // Store height and weight at top level for easy access
     height: parseHeight(userAnswers.height),
     weight: parseWeight(userAnswers.weight),
-    stylePreferences: stylePreferences,
+    stylePreferences: resolvedStylePreferences,
     preferences: {
-      style: stylePreferences,
-      colors: colorPreferences,
+      style: resolvedStylePreferences,
+      colors: resolvedColorPreferences,
       occasions: [userAnswers.daily_activities || '']
     },
     stylePersonality: stylePersonality,
     colorPalette: {
-      primary: colorPreferences.slice(0, 3),
-      secondary: colorPreferences.slice(3, 6),
-      accent: colorPreferences.slice(6, 9),
+      primary: resolvedColorPreferences.slice(0, 3),
+      secondary: resolvedColorPreferences.slice(3, 6),
+      accent: resolvedColorPreferences.slice(6, 9),
       neutral: ['black', 'white', 'gray', 'beige'],
       avoid: []
     },
+    onboardingCompleted: true,
+    onboarding_completed: true,
     // Add persona data
     stylePersona: {
       id: determinedPersona.id,
