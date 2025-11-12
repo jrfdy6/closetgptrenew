@@ -39,6 +39,52 @@ interface UseOutfitsReturn {
   getOutfitById: (id: string) => Outfit | undefined;
 }
 
+const normalizeOutfitData = (raw: any): Outfit => {
+  if (!raw) {
+    return raw;
+  }
+
+  const normalizedItems = Array.isArray(raw.items)
+    ? raw.items.map((item: any) => ({
+        ...item,
+        id: item.id ?? item.item_id ?? item._id ?? item.uuid ?? item.name ?? '',
+        imageUrl: item.imageUrl ?? item.image_url ?? item.thumbnailUrl ?? item.thumbnail_url ?? null,
+        thumbnailUrl: item.thumbnailUrl ?? item.thumbnail_url ?? item.imageUrl ?? item.image_url ?? null,
+        backgroundRemovedUrl:
+          item.backgroundRemovedUrl ??
+          item.background_removed_url ??
+          item.processedImageUrl ??
+          item.processed_image_url ??
+          undefined,
+        favorite: item.favorite ?? item.isFavorite ?? item.is_favorite ?? item.favorite ?? false,
+      }))
+    : raw.items ?? [];
+
+  const normalized: Outfit = {
+    ...raw,
+    id: raw.id ?? raw._id ?? raw.outfit_id ?? raw.uuid,
+    items: normalizedItems,
+    isFavorite: raw.isFavorite ?? raw.favorite ?? raw.is_favorite ?? false,
+    wearCount:
+      raw.wearCount ??
+      raw.wear_count ??
+      raw.totalWearCount ??
+      raw.total_wear_count ??
+      0,
+    lastWorn:
+      raw.lastWorn ??
+      raw.last_worn ??
+      raw.lastWornAt ??
+      raw.last_worn_at ??
+      raw.lastWornTimestamp ??
+      null,
+    createdAt: raw.createdAt ?? raw.created_at ?? raw.created_at ?? raw.createdAt,
+    updatedAt: raw.updatedAt ?? raw.updated_at ?? raw.updated_at ?? raw.updatedAt,
+  } as Outfit;
+
+  return normalized;
+};
+
 // ===== CUSTOM HOOK IMPLEMENTATION =====
 export function useOutfits(): UseOutfitsReturn {
   // ===== STATE MANAGEMENT =====
@@ -152,10 +198,11 @@ export function useOutfits(): UseOutfitsReturn {
         fetchedOutfits = [];
       }
       
-      setOutfits(fetchedOutfits);
+      const normalizedOutfits = fetchedOutfits.map(normalizeOutfitData);
+      setOutfits(normalizedOutfits);
       
       // Check if there are more to load
-      setHasMore(fetchedOutfits.length === INITIAL_PAGE_SIZE);
+      setHasMore(normalizedOutfits.length === INITIAL_PAGE_SIZE);
       
       console.log(`✅ [useOutfits] Successfully fetched ${fetchedOutfits.length} initial outfits`);
       
@@ -230,7 +277,10 @@ export function useOutfits(): UseOutfitsReturn {
       const responseData = await response.json();
       
       // Handle structured response format
-      const moreOutfits = responseData.outfits || responseData;
+      const moreOutfitsRaw = responseData.outfits || responseData;
+      const moreOutfits = Array.isArray(moreOutfitsRaw)
+        ? moreOutfitsRaw.map(normalizeOutfitData)
+        : [];
       
       // Append to existing outfits
       setOutfits(prev => [...prev, ...moreOutfits]);
@@ -251,16 +301,17 @@ export function useOutfits(): UseOutfitsReturn {
    * Add a new outfit to the beginning of the list (for newly generated outfits)
    */
   const addNewOutfit = useCallback((newOutfit: Outfit) => {
+    const normalized = normalizeOutfitData(newOutfit);
     setOutfits(prev => {
       // Check if outfit already exists to avoid duplicates
-      const exists = prev.some(outfit => outfit.id === newOutfit.id);
+      const exists = prev.some(outfit => outfit.id === normalized.id);
       if (exists) {
         console.log('🔍 [useOutfits] Outfit already exists, not adding duplicate');
         return prev;
       }
       
-      console.log('🔍 [useOutfits] Adding new outfit to the beginning of list:', newOutfit.name);
-      return [newOutfit, ...prev];
+      console.log('🔍 [useOutfits] Adding new outfit to the beginning of list:', normalized.name);
+      return [normalized, ...prev];
     });
   }, []);
 
@@ -281,7 +332,7 @@ export function useOutfits(): UseOutfitsReturn {
       
       const token = await user.getIdToken();
       const fetchedOutfit = await OutfitService.getOutfitById(id, token);
-      setOutfit(fetchedOutfit);
+      setOutfit(fetchedOutfit ? normalizeOutfitData(fetchedOutfit) : null);
       
       if (fetchedOutfit) {
         console.log(`✅ [useOutfits] Successfully fetched outfit ${id}`);
@@ -315,8 +366,9 @@ export function useOutfits(): UseOutfitsReturn {
       const newOutfit = await OutfitService.createOutfit(data, token);
       
       if (newOutfit) {
+        const normalized = normalizeOutfitData(newOutfit);
         // Add to local state
-        setOutfits(prev => [newOutfit, ...prev]);
+        setOutfits(prev => [normalized, ...prev]);
         console.log(`✅ [useOutfits] Successfully created outfit ${newOutfit.id}`);
       }
       
@@ -350,9 +402,10 @@ export function useOutfits(): UseOutfitsReturn {
       
       if (updatedOutfit) {
         // Update local state
-        setOutfits(prev => prev.map(o => o.id === id ? updatedOutfit : o));
+        const normalized = normalizeOutfitData(updatedOutfit);
+        setOutfits(prev => prev.map(o => o.id === id ? normalized : o));
         if (outfit?.id === id) {
-          setOutfit(updatedOutfit);
+          setOutfit(normalized);
         }
         console.log(`✅ [useOutfits] Successfully updated outfit ${id}`);
       }
@@ -511,7 +564,7 @@ export function useOutfits(): UseOutfitsReturn {
       const searchResults = await OutfitService.searchOutfits(query, filters, token);
       
       console.log(`✅ [useOutfits] Search returned ${searchResults.length} results`);
-      return searchResults;
+      return searchResults.map(normalizeOutfitData);
       
     } catch (error) {
       handleError(error as Error);

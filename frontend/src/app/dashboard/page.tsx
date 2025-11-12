@@ -379,7 +379,7 @@ export default function Dashboard() {
                 asChild
                 className="px-6 py-3 rounded-2xl border-[#F5F0E8]/70 dark:border-[#3D2F24]/80 text-[#57534E] dark:text-[#C4BCB4] hover:text-[#1C1917] dark:hover:text-[#F8F5F1] hover:bg-[#F5F0E8] dark:hover:bg-[#2C2119] transition-colors duration-200"
               >
-                <Link href="/outfits">View saved looks</Link>
+                <Link href="/outfits/favorites">View saved looks</Link>
               </Button>
             </div>
           </div>

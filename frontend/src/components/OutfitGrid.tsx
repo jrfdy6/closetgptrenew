@@ -32,6 +32,7 @@ interface OutfitGridProps {
   showSearch?: boolean;
   maxOutfits?: number;
   className?: string;
+  initialFavoritesOnly?: boolean;
 }
 
 interface OutfitCardProps {
@@ -375,10 +376,11 @@ function OutfitFiltersComponent({ filters, onFiltersChange, onSearch, onClear, s
 
 // ===== MAIN OUTFIT GRID COMPONENT =====
 export default function OutfitGrid({ 
-  showFilters = true, 
-  showSearch = true, 
+  showFilters = true,
+  showSearch = true,
   maxOutfits = 1000,
-  className 
+  className,
+  initialFavoritesOnly = false,
 }: OutfitGridProps) {
   // ===== HOOK USAGE =====
   // This follows the established wardrobe service architecture pattern:
@@ -404,7 +406,7 @@ export default function OutfitGrid({
   // ===== LOCAL STATE =====
   const [filters, setFilters] = useState<OutfitFilters>({});
   const [searchResults, setSearchResults] = useState<Outfit[]>([]);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(initialFavoritesOnly);
   const [isSearching, setIsSearching] = useState(false);
   const [sortBy, setSortBy] = useState<'date-newest' | 'date-oldest' | 'wear-most' | 'wear-least'>('date-newest');
   const [isRefreshing, setIsRefreshing] = useState(false);
