@@ -72,7 +72,6 @@ export default function FlatLayViewer({
     return 'flat-lay';
   };
   const [currentView, setCurrentView] = useState<'flat-lay' | 'grid'>(getInitialView);
-  const [gridOverlayDismissed, setGridOverlayDismissed] = useState(false);
 
   useEffect(() => {
     setImageError(false);
@@ -81,7 +80,6 @@ export default function FlatLayViewer({
 
   useEffect(() => {
     setCurrentView(getInitialView());
-    setGridOverlayDismissed(false);
   }, [flatLayUrl, status]);
 
   // DEBUG: Log component props
@@ -93,9 +91,9 @@ export default function FlatLayViewer({
 
   const normalizedStatus = (status ?? '').toLowerCase();
   const flatLayBalanceText = flatLayUsage
-    ? flatLayUsage.remaining !== null
-      ? `You got ${flatLayUsage.remaining} left of flat lays this week.`
-      : 'Unlimited flat lays available this week.'
+    ? flatLayUsage.remaining !== null && flatLayUsage.limit !== null
+      ? `You got ${flatLayUsage.remaining} out of ${flatLayUsage.limit} credits left this week based on your tier level.`
+      : 'Unlimited flat lay credits available this week.'
     : flatLayLoading
       ? 'Checking your flat lay balance…'
       : (flatLayError || 'Unable to load your flat lay balance right now.');
@@ -116,18 +114,13 @@ export default function FlatLayViewer({
       return 'No credits available';
     }
 
-    return 'Create 1 of 1 flat lay';
+    return 'Create a flat lay';
   };
 
   const showConsentOverlay =
     currentView === 'grid' &&
     !flatLayUrl &&
-    ['awaiting_consent', 'manual_pending'].includes(normalizedStatus) &&
-    !gridOverlayDismissed;
-
-  const handleRevealGrid = () => {
-    setGridOverlayDismissed(true);
-  };
+    ['awaiting_consent', 'manual_pending'].includes(normalizedStatus);
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -180,12 +173,6 @@ export default function FlatLayViewer({
   const toggleView = () => {
     const newView = currentView === 'flat-lay' ? 'grid' : 'flat-lay';
     setCurrentView(newView);
-    if (
-      newView === 'grid' &&
-      ['awaiting_consent', 'manual_pending'].includes(normalizedStatus)
-    ) {
-      setGridOverlayDismissed(false);
-    }
     onViewChange?.(newView);
   };
 
@@ -427,7 +414,7 @@ export default function FlatLayViewer({
             <div className="mx-4 w-full max-w-md rounded-2xl border border-amber-400/60 bg-stone-900/80 p-6 text-center shadow-2xl backdrop-blur">
               <Badge className="mb-3 bg-amber-500 text-white">Premium Flat Lay</Badge>
               <h3 className="text-lg font-semibold text-white">
-                Create a 1 of 1 flat lay for this outfit
+                Create a flat lay for this outfit
               </h3>
               <p className="mt-2 text-sm text-amber-100">
                 {flatLayBalanceText}
@@ -451,13 +438,6 @@ export default function FlatLayViewer({
                     </Link>
                   </Button>
                 )}
-                <Button
-                  variant="secondary"
-                  onClick={handleRevealGrid}
-                  className="w-full bg-white/90 text-stone-900 hover:bg-white"
-                >
-                  View outfit grid
-                </Button>
                 {onSkipFlatLay && (
                   <Button
                     variant="ghost"
