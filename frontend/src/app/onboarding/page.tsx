@@ -1185,7 +1185,7 @@ export default function Onboarding() {
         // Navigate to persona page immediately after successful submission
         console.log('🎯 [Quiz] Successfully submitted, redirecting to persona page');
         // Use replace instead of push to prevent back navigation to quiz
-        router.replace('/style-persona');
+        router.replace('/style-persona?from=quiz');
       } else {
         throw new Error('Failed to submit quiz');
       }
@@ -1214,7 +1214,7 @@ export default function Onboarding() {
       
       // Navigate to persona page immediately even on fallback
       console.log('🎯 [Quiz] Using fallback data, redirecting to persona page');
-      router.replace('/style-persona');
+      router.replace('/style-persona?from=quiz');
     } finally {
       setIsLoading(false);
     }

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/lib/firebase-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 interface StylePersona {
   id: string;
@@ -281,6 +282,8 @@ const getStyleExamplesForPersona = (personaId: string) => {
 export default function StylePersonaPage() {
   const { user, loading: authLoading } = useFirebase();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const cameFromQuiz = searchParams?.get('from') === 'quiz';
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -507,6 +510,56 @@ export default function StylePersonaPage() {
         </div>
 
 
+        {/* Premium Upsell Section */}
+        <div className="glass-float rounded-3xl p-10 mb-10 glass-shadow border border-[#F5F0E8]/80 dark:border-[#3D2F24]/80 bg-gradient-to-r from-[#FFB84C]/20 via-[#FFF4E0]/40 to-[#FF9400]/20 dark:from-[#4A2E1A]/70 dark:via-[#2C2119]/80 dark:to-[#3D2F24]/70">
+          <div className="flex flex-col lg:flex-row gap-8 lg:items-center">
+            <div className="flex-1 space-y-4">
+              <span className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-[#B45309] dark:text-[#FBBF24]">
+                <Sparkles className="h-4 w-4" />
+                Premium Style Blueprint
+              </span>
+              <h2 className="text-3xl font-serif font-bold text-[#1C1917] dark:text-[#F8F5F1]">
+                Level up your {persona.name} look with pro styling
+              </h2>
+              <p className="text-lg text-[#57534E] dark:text-[#C4BCB4] leading-relaxed">
+                Unlock a bespoke wardrobe roadmap, tailored capsule collections, and weekly fit drops designed specifically for your {persona.name.toLowerCase()} vibe.
+              </p>
+              <ul className="grid sm:grid-cols-2 gap-3 pt-2 text-sm text-[#57534E] dark:text-[#C4BCB4]">
+                <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
+                  <span className="text-[#FF9400]">◆</span>
+                  <span>Curated outfit playbooks refreshed every season</span>
+                </li>
+                <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
+                  <span className="text-[#FF9400]">◆</span>
+                  <span>Shopping lists with brand & price filters matched to you</span>
+                </li>
+                <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
+                  <span className="text-[#FF9400]">◆</span>
+                  <span>Style coach check-ins to keep your streak alive</span>
+                </li>
+                <li className="glass-inner rounded-xl px-4 py-3 flex items-start gap-3">
+                  <span className="text-[#FF9400]">◆</span>
+                  <span>Advanced color + fit guidance for every event</span>
+                </li>
+              </ul>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
+                <button
+                  onClick={() => router.push('/upgrade?plan=style-blueprint')}
+                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#FFB84C] to-[#FF9400] text-[#1A1510] dark:text-white px-8 py-3 rounded-2xl font-semibold shadow-lg shadow-amber-500/25 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Upgrade for {persona.name} perks
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                {cameFromQuiz && (
+                  <span className="text-sm font-medium text-[#B45309] dark:text-[#FBBF24]">
+                    You’re moments away from your premium wardrobe kit.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Style Fingerprint Section with Glass Effect */}
         <div className="glass-float rounded-3xl p-8 mb-8 glass-shadow">
           <div className="text-center mb-8">
@@ -637,10 +690,10 @@ export default function StylePersonaPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             <button 
-              onClick={() => router.push('/outfits')}
+              onClick={() => router.push('/upgrade?plan=style-blueprint')}
               className="glass-button-primary px-8 py-4 rounded-full font-semibold text-lg glass-transition hover:scale-105"
             >
-              See My Style Plan →
+              Unlock my premium plan →
             </button>
             <div className="flex items-center space-x-2 text-gray-700 dark:text-gray-300">
               <div className="w-8 h-8 glass-inner rounded-full flex items-center justify-center">
