@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/lib/firebase-context';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import { ArrowRight, Sparkles } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 interface StylePersona {
   id: string;
@@ -282,11 +284,16 @@ const getStyleExamplesForPersona = (personaId: string) => {
 export default function StylePersonaPage() {
   const { user, loading: authLoading } = useFirebase();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const cameFromQuiz = searchParams?.get('from') === 'quiz';
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cameFromQuiz, setCameFromQuiz] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    setCameFromQuiz(params.get('from') === 'quiz');
+  }, []);
 
   useEffect(() => {
     if (user && !authLoading) {
