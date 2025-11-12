@@ -35,7 +35,6 @@ import { OutfitGenerating, WardrobeLoading } from '@/components/ui/outfit-loadin
 import StyleEducationModule from '@/components/ui/style-education-module';
 // Phase 2: Progressive Reveal Components
 import OutfitRevealAnimation from '@/components/OutfitRevealAnimation';
-import SwipeableOutfitCard from '@/components/SwipeableOutfitCard';
 import { useToast } from '@/components/ui/use-toast';
 
 interface OutfitGenerationForm {
@@ -271,7 +270,6 @@ export default function OutfitGenerationPage() {
   const [generatedOutfit, setGeneratedOutfit] = useState<GeneratedOutfit | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showRevealAnimation, setShowRevealAnimation] = useState(false);
-  const [showSwipeableCard, setShowSwipeableCard] = useState(false);
   const [outfitRating, setOutfitRating] = useState<OutfitRating>({
     rating: 0,
     isLiked: false,
@@ -431,7 +429,6 @@ export default function OutfitGenerationPage() {
     try {
       setGenerating(true);
       setShowRevealAnimation(true);
-      setShowSwipeableCard(false);
       setError(null);
       
       // Get Firebase ID token for authentication
@@ -728,6 +725,7 @@ export default function OutfitGenerationPage() {
       setError(err instanceof Error ? err.message : 'Failed to generate outfit');
     } finally {
       setGenerating(false);
+      setShowRevealAnimation(false);
     }
   };
 
@@ -828,11 +826,42 @@ export default function OutfitGenerationPage() {
   }, [generatedOutfit?.id, user, flatLayUsage, toast, loadFlatLayUsage]);
 
   const handleFlatLaySkip = useCallback(async () => {
-    if (!generatedOutfit?.id || !user) {
+    if (!generatedOutfit) {
       return;
     }
 
     if (flatLayActionLoading) {
+      return;
+    }
+
+    const outfitId = generatedOutfit.id;
+
+    // Optimistically update local state so the grid is visible immediately
+    setGeneratedOutfit(prev =>
+      prev
+        ? {
+            ...prev,
+            flat_lay_status: 'declined',
+            flatLayStatus: 'declined',
+            flat_lay_requested: false,
+            flatLayRequested: false,
+            metadata: {
+              ...(prev.metadata ?? {}),
+              flat_lay_status: 'declined',
+              flatLayStatus: 'declined',
+              flat_lay_requested: false,
+              flatLayRequested: false,
+            },
+          }
+        : prev
+    );
+
+    // If we don't have an outfit ID yet (e.g. before autosave completes), just exit after the optimistic update
+    if (!user || !outfitId) {
+      toast({
+        title: "Flat lay skipped",
+        description: "You can always generate a flat lay later from My Outfits.",
+      });
       return;
     }
 
@@ -844,7 +873,7 @@ export default function OutfitGenerationPage() {
         import('firebase/firestore'),
       ]);
 
-      const outfitRef = firestore.doc(db, 'outfits', generatedOutfit.id);
+      const outfitRef = firestore.doc(db, 'outfits', outfitId);
 
       await firestore.updateDoc(outfitRef, {
         flat_lay_status: 'declined',
@@ -856,25 +885,6 @@ export default function OutfitGenerationPage() {
         'metadata.flat_lay_requested': false,
         'metadata.flatLayRequested': false,
       });
-
-      setGeneratedOutfit(prev =>
-        prev
-          ? {
-              ...prev,
-              flat_lay_status: 'declined',
-              flatLayStatus: 'declined',
-              flat_lay_requested: false,
-              flatLayRequested: false,
-              metadata: {
-                ...(prev.metadata ?? {}),
-                flat_lay_status: 'declined',
-                flatLayStatus: 'declined',
-                flat_lay_requested: false,
-                flatLayRequested: false,
-              },
-            }
-          : prev
-      );
 
       toast({
         title: "Flat lay skipped",
@@ -892,7 +902,7 @@ export default function OutfitGenerationPage() {
     } finally {
       setFlatLayActionLoading(false);
     }
-  }, [generatedOutfit?.id, user, flatLayActionLoading, toast, loadFlatLayUsage]);
+  }, [generatedOutfit, user, flatLayActionLoading, toast, loadFlatLayUsage]);
 
   const handleWearOutfit = async () => {
     if (!generatedOutfit || !user) return;
@@ -1268,13 +1278,14 @@ export default function OutfitGenerationPage() {
             ) : generating ? (
               <>
                 {/* Phase 2: Progressive Reveal Animation */}
-                <OutfitRevealAnimation
-                  isGenerating={generating}
-                  onComplete={() => {
-                    setShowRevealAnimation(false);
-                    setShowSwipeableCard(true);
-                  }}
-                />
+                {showRevealAnimation && (
+                  <OutfitRevealAnimation
+                    isGenerating={generating}
+                    onComplete={() => {
+                      setShowRevealAnimation(false);
+                    }}
+                  />
+                )}
                 {/* Fallback: Old loading component */}
                 {!showRevealAnimation && <OutfitGenerating />}
               </>
@@ -1292,38 +1303,6 @@ export default function OutfitGenerationPage() {
           </div>
         </div>
       </div>
-
-      {/* Phase 2: Swipeable Outfit Card Overlay */}
-      {showSwipeableCard && generatedOutfit && (
-        <SwipeableOutfitCard
-          outfit={{
-            id: generatedOutfit.id,
-            name: generatedOutfit.name,
-            occasion: generatedOutfit.occasion,
-            mood: generatedOutfit.mood,
-            items: generatedOutfit.items || [],
-            imageUrl: generatedOutfit.imageUrl
-          }}
-          onSave={(outfit) => {
-            // Save outfit logic here
-            console.log('💾 Saving outfit:', outfit);
-            // The micro-interaction (haptic + chime + toast) is handled inside SwipeableOutfitCard
-          }}
-          onNext={() => {
-            // Generate next outfit
-            setShowSwipeableCard(false);
-            handleRegenerate();
-          }}
-          onRemix={() => {
-            // Remix current outfit
-            setShowSwipeableCard(false);
-            handleRegenerate();
-          }}
-          onClose={() => {
-            setShowSwipeableCard(false);
-          }}
-        />
-      )}
 
       <ClientOnlyNav />
     </div>

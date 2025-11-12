@@ -65,8 +65,14 @@ export default function FlatLayViewer({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const normalizedStatus = (status ?? '').toLowerCase();
   const getInitialView = () => {
-    if (!flatLayUrl && (status === 'awaiting_consent' || status === 'manual_pending')) {
+    if (
+      !flatLayUrl &&
+      ['awaiting_consent', 'manual_pending', 'declined', 'skipped', 'failed', 'error'].includes(
+        normalizedStatus
+      )
+    ) {
       return 'grid';
     }
     return 'flat-lay';
@@ -89,7 +95,6 @@ export default function FlatLayViewer({
   console.log('🎨 FLAT LAY VIEWER: currentView:', currentView);
   console.log('🎨 FLAT LAY VIEWER: status:', status);
 
-  const normalizedStatus = (status ?? '').toLowerCase();
   const flatLayBalanceText = flatLayUsage
     ? flatLayUsage.remaining !== null && flatLayUsage.limit !== null
       ? `You got ${flatLayUsage.remaining} out of ${flatLayUsage.limit} credits left this week based on your tier level.`
@@ -443,7 +448,10 @@ export default function FlatLayViewer({
                 {onSkipFlatLay && (
                   <Button
                     variant="ghost"
-                    onClick={() => onSkipFlatLay()}
+                    onClick={() => {
+                      onSkipFlatLay();
+                      setCurrentView('grid');
+                    }}
                     disabled={flatLayActionLoading}
                     className="w-full text-amber-100 hover:text-white"
                   >
