@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -14,6 +13,14 @@ import {
   Eye,
   Grid3x3
 } from "lucide-react";
+import Link from "next/link";
+
+interface FlatLayUsageInfo {
+  tier: string;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+}
 
 interface FlatLayViewerProps {
   flatLayUrl?: string | null;
@@ -29,6 +36,13 @@ interface FlatLayViewerProps {
   onViewChange?: (view: 'flat-lay' | 'grid') => void;
   status?: string;
   error?: string | null;
+  flatLayUsage?: FlatLayUsageInfo | null;
+  flatLayLoading?: boolean;
+  flatLayError?: string | null;
+  onRequestFlatLay?: () => void;
+  onSkipFlatLay?: () => void;
+  flatLayActionLoading?: boolean;
+  hasFlatLayCredits?: boolean;
 }
 
 export default function FlatLayViewer({
@@ -39,17 +53,36 @@ export default function FlatLayViewer({
   showItemGrid = true,
   onViewChange,
   status,
-  error
+  error,
+  flatLayUsage = null,
+  flatLayLoading = false,
+  flatLayError = null,
+  onRequestFlatLay,
+  onSkipFlatLay,
+  flatLayActionLoading = false,
+  hasFlatLayCredits = false
 }: FlatLayViewerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-  const [currentView, setCurrentView] = useState<'flat-lay' | 'grid'>('flat-lay');
+  const getInitialView = () => {
+    if (!flatLayUrl && (status === 'awaiting_consent' || status === 'manual_pending')) {
+      return 'grid';
+    }
+    return 'flat-lay';
+  };
+  const [currentView, setCurrentView] = useState<'flat-lay' | 'grid'>(getInitialView);
+  const [gridOverlayDismissed, setGridOverlayDismissed] = useState(false);
 
   useEffect(() => {
     setImageError(false);
     setIsLoading(!!flatLayUrl);
   }, [flatLayUrl]);
+
+  useEffect(() => {
+    setCurrentView(getInitialView());
+    setGridOverlayDismissed(false);
+  }, [flatLayUrl, status]);
 
   // DEBUG: Log component props
   console.log('🎨 FLAT LAY VIEWER: Component mounted');
@@ -57,6 +90,44 @@ export default function FlatLayViewer({
   console.log('🎨 FLAT LAY VIEWER: outfitName:', outfitName);
   console.log('🎨 FLAT LAY VIEWER: currentView:', currentView);
   console.log('🎨 FLAT LAY VIEWER: status:', status);
+
+  const normalizedStatus = (status ?? '').toLowerCase();
+  const flatLayBalanceText = flatLayUsage
+    ? flatLayUsage.remaining !== null
+      ? `You got ${flatLayUsage.remaining} left of flat lays this week.`
+      : 'Unlimited flat lays available this week.'
+    : flatLayLoading
+      ? 'Checking your flat lay balance…'
+      : (flatLayError || 'Unable to load your flat lay balance right now.');
+  const requestDisabled =
+    flatLayActionLoading || flatLayLoading || !hasFlatLayCredits || !onRequestFlatLay;
+  const showUpgradeButton = !flatLayLoading && !hasFlatLayCredits;
+  const renderRequestButtonContent = () => {
+    if (flatLayActionLoading) {
+      return (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Requesting flat lay…
+        </>
+      );
+    }
+
+    if (!hasFlatLayCredits) {
+      return 'No credits available';
+    }
+
+    return 'Create 1 of 1 flat lay';
+  };
+
+  const showConsentOverlay =
+    currentView === 'grid' &&
+    !flatLayUrl &&
+    ['awaiting_consent', 'manual_pending'].includes(normalizedStatus) &&
+    !gridOverlayDismissed;
+
+  const handleRevealGrid = () => {
+    setGridOverlayDismissed(true);
+  };
 
   const handleImageLoad = () => {
     setIsLoading(false);
@@ -109,6 +180,12 @@ export default function FlatLayViewer({
   const toggleView = () => {
     const newView = currentView === 'flat-lay' ? 'grid' : 'flat-lay';
     setCurrentView(newView);
+    if (
+      newView === 'grid' &&
+      ['awaiting_consent', 'manual_pending'].includes(normalizedStatus)
+    ) {
+      setGridOverlayDismissed(false);
+    }
     onViewChange?.(newView);
   };
 
@@ -295,49 +372,106 @@ export default function FlatLayViewer({
 
   const renderItemGrid = () => {
     return (
-      <div className="aspect-[9/16] bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Outfit Items
-          </h3>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={toggleView}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            Flat Lay View
-          </Button>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-3">
-          {outfitItems.map((item) => (
-            <div 
-              key={item.id}
-              className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
+      <div className="relative">
+        <div
+          className={`aspect-[9/16] bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-y-auto transition-all duration-200 ${
+            showConsentOverlay ? 'pointer-events-none blur-sm brightness-50' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Outfit Items
+            </h3>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={toggleView}
             >
-              <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                {item.imageUrl && !item.imageUrl.includes('placeholder') ? (
-                  <img 
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <ImageOff className="w-8 h-8 text-gray-400" />
+              <Eye className="w-4 h-4 mr-2" />
+              Flat Lay View
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {outfitItems.map((item) => (
+              <div 
+                key={item.id}
+                className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
+              >
+                <div className="aspect-square bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  {item.imageUrl && !item.imageUrl.includes('placeholder') ? (
+                    <img 
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImageOff className="w-8 h-8 text-gray-400" />
+                  )}
+                </div>
+                <div className="p-2">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                    {item.type}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {showConsentOverlay && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="mx-4 w-full max-w-md rounded-2xl border border-amber-400/60 bg-stone-900/80 p-6 text-center shadow-2xl backdrop-blur">
+              <Badge className="mb-3 bg-amber-500 text-white">Premium Flat Lay</Badge>
+              <h3 className="text-lg font-semibold text-white">
+                Create a 1 of 1 flat lay for this outfit
+              </h3>
+              <p className="mt-2 text-sm text-amber-100">
+                {flatLayBalanceText}
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <Button
+                  onClick={() => onRequestFlatLay?.()}
+                  disabled={requestDisabled}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  {renderRequestButtonContent()}
+                </Button>
+                {showUpgradeButton && (
+                  <Button
+                    variant="outline"
+                    className="w-full border-amber-300 text-amber-200 hover:bg-amber-500/20"
+                    asChild
+                  >
+                    <Link href="/upgrade">
+                      Upgrade to unlock more flat lays
+                    </Link>
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  onClick={handleRevealGrid}
+                  className="w-full bg-white/90 text-stone-900 hover:bg-white"
+                >
+                  View outfit grid
+                </Button>
+                {onSkipFlatLay && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => onSkipFlatLay()}
+                    disabled={flatLayActionLoading}
+                    className="w-full text-amber-100 hover:text-white"
+                  >
+                    Maybe later
+                  </Button>
                 )}
               </div>
-              <div className="p-2">
-                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {item.name}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                  {item.type}
-                </p>
-              </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     );
   };
