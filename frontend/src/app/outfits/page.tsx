@@ -1,12 +1,22 @@
 import React from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import Navigation from '@/components/Navigation';
 import ClientOnlyNav from '@/components/ClientOnlyNav';
 import OutfitGrid from '@/components/OutfitGrid';
 
+type OutfitsPageProps = {
+  searchParams?: {
+    view?: string;
+    favorites?: string;
+  };
+};
+
 // ===== MAIN PAGE COMPONENT =====
-export default function OutfitsPage() {
+export default function OutfitsPage({ searchParams }: OutfitsPageProps) {
+  const initialFavoritesOnly =
+    searchParams?.view === 'favorites' ||
+    searchParams?.favorites === 'true';
+
   return (
     <div className="min-h-screen bg-[#FAFAF9] dark:bg-[#1A1510]">
       <Navigation />
@@ -64,6 +74,7 @@ export default function OutfitsPage() {
           showFilters={true}
           showSearch={true}
           maxOutfits={1000}
+          initialFavoritesOnly={initialFavoritesOnly}
         />
       </main>
       
