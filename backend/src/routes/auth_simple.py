@@ -1,5 +1,5 @@
 """
-Simplified authentication routes for ClosetGPT.
+Simplified authentication routes for Easy Outfit App.
 Just the profile endpoint to avoid import issues.
 """
 

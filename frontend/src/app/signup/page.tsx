@@ -70,7 +70,7 @@ export default function SignUp() {
             Create Account
           </CardTitle>
           <CardDescription className="text-stone-600 dark:text-stone-400 font-light text-lg">
-            Join ClosetGPT and discover your perfect style
+            Join Easy Outfit and discover your perfect style
           </CardDescription>
         </CardHeader>
         <CardContent>

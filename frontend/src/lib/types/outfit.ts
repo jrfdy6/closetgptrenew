@@ -1,5 +1,5 @@
 // ===== OUTFIT TYPES =====
-// Centralized type definitions for the ClosetGPT outfit system
+// Centralized type definitions for the Easy Outfit App system
 
 export interface Outfit {
   id: string;

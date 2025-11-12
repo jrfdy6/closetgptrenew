@@ -1,5 +1,5 @@
 """
-Basic authentication routes for ClosetGPT.
+Basic authentication routes for Easy Outfit App.
 Zero dependencies - just returns working endpoints.
 """
 

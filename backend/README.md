@@ -1,6 +1,6 @@
-# ClosetGPT Backend
+# Easy Outfit Backend
 
-This is the backend API for ClosetGPT, providing AI-powered clothing analysis and outfit recommendations.
+This is the backend API for Easy Outfit, providing AI-powered clothing analysis and outfit recommendations.
 
 ## Features
 

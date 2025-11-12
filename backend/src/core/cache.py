@@ -1,5 +1,5 @@
 """
-Caching system for ClosetGPT.
+Caching system for Easy Outfit App.
 Provides in-memory and Redis-based caching for performance optimization.
 """
 

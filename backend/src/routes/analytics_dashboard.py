@@ -1,5 +1,5 @@
 """
-Analytics Dashboard endpoints for ClosetGPT.
+Analytics Dashboard endpoints for Easy Outfit App.
 Provides comprehensive analytics data for the dashboard.
 """
 

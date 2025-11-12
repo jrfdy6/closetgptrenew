@@ -1,5 +1,5 @@
 """
-Performance optimization service for ClosetGPT.
+Performance optimization service for Easy Outfit App.
 """
 
 import time

@@ -19,7 +19,7 @@
 - [ ] Glass buttons have blur effect
 
 #### Browser Inspector Test:
-1. Right-click the ClosetGPT title card
+1. Right-click the Easy Outfit title card
 2. Select "Inspect Element"
 3. Look for classes: `glass-float-hover`, `glass-shadow-strong`
 4. In Computed styles, verify:

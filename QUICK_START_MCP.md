@@ -1,4 +1,4 @@
-# 🚀 Quick Start: ClosetGPT MCP App
+# 🚀 Quick Start: Easy Outfit MCP App
 
 Get your ChatGPT native app running in under 30 minutes.
 
@@ -45,7 +45,7 @@ This will:
 1. Go to Railway dashboard
 2. "New Project" → "Deploy from GitHub"
 3. Select `closetgptrenew` repo
-4. Name it: "ClosetGPT MCP Server"
+4. Name it: "Easy Outfit MCP Server"
 
 ### Configure Service
 
@@ -74,14 +74,14 @@ From Railway: `https://closetgpt-mcp.railway.app`
 1. Go to [OpenAI Apps SDK](https://platform.openai.com/apps)
 2. Click "Create New App"
 3. Fill in details:
-   - **Name:** ClosetGPT
+   - **Name:** Easy Outfit
    - **Description:** AI wardrobe management & outfit recommendations
    - **Category:** Lifestyle
    - **MCP Server URL:** Your Railway URL
 
 4. Add **App Metadata:**
-   - **Privacy Policy:** `https://closetgpt.app/privacy`
-   - **Terms:** `https://closetgpt.app/terms`
+   - **Privacy Policy:** `https://easyoutfitapp.com/privacy`
+   - **Terms:** `https://easyoutfitapp.com/terms`
    - **Icon:** Upload your logo (512x512 PNG)
 
 ### Test in ChatGPT

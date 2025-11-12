@@ -1,5 +1,5 @@
 """
-Structured logging configuration for ClosetGPT backend.
+Structured logging configuration for the Easy Outfit App backend.
 Provides JSON-formatted logging with error tracking and performance monitoring.
 """
 

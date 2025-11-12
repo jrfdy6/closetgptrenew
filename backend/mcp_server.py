@@ -1,5 +1,5 @@
 """
-ClosetGPT MCP Server - Apps SDK Integration
+Easy Outfit MCP Server - Apps SDK Integration
 Model Context Protocol server for ChatGPT Apps SDK
 """
 
@@ -27,14 +27,14 @@ except ImportError:
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("closetgpt-mcp")
+logger = logging.getLogger("easyoutfit-mcp")
 
 # Configuration
 MAIN_API_URL = os.getenv("MAIN_API_URL", "https://closetgptrenew-production.railway.app")
 API_KEY = os.getenv("API_KEY", "")
 
 # Initialize MCP server
-server = Server("closetgpt")
+server = Server("easy_outfit")
 
 # ============================================
 # HELPER FUNCTIONS
@@ -513,7 +513,7 @@ def generate_outfits(items: List[Dict], occasion: str, weather: Optional[str], s
 
 async def main():
     """Run the MCP server"""
-    logger.info("🚀 Starting ClosetGPT MCP Server")
+    logger.info("🚀 Starting Easy Outfit MCP Server")
     
     async with stdio_server() as (read_stream, write_stream):
         await server.run(

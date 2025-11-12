@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'NOT SET',
         NODE_ENV: process.env.NODE_ENV || 'NOT SET'
       },
-      isCustomDomain: host.includes('closetgpt.app'),
+      isCustomDomain: host.includes('easyoutfitapp.com'),
       isVercelDomain: host.includes('vercel.app')
     };
 

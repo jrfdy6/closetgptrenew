@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Deploying ClosetGPT Backend to Railway..."
+echo "🚀 Deploying Easy Outfit Backend to Railway..."
 
 # Check if Railway CLI is installed
 if ! command -v railway &> /dev/null; then

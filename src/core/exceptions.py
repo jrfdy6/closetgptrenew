@@ -1,5 +1,5 @@
 """
-Custom exceptions and error handling for ClosetGPT.
+Custom exceptions and error handling for Easy Outfit App.
 """
 
 from typing import Any, Dict, Optional
@@ -9,8 +9,8 @@ from .logging import get_logger, ErrorTracker
 logger = get_logger("exceptions")
 error_tracker = ErrorTracker(logger)
 
-class ClosetGPTException(Exception):
-    """Base exception for ClosetGPT application."""
+class EasyOutfitException(Exception):
+    """Base exception for Easy Outfit App."""
     
     def __init__(self, message: str, error_code: str = None, details: Dict[str, Any] = None):
         self.message = message
@@ -25,19 +25,19 @@ class ClosetGPTException(Exception):
             **self.details
         )
 
-class AuthenticationError(ClosetGPTException):
+class AuthenticationError(EasyOutfitException):
     """Authentication and authorization errors."""
     
     def __init__(self, message: str = "Authentication failed", details: Dict[str, Any] = None):
         super().__init__(message, "AUTHENTICATION_ERROR", details)
 
-class AuthorizationError(ClosetGPTException):
+class AuthorizationError(EasyOutfitException):
     """Authorization errors."""
     
     def __init__(self, message: str = "Access denied", details: Dict[str, Any] = None):
         super().__init__(message, "AUTHORIZATION_ERROR", details)
 
-class ValidationError(ClosetGPTException):
+class ValidationError(EasyOutfitException):
     """Data validation errors."""
     
     def __init__(self, message: str = "Validation failed", field: str = None, details: Dict[str, Any] = None):
@@ -46,7 +46,7 @@ class ValidationError(ClosetGPTException):
             details["field"] = field
         super().__init__(message, "VALIDATION_ERROR", details)
 
-class DatabaseError(ClosetGPTException):
+class DatabaseError(EasyOutfitException):
     """Database operation errors."""
     
     def __init__(self, message: str = "Database operation failed", operation: str = None, details: Dict[str, Any] = None):
@@ -55,7 +55,7 @@ class DatabaseError(ClosetGPTException):
             details["operation"] = operation
         super().__init__(message, "DATABASE_ERROR", details)
 
-class AIProcessingError(ClosetGPTException):
+class AIProcessingError(EasyOutfitException):
     """AI/ML processing errors."""
     
     def __init__(self, message: str = "AI processing failed", model: str = None, details: Dict[str, Any] = None):
@@ -64,7 +64,7 @@ class AIProcessingError(ClosetGPTException):
             details["model"] = model
         super().__init__(message, "AI_PROCESSING_ERROR", details)
 
-class ImageProcessingError(ClosetGPTException):
+class ImageProcessingError(EasyOutfitException):
     """Image processing errors."""
     
     def __init__(self, message: str = "Image processing failed", operation: str = None, details: Dict[str, Any] = None):
@@ -73,7 +73,7 @@ class ImageProcessingError(ClosetGPTException):
             details["operation"] = operation
         super().__init__(message, "IMAGE_PROCESSING_ERROR", details)
 
-class OutfitGenerationError(ClosetGPTException):
+class OutfitGenerationError(EasyOutfitException):
     """Outfit generation errors."""
     
     def __init__(self, message: str = "Outfit generation failed", context: str = None, details: Dict[str, Any] = None):
@@ -82,7 +82,7 @@ class OutfitGenerationError(ClosetGPTException):
             details["context"] = context
         super().__init__(message, "OUTFIT_GENERATION_ERROR", details)
 
-class ExternalServiceError(ClosetGPTException):
+class ExternalServiceError(EasyOutfitException):
     """External service integration errors."""
     
     def __init__(self, message: str = "External service error", service: str = None, details: Dict[str, Any] = None):
@@ -91,7 +91,7 @@ class ExternalServiceError(ClosetGPTException):
             details["service"] = service
         super().__init__(message, "EXTERNAL_SERVICE_ERROR", details)
 
-class RateLimitError(ClosetGPTException):
+class RateLimitError(EasyOutfitException):
     """Rate limiting errors."""
     
     def __init__(self, message: str = "Rate limit exceeded", limit: int = None, details: Dict[str, Any] = None):
@@ -100,7 +100,7 @@ class RateLimitError(ClosetGPTException):
             details["limit"] = limit
         super().__init__(message, "RATE_LIMIT_ERROR", details)
 
-class ResourceNotFoundError(ClosetGPTException):
+class ResourceNotFoundError(EasyOutfitException):
     """Resource not found errors."""
     
     def __init__(self, message: str = "Resource not found", resource_type: str = None, resource_id: str = None, details: Dict[str, Any] = None):
@@ -112,7 +112,7 @@ class ResourceNotFoundError(ClosetGPTException):
                 details["resource_id"] = resource_id
         super().__init__(message, "RESOURCE_NOT_FOUND", details)
 
-class ConfigurationError(ClosetGPTException):
+class ConfigurationError(EasyOutfitException):
     """Configuration errors."""
     
     def __init__(self, message: str = "Configuration error", config_key: str = None, details: Dict[str, Any] = None):
@@ -136,8 +136,8 @@ EXCEPTION_STATUS_MAPPING = {
     ConfigurationError: status.HTTP_500_INTERNAL_SERVER_ERROR,
 }
 
-def handle_closetgpt_exception(exc: ClosetGPTException) -> HTTPException:
-    """Convert ClosetGPT exceptions to HTTP exceptions."""
+def handle_easy_outfit_exception(exc: EasyOutfitException) -> HTTPException:
+    """Convert Easy Outfit exceptions to HTTP exceptions."""
     status_code = EXCEPTION_STATUS_MAPPING.get(type(exc), status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     return HTTPException(
@@ -197,13 +197,13 @@ def create_database_error(message: str, operation: str = None, collection: str =
 def setup_exception_handlers(app):
     """Setup global exception handlers for the FastAPI app."""
     
-    @app.exception_handler(ClosetGPTException)
-    async def closetgpt_exception_handler(request, exc: ClosetGPTException):
-        """Handle ClosetGPT exceptions."""
-        http_exc = handle_closetgpt_exception(exc)
+    @app.exception_handler(EasyOutfitException)
+    async def easy_outfit_exception_handler(request, exc: EasyOutfitException):
+        """Handle Easy Outfit exceptions."""
+        http_exc = handle_easy_outfit_exception(exc)
         
         logger.error(
-            f"ClosetGPT exception handled: {exc.error_code}",
+            f"Easy Outfit exception handled: {exc.error_code}",
             extra={
                 "extra_fields": {
                     "error_code": exc.error_code,

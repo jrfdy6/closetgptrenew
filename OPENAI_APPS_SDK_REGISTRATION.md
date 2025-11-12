@@ -30,7 +30,7 @@ Click **"Create App"** or **"New App"**
 
 **App Name:**
 ```
-ClosetGPT
+Easy Outfit
 ```
 
 **Short Description:**
@@ -40,7 +40,7 @@ AI-powered wardrobe manager and outfit generator
 
 **Detailed Description:**
 ```
-ClosetGPT helps you manage your digital wardrobe and get personalized outfit suggestions. Get AI-powered recommendations for any occasion, style, or weather condition. Organize your closet and make better fashion choices with intelligent outfit generation.
+Easy Outfit helps you manage your digital wardrobe and get personalized outfit suggestions. Get AI-powered recommendations for any occasion, style, or weather condition. Organize your closet and make better fashion choices with intelligent outfit generation.
 ```
 
 **Category:**
@@ -105,12 +105,12 @@ https://closetgptrenewopenaisdk-production.up.railway.app
 
 **Privacy Policy URL:**
 ```
-https://closetgpt.app/privacy
+https://easyoutfitapp.com/privacy
 ```
 
 **Terms of Service URL:**
 ```
-https://closetgpt.app/terms
+https://easyoutfitapp.com/terms
 ```
 
 **Contact Email:**
@@ -124,7 +124,7 @@ support@closetgpt.app
 
 Upload a logo or provide URL:
 ```
-https://closetgpt.app/logo.png
+https://easyoutfitapp.com/logo.png
 ```
 
 Recommended size: 512x512px PNG
@@ -171,7 +171,7 @@ Your app exposes these endpoints to ChatGPT:
 
 ```
 User in ChatGPT
-  ↓ clicks "Connect ClosetGPT"
+  ↓ clicks "Connect Easy Outfit"
 ChatGPT → GET /oauth/authorize
   ↓ Gateway generates auth code
   ↓ Redirects: callback?code=XXX&state=YYY

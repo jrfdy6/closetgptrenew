@@ -1,5 +1,5 @@
 """
-Minimal authentication routes for ClosetGPT.
+Minimal authentication routes for Easy Outfit App.
 Just the profile endpoint with Firebase authentication.
 """
 

@@ -1,9 +1,9 @@
 {
   "schema_version": "v1",
-  "name_for_human": "ClosetGPT",
-  "name_for_model": "closetgpt",
+  "name_for_human": "Easy Outfit",
+  "name_for_model": "easy_outfit",
   "description_for_human": "AI-powered wardrobe manager and outfit generator. Get personalized outfit suggestions for any occasion.",
-  "description_for_model": "ClosetGPT helps users manage their wardrobe and get AI-powered outfit suggestions. You can view wardrobe items, suggest outfits based on occasion/style/weather, and help users with fashion choices.",
+  "description_for_model": "Easy Outfit helps users manage their wardrobe and get AI-powered outfit suggestions. You can view wardrobe items, suggest outfits based on occasion/style/weather, and help users with fashion choices.",
   "auth": {
     "type": "oauth",
     "client_url": "https://closetgptrenewopenaisdk-production.up.railway.app/oauth/authorize",
@@ -18,8 +18,8 @@
     "type": "openapi",
     "url": "https://closetgptrenewopenaisdk-production.up.railway.app/openapi.json"
   },
-  "logo_url": "https://your-logo-url.com/logo.png",
-  "contact_email": "support@closetgpt.app",
-  "legal_info_url": "https://closetgpt.app/legal"
+  "logo_url": "https://easyoutfitapp.com/logo.png",
+  "contact_email": "support@easyoutfitapp.com",
+  "legal_info_url": "https://easyoutfitapp.com/legal"
 }
 

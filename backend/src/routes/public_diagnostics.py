@@ -1,5 +1,5 @@
 """
-Public diagnostics endpoints for ClosetGPT.
+Public diagnostics endpoints for Easy Outfit App.
 Provides public health and status information.
 """
 
@@ -61,7 +61,7 @@ async def get_public_status():
 async def get_service_info():
     """Get service information."""
     return {
-        "name": "ClosetGPT API",
+        "name": "Easy Outfit API",
         "description": "AI-powered wardrobe management and outfit generation API",
         "version": "1.0.0",
         "environment": os.getenv("ENVIRONMENT", "production"),

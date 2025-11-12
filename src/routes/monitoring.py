@@ -1,5 +1,5 @@
 """
-Monitoring and health check endpoints for ClosetGPT.
+Monitoring and health check endpoints for Easy Outfit App.
 Provides health checks, metrics, and system status monitoring.
 """
 

@@ -1,5 +1,5 @@
 # HTTP Gateway for ChatGPT Apps SDK
-# Proxies requests from ChatGPT to main ClosetGPT backend
+# Proxies requests from ChatGPT to main Easy Outfit backend
 
 [build]
 builder = "dockerfile"

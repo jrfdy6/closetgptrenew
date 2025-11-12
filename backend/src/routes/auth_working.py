@@ -1,5 +1,5 @@
 """
-Working authentication routes for ClosetGPT.
+Working authentication routes for Easy Outfit App.
 Follows the exact pattern used by working wardrobe.py and outfits.py
 """
 

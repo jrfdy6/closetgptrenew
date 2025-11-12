@@ -54,7 +54,7 @@ export default function SignIn() {
             Welcome Back
           </CardTitle>
           <CardDescription className="text-stone-600 dark:text-stone-400 font-light text-lg">
-            Sign in to your ClosetGPT account
+            Sign in to your Easy Outfit account
           </CardDescription>
         </CardHeader>
         <CardContent>

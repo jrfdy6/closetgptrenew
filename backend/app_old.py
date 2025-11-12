@@ -80,7 +80,7 @@ def initialize_firebase():
         bucket = None
 
 app = FastAPI(
-    title="ClosetGPT API - Full",
+    title="Easy Outfit API - Full",
     description="AI-powered wardrobe management and outfit generation API",
     version="1.0.0"
 )
@@ -223,7 +223,7 @@ async def simple_health_check():
 @app.get("/")
 async def root():
     return {
-        "message": "ClosetGPT API is running",
+        "message": "Easy Outfit API is running",
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "version": "1.0.0",

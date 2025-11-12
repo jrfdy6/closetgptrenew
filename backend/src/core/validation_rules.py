@@ -1,5 +1,5 @@
 """
-Dynamic validation rules store for ClosetGPT
+Dynamic validation rules store for Easy Outfit App
 This module provides a simple in-memory store that can be updated live
 and persists to Firestore for durability.
 """

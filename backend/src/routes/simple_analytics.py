@@ -1,5 +1,5 @@
 """
-Simple, reliable analytics system for ClosetGPT
+Simple, reliable analytics system for Easy Outfit App
 NO complex pre-aggregation, NO caching, NO broken services
 Just direct counts when needed.
 FORCE REDEPLOY: Oct 22 2025 01:30 - FINAL DEPLOYMENT TEST - Timezone fix v3

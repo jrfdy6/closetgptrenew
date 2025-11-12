@@ -28,8 +28,8 @@ const FALLBACK_WEATHER: WeatherData = {
   fallback: true
 };
 
-const LAST_WEATHER_STORAGE_KEY = "closetgpt:last-weather-data";
-const LAST_WEATHER_UPDATED_KEY = "closetgpt:last-weather-updated";
+const LAST_WEATHER_STORAGE_KEY = "easyoutfit:last-weather-data";
+const LAST_WEATHER_UPDATED_KEY = "easyoutfit:last-weather-updated";
 
 export function useWeather(options: UseWeatherOptions = {}): UseWeatherReturn {
   const { location, autoFetch = false, fallbackLocation = "Unknown Location" } = options;

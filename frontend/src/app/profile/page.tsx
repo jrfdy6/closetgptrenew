@@ -362,7 +362,7 @@ export default function ProfilePage() {
               <CardContent className="space-y-6">
                 <div className="space-y-4">
                   <p className="text-stone-600 dark:text-stone-400 text-lg">
-                    Your profile is incomplete! To get personalized outfit recommendations and make the most of ClosetGPT, 
+                    Your profile is incomplete! To get personalized outfit recommendations and make the most of Easy Outfit, 
                     please complete your style quiz.
                   </p>
                   

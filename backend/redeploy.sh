@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Redeploying ClosetGPT Backend with correct app..."
+echo "🚀 Redeploying Easy Outfit Backend with correct app..."
 
 # Check if Railway CLI is installed
 if ! command -v railway &> /dev/null; then

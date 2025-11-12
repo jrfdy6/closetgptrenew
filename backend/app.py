@@ -48,28 +48,28 @@ except ImportError:
 
 # Create the app first
 app = FastAPI(
-    title="ClosetGPT API",
+    title="Easy Outfit API",
     description="AI-powered wardrobe management and outfit generation API",
     version="1.0.0"
 )
 
 # Configure CORS first
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://closetgpt-clean.vercel.app")
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://localhost:3000,https://easyoutfit-clean.vercel.app")
 allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
 
 # Add production URLs
 allowed_origins.extend([
-    "https://closetgpt-clean.vercel.app",
-    "https://closetgpt-frontend.vercel.app",
-    "https://closetgptrenew.vercel.app",  # Add the current Vercel domain
-    "https://closetgpt-frontend-ggn2bebjo-johnnie-fields-projects.vercel.app",  # Your specific Vercel domain
-    "https://closetgpt-frontend-lqe5zyn9u-johnnie-fields-projects.vercel.app",  # Your current Vercel preview domain
+    "https://easyoutfit-clean.vercel.app",
+    "https://easyoutfit-frontend.vercel.app",
+    "https://easyoutfitapp.vercel.app",  # Add the current Vercel domain
+    "https://easyoutfit-frontend-ggn2bebjo-johnnie-fields-projects.vercel.app",  # Your specific Vercel domain
+    "https://easyoutfit-frontend-lqe5zyn9u-johnnie-fields-projects.vercel.app",  # Your current Vercel preview domain
     # Allow any Vercel preview deployment for this project
-    "https://closetgptrenew-*.vercel.app",
-    "https://closetgpt-frontend-*.vercel.app",
+    "https://easyoutfitapp-*.vercel.app",
+    "https://easyoutfit-frontend-*.vercel.app",
     # New custom domain
-    "https://closetgpt.app",
-    "https://www.closetgpt.app"
+    "https://easyoutfitapp.com",
+    "https://www.easyoutfitapp.com"
 ])
 
 # Add Railway preview URLs if in development
@@ -84,7 +84,7 @@ if os.getenv("ENVIRONMENT") == "development":
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"^https://(www\.)?closetgpt\.app$|^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$|^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
+    allow_origin_regex=r"^https://(www\.)?easyoutfitapp\.com$|^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$|^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"]
@@ -101,8 +101,9 @@ async def options_handler(full_path: str, request: Request):
     
     # Check if origin is in allowed origins
     if origin in allowed_origins or any(re.match(pattern, origin) for pattern in [
-        r"^https://closetgpt(renew|frontend)-[a-z0-9-]*\.vercel\.app$",
-        r"^https://closetgpt-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$"
+        r"^https://easyoutfit(app|frontend)-[a-z0-9-]*\.vercel\.app$",
+        r"^https://easyoutfit-frontend-[a-z0-9]+-[a-z0-9-]+\.vercel\.app$",
+        r"^https://(www\.)?easyoutfitapp\.com$"
     ]):
         response = Response(status_code=200)
         response.headers["Access-Control-Allow-Origin"] = origin
@@ -474,7 +475,7 @@ async def show_all_routes():
 # ---------------- ROOT ----------------
 @app.get("/")
 def root():
-    return {"status": "API running", "message": "ClosetGPT API is running with DASHBOARD ROUTERS ENABLED - Analytics, Performance, Monitoring all working!", "version": "1.0.8", "deployment": "FORCE_REDEPLOY_OUTFIT_ROUTER", "timestamp": "2024-01-01T00:00:00Z"}
+    return {"status": "API running", "message": "Easy Outfit API is running with DASHBOARD ROUTERS ENABLED - Analytics, Performance, Monitoring all working!", "version": "1.0.8", "deployment": "FORCE_REDEPLOY_OUTFIT_ROUTER", "timestamp": "2024-01-01T00:00:00Z"}
 
 # ---------------- INLINE TEST ROUTES ----------------
 @app.post("/api/image/upload-inline")

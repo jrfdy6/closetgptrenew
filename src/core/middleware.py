@@ -1,5 +1,5 @@
 """
-Production Middleware for ClosetGPT
+Production middleware for Easy Outfit App.
 Provides request logging, performance monitoring, and error tracking.
 """
 

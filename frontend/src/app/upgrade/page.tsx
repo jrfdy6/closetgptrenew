@@ -70,7 +70,7 @@ export default function UpgradePage() {
             Choose your styling pace
           </h1>
           <p className="text-stone-600 dark:text-stone-300 text-base sm:text-lg max-w-2xl mx-auto">
-            ClosetGPT caters to every type of closet. Keep your free plan for casual outfit saving or
+            Easy Outfit caters to every type of closet. Keep your free plan for casual outfit saving or
             upgrade for magazine-ready flat lays, priority rendering, and concierge support.
           </p>
         </section>
@@ -133,7 +133,7 @@ export default function UpgradePage() {
                     </Button>
                   ) : (
                     <Button asChild className="w-full bg-stone-900 text-white hover:bg-stone-800">
-                      <a href="mailto:hello@closetgpt.com" target="_blank" rel="noopener noreferrer">
+                      <a href="mailto:hello@easyoutfitapp.com" target="_blank" rel="noopener noreferrer">
                         {tier.cta}
                       </a>
                     </Button>
@@ -172,11 +172,11 @@ export default function UpgradePage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-stone-600 dark:text-stone-300">
               <p>
-                Agencies, stylists, and wardrobe teams can partner with ClosetGPT for enterprise-level
+                Agencies, stylists, and wardrobe teams can partner with Easy Outfit for enterprise-level
                 support, custom branding, and SLA-backed turnaround times.
               </p>
               <Button asChild variant="outline" className="w-fit">
-                <a href="mailto:hello@closetgpt.com" target="_blank" rel="noopener noreferrer">
+                <a href="mailto:hello@easyoutfitapp.com" target="_blank" rel="noopener noreferrer">
                   Talk with our team
                 </a>
               </Button>

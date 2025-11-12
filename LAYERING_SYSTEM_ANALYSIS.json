@@ -1,5 +1,5 @@
 {
-  "system_name": "ClosetGPT Context-Aware Layering System",
+  "system_name": "Easy Outfit Context-Aware Layering System",
   "file": "backend/src/services/robust_outfit_generation_service.py",
   "function": "_generate_outfit_internal",
   "version": "2025-10-11",

@@ -227,8 +227,8 @@ Create `app_metadata.json`:
   "description": "AI-powered wardrobe management and outfit recommendations",
   "category": "lifestyle",
   "icon_url": "https://your-domain.com/icon.png",
-  "privacy_policy_url": "https://closetgpt.app/privacy",
-  "terms_of_service_url": "https://closetgpt.app/terms"
+  "privacy_policy_url": "https://easyoutfitapp.com/privacy",
+  "terms_of_service_url": "https://easyoutfitapp.com/terms"
 }
 ```
 

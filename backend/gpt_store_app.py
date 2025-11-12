@@ -1,5 +1,5 @@
 """
-Standalone GPT Store Service for ClosetGPT
+Standalone GPT Store Service for Easy Outfit App
 This is a separate FastAPI app that handles ONLY GPT Store integration.
 Run independently from your main app to avoid conflicts.
 
@@ -23,13 +23,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Configuration
-OAUTH_CLIENT_ID = os.getenv("GPT_OAUTH_CLIENT_ID", "closetgpt-custom-gpt")
+OAUTH_CLIENT_ID = os.getenv("GPT_OAUTH_CLIENT_ID", "easyoutfit-custom-gpt")
 OAUTH_CLIENT_SECRET = os.getenv("GPT_OAUTH_CLIENT_SECRET", secrets.token_urlsafe(32))
 JWT_SECRET = os.getenv("JWT_SECRET", secrets.token_urlsafe(32))
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3002")
 MAIN_API_URL = os.getenv("MAIN_API_URL", "https://closetgptrenew-production.railway.app")
-COMPANY_NAME = os.getenv("COMPANY_NAME", "ClosetGPT")
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@closetgpt.app")
+COMPANY_NAME = os.getenv("COMPANY_NAME", "Easy Outfit App")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@easyoutfitapp.com")
 
 # In-memory storage (use Redis in production)
 oauth_codes = {}
@@ -37,7 +37,7 @@ oauth_tokens = {}
 
 # Create FastAPI app
 app = FastAPI(
-    title="ClosetGPT GPT Store Service",
+    title="Easy Outfit GPT Store Service",
     description="OAuth and GPT Actions for OpenAI Custom GPT integration",
     version="1.0.0"
 )
@@ -517,7 +517,7 @@ async def terms_of_service():
 async def root():
     """Root endpoint"""
     return {
-        "service": "ClosetGPT GPT Store Service",
+        "service": "Easy Outfit GPT Store Service",
         "status": "running",
         "endpoints": {
             "oauth": "/oauth/authorize",

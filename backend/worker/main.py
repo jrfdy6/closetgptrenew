@@ -1406,7 +1406,7 @@ def run_worker():
 # ----------------------------
 if __name__ == "__main__":
     print("=" * 60)
-    print("🚀 ClosetGPT Background Image Processor")
+    print("🚀 Easy Outfit Background Image Processor")
     print("=" * 60)
     print()
     run_worker()

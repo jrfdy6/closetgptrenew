@@ -53,7 +53,7 @@ export default function MobileOptimizedNav({
             <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <span className="font-bold text-lg text-gray-900 dark:text-white">ClosetGPT</span>
+            <span className="font-bold text-lg text-gray-900 dark:text-white">Easy Outfit</span>
           </Link>
 
           {/* Right side controls */}
@@ -115,7 +115,7 @@ export default function MobileOptimizedNav({
                   <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                     <Sparkles className="h-5 w-5 text-white" />
                   </div>
-                  <span className="font-bold text-lg text-gray-900 dark:text-white">ClosetGPT</span>
+                  <span className="font-bold text-lg text-gray-900 dark:text-white">Easy Outfit</span>
                 </div>
                 <Button
                   variant="ghost"

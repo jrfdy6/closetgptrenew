@@ -1,5 +1,5 @@
 """
-Performance test endpoints for ClosetGPT.
+Performance test endpoints for Easy Outfit App.
 Provides endpoints to test and measure performance optimizations.
 """
 

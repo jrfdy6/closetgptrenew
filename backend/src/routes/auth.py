@@ -1,5 +1,5 @@
 """
-Authentication routes for ClosetGPT.
+Authentication routes for Easy Outfit App.
 Handles user registration, login, and profile management.
 """
 

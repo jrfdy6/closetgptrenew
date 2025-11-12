@@ -1,4 +1,4 @@
-# 🎯 ClosetGPT MCP Server - Ready for Deployment!
+# 🎯 Easy Outfit MCP Server - Ready for Deployment!
 
 ## ✅ Current Status
 
@@ -29,7 +29,7 @@ Your MCP server is **fully working** and ready to deploy to Railway.
 2. **Click "New Project"**
 3. **Select "Deploy from GitHub repo"**
 4. **Choose your `closetgptrenew` repository**
-5. **Name:** `ClosetGPT MCP Server`
+5. **Name:** `Easy Outfit MCP Server`
 
 ### Configure Service
 

@@ -1,5 +1,5 @@
 """
-Configuration management for ClosetGPT.
+Configuration management for Easy Outfit App.
 Handles environment variables, validation, and production settings.
 """
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support."""
     
     # Application settings
-    APP_NAME: str = "ClosetGPT"
+    APP_NAME: str = "Easy Outfit App"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
     DEBUG: bool = False

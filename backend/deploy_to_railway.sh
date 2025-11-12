@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Deploy ClosetGPT Backend to Railway
+# Deploy Easy Outfit Backend to Railway
 # This script helps deploy the backend to Railway with proper setup
 
 set -e  # Exit on any error
 
-echo "🚀 Deploying ClosetGPT Backend to Railway..."
+echo "🚀 Deploying Easy Outfit Backend to Railway..."
 echo ""
 
 # Check if Railway CLI is installed

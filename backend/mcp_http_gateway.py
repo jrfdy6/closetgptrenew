@@ -11,14 +11,14 @@ MAIN_BACKEND_URL = "https://closetgptrenew-production.up.railway.app"
 API_KEY = os.environ.get("API_KEY", "")
 
 # OAuth configuration
-OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "closetgpt-chatgpt-app")
+OAUTH_CLIENT_ID = os.environ.get("OAUTH_CLIENT_ID", "easyoutfit-chatgpt-app")
 OAUTH_CLIENT_SECRET = os.environ.get("OAUTH_CLIENT_SECRET", secrets.token_urlsafe(32))
 OAUTH_REDIRECT_URI = "https://chat.openai.com/aip/oauth/callback"
 
 # In-memory token store (for MVP - use Redis/DB in production)
 oauth_tokens = {}  # {access_token: {user_id, firebase_token, expires_at}}
 
-app = FastAPI(title="ClosetGPT ChatGPT App Gateway")
+app = FastAPI(title="Easy Outfit ChatGPT App Gateway")
 
 # Allow ChatGPT Apps requests
 app.add_middleware(
@@ -39,10 +39,10 @@ async def ai_plugin_manifest():
     """
     return {
         "schema_version": "v1",
-        "name_for_human": "ClosetGPT",
-        "name_for_model": "closetgpt",
+        "name_for_human": "Easy Outfit",
+        "name_for_model": "easy_outfit",
         "description_for_human": "AI-powered wardrobe manager and outfit generator. Get personalized outfit suggestions for any occasion.",
-        "description_for_model": "ClosetGPT helps users manage their digital wardrobe and get personalized outfit suggestions. Use get_wardrobe to view items, suggest_outfits to generate outfit recommendations based on occasion, style, and weather.",
+        "description_for_model": "Easy Outfit helps users manage their digital wardrobe and get personalized outfit suggestions. Use get_wardrobe to view items, suggest_outfits to generate outfit recommendations based on occasion, style, and weather.",
         "auth": {
             "type": "oauth",
             "client_url": "https://closetgptrenewopenaisdk-production.up.railway.app/oauth/authorize",
@@ -56,9 +56,9 @@ async def ai_plugin_manifest():
             "url": "https://closetgptrenewopenaisdk-production.up.railway.app/openapi.json",
             "is_user_authenticated": True
         },
-        "logo_url": "https://closetgpt.app/logo.png",
-        "contact_email": "support@closetgpt.app",
-        "legal_info_url": "https://closetgpt.app/legal"
+        "logo_url": "https://easyoutfitapp.com/logo.png",
+        "contact_email": "support@easyoutfitapp.com",
+        "legal_info_url": "https://easyoutfitapp.com/legal"
     }
 
 @app.get("/oauth/authorize")

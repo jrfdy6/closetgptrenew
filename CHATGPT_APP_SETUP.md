@@ -26,7 +26,7 @@
 
 ### Basic Information
 
-**App Name:** ClosetGPT
+**App Name:** Easy Outfit
 
 **Description:**
 ```
@@ -91,12 +91,12 @@ support@closetgpt.app
 
 **Privacy Policy URL:**
 ```
-https://closetgpt.app/privacy
+https://easyoutfitapp.com/privacy
 ```
 
 **Terms of Service URL:**
 ```
-https://closetgpt.app/terms
+https://easyoutfitapp.com/terms
 ```
 
 ---
@@ -132,7 +132,7 @@ Your gateway currently supports:
 
 ## 📊 Current OAuth Flow (MVP)
 
-1. User clicks "Connect ClosetGPT" in ChatGPT
+1. User clicks "Connect Easy Outfit" in ChatGPT
 2. Redirects to `/oauth/authorize`
 3. Auto-generates authorization code
 4. Redirects back to ChatGPT

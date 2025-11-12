@@ -1,5 +1,5 @@
 """
-Security utilities and middleware for ClosetGPT.
+Security utilities and middleware for Easy Outfit App.
 Provides authentication, authorization, input validation, and security checks.
 """
 

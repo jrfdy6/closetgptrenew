@@ -1,4 +1,4 @@
-# ClosetGPT Production Architecture Reference
+# Easy Outfit Production Architecture Reference
 
 ## 🚨 CRITICAL: Never Forget These Details
 

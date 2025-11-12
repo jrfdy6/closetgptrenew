@@ -1,4 +1,4 @@
-# ClosetGPT Flat Lay Image Generation System
+# Easy Outfit Flat Lay Image Generation System
 
 ## Overview
 
@@ -466,5 +466,5 @@ The Flat Lay System is working correctly when:
 
 **Version**: 1.0.0  
 **Last Updated**: January 2025  
-**Author**: ClosetGPT Development Team
+**Author**: Easy Outfit Development Team
 

@@ -22,7 +22,7 @@
 ## 🔍 Browser Inspector Test (1 min)
 
 ### Steps:
-1. **Right-click** on the big "ClosetGPT" title
+1. **Right-click** on the big "Easy Outfit" title
 2. Select **"Inspect Element"**
 3. Look at the **parent div** (the card container)
 4. In the right panel, find **"Computed"** tab

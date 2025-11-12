@@ -30,7 +30,7 @@ def check_dependencies():
 def start_backend():
     """Start the backend server"""
     try:
-        print("🚀 Starting ClosetGPT Backend...")
+        print("🚀 Starting Easy Outfit Backend...")
         print("📍 Server will be available at: http://localhost:8080")
         print("🔗 API docs will be available at: http://localhost:8080/docs")
         
@@ -53,7 +53,7 @@ def start_backend():
         print(f"❌ Error starting server: {e}")
 
 def main():
-    print("🔧 ClosetGPT Backend - Local Development")
+    print("🔧 Easy Outfit Backend - Local Development")
     print("=" * 50)
     
     # Check dependencies

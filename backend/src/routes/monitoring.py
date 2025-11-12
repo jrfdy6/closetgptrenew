@@ -1,5 +1,5 @@
 """
-System monitoring endpoints for ClosetGPT.
+System monitoring endpoints for Easy Outfit App.
 Provides system health and performance monitoring.
 """
 
